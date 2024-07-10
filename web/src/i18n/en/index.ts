@@ -926,7 +926,9 @@ const en: BaseTranslation = {
       form: {
         labels: {
           name: 'Name',
-          documentUrl: 'OpenID document URL',
+          provider_url: 'Provider URL',
+          client_id: 'Client ID',
+          client_secret: 'Client Secret',
         },
       },
     },

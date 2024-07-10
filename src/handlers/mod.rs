@@ -24,8 +24,6 @@ pub(crate) mod mail;
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
-pub mod openid_login;
-pub mod openid_providers;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
@@ -38,7 +36,7 @@ pub mod worker;
 pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
-static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default)]
 pub struct ApiResponse {

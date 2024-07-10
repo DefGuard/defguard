@@ -182,7 +182,10 @@ const EditModeControls = () => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.SAVE}
           icon={<IconCheckmarkWhite />}
-          onClick={() => submitSubject.next()}
+          onClick={() => {
+            submitSubject.next();
+            console.log('submitSubject.next();');
+          }}
           loading={loading}
         />
       </div>

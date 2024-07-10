@@ -570,6 +570,9 @@ export interface ApiHook {
     getEssentialSettings: () => Promise<SettingsEssentials>;
     testLdapSettings: () => Promise<EmptyApiResponse>;
     fetchOpenIdProviders: () => Promise<OpenIdProvider[]>;
+    addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    deleteOpenIdProvider: (id: string) => Promise<EmptyApiResponse>;
+    editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -787,7 +790,8 @@ export type Settings = SettingsModules &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
-  SettingsLDAP;
+  SettingsLDAP &
+  SettingsOpenID;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -840,6 +844,13 @@ export type SettingsWeb3 = {
   challenge_template: string;
 };
 
+export type SettingsOpenID = {
+  name: string;
+  provider_url: string;
+  client_id: string;
+  client_secret: string;
+};
+
 export interface Webhook {
   id: string;
   url: string;
@@ -865,7 +876,9 @@ export interface OpenidClient {
 export interface OpenIdProvider {
   id: string;
   name: string;
-  document_url: string;
+  provider_url: string;
+  client_id: string;
+  client_secret: string;
 }
 
 export interface EditOpenidClientRequest {

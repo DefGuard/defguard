@@ -439,6 +439,16 @@ const useApi = (props?: HookProps): ApiHook => {
   const fetchOpenIdProviders: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
     client.get<OpenIdProvider[]>(`/openid/provider`).then((res) => res.data);
 
+  const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
+    client.post(`/openid/provider`, data).then(unpackRequest);
+
+  const deleteOpenIdProvider: ApiHook['settings']['deleteOpenIdProvider'] = async (
+    name,
+  ) => client.delete(`/openid/provider/${name}`).then(unpackRequest);
+
+  const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = async (data) =>
+    client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -597,6 +607,9 @@ const useApi = (props?: HookProps): ApiHook => {
       getEssentialSettings,
       testLdapSettings,
       fetchOpenIdProviders,
+      addOpenIdProvider,
+      deleteOpenIdProvider,
+      editOpenIdProvider,
     },
     support: {
       downloadSupportData,

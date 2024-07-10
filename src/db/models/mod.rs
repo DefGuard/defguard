@@ -12,8 +12,6 @@ pub mod oauth2authorizedapp;
 pub mod oauth2client;
 #[cfg(feature = "openid")]
 pub mod oauth2token;
-// TODO(jck): enterprise-only enabled
-pub mod openid_provider;
 pub mod session;
 pub mod settings;
 pub mod user;
@@ -100,7 +98,7 @@ impl UserInfo {
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
             is_active: user.is_active,
-            enrolled: user.has_password(),
+            enrolled: user.has_password() || user.openid_login,
         })
     }
 

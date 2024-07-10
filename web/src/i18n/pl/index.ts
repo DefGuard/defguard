@@ -912,7 +912,9 @@ Uwaga, podane tutaj konfiguracje nie posiadajÄ… klucza prywatnego. Musisz uzupeÅ
       form: {
         labels: {
           name: 'Nazwa',
-          documentUrl: 'OpenID document URL',
+          provider_url: 'URL dostawcy OpenID',
+          client_id: 'ID klienta',
+          client_secret: 'Sekret klienta',
         },
       },
     },

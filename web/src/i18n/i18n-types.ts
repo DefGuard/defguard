@@ -2287,9 +2287,17 @@ type RootTranslation = {
 					 */
 					name: string
 					/**
-					 * O​p​e​n​I​D​ ​d​o​c​u​m​e​n​t​ ​U​R​L
+					 * P​r​o​v​i​d​e​r​ ​U​R​L
 					 */
-					documentUrl: string
+					provider_url: string
+					/**
+					 * C​l​i​e​n​t​ ​I​D
+					 */
+					client_id: string
+					/**
+					 * C​l​i​e​n​t​ ​S​e​c​r​e​t
+					 */
+					client_secret: string
 				}
 			}
 		}
@@ -6197,9 +6205,17 @@ export type TranslationFunctions = {
 					 */
 					name: () => LocalizedString
 					/**
-					 * OpenID document URL
+					 * Provider URL
 					 */
-					documentUrl: () => LocalizedString
+					provider_url: () => LocalizedString
+					/**
+					 * Client ID
+					 */
+					client_id: () => LocalizedString
+					/**
+					 * Client Secret
+					 */
+					client_secret: () => LocalizedString
 				}
 			}
 		}

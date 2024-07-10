@@ -2,7 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -79,21 +79,36 @@ export const Login = () => {
     },
   });
 
+  const client = useMemo(() => {
+    const res = axios.create({
+      baseURL: '/api/v1',
+    });
+
+    res.defaults.headers.common['Content-Type'] = 'application/json';
+    return res;
+  }, []);
+
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     if (!loginMutation.isLoading) {
       loginMutation.mutate(trimObjectStrings(data));
     }
   };
 
-  const msUrl =
-    'https://login.microsoftonline.com/2fc43015-5699-4d01-bd01-d6f2bd66818a/oauth2/' +
-    'v2.0/authorize?client_id=f2cef8b3-5b09-4c3f-988b-51fc3c42ecbc' +
-    '&scope=openid%20profile%20email&response_type=id_token&nonce=ala';
-  const redirect = () => {
-    window.location.replace(msUrl);
+  const getUrl = async () => {
+    const url = client.get('/openid/get_auth_url').then((res) => res.data);
+    return url;
   };
 
-  return (
+  getUrl().then((url) => {
+    console.log(url);
+  });
+  const redirect = () => {
+    getUrl().then((url) => {
+      window.location.replace(url);
+    });
+  };
+
+  https: return (
     <section id="login-container">
       <h1>{LL.loginPage.pageTitle()}</h1>
       <form onSubmit={handleSubmit(onSubmit)}>

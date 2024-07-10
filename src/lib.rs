@@ -12,12 +12,17 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
+use enterprise::handlers::{
+    openid_login::{auth_callback, make_auth_url},
+    openid_providers::{
+        add_openid_provider, delete_openid_provider, list_openid_providers, modify_openid_provider,
+    },
+};
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
-    openid_providers::list_openid_providers,
     ssh_authorized_keys::rename_authentication_key,
     yubikey::{delete_yubikey, rename_yubikey},
 };
@@ -57,7 +62,6 @@ use self::{
             remove_group_member,
         },
         mail::{send_support_data, test_mail},
-        openid_login::auth_callback,
         settings::{
             get_settings, get_settings_essentials, patch_settings, set_default_branding,
             test_ldap_settings, update_settings,
@@ -111,6 +115,7 @@ pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
+pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -280,8 +285,12 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // OIDC login
+            .route("/openid/provider", get(list_openid_providers))
+            .route("/openid/provider", post(add_openid_provider))
+            .route("/openid/provider/:name", put(modify_openid_provider))
+            .route("/openid/provider/:name", delete(delete_openid_provider))
             .route("/openid/callback", get(auth_callback))
-            .route("/openid/provider", get(list_openid_providers)),
+            .route("/openid/get_auth_url", get(make_auth_url)),
     );
 
     #[cfg(feature = "openid")]
