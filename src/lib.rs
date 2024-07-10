@@ -8,12 +8,20 @@ use anyhow::anyhow;
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    serve, Extension, Json, Router,
 };
 
 use assets::{index, svg, web_asset};
-use handlers::ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+use db::{models::device::UserDevice, UserDetails, UserInfo};
+use error::WebError;
+use handlers::{
+    group::Groups,
+    ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+    },
+    user::WalletInfoShort,
+    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
+    WalletSignature,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -33,6 +41,11 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
+
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
 
 use self::{
     appstate::AppState,
@@ -142,6 +155,76 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 
+mod openapi {
+    use super::*;
+    use utoipa::OpenApi;
+
+    use handlers::{group, user, ApiResponse};
+
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            // /user
+            user::list_users,
+            user::get_user,
+            user::add_user,
+            user::start_enrollment,
+            user::start_remote_desktop_configuration,
+            user::username_available,
+            user::modify_user,
+            user::delete_user,
+            user::change_self_password,
+            user::change_password,
+            user::reset_password,
+            user::wallet_challenge,
+            user::set_wallet,
+            user::update_wallet,
+            user::delete_wallet,
+            user::delete_security_key,
+            user::me,
+            user::delete_authorized_app,
+            // /device
+            // /group
+            group::list_groups,
+        ),
+        components(
+            schemas(
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange
+            ),
+        ),
+        tags(
+            (name = "user", description = "
+Endpoints that allow to control user data.
+
+Available actions:  
+- list all users
+- CRUD mechanism for user
+- operation on user wallet
+- operation on security key and authorized app
+- change user password.
+            "),
+            (name = "wireguard", description = "description"),
+            (name = "group", description = "description")
+        )
+    )]
+    pub struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add an appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                )
+            }
+        }
+    }
+}
+
 /// Simple health-check.
 async fn health_check() -> &'static str {
     "alive"
@@ -149,6 +232,10 @@ async fn health_check() -> &'static str {
 
 async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
+}
+
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::ApiDoc::openapi())
 }
 
 pub fn build_webapp(
@@ -176,6 +263,7 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -305,6 +393,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            // FIXME: change /device/:device_id to /device/:username
             .route("/device/:device_id", post(add_device))
             .route("/device/:device_id", put(modify_device))
             .route("/device/:device_id", get(get_device))
