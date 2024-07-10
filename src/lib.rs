@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Json, Router,
+    serve, Extension, Router,
 };
 
 use assets::{index, svg, web_asset};
@@ -38,6 +38,7 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
 };
+use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
@@ -264,10 +265,6 @@ async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
-async fn openapi() -> Json<utoipa::openapi::OpenApi> {
-    Json(openapi::ApiDoc::openapi())
-}
-
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
@@ -293,7 +290,6 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
-            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -464,6 +460,9 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let swagger =
+        SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+
     webapp
         .with_state(AppState::new(
             pool,
@@ -485,6 +484,7 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.
