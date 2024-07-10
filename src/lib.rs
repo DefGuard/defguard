@@ -12,11 +12,9 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use handlers::
-    ssh_authorized_keys::{
-        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    }
-;
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     ssh_authorized_keys::rename_authentication_key,
@@ -151,11 +149,20 @@ pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
     use super::*;
-    use db::{models::device::{ModifyDevice, UserDevice}, AddDevice, UserDetails, UserInfo};
+    use db::{
+        models::device::{ModifyDevice, UserDevice},
+        AddDevice, UserDetails, UserInfo,
+    };
     use error::WebError;
     use utoipa::OpenApi;
 
-    use handlers::{group::{self, Groups}, user::{self, WalletInfoShort}, wireguard::{self, AddDeviceResult}, ApiResponse, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange, WalletSignature};
+    use handlers::{
+        group::{self, Groups},
+        user::{self, WalletInfoShort},
+        wireguard::{self, AddDeviceResult},
+        ApiResponse, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
+        WalletChange, WalletSignature,
+    };
 
     #[derive(OpenApi)]
     #[openapi(
@@ -201,12 +208,18 @@ Endpoints that allow to control user data.
 
 Available actions:  
 - list all users
-- CRUD mechanism for user
+- CRUD mechanism for handling users
 - operation on user wallet
 - operation on security key and authorized app
 - change user password.
             "),
-            (name = "wireguard", description = "description"),
+            (name = "wireguard", description = "
+Endpoints that allo to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
             (name = "group", description = "description")
         )
     )]

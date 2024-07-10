@@ -455,15 +455,15 @@ pub struct AddDeviceResult {
 }
 
 /// Add device
-/// 
-/// Add a new device for a user by sending `AddDevice` object. 
+///
+/// Add a new device for a user by sending `AddDevice` object.
 /// Notice that `wireguard_pubkey` must be unique to successfully add the device.
 /// You can't add devices for `disabled` users.
-/// 
+///
 /// Device will be added to all networks in your company infrastructure.
-/// 
+///
 /// User will receive all new device details on email.
-/// 
+///
 /// # Returns
 /// Returns `AddDeviceResult` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -620,12 +620,12 @@ pub async fn add_device(
 }
 
 /// Modify device
-/// 
-/// Update a device for a user by sending `ModifyDevice` object. 
+///
+/// Update a device for a user by sending `ModifyDevice` object.
 /// Notice that `wireguard_pubkey` must be diffrent from server's pubkey.
-/// 
+///
 /// Endpoint will trigger new update in gateway server.
-/// 
+///
 /// # Returns
 /// Returns `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -716,7 +716,7 @@ pub async fn modify_device(
 }
 
 /// Get device
-/// 
+///
 /// # Returns
 /// Returns `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
@@ -755,9 +755,9 @@ pub async fn get_device(
 }
 
 /// Delete device
-/// 
+///
 /// Delete user device and trigger new update in gateway server.
-/// 
+///
 /// # Returns
 /// If error occurs it returns WebError` object.
 #[utoipa::path(
@@ -789,7 +789,7 @@ pub async fn delete_device(
 }
 
 /// List all devices
-/// 
+///
 /// # Returns
 /// Returns a list `Device` objects or `WebError` object if error occurs.
 #[utoipa::path(
@@ -821,9 +821,9 @@ pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> A
 }
 
 /// List user devices
-/// 
+///
 /// This endpoint requires `admin` role.
-/// 
+///
 /// # Returns
 /// Returns a list of `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
