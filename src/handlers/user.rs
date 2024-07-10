@@ -318,9 +318,9 @@ pub async fn add_user(
 ///
 /// Thanks to this endpoint you are able to trigger manually enrollment process, where after finishing you receive an enrollment token.
 ///
-/// `Enrollment token` enables process for gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, `enrollment url enables to redirect into enrollment process form.`
+/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
 ///
-/// Optionally this endpoint can send to a user email notification about enrollment.
+/// Optionally this endpoint can send an email notification to the user about the enrollment.
 /// # Returns
 /// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
@@ -398,11 +398,11 @@ pub async fn start_enrollment(
 ///
 /// Allows admin to start new remote desktop configuration for user that is provided as a parameter in endpoint.
 ///
-/// Thanks to this endpoint you are able to receive a new desktop configuration for users which they can use their devices for conecting to the company infrastructure.
+/// Thanks to this endpoint you are able to receive a new desktop client configuration or update an existing one. Users need the configuration to connect to the company infrastrcture.
 ///
-/// `Enrollment token` enables process for gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, `enrollment url enables to redirect into enrollment process form.`
+/// `Enrollment token` allows to start the process of gaining access to the company infrastructure `(The enrollment token is valid for 24 hours)`. On the other hand, enrollment url allows the user to access the enrollment form via the web browser or perform the enrollment through the desktop client.
 ///
-/// Optionally this endpoint can send to a user email notification about enrollment.
+/// Optionally this endpoint can send an email notification to the user about the enrollment.```
 /// # Returns
 /// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
@@ -464,9 +464,9 @@ pub async fn start_remote_desktop_configuration(
     })
 }
 
-/// Verify is user available
+/// Verify if the user is available
 ///
-/// Check is user available by provided `Username` object.
+/// Check if user is available by provided `Username` object.
 /// Username is unique so database returns only single user or nothing.
 ///
 /// # Returns
@@ -662,7 +662,7 @@ pub async fn delete_user(
 
 /// Change your own password
 ///
-/// Change your own passwor, it could return error if password is not strong enough.
+/// Change your own password, it could return error if password is not strong enough.
 ///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
@@ -716,7 +716,7 @@ pub async fn change_self_password(
 ///
 /// Change user password, it could return error if password is not strong enough.
 ///
-/// `This endpoint can't allow your to change your own password. Go to: /api/v1/user/change_password.`
+/// `This endpoint doesn't allow you to change your own password. Go to: /api/v1/user/change_password.`
 ///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
@@ -793,9 +793,9 @@ pub async fn change_password(
 
 /// Reset user password
 ///
-/// Reset user password, it will send new enrollment to user to his/her email.
+/// Reset user password, it will send a new enrollment to the user's email.
 ///
-/// `This endpoint don't allow you to reset your own password.`
+/// `This endpoint doesn't allow you to reset your own password.`
 ///
 /// # Returns
 /// If erorr occurs, endpoint will return `WebError` object.
@@ -910,7 +910,7 @@ pub struct WalletInfoShort {
 
 /// Wallet challenge
 ///
-/// Endpoint allows user to get encrypted message from user wallet to communicate with others securly.
+/// Endpoint allows to generate a wallet challenge for ownership verification.
 ///
 /// # Returns
 /// Returns `WalletChallenge` object or `WebError` object if error occurs.
@@ -1201,7 +1201,7 @@ pub async fn delete_wallet(
 
 /// Delete security key
 ///
-/// Delete security key that helps user to authenticate himself/herself with the company infrastructure.
+/// Delete Webauthn security key that allows users to authenticate.
 ///
 /// # Returns
 /// Returns `WebError` object if error occurs.
@@ -1257,7 +1257,7 @@ pub async fn delete_security_key(
 
 /// Returns your data
 ///
-/// Endpoint returns your own data that is essential to have access to your company infrastructure.
+/// Endpoint returns the data associated with the current session user```
 ///
 /// # Returns
 /// Returns `UserInfo` object or `WebError` object if error occurs.
