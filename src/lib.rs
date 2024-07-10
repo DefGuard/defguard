@@ -461,7 +461,7 @@ pub fn build_webapp(
     );
 
     let swagger =
-        SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
 
     webapp
         .with_state(AppState::new(
