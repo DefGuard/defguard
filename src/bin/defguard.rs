@@ -45,7 +45,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!("Starting ... version v{} (commit: )", VERSION);
+    info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");
 
     let pool = init_db(
