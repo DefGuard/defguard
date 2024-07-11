@@ -458,7 +458,7 @@ pub struct AddDeviceResult {
 ///
 /// Add a new device for a user by sending `AddDevice` object.
 /// Notice that `wireguard_pubkey` must be unique to successfully add the device.
-/// You can't add devices for `disabled` users.
+/// You can't add devices for `disabled` users, unless you are an admin.
 ///
 /// Device will be added to all networks in your company infrastructure.
 ///
@@ -759,7 +759,7 @@ pub async fn get_device(
 /// Delete user device and trigger new update in gateway server.
 ///
 /// # Returns
-/// If error occurs it returns WebError` object.
+/// If error occurs it returns `WebError` object.
 #[utoipa::path(
     delete,
     path = "/api/v1/device/:device_id",

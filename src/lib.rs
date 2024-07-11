@@ -218,8 +218,8 @@ Endpoints that allow to control user data.
 Available actions:  
 - list all users
 - CRUD mechanism for handling users
-- operation on user wallet
-- operation on security key and authorized app
+- operations on user wallet
+- operations on security key and authorized app
 - change user password.
             "),
             (name = "wireguard", description = "

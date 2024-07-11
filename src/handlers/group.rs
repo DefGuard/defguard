@@ -38,8 +38,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
 
 /// Bulk assign users to groups
 ///
-/// Bulk assign users to one group for users overview
-/// assign many users to many groups at once.
+/// Assign many users to many groups at once.
 ///
 /// # Returns
 /// If error occurs, it returns `WebError` object.
@@ -108,7 +107,7 @@ pub(crate) async fn bulk_assign_to_groups(
 
 /// Retrieve all groups info
 ///
-/// Endpoint retrives for each `GroupInfo` objects: group name, a list of users' name and list of vpn_location.
+/// For each group, the endpoint retrieves a `GroupInfo` object containing: group name, a list of members' usernames and a list of vpn_location.
 ///
 /// `There is another endpoint "/api/v1/group" that retrives only name of each groups if you don't want all information.`
 ///
