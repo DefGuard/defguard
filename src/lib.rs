@@ -160,10 +160,12 @@ mod openapi {
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, WalletInfoShort},
-        wireguard::{self, AddDeviceResult},
+        wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         StartEnrollmentRequest, Username, WalletChange, WalletSignature,
     };
+
+    use handlers::wireguard as device;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -189,12 +191,12 @@ mod openapi {
             user::me,
             user::delete_authorized_app,
             // /device
-            wireguard::add_device,
-            wireguard::modify_device,
-            wireguard::get_device,
-            wireguard::delete_device,
-            wireguard::list_devices,
-            wireguard::list_user_devices,
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
             // /group
             group::bulk_assign_to_groups,
             group::list_groups_info,
@@ -215,14 +217,14 @@ mod openapi {
             (name = "user", description = "
 Endpoints that allow to control user data.
 
-Available actions:  
+Available actions:
 - list all users
 - CRUD mechanism for handling users
 - operation on user wallet
 - operation on security key and authorized app
 - change user password.
             "),
-            (name = "wireguard", description = "
+            (name = "device", description = "
 Endpoints that allow to control devices in your network.
 
 Available actions:

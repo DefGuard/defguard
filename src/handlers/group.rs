@@ -471,7 +471,7 @@ pub(crate) async fn add_group_member(
 /// If error occurs it returns `WebError` object.
 #[utoipa::path(
     delete,
-    path = "/group/:name/user/:username",
+    path = "/api/v1/group/:name/user/:username",
     params(
         ("name" = String, description = "Name of the group that you want to delete a user."),
         ("username" = String, description = "Name of the user that you want to delete.")
