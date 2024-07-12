@@ -497,7 +497,7 @@ impl From<User> for AdminInfo {
 
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
-        let is_enrolled = user.has_password() || user.openid_login;
+        let is_enrolled = user.has_password();
         let devices = user.devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {

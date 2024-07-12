@@ -2287,9 +2287,9 @@ type RootTranslation = {
 					 */
 					name: string
 					/**
-					 * P​r​o​v​i​d​e​r​ ​U​R​L
+					 * P​r​o​v​i​d​e​r
 					 */
-					provider_url: string
+					provider: string
 					/**
 					 * C​l​i​e​n​t​ ​I​D
 					 */
@@ -2298,6 +2298,14 @@ type RootTranslation = {
 					 * C​l​i​e​n​t​ ​S​e​c​r​e​t
 					 */
 					client_secret: string
+					/**
+					 * P​r​o​v​i​d​e​r​ ​U​R​L
+					 */
+					base_url: string
+					/**
+					 * T​e​n​a​n​t​ ​I​D
+					 */
+					tenant_id: string
 				}
 			}
 		}
@@ -6205,9 +6213,9 @@ export type TranslationFunctions = {
 					 */
 					name: () => LocalizedString
 					/**
-					 * Provider URL
+					 * Provider
 					 */
-					provider_url: () => LocalizedString
+					provider: () => LocalizedString
 					/**
 					 * Client ID
 					 */
@@ -6216,6 +6224,14 @@ export type TranslationFunctions = {
 					 * Client Secret
 					 */
 					client_secret: () => LocalizedString
+					/**
+					 * Provider URL
+					 */
+					base_url: () => LocalizedString
+					/**
+					 * Tenant ID
+					 */
+					tenant_id: () => LocalizedString
 				}
 			}
 		}

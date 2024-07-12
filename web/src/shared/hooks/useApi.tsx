@@ -153,6 +153,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
 
+  const getOpenidInfo: ApiHook['auth']['openid']['getOpenidInfo'] = () =>
+    client.get(`/openid/auth_info`).then(unpackRequest);
+
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
@@ -436,8 +439,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
     client.post('/groups-assign', data).then(unpackRequest);
 
-  const fetchOpenIdProviders: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
-    client.get<OpenIdProvider[]>(`/openid/provider`).then((res) => res.data);
+  const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
+    client.get<OpenIdProvider>(`/openid/provider`).then((res) => res.data);
 
   const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
     client.post(`/openid/provider`, data).then(unpackRequest);
@@ -539,6 +542,9 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      openid: {
+        getOpenidInfo,
+      },
       mfa: {
         disable: mfaDisable,
         enable: mfaEnable,
@@ -606,7 +612,7 @@ const useApi = (props?: HookProps): ApiHook => {
       patchSettings,
       getEssentialSettings,
       testLdapSettings,
-      fetchOpenIdProviders,
+      fetchOpenIdProviders: fetchOpenIdProvider,
       addOpenIdProvider,
       deleteOpenIdProvider,
       editOpenIdProvider,

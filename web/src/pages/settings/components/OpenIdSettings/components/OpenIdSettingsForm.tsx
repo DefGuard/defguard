@@ -1,62 +1,42 @@
-// import { zodResolver } from '@hookform/resolvers/zod';
-// import { useMemo, useRef } from 'react';
-// import { SubmitHandler, useForm } from 'react-hook-form';
-// import { z } from 'zod';
+import './style.scss';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
-// import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
-import useApi from '../../../../../shared/hooks/useApi';
-// import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { QueryKeys } from '../../../../../shared/queries';
-// import { useSettingsPage } from '../../../hooks/useSettingsPage';
-import { ProviderDetails } from './ProviderDetails';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSettingsPage } from '../../../hooks/useSettingsPage';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { OpenIdProvider, SettingsOpenID } from '../../../../../shared/types';
-import { z } from 'zod';
 import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
+  SelectOption,
   SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../shared/queries';
+import { OpenIdProvider } from '../../../../../shared/types';
 
-type FormFields = SettingsOpenID;
+type FormFields = OpenIdProvider;
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const submitRef = useRef<HTMLInputElement | null>(null);
-  // const settings = useSettingsPage((state) => state.settings);
-  // const setSettings = useSettingsPage((state) => state.setState);
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
-
-  const {
-    settings: { patchSettings },
-  } = useApi();
-
   const queryClient = useQueryClient();
 
   const {
-    settings: {
-      fetchOpenIdProviders,
-      addOpenIdProvider,
-      deleteOpenIdProvider,
-      editOpenIdProvider,
-    },
+    settings: { fetchOpenIdProviders, addOpenIdProvider },
   } = useApi();
-  const { data: providers, isLoading } = useQuery({
+  const { data: provider, isLoading } = useQuery({
     queryFn: fetchOpenIdProviders,
     queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
     refetchOnMount: true,
@@ -66,28 +46,28 @@ export const OpenIdSettingsForm = () => {
   const toaster = useToaster();
 
   const { mutate } = useMutation({
-    mutationFn: currentProvider ? editOpenIdProvider : addOpenIdProvider,
+    mutationFn: addOpenIdProvider,
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
-    // TODO(aleksander): HANDLE ERROR
     onError: (error) => {
-      toaster.error(error.message);
+      toaster.error(LL.messages.error());
+      console.error(error);
     },
   });
 
   useEffect(() => {
-    if (providers && providers.length > 0) {
-      setCurrentProvider(providers[0]);
+    if (provider) {
+      setCurrentProvider(provider);
     }
-  }, [providers]);
+  }, [provider]);
 
   const schema = useMemo(
     () =>
       z.object({
         name: z.string().min(1, LL.form.error.required()),
-        provider_url: z
+        base_url: z
           .string()
           .url(LL.form.error.invalid())
           .min(1, LL.form.error.required()),
@@ -99,8 +79,9 @@ export const OpenIdSettingsForm = () => {
 
   const defaultValues = useMemo(
     (): FormFields => ({
+      id: currentProvider?.id ?? 0,
       name: currentProvider?.name ?? '',
-      provider_url: currentProvider?.provider_url ?? '',
+      base_url: currentProvider?.base_url ?? '',
       client_id: currentProvider?.client_id ?? '',
       client_secret: currentProvider?.client_secret ?? '',
     }),
@@ -113,27 +94,31 @@ export const OpenIdSettingsForm = () => {
     mode: 'all',
   });
 
+  // Make sure the form is refresh
   useEffect(() => {
     reset(defaultValues);
-  }, [defaultValues]);
-
-  console.log(currentProvider);
+  }, [defaultValues, reset]);
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     mutate(data);
   };
 
-  const options = useMemo(
+  const options: SelectOption<string>[] = useMemo(
     () => [
       {
-        key: 1,
-        value: 'https://accounts.google.com',
+        value: 'Google',
         label: 'Google',
+        key: 1,
       },
       {
-        key: 2,
-        value: 'https://accounts.google2.com',
+        value: 'Microsoft',
         label: 'Microsoft',
+        key: 2,
+      },
+      {
+        value: 'Custom',
+        label: 'Custom',
+        key: 3,
       },
     ],
     [],
@@ -153,50 +138,43 @@ export const OpenIdSettingsForm = () => {
     [options],
   );
 
-  const handleChange = async (val: string) => {
-    if (!isLoading && currentProvider) {
-      const newProvider: OpenIdProvider = {
-        id: currentProvider.id,
-        name: options.find((o) => o.value === val)?.label ?? '',
-        provider_url: val,
-        client_id: currentProvider.client_id,
-        client_secret: currentProvider.client_secret,
-      };
-      setCurrentProvider(newProvider);
+  const getProviderUrl = useCallback(({ name }: { name: string }): string | null => {
+    switch (name) {
+      case 'Google':
+        return 'https://accounts.google.com';
+      case 'Microsoft':
+        return `https://login.microsoftonline.com/<TENANT_ID>/v2.0`;
+      default:
+        return null;
     }
+  }, []);
+
+  const handleChange = async (val: string) => {
+    console.log(currentProvider?.base_url);
+    setCurrentProvider({
+      id: currentProvider?.id ?? 0,
+      name: val,
+      base_url: getProviderUrl({ name: val }) ?? '',
+      client_id: currentProvider?.client_id ?? '',
+      client_secret: currentProvider?.client_secret ?? '',
+    });
   };
 
   return (
     <section id="openid-settings">
       <header>
         <h2>{localLL.title()}</h2>
+        <Button
+          size={ButtonSize.SMALL}
+          styleVariant={ButtonStyleVariant.SAVE}
+          text={LL.common.controls.saveChanges()}
+          type="submit"
+          loading={isLoading}
+          form="openid-settings-form"
+          icon={<IconCheckmarkWhite />}
+        />
       </header>
       <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        {/* TODO(aleksander): Make a select here */}
-        <FormInput
-          controller={{ control, name: 'name' }}
-          label={localLL.form.labels.name()}
-        />
-        <FormInput
-          controller={{ control, name: 'provider_url' }}
-          label={localLL.form.labels.provider_url()}
-        />
-        {/* <Select
-        sizeVariant={SelectSizeVariant.SMALL}
-        selected={settings?.enrollment_vpn_step_optional}
-        options={vpnOptionalityOptions}
-        renderSelected={renderSelectedVpn}
-        onChangeSingle={(res) => handleChange(res)}
-        loading={isLoading || isUndefined(settings)}
-      /> */}
-        <Select
-          sizeVariant={SelectSizeVariant.SMALL}
-          selected={currentProvider?.provider_url}
-          options={options}
-          renderSelected={renderSelected}
-          onChangeSingle={(res) => handleChange(res)}
-          loading={isLoading}
-        />
         <FormInput
           controller={{ control, name: 'client_id' }}
           label={localLL.form.labels.client_id()}
@@ -206,16 +184,20 @@ export const OpenIdSettingsForm = () => {
           label={localLL.form.labels.client_secret()}
           type="password"
         />
-        <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
-        <Button
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          text={LL.common.controls.saveChanges()}
-          type="submit"
-          loading={isLoading}
-          icon={<IconCheckmarkWhite />}
-          onClick={() => submitRef.current?.click()}
+        <Select
+          sizeVariant={SelectSizeVariant.STANDARD}
+          selected={currentProvider?.name ?? undefined}
+          options={options}
+          renderSelected={renderSelected}
+          onChangeSingle={(res) => handleChange(res)}
+          label={localLL.form.labels.provider()}
         />
+        {currentProvider?.name !== 'Google' && (
+          <FormInput
+            controller={{ control, name: 'base_url' }}
+            label={localLL.form.labels.base_url()}
+          />
+        )}
       </form>
     </section>
   );

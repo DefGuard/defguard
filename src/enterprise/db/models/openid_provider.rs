@@ -8,7 +8,7 @@ use crate::db::DbPool;
 pub struct OpenIdProvider {
     pub id: Option<i64>,
     pub name: String,
-    pub provider_url: String,
+    pub base_url: String,
     pub client_id: String,
     pub client_secret: String,
     pub enabled: bool,
@@ -32,11 +32,11 @@ pub struct OpenIdProvider {
 
 impl OpenIdProvider {
     #[must_use]
-    pub fn new<S: Into<String>>(name: S, provider_url: S, client_id: S, client_secret: S) -> Self {
+    pub fn new<S: Into<String>>(name: S, base_url: S, client_id: S, client_secret: S) -> Self {
         Self {
             id: None,
             name: name.into(),
-            provider_url: provider_url.into(),
+            base_url: base_url.into(),
             client_id: client_id.into(),
             client_secret: client_secret.into(),
             enabled: false,
@@ -46,33 +46,42 @@ impl OpenIdProvider {
     pub async fn find_by_name(pool: &DbPool, name: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             OpenIdProvider,
-            "SELECT id \"id?\", name, provider_url, client_id, client_secret, enabled FROM openidprovider WHERE name = $1",
+            "SELECT id \"id?\", name, base_url, client_id, client_secret, enabled FROM openidprovider WHERE name = $1",
             name
         )
         .fetch_optional(pool)
         .await
     }
 
-    pub async fn exists(pool: &DbPool, provider: &OpenIdProvider) -> Result<bool, SqlxError> {
-        query!(
-            "SELECT EXISTS(SELECT 1 FROM openidprovider WHERE name = $1 OR client_id = $2 OR client_secret = $3)",
-            provider.name,
-            provider.client_id,
-            provider.client_secret
-        )
-        .fetch_one(pool)
-        .await?
-        .exists
-        .ok_or_else(|| SqlxError::RowNotFound)
+    // TODO: this is a temporary method. We currently support only one provider at a time
+    pub async fn upsert(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        // TODO(aleksander): do it with only one query?
+        if let Some(provider) = OpenIdProvider::get_current(pool).await? {
+            query!(
+                "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, enabled = $5 WHERE id = $6",
+                self.name,
+                self.base_url,
+                self.client_id,
+                self.client_secret,
+                self.enabled,
+                provider.id
+            )
+            .execute(pool)
+            .await?;
+        } else {
+            self.save(pool).await?;
+        }
+
+        Ok(())
     }
 
-    // TODO(aleksander): there may be more than one active provider
-    pub async fn get_enabled(pool: &DbPool) -> Result<Self, SqlxError> {
+    // TODO: this is a temporary method. We currently support only one provider at a time
+    pub async fn get_current(pool: &DbPool) -> Result<Option<Self>, SqlxError> {
         query_as!(
             OpenIdProvider,
-            "SELECT id \"id?\", name, provider_url, client_id, client_secret, enabled FROM openidprovider WHERE enabled = true limit 1"
+            "SELECT id \"id?\", name, base_url, client_id, client_secret, enabled FROM openidprovider"
         )
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
     }
 }

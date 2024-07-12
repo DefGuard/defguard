@@ -2,7 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -47,7 +47,10 @@ export const Login = () => {
   );
 
   const {
-    auth: { login },
+    auth: {
+      login,
+      openid: { getOpenidInfo },
+    },
   } = useApi();
 
   const { handleSubmit, control, setError } = useForm<Inputs>({
@@ -79,36 +82,26 @@ export const Login = () => {
     },
   });
 
-  const client = useMemo(() => {
-    const res = axios.create({
-      baseURL: '/api/v1',
-    });
-
-    res.defaults.headers.common['Content-Type'] = 'application/json';
-    return res;
-  }, []);
-
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     if (!loginMutation.isLoading) {
       loginMutation.mutate(trimObjectStrings(data));
     }
   };
 
-  const getUrl = async () => {
-    const url = client.get('/openid/get_auth_url').then((res) => res.data);
-    return url;
-  };
+  // const redirect = () => {
+  //   // getUrl().then((url) => {
+  //   //   window.location.replace(url);
+  //   // });
+  // };
 
-  getUrl().then((url) => {
-    console.log(url);
-  });
-  const redirect = () => {
-    getUrl().then((url) => {
-      window.location.replace(url);
+  const openIdLogin = () => {
+    getOpenidInfo().then((data) => {
+      // console.log(data);
+      window.location.replace(data.url);
     });
   };
 
-  https: return (
+  return (
     <section id="login-container">
       <h1>{LL.loginPage.pageTitle()}</h1>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -141,7 +134,7 @@ export const Login = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text="Login with OIDC"
           data-testid="login-form-submit"
-          onClick={redirect}
+          onClick={openIdLogin}
         />
       </form>
     </section>

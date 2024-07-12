@@ -926,9 +926,11 @@ const en: BaseTranslation = {
       form: {
         labels: {
           name: 'Name',
-          provider_url: 'Provider URL',
+          provider: 'Provider',
           client_id: 'Client ID',
           client_secret: 'Client Secret',
+          base_url: 'Provider URL',
+          tenant_id: 'Tenant ID',
         },
       },
     },

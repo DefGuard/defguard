@@ -13,9 +13,10 @@ use axum::{
 
 use assets::{index, svg, web_asset};
 use enterprise::handlers::{
-    openid_login::{auth_callback, make_auth_url},
+    openid_login::{auth_callback, get_auth_info},
     openid_providers::{
-        add_openid_provider, delete_openid_provider, list_openid_providers, modify_openid_provider,
+        add_openid_provider, delete_openid_provider, get_current_openid_provider,
+        list_openid_providers, modify_openid_provider,
     },
 };
 use handlers::ssh_authorized_keys::{
@@ -285,12 +286,10 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings))
             // OIDC login
-            .route("/openid/provider", get(list_openid_providers))
+            .route("/openid/provider", get(get_current_openid_provider))
             .route("/openid/provider", post(add_openid_provider))
-            .route("/openid/provider/:name", put(modify_openid_provider))
-            .route("/openid/provider/:name", delete(delete_openid_provider))
             .route("/openid/callback", get(auth_callback))
-            .route("/openid/get_auth_url", get(make_auth_url)),
+            .route("/openid/auth_info", get(get_auth_info)),
     );
 
     #[cfg(feature = "openid")]

@@ -307,6 +307,12 @@ export interface LoginResponse {
   mfa?: MFALoginResponse;
 }
 
+export interface OpenidInfoResponse {
+  url: string;
+  nonce: string;
+  csrf: string;
+}
+
 export interface DeleteWebAuthNKeyRequest {
   username: User['username'];
   keyId: SecurityKey['id'];
@@ -500,6 +506,9 @@ export interface ApiHook {
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
+    openid: {
+      getOpenidInfo: () => Promise<OpenidInfoResponse>;
+    };
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
@@ -569,7 +578,7 @@ export interface ApiHook {
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
     testLdapSettings: () => Promise<EmptyApiResponse>;
-    fetchOpenIdProviders: () => Promise<OpenIdProvider[]>;
+    fetchOpenIdProviders: () => Promise<OpenIdProvider>;
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (id: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
@@ -846,7 +855,7 @@ export type SettingsWeb3 = {
 
 export type SettingsOpenID = {
   name: string;
-  provider_url: string;
+  base_url: string;
   client_id: string;
   client_secret: string;
 };
@@ -874,9 +883,9 @@ export interface OpenidClient {
 }
 
 export interface OpenIdProvider {
-  id: string;
+  id: number;
   name: string;
-  provider_url: string;
+  base_url: string;
   client_id: string;
   client_secret: string;
 }

@@ -12,7 +12,7 @@ use serde_json::json;
 #[derive(Debug, Deserialize)]
 pub struct AddProviderData {
     name: String,
-    provider_url: String,
+    base_url: String,
     client_id: String,
     client_secret: String,
 }
@@ -25,27 +25,15 @@ pub async fn add_openid_provider(
 ) -> ApiResult {
     let mut new_provider = OpenIdProvider::new(
         provider_data.name,
-        provider_data.provider_url,
+        provider_data.base_url,
         provider_data.client_id,
         provider_data.client_secret,
     );
-    // check if it already exists
-    if OpenIdProvider::exists(&appstate.pool, &new_provider).await? {
-        warn!(
-            "User {} failed to add OpenID client {}. Such client already exists.",
-            session.user.username, new_provider.name
-        );
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::CONFLICT,
-        });
-    }
-
     debug!(
         "User {} adding OpenID provider {}",
         session.user.username, new_provider.name
     );
-    new_provider.save(&appstate.pool).await?;
+    new_provider.upsert(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
@@ -54,6 +42,22 @@ pub async fn add_openid_provider(
         json: json!({}),
         status: StatusCode::CREATED,
     })
+}
+
+pub async fn get_current_openid_provider(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    match OpenIdProvider::get_current(&appstate.pool).await? {
+        Some(provider) => Ok(ApiResponse {
+            json: json!(provider),
+            status: StatusCode::OK,
+        }),
+        None => Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        }),
+    }
 }
 
 pub async fn delete_openid_provider(
@@ -101,7 +105,7 @@ pub async fn modify_openid_provider(
     );
     let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
     if let Some(mut provider) = provider {
-        provider.provider_url = provider_data.provider_url;
+        provider.base_url = provider_data.base_url;
         provider.client_id = provider_data.client_id;
         provider.client_secret = provider_data.client_secret;
         provider.save(&appstate.pool).await?;

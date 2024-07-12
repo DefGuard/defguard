@@ -1,0 +1,22 @@
+@use '@scssutils' as *;
+
+#openid-settings {
+  & > header {
+    & > .btn {
+      margin-left: auto;
+    }
+  }
+  form {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 5px;
+
+    & > * {
+      width: 100%;
+    }
+  }
+  .select {
+    padding-bottom: 25px;
+  }
+}

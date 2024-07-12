@@ -146,7 +146,10 @@ use openidconnect::{
     core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
     ProviderMetadata, RedirectUrl, RevocationUrl,
 };
-use openidconnect::{AuthenticationFlow, AuthorizationCode, CsrfToken, LanguageTag, Nonce, Scope};
+use openidconnect::{
+    AuthenticationFlow, AuthorizationCode, CsrfToken, EndUserEmail, EndUserFamilyName,
+    EndUserGivenName, LanguageTag, LocalizedClaim, Nonce, Scope,
+};
 
 use crate::appstate::AppState;
 use crate::db::{AppEvent, DbPool, Session, SessionState, User, UserInfo};
@@ -177,9 +180,16 @@ type ProvMeta = ProviderMetadata<
 async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).unwrap();
 
-    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
-        .await
-        .unwrap();
+    let provider_metadata =
+        match CoreProviderMetadata::discover_async(issuer_url, async_http_client).await {
+            Ok(metadata) => metadata,
+            Err(_) => {
+                return Err(WebError::Authorization(format!(
+                "Failed to discover provider metadata, make sure the providers' url is correct: {}",
+                url
+            )));
+            }
+        };
 
     println!("{:?}", provider_metadata);
 
@@ -187,33 +197,48 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
 }
 
 async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
-    let provider = OpenIdProvider::get_enabled(pool).await?;
-    let provider_metadata = get_provider_metadata(&provider.provider_url).await?;
+    let provider = match OpenIdProvider::get_current(pool).await? {
+        Some(provider) => provider,
+        None => {
+            return Err(WebError::Authorization(
+                "OpenID provider not found".to_string(),
+            ));
+        }
+    };
 
+    let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id);
-
     let client_secret = ClientSecret::new(provider.client_secret);
+    let config = server_config();
+    let url = format!("{}api/v1/openid/callback", config.url);
+    let redirect_url = match RedirectUrl::new(url) {
+        Ok(url) => url,
+        Err(err) => {
+            return Err(WebError::Authorization(format!(
+                "Failed to create a redirect url from string: {}",
+                err
+            )));
+        }
+    };
 
-    let client =
+    Ok(
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(
-                RedirectUrl::new("http://localhost:3000/api/v1/openid/callback".to_string())
-                    .unwrap(),
-            );
-
-    Ok(client)
+            .set_redirect_uri(redirect_url),
+    )
 }
 
 fn nonce_fn() -> Nonce {
-    Nonce::new("nonce".to_string())
+    Nonce::new("nonce123123".to_string())
 }
 
 fn csrf_fn() -> CsrfToken {
     CsrfToken::new("csrf".to_string())
 }
 
-pub async fn make_auth_url(State(appstate): State<AppState>) -> Result<String, WebError> {
-    // TODO(aleksander): make sure that the user enables the oidc login first
+pub async fn get_auth_info(
+    private_cookies: PrivateCookieJar,
+    State(appstate): State<AppState>,
+) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let client = make_oidc_client(&appstate.pool).await?;
 
     let (authorize_url, csrf_state, nonce) = client
@@ -222,16 +247,56 @@ pub async fn make_auth_url(State(appstate): State<AppState>) -> Result<String, W
             csrf_fn,
             nonce_fn,
         )
-        // This example is requesting access to the "calendar" features and the user's profile.
         .add_scope(Scope::new("email".to_string()))
+        // Unnecessary if we dont create an account
         .add_scope(Scope::new("profile".to_string()))
         .url();
 
-    info!("{:?}", authorize_url);
-    info!("{:?}", csrf_state);
-    info!("{:?}", nonce);
+    println!("{:?} | {:?} | {:?}", authorize_url, csrf_state, nonce);
 
-    Ok(authorize_url.to_string())
+    let config = server_config();
+
+    let nonce_cookie = Cookie::build(("nonce", nonce.secret().clone()))
+        .domain(
+            config
+                .cookie_domain
+                .clone()
+                .expect("Cookie domain not found"),
+        )
+        .path("/api/v1/openid/callback")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .secure(true)
+        .max_age(Duration::days(1))
+        .build();
+
+    let csrf_cookie = Cookie::build(("csrf", csrf_state.secret().clone()))
+        .domain(
+            config
+                .cookie_domain
+                .clone()
+                .expect("Cookie domain not found"),
+        )
+        .path("/api/v1/openid/callback")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .secure(true)
+        .max_age(Duration::days(1))
+        .build();
+
+    let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
+
+    Ok((
+        private_cookies,
+        ApiResponse {
+            json: json!(
+                {
+                    "url": authorize_url,
+                }
+            ),
+            status: StatusCode::OK,
+        },
+    ))
 }
 
 /// Helper function to return redirection with status code 302.
@@ -249,77 +314,116 @@ fn redirect_to<T: AsRef<str>>(uri: T, cookies: CookieJar) -> (StatusCode, Header
 pub struct AuthenticationResponse {
     code: AuthorizationCode,
     state: CsrfToken,
+    // nonce: Nonce,
 }
 
 pub async fn auth_callback(
     cookies: CookieJar,
+    private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     Query(params): Query<AuthenticationResponse>,
     State(appstate): State<AppState>,
 ) -> Result<(StatusCode, HeaderMap, CookieJar), WebError> {
+    let cookie_nonce = private_cookies
+        .get("nonce")
+        .ok_or(WebError::Authorization(
+            "Nonce cookie not found".to_string(),
+        ))?
+        .value_trimmed()
+        .to_string();
+
+    let cookie_csrf = private_cookies
+        .get("csrf")
+        .ok_or(WebError::Authorization("CSRF cookie not found".to_string()))?
+        .value_trimmed()
+        .to_string();
+
+    if params.state.secret() != &cookie_csrf {
+        return Err(WebError::Authorization("CSRF token mismatch".to_string()));
+    };
+
     let client = make_oidc_client(&appstate.pool).await?;
 
     let token = client
         .exchange_code(params.code)
         .request_async(async_http_client)
         .await
-        .unwrap();
+        .map_err(|error| {
+            WebError::Authorization(format!(
+                "Failed to exchange code for token, error: {:?}",
+                error
+            ))
+        })?;
 
-    let nonce = Nonce::new("nonce".to_string());
+    let nonce = Nonce::new(cookie_nonce);
 
     let token_verifier = client.id_token_verifier();
-    let token_claims = token
-        .extra_fields()
-        .id_token()
-        .expect("Server did not return an ID token")
-        .claims(&token_verifier, &nonce)
-        .unwrap();
+    let id_token = match token.extra_fields().id_token() {
+        Some(token) => token,
+        None => {
+            return Err(WebError::Authorization(
+                "Server did not return an ID token".to_string(),
+            ));
+        }
+    };
+
+    let token_claims = match id_token.claims(&token_verifier, &nonce) {
+        Ok(claims) => claims,
+        Err(error) => {
+            return Err(WebError::Authorization(format!(
+                "Failed to verify ID token, error: {:?}",
+                error
+            )));
+        }
+    };
     // println!("Google returned ID token: {:?}", token_claims);
 
-    let email = token_claims.email().unwrap();
-    let name = token_claims.name().unwrap();
-    // TODO: check whats up with localized claims
-    // println!("{:?}", token_claims);
-    let given_name = token_claims
-        .given_name()
-        .unwrap()
-        .clone()
-        .into_iter()
-        .next()
-        .unwrap()
-        .1;
-    let family_name = token_claims
-        .family_name()
-        .unwrap()
-        .clone()
-        .into_iter()
-        .next()
-        .unwrap()
-        .1;
+    let email = token_claims.email().ok_or(WebError::Authorization(
+        "Email not found in the information returned from provider.".to_string(),
+    ))?;
+
+    // let name = token_claims.name().unwrap();
+    // let given_name: Option<&EndUserGivenName> = match token_claims.given_name() {
+    //     Some(given_name) => Ok(given_name.get(None)),
+    //     None => Err(WebError::Authorization(
+    //         "Given name not found in the information returned from provider.".to_string(),
+    //     ))?,
+    // }?;
+    // let family_name: Option<&EndUserFamilyName> = match token_claims.family_name() {
+    //     Some(family_name) => Ok(family_name.get(None)),
+    //     None => Err(WebError::Authorization(
+    //         "Family name not found in the information returned from provider.".to_string(),
+    //     ))?,
+    // }?;
+
+    let phone = token_claims.phone_number();
+
     println!("Email: {:?}", email);
-    println!("Name: {:?}", name);
-    println!("Given Name: {:?}", given_name);
-    println!("Family Name: {:?}", family_name);
+    // println!("Name: {:?}", name);
+    // println!("Given Name: {:?}", given_name);
+    // println!("Family Name: {:?}", family_name);
 
     let username = email.split('@').next().unwrap();
 
     let user = match User::find_by_username(&appstate.pool, username).await {
         Ok(Some(user)) => user,
         Ok(None) => {
-            let mut user = User::new(
-                username.to_string(),
-                None,
-                family_name.to_string(),
-                given_name.to_string(),
-                email.to_string(),
-                // TODO: Add phone
-                None,
-            );
-            user.openid_login = true;
-            user.save(&appstate.pool).await?;
-            user
+            // let mut user = User::new(
+            //     username.to_string(),
+            //     None,
+            //     family_name.to_string(),
+            //     given_name.to_string(),
+            //     email.to_string(),
+            //     None,
+            // );
+            // user.save(&appstate.pool).await?;
+            // user
+            return Err(WebError::Authorization(
+                "User not found. The user needs to be created first in order to login using OIDC."
+                    .to_string(),
+            ));
         }
         Err(e) => {
             return Err(WebError::Authorization(e.to_string()));

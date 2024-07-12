@@ -1,8 +1,7 @@
 CREATE TABLE openidprovider (
     id bigserial PRIMARY KEY,
     "name" text NOT NULL,
-    -- "document_url" text NOT NULL,
-    "provider_url" text NOT NULL,
+    "base_url" text NOT NULL,
     "client_id" text NOT NULL,
     "client_secret" text NOT NULL,
     "enabled" boolean NOT NULL DEFAULT FALSE,

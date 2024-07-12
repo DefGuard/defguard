@@ -912,9 +912,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       form: {
         labels: {
           name: 'Nazwa',
-          provider_url: 'URL dostawcy OpenID',
+          provider: 'Dostawca OpenID',
           client_id: 'ID klienta',
           client_secret: 'Sekret klienta',
+          base_url: 'URL dostawcy',
+          tenant_id: 'ID dzierżawy (Tenant ID)',
         },
       },
     },
