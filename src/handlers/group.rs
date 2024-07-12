@@ -191,7 +191,7 @@ pub(crate) async fn list_groups(
 /// Returns a `GroupInfo` object or `WebError` if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/group/:name",
+    path = "/api/v1/group/{name}",
     params(
         ("name" = String, description = "Group name")
     ),
@@ -296,7 +296,7 @@ pub(crate) async fn create_group(
 /// Returns a `GroupsInfo` object or `WebError` if error occurs.
 #[utoipa::path(
     put,
-    path = "/api/v1/group/:name",
+    path = "/api/v1/group/{name}",
     request_body = EditGroupInfo,
     responses(
         (status = 201, description = "Successfully updated group."),
@@ -370,7 +370,7 @@ pub(crate) async fn modify_group(
 /// If error occurs it returns `WebError` object.
 #[utoipa::path(
     delete,
-    path = "/api/v1/group/:name",
+    path = "/api/v1/group/{name}",
     params(
         ("name" = String, description = "Group name")
     ),
@@ -421,7 +421,7 @@ pub(crate) async fn delete_group(
 /// If error occurs it returns `WebError` object.
 #[utoipa::path(
     post,
-    path = "/api/v1/group/:name",
+    path = "/api/v1/group/{name}",
     params(
         ("name" = String, description = "Group name")
     ),
@@ -470,7 +470,7 @@ pub(crate) async fn add_group_member(
 /// If error occurs it returns `WebError` object.
 #[utoipa::path(
     delete,
-    path = "/api/v1/group/:name/user/:username",
+    path = "/api/v1/group/{name}/user/{username}",
     params(
         ("name" = String, description = "Name of the group that you want to delete a user."),
         ("username" = String, description = "Name of the user that you want to delete.")

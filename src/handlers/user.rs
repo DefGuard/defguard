@@ -147,11 +147,10 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
 /// Returns `UserDetails` object or `WebError` if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/user/:username",
+    path = "/api/v1/user/{username}",
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = String,
     responses(
         (status = 200, description = "Return details about user.", body = UserDetails, example = json!(
             {
@@ -325,7 +324,7 @@ pub async fn add_user(
 /// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
     post,
-    path = "/api/v1/user/:username/start_enrollment",
+    path = "/api/v1/user/{username}/start_enrollment",
     request_body = StartEnrollmentRequest,
     responses(
         (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
@@ -407,7 +406,7 @@ pub async fn start_enrollment(
 /// Returns json with `enrollment token` and `enrollment url` or `WebError` if error occurs.
 #[utoipa::path(
     post,
-    path = "/api/v1/user/:username/start_desktop",
+    path = "/api/v1/user/{username}/start_desktop",
     request_body = StartEnrollmentRequest,
     responses(
         (status = 201, description = "Trigger enrollment process manually.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
@@ -519,7 +518,7 @@ pub async fn username_available(
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
-    path = "/api/v1/user/:username",
+    path = "/api/v1/user/{username}",
     params(
         ("username" = String, description = "name of a user"),
     ),
@@ -619,7 +618,7 @@ pub async fn modify_user(
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     delete,
-    path = "/api/v1/user/:username",
+    path = "/api/v1/user/{username}",
     params(
         ("username" = String, description = "name of a user"),
     ),
@@ -722,7 +721,7 @@ pub async fn change_self_password(
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     put,
-    path = "/api/v1/user/:username/password",
+    path = "/api/v1/user/{username}/password",
     params(
         ("username" = String, description = "name of a user"),
     ),
@@ -801,7 +800,7 @@ pub async fn change_password(
 /// If erorr occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     post,
-    path = "/api/v1/user/:username/reset_password",
+    path = "/api/v1/user/{username}/reset_password",
     params(
         ("username" = String, description = "name of a user"),
     ),
@@ -916,11 +915,10 @@ pub struct WalletInfoShort {
 /// Returns `WalletChallenge` object or `WebError` object if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/user/:username/challenge",
+    path = "/api/v1/user/{username}/challenge",
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<WalletInfoShort>,
     responses(
         (status = 200, description = "Return successfully wallet challenge details.", body = WalletChallenge, example = json!(
             {
@@ -952,7 +950,7 @@ pub async fn wallet_challenge(
     {
         if wallet.validation_timestamp.is_some() {
             error!(
-                "Can't generate wallet challange for user {username}, the wallet {} is already validated", 
+                "Can't generate wallet challange for user {username}, the wallet {} is already validated",
                 wallet_info.address
                 );
             return Err(WebError::ObjectNotFound("wrong address".into()));
@@ -998,11 +996,10 @@ pub async fn wallet_challenge(
 /// It returns `WebError` object if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/user/:username/wallet",
+    path = "/api/v1/user/{username}/wallet",
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<WalletSignature>,
     responses(
         (status = 200, description = "Successfully set wallet signature."),
         (status = 401, description = "Unauthorized to set a new signature.", body = Json, example = json!({"msg": "Session is required"})),
@@ -1060,7 +1057,7 @@ pub async fn set_wallet(
 /// Returns `RecoveryCodes` object or `WebError` object if error occurs.
 #[utoipa::path(
     put,
-    path = "/api/v1/user/:username/wallet/:address",
+    path = "/api/v1/user/{username}/wallet/{address}",
     params(
         ("username" = String, description = "name of a user"),
         ("address" = String, description = "address of a user portfel")
@@ -1149,7 +1146,7 @@ pub async fn update_wallet(
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
-    path = "/api/v1/user/:username/wallet/:address",
+    path = "/api/v1/user/{username}/wallet/{address}",
     params(
         ("username" = String, description = "name of a user"),
         ("address" = String, description = "address of a user portfel")
@@ -1207,7 +1204,7 @@ pub async fn delete_wallet(
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
-    path = "/api/v1/user/:username/security_key/:id",
+    path = "/api/v1/user/{username}/security_key/{id}",
     params(
         ("username" = String, description = "name of a user"),
         ("id" = i64, description = "id of security key that could point to passkey")
@@ -1305,7 +1302,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
 /// Returns `WebError` object if error occurs.
 #[utoipa::path(
     delete,
-    path = "/api/v1/user/:username/oauth_app/:oauth2client_id",
+    path = "/api/v1/user/{username}/oauth_app/{oauth2client_id}",
     params(
         ("username" = String, description = "name of a user"),
         ("oauth2client_id" = i64, description = "id of OAuth2 client")

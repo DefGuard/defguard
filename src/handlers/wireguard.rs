@@ -479,7 +479,7 @@ pub struct AddDeviceResult {
 /// Returns `AddDeviceResult` object or `WebError` object if error occurs.
 #[utoipa::path(
     post,
-    path = "/api/v1/device/:device_id",
+    path = "/api/v1/device/{device_id}",
     params(
         ("device_id" = String, description = "Name of a user.")
     ),
@@ -641,7 +641,7 @@ pub async fn add_device(
 /// Returns `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
     put,
-    path = "/api/v1/device/:device_id",
+    path = "/api/v1/device/{device_id}",
     params(
         ("device_id" = i64, description = "Id of device to update details.")
     ),
@@ -732,7 +732,7 @@ pub async fn modify_device(
 /// Returns `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/device/:device_id",
+    path = "/api/v1/device/{device_id}",
     params(
         ("device_id" = i64, description = "Id of device to update details.")
     ),
@@ -773,7 +773,7 @@ pub async fn get_device(
 /// If error occurs it returns `WebError` object.
 #[utoipa::path(
     delete,
-    path = "/api/v1/device/:device_id",
+    path = "/api/v1/device/{device_id}",
     params(
         ("device_id" = i64, description = "Id of device to update details.")
     ),
@@ -839,9 +839,9 @@ pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> A
 /// Returns a list of `Device` object or `WebError` object if error occurs.
 #[utoipa::path(
     get,
-    path = "/api/v1/device/user/:username",
+    path = "/api/v1/device/user/{username}",
     params(
-        ("device_id" = i64, description = "Id of device to update details.")
+        ("username" = String, description = "Name of a user.")
     ),
     responses(
         (status = 200, description = "List user devices.", body = [Device], example = json!([

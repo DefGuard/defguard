@@ -12,16 +12,8 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use db::{models::device::UserDevice, UserDetails, UserInfo};
-use error::WebError;
-use handlers::{
-    group::Groups,
-    ssh_authorized_keys::{
-        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    },
-    user::WalletInfoShort,
-    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
-    WalletSignature,
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
