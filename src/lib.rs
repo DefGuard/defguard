@@ -8,12 +8,20 @@ use anyhow::anyhow;
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    serve, Extension, Json, Router,
 };
 
 use assets::{index, svg, web_asset};
-use handlers::ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+use db::{models::device::UserDevice, UserDetails, UserInfo};
+use error::WebError;
+use handlers::{
+    group::Groups,
+    ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+    },
+    user::WalletInfoShort,
+    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
+    WalletSignature,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -267,6 +275,10 @@ async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::ApiDoc::openapi())
+}
+
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
@@ -292,6 +304,7 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
