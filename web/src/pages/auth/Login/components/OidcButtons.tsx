@@ -6,9 +6,11 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 
 export const OpenIdLoginButton = ({ url }: { url: string }) => {
-  if (url.startsWith('https://accounts.google.com')) {
+  const { hostname } = new URL(url);
+
+  if (hostname === 'accounts.google.com') {
     return <GoogleButton url={url} />;
-  } else if (url.startsWith('https://login.microsoftonline.com')) {
+  } else if (hostname === 'login.microsoftonline.com') {
     return <MicrosoftButton url={url} />;
   } else {
     return <CustomButton url={url} />;
