@@ -48,6 +48,9 @@ type ProvMeta = ProviderMetadata<
 async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).unwrap();
 
+    // Discover the provider metadata based on a known base issuer URL
+    // The url should be in the form of e.g. https://accounts.google.com
+    // The url shouldn't contain a .well-known part, it will be added automatically
     let provider_metadata =
         match CoreProviderMetadata::discover_async(issuer_url, async_http_client).await {
             Ok(metadata) => metadata,
@@ -99,6 +102,7 @@ pub async fn get_auth_info(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let client = make_oidc_client(&appstate.pool).await?;
 
+    // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
@@ -110,7 +114,6 @@ pub async fn get_auth_info(
         .url();
 
     let config = server_config();
-
     let nonce_cookie = Cookie::build(("nonce", nonce.secret().clone()))
         .domain(
             config
@@ -124,7 +127,6 @@ pub async fn get_auth_info(
         .secure(true)
         .max_age(Duration::days(1))
         .build();
-
     let csrf_cookie = Cookie::build(("csrf", csrf_state.secret().clone()))
         .domain(
             config
@@ -138,7 +140,6 @@ pub async fn get_auth_info(
         .secure(true)
         .max_age(Duration::days(1))
         .build();
-
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
 
     Ok((
@@ -152,17 +153,6 @@ pub async fn get_auth_info(
             status: StatusCode::OK,
         },
     ))
-}
-
-/// Helper function to return redirection with status code 302.
-fn redirect_to<T: AsRef<str>>(uri: T, cookies: CookieJar) -> (StatusCode, HeaderMap, CookieJar) {
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        LOCATION,
-        HeaderValue::try_from(uri.as_ref()).expect("URI isn't a valid header value"),
-    );
-
-    (StatusCode::FOUND, headers, cookies)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -179,8 +169,11 @@ pub async fn auth_callback(
     InsecureClientIp(insecure_ip): InsecureClientIp,
     Query(params): Query<AuthenticationResponse>,
     State(appstate): State<AppState>,
-) -> Result<(StatusCode, HeaderMap, CookieJar), WebError> {
+) -> Result<(StatusCode, HeaderMap, CookieJar, PrivateCookieJar), WebError> {
     debug!("Auth callback received, logging in user...");
+
+    // Get the nonce and csrf cookies, we need them to verify the callback
+    let mut private_cookies = private_cookies;
     let cookie_nonce = private_cookies
         .get("nonce")
         .ok_or(WebError::Authorization(
@@ -188,19 +181,19 @@ pub async fn auth_callback(
         ))?
         .value_trimmed()
         .to_string();
-
     let cookie_csrf = private_cookies
         .get("csrf")
         .ok_or(WebError::BadRequest("CSRF cookie not found".to_string()))?
         .value_trimmed()
         .to_string();
 
+    // Verify the csrf token
     if params.state.secret() != &cookie_csrf {
         return Err(WebError::Authorization("CSRF token mismatch".to_string()));
     };
 
+    // Get the ID token and verify it against the nonce value received in the callback
     let client = make_oidc_client(&appstate.pool).await?;
-
     let token = client
         .exchange_code(params.code)
         .request_async(async_http_client)
@@ -211,9 +204,7 @@ pub async fn auth_callback(
                 error
             ))
         })?;
-
     let nonce = Nonce::new(cookie_nonce);
-
     let token_verifier = client.id_token_verifier();
     let id_token = match token.extra_fields().id_token() {
         Some(token) => token,
@@ -224,6 +215,11 @@ pub async fn auth_callback(
         }
     };
 
+    private_cookies = private_cookies
+        .remove(Cookie::from("nonce"))
+        .remove(Cookie::from("csrf"));
+
+    // claims = user attributes
     let token_claims = match id_token.claims(&token_verifier, &nonce) {
         Ok(claims) => claims,
         Err(error) => {
@@ -234,32 +230,10 @@ pub async fn auth_callback(
         }
     };
 
+    // Only email and username is required for user lookup and login
     let email = token_claims.email().ok_or(WebError::BadRequest(
         "Email not found in the information returned from provider.".to_string(),
     ))?;
-
-    // Extract given name and family name from the localized token claims
-    // 'None' extracts the default value without the need to specify a language
-
-    let given_name_error = "Given name not found in the information returned from provider.";
-
-    let given_name = token_claims
-        .given_name()
-        .ok_or(WebError::BadRequest(given_name_error.to_string()))?
-        // Gets the
-        .get(None)
-        .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
-
-    let family_name_error = "Family name not found in the information returned from provider.";
-
-    let family_name = token_claims
-        .family_name()
-        .ok_or(WebError::BadRequest(family_name_error.to_string()))?
-        .get(None)
-        .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
-
-    let phone = token_claims.phone_number();
-
     let username = email
         .split('@')
         .next()
@@ -267,13 +241,18 @@ pub async fn auth_callback(
             "Failed to extract username from email address".to_string(),
         ))?
         // + is not allowed in usernames, but fairly common in email addresses
-        // TODO: Make this more robust, trim everything that's forbidden in usernames
+        // TODO: Make this more robust, maybe trim everything that's forbidden in usernames
         .replace('+', "_");
 
+    // Handle logging in or creating the user
     let settings = Settings::get_settings(&appstate.pool).await?;
-
     let user = match User::find_by_email(&appstate.pool, email).await {
         Ok(Some(mut user)) => {
+            // Make sure the user is not disabled
+            if !user.is_active {
+                return Err(WebError::Authorization("User is disabled".to_string()));
+            }
+
             if !user.openid_login {
                 user.openid_login = true;
                 user.save(&appstate.pool).await?;
@@ -281,6 +260,7 @@ pub async fn auth_callback(
             user
         }
         Ok(None) => {
+            // Check if the user should be created if they don't exist (default: true)
             if settings.openid_create_account {
                 // Check if user with the same username already exists
                 if User::find_by_username(&appstate.pool, &username)
@@ -292,6 +272,24 @@ pub async fn auth_callback(
                         username
                     )));
                 }
+
+                // Extract all necessary information from the token needed to create an account
+                let given_name_error =
+                    "Given name not found in the information returned from provider.";
+                let given_name = token_claims
+                    .given_name()
+                    .ok_or(WebError::BadRequest(given_name_error.to_string()))?
+                    // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
+                    .get(None)
+                    .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
+                let family_name_error =
+                    "Family name not found in the information returned from provider.";
+                let family_name = token_claims
+                    .family_name()
+                    .ok_or(WebError::BadRequest(family_name_error.to_string()))?
+                    .get(None)
+                    .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
+                let phone = token_claims.phone_number();
 
                 let mut user = User::new(
                     username.to_string(),
@@ -316,6 +314,7 @@ pub async fn auth_callback(
         }
     };
 
+    // Handle creating the session
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
     let user_agent_string = match user_agent {
         Some(value) => value.to_string(),
@@ -323,7 +322,6 @@ pub async fn auth_callback(
     };
     let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
-
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
         user.id.unwrap(),
@@ -332,7 +330,6 @@ pub async fn auth_callback(
         device_info,
     );
     session.save(&appstate.pool).await?;
-
     let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
@@ -348,12 +345,9 @@ pub async fn auth_callback(
         .same_site(SameSite::Lax)
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
-
     let login_event_type = "AUTHENTICATION".to_string();
-
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
-
     check_new_device_login(
         &appstate.pool,
         &appstate.mail_tx,
@@ -370,5 +364,9 @@ pub async fn auth_callback(
         user.username
     );
 
-    Ok(redirect_to("/", cookies))
+    // Redirect to '/' on successful login
+    let mut headers = HeaderMap::new();
+    let header_value = HeaderValue::from_str("/").or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
+    headers.insert(LOCATION, header_value);
+    Ok((StatusCode::FOUND, headers, cookies, private_cookies))
 }
