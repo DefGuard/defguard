@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -14,7 +15,7 @@ use crate::{
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -40,6 +41,8 @@ pub enum WebError {
     ModelError(String),
     #[error("Public key invalid {0}")]
     PubkeyValidation(String),
+    #[error("Public key already exists {0}")]
+    PubkeyExists(String),
     #[error("HTTP error: {0}")]
     Http(StatusCode),
     #[error(transparent)]

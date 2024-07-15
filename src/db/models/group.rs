@@ -1,12 +1,13 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
+use utoipa::ToSchema;
 
 use crate::{
     db::{models::error::ModelError, User, WireguardNetwork},
     server_config,
 };
 
-#[derive(Model, Debug)]
+#[derive(Model, Debug, ToSchema)]
 pub struct Group {
     pub(crate) id: Option<i64>,
     pub name: String,

@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde_json::{json, Value};
+use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 #[cfg(feature = "wireguard")]
@@ -38,7 +39,7 @@ pub(crate) mod yubikey;
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
-#[derive(Default)]
+#[derive(Default, ToSchema)]
 pub struct ApiResponse {
     pub json: Value,
     pub status: StatusCode,
@@ -92,6 +93,7 @@ impl From<WebError> for ApiResponse {
             ),
             WebError::IncorrectUsername(msg)
             | WebError::PubkeyValidation(msg)
+            | WebError::PubkeyExists(msg)
             | WebError::BadRequest(msg) => {
                 error!(msg);
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
@@ -170,7 +172,7 @@ impl AuthCode {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
@@ -189,13 +191,13 @@ impl GroupInfo {
 }
 
 /// Dedicated `GroupInfo` variant for group modification operations.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct Username {
     pub username: String,
 }
@@ -210,37 +212,37 @@ pub struct AddUserData {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChangeSelf {
     pub old_password: String,
     pub new_password: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletSignature {
     pub address: String,
     pub signature: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WalletChallenge {
     pub id: i64,
     pub message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletChange {
     pub use_for_mfa: bool,
 }

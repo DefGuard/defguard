@@ -19,7 +19,7 @@ use tokio::{
     },
     time::sleep,
 };
-use tokio_stream::{wrappers::UnboundedReceiverStream, StreamExt};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Status,
@@ -193,11 +193,8 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification(pool)?;
-                debug!(
-                    "Gateway {hostname} found in gateway map, current state: {:#?}",
-                    state
-                );
+                state.send_disconnect_notification(pool);
+                debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
             };
@@ -290,7 +287,7 @@ impl GatewayState {
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &DbPool) -> Result<(), GatewayMapError> {
+    fn send_disconnect_notification(&mut self, pool: &DbPool) {
         debug!("Sending gateway disconnect email notification");
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
@@ -327,8 +324,6 @@ impl GatewayState {
                 self.last_email_notification
             );
         };
-
-        Ok(())
     }
 }
 
@@ -386,10 +381,14 @@ pub async fn run_grpc_bidi_stream(
         };
         info!("Connected to proxy at {}", endpoint.uri());
         let mut resp_stream = response.into_inner();
-        while let Some(received) = resp_stream.next().await {
-            info!("Received message from proxy");
-            match received {
-                Ok(received) => {
+        'message: loop {
+            match resp_stream.message().await {
+                Ok(None) => {
+                    info!("stream was closed by the sender");
+                    break 'message;
+                }
+                Ok(Some(received)) => {
+                    info!("Received message from proxy");
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
@@ -514,7 +513,12 @@ pub async fn run_grpc_bidi_stream(
                     };
                     tx.send(req).unwrap();
                 }
-                Err(err) => error!("stream error {err}"),
+                Err(err) => {
+                    error!("stream error: {err}");
+                    debug!("waiting 10s to re-establish the connection");
+                    sleep(TEN_SECS).await;
+                    break 'message;
+                }
             }
         }
     }

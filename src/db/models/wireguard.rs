@@ -12,6 +12,7 @@ use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
 use thiserror::Error;
+use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
@@ -67,7 +68,7 @@ pub enum GatewayEvent {
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Model, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Model, Deserialize, Serialize, PartialEq, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork {
     pub id: Option<i64>,
@@ -388,10 +389,7 @@ impl WireguardNetwork {
             Ok(wireguard_network_device)
         } else {
             error!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!(
-                "{}",
-                device
-            )))
+            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
         }
     }
 

@@ -22,6 +22,7 @@ pub mod wireguard;
 pub mod yubikey;
 
 use sqlx::{query_as, Error as SqlxError, PgConnection};
+use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
@@ -61,7 +62,7 @@ pub struct SecurityKey {
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, ToSchema)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,
@@ -111,15 +112,15 @@ impl UserInfo {
         transaction: &mut PgConnection,
         user: &mut User,
     ) -> Result<bool, SqlxError> {
-        if self.is_active != user.is_active {
+        if self.is_active == user.is_active {
+            Ok(false)
+        } else {
             if !self.is_active {
                 user.logout_all_sessions(&mut *transaction).await?;
             }
             user.is_active = self.is_active;
             user.save(&mut *transaction).await?;
             Ok(true)
-        } else {
-            Ok(false)
         }
     }
 
@@ -184,7 +185,7 @@ impl UserInfo {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]

@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    serve, Extension, Json, Router,
 };
 
 use assets::{index, svg, web_asset};
@@ -39,6 +39,12 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
+
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
@@ -149,6 +155,116 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 
+mod openapi {
+    use super::*;
+    use db::{
+        models::device::{ModifyDevice, UserDevice},
+        AddDevice, UserDetails, UserInfo,
+    };
+    use error::WebError;
+    use utoipa::OpenApi;
+
+    use handlers::{
+        group::{self, BulkAssignToGroupsRequest, Groups},
+        user::{self, WalletInfoShort},
+        wireguard::AddDeviceResult,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
+    };
+
+    use handlers::wireguard as device;
+
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            // /user
+            user::list_users,
+            user::get_user,
+            user::add_user,
+            user::start_enrollment,
+            user::start_remote_desktop_configuration,
+            user::username_available,
+            user::modify_user,
+            user::delete_user,
+            user::change_self_password,
+            user::change_password,
+            user::reset_password,
+            user::wallet_challenge,
+            user::set_wallet,
+            user::update_wallet,
+            user::delete_wallet,
+            user::delete_security_key,
+            user::me,
+            user::delete_authorized_app,
+            // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
+            // /group
+            group::bulk_assign_to_groups,
+            group::list_groups_info,
+            group::list_groups,
+            group::get_group,
+            group::create_group,
+            group::modify_group,
+            group::delete_group,
+            group::add_group_member,
+            group::remove_group_member,
+        ),
+        components(
+            schemas(
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+            ),
+        ),
+        tags(
+            (name = "user", description = "
+Endpoints that allow to control user data.
+
+Available actions:
+- list all users
+- CRUD mechanism for handling users
+- operations on user wallet
+- operations on security key and authorized app
+- change user password.
+            "),
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "group", description = "
+Endpoints that allow to control groups in your network.
+
+Available actions:
+- list all groups
+- CRUD mechanism for handling groups
+- add or delete a group member.
+            ")
+        )
+    )]
+    pub struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add an appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                )
+            }
+        }
+    }
+}
+
 /// Simple health-check.
 async fn health_check() -> &'static str {
     "alive"
@@ -156,6 +272,10 @@ async fn health_check() -> &'static str {
 
 async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
+}
+
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::ApiDoc::openapi())
 }
 
 pub fn build_webapp(
@@ -183,6 +303,7 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -317,6 +438,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            // FIXME: change /device/:device_id to /device/:username
             .route("/device/:device_id", post(add_device))
             .route("/device/:device_id", put(modify_device))
             .route("/device/:device_id", get(get_device))
@@ -357,6 +479,9 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let swagger =
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+
     webapp
         .with_state(AppState::new(
             pool,
@@ -378,6 +503,7 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.
