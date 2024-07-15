@@ -922,7 +922,11 @@ const en: BaseTranslation = {
       },
     },
     openIdSettings: {
-      title: 'OpenID Settings',
+      titleClient: 'External OpenID Client Settings',
+      titleGeneral: 'External OpenID Settings',
+      general: {
+        createAccount: 'Automatically create user account when logging in through external OpenID for first time.',
+      },
       form: {
         labels: {
           name: 'Name',

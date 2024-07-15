@@ -1,126 +1,3 @@
-// use std::str::FromStr;
-
-// use crate::{error::WebError, AppState};
-// use axum::extract::{Query, State};
-// use openidconnect::{
-//     core::{CoreClient, CoreIdTokenVerifier, CoreProviderMetadata},
-//     reqwest::async_http_client,
-//     AdditionalClaims, AuthUrl, ClientId, GenderClaim, IdToken, IdTokenVerifier, IssuerUrl,
-//     JsonWebKeySet, JsonWebKeyType, JweContentEncryptionAlgorithm, JwsSigningAlgorithm, Nonce,
-//     NonceVerifier,
-// };
-
-// // /// Authorization Endpoint
-// // /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-// // pub async fn authorization(
-// //     State(appstate): State<AppState>,
-// //     Query(data): Query<AuthenticationRequest>,
-// //     cookies: CookieJar,
-// //     private_cookies: PrivateCookieJar,
-// // ) -> Result<(StatusCode, HeaderMap, PrivateCookieJar), WebError> {
-
-// //     Ok()
-// // }
-
-// /// Authentication response callback
-// /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-// #[derive(Deserialize, Serialize, Debug)]
-// pub struct AuthenticationResponse {
-//     // id_token: String,
-//     code: String,
-// }
-
-// struct Verifier;
-
-// impl NonceVerifier for Verifier {
-//     fn verify(self, nonce: Option<&openidconnect::Nonce>) -> Result<(), String> {
-//         Ok(())
-//     }
-// }
-
-// pub async fn auth_callback(
-//     State(state): State<AppState>,
-//     Query(response): Query<AuthenticationResponse>,
-// ) -> Result<(), WebError> {
-//     // TODO(jck): log all useful stuff
-//     debug!("OIDC login callback got response: {response:?}");
-//     let code = response.code.clone();
-
-//     info!("OIDC login callback got code: {code:?}");
-//     // let token = IdToken::<
-//     //     openidconnect::EmptyAdditionalClaims,
-//     //     openidconnect::core::CoreGenderClaim,
-//     //     openidconnect::core::CoreJweContentEncryptionAlgorithm,
-//     //     openidconnect::core::CoreJwsSigningAlgorithm,
-//     //     _,
-//     // >::from_str(&response.code);
-//     // debug!("Decoded token: {token:?}");
-//     // if let Ok(token) = token {
-//     //     // TOOD(jck): create user based on user info
-//     //     // TOOD(jck): log user in
-//     //     // token.claims(verifier, nonce_verifier);
-//     //     // let provider_metadata = CoreProviderMetadata::discover(
-//     //     //     &IssuerUrl::new("https://accounts.example.com".to_string())?,
-//     //     //     http_client,
-//     //     // )?;
-
-//     //     // let client_id = ClientId::new("f2cef8b3-5b09-4c3f-988b-51fc3c42ecbc".to_string());
-//     //     // let client_secret = None;
-//     //     // let issuer_url = IssuerUrl::new(
-//     //     //     "https://login.microsoftonline.com/2fc43015-5699-4d01-bd01-d6f2bd66818a/v2.0"
-//     //     //         .to_string(),
-//     //     // )
-//     //     // .unwrap();
-//     //     // let auth_url = AuthUrl::new(
-//     //     //     "https://login.microsoftonline.com/2fc43015-5699-4d01-bd01-d6f2bd66818a/oauth2/v2.0/authorize".to_string()
-//     //     // ).unwrap();
-//     //     // let token_url = None;
-//     //     // let userinfo_url = None;
-//     //     // let jwks = JsonWebKeySet::default();
-//     //     // let client = CoreClient::new(
-//     //     //     client_id,
-//     //     //     client_secret,
-//     //     //     issuer_url,
-//     //     //     auth_url,
-//     //     //     token_url,
-//     //     //     userinfo_url,
-//     //     //     jwks,
-//     //     // );
-//     //     // let claims = token.claims(&client.id_token_verifier(), Verifier);
-//     //     // info!("### Decoded claims: {claims:#?}");
-//     //     // let name = claims.name().unwrap();
-//     //     // let family_name = claims.family_name().unwrap();
-//     //     // let given_name = claims.given_name().unwrap();
-//     //     // let email = claims.email().unwrap();
-//     //     // info!("### name: {name:?}, family_name: {family_name:?}, given_name: {given_name:?}, email: {email:?}");
-//     //     let provider_metadata = CoreProviderMetadata::discover_async(
-//     //         IssuerUrl::new(
-//     //             // "https://login.microsoftonline.com/2fc43015-5699-4d01-bd01-d6f2bd66818a/v2.0"
-//     //             "https://accounts.google.com/o/oauth2/v2/auth".to_string(),
-//     //         )
-//     //         .unwrap(),
-//     //         async_http_client,
-//     //     )
-//     //     .await
-//     //     .unwrap();
-
-//     //     let client = CoreClient::from_provider_metadata(provider_metadata, client_id, None);
-//     //     let claims = token
-//     //         .claims(&client.id_token_verifier(), &Nonce::new("ala".to_string()))
-//     //         .unwrap();
-//     //     info!("Decoded claims: {claims:#?}");
-//     //     // // Set the URL the user will be redirected to after the authorization process.
-//     //     // .set_redirect_uri(RedirectUrl::new("http://localhost:3000/api/v1/oidc/callback".to_string())?);
-//     //     // TODO(jck): log all useful stuff
-//     //     info!("OIDC login succeeded for user");
-//     // } else {
-//     //     // TODO(jck): add context
-//     //     warn!("OIDC login failed");
-//     // }
-
-//     Ok(())
-// }
-
 use axum::http::header::LOCATION;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
@@ -152,7 +29,7 @@ use openidconnect::{
 };
 
 use crate::appstate::AppState;
-use crate::db::{AppEvent, DbPool, Session, SessionState, User, UserInfo};
+use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
@@ -200,7 +77,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let provider = match OpenIdProvider::get_current(pool).await? {
         Some(provider) => provider,
         None => {
-            return Err(WebError::Authorization(
+            return Err(WebError::ObjectNotFound(
                 "OpenID provider not found".to_string(),
             ));
         }
@@ -214,10 +91,10 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let redirect_url = match RedirectUrl::new(url) {
         Ok(url) => url,
         Err(err) => {
-            return Err(WebError::Authorization(format!(
-                "Failed to create a redirect url from string: {}",
-                err
-            )));
+            error!("Failed to create redirect URL: {:?}", err);
+            return Err(WebError::Authorization(
+                "Failed to create redirect URL".to_string(),
+            ));
         }
     };
 
@@ -225,14 +102,6 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
             .set_redirect_uri(redirect_url),
     )
-}
-
-fn nonce_fn() -> Nonce {
-    Nonce::new("nonce123123".to_string())
-}
-
-fn csrf_fn() -> CsrfToken {
-    CsrfToken::new("csrf".to_string())
 }
 
 pub async fn get_auth_info(
@@ -244,15 +113,12 @@ pub async fn get_auth_info(
     let (authorize_url, csrf_state, nonce) = client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
-            csrf_fn,
-            nonce_fn,
+            CsrfToken::new_random,
+            Nonce::new_random,
         )
         .add_scope(Scope::new("email".to_string()))
-        // Unnecessary if we dont create an account
         .add_scope(Scope::new("profile".to_string()))
         .url();
-
-    println!("{:?} | {:?} | {:?}", authorize_url, csrf_state, nonce);
 
     let config = server_config();
 
@@ -314,7 +180,6 @@ fn redirect_to<T: AsRef<str>>(uri: T, cookies: CookieJar) -> (StatusCode, Header
 pub struct AuthenticationResponse {
     code: AuthorizationCode,
     state: CsrfToken,
-    // nonce: Nonce,
 }
 
 pub async fn auth_callback(
@@ -326,6 +191,7 @@ pub async fn auth_callback(
     Query(params): Query<AuthenticationResponse>,
     State(appstate): State<AppState>,
 ) -> Result<(StatusCode, HeaderMap, CookieJar), WebError> {
+    debug!("Auth callback received, logging in user...");
     let cookie_nonce = private_cookies
         .get("nonce")
         .ok_or(WebError::Authorization(
@@ -336,7 +202,7 @@ pub async fn auth_callback(
 
     let cookie_csrf = private_cookies
         .get("csrf")
-        .ok_or(WebError::Authorization("CSRF cookie not found".to_string()))?
+        .ok_or(WebError::BadRequest("CSRF cookie not found".to_string()))?
         .value_trimmed()
         .to_string();
 
@@ -378,52 +244,83 @@ pub async fn auth_callback(
             )));
         }
     };
-    // println!("Google returned ID token: {:?}", token_claims);
 
-    let email = token_claims.email().ok_or(WebError::Authorization(
+    let email = token_claims.email().ok_or(WebError::BadRequest(
         "Email not found in the information returned from provider.".to_string(),
     ))?;
 
-    // let name = token_claims.name().unwrap();
-    // let given_name: Option<&EndUserGivenName> = match token_claims.given_name() {
-    //     Some(given_name) => Ok(given_name.get(None)),
-    //     None => Err(WebError::Authorization(
-    //         "Given name not found in the information returned from provider.".to_string(),
-    //     ))?,
-    // }?;
-    // let family_name: Option<&EndUserFamilyName> = match token_claims.family_name() {
-    //     Some(family_name) => Ok(family_name.get(None)),
-    //     None => Err(WebError::Authorization(
-    //         "Family name not found in the information returned from provider.".to_string(),
-    //     ))?,
-    // }?;
+    // Extract given name and family name from the localized token claims
+    // 'None' extracts the default value without the need to specify a language
+
+    let given_name_error = "Given name not found in the information returned from provider.";
+
+    let given_name = token_claims
+        .given_name()
+        .ok_or(WebError::BadRequest(given_name_error.to_string()))?
+        // Gets the
+        .get(None)
+        .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
+
+    let family_name_error = "Family name not found in the information returned from provider.";
+
+    let family_name = token_claims
+        .family_name()
+        .ok_or(WebError::BadRequest(family_name_error.to_string()))?
+        .get(None)
+        .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
 
     let phone = token_claims.phone_number();
 
-    println!("Email: {:?}", email);
-    // println!("Name: {:?}", name);
-    // println!("Given Name: {:?}", given_name);
-    // println!("Family Name: {:?}", family_name);
+    let username = email
+        .split('@')
+        .next()
+        .ok_or(WebError::BadRequest(
+            "Failed to extract username from email address".to_string(),
+        ))?
+        // + is not allowed in usernames, but fairly common in email addresses
+        // TODO: Make this more robust, trim everything that's forbidden in usernames
+        .replace('+', "_");
 
-    let username = email.split('@').next().unwrap();
+    let settings = Settings::get_settings(&appstate.pool).await?;
 
-    let user = match User::find_by_username(&appstate.pool, username).await {
-        Ok(Some(user)) => user,
+    let user = match User::find_by_email(&appstate.pool, email).await {
+        Ok(Some(mut user)) => {
+            if !user.openid_login {
+                user.openid_login = true;
+                user.save(&appstate.pool).await?;
+            }
+            user
+        }
         Ok(None) => {
-            // let mut user = User::new(
-            //     username.to_string(),
-            //     None,
-            //     family_name.to_string(),
-            //     given_name.to_string(),
-            //     email.to_string(),
-            //     None,
-            // );
-            // user.save(&appstate.pool).await?;
-            // user
-            return Err(WebError::Authorization(
-                "User not found. The user needs to be created first in order to login using OIDC."
-                    .to_string(),
-            ));
+            if settings.openid_create_account {
+                // Check if user with the same username already exists
+                if User::find_by_username(&appstate.pool, &username)
+                    .await?
+                    .is_some()
+                {
+                    return Err(WebError::Authorization(format!(
+                        "User with username {} already exists",
+                        username
+                    )));
+                }
+
+                let mut user = User::new(
+                    username.to_string(),
+                    None,
+                    family_name.to_string(),
+                    given_name.to_string(),
+                    email.to_string(),
+                    phone.map(|v| v.to_string()),
+                );
+                user.openid_login = true;
+                user.save(&appstate.pool).await?;
+                user
+            } else {
+                return Err(WebError::Authorization(
+                    "User not found. The user needs to be created first in order to login using OIDC."
+                        .to_string(),
+                ));
+            }
         }
         Err(e) => {
             return Err(WebError::Authorization(e.to_string()));
@@ -478,6 +375,11 @@ pub async fn auth_callback(
         agent,
     )
     .await?;
+
+    info!(
+        "External OpenID authentication successful for user {}",
+        user.username
+    );
 
     Ok(redirect_to("/", cookies))
 }

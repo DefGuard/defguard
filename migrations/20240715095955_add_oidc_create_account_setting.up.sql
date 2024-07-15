@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN openid_create_account BOOLEAN NOT NULL DEFAULT TRUE;

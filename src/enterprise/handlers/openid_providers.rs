@@ -33,6 +33,7 @@ pub async fn add_openid_provider(
         "User {} adding OpenID provider {}",
         session.user.username, new_provider.name
     );
+    // Currently, we only support one OpenID provider at a time
     new_provider.upsert(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",

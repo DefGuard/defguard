@@ -74,6 +74,8 @@ pub struct User {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
+    // Whether the user has logged in using OIDC
+    pub openid_login: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
@@ -120,6 +122,7 @@ impl User {
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
             is_active: true,
+            openid_login: false,
         }
     }
 
@@ -451,7 +454,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active, openid_login \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -465,7 +468,7 @@ impl User {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
-                enrolled: u.password_hash.is_some(),
+                enrolled: u.password_hash.is_some() || u.openid_login,
             })
             .collect();
         Ok(res)
@@ -481,7 +484,7 @@ impl User {
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
@@ -572,7 +575,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -588,7 +591,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\" WHERE email = $1",
             email
         )

@@ -36,11 +36,16 @@ export const OpenIdSettingsForm = () => {
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider },
   } = useApi();
-  const { data: provider, isLoading } = useQuery({
+
+  const { isLoading } = useQuery({
     queryFn: fetchOpenIdProviders,
     queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    onSuccess: (provider) => {
+      setCurrentProvider(provider);
+    },
+    retry: false,
   });
 
   const toaster = useToaster();
@@ -56,12 +61,6 @@ export const OpenIdSettingsForm = () => {
       console.error(error);
     },
   });
-
-  useEffect(() => {
-    if (provider) {
-      setCurrentProvider(provider);
-    }
-  }, [provider]);
 
   const schema = useMemo(
     () =>
@@ -94,7 +93,7 @@ export const OpenIdSettingsForm = () => {
     mode: 'all',
   });
 
-  // Make sure the form is refresh
+  // Make sure the form data is fresh
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, reset]);
@@ -149,21 +148,23 @@ export const OpenIdSettingsForm = () => {
     }
   }, []);
 
-  const handleChange = async (val: string) => {
-    console.log(currentProvider?.base_url);
-    setCurrentProvider({
-      id: currentProvider?.id ?? 0,
-      name: val,
-      base_url: getProviderUrl({ name: val }) ?? '',
-      client_id: currentProvider?.client_id ?? '',
-      client_secret: currentProvider?.client_secret ?? '',
-    });
-  };
+  const handleChange = useCallback(
+    (val: string) => {
+      setCurrentProvider({
+        id: currentProvider?.id ?? 0,
+        name: val,
+        base_url: getProviderUrl({ name: val }) ?? '',
+        client_id: currentProvider?.client_id ?? '',
+        client_secret: currentProvider?.client_secret ?? '',
+      });
+    },
+    [currentProvider, getProviderUrl],
+  );
 
   return (
     <section id="openid-settings">
       <header>
-        <h2>{localLL.title()}</h2>
+        <h2>{localLL.titleClient()}</h2>
         <Button
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.SAVE}

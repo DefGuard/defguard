@@ -153,7 +153,7 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
 
-  const getOpenidInfo: ApiHook['auth']['openid']['getOpenidInfo'] = () =>
+  const getOpenidInfo: ApiHook['auth']['openid']['getOpenIdInfo'] = () =>
     client.get(`/openid/auth_info`).then(unpackRequest);
 
   const usernameAvailable = (username: string) =>
@@ -543,7 +543,7 @@ const useApi = (props?: HookProps): ApiHook => {
       login,
       logout,
       openid: {
-        getOpenidInfo,
+        getOpenIdInfo: getOpenidInfo,
       },
       mfa: {
         disable: mfaDisable,

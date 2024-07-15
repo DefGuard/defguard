@@ -307,7 +307,7 @@ export interface LoginResponse {
   mfa?: MFALoginResponse;
 }
 
-export interface OpenidInfoResponse {
+export interface OpenIdInfoResponse {
   url: string;
   nonce: string;
   csrf: string;
@@ -507,7 +507,7 @@ export interface ApiHook {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
     openid: {
-      getOpenidInfo: () => Promise<OpenidInfoResponse>;
+      getOpenIdInfo: () => Promise<OpenIdInfoResponse>;
     };
     mfa: {
       disable: () => EmptyApiResponse;
@@ -854,10 +854,7 @@ export type SettingsWeb3 = {
 };
 
 export type SettingsOpenID = {
-  name: string;
-  base_url: string;
-  client_id: string;
-  client_secret: string;
+  openid_create_account: boolean;
 };
 
 export interface Webhook {

@@ -908,7 +908,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
     },
     openIdSettings: {
-      title: 'OpenID Settings',
+      titleClient: 'Ustawienia klienta zewnętrznego OpenID',
+      titleGeneral: 'Ustawienia zewnętrznego OpenID',
+      general: {
+        createAccount: 'Automatycznie twórz konta w momencie logowania przez zewnętrznego dostawcę OpenID',
+      },
       form: {
         labels: {
           name: 'Nazwa',

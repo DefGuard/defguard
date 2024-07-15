@@ -30,6 +30,9 @@ export const AppLoader = () => {
     getAppInfo,
     user: { getMe },
     settings: { getEssentialSettings },
+    auth: {
+      openid: { getOpenIdInfo: getOpenidInfo },
+    },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
@@ -106,7 +109,21 @@ export const AppLoader = () => {
     }
   }, [essentialSettings, setAppStore]);
 
-  if (userLoading || (settingsLoading && isUndefined(appSettings))) {
+  const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_OPENID_INFO],
+    queryFn: getOpenidInfo,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (openIdInfo) {
+      setAuthState({ openIdLoginInfo: openIdInfo });
+    }
+  }, [openIdInfo, setAuthState]);
+
+  if (userLoading || (settingsLoading && isUndefined(appSettings)) || openIdLoading) {
     return <LoaderPage />;
   }
 

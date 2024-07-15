@@ -20,6 +20,7 @@ import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
+import { OpenIdLoginButton } from './components/OidcButtons';
 
 type Inputs = {
   username: string;
@@ -28,6 +29,7 @@ type Inputs = {
 
 export const Login = () => {
   const { LL } = useI18nContext();
+  const openIdInfo = useAuthStore((state) => state.openIdLoginInfo);
 
   const zodSchema = useMemo(
     () =>
@@ -47,10 +49,7 @@ export const Login = () => {
   );
 
   const {
-    auth: {
-      login,
-      openid: { getOpenidInfo },
-    },
+    auth: { login },
   } = useApi();
 
   const { handleSubmit, control, setError } = useForm<Inputs>({
@@ -88,19 +87,6 @@ export const Login = () => {
     }
   };
 
-  // const redirect = () => {
-  //   // getUrl().then((url) => {
-  //   //   window.location.replace(url);
-  //   // });
-  // };
-
-  const openIdLogin = () => {
-    getOpenidInfo().then((data) => {
-      // console.log(data);
-      window.location.replace(data.url);
-    });
-  };
-
   return (
     <section id="login-container">
       <h1>{LL.loginPage.pageTitle()}</h1>
@@ -128,14 +114,7 @@ export const Login = () => {
           text={LL.form.login()}
           data-testid="login-form-submit"
         />
-        <Button
-          loading={loginMutation.isLoading}
-          size={ButtonSize.LARGE}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Login with OIDC"
-          data-testid="login-form-submit"
-          onClick={openIdLogin}
-        />
+        {openIdInfo && <OpenIdLoginButton url={openIdInfo.url} />}
       </form>
     </section>
   );

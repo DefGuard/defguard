@@ -2277,9 +2277,19 @@ type RootTranslation = {
 		}
 		openIdSettings: {
 			/**
-			 * O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
 			 */
-			title: string
+			titleClient: string
+			/**
+			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+			 */
+			titleGeneral: string
+			general: {
+				/**
+				 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​f​o​r​ ​f​i​r​s​t​ ​t​i​m​e​.
+				 */
+				createAccount: string
+			}
 			form: {
 				labels: {
 					/**
@@ -6203,9 +6213,19 @@ export type TranslationFunctions = {
 		}
 		openIdSettings: {
 			/**
-			 * OpenID Settings
+			 * External OpenID Client Settings
 			 */
-			title: () => LocalizedString
+			titleClient: () => LocalizedString
+			/**
+			 * External OpenID Settings
+			 */
+			titleGeneral: () => LocalizedString
+			general: {
+				/**
+				 * Automatically create user account when logging in through external OpenID for first time.
+				 */
+				createAccount: () => LocalizedString
+			}
 			form: {
 				labels: {
 					/**
