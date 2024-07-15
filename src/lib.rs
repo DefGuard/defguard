@@ -14,9 +14,7 @@ use axum::{
 use assets::{index, svg, web_asset};
 use enterprise::handlers::{
     openid_login::{auth_callback, get_auth_info},
-    openid_providers::{
-        add_openid_provider, get_current_openid_provider,
-    },
+    openid_providers::{add_openid_provider, get_current_openid_provider},
 };
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
