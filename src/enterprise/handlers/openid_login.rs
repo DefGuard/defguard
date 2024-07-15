@@ -1,38 +1,29 @@
 use axum::http::header::LOCATION;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
-use axum::response::{IntoResponse, Redirect, Response};
+
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use serde_json::json;
-use sqlx::PgPool;
-use std::collections::HashMap;
+
 use time::Duration;
 
 use axum::extract::{Query, State};
-use axum::Json;
+
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
-use openidconnect::core::{
-    CoreAuthDisplay, CoreClaimName, CoreClaimType, CoreClient, CoreClientAuthMethod, CoreGrantType,
-    CoreIdTokenClaims, CoreIdTokenVerifier, CoreJsonWebKey, CoreJweContentEncryptionAlgorithm,
-    CoreJweKeyManagementAlgorithm, CoreResponseMode, CoreResponseType, CoreRevocableToken,
-    CoreSubjectIdentifierType,
-};
+use openidconnect::core::{CoreClient, CoreResponseType};
 use openidconnect::{
     core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
-    ProviderMetadata, RedirectUrl, RevocationUrl,
+    ProviderMetadata, RedirectUrl,
 };
-use openidconnect::{
-    AuthenticationFlow, AuthorizationCode, CsrfToken, EndUserEmail, EndUserFamilyName,
-    EndUserGivenName, LanguageTag, LocalizedClaim, Nonce, Scope,
-};
+use openidconnect::{AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
 
 use crate::appstate::AppState;
 use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
-use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
+use crate::handlers::{ApiResponse, SESSION_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
 
@@ -67,8 +58,6 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
             )));
             }
         };
-
-    println!("{:?}", provider_metadata);
 
     Ok(provider_metadata)
 }

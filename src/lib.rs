@@ -15,8 +15,7 @@ use assets::{index, svg, web_asset};
 use enterprise::handlers::{
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{
-        add_openid_provider, delete_openid_provider, get_current_openid_provider,
-        list_openid_providers, modify_openid_provider,
+        add_openid_provider, get_current_openid_provider,
     },
 };
 use handlers::ssh_authorized_keys::{
