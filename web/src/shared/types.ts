@@ -309,8 +309,6 @@ export interface LoginResponse {
 
 export interface OpenIdInfoResponse {
   url: string;
-  nonce: string;
-  csrf: string;
 }
 
 export interface DeleteWebAuthNKeyRequest {
