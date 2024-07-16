@@ -907,23 +907,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         submit: 'Test',
       },
     },
-    // openIdSettings: {
-    //   titleClient: 'Ustawienia klienta zewnętrznego OpenID',
-    //   titleGeneral: 'Ustawienia zewnętrznego OpenID',
-    //   general: {
-    //     createAccount: 'Automatycznie twórz konta w momencie logowania przez zewnętrznego dostawcę OpenID',
-    //   },
-    //   form: {
-    //     labels: {
-    //       name: 'Nazwa',
-    //       provider: 'Dostawca OpenID',
-    //       client_id: 'ID klienta',
-    //       client_secret: 'Sekret klienta',
-    //       base_url: 'URL dostawcy',
-    //       tenant_id: 'ID dzierżawy (Tenant ID)',
-    //     },
-    //   },
-    // },
     openIdSettings: {
       general: {
         title: 'Ustawienia zewnętrznego OpenID',
@@ -935,7 +918,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       form: {
         title: 'Ustawienia klienta zewnętrznego OpenID',
-        // helper: 'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
         helper: 'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
         custom: "Niestandardowy",
         documentation: 'Dokumentacja',
