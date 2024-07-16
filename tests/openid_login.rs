@@ -1,34 +1,19 @@
-use std::str::FromStr;
 
-use axum::http::header::ToStrError;
-use claims::assert_err;
 use defguard::{
     config::DefGuardConfig,
     db::{
-        models::{oauth2client::OAuth2Client, NewOpenIDClient},
         DbPool,
     },
     enterprise::handlers::openid_providers::AddProviderData,
     handlers::Auth,
 };
-use openidconnect::{
-    core::{
-        CoreClient, CoreGenderClaim, CoreProviderMetadata, CoreResponseType, CoreTokenResponse,
-    },
-    http::Method,
-    AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken,
-    EmptyAdditionalClaims, HttpRequest, HttpResponse, IssuerUrl, Nonce, OAuth2TokenResponse,
-    PkceCodeChallenge, RedirectUrl, Scope, UserInfoClaims,
-};
 use reqwest::{
-    header::{HeaderName, AUTHORIZATION, CONTENT_TYPE, USER_AGENT},
     StatusCode, Url,
 };
-use rsa::RsaPrivateKey;
 use serde::Deserialize;
 
 mod common;
-use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
+use self::common::{client::TestClient, make_base_client, make_test_client};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;
