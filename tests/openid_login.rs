@@ -1,15 +1,8 @@
-
 use defguard::{
-    config::DefGuardConfig,
-    db::{
-        DbPool,
-    },
-    enterprise::handlers::openid_providers::AddProviderData,
+    config::DefGuardConfig, db::DbPool, enterprise::handlers::openid_providers::AddProviderData,
     handlers::Auth,
 };
-use reqwest::{
-    StatusCode, Url,
-};
+use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 
 mod common;
