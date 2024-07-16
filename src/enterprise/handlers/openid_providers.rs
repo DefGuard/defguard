@@ -9,12 +9,23 @@ use crate::{
 
 use serde_json::json;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {
     name: String,
     base_url: String,
     client_id: String,
     client_secret: String,
+}
+
+impl AddProviderData {
+    pub fn new(name: String, base_url: String, client_id: String, client_secret: String) -> Self {
+        Self {
+            name,
+            base_url,
+            client_id,
+            client_secret,
+        }
+    }
 }
 
 pub async fn add_openid_provider(

@@ -1,16 +1,16 @@
 import './style.scss';
 
-import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
 import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
+import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
 
 export const OpenIdSettings = () => {
   return (
     <>
       <div className="left">
-        <OpenIdGeneralSettings />
+        <OpenIdSettingsForm />
       </div>
       <div className="right">
-        <OpenIdSettingsForm />
+        <OpenIdGeneralSettings />
       </div>
     </>
   );

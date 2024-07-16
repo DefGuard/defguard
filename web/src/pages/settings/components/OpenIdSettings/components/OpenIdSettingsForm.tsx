@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -14,6 +15,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
   SelectOption,
@@ -116,7 +118,7 @@ export const OpenIdSettingsForm = () => {
       },
       {
         value: 'Custom',
-        label: 'Custom',
+        label: localLL.form.custom(),
         key: 3,
       },
     ],
@@ -164,7 +166,8 @@ export const OpenIdSettingsForm = () => {
   return (
     <section id="openid-settings">
       <header>
-        <h2>{localLL.titleClient()}</h2>
+        <h2>{localLL.form.title()}</h2>
+        <Helper>{parse(localLL.form.helper())}</Helper>
         <Button
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.SAVE}
@@ -176,30 +179,42 @@ export const OpenIdSettingsForm = () => {
         />
       </header>
       <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormInput
-          controller={{ control, name: 'client_id' }}
-          label={localLL.form.labels.client_id()}
-        />
-        <FormInput
-          controller={{ control, name: 'client_secret' }}
-          label={localLL.form.labels.client_secret()}
-          type="password"
-        />
         <Select
           sizeVariant={SelectSizeVariant.STANDARD}
           selected={currentProvider?.name ?? undefined}
           options={options}
           renderSelected={renderSelected}
           onChangeSingle={(res) => handleChange(res)}
-          label={localLL.form.labels.provider()}
+          label={localLL.form.labels.provider.label()}
+          labelExtras={<Helper>{parse(localLL.form.labels.provider.helper())}</Helper>}
         />
-        {currentProvider?.name !== 'Google' && (
-          <FormInput
-            controller={{ control, name: 'base_url' }}
-            label={localLL.form.labels.base_url()}
-          />
-        )}
+        <FormInput
+          controller={{ control, name: 'base_url' }}
+          label={localLL.form.labels.base_url.label()}
+          labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
+          disabled={currentProvider?.name === 'Google'}
+        />
+        <FormInput
+          controller={{ control, name: 'client_id' }}
+          label={localLL.form.labels.client_id.label()}
+          labelExtras={<Helper>{parse(localLL.form.labels.client_id.helper())}</Helper>}
+        />
+        <FormInput
+          controller={{ control, name: 'client_secret' }}
+          label={localLL.form.labels.client_secret.label()}
+          labelExtras={
+            <Helper>{parse(localLL.form.labels.client_secret.helper())}</Helper>
+          }
+          type="password"
+        />
       </form>
+      <a
+        // TODO: Add a link to the not yet existing documentation
+        href="https://defguard.gitbook.io/defguard/"
+        target="_blank"
+      >
+        {localLL.form.documentation()}
+      </a>
     </section>
   );
 };

@@ -2,7 +2,9 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -38,17 +40,23 @@ export const OpenIdGeneralSettings = () => {
   return (
     <section id="openid-settings">
       <header>
-        <h2>{localLL.titleGeneral()}</h2>
+        <h2>{localLL.general.title()}</h2>
+        <Helper>{parse(localLL.general.helper())}</Helper>
       </header>
       <div>
-        <LabeledCheckbox
-          disabled={isLoading}
-          label={localLL.general.createAccount()}
-          value={settings.openid_create_account}
-          onChange={() =>
-            mutate({ openid_create_account: !settings.openid_create_account })
-          }
-        />
+        <div>
+          <div className="checkbox-row">
+            <LabeledCheckbox
+              disabled={isLoading}
+              label={localLL.general.createAccount.label()}
+              value={settings.openid_create_account}
+              onChange={() =>
+                mutate({ openid_create_account: !settings.openid_create_account })
+              }
+            />
+            <Helper>{localLL.general.createAccount.helper()}</Helper>
+          </div>
+        </div>
       </div>
     </section>
   );

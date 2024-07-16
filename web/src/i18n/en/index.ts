@@ -922,19 +922,36 @@ const en: BaseTranslation = {
       },
     },
     openIdSettings: {
-      titleClient: 'External OpenID Client Settings',
-      titleGeneral: 'External OpenID Settings',
       general: {
-        createAccount: 'Automatically create user account when logging in through external OpenID for first time.',
+        title: 'External OpenID Settings',
+        helper: 'Here you can change general OpenID behavior in your Defguard instance.',
+        createAccount: {
+          label: 'Automatically create user account when logging in for the first time through external OpenID.',
+          helper: 'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
+        },
       },
       form: {
+        title: 'External OpenID Client Settings',
+        helper: 'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
+        custom: "Custom",
+        documentation: 'Documentation',
         labels: {
-          name: 'Name',
-          provider: 'Provider',
-          client_id: 'Client ID',
-          client_secret: 'Client Secret',
-          base_url: 'Provider URL',
-          tenant_id: 'Tenant ID',
+          provider: {
+            label: 'Provider',
+            helper: 'Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.',
+          },
+          client_id: {
+            label: 'Client ID',
+            helper: 'Client ID provided by your OpenID provider.',
+          },
+          client_secret: {
+            label: 'Client Secret',
+            helper: 'Client Secret provided by your OpenID provider.',
+          },
+          base_url: {
+            label: 'Base URL',
+            helper: 'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
+          },
         },
       },
     },

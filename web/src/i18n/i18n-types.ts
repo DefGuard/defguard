@@ -2276,46 +2276,84 @@ type RootTranslation = {
 			}
 		}
 		openIdSettings: {
-			/**
-			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
-			 */
-			titleClient: string
-			/**
-			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
-			 */
-			titleGeneral: string
 			general: {
 				/**
-				 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​f​o​r​ ​f​i​r​s​t​ ​t​i​m​e​.
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
 				 */
-				createAccount: string
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				helper: string
+				createAccount: {
+					/**
+					 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
+					 */
+					label: string
+					/**
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
+					 */
+					helper: string
+				}
 			}
 			form: {
+				/**
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+				 */
+				helper: string
+				/**
+				 * C​u​s​t​o​m
+				 */
+				custom: string
+				/**
+				 * D​o​c​u​m​e​n​t​a​t​i​o​n
+				 */
+				documentation: string
 				labels: {
-					/**
-					 * N​a​m​e
-					 */
-					name: string
-					/**
-					 * P​r​o​v​i​d​e​r
-					 */
-					provider: string
-					/**
-					 * C​l​i​e​n​t​ ​I​D
-					 */
-					client_id: string
-					/**
-					 * C​l​i​e​n​t​ ​S​e​c​r​e​t
-					 */
-					client_secret: string
-					/**
-					 * P​r​o​v​i​d​e​r​ ​U​R​L
-					 */
-					base_url: string
-					/**
-					 * T​e​n​a​n​t​ ​I​D
-					 */
-					tenant_id: string
+					provider: {
+						/**
+						 * P​r​o​v​i​d​e​r
+						 */
+						label: string
+						/**
+						 * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
+						 */
+						helper: string
+					}
+					client_id: {
+						/**
+						 * C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					client_secret: {
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					base_url: {
+						/**
+						 * B​a​s​e​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -6212,46 +6250,84 @@ export type TranslationFunctions = {
 			}
 		}
 		openIdSettings: {
-			/**
-			 * External OpenID Client Settings
-			 */
-			titleClient: () => LocalizedString
-			/**
-			 * External OpenID Settings
-			 */
-			titleGeneral: () => LocalizedString
 			general: {
 				/**
-				 * Automatically create user account when logging in through external OpenID for first time.
+				 * External OpenID Settings
 				 */
-				createAccount: () => LocalizedString
+				title: () => LocalizedString
+				/**
+				 * Here you can change general OpenID behavior in your Defguard instance.
+				 */
+				helper: () => LocalizedString
+				createAccount: {
+					/**
+					 * Automatically create user account when logging in for the first time through external OpenID.
+					 */
+					label: () => LocalizedString
+					/**
+					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
 			}
 			form: {
+				/**
+				 * External OpenID Client Settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
+				 */
+				helper: () => LocalizedString
+				/**
+				 * Custom
+				 */
+				custom: () => LocalizedString
+				/**
+				 * Documentation
+				 */
+				documentation: () => LocalizedString
 				labels: {
-					/**
-					 * Name
-					 */
-					name: () => LocalizedString
-					/**
-					 * Provider
-					 */
-					provider: () => LocalizedString
-					/**
-					 * Client ID
-					 */
-					client_id: () => LocalizedString
-					/**
-					 * Client Secret
-					 */
-					client_secret: () => LocalizedString
-					/**
-					 * Provider URL
-					 */
-					base_url: () => LocalizedString
-					/**
-					 * Tenant ID
-					 */
-					tenant_id: () => LocalizedString
+					provider: {
+						/**
+						 * Provider
+						 */
+						label: () => LocalizedString
+						/**
+						 * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
+						 */
+						helper: () => LocalizedString
+					}
+					client_id: {
+						/**
+						 * Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					client_secret: {
+						/**
+						 * Client Secret
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client Secret provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					base_url: {
+						/**
+						 * Base URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
