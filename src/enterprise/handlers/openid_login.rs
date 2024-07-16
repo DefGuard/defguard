@@ -23,6 +23,7 @@ use crate::appstate::AppState;
 use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
+use crate::handlers::user::check_username;
 use crate::handlers::{ApiResponse, SESSION_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
@@ -243,6 +244,8 @@ pub async fn auth_callback(
         // + is not allowed in usernames, but fairly common in email addresses
         // TODO: Make this more robust, maybe trim everything that's forbidden in usernames
         .replace('+', "_");
+
+    check_username(&username)?;
 
     // Handle logging in or creating the user
     let settings = Settings::get_settings(&appstate.pool).await?;

@@ -35,7 +35,7 @@ use crate::{
 /// - starts with non-special character
 /// - special characters: . - _
 /// - no whitespaces
-fn check_username(username: &str) -> Result<(), WebError> {
+pub fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
     if !(3..64).contains(&length) {
@@ -264,6 +264,17 @@ pub async fn add_user(
     // check username
     if let Err(err) = check_username(&username) {
         debug!("Username {username} rejected: {err}");
+        return Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::BAD_REQUEST,
+        });
+    }
+    // check if email doesn't already exist
+    if User::find_by_email(&appstate.pool, &user_data.email)
+        .await?
+        .is_some()
+    {
+        debug!("User with email {} already exists", user_data.email);
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
