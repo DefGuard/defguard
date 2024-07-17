@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dev
+      - openid-login
     paths-ignore:
       - '*.md'
       - 'LICENSE'
