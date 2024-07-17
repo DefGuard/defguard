@@ -15,11 +15,5 @@ ALTER TABLE "user" ADD COLUMN "openid_login" BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE settings ADD COLUMN openid_create_account BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Make emails unique
--- Deletes duplicated users based on their email. The first (by id) user with a given email is kept.
-DELETE FROM
-    "user" u1
-        USING "user" u2
-WHERE
-    u1.id > u2.id
-    AND u1.email = u2.email;
+-- This migration may fail if there are duplicate emails in the database already
 ALTER TABLE "user" ADD CONSTRAINT "user_email_key" UNIQUE (email);

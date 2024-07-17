@@ -157,6 +157,13 @@ impl User {
         format!("{} {}", self.first_name, self.last_name)
     }
 
+    /// Check if user is enrolled.
+    /// We assume the user is enrolled if they have a password set
+    /// or they have logged in using an external OIDC.
+    pub fn is_enrolled(&self) -> bool {
+        self.password_hash.is_some() || self.openid_login
+    }
+
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
     pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
     where

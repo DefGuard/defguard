@@ -373,17 +373,3 @@ pub async fn auth_callback(
     headers.insert(LOCATION, header_value);
     Ok((StatusCode::FOUND, headers, cookies, private_cookies))
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_get_provider_metadata() {
-        let metadata = get_provider_metadata("https://accounts.google.com")
-            .await
-            .unwrap();
-
-        assert_eq!(metadata.issuer().to_string(), "https://accounts.google.com");
-    }
-}

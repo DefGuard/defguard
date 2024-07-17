@@ -18,12 +18,12 @@ pub struct AddProviderData {
 }
 
 impl AddProviderData {
-    pub fn new(name: String, base_url: String, client_id: String, client_secret: String) -> Self {
+    pub fn new(name: &str, base_url: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
-            name,
-            base_url,
-            client_id,
-            client_secret,
+            name: name.to_string(),
+            base_url: base_url.to_string(),
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
         }
     }
 }
