@@ -3,7 +3,7 @@ import { Subject } from 'rxjs';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { LoginSubjectData, OpenIdInfoResponse, OpenIdProvider, User } from '../../types';
+import { LoginSubjectData, OpenIdInfoResponse, User } from '../../types';
 
 export const useAuthStore = createWithEqualityFn<AuthStore>()(
   persist(
