@@ -452,6 +452,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = async (data) =>
     client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
 
+  const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
+    client.post(`/openid/callback`, data).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -544,6 +547,7 @@ const useApi = (props?: HookProps): ApiHook => {
       logout,
       openid: {
         getOpenIdInfo: getOpenidInfo,
+        callback: openIdCallback,
       },
       mfa: {
         disable: mfaDisable,

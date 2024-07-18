@@ -5,6 +5,11 @@
     & > .btn {
       margin-left: auto;
     }
+
+    & > .controls {
+      display: flex;
+      gap: 10px;
+    }
   }
   form {
     width: 100%;

@@ -921,6 +921,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         helper: 'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
         custom: "Niestandardowy",
         documentation: 'Dokumentacja',
+        delete: 'Usuń dostawcę',
         labels: {
           provider: {
             label: 'Dostawca',
@@ -1471,6 +1472,10 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
   },
   loginPage: {
     pageTitle: 'Wprowadź swoje dane logowania',
+    callback: {
+      return: 'Powrót do logowania',
+      error: 'Wystąpił błąd podczas logowania przez zewnętrznego dostawcę OpenID',
+    },
     mfa: {
       title: 'Autoryzacja dwuetapowa.',
       controls: {

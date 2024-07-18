@@ -1,30 +1,37 @@
 use axum::http::header::LOCATION;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 
+use axum::Json;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use serde_json::json;
 
 use time::Duration;
 
-use axum::extract::{Query, State};
+use axum::extract::{path, Query, State};
 
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
-use openidconnect::core::{CoreClient, CoreResponseType};
+use openidconnect::core::{
+    CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
+    CoreJwsSigningAlgorithm, CoreResponseType,
+};
 use openidconnect::{
     core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
     ProviderMetadata, RedirectUrl,
 };
-use openidconnect::{AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
+use openidconnect::{
+    AccessToken, AuthenticationFlow, AuthorizationCode, CsrfToken, EmptyAdditionalClaims, IdToken,
+    Nonce, Scope,
+};
 
 use crate::appstate::AppState;
 use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
 use crate::handlers::user::check_username;
-use crate::handlers::{ApiResponse, SESSION_COOKIE_NAME};
+use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
 
@@ -71,7 +78,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
         Some(provider) => provider,
         None => {
             return Err(WebError::ObjectNotFound(
-                "OpenID provider not found".to_string(),
+                "OpenID provider not set".to_string(),
             ));
         }
     };
@@ -80,7 +87,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let client_id = ClientId::new(provider.client_id);
     let client_secret = ClientSecret::new(provider.client_secret);
     let config = server_config();
-    let url = format!("{}api/v1/openid/callback", config.url);
+    let url = format!("{}/auth/callback", config.url);
     let redirect_url = match RedirectUrl::new(url) {
         Ok(url) => url,
         Err(err) => {
@@ -106,7 +113,7 @@ pub async fn get_auth_info(
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
         .authorize_url(
-            AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
+            AuthenticationFlow::<CoreResponseType>::Implicit(false),
             CsrfToken::new_random,
             Nonce::new_random,
         )
@@ -124,7 +131,7 @@ pub async fn get_auth_info(
         )
         .path("/api/v1/openid/callback")
         .http_only(true)
-        .same_site(SameSite::Lax)
+        .same_site(SameSite::Strict)
         .secure(true)
         .max_age(Duration::days(1))
         .build();
@@ -137,10 +144,11 @@ pub async fn get_auth_info(
         )
         .path("/api/v1/openid/callback")
         .http_only(true)
-        .same_site(SameSite::Lax)
+        .same_site(SameSite::Strict)
         .secure(true)
         .max_age(Duration::days(1))
         .build();
+
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
 
     Ok((
@@ -158,7 +166,13 @@ pub async fn get_auth_info(
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct AuthenticationResponse {
-    code: AuthorizationCode,
+    id_token: IdToken<
+        EmptyAdditionalClaims,
+        CoreGenderClaim,
+        CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm,
+        CoreJsonWebKeyType,
+    >,
     state: CsrfToken,
 }
 
@@ -168,9 +182,9 @@ pub async fn auth_callback(
     user_agent: Option<TypedHeader<UserAgent>>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
-    Query(params): Query<AuthenticationResponse>,
     State(appstate): State<AppState>,
-) -> Result<(StatusCode, HeaderMap, CookieJar, PrivateCookieJar), WebError> {
+    Json(payload): Json<AuthenticationResponse>,
+) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     debug!("Auth callback received, logging in user...");
 
     // Get the nonce and csrf cookies, we need them to verify the callback
@@ -189,32 +203,15 @@ pub async fn auth_callback(
         .to_string();
 
     // Verify the csrf token
-    if params.state.secret() != &cookie_csrf {
+    if *payload.state.secret() != cookie_csrf {
         return Err(WebError::Authorization("CSRF token mismatch".to_string()));
     };
 
     // Get the ID token and verify it against the nonce value received in the callback
     let client = make_oidc_client(&appstate.pool).await?;
-    let token = client
-        .exchange_code(params.code)
-        .request_async(async_http_client)
-        .await
-        .map_err(|error| {
-            WebError::Authorization(format!(
-                "Failed to exchange code for token, error: {:?}",
-                error
-            ))
-        })?;
     let nonce = Nonce::new(cookie_nonce);
     let token_verifier = client.id_token_verifier();
-    let id_token = match token.extra_fields().id_token() {
-        Some(token) => token,
-        None => {
-            return Err(WebError::Authorization(
-                "Server did not return an ID token".to_string(),
-            ));
-        }
-    };
+    let id_token = payload.id_token;
 
     private_cookies = private_cookies
         .remove(Cookie::from("nonce"))
@@ -367,9 +364,15 @@ pub async fn auth_callback(
         user.username
     );
 
-    // Redirect to '/' on successful login
-    let mut headers = HeaderMap::new();
-    let header_value = HeaderValue::from_str("/").or(Err(StatusCode::INTERNAL_SERVER_ERROR))?;
-    headers.insert(LOCATION, header_value);
-    Ok((StatusCode::FOUND, headers, cookies, private_cookies))
+    Ok((
+        cookies,
+        private_cookies,
+        ApiResponse {
+            json: json!(AuthResponse {
+                user: user_info,
+                url: None,
+            }),
+            status: StatusCode::OK,
+        },
+    ))
 }

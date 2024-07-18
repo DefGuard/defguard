@@ -36,7 +36,7 @@ export const OpenIdSettingsForm = () => {
   const queryClient = useQueryClient();
 
   const {
-    settings: { fetchOpenIdProviders, addOpenIdProvider },
+    settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
   } = useApi();
 
   const { isLoading } = useQuery({
@@ -54,6 +54,18 @@ export const OpenIdSettingsForm = () => {
 
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
+    onSuccess: () => {
+      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+      toaster.success(LL.settingsPage.messages.editSuccess());
+    },
+    onError: (error) => {
+      toaster.error(LL.messages.error());
+      console.error(error);
+    },
+  });
+
+  const { mutate: deleteProvider } = useMutation({
+    mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
@@ -103,6 +115,13 @@ export const OpenIdSettingsForm = () => {
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     mutate(data);
   };
+
+  const handleDeleteProvider = useCallback(() => {
+    if (currentProvider) {
+      deleteProvider(currentProvider.name);
+      setCurrentProvider(null);
+    }
+  }, [currentProvider, deleteProvider]);
 
   const options: SelectOption<string>[] = useMemo(
     () => [
@@ -168,15 +187,27 @@ export const OpenIdSettingsForm = () => {
       <header>
         <h2>{localLL.form.title()}</h2>
         <Helper>{parse(localLL.form.helper())}</Helper>
-        <Button
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          text={LL.common.controls.saveChanges()}
-          type="submit"
-          loading={isLoading}
-          form="openid-settings-form"
-          icon={<IconCheckmarkWhite />}
-        />
+        <div className="controls">
+          <Button
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            text={LL.common.controls.saveChanges()}
+            type="submit"
+            loading={isLoading}
+            form="openid-settings-form"
+            icon={<IconCheckmarkWhite />}
+          />
+          <Button
+            text={localLL.form.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            onClick={() => {
+              console.log('delete');
+              handleDeleteProvider();
+            }}
+          />
+        </div>
       </header>
       <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
         <Select
@@ -209,8 +240,7 @@ export const OpenIdSettingsForm = () => {
         />
       </form>
       <a
-        // TODO: Add a link to the not yet existing documentation
-        href="https://defguard.gitbook.io/defguard/"
+        href="https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers"
         target="_blank"
       >
         {localLL.form.documentation()}

@@ -2313,6 +2313,10 @@ type RootTranslation = {
 				 * D​o​c​u​m​e​n​t​a​t​i​o​n
 				 */
 				documentation: string
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
+				 */
+				'delete': string
 				labels: {
 					provider: {
 						/**
@@ -3536,6 +3540,16 @@ type RootTranslation = {
 		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
 		 */
 		pageTitle: string
+		callback: {
+			/**
+			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
+			 */
+			'return': string
+			/**
+			 * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
+			 */
+			error: string
+		}
 		mfa: {
 			/**
 			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
@@ -6287,6 +6301,10 @@ export type TranslationFunctions = {
 				 * Documentation
 				 */
 				documentation: () => LocalizedString
+				/**
+				 * Delete provider
+				 */
+				'delete': () => LocalizedString
 				labels: {
 					provider: {
 						/**
@@ -7499,6 +7517,16 @@ export type TranslationFunctions = {
 		 * Enter your credentials
 		 */
 		pageTitle: () => LocalizedString
+		callback: {
+			/**
+			 * Go back to login
+			 */
+			'return': () => LocalizedString
+			/**
+			 * An error occurred during external OpenID login
+			 */
+			error: () => LocalizedString
+		}
 		mfa: {
 			/**
 			 * Two-factor authentication

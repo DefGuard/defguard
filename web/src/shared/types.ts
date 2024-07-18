@@ -166,6 +166,11 @@ export interface LoginData {
   password: string;
 }
 
+export interface CallbackData {
+  id_token: string;
+  state: string;
+}
+
 export type LoginSubjectData = {
   user?: User;
   // URL of an already authorized application
@@ -506,6 +511,7 @@ export interface ApiHook {
     logout: () => EmptyApiResponse;
     openid: {
       getOpenIdInfo: () => Promise<OpenIdInfoResponse>;
+      callback: (data: CallbackData) => Promise<LoginResponse>;
     };
     mfa: {
       disable: () => EmptyApiResponse;
@@ -578,7 +584,7 @@ export interface ApiHook {
     testLdapSettings: () => Promise<EmptyApiResponse>;
     fetchOpenIdProviders: () => Promise<OpenIdProvider>;
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
-    deleteOpenIdProvider: (id: string) => Promise<EmptyApiResponse>;
+    deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
   };
   support: {

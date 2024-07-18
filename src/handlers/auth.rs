@@ -57,7 +57,7 @@ pub async fn authenticate(
     // check if user can proceed with login
     check_username(&appstate.failed_logins, &username)?;
 
-    let user = match User::find_by_username(&appstate.pool, &username).await {
+    let user: User = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(()) => {
                 if user.is_active {

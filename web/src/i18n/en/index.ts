@@ -935,6 +935,7 @@ const en: BaseTranslation = {
         helper: 'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
         custom: "Custom",
         documentation: 'Documentation',
+        delete: 'Delete provider',
         labels: {
           provider: {
             label: 'Provider',
@@ -1485,6 +1486,10 @@ const en: BaseTranslation = {
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
+    callback: {
+      return: 'Go back to login',
+      error: 'An error occurred during external OpenID login',
+    },
     mfa: {
       title: 'Two-factor authentication',
       controls: {

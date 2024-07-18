@@ -1,4 +1,8 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 
 use crate::{
     appstate::AppState,
@@ -15,6 +19,11 @@ pub struct AddProviderData {
     base_url: String,
     client_id: String,
     client_secret: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DeleteProviderData {
+    name: String,
 }
 
 impl AddProviderData {
@@ -76,7 +85,7 @@ pub async fn delete_openid_provider(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Json(provider_data): Json<AddProviderData>,
+    Path(provider_data): Path<DeleteProviderData>,
 ) -> ApiResult {
     debug!(
         "User {} deleting OpenID provider {}",
@@ -86,7 +95,7 @@ pub async fn delete_openid_provider(
     if let Some(provider) = provider {
         provider.delete(&appstate.pool).await?;
         info!(
-            "User {} deleted OpenID client {}",
+            "User {} deleted OpenID provider {}",
             session.user.username, provider_data.name
         );
         Ok(ApiResponse {
@@ -95,7 +104,7 @@ pub async fn delete_openid_provider(
         })
     } else {
         warn!(
-            "User {} failed to delete OpenID client {}. Such client does not exist.",
+            "User {} failed to delete OpenID provider {}. Such provider does not exist.",
             session.user.username, provider_data.name
         );
         Ok(ApiResponse {
