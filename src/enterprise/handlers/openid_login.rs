@@ -1,4 +1,4 @@
-use axum::http::{StatusCode};
+use axum::http::StatusCode;
 
 use axum::Json;
 use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -6,7 +6,7 @@ use serde_json::json;
 
 use time::Duration;
 
-use axum::extract::{State};
+use axum::extract::State;
 
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
@@ -20,10 +20,7 @@ use openidconnect::{
     core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
     ProviderMetadata, RedirectUrl,
 };
-use openidconnect::{
-    AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken,
-    Nonce, Scope,
-};
+use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
 
 use crate::appstate::AppState;
 use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
