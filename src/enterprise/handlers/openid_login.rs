@@ -1,5 +1,4 @@
-use axum::http::header::LOCATION;
-use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use axum::http::{StatusCode};
 
 use axum::Json;
 use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -7,7 +6,7 @@ use serde_json::json;
 
 use time::Duration;
 
-use axum::extract::{path, Query, State};
+use axum::extract::{State};
 
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
@@ -22,7 +21,7 @@ use openidconnect::{
     ProviderMetadata, RedirectUrl,
 };
 use openidconnect::{
-    AccessToken, AuthenticationFlow, AuthorizationCode, CsrfToken, EmptyAdditionalClaims, IdToken,
+    AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken,
     Nonce, Scope,
 };
 
