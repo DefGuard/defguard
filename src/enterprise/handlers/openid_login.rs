@@ -23,11 +23,11 @@ use openidconnect::{
 use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
 
 use crate::appstate::AppState;
-use crate::db::{AppEvent, DbPool, Session, SessionState, Settings, User, UserInfo};
+use crate::db::{AppEvent, DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
 use crate::handlers::user::check_username;
-use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME};
+use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
 
@@ -342,33 +342,73 @@ pub async fn auth_callback(
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
     let login_event_type = "AUTHENTICATION".to_string();
-    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-    appstate.trigger_action(AppEvent::UserCreated(user_info.clone()));
-    check_new_device_login(
-        &appstate.pool,
-        &appstate.mail_tx,
-        &session,
-        &user,
-        ip_address,
-        login_event_type,
-        agent,
-    )
-    .await?;
 
-    info!(
-        "External OpenID authentication successful for user {}",
-        user.username
-    );
+    info!("Authenticated user {username} with external OpenID provider. Veryfing MFA status...");
+    if user.mfa_enabled {
+        if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
+            check_new_device_login(
+                &appstate.pool,
+                &appstate.mail_tx,
+                &session,
+                &user,
+                ip_address,
+                login_event_type,
+                agent,
+            )
+            .await?;
+            Ok((
+                cookies,
+                private_cookies,
+                ApiResponse {
+                    json: json!(mfa_info),
+                    status: StatusCode::CREATED,
+                },
+            ))
+        } else {
+            error!("Couldn't fetch MFA info for user {username} with MFA enabled");
+            Err(WebError::DbError("MFA info read error".into()))
+        }
+    } else {
+        let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
 
-    Ok((
-        cookies,
-        private_cookies,
-        ApiResponse {
-            json: json!(AuthResponse {
-                user: user_info,
-                url: None,
-            }),
-            status: StatusCode::OK,
-        },
-    ))
+        check_new_device_login(
+            &appstate.pool,
+            &appstate.mail_tx,
+            &session,
+            &user,
+            ip_address,
+            login_event_type,
+            agent,
+        )
+        .await?;
+
+        if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
+            debug!("Found openid session cookie.");
+            let redirect_url = openid_cookie.value().to_string();
+            Ok((
+                cookies,
+                private_cookies.remove(openid_cookie),
+                ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: Some(redirect_url)
+                    }),
+                    status: StatusCode::OK,
+                },
+            ))
+        } else {
+            debug!("No OpenID session found");
+            Ok((
+                cookies,
+                private_cookies,
+                ApiResponse {
+                    json: json!(AuthResponse {
+                        user: user_info,
+                        url: None,
+                    }),
+                    status: StatusCode::OK,
+                },
+            ))
+        }
+    }
 }

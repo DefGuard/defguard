@@ -453,7 +453,17 @@ const useApi = (props?: HookProps): ApiHook => {
     client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
 
   const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
-    client.post(`/openid/callback`, data).then(unpackRequest);
+    client.post('/openid/callback', data).then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
 
   useEffect(() => {
     client.interceptors.response.use(

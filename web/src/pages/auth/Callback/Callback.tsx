@@ -28,9 +28,7 @@ export const OpenIDCallback = () => {
 
   const callbackMutation = useMutation((data: CallbackData) => callback(data), {
     mutationKey: [MutationKeys.OPENID_CALLBACK],
-    onSuccess: (data) => {
-      loginSubject.next(data);
-    },
+    onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
       toaster.error(LL.messages.error());
       console.error(error);
@@ -60,7 +58,6 @@ export const OpenIDCallback = () => {
           id_token,
           state,
         };
-        console.log('CALLING CALLBACK MUTATION');
         callbackMutation.mutate(data);
       }
     }
