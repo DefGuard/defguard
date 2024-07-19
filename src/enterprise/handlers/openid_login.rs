@@ -83,7 +83,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let client_id = ClientId::new(provider.client_id);
     let client_secret = ClientSecret::new(provider.client_secret);
     let config = server_config();
-    let url = format!("{}/auth/callback", config.url);
+    let url = format!("{}auth/callback", config.url);
     let redirect_url = match RedirectUrl::new(url) {
         Ok(url) => url,
         Err(err) => {
