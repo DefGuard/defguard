@@ -23,7 +23,7 @@ use openidconnect::{
 use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
 
 use crate::appstate::AppState;
-use crate::db::{AppEvent, DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
+use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
 use crate::handlers::user::check_username;

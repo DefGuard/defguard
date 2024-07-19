@@ -27,10 +27,10 @@ async fn test_openid_providers() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let provider_data = AddProviderData::new(
-        "test".to_string(),
-        "https://accounts.google.com".to_string(),
-        "client_id".to_string(),
-        "client_secret".to_string(),
+        "test",
+        "https://accounts.google.com",
+        "client_id",
+        "client_secret",
     );
 
     let response = client
