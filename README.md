@@ -9,10 +9,12 @@
 
 </div>
 
--  SSO, VPN, and hardware security key management combined, which provides:
+- Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
+- Integrated SSO based on OpenID Connect: 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
+- Already using Google/Microsoft or other OpenID Provider? - integrated external OpenID provider support 
+- Yubico YubiKey Hardware security key management and provisioning 
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Build on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
