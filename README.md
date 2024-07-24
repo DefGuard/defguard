@@ -32,13 +32,14 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 [Desktop client](https://github.com/DefGuard/client):
 - **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
+- Defguard instances as well as **any WireGuard tunnel** - just import your tunnels - one client for all WireGuard connections
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
 - Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
 - Live & real-time network charts
 - live VPN logs
 - light/dark theme
-- 
+
 ## Quick start
 
 The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
