@@ -37,10 +37,6 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 - Live & real-time network charts
 - In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more!
 
-## Roadmap
-
-![defguard WireGuard® MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
-
 ## Quick start
 
 The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
@@ -62,9 +58,9 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
 
-## Roadmap & Development
+## Roadmap & Development backlog
 
-[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
+[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5/views/1)
 
 ### ⛑️ Want to help? ⛑️ 
 
@@ -76,7 +72,17 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 ## Features
 
-* [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
+* [WireGuard®](https://www.wireguard.com/) VPN server with:
+  - Real and unique [Multi-Factor Authentication](https://defguard.gitbook.io/defguard/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
+  - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
+  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
+  - **import your current WireGuard® server configuration (with a wizard!)**
+  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
+  - automatic IP allocation
+  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
+  - dashboard and statistics overview of connected users/devices for admins
+  - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
+* Integrated SSO: [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
   - Secure remote (over the internet) [user enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment)
   - User [onboarding after enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment/user-onboarding-after-enrollment)
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
@@ -86,17 +92,8 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
-   - Web3 - authentication with crypto software and hardware wallets using Metamask, Ledger Extension
-* [WireGuard®](https://www.wireguard.com/) VPN management with:
-  - [Multi-Factor Authentication](https://defguard.gitbook.io/defguard/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
-  - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
-  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
-  - **import your current WireGuard® server configuration (with a wizard!)**
-  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
-  - automatic IP allocation
-  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
-  - dashboard and statistics overview of connected users/devices for admins
-  - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
+   - Email based TOTP
+* Extenal SSO: [External OpenID Providers support](https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
 * SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://defguard.gitbook.io/defguard/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
