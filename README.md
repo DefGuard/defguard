@@ -26,17 +26,19 @@ See below [full list of features](https://github.com/defguard/defguard#features)
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
-### Desktop Client with Multi-Factor Authentication
+### Desktop Client with 2FA / MFA (Multi-Factor Authentication)
 
 ![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
-[Desktop client](https://github.com/DefGuard/client) supports:
+[Desktop client](https://github.com/DefGuard/client):
+- **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
 - Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
 - Live & real-time network charts
-- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more!
-
+- live VPN logs
+- light/dark theme
+- 
 ## Quick start
 
 The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
@@ -106,17 +108,6 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
 * **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
 * End2End tests
-
-### Desktop Client
-
-[Desktop client](https://github.com/DefGuard/client):
-- **2FA / Multi-Factor Authentication** with TOTP or email based tokens
-- Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
-- Onboarding - displaying custom onboarding messages, with templates, links ...
-- Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
-- Live & real-time network charts
-- live VPN logs
-- light/dark theme
 
 ## Documentation
 
