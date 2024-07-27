@@ -22,7 +22,7 @@
 
 See below [full list of features](https://github.com/defguard/defguard#features)
 
-### Control plane management
+### Control plane management (this video is few versions behind... - a lot has changed!)
 
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
