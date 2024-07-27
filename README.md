@@ -30,6 +30,12 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 ### Desktop Client with 2FA / MFA (Multi-Factor Authentication)
 
+#### Light
+
+![defguard desktop client](https://defguard.net/images/product/client/main-screen.png)
+
+#### Dark
+
 ![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
 [Desktop client](https://github.com/DefGuard/client):
