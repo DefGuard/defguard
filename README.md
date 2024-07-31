@@ -24,6 +24,8 @@ See below [full list of features](https://github.com/defguard/defguard#features)
 
 ### Control plane management (this video is few versions behind... - a lot has changed!)
 
+![](https://defguard.net/images/product/core/hero-image.png)
+
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
@@ -66,6 +68,7 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 ## Manual deployment examples
 
+* [Standalone system package based install](https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
 
