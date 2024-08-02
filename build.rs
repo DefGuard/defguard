@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "proto/core/auth.proto",
             "proto/core/proxy.proto",
             "proto/core/vpn.proto",
+            "proto/core/license.proto",
             "proto/worker/worker.proto",
             "proto/wireguard/gateway.proto",
         ],

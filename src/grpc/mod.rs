@@ -547,6 +547,7 @@ pub async fn run_grpc_server(
         GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
+
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
     debug!("Starting gRPC services");

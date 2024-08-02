@@ -29,7 +29,10 @@ use crate::error::WebError;
 use crate::handlers::user::check_username;
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
+use crate::license::License;
 use crate::server_config;
+
+use super::LicenseInfo;
 
 type ProvMeta = ProviderMetadata<
     openidconnect::EmptyAdditionalProviderMetadata,
@@ -103,6 +106,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
 pub async fn get_auth_info(
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
+    license: LicenseInfo,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let client = make_oidc_client(&appstate.pool).await?;
 
