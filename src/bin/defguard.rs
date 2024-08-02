@@ -36,8 +36,8 @@ async fn main() -> Result<(), anyhow::Error> {
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 format!(
-                    "defguard={},tower_http=info,axum::rejection=trace",
-                    config.log_level
+                    "defguard={},tower_http={},axum::rejection=trace",
+                    config.log_level, config.log_level
                 )
                 .into()
             }),
