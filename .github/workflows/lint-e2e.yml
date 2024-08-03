@@ -12,7 +12,7 @@ on:
 
 jobs:
   lint-e2e:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
