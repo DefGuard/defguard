@@ -4,7 +4,7 @@ on:
 
 jobs:
   deploy-dev:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     environment: DEV
     if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
     env:
