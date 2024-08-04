@@ -9,10 +9,12 @@
 
 </div>
 
--  SSO, VPN, and hardware security key management combined, which provides:
+- Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
+- Integrated SSO based on OpenID Connect: 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
+- Already using Google/Microsoft or other OpenID Provider? - integrated external OpenID provider support 
+- Yubico YubiKey Hardware security key management and provisioning 
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Build on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
@@ -20,26 +22,33 @@
 
 See below [full list of features](https://github.com/defguard/defguard#features)
 
-### Control plane management
+### Control plane management (this video is few versions behind... - a lot has changed!)
+
+![](https://defguard.net/images/product/core/hero-image.png)
 
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
 Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
-### Desktop Client with Multi-Factor Authentication
+### Desktop Client with 2FA / MFA (Multi-Factor Authentication)
+
+#### Light
+
+![defguard desktop client](https://defguard.net/images/product/client/main-screen.png)
+
+#### Dark
 
 ![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
-[Desktop client](https://github.com/DefGuard/client) supports:
+[Desktop client](https://github.com/DefGuard/client):
+- **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
+- Defguard instances as well as **any WireGuard tunnel** - just import your tunnels - one client for all WireGuard connections
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
 - Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
 - Live & real-time network charts
-- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more!
-
-## Roadmap
-
-![defguard WireGuard® MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
+- live VPN logs
+- light/dark theme
 
 ## Quick start
 
@@ -59,12 +68,13 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 ## Manual deployment examples
 
+* [Standalone system package based install](https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
 * Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
 * Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
 
-## Roadmap & Development
+## Roadmap & Development backlog
 
-[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5).
+[A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5/views/1)
 
 ### ⛑️ Want to help? ⛑️ 
 
@@ -76,7 +86,17 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 ## Features
 
-* [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
+* [WireGuard®](https://www.wireguard.com/) VPN server with:
+  - Real and unique [Multi-Factor Authentication](https://defguard.gitbook.io/defguard/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
+  - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
+  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
+  - **import your current WireGuard® server configuration (with a wizard!)**
+  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
+  - automatic IP allocation
+  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
+  - dashboard and statistics overview of connected users/devices for admins
+  - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
+* Integrated SSO: [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
   - Secure remote (over the internet) [user enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment)
   - User [onboarding after enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment/user-onboarding-after-enrollment)
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
@@ -86,17 +106,8 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
-   - Web3 - authentication with crypto software and hardware wallets using Metamask, Ledger Extension
-* [WireGuard®](https://www.wireguard.com/) VPN management with:
-  - [Multi-Factor Authentication](https://defguard.gitbook.io/defguard/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
-  - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
-  - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
-  - **import your current WireGuard® server configuration (with a wizard!)**
-  - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
-  - automatic IP allocation
-  - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
-  - dashboard and statistics overview of connected users/devices for admins
-  - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
+   - Email based TOTP
+* Extenal SSO: [External OpenID Providers support](https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
 * SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://defguard.gitbook.io/defguard/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
@@ -109,15 +120,6 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
 * **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
 * End2End tests
-
-### Desktop Client
-
-[Desktop client](https://github.com/DefGuard/client) supports:
-- Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
-- Onboarding - displaying custom onboarding messages, with templates, links ...
-- Ability to route predefined VPN traffic or all traffic (server needs to have NAT configured - in gateway example)
-- Live & real-time network charts
-- In development: **Multi-Factor Authentication** for VPN, live logs, dark theme, settings, and more! 
 
 ## Documentation
 
