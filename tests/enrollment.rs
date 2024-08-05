@@ -57,7 +57,7 @@ async fn test_initialize_enrollment() {
         username: "adumbledore2".into(),
         last_name: "Dumbledore".into(),
         first_name: "Albus".into(),
-        email: "a.dumbledore@hogwart.edu.uk".into(),
+        email: "a.dumbledore2@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: None,
     };
