@@ -514,6 +514,7 @@ pub async fn run_grpc_bidi_stream(
                     tx.send(req).unwrap();
                 }
                 Err(err) => {
+                    info!("Disconnected from proxy at {}", endpoint.uri());
                     error!("stream error: {err}");
                     debug!("waiting 10s to re-establish the connection");
                     sleep(TEN_SECS).await;
