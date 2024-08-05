@@ -34,13 +34,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!(
-                    "defguard={},tower_http=info,axum::rejection=trace",
-                    config.log_level
-                )
-                .into()
-            }),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{}", config.log_level).into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
