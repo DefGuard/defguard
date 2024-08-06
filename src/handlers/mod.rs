@@ -37,7 +37,7 @@ pub mod worker;
 pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
-static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {

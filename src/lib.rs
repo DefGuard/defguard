@@ -12,6 +12,10 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
+use enterprise::handlers::{
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+};
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -115,6 +119,7 @@ pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
+pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -397,7 +402,13 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // OIDC login
+            .route("/openid/provider", get(get_current_openid_provider))
+            .route("/openid/provider", post(add_openid_provider))
+            .route("/openid/provider/:name", delete(delete_openid_provider))
+            .route("/openid/callback", post(auth_callback))
+            .route("/openid/auth_info", get(get_auth_info)),
     );
 
     #[cfg(feature = "openid")]

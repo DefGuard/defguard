@@ -23,6 +23,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  OpenIdProvider,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -151,6 +152,9 @@ const useApi = (props?: HookProps): ApiHook => {
     });
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
+
+  const getOpenidInfo: ApiHook['auth']['openid']['getOpenIdInfo'] = () =>
+    client.get(`/openid/auth_info`).then(unpackRequest);
 
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
@@ -435,6 +439,32 @@ const useApi = (props?: HookProps): ApiHook => {
   const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
     client.post('/groups-assign', data).then(unpackRequest);
 
+  const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
+    client.get<OpenIdProvider>(`/openid/provider`).then((res) => res.data);
+
+  const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
+    client.post(`/openid/provider`, data).then(unpackRequest);
+
+  const deleteOpenIdProvider: ApiHook['settings']['deleteOpenIdProvider'] = async (
+    name,
+  ) => client.delete(`/openid/provider/${name}`).then(unpackRequest);
+
+  const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = async (data) =>
+    client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
+
+  const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
+    client.post('/openid/callback', data).then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -525,6 +555,10 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      openid: {
+        getOpenIdInfo: getOpenidInfo,
+        callback: openIdCallback,
+      },
       mfa: {
         disable: mfaDisable,
         enable: mfaEnable,
@@ -592,6 +626,10 @@ const useApi = (props?: HookProps): ApiHook => {
       patchSettings,
       getEssentialSettings,
       testLdapSettings,
+      fetchOpenIdProviders: fetchOpenIdProvider,
+      addOpenIdProvider,
+      deleteOpenIdProvider,
+      editOpenIdProvider,
     },
     support: {
       downloadSupportData,

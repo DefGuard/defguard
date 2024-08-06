@@ -1,5 +1,8 @@
 Copyright 2023 teonite ventures sp. z o.o. (teonite)
 
+NOTE: The following license applies to the entire repository except for all the contents in the "enterprise" directory.
+For the license of the enterprise directory, go to enterprise/LICENSE.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
