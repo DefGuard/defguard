@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"openid_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\",\"uuid\",\"ldap_url\",\"ldap_bind_username\",\"ldap_bind_password\" \"ldap_bind_password?: SecretString\",\"ldap_group_search_base\",\"ldap_user_search_base\",\"ldap_user_obj_class\",\"ldap_group_obj_class\",\"ldap_username_attr\",\"ldap_groupname_attr\",\"ldap_group_member_attr\",\"ldap_member_attr\" FROM \"settings\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"openid_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\",\"uuid\",\"ldap_url\",\"ldap_bind_username\",\"ldap_bind_password\" \"ldap_bind_password?: SecretString\",\"ldap_group_search_base\",\"ldap_user_search_base\",\"ldap_user_obj_class\",\"ldap_group_obj_class\",\"ldap_username_attr\",\"ldap_groupname_attr\",\"ldap_group_member_attr\",\"ldap_member_attr\",\"openid_create_account\" FROM \"settings\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -173,6 +173,11 @@
         "ordinal": 31,
         "name": "ldap_member_attr",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 32,
+        "name": "openid_create_account",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -212,8 +217,9 @@
       true,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "e181b36a398dc70efd14bb7dc52138a17a5ec4c3210d5960149684e77ae88726"
+  "hash": "fb71770a725becd8d8f53554ded17e189c90b658aa343fc682b05be24f410b85"
 }

@@ -516,7 +516,7 @@ impl From<User> for AdminInfo {
 
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
-        let is_enrolled = user.has_password();
+        let enrolled = user.is_enrolled();
         let devices = user.devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
@@ -527,7 +527,7 @@ impl InitialUserInfo {
             phone_number: user.phone,
             is_active: user.is_active,
             device_names,
-            enrolled: is_enrolled,
+            enrolled,
         })
     }
 }

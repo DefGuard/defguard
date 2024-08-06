@@ -37,7 +37,9 @@ lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
 mime_guess = "2.0"
 model_derive = { path = "model-derive" }
-openidconnect = { version = "3.5", default-features = false, optional = true }
+openidconnect = { version = "3.5", default-features = false, optional = true, features = [
+    "reqwest",
+] }
 otpauth = "0.4"
 prost = "0.12"
 pulldown-cmark = "0.11"

@@ -99,7 +99,7 @@ impl UserInfo {
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
             is_active: user.is_active,
-            enrolled: user.has_password(),
+            enrolled: user.is_enrolled(),
         })
     }
 
