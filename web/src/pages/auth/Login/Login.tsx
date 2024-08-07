@@ -23,6 +23,7 @@ import { QueryKeys } from '../../../shared/queries';
 import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { OpenIdLoginButton } from './components/OidcButtons';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 
 type Inputs = {
   username: string;
@@ -38,7 +39,9 @@ export const Login = () => {
     },
   } = useApi();
 
+  const appInfo = useAppStore((state) => state.appInfo);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
+    enabled: appInfo?.enterprise,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
     queryFn: getOpenidInfo,
     refetchOnMount: true,
@@ -127,7 +130,9 @@ export const Login = () => {
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {openIdInfo && <OpenIdLoginButton url={openIdInfo.url} />}
+            {appInfo?.enterprise && openIdInfo && (
+              <OpenIdLoginButton url={openIdInfo.url} />
+            )}
           </form>
         </>
       ) : (

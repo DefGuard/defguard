@@ -25,11 +25,11 @@ use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToke
 use crate::appstate::AppState;
 use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
+use crate::enterprise::license::License;
 use crate::error::WebError;
 use crate::handlers::user::check_username;
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
-use crate::license::License;
 use crate::server_config;
 
 use super::LicenseInfo;
@@ -104,9 +104,9 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
 }
 
 pub async fn get_auth_info(
+    _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
-    license: LicenseInfo,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let client = make_oidc_client(&appstate.pool).await?;
 
@@ -177,6 +177,7 @@ pub struct AuthenticationResponse {
 }
 
 pub async fn auth_callback(
+    _license: LicenseInfo,
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,

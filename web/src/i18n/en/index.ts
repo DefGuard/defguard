@@ -1041,6 +1041,18 @@ const en: BaseTranslation = {
           </a>
 			`,
     },
+    license: {
+      header: 'Enterprise',
+      form: {
+        title: 'License',
+        fields: {
+          key: {
+            label: 'License key',
+            placeholder: 'Your Defguard license key',
+          },
+        },
+      },
+    },
     smtp: {
       form: {
         title: 'SMTP configuration',

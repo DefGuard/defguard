@@ -1028,6 +1028,18 @@ Uwaga, podane tutaj konfiguracje nie posiadajÄ… klucza prywatnego. Musisz uzupeÅ
           </a>
 			`,
     },
+    license: {
+      header: 'Funkcje enterprise',
+      form: {
+        title: 'Licencja',
+        fields: {
+          key: {
+            label: 'Klucz licencji',
+            placeholder: 'Klucz licencji dla twojej instancji Defguard',
+          },
+        },
+      },
+    },
     smtp: {
       form: {
         title: 'Ustawienia',

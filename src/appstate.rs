@@ -18,7 +18,7 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
-    license::License,
+    enterprise::license::License,
     mail::Mail,
     server_config,
 };

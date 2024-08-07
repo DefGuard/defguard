@@ -56,6 +56,7 @@ export const AppLoader = () => {
 
   useQuery([QueryKeys.FETCH_APP_INFO], getAppInfo, {
     onSuccess: (data) => {
+      console.log('App Info:', data);
       setAppStore({ appInfo: data });
     },
     onError: (err) => {

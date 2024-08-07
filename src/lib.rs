@@ -17,6 +17,7 @@ use enterprise::handlers::{
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
+use enterprise::license;
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -26,7 +27,6 @@ use handlers::{
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
-use license::License;
 use secrecy::ExposeSecret;
 use tokio::{
     net::TcpListener,
@@ -290,6 +290,7 @@ pub fn build_webapp(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     license: Arc<Mutex<Option<License>>>,
+    enterprise_enabled: bool,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -408,7 +409,6 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings)),
     );
-    let enterprise_enabled = true;
 
     let webapp = if enterprise_enabled {
         webapp.nest(
@@ -532,6 +532,7 @@ pub async fn run_web_server(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
     license: Arc<Mutex<Option<License>>>,
+    enterprise_enabled: bool,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -544,6 +545,7 @@ pub async fn run_web_server(
         user_agent_parser,
         failed_logins,
         license,
+        enterprise_enabled,
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);

@@ -2522,6 +2522,30 @@ type RootTranslation = {
 			 */
 			helper: RequiredParams<'documentationLink'>
 		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
+		}
 		smtp: {
 			form: {
 				/**
@@ -6506,6 +6530,30 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {

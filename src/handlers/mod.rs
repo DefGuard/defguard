@@ -105,6 +105,14 @@ impl From<WebError> for ApiResponse {
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::LicenseError(err) => {
+                error!("License error: {err}");
+                ApiResponse::new(
+                    // FIXME: Come up with a better error code
+                    json!({"msg": "Internal server error"}),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )
+            }
         }
     }
 }

@@ -360,6 +360,7 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  enterprise: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -804,7 +805,8 @@ export type Settings = SettingsModules &
   SettingsEnrollment &
   SettingsBranding &
   SettingsLDAP &
-  SettingsOpenID;
+  SettingsOpenID &
+  SettingsLicense;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -859,6 +861,10 @@ export type SettingsWeb3 = {
 
 export type SettingsOpenID = {
   openid_create_account: boolean;
+};
+
+export type SettingsLicense = {
+  license: string;
 };
 
 export interface Webhook {

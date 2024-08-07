@@ -1,4 +1,4 @@
-use crate::license::License;
+use crate::enterprise::license::{validate_license, License};
 
 pub mod openid_login;
 pub mod openid_providers;
@@ -39,7 +39,7 @@ where
 {
     type Rejection = WebError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
 
         let license = appstate
@@ -47,17 +47,10 @@ where
             .lock()
             .expect("Failed to acquire lock on the license.");
 
-        let license = match &*license {
-            Some(license) => license,
-            None => {
-                return Err(WebError::ObjectNotFound("License not found.".to_string()));
-            }
-        };
-
-        info!("middleware run, license: {:?}", license);
-
-        Ok(LicenseInfo {
-            valid: !license.is_expired(),
-        })
+        match validate_license((*license).as_ref()) {
+            // Useless struct, but may come in handy later
+            Ok(_) => Ok(LicenseInfo { valid: true }),
+            Err(e) => Err(WebError::Forbidden(e.to_string())),
+        }
     }
 }

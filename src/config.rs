@@ -163,6 +163,14 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub gateway_disconnection_notification_timeout: Duration,
 
+    #[arg(
+        long,
+        env = "DEFGUARD_LICENSE_SERVER_URL",
+        default_value = "http://localhost:8002/api/license/refresh"
+    )]
+    #[serde(skip_serializing)]
+    pub license_server_url: Option<String>,
+
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,

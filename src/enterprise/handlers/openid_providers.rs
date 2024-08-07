@@ -13,6 +13,8 @@ use crate::{
 
 use serde_json::json;
 
+use super::LicenseInfo;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {
     name: String,
@@ -38,6 +40,7 @@ impl AddProviderData {
 }
 
 pub async fn add_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -66,6 +69,7 @@ pub async fn add_openid_provider(
 }
 
 pub async fn get_current_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -82,6 +86,7 @@ pub async fn get_current_openid_provider(
 }
 
 pub async fn delete_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -115,6 +120,7 @@ pub async fn delete_openid_provider(
 }
 
 pub async fn modify_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -151,6 +157,7 @@ pub async fn modify_openid_provider(
 }
 
 pub async fn list_openid_providers(
+    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
