@@ -455,7 +455,6 @@ async fn test_email_mfa() {
 }
 
 #[tokio::test]
-#[sqlx::test]
 async fn test_webauthn() {
     let (client, pool) = make_client_with_db().await;
 
