@@ -16,6 +16,7 @@ import { RedirectPage } from '../redirect/RedirectPage';
 import { Login } from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
+import { OpenIDCallback } from './Callback/Callback';
 
 export const AuthPage = () => {
   const {
@@ -152,6 +153,7 @@ export const AuthPage = () => {
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
         <Route path="mfa/*" element={<MFARoute />} />
+        <Route path="callback" element={<OpenIDCallback />} />
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
     </div>

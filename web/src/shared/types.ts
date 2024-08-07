@@ -166,6 +166,11 @@ export interface LoginData {
   password: string;
 }
 
+export interface CallbackData {
+  id_token: string;
+  state: string;
+}
+
 export type LoginSubjectData = {
   user?: User;
   // URL of an already authorized application
@@ -305,6 +310,10 @@ export interface LoginResponse {
   url?: string;
   user?: User;
   mfa?: MFALoginResponse;
+}
+
+export interface OpenIdInfoResponse {
+  url: string;
 }
 
 export interface DeleteWebAuthNKeyRequest {
@@ -500,6 +509,10 @@ export interface ApiHook {
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
+    openid: {
+      getOpenIdInfo: () => Promise<OpenIdInfoResponse>;
+      callback: (data: CallbackData) => Promise<LoginResponse>;
+    };
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
@@ -569,6 +582,10 @@ export interface ApiHook {
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
     testLdapSettings: () => Promise<EmptyApiResponse>;
+    fetchOpenIdProviders: () => Promise<OpenIdProvider>;
+    addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
+    editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -786,7 +803,8 @@ export type Settings = SettingsModules &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
-  SettingsLDAP;
+  SettingsLDAP &
+  SettingsOpenID;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -839,6 +857,10 @@ export type SettingsWeb3 = {
   challenge_template: string;
 };
 
+export type SettingsOpenID = {
+  openid_create_account: boolean;
+};
+
 export interface Webhook {
   id: string;
   url: string;
@@ -859,6 +881,14 @@ export interface OpenidClient {
   redirect_uri: string[];
   scope: string[];
   enabled: boolean;
+}
+
+export interface OpenIdProvider {
+  id: number;
+  name: string;
+  base_url: string;
+  client_id: string;
+  client_secret: string;
 }
 
 export interface EditOpenidClientRequest {

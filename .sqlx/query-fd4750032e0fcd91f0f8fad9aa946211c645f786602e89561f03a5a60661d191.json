@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active FROM \"user\" WHERE username = $1",
+  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_login\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -45,26 +45,36 @@
       },
       {
         "ordinal": 8,
-        "name": "totp_enabled",
+        "name": "is_active",
         "type_info": "Bool"
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
+        "name": "openid_login",
         "type_info": "Bool"
       },
       {
         "ordinal": 10,
+        "name": "totp_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 11,
+        "ordinal": 13,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -82,19 +92,14 @@
         }
       },
       {
-        "ordinal": 13,
-        "name": "recovery_codes",
+        "ordinal": 15,
+        "name": "recovery_codes: _",
         "type_info": "TextArray"
-      },
-      {
-        "ordinal": 14,
-        "name": "is_active",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -108,12 +113,13 @@
       false,
       false,
       false,
-      true,
-      true,
       false,
+      false,
+      true,
+      true,
       false,
       false
     ]
   },
-  "hash": "1b29a6b1d3741ede2d85271f0f0e07069048ba01f8c3c5988f044e788200f9f8"
+  "hash": "fd4750032e0fcd91f0f8fad9aa946211c645f786602e89561f03a5a60661d191"
 }

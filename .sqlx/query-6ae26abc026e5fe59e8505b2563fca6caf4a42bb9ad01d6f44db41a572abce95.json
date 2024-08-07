@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ae26abc026e5fe59e8505b2563fca6caf4a42bb9ad01d6f44db41a572abce95"
+}
