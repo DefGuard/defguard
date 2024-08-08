@@ -6,18 +6,21 @@ use std::{
 
 use anyhow::anyhow;
 use axum::{
-    http::{Request, Response, StatusCode},
-    middleware::{self, Next},
+    http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
     serve, Extension, Json, Router,
 };
 
 use assets::{index, svg, web_asset};
-use enterprise::handlers::{
-    openid_login::{auth_callback, get_auth_info},
-    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+use enterprise::{
+    handlers::{
+        openid_login::{auth_callback, get_auth_info},
+        openid_providers::{
+            add_openid_provider, delete_openid_provider, get_current_openid_provider,
+        },
+    },
+    license::License,
 };
-use enterprise::license;
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
@@ -128,7 +131,6 @@ pub mod handlers;
 pub mod headers;
 pub mod hex;
 pub mod ldap;
-pub mod license;
 pub mod mail;
 pub(crate) mod random;
 pub mod secret;

@@ -1,4 +1,3 @@
-use std::ops::Not;
 
 use axum::{
     extract::{Json, Path, State},
@@ -14,7 +13,7 @@ use crate::{
         models::settings::{SettingsEssentials, SettingsPatch},
         Settings,
     },
-    enterprise::license::{self, update_cached_license, License},
+    enterprise::license::{update_cached_license},
     error::WebError,
     ldap::LDAPConnection,
     AppState,

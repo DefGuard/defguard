@@ -1,30 +1,18 @@
-use crate::enterprise::license::{validate_license, License};
+use crate::enterprise::license::validate_license;
 
 pub mod openid_login;
 pub mod openid_providers;
 
-use std::{
-    env,
-    time::{Duration, SystemTime},
-};
 
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
-use axum_extra::extract::cookie::CookieJar;
-use jsonwebtoken::{
-    decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
-};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     appstate::AppState,
-    db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
-    handlers::SESSION_COOKIE_NAME,
-    server_config,
 };
 
 pub struct LicenseInfo {

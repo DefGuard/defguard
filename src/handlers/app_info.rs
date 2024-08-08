@@ -1,6 +1,5 @@
 use super::{ApiResponse, ApiResult, VERSION};
-use crate::enterprise;
-use crate::enterprise::license::{validate_license, License};
+use crate::enterprise::license::validate_license;
 use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork};
 
 use crate::db::Settings;

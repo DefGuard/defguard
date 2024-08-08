@@ -25,7 +25,6 @@ use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToke
 use crate::appstate::AppState;
 use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
-use crate::enterprise::license::License;
 use crate::error::WebError;
 use crate::handlers::user::check_username;
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
