@@ -353,10 +353,7 @@ pub async fn start_enrollment(
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
-    debug!(
-        "User {} starting enrollment for user {username}",
-        session.user.username
-    );
+    debug!("User {} has started a new enrollment request.", session.user.username);
 
     // validate request
     if data.send_enrollment_notification && data.email.is_none() {
@@ -369,6 +366,7 @@ pub async fn start_enrollment(
         ));
     }
 
+    debug!("Search for the user {} in database to get started with enrollment process.", username);
     let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
         error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
@@ -420,7 +418,7 @@ pub async fn start_enrollment(
     path = "/api/v1/user/{username}/start_desktop",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 201, description = "Returns desktop activation token and url to get started with a new enrollment.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_url"})),
         (status = 400, description = "Bad request, invalid enrollment request.", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
         (status = 401, description = "Unauthorized to start remote desktop configuration.", body = Json, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
         (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
@@ -434,11 +432,13 @@ pub async fn start_remote_desktop_configuration(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {username}",
+        "User {} has started desktop activation.",
         session.user.username
     );
 
+    debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    debug!("Successfully fetched user data: {user:?}");
 
     // if email is None assume that email should be sent to enrolling user
     let email = match data.email {
@@ -448,6 +448,10 @@ pub async fn start_remote_desktop_configuration(
 
     let mut transaction = appstate.pool.begin().await?;
 
+    debug!(
+        "Generating a new enrollment token by {}.",
+        session.user.username
+    );
     let config = server_config();
     let enrollment_token = user
         .start_remote_desktop_configuration(
@@ -460,11 +464,12 @@ pub async fn start_remote_desktop_configuration(
             appstate.mail_tx.clone(),
         )
         .await?;
+    debug!("Generated a new enrollment token for {}.", username);
 
     transaction.commit().await?;
 
     info!(
-        "User {} started enrollment for user {username}",
+        "User {} added a new desktop activation.",
         session.user.username
     );
 

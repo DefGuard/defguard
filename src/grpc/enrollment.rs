@@ -91,6 +91,7 @@ impl EnrollmentServer {
 
     // check if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+        info!("Start validating enrollment session. Token {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
@@ -98,6 +99,7 @@ impl EnrollmentServer {
         debug!("Validating enrollment session token: {token}");
 
         let enrollment = Token::find_by_id(&self.pool, token).await?;
+        debug!("Verify is enrollment token valid {enrollment:?}.");
         if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
             info!("Enrollment session validated");
             Ok(enrollment)
@@ -213,18 +215,26 @@ impl EnrollmentServer {
         }
 
         // check if password is strong enough
+        debug!("Verify is password strong enough to complete the activating user process.");
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
         }
+        debug!("Password is strong enough to complete the activating user process.");
 
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
+        debug!(
+            "Fetching user {} data from enrollment to check is the user has already password.",
+            user.username
+        );
         if user.has_password() {
             error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
         }
+        debug!("User doesn't have a password yet.");
 
+        debug!("Verify is the user active or disabled.");
         if !user.is_active {
             warn!(
                 "Can't finalize enrollment for disabled user {}",
@@ -232,6 +242,7 @@ impl EnrollmentServer {
             );
             return Err(Status::invalid_argument("user is disabled"));
         }
+        debug!("User is active.");
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
@@ -239,6 +250,7 @@ impl EnrollmentServer {
         })?;
 
         // update user
+        info!("Update user details and set a new password.");
         user.phone = request.phone_number;
         user.set_password(&request.password);
         user.save(&mut *transaction).await.map_err(|err| {
@@ -248,15 +260,18 @@ impl EnrollmentServer {
 
         // sync with LDAP
         if self.ldap_feature_active {
+            debug!("Syncing with LDAP.");
             let _result = ldap_add_user(&self.pool, &user, &request.password).await;
         };
 
+        debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_settings(&mut *transaction)
             .await
             .map_err(|_| {
                 error!("Failed to get settings");
                 Status::internal("unexpected error")
             })?;
+        debug!("Successfully retrive settings.");
 
         // send welcome email
         enrollment
@@ -271,6 +286,7 @@ impl EnrollmentServer {
             .await?;
 
         // send success notification to admin
+        debug!("Trying fetch admin data from the enrollment token to send notification about activating user.");
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         if let Some(admin) = admin {
