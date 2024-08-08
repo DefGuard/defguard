@@ -77,7 +77,7 @@ impl From<TokenError> for Status {
 }
 
 // Representation of a user enrollment session
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub id: String,
     pub user_id: i64,
@@ -228,12 +228,13 @@ impl Token {
     {
         debug!("Fetching admin for enrollment");
         if self.admin_id.is_none() {
+            debug!("Admin don't have id. Stop fetching data...");
             return Ok(None);
         }
 
         let admin_id = self.admin_id.unwrap();
         let user = User::find_by_id(executor, admin_id).await?;
-        info!("Fetched admin id {} for enrollment", admin_id);
+        debug!("Fetched admin id {} for enrollment", admin_id);
         Ok(user)
     }
 
@@ -376,8 +377,8 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
-            admin.username, self.username
+            "Generate a new enrollment token for the user {}, notification enabled: {send_user_notification}",
+            self.username
         );
         if self.has_password() {
             return Err(TokenError::AlreadyActive);
@@ -484,6 +485,10 @@ impl User {
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
+        debug!(
+            "Saved a new enrollment token with id {} for user {}.",
+            enrollment.id, self.username
+        );
 
         if send_user_notification {
             if let Some(email) = email {
@@ -519,6 +524,10 @@ impl User {
                 }
             }
         }
+        info!(
+            "New enrollment token has been generated for {}.",
+            self.username
+        );
 
         Ok(enrollment.id)
     }
