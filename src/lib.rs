@@ -409,7 +409,13 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // OIDC login
+            .route("/openid/provider", get(get_current_openid_provider))
+            .route("/openid/provider", post(add_openid_provider))
+            .route("/openid/provider/:name", delete(delete_openid_provider))
+            .route("/openid/callback", post(auth_callback))
+            .route("/openid/auth_info", get(get_auth_info)),
     );
 
     let webapp = if enterprise_enabled {

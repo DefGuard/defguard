@@ -1,5 +1,4 @@
 import './style.scss';
-
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,

@@ -103,6 +103,7 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 utoipa = { version = "4", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "7", features = ["axum"] }
 pgp = "0.13.1"
+tonic-health = "0.11"
 
 [dev-dependencies]
 bytes = "1.6"

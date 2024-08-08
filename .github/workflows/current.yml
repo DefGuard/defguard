@@ -6,8 +6,8 @@ on:
       - dev
       - openid-login
     paths-ignore:
-      - '*.md'
-      - 'LICENSE'
+      - "*.md"
+      - "LICENSE"
 
 jobs:
   build-docker:

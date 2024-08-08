@@ -2,17 +2,17 @@ import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
 
-import { useI18nContext } from '../../../i18n/i18n-react';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
+import { useEffect, useState } from 'react';
 import useApi from '../../../shared/hooks/useApi';
-import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { CallbackData } from '../../../shared/types';
+import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useToaster } from '../../../shared/hooks/useToaster';
+import { useI18nContext } from '../../../i18n/i18n-react';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import { useNavigate } from 'react-router';
 
 export const OpenIDCallback = () => {
   const {

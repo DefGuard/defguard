@@ -130,14 +130,16 @@ export const Login = () => {
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {appInfo?.enterprise && openIdInfo && (
-              <OpenIdLoginButton url={openIdInfo.url} />
-            )}
-          </form>
+            {
+              appInfo?.enterprise && openIdInfo && (
+                <OpenIdLoginButton url={openIdInfo.url} />
+              )
+            }
+          </form >
         </>
       ) : (
         <LoaderSpinner size={80} />
       )}
-    </section>
+    </section >
   );
 };

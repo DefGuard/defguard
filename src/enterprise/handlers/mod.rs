@@ -3,17 +3,13 @@ use crate::enterprise::license::validate_license;
 pub mod openid_login;
 pub mod openid_providers;
 
-
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
 
-use crate::{
-    appstate::AppState,
-    error::WebError,
-};
+use crate::{appstate::AppState, error::WebError};
 
 pub struct LicenseInfo {
     pub valid: bool,

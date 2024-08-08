@@ -910,27 +910,22 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     openIdSettings: {
       general: {
         title: 'Ustawienia zewnętrznego OpenID',
-        helper:
-          'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
+        helper: 'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
         createAccount: {
-          label:
-            'Automatycznie twórz konta w momencie logowania przez zewnętrznego dostawcę OpenID',
-          helper:
-            'Jeśli ta opcja jest włączona, Defguard automatycznie tworzy nowe konta dla użytkowników, którzy logują się po raz pierwszy za pomocą zewnętrznego dostawcy OpenID. W innym przypadku konto użytkownika musi zostać najpierw utworzone przez administratora.',
+          label: 'Automatycznie twórz konta w momencie logowania przez zewnętrznego dostawcę OpenID',
+          helper: 'Jeśli ta opcja jest włączona, Defguard automatycznie tworzy nowe konta dla użytkowników, którzy logują się po raz pierwszy za pomocą zewnętrznego dostawcy OpenID. W innym przypadku konto użytkownika musi zostać najpierw utworzone przez administratora.',
         },
       },
       form: {
         title: 'Ustawienia klienta zewnętrznego OpenID',
-        helper:
-          'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
-        custom: 'Niestandardowy',
+        helper: 'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
+        custom: "Niestandardowy",
         documentation: 'Dokumentacja',
         delete: 'Usuń dostawcę',
         labels: {
           provider: {
             label: 'Dostawca',
-            helper:
-              'Wybierz swojego dostawcę OpenID. Możesz użyć dostawcy niestandardowego i samodzielnie wypełnić pole URL bazowego.',
+            helper: 'Wybierz swojego dostawcę OpenID. Możesz użyć dostawcy niestandardowego i samodzielnie wypełnić pole URL bazowego.',
           },
           client_id: {
             label: 'ID klienta',
@@ -942,8 +937,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
           base_url: {
             label: 'URL bazowy',
-            helper:
-              'Podstawowy adres URL twojego dostawcy OpenID, np. https://accounts.google.com. Sprawdź naszą dokumentację, aby uzyskać więcej informacji i zobaczyć przykłady.',
+            helper: 'Podstawowy adres URL twojego dostawcy OpenID, np. https://accounts.google.com. Sprawdź naszą dokumentację, aby uzyskać więcej informacji i zobaczyć przykłady.',
           },
         },
       },
