@@ -42,7 +42,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64, linux/arm64
+          # platforms: linux/amd64, linux/arm64
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -71,17 +72,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        # build: [ linux, linux-arm, linux-arm64, freebsd ]
+        build: [ linux, freebsd ]
         include:
           - build: linux
             os: Linux
             target: x86_64-unknown-linux-gnu
-          - build: linux-arm
-            os: Linux
-            target: armv7-unknown-linux-gnueabihf
-          - build: linux-arm64
-            os: Linux
-            target: aarch64-unknown-linux-gnu
+          # - build: linux-arm
+          #   os: Linux
+          #   target: armv7-unknown-linux-gnueabihf
+          # - build: linux-arm64
+          #   os: Linux
+          #   target: aarch64-unknown-linux-gnu
           - build: freebsd
             os: Linux
             target: x86_64-unknown-freebsd
