@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use chrono::{DateTime, TimeDelta, Utc};
