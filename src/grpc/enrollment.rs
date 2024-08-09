@@ -304,7 +304,9 @@ impl EnrollmentServer {
             .await?;
 
         // send success notification to admin
-        debug!("Trying fetch admin data from the token to send notification about activating user.");
+        debug!(
+            "Trying fetch admin data from the token to send notification about activating user."
+        );
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
         if let Some(admin) = admin {

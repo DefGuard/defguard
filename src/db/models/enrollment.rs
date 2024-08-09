@@ -176,7 +176,7 @@ impl Token {
             Some(_) => {
                 debug!("Session has expired.");
                 Err(TokenError::TokenUsed)
-            },
+            }
             // session not yet started
             None => {
                 let now = Utc::now().naive_utc();
