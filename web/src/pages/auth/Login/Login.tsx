@@ -17,6 +17,7 @@ import {
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
@@ -37,6 +38,7 @@ export const Login = () => {
       openid: { getOpenIdInfo: getOpenidInfo },
     },
   } = useApi();
+  const toaster = useToaster();
 
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
@@ -88,6 +90,7 @@ export const Login = () => {
         );
       } else {
         console.error(error);
+        toaster.error(LL.form.error.tooManyBadLoginAttemps());
       }
     },
   });

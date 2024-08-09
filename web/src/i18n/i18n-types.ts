@@ -2096,6 +2096,10 @@ type RootTranslation = {
 			 * @param {number} value
 			 */
 			maximumValue: RequiredParams<'value'>
+			/**
+			 * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​f​e​w​ ​m​i​n​u​t​e​s​.
+			 */
+			tooManyBadLoginAttemps: string
 		}
 		floatingErrors: {
 			/**
@@ -6084,6 +6088,10 @@ export type TranslationFunctions = {
 			 * Maximum value of {value} exceeded.
 			 */
 			maximumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Too many bad login attempts. Please try again in few minutes.
+			 */
+			tooManyBadLoginAttemps: () => LocalizedString
 		}
 		floatingErrors: {
 			/**

@@ -850,6 +850,7 @@ const en: BaseTranslation = {
       number: 'Expected a valid number.',
       minimumValue: `Minimum value of {value: number} not reached.`,
       maximumValue: 'Maximum value of {value: number} exceeded.',
+      tooManyBadLoginAttemps: `Too many bad login attempts. Please try again in few minutes.`,
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -926,20 +927,24 @@ const en: BaseTranslation = {
         title: 'External OpenID Settings',
         helper: 'Here you can change general OpenID behavior in your Defguard instance.',
         createAccount: {
-          label: 'Automatically create user account when logging in for the first time through external OpenID.',
-          helper: 'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
+          label:
+            'Automatically create user account when logging in for the first time through external OpenID.',
+          helper:
+            'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
         },
       },
       form: {
         title: 'External OpenID Client Settings',
-        helper: 'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
-        custom: "Custom",
+        helper:
+          'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
+        custom: 'Custom',
         documentation: 'Documentation',
         delete: 'Delete provider',
         labels: {
           provider: {
             label: 'Provider',
-            helper: 'Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.',
+            helper:
+              'Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.',
           },
           client_id: {
             label: 'Client ID',
@@ -951,7 +956,8 @@ const en: BaseTranslation = {
           },
           base_url: {
             label: 'Base URL',
-            helper: 'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
+            helper:
+              'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
           },
         },
       },
