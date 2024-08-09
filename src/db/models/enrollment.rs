@@ -161,16 +161,22 @@ impl Token {
         session_timeout_seconds: u64,
     ) -> Result<NaiveDateTime, TokenError> {
         // check if token can be used
+        debug!("Creating a new session.");
         if self.is_expired() {
+            debug!("Token is already expired. Cannot establish a new session.");
             return Err(TokenError::TokenExpired);
         }
         match self.used_at {
             // session started but still valid
             Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
+                debug!("Session already exists yet it is still valid.");
                 Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
             }
             // session expired
-            Some(_) => Err(TokenError::TokenUsed),
+            Some(_) => {
+                debug!("Session has expired.");
+                Err(TokenError::TokenUsed)
+            },
             // session not yet started
             None => {
                 let now = Utc::now().naive_utc();
@@ -179,6 +185,7 @@ impl Token {
                     .await?;
                 self.used_at = Some(now);
 
+                debug!("Generate a new session successfully.");
                 Ok(now + Duration::seconds(session_timeout_seconds as i64))
             }
         }
@@ -194,8 +201,14 @@ impl Token {
         .fetch_optional(pool)
         .await?
         {
-            Some(enrollment) => Ok(enrollment),
-            None => Err(TokenError::NotFound),
+            Some(enrollment) => {
+                debug!("Fetch token {enrollment:?} from database.");
+                Ok(enrollment)
+            }
+            None => {
+                debug!("Token with id {} does not exist in database.", id);
+                Err(TokenError::NotFound)
+            }
         }
     }
 
@@ -214,11 +227,12 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching user for enrollment");
+        debug!("Finding user by id {}.", self.user_id);
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
             error!("User not found for enrollment token {}", self.id);
             return Err(TokenError::UserNotFound);
         };
+        debug!("Fetched user {user:?}.");
         Ok(user)
     }
 
@@ -226,15 +240,16 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching admin for enrollment");
+        debug!("Fetching admin data.");
         if self.admin_id.is_none() {
             debug!("Admin don't have id. Stop fetching data...");
             return Ok(None);
         }
 
         let admin_id = self.admin_id.unwrap();
+        debug!("Try to find admin using id {}", admin_id);
         let user = User::find_by_id(executor, admin_id).await?;
-        debug!("Fetched admin id {} for enrollment", admin_id);
+        debug!("Fetched admin {user:?}.");
         Ok(user)
     }
 
@@ -377,10 +392,11 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "Generate a new enrollment token for the user {}, notification enabled: {send_user_notification}",
+            "Start generating a new enrollment process for the user {}, notification enabled: {send_user_notification}",
             self.username
         );
         if self.has_password() {
+            debug!("User that you want to start enrollment process has already password.");
             return Err(TokenError::AlreadyActive);
         }
 
@@ -398,6 +414,7 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
+        debug!("Create a new enrollment token for user {}.", self.username);
         let enrollment = Token::new(
             user_id,
             Some(admin_id),
@@ -406,6 +423,10 @@ impl User {
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut *transaction).await?;
+        debug!(
+            "Saved a new enrollment token with id {} for user {}.",
+            enrollment.id, self.username
+        );
 
         if send_user_notification {
             if let Some(email) = email {
@@ -424,7 +445,14 @@ impl User {
                         enrollment_service_url,
                         &enrollment.id,
                     )
-                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
+                    .map_err(|err| {
+                        debug!(
+                            "Cannot send an email to the user {} due to the error {}.",
+                            self.username,
+                            err.to_string()
+                        );
+                        TokenError::NotificationError(err.to_string())
+                    })?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -442,6 +470,10 @@ impl User {
                 }
             }
         }
+        info!(
+            "New enrollment token has been generated for {}.",
+            self.username
+        );
 
         Ok(enrollment.id)
     }
@@ -459,8 +491,8 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "User {} starting desktop configuration for user {}, notification enabled: {send_user_notification}",
-            admin.username, self.username
+            "Start a new desktop activation for user {}, notification enabled: {send_user_notification}",
+            self.username
         );
 
         let user_id = self.id.expect("User without ID");
@@ -468,7 +500,7 @@ impl User {
 
         if !self.is_active {
             warn!(
-                "Can't create desktop configuration enrollment token for disabled user {}",
+                "Can't create desktop activation token for disabled user {}.",
                 self.username
             );
             return Err(TokenError::UserDisabled);
@@ -477,6 +509,10 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
+        debug!(
+            "Create a new desktop activation token for user {}.",
+            self.username
+        );
         let enrollment = Token::new(
             user_id,
             Some(admin_id),
@@ -486,7 +522,7 @@ impl User {
         );
         enrollment.save(&mut *transaction).await?;
         debug!(
-            "Saved a new enrollment token with id {} for user {}.",
+            "Saved a new desktop activation token with id {} for user {}.",
             enrollment.id, self.username
         );
 
@@ -507,7 +543,14 @@ impl User {
                         &enrollment_service_url,
                         &enrollment.id,
                     )
-                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
+                    .map_err(|err| {
+                        debug!(
+                            "Cannot send an email to the user {} due to the error {}.",
+                            self.username,
+                            err.to_string()
+                        );
+                        TokenError::NotificationError(err.to_string())
+                    })?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -525,7 +568,7 @@ impl User {
             }
         }
         info!(
-            "New enrollment token has been generated for {}.",
+            "New desktop activation token has been generated for {}.",
             self.username
         );
 
@@ -537,10 +580,7 @@ impl User {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), TokenError> {
-        info!(
-            "Removing unused enrollment tokens for user {}",
-            self.username
-        );
+        info!("Removing unused tokens for user {}.", self.username);
         Token::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
     }
 
