@@ -183,7 +183,7 @@ pub async fn start_enrollment(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {username}",
+        "User {} has started a new enrollment request.",
         session.user.username
     );
 
@@ -198,6 +198,10 @@ pub async fn start_enrollment(
         ));
     }
 
+    debug!(
+        "Search for the user {} in database to get started with enrollment process.",
+        username
+    );
     let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
         error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
@@ -244,7 +248,9 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
 
+    debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    debug!("Successfully fetched user data: {user:?}");
 
     // if email is None assume that email should be sent to enrolling user
     let email = match data.email {
@@ -254,6 +260,10 @@ pub async fn start_remote_desktop_configuration(
 
     let mut transaction = appstate.pool.begin().await?;
 
+    debug!(
+        "Generating a new enrollment token by {}.",
+        session.user.username
+    );
     let config = server_config();
     let enrollment_token = user
         .start_remote_desktop_configuration(
@@ -266,11 +276,12 @@ pub async fn start_remote_desktop_configuration(
             appstate.mail_tx.clone(),
         )
         .await?;
+    debug!("Generated a new enrollment token for {}.", username);
 
     transaction.commit().await?;
 
     info!(
-        "User {} started enrollment for user {username}",
+        "User {} added a new desktop activation.",
         session.user.username
     );
 
@@ -358,7 +369,7 @@ pub async fn modify_user(
                 .await?
         {
             debug!(
-                "User {} changed {username} groups or status, syncing allowed network devices",
+                "User {} has started a new enrollment request.",
                 session.user.username
             );
             let networks = WireguardNetwork::all(&mut *transaction).await?;
