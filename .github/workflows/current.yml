@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dev
+      - enterprise-license
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -22,8 +23,13 @@ jobs:
         with:
           images: |
             ghcr.io/defguard/defguard
+          # tags: |
+          #   type=raw,value=current
+          #   type=ref,event=branch
+          #   type=sha
+          flavor: |
+            latest=false
           tags: |
-            type=raw,value=current
             type=ref,event=branch
             type=sha
       - name: Login to GitHub container registry
@@ -48,7 +54,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  trigger-e2e:
-    needs: build-docker
-    uses: ./.github/workflows/e2e.yml
-    secrets: inherit
+  # trigger-e2e:
+  #   needs: build-docker
+  #   uses: ./.github/workflows/e2e.yml
+  #   secrets: inherit

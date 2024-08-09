@@ -2,7 +2,6 @@ import './styles.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import parse from 'html-react-parser';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
@@ -18,11 +17,8 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
-import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
-import { externalLink } from '../../../../../../shared/links';
-import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
