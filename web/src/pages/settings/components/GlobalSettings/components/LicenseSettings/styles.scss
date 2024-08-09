@@ -1,0 +1,12 @@
+@use '@scssutils' as *;
+
+#license-settings {
+  & > .card {
+    display: flex;
+    flex-flow: column;
+    row-gap: 16px;
+    @include media-breakpoint-up(lg) {
+      padding: 16px 15px;
+    }
+  }
+}

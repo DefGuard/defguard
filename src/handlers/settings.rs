@@ -1,3 +1,4 @@
+
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -12,6 +13,7 @@ use crate::{
         models::settings::{SettingsEssentials, SettingsPatch},
         Settings,
     },
+    enterprise::license::{update_cached_license},
     error::WebError,
     ldap::LDAPConnection,
     AppState,
@@ -48,6 +50,7 @@ pub async fn update_settings(
     Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
+    update_cached_license(data.license.as_deref(), appstate.license)?;
     data.id = Some(1);
     data.save(&appstate.pool).await?;
     info!("User {} updated settings", session.user.username);
@@ -108,6 +111,13 @@ pub async fn patch_settings(
 ) -> ApiResult {
     debug!("Admin {} patching settings.", &session.user.username);
     let mut settings = Settings::get_settings(&appstate.pool).await?;
+
+    // Handle updating the cached license
+    if let Some(license_key) = &data.license {
+        info!("Patching license: {:?}", license_key);
+        update_cached_license(license_key.as_deref(), appstate.license)?;
+    };
+
     settings.apply(data);
     settings.save(&appstate.pool).await?;
     info!("Admin {} patched settings.", &session.user.username);

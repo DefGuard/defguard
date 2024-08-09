@@ -31,6 +31,8 @@ use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_CO
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
 
+use super::LicenseInfo;
+
 type ProvMeta = ProviderMetadata<
     openidconnect::EmptyAdditionalProviderMetadata,
     openidconnect::core::CoreAuthDisplay,
@@ -101,6 +103,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
 }
 
 pub async fn get_auth_info(
+    _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -173,6 +176,7 @@ pub struct AuthenticationResponse {
 }
 
 pub async fn auth_callback(
+    _license: LicenseInfo,
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,

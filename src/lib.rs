@@ -12,9 +12,14 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use enterprise::handlers::{
-    openid_login::{auth_callback, get_auth_info},
-    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+use enterprise::{
+    handlers::{
+        openid_login::{auth_callback, get_auth_info},
+        openid_providers::{
+            add_openid_provider, delete_openid_provider, get_current_openid_provider,
+        },
+    },
+    license::License,
 };
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -286,6 +291,8 @@ pub fn build_webapp(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    license: Arc<Mutex<Option<License>>>,
+    enterprise_enabled: bool,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -402,14 +409,24 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings))
-            // OIDC login
-            .route("/openid/provider", get(get_current_openid_provider))
-            .route("/openid/provider", post(add_openid_provider))
-            .route("/openid/provider/:name", delete(delete_openid_provider))
-            .route("/openid/callback", post(auth_callback))
-            .route("/openid/auth_info", get(get_auth_info)),
+            .route("/ldap/test", get(test_ldap_settings)),
     );
+
+    // Enterprise features
+    let webapp = if enterprise_enabled {
+        webapp.nest(
+            "/api/v1/openid",
+            Router::new()
+                .route("/provider", get(get_current_openid_provider))
+                .route("/provider", post(add_openid_provider))
+                .route("/provider/:name", delete(delete_openid_provider))
+                .route("/callback", post(auth_callback))
+                .route("/auth_info", get(get_auth_info)),
+        )
+    } else {
+        // return 404
+        webapp.route("/api/v1/openid/*path", get(handle_404))
+    };
 
     #[cfg(feature = "openid")]
     let webapp = webapp
@@ -490,6 +507,7 @@ pub fn build_webapp(
             mail_tx,
             user_agent_parser,
             failed_logins,
+            license,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -516,6 +534,8 @@ pub async fn run_web_server(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    license: Arc<Mutex<Option<License>>>,
+    enterprise_enabled: bool,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -527,6 +547,8 @@ pub async fn run_web_server(
         pool,
         user_agent_parser,
         failed_logins,
+        license,
+        enterprise_enabled,
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);

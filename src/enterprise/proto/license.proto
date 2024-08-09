@@ -1,0 +1,17 @@
+syntax = "proto3";
+package license;
+
+message LicenseMetadata {
+    string customer_id = 1;
+    bool subscription = 2;
+    optional int64 valid_until = 3;
+}
+
+message LicenseSignature {
+    bytes signature = 1;
+}
+
+message LicenseKey {
+    LicenseMetadata metadata = 1;
+    LicenseSignature signature = 2;
+}

@@ -17,6 +17,7 @@ import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 
 const tabsContent: ReactNode[] = [
   <GlobalSettings key={0} />,
@@ -40,6 +41,8 @@ export const SettingsPage = () => {
 
   const settings = useSettingsPage((state) => state.settings);
 
+  const appInfo = useAppStore((state) => state.appInfo);
+
   const { data: settingsData, isLoading } = useQuery({
     queryFn: getSettings,
     queryKey: [QueryKeys.FETCH_SETTINGS],
@@ -47,8 +50,8 @@ export const SettingsPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  const tabs = useMemo(
-    (): CardTabsData[] => [
+  const tabs = useMemo((): CardTabsData[] => {
+    let tabs = [
       {
         key: 0,
         content: LL.settingsPage.tabs.global(),
@@ -73,9 +76,15 @@ export const SettingsPage = () => {
         active: activeCard === 3,
         onClick: () => setActiveCard(3),
       },
-    ],
-    [LL.settingsPage.tabs, activeCard],
-  );
+    ];
+
+    // Fitler out enterprise tabs if not enterprise
+    if (!appInfo?.enterprise) {
+      tabs = tabs.filter((tab) => tab.key !== 3);
+    }
+
+    return tabs;
+  }, [LL.settingsPage.tabs, activeCard, appInfo?.enterprise]);
 
   // set store
   useEffect(() => {
