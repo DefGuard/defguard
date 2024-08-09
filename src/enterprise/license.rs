@@ -170,6 +170,7 @@ impl License {
     }
 
     /// Try to load the license from the database, if the license requires a renewal, try to renew it.
+    /// If the renewal fails, it will return the old license for the renewal service to renew it later.
     pub async fn load_or_renew(pool: &DbPool) -> Result<Option<License>, LicenseError> {
         match Self::load(pool).await? {
             Some(license) => {
