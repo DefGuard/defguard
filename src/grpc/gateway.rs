@@ -539,7 +539,8 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     format!("Saving WireGuard peer stats to db failed: {err}"),
                 ));
             }
-            info!("Saved WireGuard peer stats to db: {stats:?}");
+            info!("Saved WireGuard peer stats to db.");
+            debug!("WireGuard peer stats: {stats:?}");
         }
         Ok(Response::new(()))
     }
