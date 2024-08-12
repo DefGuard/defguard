@@ -12,16 +12,12 @@ use axum::{
 };
 
 use assets::{index, svg, web_asset};
-use db::{models::device::UserDevice, UserDetails, UserInfo};
-use error::WebError;
-use handlers::{
-    group::Groups,
-    ssh_authorized_keys::{
-        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-    },
-    user::WalletInfoShort,
-    PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username, WalletChange,
-    WalletSignature,
+use enterprise::handlers::{
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+};
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -46,6 +42,7 @@ use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
 };
+use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
     appstate::AppState,
@@ -122,6 +119,7 @@ pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
+pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -157,9 +155,22 @@ pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
     use super::*;
+    use db::{
+        models::device::{ModifyDevice, UserDevice},
+        AddDevice, UserDetails, UserInfo,
+    };
+    use error::WebError;
     use utoipa::OpenApi;
 
-    use handlers::{group, user, ApiResponse};
+    use handlers::{
+        group::{self, BulkAssignToGroupsRequest, Groups},
+        user::{self, WalletInfoShort},
+        wireguard::AddDeviceResult,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
+    };
+
+    use handlers::wireguard as device;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -185,27 +196,54 @@ mod openapi {
             user::me,
             user::delete_authorized_app,
             // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
             // /group
+            group::bulk_assign_to_groups,
+            group::list_groups_info,
             group::list_groups,
+            group::get_group,
+            group::create_group,
+            group::modify_group,
+            group::delete_group,
+            group::add_group_member,
+            group::remove_group_member,
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
             ),
         ),
         tags(
             (name = "user", description = "
 Endpoints that allow to control user data.
 
-Available actions:  
+Available actions:
 - list all users
-- CRUD mechanism for user
-- operation on user wallet
-- operation on security key and authorized app
+- CRUD mechanism for handling users
+- operations on user wallet
+- operations on security key and authorized app
 - change user password.
             "),
-            (name = "wireguard", description = "description"),
-            (name = "group", description = "description")
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "group", description = "
+Endpoints that allow to control groups in your network.
+
+Available actions:
+- list all groups
+- CRUD mechanism for handling groups
+- add or delete a group member.
+            ")
         )
     )]
     pub struct ApiDoc;
@@ -364,7 +402,13 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // OIDC login
+            .route("/openid/provider", get(get_current_openid_provider))
+            .route("/openid/provider", post(add_openid_provider))
+            .route("/openid/provider/:name", delete(delete_openid_provider))
+            .route("/openid/callback", post(auth_callback))
+            .route("/openid/auth_info", get(get_auth_info)),
     );
 
     #[cfg(feature = "openid")]
@@ -434,6 +478,9 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let swagger =
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+
     webapp
         .with_state(AppState::new(
             pool,
@@ -455,6 +502,7 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.

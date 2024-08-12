@@ -37,7 +37,7 @@ pub mod worker;
 pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
-static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
@@ -172,7 +172,7 @@ impl AuthCode {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
@@ -191,7 +191,7 @@ impl GroupInfo {
 }
 
 /// Dedicated `GroupInfo` variant for group modification operations.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
