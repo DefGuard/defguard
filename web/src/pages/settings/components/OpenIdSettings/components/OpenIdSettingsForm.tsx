@@ -2,11 +2,11 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -34,6 +34,8 @@ export const OpenIdSettingsForm = () => {
   const localLL = LL.settingsPage.openIdSettings;
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
   const queryClient = useQueryClient();
+  const docsLink =
+    'https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers';
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
@@ -141,7 +143,7 @@ export const OpenIdSettingsForm = () => {
         key: 3,
       },
     ],
-    [],
+    [localLL.form],
   );
 
   const renderSelected = useCallback(
@@ -239,10 +241,7 @@ export const OpenIdSettingsForm = () => {
           type="password"
         />
       </form>
-      <a
-        href="https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers"
-        target="_blank"
-      >
+      <a href={docsLink} target="_blank" rel="noreferrer">
         {localLL.form.documentation()}
       </a>
     </section>

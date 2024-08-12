@@ -13,10 +13,10 @@ import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
 import { RedirectPage } from '../redirect/RedirectPage';
+import { OpenIDCallback } from './Callback/Callback';
 import { Login } from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
-import { OpenIDCallback } from './Callback/Callback';
 
 export const AuthPage = () => {
   const {
