@@ -191,13 +191,13 @@ impl AuthTotp {
 
 #[derive(Deserialize, Serialize)]
 pub struct AuthCode {
-    code: u32,
+    code: String,
 }
 
 impl AuthCode {
     #[must_use]
-    pub fn new(code: u32) -> Self {
-        Self { code }
+    pub fn new<S: Into<String>>(code: S) -> Self {
+        Self { code: code.into() }
     }
 }
 

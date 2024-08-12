@@ -50,3 +50,10 @@ Following environment variables can be set to configure orion core service:
 ### HTTP server
 
 * **DEFGUARD_WEB_PORT**: web services bind port, default = `8000`
+
+
+### User agents YAML update
+
+```
+curl -Lf https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml | yq -y '.' > user_agent_header_regexes.yaml
+```

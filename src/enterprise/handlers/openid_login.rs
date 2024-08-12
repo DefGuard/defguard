@@ -57,16 +57,20 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
-    let provider_metadata =
-        match CoreProviderMetadata::discover_async(issuer_url, async_http_client).await {
-            Ok(metadata) => metadata,
-            Err(_) => {
-                return Err(WebError::Authorization(format!(
-                "Failed to discover provider metadata, make sure the providers' url is correct: {}",
-                url
+    let provider_metadata = match CoreProviderMetadata::discover_async(
+        issuer_url,
+        async_http_client,
+    )
+    .await
+    {
+        Ok(metadata) => metadata,
+        Err(_) => {
+            return Err(WebError::Authorization(format!(
+                "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
+
             )));
-            }
-        };
+        }
+    };
 
     Ok(provider_metadata)
 }
@@ -222,8 +226,7 @@ pub async fn auth_callback(
         Ok(claims) => claims,
         Err(error) => {
             return Err(WebError::Authorization(format!(
-                "Failed to verify ID token, error: {:?}",
-                error
+                "Failed to verify ID token, error: {error:?}",
             )));
         }
     };

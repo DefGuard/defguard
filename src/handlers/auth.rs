@@ -474,7 +474,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
-    if user.verify_totp_code(data.code) {
+    if user.verify_totp_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -518,7 +518,7 @@ pub async fn totp_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
-        if user.totp_enabled && user.verify_totp_code(data.code) {
+        if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -587,7 +587,7 @@ pub async fn email_mfa_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling email MFA for user {}", user.username);
-    if user.verify_email_mfa_code(data.code) {
+    if user.verify_email_mfa_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_email_mfa(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -653,7 +653,7 @@ pub async fn email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying email MFA code for user {}", username);
-        if user.email_mfa_enabled && user.verify_email_mfa_code(data.code) {
+        if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
