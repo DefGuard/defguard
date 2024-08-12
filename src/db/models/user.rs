@@ -553,7 +553,7 @@ impl User {
     /// allow the code for the previous time frame. This approach pretends the code is valid
     /// for a certain *period of time* (as opposed to a TOTP code which is valid for a certain time *frame*).
     ///
-    /// ```
+    /// ```text
     /// |<---- frame #0 ---->|<---- frame #1 ---->|<---- frame #2 ---->|
     /// |................[*]email sent.................................|
     /// |......................[*]email code verified..................|
