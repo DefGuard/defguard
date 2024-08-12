@@ -37,6 +37,7 @@ pub(super) struct EnrollmentServer {
     ldap_feature_active: bool,
 }
 
+#[derive(Debug)]
 struct InstanceInfo {
     id: uuid::Uuid,
     name: String,
@@ -122,7 +123,7 @@ impl EnrollmentServer {
     ) -> Result<EnrollmentStartResponse, Status> {
         debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
-        debug!("Fetch enrollment token by id.");
+        debug!("Try to find an enrollment token {}.", request.token);
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if let Some(token_type) = &enrollment.token_type {
@@ -135,6 +136,7 @@ impl EnrollmentServer {
             let user = enrollment.fetch_user(&self.pool).await?;
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
+            debug!("Check is {} an active user.", user.username);
             if !user.is_active {
                 warn!(
                     "Can't start enrollment for disabled user {}.",
@@ -144,7 +146,7 @@ impl EnrollmentServer {
             };
 
             let mut transaction = self.pool.begin().await.map_err(|_| {
-                error!("Failed to begin transaction for enrollment.");
+                error!("Failed to begin a transaction for enrollment.");
                 Status::internal("unexpected error")
             })?;
 
@@ -168,9 +170,12 @@ impl EnrollmentServer {
                     error!("Failed to get settings.");
                     Status::internal("unexpected error")
                 })?;
+            debug!("Settings: {settings:?}");
 
             let vpn_setup_optional = settings.enrollment_vpn_step_optional;
+            debug!("Retrive informations about instance for {}.", user.username);
             let instance_info = InstanceInfo::new(settings, &user.username);
+            debug!("Instance info {instance_info:?}");
 
             debug!("Prepare initial user info to send for user enrollment.");
             let user_info = InitialUserInfo::from_user(&self.pool, user)
@@ -276,6 +281,7 @@ impl EnrollmentServer {
         debug!("Updating user details ends with success.");
 
         // sync with LDAP
+        debug!("Add user to ldap: {}.", self.ldap_feature_active);
         if self.ldap_feature_active {
             debug!("Syncing with LDAP.");
             let _result = ldap_add_user(&self.pool, &user, &request.password).await;

@@ -209,6 +209,7 @@ pub async fn start_enrollment(
         )));
     };
 
+    debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
     let config = server_config();
@@ -224,11 +225,18 @@ pub async fn start_enrollment(
         )
         .await?;
 
+    debug!("Try to submit transaction to save the enrollment token into the databse.");
     transaction.commit().await?;
+    debug!("Transaction submitted.");
 
     info!(
-        "User {} started enrollment for user {username}",
+        "The enrollment process for {} has ended with success.",
         session.user.username
+    );
+    debug!(
+        "Enrollment token {}, enrollment url {}",
+        enrollment_token,
+        config.enrollment_url.to_string()
     );
 
     Ok(ApiResponse {
@@ -244,7 +252,7 @@ pub async fn start_remote_desktop_configuration(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {username}",
+        "User {} has started a new desktop activation request.",
         session.user.username
     );
 
@@ -258,14 +266,15 @@ pub async fn start_remote_desktop_configuration(
         None => user.email.clone(),
     };
 
+    debug!("Create a new database transaction to save a desktop configuration token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
     debug!(
-        "Generating a new enrollment token by {}.",
+        "Generating a new desktop activation token by {}.",
         session.user.username
     );
     let config = server_config();
-    let enrollment_token = user
+    let desktop_configuration_token = user
         .start_remote_desktop_configuration(
             &mut transaction,
             &session.user,
@@ -276,17 +285,23 @@ pub async fn start_remote_desktop_configuration(
             appstate.mail_tx.clone(),
         )
         .await?;
-    debug!("Generated a new enrollment token for {}.", username);
 
+    debug!("Try to submit transaction to save the desktop configuration token into the databse.");
     transaction.commit().await?;
+    debug!("Transaction submitted.");
 
     info!(
         "User {} added a new desktop activation.",
         session.user.username
     );
+    debug!(
+        "Desktop configuration token {}, desktop configuration url {}",
+        desktop_configuration_token,
+        config.enrollment_url.to_string()
+    );
 
     Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json: json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
     })
 }

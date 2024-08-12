@@ -227,7 +227,7 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Finding user by id {}.", self.user_id);
+        debug!("Find user by id {}.", self.user_id);
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
             error!("User not found for enrollment token {}", self.id);
             return Err(TokenError::UserNotFound);
@@ -240,7 +240,7 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching admin data.");
+        debug!("Fetch admin data.");
         if self.admin_id.is_none() {
             debug!("Admin don't have id. Stop fetching data...");
             return Ok(None);
@@ -257,7 +257,7 @@ impl Token {
         transaction: &mut PgConnection,
         user_id: i64,
     ) -> Result<(), TokenError> {
-        debug!("Deleting unused enrollment tokens for user {user_id}");
+        debug!("Deleting unused tokens for the user.");
         let result = query!(
             "DELETE FROM token \
             WHERE user_id = $1 \
@@ -267,7 +267,7 @@ impl Token {
         .execute(transaction)
         .await?;
         info!(
-            "Deleted {} unused enrollment tokens for user {user_id}",
+            "Deleted {} unused enrollment tokens for the user.",
             result.rows_affected()
         );
 
@@ -392,14 +392,20 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "Start generating a new enrollment process for the user {}, notification enabled: {send_user_notification}",
+            "Start generating a new enrollment process for user {}.",
             self.username
         );
+        debug!(
+            "Notify user by mail about the enrollment process: {}",
+            send_user_notification
+        );
+        debug!("Check is {} has a password.", self.username);
         if self.has_password() {
             debug!("User that you want to start enrollment process has already password.");
             return Err(TokenError::AlreadyActive);
         }
 
+        debug!("Verify that {} is an active user.", self.username);
         if !self.is_active {
             warn!(
                 "Can't create enrollment token for disabled user {}",
@@ -422,6 +428,7 @@ impl User {
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
+        debug!("Saving a new enrollment token...");
         enrollment.save(&mut *transaction).await?;
         debug!(
             "Saved a new enrollment token with id {} for user {}.",
@@ -431,7 +438,7 @@ impl User {
         if send_user_notification {
             if let Some(email) = email {
                 debug!(
-                    "Sending enrollment start mail for user {} to {email}",
+                    "Sending an enrollment mail for user {} to {email}.",
                     self.username
                 );
                 let base_message_context = enrollment
@@ -490,14 +497,16 @@ impl User {
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
-        info!(
-            "Start a new desktop activation for user {}, notification enabled: {send_user_notification}",
-            self.username
+        info!("Start a new desktop activation for user {}", self.username);
+        debug!(
+            "Notify {} by mail about the enrollment process: {}",
+            self.username, send_user_notification
         );
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
 
+        debug!("Verify that {} is an active user.", self.username);
         if !self.is_active {
             warn!(
                 "Can't create desktop activation token for disabled user {}.",
@@ -508,31 +517,33 @@ impl User {
 
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
+        debug!("Cleared unused tokens for {}.", self.username);
 
         debug!(
             "Create a new desktop activation token for user {}.",
             self.username
         );
-        let enrollment = Token::new(
+        let desktop_configuration = Token::new(
             user_id,
             Some(admin_id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut *transaction).await?;
+        debug!("Saving a new desktop configuration token...");
+        desktop_configuration.save(&mut *transaction).await?;
         debug!(
             "Saved a new desktop activation token with id {} for user {}.",
-            enrollment.id, self.username
+            desktop_configuration.id, self.username
         );
 
         if send_user_notification {
             if let Some(email) = email {
                 debug!(
-                    "Sending desktop configuration start mail for user {} to {email}",
+                    "Sending a desktop configuration mail for user {} to {email}",
                     self.username
                 );
-                let base_message_context = enrollment
+                let base_message_context = desktop_configuration
                     .get_welcome_message_context(&mut *transaction)
                     .await?;
                 let mail = Mail {
@@ -541,7 +552,7 @@ impl User {
                     content: templates::desktop_start_mail(
                         base_message_context,
                         &enrollment_service_url,
-                        &enrollment.id,
+                        &desktop_configuration.id,
                     )
                     .map_err(|err| {
                         debug!(
@@ -572,7 +583,7 @@ impl User {
             self.username
         );
 
-        Ok(enrollment.id)
+        Ok(desktop_configuration.id)
     }
 
     // Remove unused tokens when triggering user enrollment
