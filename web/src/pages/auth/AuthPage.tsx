@@ -48,7 +48,8 @@ export const AuthPage = () => {
   const toaster = useToaster();
 
   const setAppStore = useAppStore((state) => state.setState);
-  const appInfo = useAppStore((state) => state.appInfo);
+
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
@@ -154,7 +155,7 @@ export const AuthPage = () => {
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
         <Route path="mfa/*" element={<MFARoute />} />
-        {appInfo?.enterprise && <Route path="callback" element={<OpenIDCallback />} />}
+        {enterpriseEnabled && <Route path="callback" element={<OpenIDCallback />} />}
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
     </div>

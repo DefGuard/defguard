@@ -14,6 +14,7 @@ use axum::{
 use assets::{index, svg, web_asset};
 use enterprise::{
     handlers::{
+        check_enterprise_status,
         openid_login::{auth_callback, get_auth_info},
         openid_providers::{
             add_openid_provider, delete_openid_provider, get_current_openid_provider,
@@ -427,6 +428,8 @@ pub fn build_webapp(
         // return 404
         webapp.route("/api/v1/openid/*path", get(handle_404))
     };
+
+    let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
     #[cfg(feature = "openid")]
     let webapp = webapp

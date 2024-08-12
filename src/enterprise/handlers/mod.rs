@@ -1,12 +1,15 @@
-use crate::enterprise::license::validate_license;
+use crate::{
+    enterprise::license::validate_license,
+    handlers::{ApiResponse, ApiResult},
+};
 
 pub mod openid_login;
 pub mod openid_providers;
 
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequestParts},
-    http::request::Parts,
+    extract::{FromRef, FromRequestParts, State},
+    http::{request::Parts, StatusCode},
 };
 
 use crate::{appstate::AppState, error::WebError};
@@ -37,4 +40,18 @@ where
             Err(e) => Err(WebError::Forbidden(e.to_string())),
         }
     }
+}
+
+pub async fn check_enterprise_status(State(appstate): State<AppState>) -> ApiResult {
+    let license = appstate
+        .license
+        .lock()
+        .expect("Failed to acquire lock on the license.");
+
+    let valid = validate_license((*license).as_ref()).is_ok();
+
+    Ok(ApiResponse {
+        json: serde_json::json!({ "enabled": valid }),
+        status: StatusCode::OK,
+    })
 }

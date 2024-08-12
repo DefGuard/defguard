@@ -43,7 +43,7 @@ export const LicenseSettings = () => {
     onSuccess: () => {
       toaster.success(LL.settingsPage.messages.editSuccess());
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_STATUS]);
     },
     onError: (err) => {
       toaster.error(LL.messages.error());

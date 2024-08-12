@@ -41,7 +41,7 @@ export const SettingsPage = () => {
 
   const settings = useSettingsPage((state) => state.settings);
 
-  const appInfo = useAppStore((state) => state.appInfo);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const { data: settingsData, isLoading } = useQuery({
     queryFn: getSettings,
@@ -79,12 +79,12 @@ export const SettingsPage = () => {
     ];
 
     // Fitler out enterprise tabs if not enterprise
-    if (!appInfo?.enterprise) {
+    if (!enterpriseEnabled) {
       tabs = tabs.filter((tab) => tab.key !== 3);
     }
 
     return tabs;
-  }, [LL.settingsPage.tabs, activeCard, appInfo?.enterprise]);
+  }, [LL.settingsPage.tabs, activeCard, enterpriseEnabled]);
 
   // set store
   useEffect(() => {

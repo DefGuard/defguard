@@ -360,7 +360,6 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
-  enterprise: boolean;
 }
 
 export type GetDeviceConfigRequest = {
@@ -434,9 +433,14 @@ export type AuthenticationKey = {
   key: string;
 };
 
+export type EnterpriseStatusResponse = {
+  enabled: boolean;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
+  getEnterpriseStatus: () => Promise<EnterpriseStatusResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };

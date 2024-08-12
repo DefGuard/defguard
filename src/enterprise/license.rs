@@ -105,9 +105,11 @@ impl License {
     /// Deserialize the license object from a base64 encoded string
     /// Also verifies the signature of the license
     pub fn from_base64(key: &str) -> Result<License, LicenseError> {
+        debug!("Decoding the license key from a provided base64 string...");
         let bytes = key.as_bytes();
         let decoded = Self::decode(bytes)?;
         let slice: &[u8] = &decoded;
+        debug!("Decoded the license key, deserializing the license object...");
 
         let license_key = LicenseKey::decode(slice).map_err(|_| {
             LicenseError::DecodeError(
@@ -123,9 +125,11 @@ impl License {
         ))?;
         let metadata_bytes = metadata.encode_to_vec();
 
+        debug!("Deserialized the license object, verifying the license signature...");
+
         match Self::verify_signature(&metadata_bytes, &signature.signature) {
             Ok(_) => {
-                info!("Successfully validated license signature");
+                info!("Successfully validated the license signature");
                 let valid_until = match metadata.valid_until {
                     Some(until) => DateTime::from_timestamp(until, 0),
                     None => None,
@@ -305,6 +309,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
 /// 1. Does the cached license exist
 /// 2. Does the cached license is past its maximum expiry date
 pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
+    debug!("Validating if the license is present and not expired...");
     match license {
         Some(license) => {
             if license.is_max_overdue() {
@@ -318,9 +323,11 @@ pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
 
 /// Helper function to save the license key string in the database
 async fn save_license_key(pool: &DbPool, key: &str) -> Result<(), LicenseError> {
+    debug!("Saving the license key to the database...");
     let mut settings = Settings::get_settings(pool).await?;
     settings.license = Some(key.to_string());
     settings.save(pool).await?;
+    info!("Successfully saved the license key to the database.");
     Ok(())
 }
 
@@ -329,11 +336,14 @@ pub fn update_cached_license(
     key: Option<&str>,
     license_mutex: Arc<Mutex<Option<License>>>,
 ) -> Result<(), LicenseError> {
+    debug!("Updating the cached license information with the provided key...");
     let license = if let Some(key) = key {
         // Handle the Some("") case
         if key.is_empty() {
+            debug!("The new license key is empty, clearing the cached license");
             None
         } else {
+            debug!("A new license key has been provided, decoding and validating it...");
             Some(License::from_base64(key)?)
         }
     } else {
@@ -342,6 +352,7 @@ pub fn update_cached_license(
     *license_mutex
         .lock()
         .expect("Failed to acquire lock on the license mutex.") = license;
+    info!("Successfully updated the cached license information.");
     Ok(())
 }
 
@@ -383,6 +394,8 @@ pub async fn run_periodic_license_check(
             match &*license {
                 Some(license) => {
                     if license.requires_renewal() {
+                        // check if we are pass the maximum expiration date, after which we don't
+                        // want to try to renew the license anymore
                         if !license.is_max_overdue() {
                             true
                         } else {
@@ -392,10 +405,19 @@ pub async fn run_periodic_license_check(
                             false
                         }
                     } else {
+                        // This if is only for logging purposes, to provide more detailed information
+                        if license.subscription {
+                            info!("License doesn't need to be renewed yet, skipping renewal check")
+                        } else {
+                            info!("License is not a subscription, skipping renewal check")
+                        }
                         false
                     }
                 }
-                None => false,
+                None => {
+                    info!("No license found, skipping license check");
+                    false
+                }
             }
         };
 
@@ -418,8 +440,6 @@ pub async fn run_periodic_license_check(
                     error!("Failed to renew the license: {}", err);
                 }
             }
-        } else {
-            info!("License isn't eligible for renewal, skipping...");
         }
 
         sleep(*check_period).await;

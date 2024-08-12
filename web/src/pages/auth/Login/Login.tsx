@@ -39,9 +39,9 @@ export const Login = () => {
     },
   } = useApi();
 
-  const appInfo = useAppStore((state) => state.appInfo);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
-    enabled: appInfo?.enterprise,
+    enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
     queryFn: getOpenidInfo,
     refetchOnMount: true,
@@ -103,7 +103,7 @@ export const Login = () => {
 
   return (
     <section id="login-container">
-      {!openIdLoading ? (
+      {(!enterpriseEnabled || !openIdLoading) ? (
         <>
           <h1>{LL.loginPage.pageTitle()}</h1>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -131,7 +131,7 @@ export const Login = () => {
               data-testid="login-form-submit"
             />
             {
-              appInfo?.enterprise && openIdInfo && (
+              enterpriseEnabled && openIdInfo && (
                 <OpenIdLoginButton url={openIdInfo.url} />
               )
             }

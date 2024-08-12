@@ -1,4 +1,3 @@
-
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -13,7 +12,7 @@ use crate::{
         models::settings::{SettingsEssentials, SettingsPatch},
         Settings,
     },
-    enterprise::license::{update_cached_license},
+    enterprise::license::update_cached_license,
     error::WebError,
     ldap::LDAPConnection,
     AppState,
@@ -114,8 +113,8 @@ pub async fn patch_settings(
 
     // Handle updating the cached license
     if let Some(license_key) = &data.license {
-        info!("Patching license: {:?}", license_key);
         update_cached_license(license_key.as_deref(), appstate.license)?;
+        debug!("Saving the new license key to the database as part of the settings patch");
     };
 
     settings.apply(data);

@@ -28,6 +28,7 @@ export const AppLoader = () => {
   const appSettings = useAppStore((state) => state.settings);
   const {
     getAppInfo,
+    getEnterpriseStatus,
     user: { getMe },
     settings: { getEssentialSettings },
   } = useApi();
@@ -56,7 +57,6 @@ export const AppLoader = () => {
 
   useQuery([QueryKeys.FETCH_APP_INFO], getAppInfo, {
     onSuccess: (data) => {
-      console.log('App Info:', data);
       setAppStore({ appInfo: data });
     },
     onError: (err) => {
@@ -66,6 +66,20 @@ export const AppLoader = () => {
     refetchOnWindowFocus: false,
     retry: false,
     enabled: !isUndefined(currentUser),
+  });
+
+  useQuery([QueryKeys.FETCH_ENTERPRISE_STATUS], getEnterpriseStatus, {
+    onSuccess: (status) => {
+      console.log(status)
+      setAppStore({ enterprise_enabled: status.enabled });
+    },
+    onError: (err) => {
+      // FIXME: Add a proper error message
+      toaster.error(LL.messages.errorVersion());
+      console.error(err);
+    },
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
