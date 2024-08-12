@@ -9,8 +9,8 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use otpauth::TOTP;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
+use totp_lite::{totp, totp_custom, Sha1};
 
 use super::{
     device::{Device, UserDevice},
@@ -20,14 +20,15 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
-    auth::TOTP_CODE_VALIDITY_PERIOD,
     db::Session,
     error::WebError,
+    hex::to_lower_hex,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
+const EMAIL_CODE_DIGITS: u32 = 6;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
@@ -160,6 +161,7 @@ impl User {
     /// Check if user is enrolled.
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
+    #[must_use]
     pub fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_login
     }
@@ -179,7 +181,7 @@ impl User {
             .execute(executor)
             .await?;
         }
-        let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
+        let secret_base32 = to_lower_hex(&secret);
         self.totp_secret = Some(secret);
         Ok(secret_base32)
     }
@@ -509,43 +511,67 @@ impl User {
 
     /// Check if TOTP `code` is valid.
     #[must_use]
-    pub fn verify_totp_code(&self, code: u32) -> bool {
+    pub fn verify_totp_code(&self, code: &str) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
-            let totp = TOTP::from_bytes(totp_secret);
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, TOTP_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+                let expected_code = totp::<Sha1>(totp_secret, timestamp.as_secs());
+                eprintln!("{expected_code} ?? {code}");
+                return code == expected_code;
             }
         }
         false
     }
 
-    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
-        match &self.email_mfa_secret {
-            Some(email_mfa_secret) => {
-                let auth = TOTP::from_bytes(email_mfa_secret);
-                let timeout = &server_config().mfa_code_timeout;
-                let timestamp = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let code = auth.generate(timeout.as_secs(), timestamp);
+    /// Generate MFA code for email verification.
+    pub fn generate_email_mfa_code(&self) -> Result<String, WebError> {
+        if let Some(email_mfa_secret) = &self.email_mfa_secret {
+            let timeout = &server_config().mfa_code_timeout;
+            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                let code = totp_custom::<Sha1>(
+                    timeout.as_secs(),
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs(),
+                );
                 Ok(code)
+            } else {
+                Err(WebError::EmailMfa("SystemTime before UNIX epoch".into()))
             }
-            None => Err(WebError::EmailMfa(format!(
+        } else {
+            Err(WebError::EmailMfa(format!(
                 "Email MFA secret not configured for user {}",
                 self.username
-            ))),
+            )))
         }
     }
 
     /// Check if email MFA `code` is valid.
+    ///
+    /// IMPORTANT: because current implementation uses TOTP for email verification,
+    /// allow the code for the previous time frame. This approach pretends the code is valid
+    /// for a certain *period of time* (as opposed to a TOTP code which is valid for a certain time *frame*).
     #[must_use]
-    pub fn verify_email_mfa_code(&self, code: u32) -> bool {
+    pub fn verify_email_mfa_code(&self, code: &str) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
-            let totp = TOTP::from_bytes(email_mfa_secret);
-            let timeout = &server_config().mfa_code_timeout;
+            let timeout = server_config().mfa_code_timeout.as_secs();
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
+                let expected_code = totp_custom::<Sha1>(
+                    timeout,
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs(),
+                );
+                if code == expected_code {
+                    return true;
+                }
+
+                let previous_code = totp_custom::<Sha1>(
+                    timeout,
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs() - timeout,
+                );
+                return code == previous_code;
             }
         }
         false
@@ -827,6 +853,30 @@ impl User {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+
+    #[sqlx::test]
+    async fn test_mfa_code(pool: DbPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        user.new_email_secret(&pool).await.unwrap();
+        assert!(user.email_mfa_secret.is_some());
+        let code = user.generate_email_mfa_code().unwrap();
+        assert!(
+            user.verify_email_mfa_code(&code),
+            "code={code}, secret={:?}",
+            user.email_mfa_secret.unwrap()
+        );
+    }
 
     #[sqlx::test]
     async fn test_user(pool: DbPool) {

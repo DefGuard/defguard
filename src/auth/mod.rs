@@ -28,7 +28,6 @@ pub static JWT_ISSUER: &str = "DefGuard";
 pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
 pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
-pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
 
 #[derive(Clone, Copy, Default)]
 pub enum ClaimsType {
