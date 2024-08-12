@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 use chrono::{DateTime, TimeDelta, Utc};
 use tokio::time::sleep;
-// use rsa::{pkcs8::FromPublicKey, PaddingScheme, PublicKey, RsaPublicKey};
 
 use crate::{
     db::{DbPool, Settings},
@@ -160,6 +159,8 @@ impl License {
         }
     }
 
+    /// Create the license object based on the license key stored in the database.
+    /// Automatically decodes and deserializes the keys and verifies the signature.
     pub async fn load(pool: &DbPool) -> Result<Option<License>, LicenseError> {
         match Self::get_key(pool).await? {
             Some(key) => Ok(Some(Self::from_base64(&key)?)),
@@ -369,13 +370,14 @@ pub async fn run_periodic_license_check(
     let mut check_period = server_config().license_check_period;
     info!("Starting periodic license check every {:?}", check_period);
     loop {
+        debug!("Checking the license status...");
         // Check if the license is present in the mutex, if not skip the check
         if license_mutex
             .lock()
             .expect("Failed to acquire lock on the license mutex.")
             .is_none()
         {
-            info!("No license found, skipping license check");
+            debug!("No license found, skipping license check");
             sleep(*server_config().license_check_period_no_license).await;
             continue;
         }
@@ -386,7 +388,7 @@ pub async fn run_periodic_license_check(
             let license = license_mutex
                 .lock()
                 .expect("Failed to acquire lock on the license mutex.");
-            info!(
+            debug!(
                 "Checking if the license {:?} requires a renewal...",
                 license
             );
@@ -397,25 +399,26 @@ pub async fn run_periodic_license_check(
                         // check if we are pass the maximum expiration date, after which we don't
                         // want to try to renew the license anymore
                         if !license.is_max_overdue() {
+                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
                             true
                         } else {
                             check_period = server_config().license_check_period;
                             warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            info!("Changing check period to {}", check_period);
+                            debug!("Changing check period to {}", check_period);
                             false
                         }
                     } else {
                         // This if is only for logging purposes, to provide more detailed information
                         if license.subscription {
-                            info!("License doesn't need to be renewed yet, skipping renewal check")
+                            debug!("License doesn't need to be renewed yet, skipping renewal check")
                         } else {
-                            info!("License is not a subscription, skipping renewal check")
+                            debug!("License is not a subscription, skipping renewal check")
                         }
                         false
                     }
                 }
                 None => {
-                    info!("No license found, skipping license check");
+                    debug!("No license found, skipping license check");
                     false
                 }
             }
@@ -424,13 +427,14 @@ pub async fn run_periodic_license_check(
         if requires_renewal {
             info!("License requires renewal, renewing license...");
             check_period = server_config().license_check_period_renewal_window;
-            info!("Changing check period to {}", check_period);
+            debug!("Changing check period to {}", check_period);
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
                     Ok(_) => {
                         update_cached_license(Some(&new_license_key), license_mutex.clone())?;
                         check_period = server_config().license_check_period;
-                        info!("Changing check period to {} seconds", check_period);
+                        debug!("Changing check period to {} seconds", check_period);
+                        info!("Successfully renewed the license, new license key saved to the database");
                     }
                     Err(err) => {
                         error!("Couldn't save the newly fetched license key to the database, error: {}", err);
