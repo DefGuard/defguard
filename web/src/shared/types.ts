@@ -810,7 +810,8 @@ export type Settings = SettingsModules &
   SettingsBranding &
   SettingsLDAP &
   SettingsOpenID &
-  SettingsLicense;
+  SettingsLicense &
+  SettingsPermissions;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -869,6 +870,10 @@ export type SettingsOpenID = {
 
 export type SettingsLicense = {
   license: string;
+};
+
+export type SettingsPermissions = {
+  disable_device_creation: boolean;
 };
 
 export interface Webhook {

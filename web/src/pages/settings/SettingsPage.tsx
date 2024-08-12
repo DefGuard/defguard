@@ -15,6 +15,7 @@ import { QueryKeys } from '../../shared/queries';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
+import { PermissionsSettings } from './components/PermissionsSettings/PermissionsSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
 
@@ -23,6 +24,7 @@ const tabsContent: ReactNode[] = [
   <SmtpSettings key={1} />,
   <LdapSettings key={2} />,
   <OpenIdSettings key={3} />,
+  <PermissionsSettings key={4} />,
 ];
 
 export const SettingsPage = () => {
@@ -47,8 +49,8 @@ export const SettingsPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  const tabs = useMemo((): CardTabsData[] => {
-    return [
+  const tabs = useMemo(
+    (): CardTabsData[] => [
       {
         key: 0,
         content: LL.settingsPage.tabs.global(),
@@ -73,8 +75,15 @@ export const SettingsPage = () => {
         active: activeCard === 3,
         onClick: () => setActiveCard(3),
       },
-    ];
-  }, [LL.settingsPage.tabs, activeCard]);
+      {
+        key: 4,
+        content: LL.settingsPage.tabs.permissions(),
+        active: activeCard === 4,
+        onClick: () => setActiveCard(4),
+      },
+    ],
+    [LL.settingsPage.tabs, activeCard],
+  );
 
   // set store
   useEffect(() => {

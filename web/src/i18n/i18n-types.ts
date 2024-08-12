@@ -2198,6 +2198,10 @@ type RootTranslation = {
 			 * O​p​e​n​I​D
 			 */
 			openid: string
+			/**
+			 * P​e​r​m​i​s​s​i​o​n​s
+			 */
+			permissions: string
 		}
 		messages: {
 			/**
@@ -2798,6 +2802,28 @@ type RootTranslation = {
 					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					label: string
+				}
+			}
+		}
+		permissions: {
+			/**
+			 * P​e​r​m​i​s​s​i​o​n​s
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​b​a​s​i​c​ ​u​s​e​r​ ​p​e​r​m​i​s​s​i​o​n​s​.​<​/​p​>
+			 */
+			helper: string
+			fields: {
+				deviceCreation: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​a​d​d​ ​t​h​e​i​r​ ​o​w​n​ ​d​e​v​i​c​e​s
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​a​d​d​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 */
+					helper: string
 				}
 			}
 		}
@@ -6296,6 +6322,10 @@ export type TranslationFunctions = {
 			 * OpenID
 			 */
 			openid: () => LocalizedString
+			/**
+			 * Permissions
+			 */
+			permissions: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6893,6 +6923,28 @@ export type TranslationFunctions = {
 					 * Same as welcome message
 					 */
 					label: () => LocalizedString
+				}
+			}
+		}
+		permissions: {
+			/**
+			 * Permissions
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can change basic user permissions.</p>
+			 */
+			helper: () => LocalizedString
+			fields: {
+				deviceCreation: {
+					/**
+					 * Disable users ability to add their own devices
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, only users in the Admin group can add devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
 				}
 			}
 		}

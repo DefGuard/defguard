@@ -892,6 +892,7 @@ const en: BaseTranslation = {
       global: 'Global settings',
       ldap: 'LDAP',
       openid: 'OpenID',
+      permissions: 'Permissions',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1177,6 +1178,17 @@ const en: BaseTranslation = {
         },
         useMessageAsEmail: {
           label: 'Same as welcome message',
+        },
+      },
+    },
+    permissions: {
+      header: 'Permissions',
+      helper: '<p>Here you can change basic user permissions.</p>',
+      fields: {
+        deviceCreation: {
+          label: 'Disable users ability to add their own devices',
+          helper:
+            "When this option is enabled, only users in the Admin group can add devices in user profile (it's disabled for all other users)",
         },
       },
     },

@@ -879,6 +879,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       global: 'Globalne',
       ldap: 'LDAP',
       openid: 'OpenID',
+      permissions: 'Uprawnienia',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -1164,6 +1165,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',
+        },
+      },
+    },
+    permissions: {
+      header: 'Uprawnienia',
+      helper: '<p>Tutaj możesz zmienić podstawowe uprawnienia użytkowników.</p>',
+      fields: {
+        deviceCreation: {
+          label: 'Zablokuj możliwość tworzenia urządzeń przez użytkowników',
+          helper:
+            'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą dodawać urządzenia w profilu użytkownika',
         },
       },
     },
