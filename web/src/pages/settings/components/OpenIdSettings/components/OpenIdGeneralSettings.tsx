@@ -1,8 +1,8 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
 import parse from 'html-react-parser';
+
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';

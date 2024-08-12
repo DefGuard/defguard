@@ -2,11 +2,13 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - "e2e/**"
   pull_request:
     branches:
       - main
+      - dev
     paths:
       - "e2e/**"
 
