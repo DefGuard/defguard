@@ -24,7 +24,7 @@ See below [full list of features](https://github.com/defguard/defguard#features)
 
 #### Video introduction
 
-Baring in mind we are no youtubers and marketes - just engineers - here is a video introduction to defguard:
+Baring in mind we are no youtubers - just engineers - here is a video introduction to defguard:
 
 <div align="center">
  <p align="center">
