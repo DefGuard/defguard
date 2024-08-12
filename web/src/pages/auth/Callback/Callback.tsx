@@ -2,17 +2,17 @@ import './style.scss';
 
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-
 import { useEffect, useState } from 'react';
-import useApi from '../../../shared/hooks/useApi';
-import { MutationKeys } from '../../../shared/mutations';
-import { CallbackData } from '../../../shared/types';
-import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
-import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { useToaster } from '../../../shared/hooks/useToaster';
+import { useNavigate } from 'react-router';
+
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import { useNavigate } from 'react-router';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
+import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../shared/mutations';
+import { CallbackData } from '../../../shared/types';
 
 export const OpenIDCallback = () => {
   const {
@@ -61,7 +61,7 @@ export const OpenIDCallback = () => {
         callbackMutation.mutate(data);
       }
     }
-  }, []);
+  }, [LL.messages, callbackMutation, toaster]);
 
   // TODO: Perhaphs make it a bit more user friendly
   return error ? (
