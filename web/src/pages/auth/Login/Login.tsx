@@ -90,7 +90,7 @@ export const Login = () => {
         );
       } else {
         console.error(error);
-        toaster.error(LL.form.error.tooManyBadLoginAttemps());
+        toaster.error(LL.form.error.tooManyBadLoginAttempts());
       }
     },
   });

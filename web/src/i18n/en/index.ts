@@ -850,7 +850,7 @@ const en: BaseTranslation = {
       number: 'Expected a valid number.',
       minimumValue: `Minimum value of {value: number} not reached.`,
       maximumValue: 'Maximum value of {value: number} exceeded.',
-      tooManyBadLoginAttemps: `Too many bad login attempts. Please try again in a few minutes.`,
+      tooManyBadLoginAttempts: `Too many bad login attempts. Please try again in a few minutes.`,
     },
     floatingErrors: {
       title: 'Please correct the following:',
