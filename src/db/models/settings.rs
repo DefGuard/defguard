@@ -16,7 +16,7 @@ pub enum SmtpEncryption {
 }
 
 #[derive(Debug, Clone, Model, Serialize, Deserialize, PartialEq, Patch)]
-#[patch_derive(Serialize, Deserialize)]
+#[patch(attribute(derive(Serialize, Deserialize)))]
 pub struct Settings {
     #[serde(skip)]
     pub id: Option<i64>,
