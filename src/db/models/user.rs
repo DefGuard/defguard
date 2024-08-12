@@ -523,6 +523,8 @@ impl User {
     }
 
     /// Generate MFA code for email verification.
+    ///
+    /// NOTE: This code will be valid for two time frames. See comment for verify_email_mfa_code().
     pub fn generate_email_mfa_code(&self) -> Result<String, WebError> {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
             let timeout = &server_config().mfa_code_timeout;
@@ -550,6 +552,12 @@ impl User {
     /// IMPORTANT: because current implementation uses TOTP for email verification,
     /// allow the code for the previous time frame. This approach pretends the code is valid
     /// for a certain *period of time* (as opposed to a TOTP code which is valid for a certain time *frame*).
+    ///
+    /// ```
+    /// |<---- frame #0 ---->|<---- frame #1 ---->|<---- frame #2 ---->|
+    /// |................[*]email sent.................................|
+    /// |......................[*]email code verified..................|
+    /// ```
     #[must_use]
     pub fn verify_email_mfa_code(&self, code: &str) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
