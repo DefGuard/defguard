@@ -10,6 +10,7 @@ import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
@@ -17,7 +18,6 @@ import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 
 const tabsContent: ReactNode[] = [
   <GlobalSettings key={0} />,

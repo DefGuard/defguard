@@ -205,7 +205,6 @@ export const OpenIdSettingsForm = () => {
             styleVariant={ButtonStyleVariant.CONFIRM}
             loading={isLoading}
             onClick={() => {
-              console.log('delete');
               handleDeleteProvider();
             }}
           />

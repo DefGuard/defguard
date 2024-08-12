@@ -70,7 +70,6 @@ export const AppLoader = () => {
 
   useQuery([QueryKeys.FETCH_ENTERPRISE_STATUS], getEnterpriseStatus, {
     onSuccess: (status) => {
-      console.log(status)
       setAppStore({ enterprise_enabled: status.enabled });
     },
     onError: (err) => {

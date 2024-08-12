@@ -15,6 +15,7 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { MutationKeys } from '../../../shared/mutations';
@@ -23,7 +24,6 @@ import { QueryKeys } from '../../../shared/queries';
 import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { OpenIdLoginButton } from './components/OidcButtons';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 
 type Inputs = {
   username: string;
@@ -103,7 +103,7 @@ export const Login = () => {
 
   return (
     <section id="login-container">
-      {(!enterpriseEnabled || !openIdLoading) ? (
+      {!enterpriseEnabled || !openIdLoading ? (
         <>
           <h1>{LL.loginPage.pageTitle()}</h1>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -130,16 +130,14 @@ export const Login = () => {
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {
-              enterpriseEnabled && openIdInfo && (
-                <OpenIdLoginButton url={openIdInfo.url} />
-              )
-            }
-          </form >
+            {enterpriseEnabled && openIdInfo && (
+              <OpenIdLoginButton url={openIdInfo.url} />
+            )}
+          </form>
         </>
       ) : (
         <LoaderSpinner size={80} />
       )}
-    </section >
+    </section>
   );
 };
