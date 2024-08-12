@@ -202,13 +202,13 @@ impl ClientMfaServer {
         // validate code
         match method {
             MfaMethod::Totp => {
-                if !user.verify_totp_code(request.code) {
+                if !user.verify_totp_code(&request.code.to_string()) {
                     error!("Provided TOTP code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
             MfaMethod::Email => {
-                if !user.verify_email_mfa_code(request.code) {
+                if !user.verify_email_mfa_code(&request.code.to_string()) {
                     error!("Provided email code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }

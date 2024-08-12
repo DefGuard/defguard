@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
+  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login FROM \"user\" WHERE id = ANY($1)",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 11,
@@ -90,11 +90,16 @@
         "ordinal": 14,
         "name": "is_active",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "openid_login",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -107,13 +112,14 @@
       true,
       false,
       false,
-      true,
       false,
       true,
+      true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "52c659862cef5cd45bbe7bdc58cf70c93c46740cc778825583e060cdee73a212"
+  "hash": "a3d548764fe912cc9009618d41504205b64526e89acd2fefd74d221b3c3ea620"
 }

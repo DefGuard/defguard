@@ -66,11 +66,11 @@ impl From<TokenError> for Status {
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
-            TokenError::NotFound
-            | TokenError::TokenExpired
-            | TokenError::SessionExpired
-            | TokenError::TokenUsed => (Code::Unauthenticated, "invalid token"),
+            TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
+                (Code::Unauthenticated, "invalid token")
+            }
             TokenError::AlreadyActive => (Code::InvalidArgument, "already active"),
+            TokenError::TokenExpired => (Code::Unauthenticated, "token expired"),
         };
         Status::new(code, msg)
     }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active FROM \"user\"",
+  "query": "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active, openid_login FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -50,6 +50,11 @@
         "ordinal": 6,
         "name": "is_active",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "openid_login",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -62,8 +67,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "fd950a860fe104136816e1605ed080d70a714e7a02f15e8a1d7b165814cf85d1"
+  "hash": "0572e003ba6f926f1dcceecb1e534a6ef98659ae7ddf3a68c059886f0b9c2bfa"
 }

@@ -13,11 +13,7 @@ use crate::{
 #[must_use]
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");
-    Arc::new(
-        UserAgentParser::builder()
-            .build_from_bytes(regexes)
-            .expect("Parser creation failed"),
-    )
+    Arc::new(UserAgentParser::from_bytes(regexes).expect("Parser creation failed"))
 }
 
 #[must_use]

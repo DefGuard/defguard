@@ -18,7 +18,7 @@ use defguard::{
     run_web_server,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
-    SERVER_CONFIG,
+    SERVER_CONFIG, VERSION,
 };
 
 #[macro_use]
@@ -34,18 +34,13 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize tracing
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!(
-                    "defguard={},tower_http=info,axum::rejection=trace",
-                    config.log_level
-                )
-                .into()
-            }),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| config.log_level.clone().into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    info!("Starting defguard");
+    info!("Starting ... version v{}", VERSION);
     debug!("Using config: {config:?}");
 
     let pool = init_db(
