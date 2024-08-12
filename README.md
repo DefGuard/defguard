@@ -22,6 +22,18 @@
 
 See below [full list of features](https://github.com/defguard/defguard#features)
 
+#### Video introduction
+
+Baring in mind we are no youtubers and marketes - just engineers - here is a video introduction to defguard:
+
+<div align="center">
+ <p align="center">
+  
+[![Introduction to defguard](https://img.youtube.com/vi/4PF7edMGBwk/hqdefault.jpg)](https://www.youtube.com/watch?v=4PF7edMGBwk)
+
+</p>
+</div>
+
 ### Control plane management (this video is few versions behind... - a lot has changed!)
 
 ![](https://defguard.net/images/product/core/hero-image.png)
