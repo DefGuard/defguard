@@ -1,10 +1,12 @@
-use super::{ApiResponse, ApiResult, VERSION};
-use crate::enterprise::license::validate_license;
-use crate::{appstate::AppState, auth::SessionInfo, db::WireguardNetwork};
-
-use crate::db::Settings;
 use axum::{extract::State, http::StatusCode};
 use serde_json::json;
+
+use super::{ApiResponse, ApiResult, VERSION};
+use crate::db::Settings;
+use crate::{
+    appstate::AppState, auth::SessionInfo, db::WireguardNetwork,
+    enterprise::license::validate_license,
+};
 
 /// Additional information about core state.
 #[derive(Serialize)]
@@ -26,7 +28,7 @@ pub(crate) async fn get_app_info(
         .license
         .lock()
         .expect("Failed to acquire lock on the license.");
-    info!("license: {license:?});
+    info!("license: {license:?}");
     let enterprise = validate_license((*license).as_ref()).is_ok();
     info!("enterprise: {}", enterprise);
     let res = AppInfo {

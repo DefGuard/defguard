@@ -1,14 +1,8 @@
-use axum::http::StatusCode;
-
-use axum::Json;
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use serde_json::json;
-
-use time::Duration;
-
 use axum::extract::State;
-
+use axum::http::StatusCode;
+use axum::Json;
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
@@ -21,7 +15,10 @@ use openidconnect::{
     ProviderMetadata, RedirectUrl,
 };
 use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
+use serde_json::json;
+use time::Duration;
 
+use super::LicenseInfo;
 use crate::appstate::AppState;
 use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
@@ -30,8 +27,6 @@ use crate::handlers::user::check_username;
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
-
-use super::LicenseInfo;
 
 type ProvMeta = ProviderMetadata<
     openidconnect::EmptyAdditionalProviderMetadata,

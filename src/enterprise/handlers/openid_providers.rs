@@ -3,17 +3,15 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serde_json::json;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::openid_provider::OpenIdProvider,
     handlers::{ApiResponse, ApiResult},
 };
-
-use serde_json::json;
-
-use super::LicenseInfo;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {

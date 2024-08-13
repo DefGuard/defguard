@@ -1,18 +1,18 @@
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
+use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
+use pgp::{Deserializable, SignedPublicKey, StandaloneSignature};
+use prost::Message;
+use sqlx::error::Error as SqlxError;
+use thiserror::Error;
 use tokio::time::sleep;
 
 use crate::{
     db::{DbPool, Settings},
     server_config,
 };
-use base64::prelude::*;
-use pgp::{Deserializable, SignedPublicKey, StandaloneSignature};
-use prost::Message;
-use sqlx::error::Error as SqlxError;
-use thiserror::Error;
 
 tonic::include_proto!("license");
 
@@ -70,6 +70,7 @@ pub struct License {
 }
 
 impl License {
+    #[must_use]
     pub fn new(
         customer_id: String,
         subscription: bool,
@@ -368,7 +369,7 @@ pub async fn run_periodic_license_check(
     license_mutex: Arc<Mutex<Option<License>>>,
 ) -> Result<(), LicenseError> {
     let mut check_period = server_config().license_check_period;
-    info!("Starting periodic license check every {check_period:?});
+    info!("Starting periodic license check every {check_period:?}");
     loop {
         debug!("Checking the license status...");
         // Check if the license is present in the mutex, if not skip the check
@@ -404,7 +405,7 @@ pub async fn run_periodic_license_check(
                         } else {
                             check_period = server_config().license_check_period;
                             warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {check_period});
+                            debug!("Changing check period to {check_period}");
                             false
                         }
                     } else {
@@ -427,13 +428,13 @@ pub async fn run_periodic_license_check(
         if requires_renewal {
             info!("License requires renewal, renewing license...");
             check_period = server_config().license_check_period_renewal_window;
-            debug!("Changing check period to {check_period});
+            debug!("Changing check period to {check_period}");
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
                     Ok(_) => {
                         update_cached_license(Some(&new_license_key), license_mutex.clone())?;
                         check_period = server_config().license_check_period;
-                        debug!("Changing check period to {} seconds", check_period);
+                        debug!("Changing check period to {check_period} seconds");
                         info!("Successfully renewed the license, new license key saved to the database");
                     }
                     Err(err) => {

@@ -1,5 +1,17 @@
 use std::sync::Arc;
 
+use ipnetwork::IpNetwork;
+use reqwest::Url;
+use sqlx::Transaction;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::Status;
+use uaparser::UserAgentParser;
+
+use super::proto::{
+    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
+    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+    InitialUserInfo, NewDevice,
+};
 use crate::{
     db::{
         models::{
@@ -15,18 +27,6 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
-};
-use ipnetwork::IpNetwork;
-use reqwest::Url;
-use sqlx::Transaction;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::Status;
-use uaparser::UserAgentParser;
-
-use super::proto::{
-    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-    InitialUserInfo, NewDevice,
 };
 
 pub(super) struct EnrollmentServer {

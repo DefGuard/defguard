@@ -306,10 +306,10 @@ pub fn email_password_reset_success_mail(
 
 #[cfg(test)]
 mod test {
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
     use claims::assert_ok;
 
     use super::*;
+    use crate::{config::DefGuardConfig, SERVER_CONFIG};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();
