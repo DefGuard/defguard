@@ -1,8 +1,15 @@
 #network-page {
   .gateway {
+    & > section.header-section {
+      h2, p {
+        margin-bottom: 35px;
+      }
+    }
+
     & > .message-box {
-      min-height: 80px;
+      min-height: 15px;
       margin-bottom: 2rem;
+
 
       @include media-breakpoint-up(lg) {
         margin-bottom: 4rem;
@@ -24,6 +31,7 @@
           @include small-text;
 
           line-height: 22px;
+          color: var(--text-body-secondary);
         }
       }
 
@@ -56,6 +64,10 @@
 
     & > .btn {
       width: 100%;
+    }
+
+    & > :not(:last-child) {
+      margin-bottom: 20px;
     }
   }
 }

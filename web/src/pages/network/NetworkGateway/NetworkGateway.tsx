@@ -80,19 +80,14 @@ export const NetworkGatewaySetup = () => {
 
   return (
     <section className="gateway">
-      <h2>{LL.gatewaySetup.header.main()}</h2>
-      {/* {parse(
-        networkToken
-          ? LL.gatewaySetup.messages.runCommand({
-              setupGatewayDocs: externalLink.gitbook.setup.gateway,
-            })
-          : LL.gatewaySetup.messages.createNetwork(),
-      )} */}
-      {parse(
-        LL.gatewaySetup.messages.runCommand({
-          setupGatewayDocs: externalLink.gitbook.setup.gateway,
-        }),
-      )}
+      <section className="header-section">
+        <h2>{LL.gatewaySetup.header.main()}</h2>
+        {parse(
+          LL.gatewaySetup.messages.runCommand({
+            setupGatewayDocs: externalLink.gitbook.setup.gateway,
+          }),
+        )}
+      </section>
       {/* Authentication Token */}
       <MessageBox>
         {parse(
