@@ -6,11 +6,12 @@ use chrono::NaiveDateTime;
 use claims::assert_err;
 use common::fetch_user_details;
 use defguard::{
+    auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{
         models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, User, UserDetails, Wallet,
     },
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
-    hex::{hex_decode, to_lower_hex},
+    hex::to_lower_hex,
     secret::SecretString,
 };
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
@@ -19,7 +20,7 @@ use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::query;
-use totp_lite::{totp, Sha1};
+use totp_lite::{totp_custom, Sha1};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
@@ -190,8 +191,17 @@ fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
-    let secret = hex_decode(&auth_totp.secret).unwrap();
-    let code = totp::<Sha1>(&secret, timestamp.as_secs());
+    let secret = base32::decode(
+        base32::Alphabet::Rfc4648 { padding: false },
+        &auth_totp.secret,
+    )
+    .unwrap();
+    let code = totp_custom::<Sha1>(
+        TOTP_CODE_VALIDITY_PERIOD,
+        TOTP_CODE_DIGITS,
+        &secret,
+        timestamp.as_secs(),
+    );
     AuthCode::new(code)
 }
 
