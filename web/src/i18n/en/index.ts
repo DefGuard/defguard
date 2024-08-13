@@ -1501,26 +1501,22 @@ const en: BaseTranslation = {
         <p>
           If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
           you don't need to do anything.
-        </p>
-      `,
+        </p>`,
       fromPackage: `
         <p>
           Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\` 
           according to the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-        </p>
-      `,
+        </p>`,
       authToken: `
         <p>
           Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
           provided in the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a> to successfully set up the gateway server.
           For more details and exact steps, please refer to the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-        </p>
-      `,
+        </p>`,
       dockerBasedGatewaySetup: `
         <p>
           Below is a Docker based example. For more details and exact steps, please refer to the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-        </p>
-      `,
+        </p>`,
     },
   },
   loginPage: {

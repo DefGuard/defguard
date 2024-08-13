@@ -3566,8 +3566,7 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
 			 */
 			oneLineInstall: string
 			/**
@@ -3575,8 +3574,7 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
 			 * @param {string} setupGatewayDocs
 			 */
 			fromPackage: RequiredParams<'setupGatewayDocs'>
@@ -3586,8 +3584,7 @@ type RootTranslation = {
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
 			 * @param {string} setupGatewayDocs
 			 */
 			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
@@ -3595,8 +3592,7 @@ type RootTranslation = {
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
 			 * @param {string} setupGatewayDocs
 			 */
 			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
@@ -7611,7 +7607,6 @@ export type TranslationFunctions = {
 		          If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
 		          you don't need to do anything.
 		        </p>
-		      
 			 */
 			oneLineInstall: () => LocalizedString
 			/**
@@ -7620,7 +7615,6 @@ export type TranslationFunctions = {
 		          Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
 		          according to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
 		        </p>
-		      
 			 */
 			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
@@ -7630,7 +7624,6 @@ export type TranslationFunctions = {
 		          provided in the <a href="{setupGatewayDocs}" target="_blank">documentation</a> to successfully set up the gateway server.
 		          For more details and exact steps, please refer to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
 		        </p>
-		      
 			 */
 			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
@@ -7638,7 +7631,6 @@ export type TranslationFunctions = {
 		        <p>
 		          Below is a Docker based example. For more details and exact steps, please refer to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
 		        </p>
-		      
 			 */
 			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}

@@ -1454,9 +1454,18 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
   },
   gatewaySetup: {
-    header: 'Uruchomienie serwera gateway',
+    header: {
+      main: 'Uruchomienie serwera gateway',
+      dockerBasedGatewaySetup: `Konfiguracja gateway za pomocą narzędzia docker`,
+      fromPackage: `Z pakietu`,
+      oneLineInstall: `Instalacja za pomocą jednej linii`,
+    },
     card: {
       title: 'Komenda Dockera uruchamiająca serwer gateway',
+      authToken: 'Token Autoryzacyjny',
+    },
+    button: {
+      availablePackages: `Dostępne pakiety`,
     },
     controls: {
       status: 'Sprawdź status połączenia',
@@ -1476,6 +1485,27 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
       connected: `<p>Gateway połączony.</p>`,
       statusError: 'Nie udało się uzyskać statusu',
+      oneLineInstall: `
+      <p>
+        Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+        nie ma potrzeby wykonywania dalszych kroków.
+      </p>`,
+      fromPackage: `
+      <p>
+        Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\` 
+        na podstawie <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
+      </p>`,
+      authToken: `
+      <p>
+        Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu, 
+        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w <a href="{setupGatewayDocs:string}" target="_blank">dokumentacji</a>, aby pomyślnie skonfigurwoać serwer gateway.
+        Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z <a href="{setupGatewayDocs}" target="_blank">dokumentacją</a>.
+      </p>`,
+      dockerBasedGatewaySetup: `
+      <p>
+        Poniżej znajduje się przykład oparty na Dockerze. 
+        Więcej szczegółów i dokładnych kroków można znaleźć w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
+      </p>`,
     },
   },
   loginPage: {
