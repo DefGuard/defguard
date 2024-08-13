@@ -61,9 +61,10 @@ export const OpenIDCallback = () => {
         callbackMutation.mutate(data);
       }
     }
-  }, [LL.messages, callbackMutation, toaster]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // TODO: Perhaphs make it a bit more user friendly
+  // FIXME: make it a bit more user friendly
   return error ? (
     <div className="error-info">
       <p>
