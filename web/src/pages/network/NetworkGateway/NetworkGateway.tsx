@@ -8,6 +8,11 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
+import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { ExpandableCard } from '../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import useApi from '../../../shared/hooks/useApi';
@@ -67,6 +72,11 @@ export const NetworkGatewaySetup = () => {
     ],
     [returnNetworkToken, writeToClipboard],
   );
+
+  // TODO: consider a better way to redirect to the gateway releases page
+  const handleSubmit = () => {
+    window.location.href = 'https://github.com/DefGuard/gateway/releases';
+  };
 
   return (
     <section className="gateway">
@@ -137,6 +147,12 @@ export const NetworkGatewaySetup = () => {
           }),
         )}
       </MessageBox>
+      <Button
+        size={ButtonSize.LARGE}
+        styleVariant={ButtonStyleVariant.PRIMARY}
+        text="Available Packages"
+        onClick={() => handleSubmit()}
+      />
       {/* One Line Install */}
       <h3>{LL.gatewaySetup.header.oneLineInstall()}</h3>
       <MessageBox>{parse(LL.gatewaySetup.messages.oneLineInstall())}</MessageBox>
