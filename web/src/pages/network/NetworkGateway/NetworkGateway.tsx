@@ -39,7 +39,7 @@ export const NetworkGatewaySetup = () => {
   }, [networkToken]);
 
   const returnNetworkToken = useCallback(() => {
-    return `${networkToken}`;
+    return `${networkToken?.token}`;
   }, [networkToken]);
 
   const getActions = useMemo(
@@ -53,6 +53,19 @@ export const NetworkGatewaySetup = () => {
       />,
     ],
     [command, writeToClipboard],
+  );
+
+  const getNetworkTokenActions = useMemo(
+    () => [
+      <ActionButton
+        key={1}
+        variant={ActionButtonVariant.COPY}
+        onClick={() => {
+          writeToClipboard(returnNetworkToken());
+        }}
+      />,
+    ],
+    [returnNetworkToken, writeToClipboard],
   );
 
   return (
@@ -86,13 +99,23 @@ export const NetworkGatewaySetup = () => {
             title={LL.gatewaySetup.card.authToken()}
             disableExpand={true}
             expanded={true}
-            actions={getActions}
+            actions={getNetworkTokenActions}
           >
             <p>{returnNetworkToken()}</p>
           </ExpandableCard>
         </>
       )}
       {/* Docker Based Gateway Setup */}
+      <h3>{LL.gatewaySetup.header.dockerBasedGatewaySetup()}</h3>
+      <MessageBox>
+        {parse(
+          networkToken
+            ? LL.gatewaySetup.messages.dockerBasedGatewaySetup({
+                setupGatewayDocs: externalLink.gitbook.setup.gateway,
+              })
+            : LL.gatewaySetup.messages.createNetwork(),
+        )}
+      </MessageBox>
       {networkToken && (
         <>
           <ExpandableCard
