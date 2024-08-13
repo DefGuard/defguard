@@ -895,6 +895,11 @@ const en: BaseTranslation = {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
     },
+    enterpriseOnly: {
+      title: "This feature is available only in Defguard Enterprise.",
+      subtitle: "To learn more, visit our ",
+      website: "website",
+    },
     ldapSettings: {
       title: 'LDAP Settings',
       form: {

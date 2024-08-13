@@ -268,6 +268,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
         key: old_license_key,
     };
 
+    // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
     let license_server_url = &server_config().license_server_url;
 
     let new_license_key = match client

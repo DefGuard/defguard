@@ -11,6 +11,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 export const OpenIdGeneralSettings = () => {
   const { LL } = useI18nContext();
@@ -21,6 +22,7 @@ export const OpenIdGeneralSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const queryClient = useQueryClient();
 
@@ -47,7 +49,7 @@ export const OpenIdGeneralSettings = () => {
         <div>
           <div className="checkbox-row">
             <LabeledCheckbox
-              disabled={isLoading}
+              disabled={isLoading || !enterpriseEnabled}
               label={localLL.general.createAccount.label()}
               value={settings.openid_create_account}
               onChange={() =>

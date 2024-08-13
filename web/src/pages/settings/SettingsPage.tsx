@@ -41,8 +41,6 @@ export const SettingsPage = () => {
 
   const settings = useSettingsPage((state) => state.settings);
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
-
   const { data: settingsData, isLoading } = useQuery({
     queryFn: getSettings,
     queryKey: [QueryKeys.FETCH_SETTINGS],
@@ -51,7 +49,7 @@ export const SettingsPage = () => {
   });
 
   const tabs = useMemo((): CardTabsData[] => {
-    let tabs = [
+    return [
       {
         key: 0,
         content: LL.settingsPage.tabs.global(),
@@ -77,14 +75,7 @@ export const SettingsPage = () => {
         onClick: () => setActiveCard(3),
       },
     ];
-
-    // Fitler out enterprise tabs if not enterprise
-    if (!enterpriseEnabled) {
-      tabs = tabs.filter((tab) => tab.key !== 3);
-    }
-
-    return tabs;
-  }, [LL.settingsPage.tabs, activeCard, enterpriseEnabled]);
+  }, [LL.settingsPage.tabs, activeCard]);
 
   // set store
   useEffect(() => {

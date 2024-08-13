@@ -2201,6 +2201,20 @@ type RootTranslation = {
 			 */
 			challengeSuccess: string
 		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
+		}
 		ldapSettings: {
 			/**
 			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
@@ -6212,6 +6226,20 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
 		}
 		ldapSettings: {
 			/**
