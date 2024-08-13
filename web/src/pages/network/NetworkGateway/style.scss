@@ -1,7 +1,8 @@
 #network-page {
   .gateway {
     & > section.header-section {
-      h2, p {
+      h2,
+      p {
         margin-bottom: 35px;
       }
     }
@@ -9,7 +10,6 @@
     & > .message-box {
       min-height: 15px;
       margin-bottom: 2rem;
-
 
       @include media-breakpoint-up(lg) {
         margin-bottom: 4rem;
@@ -39,7 +39,7 @@
     }
 
     h2 {
-      @include typography(app-body-1);        
+      @include typography(app-body-1);
       color: var(--text-body-primary);
       text-align: center;
     }
