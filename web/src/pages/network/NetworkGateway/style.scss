@@ -29,5 +29,29 @@
 
       margin-bottom: 3rem;
     }
+
+    h2 {
+      @include typography(app-body-1);        
+      color: var(--text-body-primary);
+      text-align: center;
+    }
+
+    h3 {
+      @include typography(modal-title);
+
+      color: var(--text-body-primary);
+    }
+
+    p {
+      & > a {
+        color: var(--text-body-secondary);
+      }
+      @include typography(app-modal-2);
+      color: var(--text-body-secondary);
+    }
+
+    & > p {
+      text-align: center;
+    }
   }
 }

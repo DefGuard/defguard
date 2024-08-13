@@ -3490,15 +3490,39 @@ type RootTranslation = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
-		 */
-		header: string
+		header: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+			 */
+			main: string
+			/**
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
+			 */
+			dockerBasedGatewaySetup: string
+			/**
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
+			 */
+			fromPackage: string
+			/**
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
+			 */
+			oneLineInstall: string
+		}
 		card: {
 			/**
 			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+			 */
+			authToken: string
+		}
+		button: {
+			/**
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
+			 */
+			availablePackages: string
 		}
 		controls: {
 			/**
@@ -3537,6 +3561,45 @@ type RootTranslation = {
 			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
 			 */
 			statusError: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ 
+			 */
+			oneLineInstall: string
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ 
+			 * @param {string} setupGatewayDocs
+			 */
+			fromPackage: RequiredParams<'setupGatewayDocs'>
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ 
+			 * @param {string} setupGatewayDocs
+			 */
+			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * 
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
+		​ ​ ​ ​ ​ ​ 
+			 * @param {string} setupGatewayDocs
+			 */
+			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
 		}
 	}
 	loginPage: {
@@ -7472,15 +7535,39 @@ export type TranslationFunctions = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * Gateway server setup
-		 */
-		header: () => LocalizedString
+		header: {
+			/**
+			 * Gateway server setup
+			 */
+			main: () => LocalizedString
+			/**
+			 * Docker Based Gateway Setup
+			 */
+			dockerBasedGatewaySetup: () => LocalizedString
+			/**
+			 * From Package
+			 */
+			fromPackage: () => LocalizedString
+			/**
+			 * One Line Install
+			 */
+			oneLineInstall: () => LocalizedString
+		}
 		card: {
 			/**
 			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
+			/**
+			 * Authentication Token
+			 */
+			authToken: () => LocalizedString
+		}
+		button: {
+			/**
+			 * Available Packages
+			 */
+			availablePackages: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -7518,6 +7605,42 @@ export type TranslationFunctions = {
 			 * Failed to get gateway status
 			 */
 			statusError: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+		          you don't need to do anything.
+		        </p>
+		      
+			 */
+			oneLineInstall: () => LocalizedString
+			/**
+			 * 
+		        <p>
+		          Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+		          according to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+		        </p>
+		      
+			 */
+			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * 
+		        <p>
+		          Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+		          provided in the <a href="{setupGatewayDocs}" target="_blank">documentation</a> to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+		        </p>
+		      
+			 */
+			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * 
+		        <p>
+		          Below is a Docker based example. For more details and exact steps, please refer to the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+		        </p>
+		      
+			 */
+			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}
 	}
 	loginPage: {

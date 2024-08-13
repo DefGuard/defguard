@@ -38,6 +38,10 @@ export const NetworkGatewaySetup = () => {
     return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} -e DEFGUARD_GRPC_URL=${networkToken?.grpc_url} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
+  const returnNetworkToken = useCallback(() => {
+    return `${networkToken}`;
+  }, [networkToken]);
+
   const getActions = useMemo(
     () => [
       <ActionButton
@@ -50,20 +54,45 @@ export const NetworkGatewaySetup = () => {
     ],
     [command, writeToClipboard],
   );
+
   return (
     <section className="gateway">
-      <header>
-        <h2>{LL.gatewaySetup.header()}</h2>
-      </header>
+      <h2>{LL.gatewaySetup.header.main()}</h2>
+      {/* {parse(
+        networkToken
+          ? LL.gatewaySetup.messages.runCommand({
+              setupGatewayDocs: externalLink.gitbook.setup.gateway,
+            })
+          : LL.gatewaySetup.messages.createNetwork(),
+      )} */}
+      {parse(
+        LL.gatewaySetup.messages.runCommand({
+          setupGatewayDocs: externalLink.gitbook.setup.gateway,
+        }),
+      )}
+      {/* Authentication Token */}
       <MessageBox>
         {parse(
           networkToken
-            ? LL.gatewaySetup.messages.runCommand({
+            ? LL.gatewaySetup.messages.authToken({
                 setupGatewayDocs: externalLink.gitbook.setup.gateway,
               })
             : LL.gatewaySetup.messages.createNetwork(),
         )}
       </MessageBox>
+      {networkToken && (
+        <>
+          <ExpandableCard
+            title={LL.gatewaySetup.card.authToken()}
+            disableExpand={true}
+            expanded={true}
+            actions={getActions}
+          >
+            <p>{returnNetworkToken()}</p>
+          </ExpandableCard>
+        </>
+      )}
+      {/* Docker Based Gateway Setup */}
       {networkToken && (
         <>
           <ExpandableCard
@@ -76,6 +105,19 @@ export const NetworkGatewaySetup = () => {
           </ExpandableCard>
         </>
       )}
+      {/* From Package */}
+      <h3>{LL.gatewaySetup.header.fromPackage()}</h3>
+      <MessageBox>
+        {parse(
+          LL.gatewaySetup.messages.fromPackage({
+            setupGatewayDocs: externalLink.gitbook.setup.gateway,
+          }),
+        )}
+      </MessageBox>
+      {/* One Line Install */}
+      <h3>{LL.gatewaySetup.header.oneLineInstall()}</h3>
+      <MessageBox>{parse(LL.gatewaySetup.messages.oneLineInstall())}</MessageBox>
+      {/* Gateway Status */}
       <GatewaysStatus networkId={selectedNetworkId} />
     </section>
   );
