@@ -287,8 +287,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
             status => {
                 let status_message = response.text().await.unwrap_or_default();
                 let message = format!(
-                    "Failed to renew the license, the license server returned a status code {status} with error: {status_message}",
-                    status, status_message
+                    "Failed to renew the license, the license server returned a status code {status} with error: {status_message}"
                 );
                 return Err(LicenseError::LicenseServerError(message));
             }
@@ -389,10 +388,7 @@ pub async fn run_periodic_license_check(
             let license = license_mutex
                 .lock()
                 .expect("Failed to acquire lock on the license mutex.");
-            debug!(
-                "Checking if the license {license:?} requires a renewal...",
-                license
-            );
+            debug!("Checking if the license {license:?} requires a renewal...");
 
             match &*license {
                 Some(license) => {
