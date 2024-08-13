@@ -202,7 +202,7 @@ const pl: Translation = {
         totpCopied: 'Ścieżka TOTP skopiowana.',
         success: 'TOTP Enabled',
       },
-      copyPath: 'Skopiowana ścieżka TOTP',
+      copyPath: 'Kopiuj ścieżkę TOTP',
       form: {
         fields: {
           code: {

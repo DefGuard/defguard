@@ -10,7 +10,7 @@ use argon2::{
 use axum::http::StatusCode;
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
-use totp_lite::{totp, totp_custom, Sha1};
+use totp_lite::{totp_custom, Sha1};
 
 use super::{
     device::{Device, UserDevice},
@@ -20,15 +20,14 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
+    auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::Session,
     error::WebError,
-    hex::to_lower_hex,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
-const EMAIL_CODE_DIGITS: u32 = 6;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
@@ -181,7 +180,7 @@ impl User {
             .execute(executor)
             .await?;
         }
-        let secret_base32 = to_lower_hex(&secret);
+        let secret_base32 = base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &secret);
         self.totp_secret = Some(secret);
         Ok(secret_base32)
     }
@@ -514,7 +513,12 @@ impl User {
     pub fn verify_totp_code(&self, code: &str) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                let expected_code = totp::<Sha1>(totp_secret, timestamp.as_secs());
+                let expected_code = totp_custom::<Sha1>(
+                    TOTP_CODE_VALIDITY_PERIOD,
+                    TOTP_CODE_DIGITS,
+                    totp_secret,
+                    timestamp.as_secs(),
+                );
                 eprintln!("{expected_code} ?? {code}");
                 return code == expected_code;
             }
