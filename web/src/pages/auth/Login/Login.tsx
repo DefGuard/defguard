@@ -80,17 +80,30 @@ export const Login = () => {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
-      if (error.response && error.response.status === 401) {
-        setError(
-          'password',
-          {
-            message: 'username or password is incorrect',
-          },
-          { shouldFocus: true },
-        );
+      if (error.response) {
+        switch (error.response.status) {
+          case 401: {
+            setError(
+              'password',
+              {
+                message: 'username or password is incorrect',
+              },
+              { shouldFocus: true },
+            );
+            break;
+          }
+          case 429: {
+            toaster.error(LL.form.error.tooManyBadLoginAttempts());
+            break;
+          }
+          default: {
+            console.error(error);
+            toaster.error(LL.messages.error());
+          }
+        }
       } else {
         console.error(error);
-        toaster.error(LL.form.error.tooManyBadLoginAttempts());
+        toaster.error(LL.messages.error());
       }
     },
   });
