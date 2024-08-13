@@ -354,7 +354,7 @@ pub async fn start_enrollment(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {username}",
+        "User {} has started a new enrollment request.",
         session.user.username
     );
 
@@ -369,6 +369,10 @@ pub async fn start_enrollment(
         ));
     }
 
+    debug!(
+        "Search for the user {} in database to get started with enrollment process.",
+        username
+    );
     let Some(user) = User::find_by_username(&appstate.pool, &username).await? else {
         error!("User {username} couldn't be found, enrollment aborted");
         return Err(WebError::ObjectNotFound(format!(
@@ -376,6 +380,7 @@ pub async fn start_enrollment(
         )));
     };
 
+    debug!("Create a new database transaction to save a new enrollment token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
     let config = server_config();
@@ -391,11 +396,18 @@ pub async fn start_enrollment(
         )
         .await?;
 
+    debug!("Try to commit transaction to save the enrollment token into the databse.");
     transaction.commit().await?;
+    debug!("Transaction committed.");
 
     info!(
-        "User {} started enrollment for user {username}",
+        "The enrollment process for {} has ended with success.",
         session.user.username
+    );
+    debug!(
+        "Enrollment token {}, enrollment url {}",
+        enrollment_token,
+        config.enrollment_url.to_string()
     );
 
     Ok(ApiResponse {
@@ -434,11 +446,13 @@ pub async fn start_remote_desktop_configuration(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} starting enrollment for user {username}",
+        "User {} has started a new desktop activation for {username}.",
         session.user.username
     );
 
+    debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    debug!("Successfully fetched user data: {user:?}");
 
     // if email is None assume that email should be sent to enrolling user
     let email = match data.email {
@@ -446,10 +460,15 @@ pub async fn start_remote_desktop_configuration(
         None => user.email.clone(),
     };
 
+    debug!("Create a new database transaction to save a desktop configuration token into the database.");
     let mut transaction = appstate.pool.begin().await?;
 
+    debug!(
+        "Generating a new desktop activation token by {}.",
+        session.user.username
+    );
     let config = server_config();
-    let enrollment_token = user
+    let desktop_configuration_token = user
         .start_remote_desktop_configuration(
             &mut transaction,
             &session.user,
@@ -461,15 +480,22 @@ pub async fn start_remote_desktop_configuration(
         )
         .await?;
 
+    debug!("Try to submit transaction to save the desktop configuration token into the databse.");
     transaction.commit().await?;
+    debug!("Transaction submitted.");
 
     info!(
-        "User {} started enrollment for user {username}",
+        "User {} started a new desktop activation.",
         session.user.username
+    );
+    debug!(
+        "Desktop configuration token {}, desktop configuration url {}",
+        desktop_configuration_token,
+        config.enrollment_url.to_string()
     );
 
     Ok(ApiResponse {
-        json: json!({"enrollment_token": enrollment_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json: json!({"enrollment_token": desktop_configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
     })
 }
@@ -594,7 +620,7 @@ pub async fn modify_user(
                 .await?
         {
             debug!(
-                "User {} changed {username} groups or status, syncing allowed network devices",
+                "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
             let networks = WireguardNetwork::all(&mut *transaction).await?;
