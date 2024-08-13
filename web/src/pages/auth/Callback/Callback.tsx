@@ -61,6 +61,7 @@ export const OpenIDCallback = () => {
         callbackMutation.mutate(data);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // FIXME: make it a bit more user friendly
