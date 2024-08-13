@@ -26,7 +26,7 @@ pub(crate) async fn get_app_info(
         .license
         .lock()
         .expect("Failed to acquire lock on the license.");
-    info!("license: {:?}", license);
+    info!("license: {license:?});
     let enterprise = validate_license((*license).as_ref()).is_ok();
     info!("enterprise: {}", enterprise);
     let res = AppInfo {

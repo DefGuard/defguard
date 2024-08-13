@@ -111,7 +111,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Err(err) => {
             warn!(
-                "There was an error while loading the license, error: {}",
+                "There was an error while loading the license, error: {err}",
                 err
             );
             Arc::new(Mutex::new(None))

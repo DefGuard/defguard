@@ -51,7 +51,7 @@ pub enum LicenseError {
     DecodeError(String),
     #[error("License is expired and has reached its maximum overdue time, please contact sales")]
     LicenseExpired,
-    #[error("License is not found")]
+    #[error("License not found")]
     LicenseNotFound,
     #[error("License server error: {0}")]
     LicenseServerError(String),
@@ -185,7 +185,7 @@ impl License {
                                 Ok(Some(new_license))
                             }
                             Err(err) => {
-                                error!("Failed to renew the license: {}", err);
+                                error!("Failed to renew the license: {err}");
                                 Ok(Some(license))
                             }
                         }
@@ -278,15 +278,15 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
         Ok(response) => match response.status() {
             reqwest::StatusCode::OK => {
                 let response: RefreshRequestResponse = response.json().await.map_err(|err| {
-                    error!("Failed to parse the response from the license server while trying to renew the license: {:?}", err);
+                    error!("Failed to parse the response from the license server while trying to renew the license: {err:?}");
                     LicenseError::LicenseServerError(err.to_string())
                 })?;
                 response.key
             }
             status => {
-                let status_message = response.text().await.unwrap_or_else(|_| "".to_string());
+                let status_message = response.text().await.unwrap_or_default();
                 let message = format!(
-                    "Failed to renew the license, the license server returned a status code {} with error: {}",
+                    "Failed to renew the license, the license server returned a status code {status} with error: {status_message}",
                     status, status_message
                 );
                 return Err(LicenseError::LicenseServerError(message));
@@ -368,7 +368,7 @@ pub async fn run_periodic_license_check(
     license_mutex: Arc<Mutex<Option<License>>>,
 ) -> Result<(), LicenseError> {
     let mut check_period = server_config().license_check_period;
-    info!("Starting periodic license check every {:?}", check_period);
+    info!("Starting periodic license check every {check_period:?});
     loop {
         debug!("Checking the license status...");
         // Check if the license is present in the mutex, if not skip the check
@@ -389,7 +389,7 @@ pub async fn run_periodic_license_check(
                 .lock()
                 .expect("Failed to acquire lock on the license mutex.");
             debug!(
-                "Checking if the license {:?} requires a renewal...",
+                "Checking if the license {license:?} requires a renewal...",
                 license
             );
 
@@ -404,7 +404,7 @@ pub async fn run_periodic_license_check(
                         } else {
                             check_period = server_config().license_check_period;
                             warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {}", check_period);
+                            debug!("Changing check period to {check_period});
                             false
                         }
                     } else {
@@ -427,7 +427,7 @@ pub async fn run_periodic_license_check(
         if requires_renewal {
             info!("License requires renewal, renewing license...");
             check_period = server_config().license_check_period_renewal_window;
-            debug!("Changing check period to {}", check_period);
+            debug!("Changing check period to {check_period});
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
                     Ok(_) => {
@@ -441,7 +441,7 @@ pub async fn run_periodic_license_check(
                     }
                 },
                 Err(err) => {
-                    error!("Failed to renew the license: {}", err);
+                    error!("Failed to renew the license: {err}");
                 }
             }
         }
