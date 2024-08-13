@@ -401,7 +401,10 @@ impl User {
         );
         debug!("Check if {} has a password.", self.username);
         if self.has_password() {
-            debug!("User {} that you want to start enrollment process for already has a password.", self.username);
+            debug!(
+                "User {} that you want to start enrollment process for already has a password.",
+                self.username
+            );
             return Err(TokenError::AlreadyActive);
         }
 
@@ -497,7 +500,10 @@ impl User {
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
-        info!("User {} starting a new desktop activation for user {}", admin.username, self.username);
+        info!(
+            "User {} starting a new desktop activation for user {}",
+            admin.username, self.username
+        );
         debug!(
             "Notify {} by mail about the enrollment process: {}",
             self.username, send_user_notification

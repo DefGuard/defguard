@@ -305,7 +305,9 @@ pub async fn user_for_admin_or_self(
             }
         }
     } else {
-        debug!("User from the current session doesn't have enough privileges to do this operation.");
+        debug!(
+            "User from the current session doesn't have enough privileges to do this operation."
+        );
         Err(WebError::Forbidden("requires privileged access".into()))
     }
 }
