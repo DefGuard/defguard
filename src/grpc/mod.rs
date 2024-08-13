@@ -388,7 +388,8 @@ pub async fn run_grpc_bidi_stream(
                     break 'message;
                 }
                 Ok(Some(received)) => {
-                    info!("Received message from proxy {received:?}");
+                    info!("Received message from proxy.");
+                    debug!("Received the following message from proxy: {received:?}");
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {

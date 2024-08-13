@@ -136,7 +136,7 @@ impl EnrollmentServer {
             let user = enrollment.fetch_user(&self.pool).await?;
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
-            debug!("Check is {} an active user.", user.username);
+            debug!("Check if {} is an active user.", user.username);
             if !user.is_active {
                 warn!(
                     "Can't start enrollment for disabled user {}.",
@@ -210,7 +210,7 @@ impl EnrollmentServer {
 
             Ok(response)
         } else {
-            debug!("Invalid an enrollment token, the token does not have specified type.");
+            debug!("Invalid enrollment token, the token does not have specified type.");
             Err(Status::permission_denied("invalid token"))
         }
     }
@@ -236,26 +236,26 @@ impl EnrollmentServer {
         debug!("Ip address {}, device info {device_info:?}", ip_address);
 
         // check if password is strong enough
-        debug!("Verify is password strong enough to complete the activating user process.");
+        debug!("Verify if password is strong enough to complete the user activation process.");
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
         }
-        debug!("Password is strong enough to complete the activating user process.");
+        debug!("Password is strong enough to complete the user activation process.");
 
         // fetch related users
         let mut user = enrollment.fetch_user(&self.pool).await?;
         debug!(
-            "Fetching user {} data to check is the user has already password.",
+            "Fetching user {} data to check if the user already has a password.",
             user.username
         );
         if user.has_password() {
             error!("User {} already activated", user.username);
             return Err(Status::invalid_argument("user already activated"));
         }
-        debug!("User doesn't have a password yet. Continue activating user process...");
+        debug!("User doesn't have a password yet. Continue user activation process...");
 
-        debug!("Verify is the user active or disabled.");
+        debug!("Verify if the user is active or disabled.");
         if !user.is_active {
             warn!(
                 "Can't finalize enrollment for disabled user {}",
@@ -278,7 +278,7 @@ impl EnrollmentServer {
             error!("Failed to update user {}: {err}", user.username);
             Status::internal("unexpected error")
         })?;
-        debug!("Updating user details ends with success.");
+        debug!("Updating user details ended with success.");
 
         // sync with LDAP
         debug!("Add user to ldap: {}.", self.ldap_feature_active);
@@ -294,7 +294,7 @@ impl EnrollmentServer {
                 error!("Failed to get settings");
                 Status::internal("unexpected error")
             })?;
-        debug!("Successfully retrive settings.");
+        debug!("Successfully retrived settings.");
 
         // send welcome email
         debug!("Try to send welcome email...");
@@ -311,7 +311,7 @@ impl EnrollmentServer {
 
         // send success notification to admin
         debug!(
-            "Trying fetch admin data from the token to send notification about activating user."
+            "Trying to fetch admin data from the token to send notification about activating user."
         );
         let admin = enrollment.fetch_admin(&mut *transaction).await?;
 
@@ -348,7 +348,7 @@ impl EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
 
         // add device
-        debug!("Verifying is user active or disabled.");
+        debug!("Verifying if user is active or disabled.");
         if !user.is_active {
             error!("Can't create device for a disabled user {}", user.username);
             return Err(Status::invalid_argument(
@@ -368,7 +368,7 @@ impl EnrollmentServer {
         }
         debug!("Ip address {}, device info {device_info:?}", ip_address);
 
-        debug!("Start validating pubkey for create device process...");
+        debug!("Start validating pubkey for device creation process...");
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", request.pubkey);
             Status::invalid_argument("invalid pubkey")
@@ -376,7 +376,7 @@ impl EnrollmentServer {
         debug!("Pubkey is validated.");
 
         // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
-        debug!("Check is there a device that has the same pubey.");
+        debug!("Check if there is a device that has the same pubey.");
         if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
             .map_err(|_| {

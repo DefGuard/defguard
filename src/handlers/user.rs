@@ -396,9 +396,9 @@ pub async fn start_enrollment(
         )
         .await?;
 
-    debug!("Try to submit transaction to save the enrollment token into the databse.");
+    debug!("Try to commit transaction to save the enrollment token into the databse.");
     transaction.commit().await?;
-    debug!("Transaction submitted.");
+    debug!("Transaction committed.");
 
     info!(
         "The enrollment process for {} has ended with success.",
@@ -446,7 +446,7 @@ pub async fn start_remote_desktop_configuration(
     Json(data): Json<StartEnrollmentRequest>,
 ) -> ApiResult {
     debug!(
-        "User {} has started a new desktop activation request.",
+        "User {} has started a new desktop activation for {username}.",
         session.user.username
     );
 
@@ -485,7 +485,7 @@ pub async fn start_remote_desktop_configuration(
     debug!("Transaction submitted.");
 
     info!(
-        "User {} added a new desktop activation.",
+        "User {} started a new desktop activation.",
         session.user.username
     );
     debug!(
@@ -620,7 +620,7 @@ pub async fn modify_user(
                 .await?
         {
             debug!(
-                "User {} has started a new enrollment request.",
+                "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
             let networks = WireguardNetwork::all(&mut *transaction).await?;

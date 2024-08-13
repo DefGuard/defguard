@@ -247,7 +247,7 @@ impl Token {
         }
 
         let admin_id = self.admin_id.unwrap();
-        debug!("Try to find admin using id {}", admin_id);
+        debug!("Trying to find admin using id {admin_id}");
         let user = User::find_by_id(executor, admin_id).await?;
         debug!("Fetched admin {user:?}.");
         Ok(user)
@@ -392,16 +392,16 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "Start generating a new enrollment process for user {}.",
-            self.username
+            "User {} started a new enrollment process for user {}.",
+            admin.username, self.username
         );
         debug!(
             "Notify user by mail about the enrollment process: {}",
             send_user_notification
         );
-        debug!("Check is {} has a password.", self.username);
+        debug!("Check if {} has a password.", self.username);
         if self.has_password() {
-            debug!("User that you want to start enrollment process has already password.");
+            debug!("User {} that you want to start enrollment process for already has a password.", self.username);
             return Err(TokenError::AlreadyActive);
         }
 
@@ -497,7 +497,7 @@ impl User {
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
-        info!("Start a new desktop activation for user {}", self.username);
+        info!("User {} starting a new desktop activation for user {}", admin.username, self.username);
         debug!(
             "Notify {} by mail about the enrollment process: {}",
             self.username, send_user_notification

@@ -90,7 +90,7 @@ pub fn enrollment_start_mail(
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
-    debug!("Render a enrollment start mail template for the user.");
+    debug!("Render an enrollment start mail template for the user.");
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     // add required context
