@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish-docker:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

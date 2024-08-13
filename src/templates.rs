@@ -90,6 +90,7 @@ pub fn enrollment_start_mail(
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    debug!("Render an enrollment start mail template for the user.");
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     // add required context
@@ -114,6 +115,7 @@ pub fn desktop_start_mail(
     enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    debug!("Render a mail template for desktop activation.");
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
@@ -131,6 +133,7 @@ pub fn enrollment_welcome_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render a welcome mail template for user enrollment.");
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
@@ -151,6 +154,7 @@ pub fn enrollment_admin_notification(
     ip_address: &str,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render an admin notification mail template.");
     let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
 
     tera.add_raw_template(
@@ -184,6 +188,7 @@ pub fn new_device_added_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render a new device added mail template for the user.");
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
