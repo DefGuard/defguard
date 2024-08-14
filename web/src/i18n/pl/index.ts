@@ -1044,7 +1044,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           link: 'By dowiedzieć się więcej, odwiedź naszą stronę.',
         },
         licenseKey: {
-          text: "Wprowadź poniżej klucz licencyjny Defguard Enterprise. Powinieneś otrzymać go na swoją skrzynkę e-mailową po zakupie licencji.",
+          text: 'Wprowadź poniżej klucz licencyjny Defguard Enterprise. Powinieneś otrzymać go na swoją skrzynkę e-mailową po zakupie licencji.',
           link: 'Licencję możesz zakupić tutaj.',
         },
       },

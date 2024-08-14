@@ -3,7 +3,6 @@ import './styles.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import parse from 'html-react-parser';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
