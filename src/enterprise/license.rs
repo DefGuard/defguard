@@ -467,7 +467,7 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
                     }
                 },
                 Err(err) => {
-                    error!("Failed to renew the license: {err}");
+                    warn!("Failed to renew the license: {err}. Retrying in {check_period} seconds");
                 }
             }
         }
