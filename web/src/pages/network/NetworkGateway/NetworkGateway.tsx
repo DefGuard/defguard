@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
@@ -20,6 +19,7 @@ import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import ReactMarkdown from 'react-markdown';
 
 export const NetworkGatewaySetup = () => {
   const { writeToClipboard } = useClipboard();
@@ -82,20 +82,25 @@ export const NetworkGatewaySetup = () => {
     <section className="gateway">
       <section className="header-section">
         <h2>{LL.gatewaySetup.header.main()}</h2>
-        {parse(
+        {/* {parse(
           LL.gatewaySetup.messages.runCommand({
             setupGatewayDocs: externalLink.gitbook.setup.gateway,
           }),
-        )}
+        )} */}
+        <ReactMarkdown>
+          {LL.gatewaySetup.messages.runCommand({
+            setupGatewayDocs: externalLink.gitbook.setup.gateway,
+          })}
+        </ReactMarkdown>
       </section>
       <MessageBox>
-        {parse(
-          networkToken
+        <ReactMarkdown>
+          {networkToken
             ? LL.gatewaySetup.messages.authToken({
                 setupGatewayDocs: externalLink.gitbook.setup.gateway,
               })
-            : LL.gatewaySetup.messages.createNetwork(),
-        )}
+            : LL.gatewaySetup.messages.createNetwork()}
+        </ReactMarkdown>
       </MessageBox>
       {networkToken && (
         <>
@@ -111,13 +116,13 @@ export const NetworkGatewaySetup = () => {
       )}
       <h3>{LL.gatewaySetup.header.dockerBasedGatewaySetup()}</h3>
       <MessageBox>
-        {parse(
-          networkToken
+        <ReactMarkdown>
+          {networkToken
             ? LL.gatewaySetup.messages.dockerBasedGatewaySetup({
                 setupGatewayDocs: externalLink.gitbook.setup.gateway,
               })
-            : LL.gatewaySetup.messages.createNetwork(),
-        )}
+            : LL.gatewaySetup.messages.createNetwork()}
+        </ReactMarkdown>
       </MessageBox>
       {networkToken && (
         <>
@@ -133,11 +138,11 @@ export const NetworkGatewaySetup = () => {
       )}
       <h3>{LL.gatewaySetup.header.fromPackage()}</h3>
       <MessageBox>
-        {parse(
-          LL.gatewaySetup.messages.fromPackage({
+        <ReactMarkdown>
+          {LL.gatewaySetup.messages.fromPackage({
             setupGatewayDocs: externalLink.gitbook.setup.gateway,
-          }),
-        )}
+          })}
+        </ReactMarkdown>
       </MessageBox>
       <Button
         size={ButtonSize.LARGE}
@@ -146,7 +151,9 @@ export const NetworkGatewaySetup = () => {
         onClick={() => handleSubmit()}
       />
       <h3>{LL.gatewaySetup.header.oneLineInstall()}</h3>
-      <MessageBox>{parse(LL.gatewaySetup.messages.oneLineInstall())}</MessageBox>
+      <MessageBox>
+        <ReactMarkdown>{LL.gatewaySetup.messages.oneLineInstall()}</ReactMarkdown>
+      </MessageBox>
       <GatewaysStatus networkId={selectedNetworkId} />
     </section>
   );
