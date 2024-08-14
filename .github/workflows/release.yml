@@ -205,7 +205,7 @@ jobs:
         uses: defGuard/fpm-action@main
         with:
           fpm_args: "${{ matrix.asset_name }}-${{ github.ref_name }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
-          fpm_opts: "--debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-gateway_${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+          fpm_opts: "--debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
 
       - name: Upload FreeBSD
         if: matrix.build == 'freebsd'
@@ -214,6 +214,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: defguard-gateway_${{ env.VERSION }}_${{ matrix.target }}.pkg
-          asset_name: defguard-gateway_${{ env.VERSION }}_${{ matrix.target }}.pkg
+          asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
+          asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
           asset_content_type: application/octet-stream
