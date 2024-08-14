@@ -49,7 +49,7 @@ pub async fn update_settings(
     Json(mut data): Json<Settings>,
 ) -> ApiResult {
     debug!("User {} updating settings", session.user.username);
-    update_cached_license(data.license.as_deref(), appstate.license)?;
+    update_cached_license(data.license.as_deref())?;
     data.id = Some(1);
     data.save(&appstate.pool).await?;
     info!("User {} updated settings", session.user.username);
@@ -113,7 +113,7 @@ pub async fn patch_settings(
 
     // Handle updating the cached license
     if let Some(license_key) = &data.license {
-        update_cached_license(license_key.as_deref(), appstate.license)?;
+        update_cached_license(license_key.as_deref())?;
         debug!("Saving the new license key to the database as part of the settings patch");
     };
 

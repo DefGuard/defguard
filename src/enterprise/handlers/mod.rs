@@ -8,11 +8,13 @@ pub mod openid_providers;
 
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequestParts, State},
+    extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
 
 use crate::{appstate::AppState, error::WebError};
+
+use super::license::get_cached_license;
 
 pub struct LicenseInfo {
     pub valid: bool,
@@ -26,13 +28,8 @@ where
 {
     type Rejection = WebError;
 
-    async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let appstate = AppState::from_ref(state);
-
-        let license = appstate
-            .license
-            .lock()
-            .expect("Failed to acquire lock on the license.");
+    async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let license = get_cached_license();
 
         match validate_license((*license).as_ref()) {
             // Useless struct, but may come in handy later
@@ -42,11 +39,8 @@ where
     }
 }
 
-pub async fn check_enterprise_status(State(appstate): State<AppState>) -> ApiResult {
-    let license = appstate
-        .license
-        .lock()
-        .expect("Failed to acquire lock on the license.");
+pub async fn check_enterprise_status() -> ApiResult {
+    let license = get_cached_license();
 
     let valid = validate_license((*license).as_ref()).is_ok();
 

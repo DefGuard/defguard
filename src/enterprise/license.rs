@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex, MutexGuard};
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -13,6 +13,20 @@ use crate::{
     db::{DbPool, Settings},
     server_config,
 };
+
+pub static LICENSE: Mutex<Option<License>> = Mutex::new(None);
+
+pub fn set_cached_license(license: Option<License>) {
+    *LICENSE
+        .lock()
+        .expect("Failed to acquire lock on the license mutex.") = license;
+}
+
+pub fn get_cached_license() -> MutexGuard<'static, Option<License>> {
+    LICENSE
+        .lock()
+        .expect("Failed to acquire lock on the license mutex.")
+}
 
 tonic::include_proto!("license");
 
@@ -334,10 +348,7 @@ async fn save_license_key(pool: &DbPool, key: &str) -> Result<(), LicenseError> 
 }
 
 /// Helper function to update the cached license mutex. The mutex is used mainly in the appstate.
-pub fn update_cached_license(
-    key: Option<&str>,
-    license_mutex: Arc<Mutex<Option<License>>>,
-) -> Result<(), LicenseError> {
+pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
     debug!("Updating the cached license information with the provided key...");
     let license = if let Some(key) = key {
         // Handle the Some("") case
@@ -351,9 +362,7 @@ pub fn update_cached_license(
     } else {
         None
     };
-    *license_mutex
-        .lock()
-        .expect("Failed to acquire lock on the license mutex.") = license;
+    set_cached_license(license);
     info!("Successfully updated the cached license information.");
     Ok(())
 }
@@ -364,20 +373,13 @@ const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 /// Maximum amount of time a license can be over its expiry date.
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::hours(24);
 
-pub async fn run_periodic_license_check(
-    pool: DbPool,
-    license_mutex: Arc<Mutex<Option<License>>>,
-) -> Result<(), LicenseError> {
+pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError> {
     let mut check_period = server_config().license_check_period;
     info!("Starting periodic license check every {check_period:?}");
     loop {
         debug!("Checking the license status...");
         // Check if the license is present in the mutex, if not skip the check
-        if license_mutex
-            .lock()
-            .expect("Failed to acquire lock on the license mutex.")
-            .is_none()
-        {
+        if get_cached_license().is_none() {
             debug!("No license found, skipping license check");
             sleep(*server_config().license_check_period_no_license).await;
             continue;
@@ -386,9 +388,7 @@ pub async fn run_periodic_license_check(
         // Check if the license requires renewal, uses the cached value to be more efficient
         // The block here is to avoid holding the lock through awaits
         let requires_renewal = {
-            let license = license_mutex
-                .lock()
-                .expect("Failed to acquire lock on the license mutex.");
+            let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
 
             match &*license {
@@ -429,7 +429,7 @@ pub async fn run_periodic_license_check(
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
                     Ok(_) => {
-                        update_cached_license(Some(&new_license_key), license_mutex.clone())?;
+                        update_cached_license(Some(&new_license_key))?;
                         check_period = server_config().license_check_period;
                         debug!("Changing check period to {check_period} seconds");
                         info!("Successfully renewed the license, new license key saved to the database");

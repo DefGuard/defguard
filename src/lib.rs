@@ -11,15 +11,10 @@ use axum::{
     routing::{delete, get, patch, post, put},
     serve, Extension, Json, Router,
 };
-use enterprise::{
-    handlers::{
-        check_enterprise_status,
-        openid_login::{auth_callback, get_auth_info},
-        openid_providers::{
-            add_openid_provider, delete_openid_provider, get_current_openid_provider,
-        },
-    },
-    license::License,
+use enterprise::handlers::{
+    check_enterprise_status,
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
 use handlers::ssh_authorized_keys::{
     add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -288,7 +283,6 @@ pub fn build_webapp(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    license: Arc<Mutex<Option<License>>>,
     enterprise_enabled: bool,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
@@ -506,7 +500,6 @@ pub fn build_webapp(
             mail_tx,
             user_agent_parser,
             failed_logins,
-            license,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -533,7 +526,6 @@ pub async fn run_web_server(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    license: Arc<Mutex<Option<License>>>,
     enterprise_enabled: bool,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
@@ -546,7 +538,6 @@ pub async fn run_web_server(
         pool,
         user_agent_parser,
         failed_logins,
-        license,
         enterprise_enabled,
     );
     info!("Started web services");

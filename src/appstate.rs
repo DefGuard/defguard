@@ -18,7 +18,6 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
-    enterprise::license::License,
     mail::Mail,
     server_config,
 };
@@ -33,7 +32,6 @@ pub struct AppState {
     pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
-    pub license: Arc<Mutex<Option<License>>>,
 }
 
 impl AppState {
@@ -106,7 +104,6 @@ impl AppState {
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
-        license: Arc<Mutex<Option<License>>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -136,7 +133,6 @@ impl AppState {
             user_agent_parser,
             failed_logins,
             key,
-            license,
         }
     }
 }

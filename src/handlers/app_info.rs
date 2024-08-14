@@ -3,6 +3,7 @@ use serde_json::json;
 
 use super::{ApiResponse, ApiResult, VERSION};
 use crate::db::Settings;
+use crate::enterprise::license::get_cached_license;
 use crate::{
     appstate::AppState, auth::SessionInfo, db::WireguardNetwork,
     enterprise::license::validate_license,
@@ -24,10 +25,7 @@ pub(crate) async fn get_app_info(
 ) -> ApiResult {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let settings = Settings::get_settings(&appstate.pool).await?;
-    let license = appstate
-        .license
-        .lock()
-        .expect("Failed to acquire lock on the license.");
+    let license = get_cached_license();
     info!("license: {license:?}");
     let enterprise = validate_license((*license).as_ref()).is_ok();
     info!("enterprise: {}", enterprise);
