@@ -412,6 +412,9 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
 
         // Check if the license requires renewal, uses the cached value to be more efficient
         // The block here is to avoid holding the lock through awaits
+        //
+        // Multiple locks here may cause a race condition if the user decides to update the license key
+        // while the renewal is in progress. However this seems like a rare case and shouldn't be very problematic.
         let requires_renewal = {
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
