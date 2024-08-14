@@ -10,7 +10,6 @@ import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
