@@ -88,7 +88,6 @@ export const NetworkGatewaySetup = () => {
           }),
         )}
       </section>
-      {/* Authentication Token */}
       <MessageBox>
         {parse(
           networkToken
@@ -110,7 +109,6 @@ export const NetworkGatewaySetup = () => {
           </ExpandableCard>
         </>
       )}
-      {/* Docker Based Gateway Setup */}
       <h3>{LL.gatewaySetup.header.dockerBasedGatewaySetup()}</h3>
       <MessageBox>
         {parse(
@@ -133,7 +131,6 @@ export const NetworkGatewaySetup = () => {
           </ExpandableCard>
         </>
       )}
-      {/* From Package */}
       <h3>{LL.gatewaySetup.header.fromPackage()}</h3>
       <MessageBox>
         {parse(
@@ -148,10 +145,8 @@ export const NetworkGatewaySetup = () => {
         text="Available Packages"
         onClick={() => handleSubmit()}
       />
-      {/* One Line Install */}
       <h3>{LL.gatewaySetup.header.oneLineInstall()}</h3>
       <MessageBox>{parse(LL.gatewaySetup.messages.oneLineInstall())}</MessageBox>
-      {/* Gateway Status */}
       <GatewaysStatus networkId={selectedNetworkId} />
     </section>
   );

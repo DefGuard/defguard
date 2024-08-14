@@ -1,5 +1,9 @@
 #network-page {
   .gateway {
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
+
     & > section.header-section {
       h2,
       p {
@@ -9,10 +13,10 @@
 
     & > .message-box {
       min-height: 15px;
-      margin-bottom: 2rem;
+      margin-bottom: 20px;
 
       @include media-breakpoint-up(lg) {
-        margin-bottom: 4rem;
+        margin-bottom: 40px;
       }
     }
 
@@ -32,10 +36,11 @@
 
           line-height: 22px;
           color: var(--text-body-secondary);
+          padding: 20px 0px;
         }
       }
 
-      margin-bottom: 3rem;
+      margin-bottom: 30px;
     }
 
     h2 {
@@ -64,10 +69,6 @@
 
     & > .btn {
       width: 100%;
-    }
-
-    & > :not(:last-child) {
-      margin-bottom: 20px;
     }
   }
 }
