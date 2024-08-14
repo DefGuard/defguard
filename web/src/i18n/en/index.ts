@@ -33,6 +33,7 @@ const en: BaseTranslation = {
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
     insecureContext: 'Context is not secure.',
+    details: 'Details:',
     clipboard: {
       error: 'Clipboard is not accessible.',
       success: 'Content copied to clipboard.',

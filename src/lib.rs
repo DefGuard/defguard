@@ -283,7 +283,6 @@ pub fn build_webapp(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    enterprise_enabled: bool,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -404,21 +403,15 @@ pub fn build_webapp(
     );
 
     // Enterprise features
-    let webapp = if enterprise_enabled {
-        webapp.nest(
-            "/api/v1/openid",
-            Router::new()
-                .route("/provider", get(get_current_openid_provider))
-                .route("/provider", post(add_openid_provider))
-                .route("/provider/:name", delete(delete_openid_provider))
-                .route("/callback", post(auth_callback))
-                .route("/auth_info", get(get_auth_info)),
-        )
-    } else {
-        // return 404
-        webapp.route("/api/v1/openid/*path", get(handle_404))
-    };
-
+    let webapp = webapp.nest(
+        "/api/v1/openid",
+        Router::new()
+            .route("/provider", get(get_current_openid_provider))
+            .route("/provider", post(add_openid_provider))
+            .route("/provider/:name", delete(delete_openid_provider))
+            .route("/callback", post(auth_callback))
+            .route("/auth_info", get(get_auth_info)),
+    );
     let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
     #[cfg(feature = "openid")]
@@ -526,7 +519,6 @@ pub async fn run_web_server(
     pool: DbPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    enterprise_enabled: bool,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -538,7 +530,6 @@ pub async fn run_web_server(
         pool,
         user_agent_parser,
         failed_logins,
-        enterprise_enabled,
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);

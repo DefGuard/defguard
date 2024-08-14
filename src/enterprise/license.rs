@@ -198,7 +198,7 @@ impl License {
                             Ok(new_key) => {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
-                                info!("Successfully renewed the license, new license key saved to the database");
+                                info!("Successfully renewed and loaded the license, new license key saved to the database");
                                 Ok(Some(new_license))
                             }
                             Err(err) => {
@@ -210,7 +210,7 @@ impl License {
                         Err(LicenseError::LicenseExpired)
                     }
                 } else {
-                    info!("Successfully loaded the license from the database");
+                    info!("Successfully loaded the license from the database.");
                     Ok(Some(license))
                 }
             }

@@ -32,6 +32,7 @@ const pl: Translation = {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
+    details: 'Szczegóły:',
     clipboard: {
       success: 'Skopiowano do schowka',
       error: 'Schowek nie jest dostępny',

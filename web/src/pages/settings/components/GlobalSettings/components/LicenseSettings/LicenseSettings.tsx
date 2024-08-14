@@ -22,9 +22,14 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
+import { AxiosError } from 'axios';
 
 type FormFields = {
   license: string;
+};
+
+type LicenseErrorResponse = {
+  msg: string;
 };
 
 export const LicenseSettings = () => {
@@ -45,8 +50,9 @@ export const LicenseSettings = () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_STATUS]);
     },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
+    onError: (err: AxiosError) => {
+      const errorResponse = err.response?.data as LicenseErrorResponse;
+      toaster.error(`${LL.messages.error()} ${LL.messages.details()} ${errorResponse.msg}`);
       console.error(err);
     },
   });

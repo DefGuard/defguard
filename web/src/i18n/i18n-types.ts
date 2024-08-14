@@ -117,6 +117,10 @@ type RootTranslation = {
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
 		clipboard: {
 			/**
 			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
@@ -4167,6 +4171,10 @@ export type TranslationFunctions = {
 		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
 		clipboard: {
 			/**
 			 * Clipboard is not accessible.
