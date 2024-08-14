@@ -12,9 +12,8 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
-use crate::{appstate::AppState, error::WebError};
-
 use super::license::get_cached_license;
+use crate::{appstate::AppState, error::WebError};
 
 pub struct LicenseInfo {
     pub valid: bool,
