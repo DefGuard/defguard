@@ -2,6 +2,7 @@ import './styles.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
@@ -22,7 +23,6 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
-import { AxiosError } from 'axios';
 
 type FormFields = {
   license: string;
@@ -52,7 +52,9 @@ export const LicenseSettings = () => {
     },
     onError: (err: AxiosError) => {
       const errorResponse = err.response?.data as LicenseErrorResponse;
-      toaster.error(`${LL.messages.error()} ${LL.messages.details()} ${errorResponse.msg}`);
+      toaster.error(
+        `${LL.messages.error()} ${LL.messages.details()} ${errorResponse.msg}`,
+      );
       console.error(err);
     },
   });
