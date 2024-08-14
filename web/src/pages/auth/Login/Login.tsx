@@ -18,6 +18,7 @@ import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/Loa
 import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
@@ -38,6 +39,7 @@ export const Login = () => {
       openid: { getOpenIdInfo: getOpenidInfo },
     },
   } = useApi();
+  const toaster = useToaster();
 
   const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
@@ -91,6 +93,7 @@ export const Login = () => {
         );
       } else {
         console.error(error);
+        toaster.error(LL.form.error.tooManyBadLoginAttempts());
       }
     },
   });

@@ -202,7 +202,7 @@ const pl: Translation = {
         totpCopied: 'Ścieżka TOTP skopiowana.',
         success: 'TOTP Enabled',
       },
-      copyPath: 'Skopiowana ścieżka TOTP',
+      copyPath: 'Kopiuj ścieżkę TOTP',
       form: {
         fields: {
           code: {
@@ -835,6 +835,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       repeat: 'Wartości się nie pokrywają.',
       maximumValue: 'Maksymalna wartość {value} przekroczona.',
       minimumValue: 'Minimalna wartość {value} nie osiągnięta.',
+      tooManyBadLoginAttempts:
+        'Zbyt duża ilość nieprawidłowego logowania. Spróbuj ponownie za kilka minut.',
       number: 'Wartość musi być liczbą.',
     },
     floatingErrors: {
