@@ -291,13 +291,23 @@ pub async fn user_for_admin_or_self(
     username: &str,
 ) -> Result<User, WebError> {
     if session.user.username == username || session.is_admin {
+        debug!("The user meets one or both of these conditions: 1) the user from the current session has admin privileges, 2) the user performs this operation on themself.");
         match User::find_by_username(pool, username).await? {
-            Some(user) => Ok(user),
-            None => Err(WebError::ObjectNotFound(format!(
-                "user {username} not found"
-            ))),
+            Some(user) => {
+                debug!("User {} has been found in database.", user.username);
+                Ok(user)
+            }
+            None => {
+                debug!("User with {} does not exist in database.", username);
+                Err(WebError::ObjectNotFound(format!(
+                    "user {username} not found"
+                )))
+            }
         }
     } else {
+        debug!(
+            "User from the current session doesn't have enough privileges to do this operation."
+        );
         Err(WebError::Forbidden("requires privileged access".into()))
     }
 }

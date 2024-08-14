@@ -383,7 +383,7 @@ export type ChangePasswordSelfRequest = {
 };
 
 export type AuthCodeRequest = {
-  code: number;
+  code: string;
 };
 
 export type AuthenticationKeyInfo = {
@@ -997,7 +997,7 @@ export interface Web3StartRequest {
 }
 
 export interface TOTPRequest {
-  code: number;
+  code: string;
 }
 
 export interface WebAuthnRegistrationRequest {

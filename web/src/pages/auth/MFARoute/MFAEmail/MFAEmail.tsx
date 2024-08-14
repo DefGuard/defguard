@@ -92,7 +92,7 @@ export const MFAEmail = () => {
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     const trimmed = trimObjectStrings(data);
     verifyMutate({
-      code: Number.parseInt(trimmed.code),
+      code: String(trimmed.code),
     });
   };
 

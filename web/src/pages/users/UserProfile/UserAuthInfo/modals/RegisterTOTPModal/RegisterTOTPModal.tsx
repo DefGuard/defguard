@@ -161,7 +161,7 @@ const TOTPRegisterForm = () => {
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
     values = trimObjectStrings(values);
     mutate({
-      code: Number(values.code),
+      code: String(values.code),
     });
   };
   return (
