@@ -14,7 +14,7 @@ use crate::{
     server_config,
 };
 
-pub static LICENSE: Mutex<Option<License>> = Mutex::new(None);
+static LICENSE: Mutex<Option<License>> = Mutex::new(None);
 
 pub fn set_cached_license(license: Option<License>) {
     *LICENSE

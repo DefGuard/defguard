@@ -22,11 +22,11 @@ import {
   SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OpenIdProvider } from '../../../../../shared/types';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 type FormFields = OpenIdProvider;
 

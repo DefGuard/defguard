@@ -884,9 +884,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
     },
     enterpriseOnly: {
-      title: "Ta funkcja jest dostępna tylko w wersji Defguard Enterprise",
-      subtitle: "Aby uzyskać więcej informacji, odwiedź naszą ",
-      website: "stronę internetową",
+      title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
+      website: 'stronę internetową',
     },
     ldapSettings: {
       title: 'Ustawienia LDAP',
