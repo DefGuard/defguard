@@ -7,7 +7,6 @@ use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
-    enterprise::license::License,
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,
     mail::Mail,
@@ -134,14 +133,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         config.clone(),
     );
 
-    let enterprise_enabled = true;
-
-    let license = Arc::new(Mutex::new(Some(License {
-        customer_id: "test".to_string(),
-        subscription: false,
-        valid_until: None,
-    })));
-
     // Uncomment this to enable tracing in tests.
     // It only works for running a single test, so leave it commented out for running all tests.
     // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -163,7 +154,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         pool,
         user_agent_parser,
         failed_logins,
-        enterprise_enabled,
     );
     (TestClient::new(webapp).await, client_state)
 }
