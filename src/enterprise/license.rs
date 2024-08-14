@@ -30,7 +30,29 @@ pub fn get_cached_license() -> MutexGuard<'static, Option<License>> {
 
 tonic::include_proto!("license");
 
-#[allow(dead_code)]
+// Mock license key
+#[cfg(test)]
+pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQENBGa0jtoBCAC63WkY0btyVzHI8JGVfIkFClNggcDgK+X/if5ndJtHKRXcW6DB
+bRTBNCdUr7sDzCMEYWu8t400Yn/mrLKuubA3G6rp3Eo2nHnOicoZ6mfAdUQL862l
+m9M8zpJtFodWR5G0nznyvabQi9kI1JT87DEIAdfLhN4eoMpgEm+jASSgFeT63oJ9
+fLHofMZLwYZW/mqsnGxElmUsfnVWeseUSgmKBP4IgdtX4LsCx8XiOyQJww6bEUTj
+ZBSqwwuRa1ybtsV3ihEKjDBmXQo5+J3fsadm/6m5PRJVk5rq9/LGVKIBG9m/x6Pn
+xeYaLsjNyAwOSHH2KpeBLPVEfjsqWRt8fyAzABEBAAG0HEF1dG9nZW5lcmF0ZWQg
+S2V5IDxkZWZndWFyZD6JAU4EEwEKADgWIQTyH9Rb8S5I78bRYzghGgZ+AdnRKwUC
+ZrSO2gIbLwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRAhGgZ+AdnRKyzzCACW
+oGBnAPHkCuvlnZjcYUAJVrjI/S02x4t3wFjaFOu+GQSjeB+AjDawF/S4D5ReQ8iq
+D3dTvno3lk/F5HvqV/ZDU9WMmkDFzJoEwKbNIlWwQvvrTnoyy7lpKskNxwwsErEL
+2+rW+lW/N5KNHFaUh2d5JhK08VRPfyl0WA8gqQ99Wnhq4rHF7ijKFm3im0RlzkMI
+NTXxxee/9J0/Pzh+7zFZlMxnnjwiHlxJXpQFwh7+TS9C3IpChW3ipyPgp1DkzsNv
+Xry1crUOhOyEozdKYh2H6tZEi3bjtGwpYkXJs/g3f6HPKjS8rDOMXw4Japb7LYtC
+Aao60J8cOm8J96u1MsUK
+=6cHp
+-----END PGP PUBLIC KEY BLOCK-----
+";
+
+#[cfg(not(test))]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBGa0jtoBCAC63WkY0btyVzHI8JGVfIkFClNggcDgK+X/if5ndJtHKRXcW6DB
@@ -448,5 +470,26 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
         }
 
         sleep(*check_period).await;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use chrono::TimeZone;
+
+    use super::*;
+
+    #[test]
+    fn test_license() {
+        let license = "ChMKCTEyMzEyMzEyMxABGMju8bUGErkCCrYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAma8d0sACgkQIRoGfgHZ0SvTlwf/TGAsexg4lwBREpb2LaaVGhPIZQE6Jm9IvQXiAkpgqdFruu7A5+wnw90RwKtS8tPlLsCEj6vHHeZUVEAgMZ6HKF56Vkk3fTBvVsLIFoGxLj9GEqBdaxjTZumsHCGUxy7aun/kwprvREsiw/V/tibuXakHUX0SgJZKU/a2bNEg/xdyyqrovYCQVUDFZunLP1Pk8EJbRRLzvlupTq6e726cu3axhDNqKysG3M40WUzMqTicjh/bA7ZXCLiZm0q3vmvwCdPRs51m/Kijo7xTaPzusTjXcicsqiEBinH8i3w/ZwA+pqEo2U92t4oSosJVg/5RKRnGmZSGanEQj6NEp/7Yew==";
+        let license = License::from_base64(license).unwrap();
+        assert_eq!(license.customer_id, "123123123");
+        assert!(license.subscription);
+        assert_eq!(
+            license.valid_until.unwrap(),
+            Utc.with_ymd_and_hms(2024, 8, 14, 9, 22, 16).unwrap()
+        );
+
+        assert!(license.is_expired());
     }
 }
