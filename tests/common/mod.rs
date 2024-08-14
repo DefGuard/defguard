@@ -163,7 +163,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         pool,
         user_agent_parser,
         failed_logins,
-        license,
         enterprise_enabled,
     );
     (TestClient::new(webapp).await, client_state)

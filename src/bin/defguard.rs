@@ -103,13 +103,14 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut enterprise_enabled = false;
 
+    debug!("Checking for enterprise license");
     match License::load_or_renew(&pool).await {
         Ok(license) => {
             enterprise_enabled = true;
             set_cached_license(license);
         }
         Err(err) => {
-            warn!("There was an error while loading the license, error: {err}");
+            warn!("There was an error while loading the license, error: {err}. The enterprise features will be disabled.");
             set_cached_license(None);
         }
     };

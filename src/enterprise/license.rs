@@ -193,10 +193,12 @@ impl License {
             Some(license) => {
                 if license.requires_renewal() {
                     if !license.is_max_overdue() {
+                        info!("License requires renewal, trying to renew it...");
                         match renew_license(pool).await {
                             Ok(new_key) => {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
+                                info!("Successfully renewed the license, new license key saved to the database");
                                 Ok(Some(new_license))
                             }
                             Err(err) => {
@@ -208,6 +210,7 @@ impl License {
                         Err(LicenseError::LicenseExpired)
                     }
                 } else {
+                    info!("Successfully loaded the license from the database");
                     Ok(Some(license))
                 }
             }
