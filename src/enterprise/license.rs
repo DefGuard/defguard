@@ -165,17 +165,28 @@ impl License {
 
         match Self::verify_signature(&metadata_bytes, &signature.signature) {
             Ok(_) => {
-                info!("Successfully validated the license signature");
+                info!("Successfully decoded the license validated the license signature");
                 let valid_until = match metadata.valid_until {
                     Some(until) => DateTime::from_timestamp(until, 0),
                     None => None,
                 };
 
-                Ok(License::new(
-                    metadata.customer_id,
-                    metadata.subscription,
-                    valid_until,
-                ))
+                let license =
+                    License::new(metadata.customer_id, metadata.subscription, valid_until);
+
+                if license.requires_renewal() {
+                    if license.is_max_overdue() {
+                        warn!("The provided license has expired and reached its maximum overdue time, please contact sales<at>defguard.net");
+                    } else {
+                        warn!("The provided license is about to expire and requires a renewal. An automatic renewal process will attempt to renew the license soon. Alternatively, automatic renewal attempt will be also performed at the next defguard start.");
+                    }
+                }
+
+                if !license.subscription && license.is_expired() {
+                    warn!("The provided license is not a subscription and has expired, please contact sales<at>defguard.net");
+                }
+
+                Ok(license)
             }
             Err(_) => Err(LicenseError::SignatureMismatch),
         }
@@ -202,7 +213,7 @@ impl License {
         match Self::get_key(pool).await? {
             Some(key) => Ok(Some(Self::from_base64(&key)?)),
             None => {
-                info!("No license key found in the database");
+                debug!("No license key found in the database");
                 Ok(None)
             }
         }
@@ -295,7 +306,7 @@ impl License {
 ///
 /// Doesn't update the cached license, nor does it save the new key in the database.
 async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
-    info!("Exchanging license for a new one...");
+    debug!("Exchanging license for a new one...");
     let old_license_key = match Settings::get_settings(db_pool).await?.license {
         Some(key) => key,
         None => return Err(LicenseError::LicenseNotFound),
