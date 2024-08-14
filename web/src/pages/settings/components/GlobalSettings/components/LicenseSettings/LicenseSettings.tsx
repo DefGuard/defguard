@@ -3,6 +3,7 @@ import './styles.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import parse from 'html-react-parser';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
@@ -18,6 +19,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -91,10 +93,24 @@ export const LicenseSettings = () => {
     <section id="license-settings">
       <header>
         <h2>{LL.settingsPage.license.header()}</h2>
+        <Helper>
+          <p>{LL.settingsPage.license.helpers.enterpriseHeader.text()}</p>
+          <a href="https://defguard.net/pricing/" target="_blank" rel="noreferrer">
+            {LL.settingsPage.license.helpers.enterpriseHeader.link()}
+          </a>
+        </Helper>
       </header>
       <Card shaded bordered>
         <div className="controls">
-          <h3>{LL.settingsPage.license.form.title()}:</h3>
+          <div className="header">
+            <h3>{LL.settingsPage.license.form.title()}:</h3>
+            <Helper>
+              <p>{LL.settingsPage.license.helpers.licenseKey.text()}</p>
+              <a href="https://defguard.net/pricing/" target="_blank" rel="noreferrer">
+                {LL.settingsPage.license.helpers.licenseKey.link()}
+              </a>
+            </Helper>
+          </div>
           <Button
             form="license-form"
             text={

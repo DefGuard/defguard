@@ -10,8 +10,8 @@ export const GlobalSettings = () => (
       <ModulesSettings />
     </div>
     <div className="right">
-      <Web3Settings />
       <LicenseSettings />
+      <Web3Settings />
     </div>
   </>
 );

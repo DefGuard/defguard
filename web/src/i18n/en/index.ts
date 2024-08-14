@@ -1050,6 +1050,16 @@ const en: BaseTranslation = {
     },
     license: {
       header: 'Enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Here you can manage your Defguard Enterprise version license.',
+          link: 'To learn more about Defguard Enterprise, visit our webiste.',
+        },
+        licenseKey: {
+          text: 'Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.',
+          link: 'You can purchase the license here.',
+        },
+      },
       form: {
         title: 'License',
         fields: {

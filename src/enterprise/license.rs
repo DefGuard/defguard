@@ -122,7 +122,7 @@ impl License {
     fn decode(bytes: &[u8]) -> Result<Vec<u8>, LicenseError> {
         let bytes = BASE64_STANDARD.decode(bytes).map_err(|_| {
             LicenseError::DecodeError(
-                "Failed to decode the Base64 license key, check if the provided key is correct."
+                "Failed to decode the license key, check if the provided key is correct."
                     .to_string(),
             )
         })?;
@@ -149,15 +149,14 @@ impl License {
 
         let license_key = LicenseKey::decode(slice).map_err(|_| {
             LicenseError::DecodeError(
-                "Failed to decode the binary license key, check if the provided key is correct."
-                    .to_string(),
+                "The license key is malformed, check if the provided key is correct.".to_string(),
             )
         })?;
         let metadata = license_key.metadata.ok_or(LicenseError::InvalidLicense(
-            "License metadata is missing from the license key".to_string(),
+            "License metadata is missing from the license key, the provided license key is incorrect.".to_string(),
         ))?;
         let signature = license_key.signature.ok_or(LicenseError::InvalidLicense(
-            "License signature is missing from the license key".to_string(),
+            "License signature is missing from the license key, the provided license key is incorrect.".to_string(),
         ))?;
         let metadata_bytes = metadata.encode_to_vec();
 
