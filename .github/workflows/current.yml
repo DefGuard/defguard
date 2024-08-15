@@ -18,7 +18,7 @@ env:
 
 jobs:
   build-current:
-    uses: ./.github/workflows/build-me.yaml
+    uses: ./.github/workflows/build-docker.yaml
     with:
       tags: |
         type=raw,value=current
