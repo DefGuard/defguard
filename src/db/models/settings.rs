@@ -64,6 +64,7 @@ pub struct Settings {
     pub ldap_member_attr: Option<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
+    pub license: Option<String>,
 }
 
 impl Settings {

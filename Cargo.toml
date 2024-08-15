@@ -41,6 +41,7 @@ model_derive = { path = "model-derive" }
 openidconnect = { version = "3.5", default-features = false, optional = true, features = [
     "reqwest",
 ] }
+pgp = "0.13"
 prost = "0.12"
 pulldown-cmark = "0.11"
 rand = "0.8"
@@ -88,11 +89,15 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
+tonic-health = "0.11"
 totp-lite = { version = "2.0" }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uaparser = "0.6"
+# openapi
+utoipa = { version = "4", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [
@@ -100,10 +105,6 @@ webauthn-rs = { version = "0.5", features = [
 ] }
 webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-# openapi
-utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
-tonic-health = "0.11"
 
 [dev-dependencies]
 bytes = "1.6"

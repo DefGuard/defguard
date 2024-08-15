@@ -6,6 +6,7 @@ import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
@@ -21,6 +22,7 @@ export const OpenIdGeneralSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const queryClient = useQueryClient();
 
@@ -47,7 +49,7 @@ export const OpenIdGeneralSettings = () => {
         <div>
           <div className="checkbox-row">
             <LabeledCheckbox
-              disabled={isLoading}
+              disabled={isLoading || !enterpriseEnabled}
               label={localLL.general.createAccount.label()}
               value={settings.openid_create_account}
               onChange={() =>

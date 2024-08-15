@@ -1020,9 +1020,8 @@ pub struct WireguardNetworkStats {
 mod test {
     use chrono::{Duration, SubsecRound};
 
-    use crate::db::models::device::WireguardNetworkDevice;
-
     use super::*;
+    use crate::db::models::device::WireguardNetworkDevice;
 
     async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
         let mut user = User::new(

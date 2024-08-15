@@ -1,8 +1,9 @@
-use super::DbPool;
-use crate::random::gen_alphanumeric;
 use chrono::Utc;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
+
+use super::DbPool;
+use crate::random::gen_alphanumeric;
 
 #[derive(Model, Clone)]
 #[table(authorization_code)]

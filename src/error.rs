@@ -9,6 +9,7 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         wireguard::WireguardNetworkError,
     },
+    enterprise::license::LicenseError,
     grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
@@ -53,6 +54,8 @@ pub enum WebError {
     TemplateError(#[from] TemplateError),
     #[error("Server config missing")]
     ServerConfigMissing,
+    #[error("License error: {0}")]
+    LicenseError(#[from] LicenseError),
 }
 
 impl From<tonic::Status> for WebError {

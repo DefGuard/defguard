@@ -15,6 +15,7 @@ import {
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
@@ -40,7 +41,9 @@ export const Login = () => {
   } = useApi();
   const toaster = useToaster();
 
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
+    enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
     queryFn: getOpenidInfo,
     refetchOnMount: true,
@@ -116,7 +119,7 @@ export const Login = () => {
 
   return (
     <section id="login-container">
-      {!openIdLoading ? (
+      {!enterpriseEnabled || !openIdLoading ? (
         <>
           <h1>{LL.loginPage.pageTitle()}</h1>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -143,7 +146,9 @@ export const Login = () => {
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {openIdInfo && <OpenIdLoginButton url={openIdInfo.url} />}
+            {enterpriseEnabled && openIdInfo && (
+              <OpenIdLoginButton url={openIdInfo.url} />
+            )}
           </form>
         </>
       ) : (
