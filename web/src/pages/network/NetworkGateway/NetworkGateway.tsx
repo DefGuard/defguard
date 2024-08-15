@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
@@ -19,7 +20,6 @@ import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import ReactMarkdown from 'react-markdown';
 
 export const NetworkGatewaySetup = () => {
   const { writeToClipboard } = useClipboard();
