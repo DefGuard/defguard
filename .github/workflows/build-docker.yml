@@ -1,0 +1,80 @@
+name: Build Docker image
+
+on:
+  workflow_call:
+    inputs:
+      tags:
+        description: "List of tags as key-value pair attributes"
+        required: false
+        type: string
+
+env:
+  GHCR_REPO: ghcr.io/defguard/defguard
+
+jobs:
+  build-docker:
+    runs-on:
+      - self-hosted
+      - Linux
+      - ${{ matrix.runner }}
+    strategy:
+      matrix:
+        cpu: [arm64, amd64]
+        include:
+          - cpu: arm64
+            runner: ARM64
+          - cpu: amd64
+            runner: X64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["dockerhub-proxy.teonite.net"]
+      - name: Build container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/${{ matrix.cpu }}
+          provenance: false
+          push: true
+          tags: ${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.cpu }]
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-manifest:
+    runs-on: [self-hosted, Linux]
+    needs: [build-docker]
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REPO }}
+          tags: ${{ inputs.tags }}
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create manifest
+        run: |
+          docker manifest create ${{ env.GHCR_REPO }}:${{ github.sha }} \
+            ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 \
+            ${{ env.GHCR_REPO }}:${{ github.sha }}-aarch64
+      - name: Push manifest
+        run: |
+          docker manifest push ${{ env.GHCR_REPO }}:${{ github.sha }}

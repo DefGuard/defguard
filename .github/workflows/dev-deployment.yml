@@ -15,6 +15,6 @@ jobs:
       - name: Add SHORT_SHA env variable
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
       - name: Deploy new image version
-        uses: actions-hub/kubectl@v1.30.0
+        uses: actions-hub/kubectl@v1.30.3
         with:
           args: --namespace defguard-dev set image deployment/defguard defguard=ghcr.io/defguard/defguard:sha-${{ env.SHORT_SHA }}

@@ -9,98 +9,21 @@ on:
       - "*.md"
       - "LICENSE"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GHCR_REPO: ghcr.io/defguard/defguard
 
 jobs:
-  build-docker-x64:
-    runs-on: [self-hosted, Linux, X64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Login to GitHub container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
-      - name: Build container
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64
-          provenance: false
-          push: true
-          tags: ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  build-docker-arm64:
-    runs-on: [self-hosted, Linux, ARM64]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: Login to GitHub container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
-      - name: Build container
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/arm64
-          provenance: false
-          push: true
-          tags: ${{ env.GHCR_REPO }}:${{ github.sha }}-aarch64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  docker-manifest:
-    runs-on: [self-hosted, Linux]
-    needs: [build-docker-x64, build-docker-arm64]
-    steps:
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.GHCR_REPO }}
-          tags: |
-            type=raw,value=current
-            type=ref,event=branch
-            type=sha
-      - name: Login to GitHub container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create manifest
-        run: |
-          docker manifest create $GHCR_REPO:${{ github.sha }} \
-            $GHCR_REPO:${{ github.sha }}-amd64 \
-            $GHCR_REPO:${{ github.sha }}-aarch64
-      - name: Push manifest
-        run: |
-          docker manifest push $GHCR_REPO:${{ github.sha }}
+  build-current:
+    uses: ./.github/workflows/build-me.yaml
+    with:
+      tags: |
+        type=raw,value=current
+        type=ref,event=branch
+        type=sha
 
   # trigger-e2e:
   #   needs: docker-manifest
