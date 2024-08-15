@@ -1482,28 +1482,40 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
   },
   gatewaySetup: {
-    header: 'Uruchomienie serwera gateway',
+    header: {
+      main: 'Uruchomienie serwera gateway',
+      dockerBasedGatewaySetup: `Konfiguracja gateway za pomocą narzędzia docker`,
+      fromPackage: `Z pakietu`,
+      oneLineInstall: `Instalacja za pomocą jednej linii`,
+    },
     card: {
       title: 'Komenda Dockera uruchamiająca serwer gateway',
+      authToken: 'Token Autoryzacyjny',
+    },
+    button: {
+      availablePackages: `Dostępne pakiety`,
     },
     controls: {
       status: 'Sprawdź status połączenia',
     },
     messages: {
-      runCommand: `
-          <p>
-            Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
-            Szczegóły znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
+      runCommand: `Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
+            Szczegóły znajdziesz w [dokumentacji]({setupGatewayDocs}).
             Istnieje wiele sposobów na uruchomienie serwera gateway, poniższy przykład używa technologii Docker,
-            więcej przykładów znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
-          </p>`,
-      createNetwork: `
-          <p>
-            Utwórz sieć przed uruchomieniem procesu gateway.
-          </p>`,
-      noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
-      connected: `<p>Gateway połączony.</p>`,
+            więcej przykładów znajdziesz w [dokumentacji]({setupGatewayDocs}).`,
+      createNetwork: `Utwórz sieć przed uruchomieniem procesu gateway.`,
+      noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
+      connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+        nie ma potrzeby wykonywania dalszych kroków.`,
+      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\` 
+        na podstawie [dokumentacji]({setupGatewayDocs}).`,
+      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu, 
+        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
+        Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
+      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze. 
+        Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
     },
   },
   loginPage: {

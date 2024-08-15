@@ -4,6 +4,10 @@ on:
     tags:
       - v*.*.*
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   publish-docker:
     runs-on: [self-hosted, Linux, X64]
@@ -64,14 +68,14 @@ jobs:
           generate_release_notes: true
 
   build-binaries:
-    needs: [ "create-release" ]
+    needs: ["create-release"]
     runs-on:
       - self-hosted
       - ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        build: [linux, linux-arm, linux-arm64, freebsd]
         include:
           - build: linux
             os: Linux
@@ -121,7 +125,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: ./web/pnpm-lock.yaml
 
       - name: Install frontend dependencies
@@ -162,7 +166,7 @@ jobs:
 
       - name: Build DEB package
         if: matrix.build == 'linux'
-        uses: bpicode/github-action-fpm@master
+        uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
           fpm_opts: "--debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
@@ -180,7 +184,7 @@ jobs:
 
       - name: Build RPM package
         if: matrix.build == 'linux'
-        uses: bpicode/github-action-fpm@master
+        uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
           fpm_opts: "--debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
@@ -194,4 +198,22 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
           asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+          asset_content_type: application/octet-stream
+
+      - name: Build FreeBSD package
+        if: matrix.build == 'freebsd'
+        uses: defGuard/fpm-action@main
+        with:
+          fpm_args: "${{ matrix.asset_name }}-${{ github.ref_name }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
+          fpm_opts: "--debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+
+      - name: Upload FreeBSD
+        if: matrix.build == 'freebsd'
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
+          asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
           asset_content_type: application/octet-stream
