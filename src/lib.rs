@@ -141,7 +141,7 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
-pub static VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {

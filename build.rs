@@ -1,4 +1,9 @@
+use vergen_git2::{Emitter, Git2Builder};
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let git2 = Git2Builder::default().branch(true).sha(true).build()?;
+    Emitter::default().add_instructions(&git2)?.emit()?;
+
     let mut config = prost_build::Config::new();
     config.protoc_arg("--experimental_allow_proto3_optional");
     tonic_build::configure().compile_with_config(
@@ -12,7 +17,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
         &["proto/core", "proto/worker", "proto/wireguard"],
     )?;
-    println!("cargo:rerun-if-changed=proto");
     println!("cargo:rerun-if-changed=migrations");
+    println!("cargo:rerun-if-changed=proto");
+    println!("cargo:rerun-if-changed=web/dist");
     Ok(())
 }

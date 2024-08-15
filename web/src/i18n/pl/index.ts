@@ -793,10 +793,10 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       support: 'Wsparcie',
       groups: 'Grupy',
     },
-    copyright: 'Copyright \u00A9 2023-2024',
+    copyright: 'Copyright ©2023-2024',
     version: {
       open: 'Wersja aplikacji: {version}',
-      closed: 'v {version}',
+      closed: 'v{version}',
     },
   },
   form: {
@@ -953,7 +953,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     modulesVisibility: {
       header: 'Widoczność modułów',
       helper: `<p>
-			Jeśli nie używasz niektórych modułów możesz zmienić ich widoczność
+			Jeśli nie używasz niektórych modułów, możesz zmienić ich widoczność
           </p>
           <a href={documentationLink} target="_blank">
 					Przeczytaj więcej w dokumentacji.
@@ -1064,7 +1064,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
         },
         controls: {
-          submit: 'Save changes',
+          submit: 'Zapisz zmiany',
         },
       },
       testForm: {
