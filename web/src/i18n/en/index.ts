@@ -808,10 +808,10 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
     },
-    copyright: 'Copyright \u00A9 2023 ',
+    copyright: 'Copyright ©2023-2024',
     version: {
       open: 'Application version: {version: string}',
-      closed: 'v {version: string}',
+      closed: 'v{version: string}',
     },
   },
   form: {

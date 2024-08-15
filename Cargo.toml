@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "0.11.0"
+version = "1.0.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://defguard.net/"
@@ -124,6 +124,7 @@ webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 [build-dependencies]
 prost-build = "0.12"
 tonic-build = "0.11"
+vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]
 default = ["openid", "wireguard", "worker"]
