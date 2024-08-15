@@ -74,7 +74,7 @@ jobs:
         run: |
           docker manifest create ${{ env.GHCR_REPO }}:${{ github.sha }} \
             ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 \
-            ${{ env.GHCR_REPO }}:${{ github.sha }}-aarch64
+            ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
       - name: Push manifest
         run: |
           docker manifest push ${{ env.GHCR_REPO }}:${{ github.sha }}
