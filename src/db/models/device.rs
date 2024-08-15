@@ -621,9 +621,10 @@ impl Device {
 
 #[cfg(test)]
 mod test {
+    use claims::{assert_err, assert_ok};
+
     use super::*;
     use crate::db::User;
-    use claims::{assert_err, assert_ok};
 
     impl Device {
         /// Create new device and assign IP in a given network

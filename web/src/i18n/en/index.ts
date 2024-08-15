@@ -33,6 +33,7 @@ const en: BaseTranslation = {
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
     insecureContext: 'Context is not secure.',
+    details: 'Details:',
     clipboard: {
       error: 'Clipboard is not accessible.',
       success: 'Content copied to clipboard.',
@@ -896,6 +897,11 @@ const en: BaseTranslation = {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
     },
+    enterpriseOnly: {
+      title: 'This feature is available only in Defguard Enterprise.',
+      subtitle: 'To learn more, visit our ',
+      website: 'website',
+    },
     ldapSettings: {
       title: 'LDAP Settings',
       form: {
@@ -1041,6 +1047,28 @@ const en: BaseTranslation = {
             Read more in documentation.
           </a>
 			`,
+    },
+    license: {
+      header: 'Enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Here you can manage your Defguard Enterprise version license.',
+          link: 'To learn more about Defguard Enterprise, visit our webiste.',
+        },
+        licenseKey: {
+          text: 'Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.',
+          link: 'You can purchase the license here.',
+        },
+      },
+      form: {
+        title: 'License',
+        fields: {
+          key: {
+            label: 'License key',
+            placeholder: 'Your Defguard license key',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -1466,28 +1494,39 @@ const en: BaseTranslation = {
     },
   },
   gatewaySetup: {
-    header: 'Gateway server setup',
+    header: {
+      main: 'Gateway server setup',
+      dockerBasedGatewaySetup: `Docker Based Gateway Setup`,
+      fromPackage: `From Package`,
+      oneLineInstall: `One Line Install`,
+    },
     card: {
       title: 'Docker based gateway setup',
+      authToken: `Authentication Token`,
+    },
+    button: {
+      availablePackages: `Available Packages`,
     },
     controls: {
       status: 'Check connection status',
     },
     messages: {
-      runCommand: `
-          <p>
-            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-            More details can be found in the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
+      runCommand: `Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+            More details can be found in the [documentation]({setupGatewayDocs:string}).
             There are several ways to deploy the gateway server,
-            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-          </p>`,
-      createNetwork: `
-          <p>
-            Please create the network before running the gateway process.
-          </p>`,
-      noConnection: `<p>No connection established, please run provided command.</p>`,
-      connected: `<p>Gateway connected.</p>`,
+            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs:string}).`,
+      createNetwork: `Please create the network before running the gateway process.`,
+      noConnection: `No connection established, please run provided command.`,
+      connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
+      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+          you don't need to do anything.`,
+      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\` 
+          according to the [documentation]({setupGatewayDocs:string}).`,
+      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+          provided in the [documentation]({setupGatewayDocs:string}) to successfully set up the gateway server.
+          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
+      dockerBasedGatewaySetup: `Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
     },
   },
   loginPage: {

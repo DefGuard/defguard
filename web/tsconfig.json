@@ -23,11 +23,11 @@
     "noFallthroughCasesInSwitch": true,
     "plugins": [
       {
-        "name": "typescript-eslint-language-service"
-      }
-    ]
+        "name": "typescript-eslint-language-service",
+      },
+    ],
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "build"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": [{ "path": "./tsconfig.node.json" }],
 }

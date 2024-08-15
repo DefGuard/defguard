@@ -22,6 +22,7 @@ import {
   SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
@@ -36,6 +37,7 @@ export const OpenIdSettingsForm = () => {
   const queryClient = useQueryClient();
   const docsLink =
     'https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers';
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
@@ -50,6 +52,7 @@ export const OpenIdSettingsForm = () => {
       setCurrentProvider(provider);
     },
     retry: false,
+    enabled: enterpriseEnabled,
   });
 
   const toaster = useToaster();
@@ -198,6 +201,7 @@ export const OpenIdSettingsForm = () => {
             loading={isLoading}
             form="openid-settings-form"
             icon={<IconCheckmarkWhite />}
+            disabled={!enterpriseEnabled}
           />
           <Button
             text={localLL.form.delete()}
@@ -205,9 +209,9 @@ export const OpenIdSettingsForm = () => {
             styleVariant={ButtonStyleVariant.CONFIRM}
             loading={isLoading}
             onClick={() => {
-              console.log('delete');
               handleDeleteProvider();
             }}
+            disabled={!enterpriseEnabled}
           />
         </div>
       </header>
@@ -220,17 +224,19 @@ export const OpenIdSettingsForm = () => {
           onChangeSingle={(res) => handleChange(res)}
           label={localLL.form.labels.provider.label()}
           labelExtras={<Helper>{parse(localLL.form.labels.provider.helper())}</Helper>}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'base_url' }}
           label={localLL.form.labels.base_url.label()}
           labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
-          disabled={currentProvider?.name === 'Google'}
+          disabled={currentProvider?.name === 'Google' || !enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'client_id' }}
           label={localLL.form.labels.client_id.label()}
           labelExtras={<Helper>{parse(localLL.form.labels.client_id.helper())}</Helper>}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'client_secret' }}
@@ -239,6 +245,7 @@ export const OpenIdSettingsForm = () => {
             <Helper>{parse(localLL.form.labels.client_secret.helper())}</Helper>
           }
           type="password"
+          disabled={!enterpriseEnabled}
         />
       </form>
       <a href={docsLink} target="_blank" rel="noreferrer">

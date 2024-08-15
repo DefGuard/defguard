@@ -1,9 +1,11 @@
-use crate::db::{DbPool, WireguardPeerStats};
+use std::time::Duration;
+
 use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
 use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor};
-use std::time::Duration;
 use tokio::time::sleep;
+
+use crate::db::{DbPool, WireguardPeerStats};
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes

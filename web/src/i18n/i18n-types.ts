@@ -117,6 +117,10 @@ type RootTranslation = {
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
 		clipboard: {
 			/**
 			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
@@ -2205,6 +2209,20 @@ type RootTranslation = {
 			 */
 			challengeSuccess: string
 		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
+		}
 		ldapSettings: {
 			/**
 			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
@@ -2525,6 +2543,52 @@ type RootTranslation = {
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
+		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
+					 */
+					link: string
+				}
+				licenseKey: {
+					/**
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
+					 */
+					link: string
+				}
+			}
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -3490,15 +3554,39 @@ type RootTranslation = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
-		 */
-		header: string
+		header: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+			 */
+			main: string
+			/**
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
+			 */
+			dockerBasedGatewaySetup: string
+			/**
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
+			 */
+			fromPackage: string
+			/**
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
+			 */
+			oneLineInstall: string
+		}
 		card: {
 			/**
 			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+			 */
+			authToken: string
+		}
+		button: {
+			/**
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
+			 */
+			availablePackages: string
 		}
 		controls: {
 			/**
@@ -3508,35 +3596,53 @@ type RootTranslation = {
 		}
 		messages: {
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
 			 */
 			createNetwork: string
 			/**
-			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
+			 * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
 			 */
 			noConnection: string
 			/**
-			 * <​p​>​G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.​<​/​p​>
+			 * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
 			 */
 			connected: string
 			/**
 			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
 			 */
 			statusError: string
+			/**
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
+			 */
+			oneLineInstall: string
+			/**
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			fromPackage: RequiredParams<'setupGatewayDocs'>
+			/**
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
 		}
 	}
 	loginPage: {
@@ -4129,6 +4235,10 @@ export type TranslationFunctions = {
 		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
 		clipboard: {
 			/**
 			 * Clipboard is not accessible.
@@ -6197,6 +6307,20 @@ export type TranslationFunctions = {
 			 */
 			challengeSuccess: () => LocalizedString
 		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
+		}
 		ldapSettings: {
 			/**
 			 * LDAP Settings
@@ -6514,6 +6638,52 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * Here you can manage your Defguard Enterprise version license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * To learn more about Defguard Enterprise, visit our webiste.
+					 */
+					link: () => LocalizedString
+				}
+				licenseKey: {
+					/**
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * You can purchase the license here.
+					 */
+					link: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -7472,15 +7642,39 @@ export type TranslationFunctions = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * Gateway server setup
-		 */
-		header: () => LocalizedString
+		header: {
+			/**
+			 * Gateway server setup
+			 */
+			main: () => LocalizedString
+			/**
+			 * Docker Based Gateway Setup
+			 */
+			dockerBasedGatewaySetup: () => LocalizedString
+			/**
+			 * From Package
+			 */
+			fromPackage: () => LocalizedString
+			/**
+			 * One Line Install
+			 */
+			oneLineInstall: () => LocalizedString
+		}
 		card: {
 			/**
 			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
+			/**
+			 * Authentication Token
+			 */
+			authToken: () => LocalizedString
+		}
+		button: {
+			/**
+			 * Available Packages
+			 */
+			availablePackages: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -7490,34 +7684,49 @@ export type TranslationFunctions = {
 		}
 		messages: {
 			/**
-			 * 
-		          <p>
-		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-		            More details can be found in the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+			 * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the [documentation]({setupGatewayDocs}).
 		            There are several ways to deploy the gateway server,
-		            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
-		          </p>
+		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
+		          
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 
-		          <p>
-		            Please create the network before running the gateway process.
-		          </p>
+			 * Please create the network before running the gateway process.
 			 */
 			createNetwork: () => LocalizedString
 			/**
-			 * <p>No connection established, please run provided command.</p>
+			 * No connection established, please run provided command.
 			 */
 			noConnection: () => LocalizedString
 			/**
-			 * <p>Gateway connected.</p>
+			 * Gateway connected.
 			 */
 			connected: () => LocalizedString
 			/**
 			 * Failed to get gateway status
 			 */
 			statusError: () => LocalizedString
+			/**
+			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+		          you don't need to do anything.
+			 */
+			oneLineInstall: () => LocalizedString
+			/**
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+		          according to the [documentation]({setupGatewayDocs}).
+			 */
+			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}
 	}
 	loginPage: {

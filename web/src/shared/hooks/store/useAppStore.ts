@@ -9,6 +9,7 @@ const defaultValues: StoreValues = {
   settings: undefined,
   language: undefined,
   appInfo: undefined,
+  enterprise_enabled: false,
 };
 
 const persistKeys: Array<keyof StoreValues> = ['language'];
@@ -35,6 +36,7 @@ type StoreValues = {
   settings?: SettingsEssentials;
   language?: Locales;
   appInfo?: AppInfo;
+  enterprise_enabled?: boolean;
 };
 
 type StoreMethods = {

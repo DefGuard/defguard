@@ -12,6 +12,7 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
+    enterprise::license::LicenseError,
     error::WebError,
     VERSION,
 };
@@ -105,6 +106,34 @@ impl From<WebError> for ApiResponse {
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::LicenseError(err) => match err {
+                LicenseError::DecodeError(msg) | LicenseError::InvalidLicense(msg) => {
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::SignatureMismatch => {
+                    let msg = "License signature doesn't match its content";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::InvalidSignature => {
+                    let msg = "License signature is malformed and couldn't be read";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::LicenseNotFound => {
+                    let msg = "License not found";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+                }
+                _ => {
+                    error!("License error: {err}");
+                    ApiResponse::new(
+                        json!({"msg": "Internal server error"}),
+                        StatusCode::FORBIDDEN,
+                    )
+                }
+            },
         }
     }
 }

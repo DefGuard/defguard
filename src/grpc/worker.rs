@@ -1,9 +1,3 @@
-use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-use crate::db::{
-    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    AppEvent, DbPool, HWKeyUserData, User, YubiKey,
-};
-use sqlx::query;
 use std::{
     collections::hash_map::{Entry, HashMap},
     env,
@@ -11,8 +5,16 @@ use std::{
     sync::{Arc, Mutex},
     time::Instant,
 };
+
+use sqlx::query;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
+
+use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
+use crate::db::{
+    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+    AppEvent, DbPool, HWKeyUserData, User, YubiKey,
+};
 
 tonic::include_proto!("worker");
 

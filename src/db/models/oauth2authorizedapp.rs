@@ -1,6 +1,7 @@
-use super::DbPool;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
+
+use super::DbPool;
 
 #[derive(Model)]
 pub struct OAuth2AuthorizedApp {

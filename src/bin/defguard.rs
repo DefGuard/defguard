@@ -3,14 +3,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use secrecy::ExposeSecret;
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
+    enterprise::license::{run_periodic_license_check, set_cached_license, License},
     grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
@@ -20,6 +17,9 @@ use defguard::{
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG, VERSION,
 };
+use secrecy::ExposeSecret;
+use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate tracing;
@@ -101,6 +101,17 @@ async fn main() -> Result<(), anyhow::Error> {
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
+    debug!("Checking enterprise license status");
+    match License::load_or_renew(&pool).await {
+        Ok(license) => {
+            set_cached_license(license);
+        }
+        Err(err) => {
+            warn!("There was an error while loading the license, error: {err}. The enterprise features will be disabled.");
+            set_cached_license(None);
+        }
+    };
+
     // run services
     tokio::select! {
         res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
@@ -108,7 +119,8 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
-        res = run_periodic_stats_purge(pool, config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
+        res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
+        res = run_periodic_license_check(pool) => error!("Periodic license check task returned early: {res:#?}"),
     }
     Ok(())
 }

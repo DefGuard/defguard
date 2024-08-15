@@ -5,14 +5,14 @@ use std::{
 };
 
 use anyhow::anyhow;
+use assets::{index, svg, web_asset};
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
     serve, Extension, Json, Router,
 };
-
-use assets::{index, svg, web_asset};
 use enterprise::handlers::{
+    check_enterprise_status,
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
@@ -37,13 +37,33 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
-
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
 };
 use utoipa_swagger_ui::SwaggerUi;
 
+#[cfg(feature = "wireguard")]
+use self::handlers::wireguard::{
+    add_device, add_user_devices, create_network, create_network_token, delete_device,
+    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
+    list_networks, list_user_devices, modify_device, modify_network, network_details,
+    network_stats, remove_gateway, user_stats,
+};
+#[cfg(feature = "worker")]
+use self::handlers::worker::{
+    create_job, create_worker_token, job_status, list_workers, remove_worker,
+};
+#[cfg(feature = "openid")]
+use self::handlers::{
+    openid_clients::{
+        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+        get_openid_client, list_openid_clients,
+    },
+    openid_flow::{
+        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
+    },
+};
 use self::{
     appstate::AppState,
     auth::{Claims, ClaimsType},
@@ -83,28 +103,6 @@ use self::{
         },
     },
     mail::Mail,
-};
-
-#[cfg(feature = "wireguard")]
-use self::handlers::wireguard::{
-    add_device, add_user_devices, create_network, create_network_token, delete_device,
-    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
-    list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway, user_stats,
-};
-#[cfg(feature = "worker")]
-use self::handlers::worker::{
-    create_job, create_worker_token, job_status, list_workers, remove_worker,
-};
-#[cfg(feature = "openid")]
-use self::handlers::{
-    openid_clients::{
-        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        get_openid_client, list_openid_clients,
-    },
-    openid_flow::{
-        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
-    },
 };
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
@@ -154,14 +152,12 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
-    use super::*;
     use db::{
         models::device::{ModifyDevice, UserDevice},
         AddDevice, UserDetails, UserInfo,
     };
     use error::WebError;
-    use utoipa::OpenApi;
-
+    use handlers::wireguard as device;
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, WalletInfoShort},
@@ -169,8 +165,9 @@ mod openapi {
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         StartEnrollmentRequest, Username, WalletChange, WalletSignature,
     };
+    use utoipa::OpenApi;
 
-    use handlers::wireguard as device;
+    use super::*;
 
     #[derive(OpenApi)]
     #[openapi(
@@ -402,14 +399,20 @@ pub fn build_webapp(
             .route("/webhook/:id", delete(delete_webhook))
             .route("/webhook/:id", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings))
-            // OIDC login
-            .route("/openid/provider", get(get_current_openid_provider))
-            .route("/openid/provider", post(add_openid_provider))
-            .route("/openid/provider/:name", delete(delete_openid_provider))
-            .route("/openid/callback", post(auth_callback))
-            .route("/openid/auth_info", get(get_auth_info)),
+            .route("/ldap/test", get(test_ldap_settings)),
     );
+
+    // Enterprise features
+    let webapp = webapp.nest(
+        "/api/v1/openid",
+        Router::new()
+            .route("/provider", get(get_current_openid_provider))
+            .route("/provider", post(add_openid_provider))
+            .route("/provider/:name", delete(delete_openid_provider))
+            .route("/callback", post(auth_callback))
+            .route("/auth_info", get(get_auth_info)),
+    );
+    let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
     #[cfg(feature = "openid")]
     let webapp = webapp
