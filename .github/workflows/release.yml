@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build-latest:
-    uses: ./.github/workflows/build-docker.yaml
+    uses: ./.github/workflows/build-docker.yml
     with:
       tags: |
         type=raw,value=latest
