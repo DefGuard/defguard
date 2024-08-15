@@ -8,13 +8,13 @@ on:
     paths-ignore:
       - "*.md"
       - "LICENSE"
-  pull_request:
-    branches:
-      - main
-      - dev
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
+  # pull_request:
+  #   branches:
+  #     - main
+  #     - dev
+  #   paths-ignore:
+  #     - "*.md"
+  #     - "LICENSE"
 
 env:
   CARGO_TERM_COLOR: always
