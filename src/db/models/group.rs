@@ -1,9 +1,13 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
+use utoipa::ToSchema;
 
-use crate::db::{models::error::ModelError, User, WireguardNetwork};
+use crate::{
+    db::{models::error::ModelError, User, WireguardNetwork},
+    server_config,
+};
 
-#[derive(Model)]
+#[derive(Model, Debug, ToSchema)]
 pub struct Group {
     pub(crate) id: Option<i64>,
     pub name: String,
@@ -56,8 +60,8 @@ impl Group {
             query_as!(
                 User,
                 "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
-                phone, ssh_key, pgp_key, pgp_cert_id, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes \
+                phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
                 FROM \"user\" \
                 JOIN group_user ON \"user\".id = group_user.user_id \
                 WHERE group_user.group_id = $1",
@@ -65,6 +69,26 @@ impl Group {
             )
             .fetch_all(executor)
             .await
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
+    /// Fetches a list of VPN locations where a given group is explicitly allowed.
+    /// This does not include VPN locations where all groups are implicitly allowed (admin group),
+    /// because no access control in configured.
+    pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if let Some(id) = self.id {
+            query_scalar!(
+                "SELECT wn.name FROM wireguard_network wn JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
+                WHERE wnag.group_id = $1",
+                id
+            )
+                .fetch_all(executor)
+                .await
         } else {
             Ok(Vec::new())
         }
@@ -97,9 +121,9 @@ impl WireguardNetwork {
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-        admin_group_name: &str,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
+        let admin_group_name = &server_config().admin_groupname;
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
@@ -122,7 +146,7 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {self}");
+        info!("Setting allowed groups for network {self} to : {allowed_groups:?}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }

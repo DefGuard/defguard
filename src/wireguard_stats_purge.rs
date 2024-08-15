@@ -1,9 +1,11 @@
-use crate::db::{DbPool, WireguardPeerStats};
+use std::time::Duration;
+
 use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
 use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor};
-use std::time::Duration;
 use tokio::time::sleep;
+
+use crate::db::{DbPool, WireguardPeerStats};
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes
@@ -27,13 +29,12 @@ impl WireguardPeerStats {
             - ChronoDuration::from_std(stats_purge_threshold).expect("Failed to parse duration"))
         .naive_utc();
         let result = query!(
-            r#"DELETE FROM wireguard_peer_stats
-            WHERE collected_at < $1
-            AND (device_id, network, collected_at) NOT IN (
-                SELECT device_id, network, MAX(collected_at)
-                FROM wireguard_peer_stats
-                GROUP BY device_id, network
-            )"#,
+            "DELETE FROM wireguard_peer_stats \
+            WHERE collected_at < $1 \
+            AND (device_id, network, collected_at) NOT IN ( \
+                SELECT device_id, network, MAX(collected_at) \
+                FROM wireguard_peer_stats \
+                GROUP BY device_id, network)",
             threshold
         )
         .execute(pool)

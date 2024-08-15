@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use chrono::{DateTime, Duration, Local};
 use thiserror::Error;
@@ -119,7 +116,7 @@ impl FailedLoginMap {
 
 // Check if auth request with a given username can proceed
 pub fn check_username(
-    failed_logins: &Arc<Mutex<FailedLoginMap>>,
+    failed_logins: &Mutex<FailedLoginMap>,
     username: &str,
 ) -> Result<(), FailedLoginError> {
     let mut failed_logins = failed_logins
@@ -129,7 +126,7 @@ pub fn check_username(
 }
 
 // Helper to log failed login attempt
-pub fn log_failed_login_attempt(failed_logins: &Arc<Mutex<FailedLoginMap>>, username: &str) {
+pub fn log_failed_login_attempt(failed_logins: &Mutex<FailedLoginMap>, username: &str) {
     let mut failed_logins = failed_logins
         .lock()
         .expect("Failed to get a lock on failed login map.");

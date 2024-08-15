@@ -27,7 +27,7 @@ export const ModulesSettings = () => {
 
   const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], patchSettings, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_ESSENTAIL_SETTINGS]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_ESSENTIAL_SETTINGS]);
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },

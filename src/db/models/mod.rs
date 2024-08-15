@@ -1,5 +1,6 @@
 #[cfg(feature = "openid")]
 pub mod auth_code;
+pub mod authentication_key;
 pub mod device;
 pub mod device_login;
 pub mod enrollment;
@@ -18,8 +19,10 @@ pub mod wallet;
 pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
+pub mod yubikey;
 
 use sqlx::{query_as, Error as SqlxError, PgConnection};
+use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
@@ -59,7 +62,7 @@ pub struct SecurityKey {
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, ToSchema)]
 pub struct UserInfo {
     pub id: Option<i64>,
     pub username: String,
@@ -67,9 +70,6 @@ pub struct UserInfo {
     pub first_name: String,
     pub email: String,
     pub phone: Option<String>,
-    pub ssh_key: Option<String>,
-    pub pgp_key: Option<String>,
-    pub pgp_cert_id: Option<String>,
     pub mfa_enabled: bool,
     pub totp_enabled: bool,
     pub email_mfa_enabled: bool,
@@ -77,6 +77,7 @@ pub struct UserInfo {
     pub mfa_method: MFAMethod,
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
     pub is_active: bool,
+    pub enrolled: bool,
 }
 
 impl UserInfo {
@@ -91,17 +92,36 @@ impl UserInfo {
             first_name: user.first_name.clone(),
             email: user.email.clone(),
             phone: user.phone.clone(),
-            ssh_key: user.ssh_key.clone(),
-            pgp_key: user.pgp_key.clone(),
-            pgp_cert_id: user.pgp_cert_id.clone(),
             mfa_enabled: user.mfa_enabled,
             totp_enabled: user.totp_enabled,
             email_mfa_enabled: user.email_mfa_enabled,
             groups,
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
-            is_active: user.has_password(),
+            is_active: user.is_active,
+            enrolled: user.is_enrolled(),
         })
+    }
+
+    /// Copy status to [`User`]. This function should be used by administrators.
+    ///
+    /// Return `true` if status was changed, `false` otherwise.
+    /// If status was changed to inactive, all user sessions will be invalidated.
+    pub(crate) async fn handle_status_change(
+        &self,
+        transaction: &mut PgConnection,
+        user: &mut User,
+    ) -> Result<bool, SqlxError> {
+        if self.is_active == user.is_active {
+            Ok(false)
+        } else {
+            if !self.is_active {
+                user.logout_all_sessions(&mut *transaction).await?;
+            }
+            user.is_active = self.is_active;
+            user.save(&mut *transaction).await?;
+            Ok(true)
+        }
     }
 
     /// Copy groups to [`User`]. This function should be used by administrators.
@@ -148,22 +168,13 @@ impl UserInfo {
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
     pub fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
-        user.ssh_key = self.ssh_key;
-        user.pgp_key = self.pgp_key;
-        user.pgp_cert_id = self.pgp_cert_id;
         user.mfa_method = self.mfa_method;
-
         Ok(())
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
     pub fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
         user.phone = self.phone;
-        user.ssh_key = self.ssh_key;
-        user.pgp_key = self.pgp_key;
-        user.pgp_cert_id = self.pgp_cert_id;
-        user.mfa_method = self.mfa_method;
-
         user.username = self.username;
         user.last_name = self.last_name;
         user.first_name = self.first_name;
@@ -174,7 +185,7 @@ impl UserInfo {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]

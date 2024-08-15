@@ -12,8 +12,8 @@ const SvgIconPopupClose = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#fff',
+            opacity: 0,
           }}
         />
       </clipPath>

@@ -38,7 +38,7 @@ services:
       DEFGUARD_TOKEN: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEZWZHdWFyZCIsInN1YiI6IlRlc3ROZXQiLCJjbGllbnRfaWQiOiIiLCJleHAiOjU5NjE3NDcwNzYsIm5iZiI6MTY2Njc3OTc4MSwicm9sZXMiOltdfQ.uEUMnw_gO23W0K2q3N1lToeP0D2zAY1swr8N-84sRHA
       RUST_LOG: debug
     ports:
-      # wireguard endpoint
+      # WireGuard endpoint
       - "50051:50051/udp"
     depends_on:
       - core

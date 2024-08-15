@@ -1,0 +1,19 @@
+#groups-page {
+  .page-content {
+    & > .content-wrapper {
+      @include media-breakpoint-up(lg) {
+        display: flex;
+        flex-flow: column;
+        align-items: center;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding: 64px 10px;
+
+        & > * {
+          width: 100%;
+          max-width: 1650px;
+        }
+      }
+    }
+  }
+}

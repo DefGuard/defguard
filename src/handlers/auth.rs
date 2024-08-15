@@ -29,13 +29,15 @@ use crate::{
     },
     db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
     error::WebError,
-    handlers::mail::{
-        send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
+    handlers::{
+        mail::{
+            send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
+        },
+        SIGN_IN_COOKIE_NAME,
     },
-    handlers::SIGN_IN_COOKIE_NAME,
     headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
     ldap::utils::user_from_ldap,
-    SERVER_CONFIG,
+    server_config,
 };
 
 /// For successful login, return:
@@ -50,35 +52,65 @@ pub async fn authenticate(
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
-    let lowercase_username = data.username.to_lowercase();
-    debug!("Authenticating user {lowercase_username}");
+    let username = data.username;
+    debug!("Authenticating user {username}");
     // check if user can proceed with login
-    check_username(&appstate.failed_logins, &lowercase_username)?;
+    check_username(&appstate.failed_logins, &username)?;
 
-    let user = match User::find_by_username(&appstate.pool, &lowercase_username).await {
+    let user: User = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
-            Ok(()) => user,
+            Ok(()) => {
+                if user.is_active {
+                    user
+                } else {
+                    info!("Failed to authenticate user {username}: user is disabled");
+                    return Err(WebError::Authorization("user not found".into()));
+                }
+            }
             Err(err) => {
-                info!("Failed to authenticate user {lowercase_username}: {err}");
-                log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
+                info!("Failed to authenticate user {username}: {err}");
+                log_failed_login_attempt(&appstate.failed_logins, &username);
                 return Err(WebError::Authorization(err.to_string()));
             }
         },
         Ok(None) => {
-            // create user from LDAP
-            debug!("User not found in DB, authenticating user {lowercase_username} with LDAP");
-            if let Ok(user) =
-                user_from_ldap(&appstate.pool, &lowercase_username, &data.password).await
-            {
-                user
-            } else {
-                info!("Failed to authenticate user {lowercase_username} with LDAP");
-                log_failed_login_attempt(&appstate.failed_logins, &lowercase_username);
-                return Err(WebError::Authorization("user not found".into()));
+            match User::find_by_email(&appstate.pool, &username).await {
+                Ok(Some(user)) => match user.verify_password(&data.password) {
+                    Ok(()) => {
+                        if user.is_active {
+                            user
+                        } else {
+                            info!("Failed to authenticate user {username}: user is disabled");
+                            return Err(WebError::Authorization("user not found".into()));
+                        }
+                    }
+                    Err(err) => {
+                        info!("Failed to authenticate user {username}: {err}");
+                        log_failed_login_attempt(&appstate.failed_logins, &username);
+                        return Err(WebError::Authorization(err.to_string()));
+                    }
+                },
+                Ok(None) => {
+                    // create user from LDAP
+                    debug!("User not found in DB, authenticating user {username} with LDAP");
+                    if let Ok(user) =
+                        user_from_ldap(&appstate.pool, &username, &data.password).await
+                    {
+                        user
+                    } else {
+                        info!("Failed to authenticate user {username} with LDAP");
+                        log_failed_login_attempt(&appstate.failed_logins, &username);
+                        return Err(WebError::Authorization("user not found".into()));
+                    }
+                }
+                Err(err) => {
+                    error!("DB error when authenticating user {username}: {err}");
+                    return Err(WebError::DbError(err.to_string()));
+                }
             }
         }
         Err(err) => {
-            error!("DB error when authenticating user {lowercase_username}: {err}");
+            error!("DB error when authenticating user {username}: {err}");
             return Err(WebError::DbError(err.to_string()));
         }
     };
@@ -91,7 +123,11 @@ pub async fn authenticate(
     let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
 
+    debug!("Cleaning up expired sessions...");
     Session::delete_expired(&appstate.pool).await?;
+    debug!("Expired sessions cleaned up");
+
+    debug!("Creating new session for user {username}");
     let session = Session::new(
         user.id.unwrap(),
         SessionState::PasswordVerified,
@@ -99,30 +135,27 @@ pub async fn authenticate(
         device_info,
     );
     session.save(&appstate.pool).await?;
+    debug!("New session created for user {username}");
 
-    let max_age = match &appstate.config.session_auth_lifetime {
-        Some(seconds) => Duration::seconds(*seconds),
-        None => Duration::days(7),
-    };
-
-    let server_config = SERVER_CONFIG.get().ok_or(WebError::ServerConfigMissing)?;
+    let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
+    let config = server_config();
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
         .domain(
-            server_config
+            config
                 .cookie_domain
                 .clone()
                 .expect("Cookie domain not found"),
         )
         .path("/")
         .http_only(true)
-        .secure(!server_config.cookie_insecure)
+        .secure(!config.cookie_insecure)
         .same_site(SameSite::Lax)
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
 
     let login_event_type = "AUTHENTICATION".to_string();
 
-    info!("Authenticated user {lowercase_username}");
+    info!("Authenticated user {username}");
     if user.mfa_enabled {
         if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
             check_new_device_login(
@@ -144,6 +177,7 @@ pub async fn authenticate(
                 },
             ))
         } else {
+            error!("Couldn't fetch MFA info for user {username} with MFA enabled");
             Err(WebError::DbError("MFA info read error".into()))
         }
     } else {
@@ -207,7 +241,7 @@ pub async fn logout(
 /// Enable MFA
 pub async fn mfa_enable(
     cookies: CookieJar,
-    session: Session,
+    _session: Session,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -217,9 +251,9 @@ pub async fn mfa_enable(
     if user.mfa_enabled {
         info!("Enabled MFA for user {}", user.username);
         let cookies = cookies.remove(Cookie::from("defguard_sesssion"));
-        session.delete(&appstate.pool).await?;
+        user.logout_all_sessions(&appstate.pool).await?;
         debug!(
-            "Removed auth session for user {} after enabling MFA",
+            "Removed auth sessions for user {} after enabling MFA",
             user.username
         );
         Ok((cookies, ApiResponse::default()))
@@ -440,7 +474,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
-    if user.verify_totp_code(data.code) {
+    if user.verify_totp_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -484,7 +518,7 @@ pub async fn totp_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
-        if user.totp_enabled && user.verify_totp_code(data.code) {
+        if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -553,7 +587,7 @@ pub async fn email_mfa_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling email MFA for user {}", user.username);
-    if user.verify_email_mfa_code(data.code) {
+    if user.verify_email_mfa_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_email_mfa(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -598,7 +632,7 @@ pub async fn request_email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
-            send_email_mfa_code_email(&user, &appstate.mail_tx, &session)?;
+            send_email_mfa_code_email(&user, &appstate.mail_tx, Some(&session))?;
             info!("Sent email MFA code for user {}", user.username);
             Ok(ApiResponse::default())
         } else {
@@ -619,7 +653,7 @@ pub async fn email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying email MFA code for user {}", username);
-        if user.email_mfa_enabled && user.verify_email_mfa_code(data.code) {
+        if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;

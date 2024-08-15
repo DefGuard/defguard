@@ -1,12 +1,12 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -61,27 +61,26 @@ export const WizardNetworkImport = () => {
   );
   const [groupOptions, setGroupOptions] = useState<SelectOption<string>[]>([]);
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          name: yup.string().required(LL.form.error.required()),
-          endpoint: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
-          fileName: yup.string().required(LL.form.error.required()),
-          config: yup.string().required(),
-        })
-        .required(),
-    [LL],
+      z.object({
+        name: z.string().min(1, LL.form.error.required()),
+        endpoint: z
+          .string()
+          .min(1, LL.form.error.required())
+          .refine((val) => validateIpOrDomain(val), LL.form.error.endpoint()),
+        fileName: z.string().min(1, LL.form.error.required()),
+        config: z.string().min(1, LL.form.error.required()),
+        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
+      }),
+    [LL.form.error],
   );
 
   const { control, handleSubmit, setValue, setError, resetField } = useForm<FormInputs>({
     defaultValues,
-    resolver: yupResolver(schema),
     mode: 'all',
     reValidateMode: 'onChange',
+    resolver: zodResolver(zodSchema),
   });
 
   const {

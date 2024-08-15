@@ -1,8 +1,14 @@
 mod common;
 
 use defguard::{
-    db::{models::device::WireguardNetworkDevice, Device, GatewayEvent, WireguardNetwork},
-    handlers::{wireguard::WireguardNetworkData, Auth},
+    db::{
+        models::{
+            device::WireguardNetworkDevice,
+            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        },
+        Device, GatewayEvent, WireguardNetwork,
+    },
+    handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
 };
 use matches::assert_matches;
 use reqwest::StatusCode;
@@ -19,6 +25,9 @@ fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180
     })
 }
 
@@ -44,6 +53,11 @@ async fn test_network() {
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
 
+    // check vpn locations for `admin` group
+    let response = client.get("/api/v1/group/admin").send().await;
+    let group_info: GroupInfo = response.json().await;
+    assert!(group_info.vpn_locations.is_empty());
+
     // modify network
     let network_data = WireguardNetworkData {
         name: "my network".into(),
@@ -52,7 +66,10 @@ async fn test_network() {
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
         dns: None,
-        allowed_groups: vec![],
+        allowed_groups: vec!["admin".into()],
+        mfa_enabled: false,
+        keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+        peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id.unwrap()))
@@ -62,6 +79,12 @@ async fn test_network() {
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(..));
+
+    // check vpn locations for `admin` group
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let group_info: GroupInfo = response.json().await;
+    assert_eq!(group_info.vpn_locations, vec!["my network"]);
 
     // list networks
     let response = client.get("/api/v1/network").send().await;
@@ -287,7 +310,7 @@ async fn test_device_permissions() {
     let device = json!({"devices": [{
         "name": "device_2",
         "wireguard_ip": "10.0.0.3",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
     }]});
@@ -300,7 +323,7 @@ async fn test_device_permissions() {
 
     let device = json!({
         "name": "device_3",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "PKY3zg5/ecNyMjqLi6yJ3jwb4PvC/SGzjhJ3jrn2vVQ=",
     });
     let response = client
         .post("/api/v1/device/hpotter")
@@ -311,7 +334,7 @@ async fn test_device_permissions() {
     let device = json!({"devices": [{
         "name": "device_4",
         "wireguard_ip": "10.0.0.5",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "gTMFF29nNLkJR1UhoiO3ZJLF60h2hW+WxmIu5DGJ0B4=",
         "user_id": 2,
         "created": "2023-05-05T23:56:04"
     }]});
@@ -329,7 +352,7 @@ async fn test_device_permissions() {
 
     let device = json!({
         "name": "device_5",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "qhLnyggsD1nVOcLdTk0q43kOZHHknPQgftBY+ZLy40Q=",
     });
     let response = client
         .post("/api/v1/device/hpotter")
@@ -340,7 +363,7 @@ async fn test_device_permissions() {
     let device = json!({"devices": [{
         "name": "device_6",
         "wireguard_ip": "10.0.0.7",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "xGLqgxVAnmk9+tsj5X/wzwouwx3bF1b3W+VWAb4NLjM=",
         "user_id": 2,
         "created": "2023-05-05T23:56:04"
     }]});
@@ -353,7 +376,7 @@ async fn test_device_permissions() {
 
     let device = json!({
         "name": "device_7",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "J4p/w6R0xt4c2dIBDJ73BmzGJeF0QLW/iihPnISJMkg=",
     });
     let response = client
         .post("/api/v1/device/admin")
@@ -364,7 +387,7 @@ async fn test_device_permissions() {
     let device = json!({"devices": [{
         "name": "device_8",
         "wireguard_ip": "10.0.0.9",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "A2cg4qMe+s0MSFlV6xyhz7XY6PrET6mli9GVSUshXAk=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
     }]});
@@ -481,7 +504,7 @@ async fn test_device_pubkey() {
     let devices = json!({"devices": [{
         "name": "device_2",
         "wireguard_ip": "10.0.0.9",
-        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+        "wireguard_pubkey": "o/8q3kmv5nnbrcb/7aceQWGE44a0yI707wObXRyyWGU=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
     },

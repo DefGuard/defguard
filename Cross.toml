@@ -1,0 +1,41 @@
+[build.env]
+passthrough = ["SQLX_OFFLINE=true"]
+
+[target.x86_64-unknown-linux-gnu]
+image = "ghcr.io/defguard/cross:x86_64-unknown-linux-gnu"
+pre-build = [
+    "apt-get update && apt-get install --assume-yes libssl-dev unzip",
+    "PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+    "PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+    "unzip -o protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr",
+]
+
+[target.armv7-unknown-linux-gnueabihf]
+image = "ghcr.io/defguard/cross:armv7-unknown-linux-gnueabihf"
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt-get update && apt-get install --assume-yes libssl-dev libssl-dev:$CROSS_DEB_ARCH unzip",
+    "PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+    "PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+    "unzip -o protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr",
+]
+
+[target.aarch64-unknown-linux-gnu]
+image = "ghcr.io/defguard/cross:aarch64-unknown-linux-gnu"
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt-get update && apt-get install --assume-yes libssl-dev libssl-dev:$CROSS_DEB_ARCH unzip",
+    "PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+    "PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+    "unzip -o protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr",
+]
+
+
+[target.x86_64-unknown-freebsd]
+image = "ghcr.io/defguard/cross:x86_64-unknown-freebsd"
+pre-build = [
+    "apt-get update && apt-get install --assume-yes libssl-dev unzip",
+    "PB_REL='https://github.com/protocolbuffers/protobuf/releases'",
+    "PB_VERSION='3.20.0' && curl -LO $PB_REL/download/v$PB_VERSION/protoc-$PB_VERSION-linux-x86_64.zip",
+    "unzip -o protoc-$PB_VERSION-linux-x86_64.zip bin/protoc include/google/* -d /usr",
+]

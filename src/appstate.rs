@@ -17,14 +17,13 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    config::DefGuardConfig,
     db::{AppEvent, DbPool, GatewayEvent, WebHook},
     mail::Mail,
+    server_config,
 };
 
 #[derive(Clone)]
 pub struct AppState {
-    pub config: DefGuardConfig,
     pub pool: DbPool,
     tx: UnboundedSender<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -84,7 +83,7 @@ impl AppState {
     /// Sends given `GatewayEvent` to be handled by gateway GRPC server
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending wireguard event {err}");
+            error!("Error sending WireGuard event {err}");
         }
     }
 
@@ -98,7 +97,6 @@ impl AppState {
 
     /// Create application state
     pub fn new(
-        config: DefGuardConfig,
         pool: DbPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
@@ -109,6 +107,7 @@ impl AppState {
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
+        let config = server_config();
         let webauthn_builder = WebauthnBuilder::new(
             config
                 .webauthn_rp_id
@@ -126,7 +125,6 @@ impl AppState {
         let key = Key::from(config.secret_key.expose_secret().as_bytes());
 
         Self {
-            config,
             pool,
             tx,
             wireguard_tx,

@@ -1,5 +1,6 @@
 mod common;
 
+use common::fetch_user_details;
 use defguard::{
     db::{models::enrollment::Token, DbPool},
     handlers::{AddUserData, Auth},
@@ -56,7 +57,7 @@ async fn test_initialize_enrollment() {
         username: "adumbledore2".into(),
         last_name: "Dumbledore".into(),
         first_name: "Albus".into(),
-        email: "a.dumbledore@hogwart.edu.uk".into(),
+        email: "a.dumbledore2@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: None,
     };
@@ -83,4 +84,42 @@ async fn test_initialize_enrollment() {
     assert_eq!(enrollment.user_id, 4);
     assert_eq!(enrollment.admin_id, Some(1));
     assert_eq!(enrollment.used_at, None);
+}
+
+#[tokio::test]
+async fn test_enroll_disabled_user() {
+    let (client, _) = make_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: None,
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    user_details.user.is_active = false;
+    let response = client
+        .put(format!("/api/v1/user/{}", "adumbledore"))
+        .json(&user_details.user)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // enrollment should fail, because user is disabled
+    let response = client
+        .post("/api/v1/user/adumbledore/start_enrollment")
+        .json(&json!({}))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }

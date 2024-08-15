@@ -1,9 +1,10 @@
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { pick } from 'lodash-es';
+import { pick, values } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { useNavigate, useParams } from 'react-router';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -15,8 +16,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import {
-  patternNoSpecialChars,
-  patternStartsWithDigit,
+  patternSafeUsernameCharacters,
   patternValidEmail,
   patternValidPhoneNumber,
 } from '../../../../../shared/patterns';
@@ -24,6 +24,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
+import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 
 interface Inputs {
@@ -34,6 +35,7 @@ interface Inputs {
   email: string;
   groups: string[];
   authorized_apps: OAuth2AuthorizedApps[];
+  is_active: boolean;
 }
 
 const defaultValues: Inputs = {
@@ -44,6 +46,7 @@ const defaultValues: Inputs = {
   email: '',
   groups: [],
   authorized_apps: [],
+  is_active: true,
 };
 
 export const ProfileDetailsForm = () => {
@@ -55,64 +58,60 @@ export const ProfileDetailsForm = () => {
   const submitButton = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isMe = useUserProfileStore((state) => state.isMe);
   const [fetchGroups, setFetchGroups] = useState(false);
   const {
     user: { editUser },
     groups: { getGroups },
   } = useApi();
+  const { username: paramsUsername } = useParams();
+  const navigate = useNavigate();
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          username: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternNoSpecialChars, LL.form.error.noSpecialChars())
-            .min(3, LL.form.error.minimumLength())
-            .max(64, LL.form.error.maximumLength())
-            .test('starts-with-number', LL.form.error.startFromNumber(), (value) => {
-              if (value && value.length) {
-                return !patternStartsWithDigit.test(value);
-              }
-              return false;
-            }),
-          first_name: yup.string().required(LL.form.error.required()),
-          last_name: yup.string().required(LL.form.error.required()),
-          phone: yup
-            .string()
-            .optional()
-            .test('is-valid', LL.form.error.invalid(), (value) => {
-              if (value && value.length) {
-                return patternValidPhoneNumber.test(value);
-              }
-              return true;
-            }),
-          email: yup
-            .string()
-            .required(LL.form.error.required())
-            .matches(patternValidEmail, LL.form.error.invalid()),
-          groups: yup.array(),
-          authorized_apps: yup.array().of(
-            yup.object().shape({
-              oauth2client_id: yup.number().required(),
-              oauth2client_name: yup.string().required(),
-              user_id: yup.number().required(),
-            }),
-          ),
-        })
-        .required(),
+      z.object({
+        username: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
+          .min(3, LL.form.error.minimumLength())
+          .max(64, LL.form.error.maximumLength()),
+        first_name: z.string().min(1, LL.form.error.required()),
+        last_name: z.string().min(1, LL.form.error.required()),
+        phone: z
+          .string()
+          .optional()
+          .refine((val) => {
+            if (val && values.length > 0) {
+              return patternValidPhoneNumber.test(val);
+            }
+            return true;
+          }, LL.form.error.invalid()),
+        email: z
+          .string()
+          .min(1, LL.form.error.required())
+          .regex(patternValidEmail, LL.form.error.invalid()),
+        groups: z.array(z.string().min(1, LL.form.error.required())),
+        authorized_apps: z.array(
+          z.object({
+            oauth2client_id: z.number().min(1, LL.form.error.required()),
+            oauth2client_name: z.string().min(1, LL.form.error.required()),
+            user_id: z.number().min(1, LL.form.error.required()),
+          }),
+        ),
+        is_active: z.boolean(),
+      }),
     [LL.form.error],
   );
 
   const formDefaultValues = useMemo((): Inputs => {
-    const ommited = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
-    const res = { ...defaultValues, ...ommited };
+    const omitted = pick(omitNull(userProfile?.user), Object.keys(defaultValues));
+    const res = { ...defaultValues, ...omitted };
     return res as Inputs;
   }, [userProfile]);
 
   const { control, handleSubmit, setValue, getValues } = useForm<Inputs>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: formDefaultValues,
   });
@@ -130,11 +129,16 @@ export const ProfileDetailsForm = () => {
     [MutationKeys.EDIT_USER],
     editUser,
     {
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
         queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
         toaster.success(LL.userPage.messages.editSuccess());
         setUserProfile({ editMode: false, loading: false });
+        // if username was changed redirect to new profile page
+        const newUsername = variables.data.username;
+        if (paramsUsername !== newUsername) {
+          navigate(`/admin/users/${variables.data.username}`, { replace: true });
+        }
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -155,7 +159,23 @@ export const ProfileDetailsForm = () => {
     return [];
   }, [availableGroups, groupsLoading]);
 
+  const statusOptions = useMemo(() => {
+    return [
+      {
+        key: 'active',
+        value: true,
+        label: LL.userPage.userDetails.fields.status.active(),
+      },
+      {
+        key: 'inactive',
+        value: false,
+        label: LL.userPage.userDetails.fields.status.disabled(),
+      },
+    ];
+  }, [LL.userPage.userDetails.fields.status]);
+
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    values = trimObjectStrings(values);
     if (userProfile && userProfile.user) {
       setUserProfile({ loading: true });
       mutate({
@@ -245,6 +265,25 @@ export const ProfileDetailsForm = () => {
           />
         </div>
       </div>
+      {isAdmin && !isMe && (
+        <div className="row">
+          <div className="item">
+            <FormSelect
+              data-testid="status-select"
+              options={statusOptions}
+              controller={{ control, name: 'is_active' }}
+              label={LL.userPage.userDetails.fields.status.label()}
+              disabled={userEditLoading || !isAdmin}
+              renderSelected={(val) => ({
+                key: val ? 'active' : 'inactive',
+                displayValue: val
+                  ? LL.userPage.userDetails.fields.status.active()
+                  : LL.userPage.userDetails.fields.status.disabled(),
+              })}
+            />
+          </div>
+        </div>
+      )}
       <div className="row">
         <div className="item">
           <FormSelect

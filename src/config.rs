@@ -17,11 +17,13 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,
 
+    // TODO: restore file logging, seems to have vanished during the switch to tracing
     #[arg(long, env = "DEFGUARD_LOG_FILE")]
     pub log_file: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_AUTH_SESSION_LIFETIME")]
-    pub session_auth_lifetime: Option<i64>,
+    #[arg(long, env = "DEFGUARD_AUTH_COOKIE_TIMEOUT", default_value = "7d")]
+    #[serde(skip_serializing)]
+    pub auth_cookie_timeout: Duration,
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
@@ -107,6 +109,14 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub enrollment_token_timeout: Duration,
 
+    #[arg(long, env = "DEFGUARD_MFA_CODE_TIMEOUT", default_value = "60s")]
+    #[serde(skip_serializing)]
+    pub mfa_code_timeout: Duration,
+
+    #[arg(long, env = "DEFGUARD_SESSION_TIMEOUT", default_value = "7d")]
+    #[serde(skip_serializing)]
+    pub session_timeout: Duration,
+
     #[arg(
         long,
         env = "DEFGUARD_PASSWORD_RESET_TOKEN_TIMEOUT",
@@ -137,6 +147,14 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_COOKIE_INSECURE")]
     pub cookie_insecure: bool,
 
+    // TODO: allow multiple values
+    #[arg(long, env = "DEFGUARD_PROXY_URL")]
+    pub proxy_url: Option<String>,
+
+    // path to certificate `.pem` file used if connecting to proxy over HTTPS
+    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
+    pub proxy_grpc_ca: Option<String>,
+
     #[arg(
         long,
         env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
@@ -144,6 +162,34 @@ pub struct DefGuardConfig {
     )]
     #[serde(skip_serializing)]
     pub gateway_disconnection_notification_timeout: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LICENSE_SERVER_URL",
+        default_value = "https://update-service-dev.teonite.net/api/license/refresh"
+    )]
+    #[serde(skip_serializing)]
+    pub license_server_url: String,
+
+    #[arg(long, env = "DEFGUARD_LICENSE_CHECK_PERIOD", default_value = "10s")]
+    #[serde(skip_serializing)]
+    pub license_check_period: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LICENSE_CHECK_PERIOD_RENEWAL_WINDOW",
+        default_value = "5s"
+    )]
+    #[serde(skip_serializing)]
+    pub license_check_period_renewal_window: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_LICENSE_CHECK_PERIOD_NO_LICENSE",
+        default_value = "15s"
+    )]
+    #[serde(skip_serializing)]
+    pub license_check_period_no_license: Duration,
 
     #[command(subcommand)]
     #[serde(skip_serializing)]
@@ -225,16 +271,16 @@ impl DefGuardConfig {
 
     fn validate_secret_key(&self) {
         let secret_key = self.secret_key.expose_secret();
-        if secret_key.trim().len() != secret_key.len() {
-            panic!("SECRET_KEY cannot have leading and trailing space",);
-        }
+        assert!(
+            secret_key.trim().len() == secret_key.len(),
+            "SECRET_KEY cannot have leading and trailing space",
+        );
 
-        if secret_key.len() < 64 {
-            panic!(
-                "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
-                secret_key.len()
-            );
-        }
+        assert!(
+            secret_key.len() >= 64,
+            "SECRET_KEY must be at least 64 characters long, provided value has {} characters",
+            secret_key.len()
+        );
     }
 
     /// Try PKCS#1 and PKCS#8 PEM formats.

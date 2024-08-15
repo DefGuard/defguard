@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM \"yubikey\" WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "be95e0e9ef08e88f590c5c9a28e0d0288edd2c34abaaede5ffb8f47735c8841c"
+}

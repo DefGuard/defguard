@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -8,13 +9,14 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         wireguard::WireguardNetworkError,
     },
+    enterprise::license::LicenseError,
     grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -40,6 +42,8 @@ pub enum WebError {
     ModelError(String),
     #[error("Public key invalid {0}")]
     PubkeyValidation(String),
+    #[error("Public key already exists {0}")]
+    PubkeyExists(String),
     #[error("HTTP error: {0}")]
     Http(StatusCode),
     #[error(transparent)]
@@ -50,6 +54,8 @@ pub enum WebError {
     TemplateError(#[from] TemplateError),
     #[error("Server config missing")]
     ServerConfigMissing,
+    #[error("License error: {0}")]
+    LicenseError(#[from] LicenseError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -134,9 +140,10 @@ impl From<TokenError> for WebError {
             TokenError::NotFound | TokenError::UserNotFound | TokenError::AdminNotFound => {
                 WebError::ObjectNotFound(err.to_string())
             }
-            TokenError::TokenExpired | TokenError::SessionExpired | TokenError::TokenUsed => {
-                WebError::Authorization(err.to_string())
-            }
+            TokenError::TokenExpired
+            | TokenError::SessionExpired
+            | TokenError::TokenUsed
+            | TokenError::UserDisabled => WebError::Authorization(err.to_string()),
             TokenError::AlreadyActive => WebError::BadRequest(err.to_string()),
             TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured

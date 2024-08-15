@@ -2,11 +2,13 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
+use chrono::{DateTime, TimeZone, Utc};
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
+    enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,
     mail::Mail,
@@ -22,11 +24,11 @@ use tokio::sync::{
 
 use self::client::TestClient;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
-#[allow(dead_code)]
+#[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
 pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
@@ -120,6 +122,16 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
 
     let user_agent_parser = create_user_agent_parser();
 
+    let license = License::new(
+        "test_customer".to_string(),
+        true,
+        // Some(Utc.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap()),
+        // Permanent license
+        None,
+    );
+
+    set_cached_license(Some(license));
+
     let client_state = ClientState::new(
         pool.clone(),
         worker_state.clone(),
@@ -145,7 +157,6 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     //     .init();
 
     let webapp = build_webapp(
-        config,
         tx,
         rx,
         wg_tx,

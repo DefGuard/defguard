@@ -2,6 +2,7 @@ mod common;
 
 use defguard::handlers::{Auth, GroupInfo};
 use reqwest::StatusCode;
+use serde_json::json;
 
 use self::common::make_test_client;
 
@@ -15,7 +16,7 @@ async fn test_create_group() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", Some(vec!["hpotter".into()]));
+    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new());
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -42,12 +43,12 @@ async fn test_modify_group() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", Some(vec!["hpotter".into()]));
+    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new());
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Rename group.
-    let data = GroupInfo::new("gryffindor", None);
+    let data = GroupInfo::new("gryffindor", Vec::new(), Vec::new());
     let response = client
         .put("/api/v1/group/hogwards")
         .json(&data)
@@ -76,7 +77,7 @@ async fn test_modify_group_members() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", Some(vec!["hpotter".into()]));
+    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new());
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -84,10 +85,10 @@ async fn test_modify_group_members() {
     let response = client.get("/api/v1/group/hogwards").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert_eq!(group_info.members.unwrap(), vec!["hpotter".to_string()]);
+    assert_eq!(group_info.members, vec!["hpotter".to_string()]);
 
     // Change group members.
-    let data = GroupInfo::new("hogwards", Some(Vec::new()));
+    let data = GroupInfo::new("hogwards", Vec::new(), Vec::new());
     let response = client
         .put("/api/v1/group/hogwards")
         .json(&data)
@@ -99,5 +100,51 @@ async fn test_modify_group_members() {
     let response = client.get("/api/v1/group/hogwards").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
-    assert!(group_info.members.unwrap().is_empty());
+    assert!(group_info.members.is_empty());
+}
+
+#[tokio::test]
+async fn test_modify_group_no_locations_in_request() {
+    let (client, _) = make_test_client().await;
+
+    // Authorize as an administrator.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Create new group.
+    let data = json!({
+        "name": "hogwards",
+        "members": [
+            "hpotter",
+            "admin"
+        ]
+    });
+    let response = client.post("/api/v1/group").json(&data).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // Rename group.
+    let data = json!({
+        "name": "gryffindor",
+        "members": [
+            "hpotter",
+        ]
+    });
+    let response = client
+        .put("/api/v1/group/hogwards")
+        .json(&data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Try to get the group by its old name.
+    let response = client.get("/api/v1/group/hogwards").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // Get group info.
+    let response = client.get("/api/v1/group/gryffindor").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let group_info: GroupInfo = response.json().await;
+    assert_eq!(group_info.name, "gryffindor");
+    assert_eq!(group_info.members, vec!["hpotter"]);
 }

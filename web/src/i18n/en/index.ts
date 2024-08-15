@@ -20,19 +20,48 @@ const en: BaseTranslation = {
       saveChanges: 'Save changes',
       save: 'Save',
       RestoreDefault: 'Restore default',
+      delete: 'Delete',
+      rename: 'Rename',
+      copy: 'Copy',
+      edit: 'Edit',
     },
+    key: 'Key',
+    name: 'Name',
   },
   messages: {
     error: 'Error has occurred.',
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
     insecureContext: 'Context is not secure.',
+    details: 'Details:',
     clipboard: {
       error: 'Clipboard is not accessible.',
       success: 'Content copied to clipboard.',
     },
   },
   modals: {
+    addGroup: {
+      title: 'Add group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Create group',
+    },
+    editGroup: {
+      title: 'Edit group',
+      selectAll: 'Select all users',
+      groupName: 'Group name',
+      searchPlaceholder: 'Filter/Search',
+      submit: 'Update group',
+    },
+    deleteGroup: {
+      title: 'Delete group {name:string}',
+      subTitle: 'This action will permanently delete this group.',
+      locationListHeader: 'This group is currently assigned to following VPN Locations:',
+      locationListFooter: `If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.`,
+      submit: 'Delete group',
+      cancel: 'Cancel',
+    },
     deviceConfig: {
       title: 'Device VPN configurations',
     },
@@ -59,7 +88,7 @@ const en: BaseTranslation = {
       desktopTitle: 'Desktop activation',
       messages: {
         success: 'User enrollment started',
-        successDesktop: 'Desktop activation started',
+        successDesktop: 'Desktop configuration started',
         error: 'Failed to start user enrollment',
         errorDesktop: 'Failed to start desktop activation',
       },
@@ -245,6 +274,26 @@ const en: BaseTranslation = {
         success: '{username: string} deleted.',
       },
     },
+    disableUser: {
+      title: 'Disable account',
+      controls: {
+        submit: 'Disable account',
+      },
+      message: 'Do you want to disable {username: string} account?',
+      messages: {
+        success: '{username: string} disabled.',
+      },
+    },
+    enableUser: {
+      title: 'Enable account',
+      controls: {
+        submit: 'Enable account',
+      },
+      message: 'Do you want to enable {username: string} account?',
+      messages: {
+        success: '{username: string} enabled.',
+      },
+    },
     deleteProvisioner: {
       title: 'Delete provisioner',
       controls: {
@@ -400,7 +449,7 @@ const en: BaseTranslation = {
     steps: {
       setupMethod: {
         remote: {
-          title: 'Remote Desktop Activation',
+          title: 'Configure Desktop Client',
           subTitle:
             'A breeze to set up with just a single token. Download the client and enjoy straightforward security.',
           link: 'Download defguard Client',
@@ -431,6 +480,7 @@ const en: BaseTranslation = {
       Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
     </p>
 `,
+          warningNoNetworks: "You don't have access to any network.",
           qrHelper: `
       <p>
         You can setup your device faster with wireguard application by scanning this QR code.
@@ -506,6 +556,11 @@ const en: BaseTranslation = {
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Active',
+          disabled: 'Disabled',
         },
         groups: {
           label: 'User groups',
@@ -635,6 +690,63 @@ const en: BaseTranslation = {
         line2: 'management and provisioning.',
       },
     },
+    authenticationKeys: {
+      header: 'User Authentication Keys',
+      addKey: 'Add new Key',
+      keysList: {
+        common: {
+          rename: 'Rename',
+          key: 'Key',
+          download: 'Download',
+          copy: 'Copy',
+          serialNumber: 'Serial Number',
+          delete: 'Delete',
+        },
+      },
+      deleteModal: {
+        title: 'Delete Authentication Key',
+        confirmMessage: 'Key {name: string} will be deleted permanently.',
+      },
+      addModal: {
+        header: 'Add new Authentication Key',
+        keyType: 'Key Type',
+        keyForm: {
+          placeholders: {
+            title: 'Key Name',
+            key: {
+              ssh: 'Begins with ssh-rsa, ecdsa-sha2-nistp256, ...',
+              gpg: 'Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----',
+            },
+          },
+          labels: {
+            title: 'Name',
+            key: 'Key',
+          },
+          submit: 'Add {name: string} key',
+        },
+        yubikeyForm: {
+          selectWorker: {
+            info: 'Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.',
+            selectLabel: 'Select on of the following provisioners to provision a YubiKey',
+            noData: 'No workers are registered right now.',
+            available: 'Available',
+            unavailable: 'Unavailable',
+          },
+          provisioning: {
+            inProgress: 'Provisioning in progress, please wait.',
+            error: 'Provisioning failed !',
+            success: 'Yubikey provisioned successfully',
+          },
+          submit: 'Provision Yubikey',
+        },
+        messages: {
+          keyAdded: 'Key added.',
+          keyExists: 'Key has already been added.',
+          unsupportedKeyFormat: 'Unsupported key format.',
+          genericError: 'Could not add the key. Please try again later.',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Users',
@@ -658,10 +770,12 @@ const en: BaseTranslation = {
       editButton: {
         changePassword: 'Change password',
         edit: 'Edit account',
-        provision: 'Provision YubiKey',
+        addYubikey: 'Add YubiKey',
+        addSSH: 'Add SSH Key',
+        addGPG: 'Add GPG Key',
         delete: 'Delete account',
         startEnrollment: 'Start enrollment',
-        activateDesktop: 'Remote desktop activation',
+        activateDesktop: 'Configure Desktop Client',
         resetPassword: 'Reset password',
       },
     },
@@ -678,8 +792,10 @@ const en: BaseTranslation = {
       logOut: 'Log out',
       enrollment: 'Enrollment',
       support: 'Support',
+      groups: 'Groups',
     },
     mobileTitles: {
+      groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',
       settings: 'Settings',
@@ -711,10 +827,12 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
-      usernameTaken: 'Username is already in use',
+      forbiddenCharacter: 'Field contains forbidden characters.',
+      usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
       invalid: 'Field is invalid.',
       required: 'Field is required.',
+      invalidCode: 'Submitted code is invalid.',
       maximumLength: 'Maximum length exceeded.',
       minimumLength: 'Minimum length not reached.',
       noSpecialChars: 'No special characters are allowed.',
@@ -728,8 +846,12 @@ const en: BaseTranslation = {
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
-      startFromNumber: 'Cannot start from number',
-      repeat: `Fields don't match`,
+      startFromNumber: 'Cannot start from number.',
+      repeat: `Fields don't match.`,
+      number: 'Expected a valid number.',
+      minimumValue: `Minimum value of {value: number} not reached.`,
+      maximumValue: 'Maximum value of {value: number} exceeded.',
+      tooManyBadLoginAttempts: `Too many bad login attempts. Please try again in a few minutes.`,
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -769,10 +891,16 @@ const en: BaseTranslation = {
       smtp: 'SMTP',
       global: 'Global settings',
       ldap: 'LDAP',
+      openid: 'OpenID',
     },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
+    },
+    enterpriseOnly: {
+      title: 'This feature is available only in Defguard Enterprise.',
+      subtitle: 'To learn more, visit our ',
+      website: 'website',
     },
     ldapSettings: {
       title: 'LDAP Settings',
@@ -797,6 +925,46 @@ const en: BaseTranslation = {
         messages: {
           success: 'LDAP connected successfully',
           error: 'LDAP connection rejected',
+        },
+      },
+    },
+    openIdSettings: {
+      general: {
+        title: 'External OpenID Settings',
+        helper: 'Here you can change general OpenID behavior in your Defguard instance.',
+        createAccount: {
+          label:
+            'Automatically create user account when logging in for the first time through external OpenID.',
+          helper:
+            'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
+        },
+      },
+      form: {
+        title: 'External OpenID Client Settings',
+        helper:
+          'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
+        custom: 'Custom',
+        documentation: 'Documentation',
+        delete: 'Delete provider',
+        labels: {
+          provider: {
+            label: 'Provider',
+            helper:
+              'Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.',
+          },
+          client_id: {
+            label: 'Client ID',
+            helper: 'Client ID provided by your OpenID provider.',
+          },
+          client_secret: {
+            label: 'Client Secret',
+            helper: 'Client Secret provided by your OpenID provider.',
+          },
+          base_url: {
+            label: 'Base URL',
+            helper:
+              'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
+          },
         },
       },
     },
@@ -879,6 +1047,28 @@ const en: BaseTranslation = {
             Read more in documentation.
           </a>
 			`,
+    },
+    license: {
+      header: 'Enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Here you can manage your Defguard Enterprise version license.',
+          link: 'To learn more about Defguard Enterprise, visit our webiste.',
+        },
+        licenseKey: {
+          text: 'Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.',
+          link: 'You can purchase the license here.',
+        },
+      },
+      form: {
+        title: 'License',
+        fields: {
+          key: {
+            label: 'License key',
+            placeholder: 'Your Defguard license key',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -1085,6 +1275,9 @@ const en: BaseTranslation = {
             phone: {
               label: 'Phone',
             },
+            groups: {
+              label: 'Groups',
+            },
           },
           controls: {
             addUrl: 'Add URL',
@@ -1181,6 +1374,7 @@ const en: BaseTranslation = {
       profile: 'Know basic information from your profile like name, profile picture etc.',
       email: 'Know your email address.',
       phone: 'Know your phone number.',
+      groups: 'Know your groups membership.',
     },
     controls: {
       accept: 'Accept',
@@ -1282,6 +1476,15 @@ const en: BaseTranslation = {
           label: 'Allowed groups',
           placeholder: 'All groups',
         },
+        mfa_enabled: {
+          label: 'Require MFA for this Location',
+        },
+        keepalive_interval: {
+          label: 'Keepalive interval [seconds]',
+        },
+        peer_disconnect_threshold: {
+          label: 'Peer disconnect threshold [seconds]',
+        },
       },
       controls: {
         submit: 'Save changes',
@@ -1291,32 +1494,47 @@ const en: BaseTranslation = {
     },
   },
   gatewaySetup: {
-    header: 'Gateway server setup',
+    header: {
+      main: 'Gateway server setup',
+      dockerBasedGatewaySetup: `Docker Based Gateway Setup`,
+      fromPackage: `From Package`,
+      oneLineInstall: `One Line Install`,
+    },
     card: {
       title: 'Docker based gateway setup',
+      authToken: `Authentication Token`,
+    },
+    button: {
+      availablePackages: `Available Packages`,
     },
     controls: {
       status: 'Check connection status',
     },
     messages: {
-      runCommand: `
-          <p>
-            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-            More details can be found in the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
+      runCommand: `Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+            More details can be found in the [documentation]({setupGatewayDocs:string}).
             There are several ways to deploy the gateway server,
-            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-          </p>`,
-      createNetwork: `
-          <p>
-            Please create the network before running the gateway process.
-          </p>`,
-      noConnection: `<p>No connection established, please run provided command.</p>`,
-      connected: `<p>Gateway connected.</p>`,
+            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs:string}).`,
+      createNetwork: `Please create the network before running the gateway process.`,
+      noConnection: `No connection established, please run provided command.`,
+      connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
+      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+          you don't need to do anything.`,
+      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\` 
+          according to the [documentation]({setupGatewayDocs:string}).`,
+      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+          provided in the [documentation]({setupGatewayDocs:string}) to successfully set up the gateway server.
+          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
+      dockerBasedGatewaySetup: `Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
     },
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
+    callback: {
+      return: 'Go back to login',
+      error: 'An error occurred during external OpenID login',
+    },
     mfa: {
       title: 'Two-factor authentication',
       controls: {

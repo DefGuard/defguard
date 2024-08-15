@@ -1,4 +1,4 @@
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { TranslationFunctions } from '../../i18n/i18n-types';
 import {
@@ -6,15 +6,17 @@ import {
   patternAtLeastOneLowerCaseChar,
   patternAtLeastOneSpecialChar,
   patternAtLeastOneUpperCaseChar,
+  patternSafePasswordCharacters,
 } from '../patterns';
 
 export const passwordValidator = (LL: TranslationFunctions) =>
-  yup
+  z
     .string()
+    .min(1, LL.form.error.required())
     .min(8, LL.form.error.minimumLength())
     .max(128, LL.form.error.maximumLength())
-    .matches(patternAtLeastOneDigit, LL.form.error.oneDigit())
-    .matches(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
-    .matches(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
-    .matches(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
-    .required(LL.form.error.required());
+    .regex(patternAtLeastOneDigit, LL.form.error.oneDigit())
+    .regex(patternAtLeastOneSpecialChar, LL.form.error.oneSpecial())
+    .regex(patternAtLeastOneUpperCaseChar, LL.form.error.oneUppercase())
+    .regex(patternAtLeastOneLowerCaseChar, LL.form.error.oneLowercase())
+    .regex(patternSafePasswordCharacters, LL.form.error.forbiddenCharacter());

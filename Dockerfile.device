@@ -9,4 +9,3 @@ PublicKey = zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=\n\
 AllowedIPs = 10.1.1.0/24\n\
 Endpoint = gateway:50051" > /etc/wireguard/defguard.conf
 CMD wg-quick up defguard && ping -s 2000 10.1.1.1
-

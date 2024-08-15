@@ -10,8 +10,9 @@ use super::{settings::Settings, DbPool, User};
 use crate::{
     mail::Mail,
     random::gen_alphanumeric,
+    server_config,
     templates::{self, TemplateError},
-    SERVER_CONFIG, VERSION,
+    VERSION,
 };
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
@@ -34,6 +35,8 @@ pub enum TokenError {
     TokenUsed,
     #[error("Enrollment user not found")]
     UserNotFound,
+    #[error("Enrollment user is disabled")]
+    UserDisabled,
     #[error("Enrollment admin not found")]
     AdminNotFound,
     #[error("User account is already activated")]
@@ -52,28 +55,29 @@ pub enum TokenError {
 
 impl From<TokenError> for Status {
     fn from(err: TokenError) -> Self {
-        error!("{}", err);
+        error!("{err}");
         let (code, msg) = match err {
             TokenError::DbError(_)
             | TokenError::AdminNotFound
             | TokenError::UserNotFound
+            | TokenError::UserDisabled
             | TokenError::NotificationError(_)
             | TokenError::WelcomeMsgNotConfigured
             | TokenError::WelcomeEmailNotConfigured
             | TokenError::TemplateError(_)
             | TokenError::TemplateErrorInternal(_) => (Code::Internal, "unexpected error"),
-            TokenError::NotFound
-            | TokenError::TokenExpired
-            | TokenError::SessionExpired
-            | TokenError::TokenUsed => (Code::Unauthenticated, "invalid token"),
+            TokenError::NotFound | TokenError::SessionExpired | TokenError::TokenUsed => {
+                (Code::Unauthenticated, "invalid token")
+            }
             TokenError::AlreadyActive => (Code::InvalidArgument, "already active"),
+            TokenError::TokenExpired => (Code::Unauthenticated, "token expired"),
         };
         Status::new(code, msg)
     }
 }
 
 // Representation of a user enrollment session
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub id: String,
     pub user_id: i64,
@@ -157,20 +161,34 @@ impl Token {
         session_timeout_seconds: u64,
     ) -> Result<NaiveDateTime, TokenError> {
         // check if token can be used
+        debug!("Creating a new session.");
         if self.is_expired() {
+            debug!("Token is already expired. Cannot establish a new session.");
             return Err(TokenError::TokenExpired);
         }
-        if self.is_used() {
-            return Err(TokenError::TokenUsed);
+        match self.used_at {
+            // session started but still valid
+            Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
+                debug!("Session already exists yet it is still valid.");
+                Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
+            }
+            // session expired
+            Some(_) => {
+                debug!("Session has expired.");
+                Err(TokenError::TokenUsed)
+            }
+            // session not yet started
+            None => {
+                let now = Utc::now().naive_utc();
+                query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
+                    .execute(transaction)
+                    .await?;
+                self.used_at = Some(now);
+
+                debug!("Generate a new session successfully.");
+                Ok(now + Duration::seconds(session_timeout_seconds as i64))
+            }
         }
-
-        let now = Utc::now().naive_utc();
-        query!("UPDATE token SET used_at = $1 WHERE id = $2", now, self.id)
-            .execute(transaction)
-            .await?;
-        self.used_at = Some(now);
-
-        Ok(now + Duration::seconds(session_timeout_seconds as i64))
     }
 
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, TokenError> {
@@ -183,8 +201,14 @@ impl Token {
         .fetch_optional(pool)
         .await?
         {
-            Some(enrollment) => Ok(enrollment),
-            None => Err(TokenError::NotFound),
+            Some(enrollment) => {
+                debug!("Fetch token {enrollment:?} from database.");
+                Ok(enrollment)
+            }
+            None => {
+                debug!("Token with id {} does not exist in database.", id);
+                Err(TokenError::NotFound)
+            }
         }
     }
 
@@ -203,11 +227,12 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching user for enrollment");
+        debug!("Find user by id {}.", self.user_id);
         let Some(user) = User::find_by_id(executor, self.user_id).await? else {
             error!("User not found for enrollment token {}", self.id);
             return Err(TokenError::UserNotFound);
         };
+        debug!("Fetched user {user:?}.");
         Ok(user)
     }
 
@@ -215,13 +240,16 @@ impl Token {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching admin for enrollment");
+        debug!("Fetch admin data.");
         if self.admin_id.is_none() {
+            debug!("Admin don't have id. Stop fetching data...");
             return Ok(None);
         }
 
         let admin_id = self.admin_id.unwrap();
+        debug!("Trying to find admin using id {admin_id}");
         let user = User::find_by_id(executor, admin_id).await?;
+        debug!("Fetched admin {user:?}.");
         Ok(user)
     }
 
@@ -229,17 +257,17 @@ impl Token {
         transaction: &mut PgConnection,
         user_id: i64,
     ) -> Result<(), TokenError> {
-        debug!("Deleting unused enrollment tokens for user {user_id}");
+        debug!("Deleting unused tokens for the user.");
         let result = query!(
-            r#"DELETE FROM token
-            WHERE user_id = $1
-            AND used_at IS NULL"#,
+            "DELETE FROM token \
+            WHERE user_id = $1 \
+            AND used_at IS NULL",
             user_id
         )
         .execute(transaction)
         .await?;
-        debug!(
-            "Deleted {} unused enrollment tokens for user {user_id}",
+        info!(
+            "Deleted {} unused enrollment tokens for the user.",
             result.rows_affected()
         );
 
@@ -252,10 +280,10 @@ impl Token {
     ) -> Result<(), TokenError> {
         debug!("Deleting unused password reset tokens for user {user_id}");
         let result = query!(
-            r#"DELETE FROM token
-            WHERE user_id = $1
-            AND token_type = 'PASSWORD_RESET'
-            AND used_at IS NULL"#,
+            "DELETE FROM token \
+            WHERE user_id = $1 \
+            AND token_type = 'PASSWORD_RESET' \
+            AND used_at IS NULL",
             user_id
         )
         .execute(transaction)
@@ -295,7 +323,7 @@ impl Token {
         context.insert("first_name", &user.first_name);
         context.insert("last_name", &user.last_name);
         context.insert("username", &user.username);
-        context.insert("defguard_url", &SERVER_CONFIG.get().unwrap().url);
+        context.insert("defguard_url", &server_config().url);
         context.insert("defguard_version", &VERSION);
 
         if let Some(admin) = admin {
@@ -364,11 +392,29 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "User {} starting enrollment for user {}, notification enabled: {send_user_notification}",
+            "User {} started a new enrollment process for user {}.",
             admin.username, self.username
         );
+        debug!(
+            "Notify user by mail about the enrollment process: {}",
+            send_user_notification
+        );
+        debug!("Check if {} has a password.", self.username);
         if self.has_password() {
+            debug!(
+                "User {} that you want to start enrollment process for already has a password.",
+                self.username
+            );
             return Err(TokenError::AlreadyActive);
+        }
+
+        debug!("Verify that {} is an active user.", self.username);
+        if !self.is_active {
+            warn!(
+                "Can't create enrollment token for disabled user {}",
+                self.username
+            );
+            return Err(TokenError::UserDisabled);
         }
 
         let user_id = self.id.expect("User without ID");
@@ -377,6 +423,7 @@ impl User {
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
+        debug!("Create a new enrollment token for user {}.", self.username);
         let enrollment = Token::new(
             user_id,
             Some(admin_id),
@@ -384,12 +431,17 @@ impl User {
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
+        debug!("Saving a new enrollment token...");
         enrollment.save(&mut *transaction).await?;
+        debug!(
+            "Saved a new enrollment token with id {} for user {}.",
+            enrollment.id, self.username
+        );
 
         if send_user_notification {
             if let Some(email) = email {
                 debug!(
-                    "Sending enrollment start mail for user {} to {email}",
+                    "Sending an enrollment mail for user {} to {email}.",
                     self.username
                 );
                 let base_message_context = enrollment
@@ -403,7 +455,14 @@ impl User {
                         enrollment_service_url,
                         &enrollment.id,
                     )
-                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
+                    .map_err(|err| {
+                        debug!(
+                            "Cannot send an email to the user {} due to the error {}.",
+                            self.username,
+                            err.to_string()
+                        );
+                        TokenError::NotificationError(err.to_string())
+                    })?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -421,6 +480,10 @@ impl User {
                 }
             }
         }
+        info!(
+            "New enrollment token has been generated for {}.",
+            self.username
+        );
 
         Ok(enrollment.id)
     }
@@ -438,32 +501,55 @@ impl User {
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<String, TokenError> {
         info!(
-            "User {} starting desktop configuration for user {}, notification enabled: {send_user_notification}",
+            "User {} starting a new desktop activation for user {}",
             admin.username, self.username
+        );
+        debug!(
+            "Notify {} by mail about the enrollment process: {}",
+            self.username, send_user_notification
         );
 
         let user_id = self.id.expect("User without ID");
         let admin_id = admin.id.expect("Admin user without ID");
 
+        debug!("Verify that {} is an active user.", self.username);
+        if !self.is_active {
+            warn!(
+                "Can't create desktop activation token for disabled user {}.",
+                self.username
+            );
+            return Err(TokenError::UserDisabled);
+        }
+
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
+        debug!("Cleared unused tokens for {}.", self.username);
 
-        let enrollment = Token::new(
+        debug!(
+            "Create a new desktop activation token for user {}.",
+            self.username
+        );
+        let desktop_configuration = Token::new(
             user_id,
             Some(admin_id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut *transaction).await?;
+        debug!("Saving a new desktop configuration token...");
+        desktop_configuration.save(&mut *transaction).await?;
+        debug!(
+            "Saved a new desktop activation token with id {} for user {}.",
+            desktop_configuration.id, self.username
+        );
 
         if send_user_notification {
             if let Some(email) = email {
                 debug!(
-                    "Sending desktop configuration start mail for user {} to {email}",
+                    "Sending a desktop configuration mail for user {} to {email}",
                     self.username
                 );
-                let base_message_context = enrollment
+                let base_message_context = desktop_configuration
                     .get_welcome_message_context(&mut *transaction)
                     .await?;
                 let mail = Mail {
@@ -472,9 +558,16 @@ impl User {
                     content: templates::desktop_start_mail(
                         base_message_context,
                         &enrollment_service_url,
-                        &enrollment.id,
+                        &desktop_configuration.id,
                     )
-                    .map_err(|err| TokenError::NotificationError(err.to_string()))?,
+                    .map_err(|err| {
+                        debug!(
+                            "Cannot send an email to the user {} due to the error {}.",
+                            self.username,
+                            err.to_string()
+                        );
+                        TokenError::NotificationError(err.to_string())
+                    })?,
                     attachments: Vec::new(),
                     result_tx: None,
                 };
@@ -491,8 +584,12 @@ impl User {
                 }
             }
         }
+        info!(
+            "New desktop activation token has been generated for {}.",
+            self.username
+        );
 
-        Ok(enrollment.id)
+        Ok(desktop_configuration.id)
     }
 
     // Remove unused tokens when triggering user enrollment
@@ -500,10 +597,7 @@ impl User {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), TokenError> {
-        info!(
-            "Removing unused enrollment tokens for user {}",
-            self.username
-        );
+        info!("Removing unused tokens for user {}.", self.username);
         Token::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
     }
 

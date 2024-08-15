@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
@@ -14,6 +15,7 @@ type Props = {
 export const ResetPasswordButton = ({ user }: Props) => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
+  const appInfo = useAppStore((s) => s.appInfo);
 
   const {
     user: { resetPassword },
@@ -24,9 +26,9 @@ export const ResetPasswordButton = ({ user }: Props) => {
     onSuccess: () => {
       toaster.success(LL.userPage.messages.passwordResetEmailSent());
     },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onError: (_err) => {
+    onError: (e) => {
       toaster.error(LL.messages.error());
+      console.error(e);
     },
   });
 
@@ -37,6 +39,8 @@ export const ResetPasswordButton = ({ user }: Props) => {
       onClick={() => {
         changePasswordMutation.mutate({ username: user.username });
       }}
+      // disable if smtp is not configured
+      disabled={!appInfo || (appInfo && !appInfo.smtp_enabled)}
     />
   );
 };

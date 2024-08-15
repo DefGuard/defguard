@@ -224,7 +224,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let avail = Username {
-        username: "CrashTestDummy".into(),
+        username: "_CrashTestDummy".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -234,7 +234,7 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let avail = Username {
-        username: "crashtestdummy".into(),
+        username: "crashtestdummy42".into(),
     };
     let response = client
         .post("/api/v1/user/available")
@@ -431,15 +431,15 @@ async fn test_check_username() {
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let invalid_usernames = ["ADumbledore", "1user"];
-    let valid_usernames = ["user1", "use2r3", "notwrong"];
+    let invalid_usernames = ["ADumble dore", ".1user"];
+    let valid_usernames = ["user1", "use2r3", "not_wrong"];
 
-    for username in invalid_usernames {
+    for (i, username) in invalid_usernames.into_iter().enumerate() {
         let new_user = AddUserData {
             username: username.into(),
             last_name: "Dumbledore".into(),
             first_name: "Albus".into(),
-            email: "a.dumbledore@hogwart.edu.uk".into(),
+            email: format!("a.dumbledore{i}@hogwart.edu.uk"),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
@@ -447,12 +447,12 @@ async fn test_check_username() {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
-    for username in valid_usernames {
+    for (i, username) in valid_usernames.into_iter().enumerate() {
         let new_user = AddUserData {
             username: username.into(),
             last_name: "Dumbledore".into(),
             first_name: "Albus".into(),
-            email: "a.dumbledore@hogwart.edu.uk".into(),
+            email: format!("a.dumbledore{i}@hogwart.edu.uk"),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
@@ -569,6 +569,9 @@ fn make_network() -> Value {
         "allowed_ips": "10.1.1.0/24",
         "dns": "1.1.1.1",
         "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180
     })
 }
 
@@ -628,7 +631,7 @@ async fn test_user_add_device() {
     // add device for themselves
     let device_data = AddDevice {
         name: "TestDevice2".into(),
-        wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
+        wireguard_pubkey: "hNuapt7lOxF93KUqZGUY00oKJxH8LYwwsUVB1uUa0y4=".into(),
     };
     let response = client
         .post("/api/v1/device/admin")
@@ -673,10 +676,19 @@ async fn test_user_add_device() {
         .content
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 
+    // a device with duplicate pubkey cannot be added
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .header(USER_AGENT, user_agent_header)
+        .json(&device_data)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
     // normal user cannot add a device for other users
     let device_data = AddDevice {
         name: "TestDevice3".into(),
-        wireguard_pubkey: "mgVXE8WcfStoD8mRatHcX5aaQ0DlcpjvPXibHEOr9y8=".into(),
+        wireguard_pubkey: "fF9K0tgatZTEJRvzpNUswr0h8HqCIi+v39B45+QZZzE=".into(),
     };
     let response = client
         .post("/api/v1/device/admin")
@@ -703,4 +715,84 @@ async fn test_user_add_device() {
     assert!(mail
         .content
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
+}
+
+#[tokio::test]
+async fn test_disable() {
+    let client = make_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // get yourself
+    let mut user_details = fetch_user_details(&client, "admin").await;
+    user_details.user.is_active = false;
+
+    // disable yourself
+    let response = client
+        .put("/api/v1/user/admin")
+        .json(&user_details.user)
+        .send()
+        .await;
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // create user
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // get user
+    let mut user_details = fetch_user_details(&client, "adumbledore").await;
+    assert_eq!(user_details.user.first_name, "Albus");
+
+    // disable user
+    user_details.user.is_active = false;
+    let response = client
+        .put("/api/v1/user/adumbledore")
+        .json(&user_details.user)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_unique_email() {
+    let client = make_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create user
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // create user with same email
+    let new_user = AddUserData {
+        username: "adumbledore2".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

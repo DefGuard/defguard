@@ -2,22 +2,24 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - "web/**"
   pull_request:
     branches:
       - main
+      - dev
     paths:
       - "web/**"
 
 jobs:
   lint-web:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-      - uses: actions/setup-node@v3
+          submodules: "recursive"
+      - uses: actions/setup-node@v4
         with:
           node-version: 19
       - name: install deps

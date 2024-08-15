@@ -15,8 +15,8 @@ const SvgIconUserListExpanded = (props: SVGProps<SVGSVGElement>) => (
         <path
           d="M0 0h22v22H0z"
           style={{
-            opacity: 0,
             fill: '#0c8ce0',
+            opacity: 0,
           }}
         />
       </clipPath>

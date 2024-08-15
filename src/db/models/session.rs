@@ -3,7 +3,7 @@ use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
 use super::DbPool;
-use crate::{auth::SESSION_TIMEOUT, random::gen_alphanumeric};
+use crate::{random::gen_alphanumeric, server_config};
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
@@ -37,12 +37,13 @@ impl Session {
         device_info: Option<String>,
     ) -> Self {
         let now = Utc::now();
+        let timeout = server_config().session_timeout;
         Self {
             id: gen_alphanumeric(24),
             user_id,
             state,
             created: now.naive_utc(),
-            expires: (now + Duration::seconds(SESSION_TIMEOUT as i64)).naive_utc(),
+            expires: (now + Duration::seconds(timeout.as_secs() as i64)).naive_utc(),
             webauthn_challenge: None,
             web3_challenge: None,
             ip_address,
@@ -187,6 +188,16 @@ impl Session {
         E: PgExecutor<'e>,
     {
         query!("DELETE FROM session WHERE expires < now()",)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_all_for_user<'e, E>(executor: E, user_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!("DELETE FROM session WHERE user_id = $1", user_id)
             .execute(executor)
             .await?;
         Ok(())

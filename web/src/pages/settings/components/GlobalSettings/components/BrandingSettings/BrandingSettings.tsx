@@ -1,12 +1,12 @@
 import './styles.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
@@ -39,6 +39,21 @@ const defaultSettings: FormFields = {
   nav_logo_url: '/svg/defguard-nav-logo.svg',
 };
 
+const mergeWithDefaults = (values: FormFields): FormFields => ({
+  instance_name:
+    values.instance_name && values.instance_name.length > 0
+      ? values.instance_name
+      : defaultSettings.instance_name,
+  main_logo_url:
+    values.main_logo_url && values.main_logo_url.length > 0
+      ? values.main_logo_url
+      : defaultSettings.main_logo_url,
+  nav_logo_url:
+    values.nav_logo_url && values.nav_logo_url.length > 0
+      ? values.nav_logo_url
+      : defaultSettings.nav_logo_url,
+});
+
 export const BrandingSettings = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -53,7 +68,7 @@ export const BrandingSettings = () => {
 
   const { mutate, isLoading } = useMutation(patchSettings, {
     onSuccess: () => {
-      const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTAIL_SETTINGS];
+      const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTIAL_SETTINGS];
       keys.forEach((key) => {
         queryClient.invalidateQueries([key]);
       });
@@ -75,20 +90,16 @@ export const BrandingSettings = () => {
     },
   );
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          main_logo_url: yup.string(),
-          nav_logo_url: yup.string(),
-          instance_name: yup
-            .string()
-            .min(3, LL.form.error.minimumLength())
-            .max(12, LL.form.error.maximumLength())
-            .required(LL.form.error.required()),
-        })
-        .required(),
+      z.object({
+        main_logo_url: z.string(),
+        nav_logo_url: z.string(),
+        instance_name: z
+          .string()
+          .min(3, LL.form.error.minimumLength())
+          .max(12, LL.form.error.maximumLength()),
+      }),
     [LL.form.error],
   );
 
@@ -109,23 +120,15 @@ export const BrandingSettings = () => {
   const { control, handleSubmit, reset } = useForm<Settings>({
     defaultValues,
     mode: 'all',
-    resolver: yupResolver(formSchema),
+    resolver: zodResolver(zodSchema),
   });
 
   useEffect(() => {
     reset();
   }, [reset, defaultValues]);
 
-  const onSubmit: SubmitHandler<FormFields> = ({
-    instance_name,
-    main_logo_url,
-    nav_logo_url,
-  }) => {
-    mutate({
-      instance_name,
-      main_logo_url,
-      nav_logo_url,
-    });
+  const onSubmit: SubmitHandler<FormFields> = (submitted) => {
+    mutate(mergeWithDefaults(submitted));
   };
 
   return (

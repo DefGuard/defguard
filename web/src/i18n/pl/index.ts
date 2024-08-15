@@ -15,17 +15,24 @@ const pl: Translation = {
       save: 'Zapisz',
       saveChanges: 'Zapisz zmiany',
       RestoreDefault: 'Przywróć domyślne',
+      delete: 'Usuń',
+      copy: 'Skopiuj',
+      rename: 'Zmień nazwę',
+      edit: 'Edytuj',
     },
     conditions: {
       and: 'I',
       equal: 'Równy',
       or: 'Albo',
     },
+    key: 'Klucz',
+    name: 'Nazwa',
   },
   messages: {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
+    details: 'Szczegóły:',
     clipboard: {
       success: 'Skopiowano do schowka',
       error: 'Schowek nie jest dostępny',
@@ -33,8 +40,31 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    addGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Stwórz grupę',
+      title: 'Dodaj grupę',
+    },
+    editGroup: {
+      groupName: 'Nazwa grupy',
+      searchPlaceholder: 'Szukaj',
+      selectAll: 'Zaznacz wszystkich',
+      submit: 'Zmień grupę',
+      title: 'Edytuj grupę',
+    },
+    deleteGroup: {
+      title: 'Usuń grupę {name}',
+      subTitle: 'Grupa zostanie nieodwołalnie usunięta.',
+      locationListHeader:
+        'Ta grupa jest obecnie przypisana do następujących lokalizacji:',
+      locationListFooter: `Jeżeli to jedyna dozwolona grupa dla danej lokalizacji, stanie się ona <b>dostępna dla wszystkich użytkowników</b>.`,
+      submit: 'Usuń grupę',
+      cancel: 'Wróć',
+    },
     registerEmailMFA: {
-      title: 'Skonfiguruj Email MFA',
+      title: 'Skonfiguruj e-mail MFA',
       form: {
         controls: {
           resend: 'Wyślij kod ponownie',
@@ -49,12 +79,12 @@ const pl: Translation = {
       },
       infoMessage: `
       <p>
-        Aby zakończyć konfigurację, wpisz kod, który został wysłany na email: <strong>{email}</strong> 
+        Aby zakończyć konfigurację, wpisz kod, który został wysłany na adres: <strong>{email}</strong>
       </p>
       `,
       messages: {
         resend: 'Kod wysłany ponownie',
-        success: 'Metoda MFA email włączona',
+        success: 'Metoda MFA e-mail włączona',
       },
     },
     deviceConfig: {
@@ -80,33 +110,33 @@ const pl: Translation = {
     },
     startEnrollment: {
       title: 'Rozpocznij rejestrację',
-      desktopTitle: 'Aktywacja klienta desktop',
+      desktopTitle: 'Konfiguracja klienta desktop',
       messages: {
         success: 'Rejestracja użytkownika rozpoczęta',
-        successDesktop: 'Aktywacja klienta rozpoczęta',
-        errorDesktop: 'Błąd aktywacji klienta desktop',
+        successDesktop: 'Konfiguracja klienta rozpoczęta',
+        errorDesktop: 'Błąd konfiguracji klienta desktop',
         error: 'Błąd rejestracji użytkownika',
       },
       form: {
         email: {
-          label: 'Email',
+          label: 'E-mail',
         },
         mode: {
           options: {
-            email: 'Wyślij token przez email',
+            email: 'Wyślij token przez e-mail',
             manual: 'Przekaż token ręcznie',
           },
         },
         submit: 'Rozpocznij rejestrację',
         submitDesktop: 'Aktywacja desktop',
         smtpDisabled:
-          'Skonfiguruj SMTP, żeby wysłać token emailem. Przejdź do Ustawienia -> SMTP.',
+          'Skonfiguruj SMTP, żeby wysłać token przez e-mail. Przejdź do Ustawienia -> SMTP.',
       },
       tokenCard: {
         title: 'Token aktywacji',
       },
       urlCard: {
-        title: 'URL Instancji Defguard',
+        title: 'URL instancji Defguard',
       },
     },
     deleteNetwork: {
@@ -173,7 +203,7 @@ const pl: Translation = {
         totpCopied: 'Ścieżka TOTP skopiowana.',
         success: 'TOTP Enabled',
       },
-      copyPath: 'Skopiowana ścieżka TOTP',
+      copyPath: 'Kopiuj ścieżkę TOTP',
       form: {
         fields: {
           code: {
@@ -246,6 +276,26 @@ const pl: Translation = {
         success: '{username} usunięte.',
       },
     },
+    disableUser: {
+      title: 'Dezaktywuj użytkownika',
+      controls: {
+        submit: 'Dezaktywuj użytkownika',
+      },
+      message: 'Czy chcesz dezaktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został dezaktywowany.',
+      },
+    },
+    enableUser: {
+      title: 'Aktywuj użytkownika',
+      controls: {
+        submit: 'Aktywuj użytkownika',
+      },
+      message: 'Czy chcesz aktywować użytkownika {username}?',
+      messages: {
+        success: 'Użytkownik {username} został aktywowany.',
+      },
+    },
     deleteProvisioner: {
       title: 'Usuń provisionera',
       controls: {
@@ -276,8 +326,8 @@ const pl: Translation = {
       },
     },
     provisionKeys: {
-      warning: 'Ta operacja bezpowrotnie usunie dane z aplikacji openpgp klucza.',
-      title: 'Provisionowanie YubiKeya:',
+      warning: 'Ta operacja bezpowrotnie usunie dane z aplikacji OpenPGP klucza.',
+      title: 'Provisionowanie klucza YubiKey:',
       infoBox: `Wybrany provisioner musi mieć podłączony <b>pusty</b> YubiKey.
                 Aby zresetować YubiKey uruchom
                 <b>gpg --card-edit</b> przed generowaniem kluczy.`,
@@ -396,7 +446,7 @@ const pl: Translation = {
       deviceAdded: 'Urządzenie dodane',
     },
     helpers: {
-      setupOpt: `Możesz dodać urządzenie poprzez nasz klient lub skonfigurwać swoje urządzenie samemu.`,
+      setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
     },
     steps: {
       setupDevice: {
@@ -431,7 +481,7 @@ const pl: Translation = {
         },
         remote: {
           title: 'Aktywacja klienta desktop',
-          link: 'Pobierz klient Defguard',
+          link: 'Pobierz klienta Defguard',
           subTitle: 'Prosta konfiguracja jednym tokenem.',
         },
       },
@@ -443,15 +493,16 @@ const pl: Translation = {
         qrInfo:
           'Użyj poniższych konfiguracji aby połączyć się z wybranymi lokalizacjami.',
         helpers: {
-          qrHelper: `<p>Możesz skonfigurować Wireguard na telefonie skanując QR kod przez aplikację Wireguard.</p>`,
+          warningNoNetworks: 'Nie posiadasz dostępu do żadnej sieci.',
+          qrHelper: `<p>Możesz skonfigurować WireGuard na telefonie skanując QR kod używając aplikacji WireGuard.</p>`,
           warningAutoMode: `
-<p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong> nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
+<p>Uwaga, Defguard nie przechowuje twojego klucza prywatnego. Gdy opuścisz obecną stronę <strong>nie będziesz mógł</strong> pobrać ponownie konfiguracji z kluczem prywatnym.</p>
 `,
           warningManualMode: `<p>
-Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musisz uzupełnić pobraną konfigurację o swój klucz prywatny.
+Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupełnić pobraną konfigurację o swój klucz prywatny.
 </p>`,
         },
-        qrLabel: 'Konfiguracja Wireguard',
+        qrLabel: 'Konfiguracja WireGuard',
         inputNameLabel: 'Nazwa urządzenia',
       },
       copyToken: {
@@ -468,8 +519,8 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     },
     messages: {
       editSuccess: 'Użytkownik zaktualizowany.',
-      failedToFetchUserData: 'Błąd pobierania informacji o użtkowniku.',
-      passwordResetEmailSent: 'Email z resetem hasła został wysłany.',
+      failedToFetchUserData: 'Błąd pobierania informacji o użytkowniku.',
+      passwordResetEmailSent: 'E-mail zerowania hasła został wysłany.',
     },
     userDetails: {
       header: 'Szczegóły profilu',
@@ -484,13 +535,18 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Imię',
         },
         lastName: {
-          label: 'Last name',
+          label: 'Nazwisko',
         },
         phone: {
           label: 'Numer telefonu',
         },
         email: {
           label: 'E-mail',
+        },
+        status: {
+          label: 'Status',
+          active: 'Aktywny',
+          disabled: 'Nieaktywny',
         },
         groups: {
           label: 'Grupy użytkowników',
@@ -524,7 +580,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           mfaDisabled: 'MFA wyłączone.',
           OTPDisabled: 'Hasło jednorazowe wyłączone.',
           changeMFAMethod: 'Metoda MFA zmieniona.',
-          EmailMFADisabled: 'Metoda Email wyłączona.',
+          EmailMFADisabled: 'Metoda e-mail wyłączona.',
         },
         securityKey: {
           singular: 'klucz bezpieczeństwa',
@@ -541,7 +597,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           totp: 'Hasła jednorazowe oparte na czasie',
           webauth: 'Klucze bezpieczeństwa',
           wallets: 'Portfele',
-          email: 'Email',
+          email: 'E-mail',
         },
         editMode: {
           enable: 'Włącz',
@@ -567,11 +623,11 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         labels: {
           noData: 'Nie połączono',
           connectedThrough: 'Połączone przez',
-          publicIP: 'Publiczne IP',
+          publicIP: 'Publiczny adres IP',
           connectionDate: 'Data połączenia',
           lastLocation: 'Ostatnie połączenie z',
           active: 'aktywne',
-          assignedIp: 'Przydzielone IP',
+          assignedIp: 'Przydzielony adres IP',
           lastConnected: 'Ostatnio połączone',
         },
         edit: {
@@ -620,6 +676,63 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         line2: 'zarządzanie i provisioning.',
       },
     },
+    authenticationKeys: {
+      header: 'Klucze autoryzacyjne użytkownika',
+      addKey: 'Dodaj nowy klucz',
+      keysList: {
+        common: {
+          copy: 'Skopiuj',
+          delete: 'Usuń',
+          download: 'Pobierz',
+          key: 'Klucz',
+          rename: 'Zmień nazwę',
+          serialNumber: 'Numer seryjny',
+        },
+      },
+      deleteModal: {
+        confirmMessage: 'Klucz {name} zostanie trwale usunięty.',
+        title: 'Usuń klucz autoryzacyjny',
+      },
+      addModal: {
+        header: 'Dodaj nowy klucz autoryzacyjny',
+        keyType: 'Typ Klucza',
+        keyForm: {
+          labels: {
+            key: 'Klucz',
+            title: 'Nazwa',
+          },
+          placeholders: {
+            title: 'Nazwa Klucza',
+            key: {
+              ssh: 'Rozpoczyna się z ‘ssh-rsa’, ‘ecdsa-sha2-nistp256’, ...',
+              gpg: 'Rozpoczyna się z ‘-----BEGIN PGP PUBLIC KEY BLOCK-----‘',
+            },
+          },
+          submit: 'Dodaj klucz {name}',
+        },
+        messages: {
+          keyAdded: 'Klucz dodany.',
+          keyExists: 'Klucz już został dodany.',
+          unsupportedKeyFormat: 'Format klucza nie jest wspierany.',
+          genericError: 'Nie udało się dodać klucza. Proszę spróbować ponownie później.',
+        },
+        yubikeyForm: {
+          selectWorker: {
+            info: 'Ta operacja wyzeruje moduł GPG do ustawień fabrycznych po czym ponownie go skonfiguruje. Ta operacja jest nieodwracalna.',
+            selectLabel: 'Wybierz jedną stację do konfiguracji klucza.',
+            noData: 'Obecnie nie ma dostępnych stacji.',
+            available: 'Dostępny',
+            unavailable: 'Niedostępny',
+          },
+          provisioning: {
+            inProgress: 'Klucz jest konfigurowany, proszę czekać.',
+            error: 'Konfiguracja klucza zakończyła się niepowodzeniem.',
+            success: 'Klucz skonfigurowany pomyślnie.',
+          },
+          submit: 'Skonfiguruj klucz',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Użytkownicy',
@@ -644,10 +757,12 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         activateDesktop: 'Aktywacja klienta desktop',
         changePassword: 'Zmień hasło',
         edit: 'Edytuj konto',
-        provision: 'Stwórz klucze na YubiKey',
         delete: 'Usuń konto',
         startEnrollment: 'Rozpocznij rejestrację',
         resetPassword: 'Resetuj hasło',
+        addGPG: 'Dodaj klucz GPG',
+        addSSH: 'Dodaj klucz SSH',
+        addYubikey: 'Dodaj YubiKey',
       },
     },
   },
@@ -655,7 +770,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     bar: {
       overview: 'Przegląd sieci',
       users: 'Użytkownicy',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'YubiKey Provisioners',
       webhooks: 'Webhooki',
       openId: 'Aplikacje OpenID',
       myProfile: 'Mój profil',
@@ -663,21 +778,23 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       logOut: 'Wyloguj się',
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
+      groups: 'Grupy',
     },
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
       users: 'Użytkownicy',
-      settings: 'Defguard ustawienia globalne',
+      settings: 'Ustawienia globalne Defguard',
       user: 'Profil użytkownika',
-      provisioners: 'Yubikey Provisioners',
+      provisioners: 'YubiKey Provisioners',
       webhooks: 'Webhooki',
       openId: 'Aplikacje OpenID',
       overview: 'Przegląd lokalizacji',
       networkSettings: 'Edycja lokalizacji',
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
+      groups: 'Grupy',
     },
-    copyright: 'Copyright \u00A9 2023',
+    copyright: 'Copyright \u00A9 2023-2024',
     version: {
       open: 'Wersja aplikacji: {version}',
       closed: 'v {version}',
@@ -696,25 +813,32 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       username: 'Nazwa użytkownika',
     },
     error: {
-      usernameTaken: 'Nazwa użytkownika jest już w użyciu',
+      invalidCode: 'Podany kod jest niewłaściwy.',
+      forbiddenCharacter: 'Pole zawiera niedozwolone znaki.',
+      usernameTaken: 'Nazwa użytkownika jest już w użyciu.',
       invalidKey: 'Klucz jest nieprawidłowy.',
       invalid: 'Pole jest nieprawidłowe.',
       required: 'Pole jest wymagane.',
       maximumLength: 'Maksymalna długość przekroczona.',
-      minimumLength: 'Minimalna długość nie została osiągnięta',
+      minimumLength: 'Minimalna długość nie została osiągnięta.',
       noSpecialChars: 'Nie wolno używać znaków specjalnych.',
       oneDigit: 'Wymagana jedna cyfra.',
       oneSpecial: 'Wymagany jest znak specjalny.',
-      oneUppercase: 'Wymagany jeden duży znak.',
-      oneLowercase: 'Wymagany jeden znak małej litery.',
+      oneUppercase: 'Wymagana jedna duża litera.',
+      oneLowercase: 'Wymagana jedna mała litera.',
       portMax: 'Maksymalny numer portu to 65535.',
       endpoint: 'Wpisz prawidłowy punkt końcowy.',
       address: 'Wprowadź poprawny adres.',
       validPort: 'Wprowadź prawidłowy port.',
       validCode: 'Kod powinien mieć 6 cyfr.',
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
-      startFromNumber: 'Nie może zaczynać się od liczby',
-      repeat: 'Wartości się nie pokrywają',
+      startFromNumber: 'Nie może zaczynać się od liczby.',
+      repeat: 'Wartości się nie pokrywają.',
+      maximumValue: 'Maksymalna wartość {value} przekroczona.',
+      minimumValue: 'Minimalna wartość {value} nie osiągnięta.',
+      tooManyBadLoginAttempts:
+        'Zbyt duża ilość nieprawidłowego logowania. Spróbuj ponownie za kilka minut.',
+      number: 'Wartość musi być liczbą.',
     },
     floatingErrors: {
       title: 'Popraw następujące błędy:',
@@ -754,10 +878,16 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       smtp: 'SMTP',
       global: 'Globalne',
       ldap: 'LDAP',
+      openid: 'OpenID',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
+    },
+    enterpriseOnly: {
+      title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
+      website: 'stronę internetową',
     },
     ldapSettings: {
       title: 'Ustawienia LDAP',
@@ -783,6 +913,47 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           success: 'Połączono z LDAP',
         },
         submit: 'Test',
+      },
+    },
+    openIdSettings: {
+      general: {
+        title: 'Ustawienia zewnętrznego OpenID',
+        helper:
+          'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
+        createAccount: {
+          label:
+            'Automatycznie twórz konta w momencie logowania przez zewnętrznego dostawcę OpenID',
+          helper:
+            'Jeśli ta opcja jest włączona, Defguard automatycznie tworzy nowe konta dla użytkowników, którzy logują się po raz pierwszy za pomocą zewnętrznego dostawcy OpenID. W innym przypadku konto użytkownika musi zostać najpierw utworzone przez administratora.',
+        },
+      },
+      form: {
+        title: 'Ustawienia klienta zewnętrznego OpenID',
+        helper:
+          'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
+        custom: 'Niestandardowy',
+        documentation: 'Dokumentacja',
+        delete: 'Usuń dostawcę',
+        labels: {
+          provider: {
+            label: 'Dostawca',
+            helper:
+              'Wybierz swojego dostawcę OpenID. Możesz użyć dostawcy niestandardowego i samodzielnie wypełnić pole URL bazowego.',
+          },
+          client_id: {
+            label: 'ID klienta',
+            helper: 'ID klienta dostarczone przez dostawcę OpenID.',
+          },
+          client_secret: {
+            label: 'Sekret klienta',
+            helper: 'Sekret klienta dostarczony przez dostawcę OpenID.',
+          },
+          base_url: {
+            label: 'URL bazowy',
+            helper:
+              'Podstawowy adres URL twojego dostawcy OpenID, np. https://accounts.google.com. Sprawdź naszą dokumentację, aby uzyskać więcej informacji i zobaczyć przykłady.',
+          },
+        },
       },
     },
     modulesVisibility: {
@@ -840,7 +1011,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
             placeholder: 'Defguard',
           },
           mainLogoUrl: {
-            label: 'Url loga na stronie logowania',
+            label: 'URL logo na stronie logowania',
             helper: '<p>Maksymalna wielkość zdjęcia to 250x100 px.</p>',
             placeholder: 'Domyślny obrazek',
           },
@@ -857,13 +1028,35 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       },
       helper: `
 			      <p>
-            Tutaj możesz dodać adres url swojego logo i nazwę dla swojej instancji defguard
+            Tutaj możesz dodać URL swojego logo i nazwę dla swojej instancji defguard;
             będzie ona wyświetlana zamiast defguard.
           </p>
           <a href="{documentationLink}" target="_blank">
 					Przeczytaj więcej w dokumentacji.
           </a>
 			`,
+    },
+    license: {
+      header: 'Funkcje enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Tutaj możesz zarządzać swoją licencją Defguard Enterprise.',
+          link: 'By dowiedzieć się więcej, odwiedź naszą stronę.',
+        },
+        licenseKey: {
+          text: 'Wprowadź poniżej klucz licencyjny Defguard Enterprise. Powinieneś otrzymać go na swoją skrzynkę e-mailową po zakupie licencji.',
+          link: 'Licencję możesz zakupić tutaj.',
+        },
+      },
+      form: {
+        title: 'Licencja',
+        fields: {
+          key: {
+            label: 'Klucz licencji',
+            placeholder: 'Klucz licencji dla twojej instancji Defguard',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -893,7 +1086,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
             placeholder: 'Adres',
             helper: `
               <p>
-                Systemowe wiadomości będą nadawane z tego adresu. Np. no-reply@my-company.com.
+                Systemowe wiadomości będą wysyłane z tego adresu, np. no-reply@my-company.com.
               </p>
             `,
           },
@@ -903,7 +1096,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         },
       },
       testForm: {
-        title: 'Wyślij emaila testowego',
+        title: 'Wyślij testowy e-mail',
         fields: {
           to: {
             label: 'Adres',
@@ -912,8 +1105,8 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         },
         controls: {
           submit: 'Wyślij',
-          success: 'Email wysłany pomyślnie',
-          error: 'Błąd wysyłania emaila',
+          success: 'E-mail wysłany pomyślnie',
+          error: 'Błąd wysyłania e-maila',
         },
       },
       helper: `
@@ -964,7 +1157,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         welcomeEmail: {
           helper:
             'Ta wiadomość zostanie wysłana do użytkowników po zakończeniu rejestracji. Sugerujemy wymienienie w niej istotnych linków oraz krótkie wyjaśnienie kolejnych kroków. Możesz użyć tej samej treści co w wiadomości powitalnej.',
-          placeholder: 'Wpisz email powitalny',
+          placeholder: 'Wpisz e-mail powitalny',
         },
         welcomeEmailSubject: {
           label: 'Temat',
@@ -1006,7 +1199,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
       },
     },
     messages: {
-      noLicenseMessage: 'Nie masz licencji na tę funkcję.',
+      noLicenseMessage: 'Nie masz licencji dla tej funkcjonalności.',
       noClientsFound: 'Nie znaleziono żadnych wyników.',
       copySuccess: 'ID skopiowane',
     },
@@ -1046,7 +1239,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           },
           error: {
             urlRequired: 'URL jest wymagany.',
-            validUrl: 'Musi być poprawnym adresem URL.',
+            validUrl: 'URL musi być poprawny.',
             scopeValidation: 'Musi mieć co najmniej jeden zakres.',
           },
           fields: {
@@ -1064,10 +1257,13 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
               label: 'Profil',
             },
             email: {
-              label: 'Email',
+              label: 'E-mail',
             },
             phone: {
               label: 'Telefon',
+            },
+            groups: {
+              label: 'Grupy',
             },
           },
           controls: {
@@ -1082,7 +1278,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
   webhooksOverview: {
     pageTitle: 'Webhooki',
     search: {
-      placeholder: 'Znajdź webhooki po adresie url',
+      placeholder: 'Znajdź webhooki po adresie URL',
     },
     filterLabels: {
       all: 'Wszystkie webhooki',
@@ -1166,6 +1362,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         'Poznać podstawowe informacje z twojego profilu, takie jak login, imię itp',
       email: 'Poznać twój adres e-mail.',
       phone: 'Poznać twój numer telefonu.',
+      groups: 'Poznać twoje grupy.',
     },
     controls: {
       accept: 'Akceptuj',
@@ -1209,7 +1406,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
   },
   networkPage: {
     pageTitle: 'Edycja lokalizacji',
-    addNetwork: '+ Dodaj lokalizacje',
+    addNetwork: '+ Dodaj lokalizację',
     controls: {
       networkSelect: {
         label: 'Wybór lokalizacji',
@@ -1217,7 +1414,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     },
   },
   activityOverview: {
-    header: 'Strumien aktywności',
+    header: 'Strumień aktywności',
     noData: 'Obecnie nie wykryto żadnej aktywności',
   },
   networkConfiguration: {
@@ -1235,7 +1432,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
-        dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs wireguard jest aktywny.',
+        dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs WireGuard jest aktywny.',
         allowedIps: 'Lista adresów/masek, które powinny być routowane przez sieć VPN.',
         allowedGroups:
           'Domyślnie wszyscy użytkownicy będą mogli połączyć się z tą lokalizacją. Jeżeli chcesz ogranicznyć dostęp do tej lokalizacji do wybranej grupy użytkowników, wybierz ją poniżej.',
@@ -1267,6 +1464,15 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
           label: 'Dozwolone grupy',
           placeholder: 'Wszystkie grupy',
         },
+        mfa_enabled: {
+          label: 'Wymagaj MFA dla tej lokalizacji',
+        },
+        keepalive_interval: {
+          label: 'Utrzymanie połączenia [sekundy]',
+        },
+        peer_disconnect_threshold: {
+          label: 'Próg rozłączania [sekundy]',
+        },
       },
       controls: {
         submit: 'Zapisz zmiany',
@@ -1276,43 +1482,59 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     },
   },
   gatewaySetup: {
-    header: 'Uruchomienie serwera gateway',
+    header: {
+      main: 'Uruchomienie serwera gateway',
+      dockerBasedGatewaySetup: `Konfiguracja gateway za pomocą narzędzia docker`,
+      fromPackage: `Z pakietu`,
+      oneLineInstall: `Instalacja za pomocą jednej linii`,
+    },
     card: {
-      title: 'Komenda docker uruchamiająca serwer gateway',
+      title: 'Komenda Dockera uruchamiająca serwer gateway',
+      authToken: 'Token Autoryzacyjny',
+    },
+    button: {
+      availablePackages: `Dostępne pakiety`,
     },
     controls: {
       status: 'Sprawdź status połączenia',
     },
     messages: {
-      runCommand: `
-          <p>
-            Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
-            Szczegóły znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
-            Istnieje wiele sposobów na uruchomienie serwera gateway, poniższy przykład używa technologii docker,
-            więcej przykładów znajdziesz w <a href="{setupGatewayDocs}" target="_blank">dokumentacji</a>.
-          </p>`,
-      createNetwork: `
-          <p>
-            Utwórz sieć przed uruchomieniem procesu gateway.
-          </p>`,
-      noConnection: `<p>Brak połączenia proszę uruchom poniższą komendę.</p>`,
-      connected: `<p>Gateway połączony.</p>`,
+      runCommand: `Defguard wymaga uruchomienia serwera gateway w celu kontrolowania VPN.
+            Szczegóły znajdziesz w [dokumentacji]({setupGatewayDocs}).
+            Istnieje wiele sposobów na uruchomienie serwera gateway, poniższy przykład używa technologii Docker,
+            więcej przykładów znajdziesz w [dokumentacji]({setupGatewayDocs}).`,
+      createNetwork: `Utwórz sieć przed uruchomieniem procesu gateway.`,
+      noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
+      connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+        nie ma potrzeby wykonywania dalszych kroków.`,
+      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\` 
+        na podstawie [dokumentacji]({setupGatewayDocs}).`,
+      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu, 
+        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
+        Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
+      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze. 
+        Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
     },
   },
   loginPage: {
     pageTitle: 'Wprowadź swoje dane logowania',
+    callback: {
+      return: 'Powrót do logowania',
+      error: 'Wystąpił błąd podczas logowania przez zewnętrznego dostawcę OpenID',
+    },
     mfa: {
-      title: 'Autorzyacja dwuetapowa.',
+      title: 'Autoryzacja dwuetapowa.',
       controls: {
         useAuthenticator: 'Zamiast tego użyj aplikacji Authenticator',
         useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
         useWebauthn: 'Zamiast tego użyj klucza bezpieczeństwa',
         useRecoveryCode: 'Zamiast tego użyj kodu odzyskiwania',
-        useEmail: 'Zamiast tego użyj email',
+        useEmail: 'Zamiast tego użyj e-mail',
       },
       email: {
-        header: 'Użyj kodu wysłanego na email aby kontynuować',
+        header: 'Użyj kodu wysłanego na e-mail aby kontynuować',
         form: {
           controls: {
             resendCode: 'Wyślij kod ponownie',
@@ -1413,7 +1635,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
     wizardType: {
       manual: {
         title: 'Manualny',
-        description: 'Manualna konfiguracja sieci WireGuard',
+        description: 'Ręczna konfiguracja sieci WireGuard',
       },
       import: {
         title: 'Import',
@@ -1466,7 +1688,7 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         subject: {
           label: 'Temat wiadomości',
         },
-        title: 'Powitalny E-mail',
+        title: 'Powitalny e-mail',
         messageBox: 'Ta informacja będzie wysłana gdy użytkownik zakończy rejestrację.',
         controls: {
           duplicateWelcome: 'Identyczna jak wiadomość powitalna',
@@ -1492,31 +1714,31 @@ Uwaga, konfiguracje tutaj podane, nie posiadają twojego klucza prywatnego. Musi
         title: 'Potwierdź przekazanie danych',
         submit: 'Wyślij',
         subTitle:
-          'Potwierdź przesłanie danych diagnostycznych. Żadne poufne dane nie zostaną przesłane. (Klucze wireguard, adresy email, etc.)',
+          'Potwierdź przesłanie danych diagnostycznych. Żadne poufne dane nie zostaną przesłane. (Klucze WireGuard, adresy e-mail, itp.)',
       },
     },
     debugDataCard: {
       title: 'Dane wsparcia technicznego',
       body: `
-Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o wygenerowanie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
+Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o utworzenie danych wsparcia technicznego (np. na naszym kanale Matrix: **#defguard-support:teonite.com**), masz dwie opcje:
 * Możesz skonfigurować ustawienia SMTP i kliknąć: "Wyślij dane wsparcia technicznego".
 * Lub kliknąć "Pobierz dane wsparcia technicznego" i stworzyć zlecenie w naszym repozytorium GitHub załączając te pliki.
 `,
       downloadSupportData: 'Pobierz dane wsparcia technicznego',
-      downloadLogs: 'Pobierz logi',
-      sendMail: 'Wyślij email',
-      mailSent: 'Email wysłany',
-      mailError: 'Error sending email',
+      downloadLogs: 'Pobierz dzienniki',
+      sendMail: 'Wyślij e-mail',
+      mailSent: 'E-mail wysłany',
+      mailError: 'Błąd wysyłania e-mail',
     },
 
     supportCard: {
       title: 'Wsparcie',
       body: `
-Przed zgłoszeniem problemów na Github należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+Przed zgłoszeniem problemów na GitHub należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
 
 Aby zgłosić:
-* Problem - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
-* Prośbę o nową funkcjonalność - przejdź do [Github](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
+* Problem - przejdź do [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+* Prośbę o nową funkcjonalność - przejdź do [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
 
 W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
 `,

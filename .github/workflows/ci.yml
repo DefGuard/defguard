@@ -21,12 +21,12 @@ env:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux]
-    container: rust:1.74
+    runs-on: [self-hosted, Linux, X64]
+    container: rust:1
 
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_DB: defguard
           POSTGRES_USER: defguard
@@ -38,10 +38,8 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Debug
-        run: echo ${{ github.ref_name }}
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Cache

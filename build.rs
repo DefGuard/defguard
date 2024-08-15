@@ -5,18 +5,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         config,
         &[
             "proto/core/auth.proto",
+            "proto/core/proxy.proto",
             "proto/core/vpn.proto",
+            "src/enterprise/proto/license.proto",
             "proto/worker/worker.proto",
             "proto/wireguard/gateway.proto",
-            "proto/enrollment/enrollment.proto",
-            "proto/password_reset/password_reset.proto",
         ],
         &[
             "proto/core",
             "proto/worker",
             "proto/wireguard",
-            "proto/enrollment",
-            "proto/password_reset",
+            "src/enterprise/proto",
         ],
     )?;
     println!("cargo:rerun-if-changed=proto");

@@ -4,18 +4,25 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::handlers::ssh_authorized_keys::get_authorized_keys;
 use anyhow::anyhow;
+use assets::{index, svg, web_asset};
 use axum::{
-    handler::HandlerWithoutStateExt,
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    serve, Extension, Json, Router,
+};
+use enterprise::handlers::{
+    check_enterprise_status,
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+};
+use handlers::ssh_authorized_keys::{
+    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
 };
 use handlers::{
-    group::{create_group, delete_group, modify_group},
-    settings::{get_settings_essentials, patch_settings, test_ldap_settings},
-    user::reset_password,
+    group::{bulk_assign_to_groups, list_groups_info},
+    ssh_authorized_keys::rename_authentication_key,
+    yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
@@ -27,42 +34,14 @@ use tokio::{
         OnceCell,
     },
 };
-use tower_http::{
-    services::{ServeDir, ServeFile},
-    trace::{DefaultOnResponse, TraceLayer},
-};
+use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
-
-use self::{
-    appstate::AppState,
-    auth::{Claims, ClaimsType},
-    config::{DefGuardConfig, InitVpnLocationArgs},
-    db::{init_db, AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork},
-    handlers::{
-        auth::{
-            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
-            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
-            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
-            webauthn_finish, webauthn_init, webauthn_start,
-        },
-        forward_auth::forward_auth,
-        group::{add_group_member, get_group, list_groups, remove_group_member},
-        mail::{send_support_data, test_mail},
-        settings::{get_settings, set_default_branding, update_settings},
-        support::{configuration, logs},
-        user::{
-            add_user, change_password, change_self_password, delete_authorized_app,
-            delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
-            set_wallet, start_enrollment, start_remote_desktop_configuration, update_wallet,
-            username_available, wallet_challenge,
-        },
-        webhooks::{
-            add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
-        },
-    },
-    mail::Mail,
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
 };
+use utoipa_swagger_ui::SwaggerUi;
 
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
@@ -85,6 +64,46 @@ use self::handlers::{
         authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
     },
 };
+use self::{
+    appstate::AppState,
+    auth::{Claims, ClaimsType},
+    config::{DefGuardConfig, InitVpnLocationArgs},
+    db::{
+        init_db,
+        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork,
+    },
+    handlers::{
+        auth::{
+            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
+            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
+            webauthn_finish, webauthn_init, webauthn_start,
+        },
+        forward_auth::forward_auth,
+        group::{
+            add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
+            remove_group_member,
+        },
+        mail::{send_support_data, test_mail},
+        settings::{
+            get_settings, get_settings_essentials, patch_settings, set_default_branding,
+            test_ldap_settings, update_settings,
+        },
+        ssh_authorized_keys::get_authorized_keys,
+        support::{configuration, logs},
+        user::{
+            add_user, change_password, change_self_password, delete_authorized_app,
+            delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
+            reset_password, set_wallet, start_enrollment, start_remote_desktop_configuration,
+            update_wallet, username_available, wallet_challenge,
+        },
+        webhooks::{
+            add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+        },
+    },
+    mail::Mail,
+};
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
     auth::failed_login::FailedLoginMap,
@@ -94,9 +113,11 @@ use self::{
 };
 
 pub mod appstate;
+pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
+pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -109,6 +130,7 @@ pub mod secret;
 pub mod support;
 pub mod templates;
 pub mod wg_config;
+pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
 
 #[macro_use]
@@ -118,8 +140,125 @@ extern crate tracing;
 extern crate serde;
 
 pub static VERSION: &str = env!("CARGO_PKG_VERSION");
-// TODO: use in more contexts instead of cloning/passing config around
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
+
+pub(crate) fn server_config() -> &'static DefGuardConfig {
+    SERVER_CONFIG
+        .get()
+        .expect("Server configuration not set yet")
+}
+
+// WireGuard key length in bytes.
+pub(crate) const KEY_LENGTH: usize = 32;
+
+mod openapi {
+    use db::{
+        models::device::{ModifyDevice, UserDevice},
+        AddDevice, UserDetails, UserInfo,
+    };
+    use error::WebError;
+    use handlers::wireguard as device;
+    use handlers::{
+        group::{self, BulkAssignToGroupsRequest, Groups},
+        user::{self, WalletInfoShort},
+        wireguard::AddDeviceResult,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
+    };
+    use utoipa::OpenApi;
+
+    use super::*;
+
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            // /user
+            user::list_users,
+            user::get_user,
+            user::add_user,
+            user::start_enrollment,
+            user::start_remote_desktop_configuration,
+            user::username_available,
+            user::modify_user,
+            user::delete_user,
+            user::change_self_password,
+            user::change_password,
+            user::reset_password,
+            user::wallet_challenge,
+            user::set_wallet,
+            user::update_wallet,
+            user::delete_wallet,
+            user::delete_security_key,
+            user::me,
+            user::delete_authorized_app,
+            // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
+            // /group
+            group::bulk_assign_to_groups,
+            group::list_groups_info,
+            group::list_groups,
+            group::get_group,
+            group::create_group,
+            group::modify_group,
+            group::delete_group,
+            group::add_group_member,
+            group::remove_group_member,
+        ),
+        components(
+            schemas(
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+            ),
+        ),
+        tags(
+            (name = "user", description = "
+Endpoints that allow to control user data.
+
+Available actions:
+- list all users
+- CRUD mechanism for handling users
+- operations on user wallet
+- operations on security key and authorized app
+- change user password.
+            "),
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "group", description = "
+Endpoints that allow to control groups in your network.
+
+Available actions:
+- list all groups
+- CRUD mechanism for handling groups
+- add or delete a group member.
+            ")
+        )
+    )]
+    pub struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add an appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                )
+            }
+        }
+    }
+}
 
 /// Simple health-check.
 async fn health_check() -> &'static str {
@@ -130,8 +269,11 @@ async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
 }
 
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::ApiDoc::openapi())
+}
+
 pub fn build_webapp(
-    config: DefGuardConfig,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
@@ -142,15 +284,21 @@ pub fn build_webapp(
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
-    let serve_web_dir = ServeDir::new("web/dist").fallback(ServeFile::new("web/dist/index.html"));
-    let serve_images =
-        ServeDir::new("web/src/shared/images/svg").not_found_service(handle_404.into_service());
-    let webapp = Router::new().nest(
+    let webapp: Router<AppState> = Router::new()
+        .route("/", get(index))
+        .route("/*path", get(index))
+        .route("/fonts/*path", get(web_asset))
+        .route("/assets/*path", get(web_asset))
+        .route("/svg/*path", get(svg))
+        .fallback_service(get(handle_404));
+
+    let webapp = webapp.nest(
         "/api/v1",
         Router::new()
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -189,6 +337,23 @@ pub fn build_webapp(
             .route("/user/:username/password", put(change_password))
             .route("/user/:username/reset_password", post(reset_password))
             .route("/user/:username/challenge", get(wallet_challenge))
+            // auth keys
+            .route("/user/:username/auth_key", get(fetch_authentication_keys))
+            .route("/user/:username/auth_key", post(add_authentication_key))
+            .route(
+                "/user/:username/auth_key/:key_id",
+                delete(delete_authentication_key),
+            )
+            .route(
+                "/user/:username/auth_key/:key_id/rename",
+                post(rename_authentication_key),
+            )
+            // yubi keys
+            .route("/user/:username/yubikey/:key_id", delete(delete_yubikey))
+            .route(
+                "/user/:username/yubikey/:key_id/rename",
+                post(rename_yubikey),
+            )
             .route("/user/:username/wallet", put(set_wallet))
             .route("/user/:username/wallet/:address", put(update_wallet))
             .route("/user/:username/wallet/:address", delete(delete_wallet))
@@ -205,12 +370,14 @@ pub fn build_webapp(
             .route("/forward_auth", get(forward_auth))
             // group
             .route("/group", get(list_groups))
-            .route("/group/:name", get(get_group))
             .route("/group", post(create_group))
+            .route("/group/:name", get(get_group))
             .route("/group/:name", put(modify_group))
             .route("/group/:name", delete(delete_group))
             .route("/group/:name", post(add_group_member))
             .route("/group/:name/user/:username", delete(remove_group_member))
+            .route("/group-info", get(list_groups_info))
+            .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
             .route("/mail/test", post(test_mail))
             .route("/mail/support", post(send_support_data))
@@ -234,6 +401,18 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings)),
     );
+
+    // Enterprise features
+    let webapp = webapp.nest(
+        "/api/v1/openid",
+        Router::new()
+            .route("/provider", get(get_current_openid_provider))
+            .route("/provider", post(add_openid_provider))
+            .route("/provider/:name", delete(delete_openid_provider))
+            .route("/callback", post(auth_callback))
+            .route("/auth_info", get(get_auth_info)),
+    );
+    let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
     #[cfg(feature = "openid")]
     let webapp = webapp
@@ -261,6 +440,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            // FIXME: change /device/:device_id to /device/:username
             .route("/device/:device_id", post(add_device))
             .route("/device/:device_id", put(modify_device))
             .route("/device/:device_id", get(get_device))
@@ -301,11 +481,11 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let swagger =
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+
     webapp
-        .nest_service("/svg", serve_images)
-        .nest_service("/", serve_web_dir)
         .with_state(AppState::new(
-            config,
             pool,
             webhook_tx,
             webhook_rx,
@@ -325,11 +505,11 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
@@ -341,7 +521,6 @@ pub async fn run_web_server(
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
-        config.clone(),
         webhook_tx,
         webhook_rx,
         wireguard_tx,
@@ -353,7 +532,7 @@ pub async fn run_web_server(
         failed_logins,
     );
     info!("Started web services");
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.http_port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
     let listener = TcpListener::bind(&addr).await?;
     serve(
         listener,
@@ -407,6 +586,9 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             "0.0.0.0".to_string(),
             None,
             vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 0)), 24).unwrap()],
+            false,
+            DEFAULT_KEEPALIVE_INTERVAL,
+            DEFAULT_DISCONNECT_THRESHOLD,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -486,6 +668,9 @@ pub async fn init_vpn_location(
         args.endpoint.clone(),
         args.dns.clone(),
         args.allowed_ips.clone(),
+        false,
+        DEFAULT_KEEPALIVE_INTERVAL,
+        DEFAULT_DISCONNECT_THRESHOLD,
     )?;
     network.save(pool).await?;
     let network_id = network.get_id()?;

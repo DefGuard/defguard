@@ -19,7 +19,6 @@ import {
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
-import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
@@ -27,10 +26,10 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
+import { UserAuthenticationKeys } from './UserAuthenticationKeys/UserAuthenticationKeys';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
 import { UserWallets } from './UserWallets/UserWallets';
-import { UserYubiKeys } from './UserYubiKeys/UserYubiKeys';
 
 export const UserProfile = () => {
   const toaster = useToaster();
@@ -40,7 +39,6 @@ export const UserProfile = () => {
   const currentUser = useAuthStore((state) => state.user);
   const editMode = useUserProfileStore((state) => state.editMode);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
-  const appSettings = useAppStore((state) => state.settings);
   const {
     user: { getUser },
   } = useApi();
@@ -94,10 +92,10 @@ export const UserProfile = () => {
         </div>
         <div className="cards-1">
           <UserDevices />
+          <UserWallets />
         </div>
         <div className="cards-2">
-          <UserWallets />
-          {appSettings?.worker_enabled && <UserYubiKeys />}
+          <UserAuthenticationKeys />
         </div>
       </div>
     </section>

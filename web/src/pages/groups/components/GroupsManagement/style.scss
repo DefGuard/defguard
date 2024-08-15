@@ -1,0 +1,69 @@
+#groups-page {
+  .content-wrapper {
+    & > header {
+      display: flex;
+      min-height: 62px;
+      flex-flow: row wrap;
+      column-gap: 30px;
+      row-gap: 20px;
+      align-items: center;
+      justify-content: flex-start;
+      padding-bottom: 42px;
+      overflow: hidden;
+
+      h1 {
+        @include typography(app-title);
+        text-wrap: nowrap;
+      }
+
+      .search {
+        max-height: 40px;
+        width: 100%;
+        max-width: 360px;
+      }
+    }
+
+    #groups-control {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      padding-bottom: 30px;
+
+      h3 {
+        @include typography(app-body-1);
+        padding-right: 10px;
+      }
+
+      #items-count {
+        display: flex;
+        flex-flow: row;
+        min-width: 30px;
+        min-height: 30px;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        padding: 2px 5px;
+        border-radius: 10px;
+        background-color: var(--text-body-tertiary);
+
+        span {
+          display: block;
+          @include typography(app-number);
+          color: var(--surface-frame-bg);
+        }
+      }
+
+      & > .btn {
+        margin-left: auto;
+        height: 40px;
+
+        svg {
+          path {
+            fill: var(--surface-icon-secondary);
+          }
+        }
+      }
+    }
+  }
+}

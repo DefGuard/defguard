@@ -2,11 +2,11 @@ import {
   create,
   parseCreationOptionsFromJSON,
 } from '@github/webauthn-json/browser-ponyfill';
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -26,7 +26,7 @@ interface FormInputs {
 }
 
 export const RegisterWebAuthNForm = () => {
-  const { LL, locale } = useI18nContext();
+  const { LL } = useI18nContext();
   const toaster = useToaster();
   const setModalState = useModalStore((state) => state.setState);
   const [waitingForSecurityKey, setWaitingForSecurityKey] = useState(false);
@@ -63,19 +63,15 @@ export const RegisterWebAuthNForm = () => {
     },
   );
 
-  const formSchema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object()
-        .shape({
-          name: yup
-            .string()
-            .required(LL.form.error.required())
-            .min(4, LL.form.error.minimumLength()),
-        })
-        .required(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale],
+      z.object({
+        name: z
+          .string()
+          .min(1, LL.form.error.required())
+          .min(4, LL.form.error.minimumLength()),
+      }),
+    [LL.form.error],
   );
 
   const {
@@ -85,7 +81,7 @@ export const RegisterWebAuthNForm = () => {
     getValues,
     reset,
   } = useForm<FormInputs>({
-    resolver: yupResolver(formSchema),
+    resolver: zodResolver(zodSchema),
     mode: 'all',
     defaultValues: {
       name: '',

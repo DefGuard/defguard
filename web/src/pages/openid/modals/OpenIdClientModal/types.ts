@@ -11,4 +11,5 @@ export enum OpenIdClientScope {
   PROFILE = 'profile',
   EMAIL = 'email',
   PHONE = 'phone',
+  GROUPS = 'groups',
 }

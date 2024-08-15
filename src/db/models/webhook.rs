@@ -1,7 +1,8 @@
-use super::UserInfo;
-use crate::DbPool;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError, FromRow};
+
+use super::UserInfo;
+use crate::DbPool;
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -18,7 +19,7 @@ pub struct HWKeyUserData {
     pub email: String,
     pub ssh_key: String,
     pub pgp_key: String,
-    pub pgp_cert_id: String,
+    pub serial: String,
 }
 
 impl AppEvent {

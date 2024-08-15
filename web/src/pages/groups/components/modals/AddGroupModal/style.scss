@@ -1,0 +1,85 @@
+#modify-group-modal {
+  --modal-side-padding: 40px;
+  width: 100%;
+  background-color: var(--surface-frame-bg);
+
+  @include media-breakpoint-up(lg) {
+    max-width: clamp(260px, 750px, 85vw);
+  }
+
+  & > .content {
+    padding: 0 0 40px 0;
+
+    .controls {
+      padding-top: 40px;
+      margin: 0;
+    }
+
+    & > form {
+      & > .divider {
+        margin-bottom: 10px;
+      }
+    }
+
+    .select-row {
+      p,
+      span {
+        @include typography(app-strap);
+      }
+    }
+
+    .select-all {
+      cursor: pointer;
+      height: 60px;
+      margin-bottom: 10px;
+    }
+
+    .search-wrapper {
+      padding-bottom: 10px;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+
+      .search {
+        width: 100%;
+        max-width: 330px;
+        height: 40px;
+      }
+    }
+
+    .users {
+      display: bloc;
+      box-sizing: border-box;
+      padding: 0 calc(var(--modal-side-padding) - 9px - 4px) 0 var(--modal-padding-side);
+
+      .scroll-wrapper {
+        scrollbar-gutter: stable;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-flow: column;
+        row-gap: 10px;
+        max-height: calc(60px * 5 + (10px * 4));
+      }
+
+      .select-row {
+        height: 60px;
+        cursor: pointer;
+
+        .content {
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          justify-content: flex-start;
+          column-gap: 25px;
+
+          :nth-child(2) {
+            margin-left: auto;
+          }
+        }
+      }
+    }
+  }
+}

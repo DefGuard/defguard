@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
+import ReactMarkdown from 'react-markdown';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';

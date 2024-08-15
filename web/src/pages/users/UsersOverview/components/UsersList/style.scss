@@ -1,20 +1,14 @@
-@use '@scss/helpers' as *;
-
 @mixin list-layout {
   display: inline-grid;
   grid-template-columns: 1fr 40px;
+  align-items: center;
+
   @include media-breakpoint-up(lg) {
-    grid-template-columns: minmax(150px, 25%) 1fr 1fr 60px;
-  }
-
-  @for $i from 1 through 4 {
-    & > :nth-child(#{$i}) {
-      grid-column: $i;
-    }
-  }
-
-  & > * {
-    grid-row: 1;
+    grid-template-columns:
+      33px minmax(100px, 1fr)
+      repeat(2, minmax(128px, 1fr))
+      minmax(300px, 1fr)
+      50px;
   }
 }
 
@@ -22,18 +16,27 @@
   .users-list {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
+    row-gap: 10px;
+
     @include media-breakpoint-up(lg) {
-      grid-template-rows: 28px 1fr;
+      grid-template-rows: 22px 1fr;
     }
 
     .headers {
       display: none;
+      margin-bottom: 0;
+
       @include media-breakpoint-up(lg) {
         @include list-layout;
 
-        :nth-child(4) {
+        :last-child {
           justify-content: center;
         }
+      }
+
+      span,
+      p {
+        @include typography(app-wizard-1);
       }
     }
 
@@ -43,39 +46,108 @@
       grid-row: 1;
       grid-column: 1;
       padding-bottom: 1.5rem;
+
       @include media-breakpoint-up(lg) {
         grid-row: 2;
         padding-bottom: 40px;
       }
     }
 
-    .default-row {
-      @include list-layout;
-
-      align-items: center;
-      grid-template-rows: 1fr;
+    .users-list-row {
+      width: 100%;
       height: 60px;
-      cursor: pointer;
+      box-sizing: border-box;
+      @include list-layout;
+      padding: 0 15px;
+      background-color: var(--surface-default-modal);
+      border-radius: 15px;
+      border: 1px solid transparent;
+      transition-property: border;
+      transition-duration: 100ms;
+      transition-timing-function: ease-in-out;
 
-      .username,
-      .name,
-      .phone {
-        @include regular-text;
-        @include text-weight(medium);
+      &:hover {
+        border-color: var(--border-primary);
       }
 
-      .name {
+      & > * {
+        & > p,
+        & > span {
+          @include typography(app-button-xl);
+        }
+      }
+
+      &.user-disabled {
+        :not(.user-initials-box > *, .user-edit-cell > *) {
+          color: var(--text-body-tertiary);
+        }
+      }
+
+      .name-cell {
         display: flex;
-        flex-flow: row nowrap;
-        column-gap: 1rem;
-        align-content: center;
+        flex-flow: row;
         align-items: center;
         justify-content: flex-start;
+        column-gap: 10px;
+        cursor: pointer;
+
+        .user-initials-box {
+          span {
+            @include typography(app-avatar-L);
+          }
+        }
       }
 
-      & > :nth-child(4) {
-        button {
-          width: 100%;
+      .user-edit-cell {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .groups-cell {
+        display: flex;
+        flex-flow: row nowrap;
+        column-gap: 10px;
+        justify-content: flex-start;
+        align-items: center;
+        overflow: hidden;
+        max-width: 100%;
+        cursor: default;
+
+        .group {
+          user-select: none;
+          display: flex;
+          flex-flow: row;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          padding: 0 10px;
+          height: 32px;
+          border: 1px solid var(--border-primary);
+          border-radius: 10px;
+          background-color: var(--surface-default-modal);
+          width: max-content;
+          max-width: 135px;
+          overflow: hidden;
+
+          & > * {
+            @include typography(app-input);
+            display: block;
+            cursor: default;
+          }
+        }
+
+        &.clickable {
+          cursor: pointer;
+
+          .group {
+            cursor: pointer;
+
+            & > * {
+              cursor: pointer;
+            }
+          }
         }
       }
     }

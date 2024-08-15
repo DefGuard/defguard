@@ -12,16 +12,13 @@ use crate::{
 
 #[must_use]
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
-    Arc::new(
-        UserAgentParser::builder()
-            .build_from_yaml("user_agent_header_regexes.yaml")
-            .expect("Parser creation failed"),
-    )
+    let regexes = include_bytes!("../user_agent_header_regexes.yaml");
+    Arc::new(UserAgentParser::from_bytes(regexes).expect("Parser creation failed"))
 }
 
 #[must_use]
 pub fn parse_user_agent<'a>(
-    user_parser: &'a Arc<UserAgentParser>,
+    user_parser: &UserAgentParser,
     user_agent: &'a str,
 ) -> Option<Client<'a>> {
     if user_agent.is_empty() {
@@ -32,10 +29,7 @@ pub fn parse_user_agent<'a>(
 }
 
 #[must_use]
-pub fn get_device_info(
-    user_agent_parser: &Arc<UserAgentParser>,
-    user_agent: &str,
-) -> Option<String> {
+pub fn get_device_info(user_agent_parser: &UserAgentParser, user_agent: &str) -> Option<String> {
     let agent = parse_user_agent(user_agent_parser, user_agent);
 
     agent.map(|v| get_user_agent_device(&v))

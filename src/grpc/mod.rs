@@ -1,5 +1,6 @@
 use std::{
     collections::hash_map::HashMap,
+    fs::read_to_string,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -11,8 +12,18 @@ use std::{
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::transport::{Identity, Server, ServerTlsConfig};
+use tokio::{
+    sync::{
+        broadcast::Sender,
+        mpsc::{self, UnboundedSender},
+    },
+    time::sleep,
+};
+use tokio_stream::wrappers::UnboundedReceiverStream;
+use tonic::{
+    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    Status,
+};
 use uaparser::UserAgentParser;
 use uuid::Uuid;
 
@@ -20,7 +31,10 @@ use uuid::Uuid;
 use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
-    enrollment::{proto::enrollment_service_server::EnrollmentServiceServer, EnrollmentServer},
+    desktop_client_mfa::ClientMfaServer,
+    enrollment::EnrollmentServer,
+    password_reset::PasswordResetServer,
+    proto::core_response,
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -28,15 +42,8 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap,
-    config::DefGuardConfig,
-    db::AppEvent,
-    grpc::password_reset::{
-        proto::password_reset_service_server::PasswordResetServiceServer, PasswordResetServer,
-    },
-    handlers::mail::send_gateway_disconnected_email,
-    mail::Mail,
-    SERVER_CONFIG,
+    auth::failed_login::FailedLoginMap, db::AppEvent,
+    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -45,6 +52,7 @@ use crate::{
 };
 
 mod auth;
+mod desktop_client_mfa;
 pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
@@ -53,6 +61,12 @@ mod interceptor;
 pub mod password_reset;
 #[cfg(feature = "worker")]
 pub mod worker;
+
+pub(crate) mod proto {
+    tonic::include_proto!("defguard.proxy");
+}
+
+use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -107,7 +121,7 @@ impl GatewayMap {
 
     // remove gateway from map
     pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
-        info!("Removing gateway from network {network_id}");
+        debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
             let hostname = match network_gateway_map
@@ -120,6 +134,7 @@ impl GatewayMap {
                 }
                 Some((hostname, state)) => {
                     if state.connected {
+                        error!("Cannot remove. Gateway with UID {uid} is still active");
                         return Err(GatewayMapError::RemoveActive(uid));
                     }
                     hostname.clone()
@@ -132,6 +147,7 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
+        info!("Gateway with UID {uid} removed from network {network_id}");
         Ok(())
     }
 
@@ -142,12 +158,16 @@ impl GatewayMap {
         network_id: i64,
         hostname: &str,
     ) -> Result<(), GatewayMapError> {
-        info!("Connecting gateway {hostname} in network {network_id}");
+        debug!("Connecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(hostname) {
                 state.connected = true;
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
+                debug!(
+                    "Gateway {hostname} found in gateway map, current state: {:#?}",
+                    state
+                );
             } else {
                 error!("Gateway {hostname} not found in gateway map for network {network_id}");
                 return Err(GatewayMapError::NotFound(network_id, hostname.into()));
@@ -157,6 +177,7 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
+        info!("Gateway {hostname} connected in network {network_id}");
         Ok(())
     }
 
@@ -167,12 +188,14 @@ impl GatewayMap {
         hostname: String,
         pool: &DbPool,
     ) -> Result<(), GatewayMapError> {
-        info!("Disconnecting gateway {hostname} in network {network_id}");
+        debug!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification(pool)?;
+                state.send_disconnect_notification(pool);
+                debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
+                info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
             };
         };
@@ -200,6 +223,7 @@ impl GatewayMap {
             None => Vec::new(),
         }
     }
+
     // return gateway name
     #[must_use]
     pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
@@ -263,7 +287,8 @@ impl GatewayState {
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &DbPool) -> Result<(), GatewayMapError> {
+    fn send_disconnect_notification(&mut self, pool: &DbPool) {
+        debug!("Sending gateway disconnect email notification");
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
         let mail_tx = self.mail_tx.clone();
@@ -273,10 +298,7 @@ impl GatewayState {
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
             Utc::now().naive_utc() - last_notification_time
                 > ChronoDuration::from_std(
-                    *SERVER_CONFIG
-                        .get()
-                        .ok_or(GatewayMapError::ConfigError)?
-                        .gateway_disconnection_notification_timeout,
+                    *server_config().gateway_disconnection_notification_timeout,
                 )
                 .expect("Failed to parse duration")
         } else {
@@ -292,22 +314,220 @@ impl GatewayState {
                         .await
                 {
                     error!("Failed to send gateway disconnect notification: {e}");
+                } else {
+                    info!("Gateway {hostname} disconnected. Email notification sent",);
                 }
             });
         } else {
-            debug!(
+            info!(
                 "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
                 self.last_email_notification
             );
         };
+    }
+}
 
-        Ok(())
+const TEN_SECS: Duration = Duration::from_secs(10);
+
+impl From<Status> for CoreError {
+    fn from(status: Status) -> Self {
+        Self {
+            status_code: status.code().into(),
+            message: status.message().into(),
+        }
+    }
+}
+
+/// Bi-directional gRPC stream for comminication with Defguard proxy.
+pub async fn run_grpc_bidi_stream(
+    pool: DbPool,
+    wireguard_tx: Sender<GatewayEvent>,
+    mail_tx: UnboundedSender<Mail>,
+    user_agent_parser: Arc<UserAgentParser>,
+) -> Result<(), anyhow::Error> {
+    let config = server_config();
+
+    // TODO: merge the two
+    let enrollment_server = EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        mail_tx.clone(),
+        user_agent_parser,
+    );
+    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
+    let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx, wireguard_tx);
+
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
+    let endpoint = endpoint
+        .http2_keep_alive_interval(TEN_SECS)
+        .tcp_keepalive(Some(TEN_SECS))
+        .keep_alive_while_idle(true);
+    let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
+        let ca = read_to_string(ca)?;
+        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        endpoint.tls_config(tls)?
+    } else {
+        endpoint
+    };
+
+    loop {
+        debug!("Connecting to proxy at {}", endpoint.uri());
+        let mut client = ProxyClient::new(endpoint.connect_lazy());
+        let (tx, rx) = mpsc::unbounded_channel();
+        let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
+            error!("Failed to connect to proxy, retrying in 10s");
+            sleep(TEN_SECS).await;
+            continue;
+        };
+        info!("Connected to proxy at {}", endpoint.uri());
+        let mut resp_stream = response.into_inner();
+        'message: loop {
+            match resp_stream.message().await {
+                Ok(None) => {
+                    info!("stream was closed by the sender");
+                    break 'message;
+                }
+                Ok(Some(received)) => {
+                    info!("Received message from proxy.");
+                    debug!("Received the following message from proxy: {received:?}");
+                    let payload = match received.payload {
+                        // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
+                        Some(core_request::Payload::EnrollmentStart(request)) => {
+                            match enrollment_server.start_enrollment(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::EnrollmentStart(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("start enrollment error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
+                        Some(core_request::Payload::ActivateUser(request)) => {
+                            match enrollment_server
+                                .activate_user(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("activate user error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
+                        Some(core_request::Payload::NewDevice(request)) => {
+                            match enrollment_server
+                                .create_device(request, received.device_info)
+                                .await
+                            {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::DeviceConfig(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("create device error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
+                        Some(core_request::Payload::ExistingDevice(request)) => {
+                            match enrollment_server.get_network_info(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::DeviceConfig(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("get network info error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
+                        Some(core_request::Payload::PasswordResetInit(request)) => {
+                            match password_reset_server
+                                .request_password_reset(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("password reset init error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
+                        Some(core_request::Payload::PasswordResetStart(request)) => {
+                            match password_reset_server.start_password_reset(request).await {
+                                Ok(response_payload) => Some(
+                                    core_response::Payload::PasswordResetStart(response_payload),
+                                ),
+                                Err(err) => {
+                                    error!("password reset start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
+                        Some(core_request::Payload::PasswordReset(request)) => {
+                            match password_reset_server
+                                .reset_password(request, received.device_info)
+                                .await
+                            {
+                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    error!("password reset error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaStart (ClientMfaStartRequest) returns (ClientMfaStartResponse)
+                        Some(core_request::Payload::ClientMfaStart(request)) => {
+                            match client_mfa_server.start_client_mfa_login(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::ClientMfaStart(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("client MFA start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // rpc ClientMfaFinish (ClientMfaFinishRequest) returns (ClientMfaFinishResponse)
+                        Some(core_request::Payload::ClientMfaFinish(request)) => {
+                            match client_mfa_server.finish_client_mfa_login(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::ClientMfaFinish(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("client MFA start error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
+                        // Reply without payload.
+                        None => None,
+                    };
+                    let req = CoreResponse {
+                        id: received.id,
+                        payload,
+                    };
+                    tx.send(req).unwrap();
+                }
+                Err(err) => {
+                    error!("Disconnected from proxy at {}", endpoint.uri());
+                    error!("stream error: {err}");
+                    debug!("waiting 10s to re-establish the connection");
+                    sleep(TEN_SECS).await;
+                    break 'message;
+                }
+            }
+        }
     }
 }
 
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
-    config: &DefGuardConfig,
     worker_state: Arc<Mutex<WorkerState>>,
     pool: DbPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -315,23 +535,10 @@ pub async fn run_grpc_server(
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
-    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
-    let enrollment_service = EnrollmentServiceServer::new(EnrollmentServer::new(
-        pool.clone(),
-        wireguard_tx.clone(),
-        mail_tx.clone(),
-        user_agent_parser,
-        config.clone(),
-    ));
-    let password_reset_service = PasswordResetServiceServer::new(PasswordResetServer::new(
-        pool.clone(),
-        mail_tx.clone(),
-        config.clone(),
-    ));
     #[cfg(feature = "worker")]
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
@@ -342,25 +549,32 @@ pub async fn run_grpc_server(
         GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
+
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<AuthServer>>()
+        .await;
+
     // Run gRPC server
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.grpc_port);
-    info!("Started gRPC services");
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
+    debug!("Starting gRPC services");
     let builder = if let (Some(cert), Some(key)) = (grpc_cert, grpc_key) {
         let identity = Identity::from_pem(cert, key);
         Server::builder().tls_config(ServerTlsConfig::new().identity(identity))?
     } else {
         Server::builder()
     };
-    let builder = builder.http2_keepalive_interval(Some(Duration::from_secs(10)));
-    let mut builder = builder.tcp_keepalive(Some(Duration::from_secs(10)));
-    let router = builder.add_service(auth_service);
-    let router = router.add_service(enrollment_service);
-    let router = router.add_service(password_reset_service);
+    let router = builder
+        .http2_keepalive_interval(Some(TEN_SECS))
+        .tcp_keepalive(Some(TEN_SECS))
+        .add_service(health_service)
+        .add_service(auth_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
+    info!("gRPC server started on {addr}");
     Ok(())
 }
 
@@ -377,9 +591,7 @@ pub struct Job {
 #[derive(Serialize)]
 pub struct JobResponse {
     pub success: bool,
-    pgp_key: String,
-    pgp_cert_id: String,
-    ssh_key: String,
+    pub serial: String,
     pub error: String,
     #[serde(skip)]
     pub username: String,

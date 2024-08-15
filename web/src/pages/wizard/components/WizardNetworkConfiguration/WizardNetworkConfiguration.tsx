@@ -1,13 +1,14 @@
 import './style.scss';
 
-import { yupResolver } from '@hookform/resolvers/yup';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
@@ -18,12 +19,8 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
-import {
-  validateIp,
-  validateIpList,
-  validateIpOrDomain,
-  validateIpOrDomainList,
-} from '../../../../shared/validators';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
+import { validateIp, validateIpOrDomainList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 type FormInputs = ModifyNetworkRequest['network'];
@@ -82,56 +79,55 @@ export const WizardNetworkConfiguration = () => {
     refetchOnReconnect: 'always',
   });
 
-  const schema = useMemo(
+  const zodSchema = useMemo(
     () =>
-      yup
-        .object({
-          name: yup.string().required(LL.form.error.required()),
-          address: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.address(), (value: string) => {
-              const netmaskPresent = value.split('/').length == 2;
-              if (!netmaskPresent) {
-                return false;
-              }
-              const ipValid = validateIp(value, true);
-              if (ipValid) {
-                const host = value.split('.')[3].split('/')[0];
-                if (host === '0') return false;
-              }
-              return ipValid;
-            }),
-          endpoint: yup
-            .string()
-            .required(LL.form.error.required())
-            .test(LL.form.error.endpoint(), (val: string) => validateIpOrDomain(val)),
-          port: yup
-            .number()
-            .max(65535, LL.form.error.portMax())
-            .typeError(LL.form.error.validPort())
-            .required(LL.form.error.required()),
-          allowed_ips: yup
-            .string()
-            .optional()
-            .test(LL.form.error.allowedIps(), (val?: string) => {
-              if (val === '' || !val) {
-                return true;
-              }
-              return validateIpList(val, ',', true);
-            }),
-          dns: yup
-            .string()
-            .optional()
-            .test(LL.form.error.allowedIps(), (val?: string) => {
-              if (val === '' || !val) {
-                return true;
-              }
-              return validateIpOrDomainList(val, ',', true);
-            }),
-          allowed_groups: yup.array().optional(),
-        })
-        .required(),
+      z.object({
+        name: z.string().min(1, LL.form.error.required()),
+        address: z
+          .string()
+          .min(1, LL.form.error.required())
+          .refine((value) => {
+            const netmaskPresent = value.split('/').length == 2;
+            if (!netmaskPresent) {
+              return false;
+            }
+            const ipValid = validateIp(value, true);
+            if (ipValid) {
+              const host = value.split('.')[3].split('/')[0];
+              if (host === '0') return false;
+            }
+            return ipValid;
+          }),
+        endpoint: z.string().min(1, LL.form.error.required()),
+        port: z
+          .number({
+            invalid_type_error: LL.form.error.invalid(),
+          })
+          .max(65535, LL.form.error.portMax())
+          .nonnegative(),
+        allowed_ips: z.string(),
+        dns: z
+          .string()
+          .optional()
+          .refine((val) => {
+            if (val === '' || !val) {
+              return true;
+            }
+            return validateIpOrDomainList(val, ',', true);
+          }, LL.form.error.allowedIps()),
+        allowed_groups: z.array(z.string().min(1, LL.form.error.minimumLength())),
+        mfa_enabled: z.boolean(),
+        keepalive_interval: z
+          .number({
+            invalid_type_error: LL.form.error.invalid(),
+          })
+          .positive(),
+        peer_disconnect_threshold: z
+          .number({
+            invalid_type_error: LL.form.error.invalid(),
+          })
+          .refine((v) => v >= 120, LL.form.error.minimumLength()),
+      }),
     [LL.form.error],
   );
 
@@ -142,13 +138,14 @@ export const WizardNetworkConfiguration = () => {
   const { handleSubmit, control } = useForm<FormInputs>({
     mode: 'all',
     defaultValues: getDefaultValues,
-    resolver: yupResolver(schema),
+    resolver: zodResolver(zodSchema),
   });
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
+    const trimmed = trimObjectStrings(values);
     if (!isLoading) {
       setWizardState({ loading: true });
-      addNetworkMutation(values);
+      addNetworkMutation(trimmed);
     }
   };
 
@@ -187,6 +184,7 @@ export const WizardNetworkConfiguration = () => {
         <FormInput
           controller={{ control, name: 'port' }}
           label={LL.networkConfiguration.form.fields.port.label()}
+          type="number"
         />
         <MessageBox>
           <p>{LL.networkConfiguration.form.helpers.allowedIps()}</p>
@@ -216,6 +214,21 @@ export const WizardNetworkConfiguration = () => {
             key: group,
             displayValue: titleCase(group),
           })}
+        />
+        <FormCheckBox
+          controller={{ control, name: 'mfa_enabled' }}
+          label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormInput
+          controller={{ control, name: 'keepalive_interval' }}
+          label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
+          type="number"
+        />
+        <FormInput
+          controller={{ control, name: 'peer_disconnect_threshold' }}
+          label={LL.networkConfiguration.form.fields.peer_disconnect_threshold.label()}
+          type="number"
         />
         <input type="submit" className="visually-hidden" ref={submitRef} />
       </form>

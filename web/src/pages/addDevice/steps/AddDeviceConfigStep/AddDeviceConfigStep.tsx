@@ -40,7 +40,7 @@ export const AddDeviceConfigStep = () => {
 
   const setupMode = isUndefined(privateKey) ? SetupMode.MANUAL : SetupMode.AUTO;
 
-  const getWarningMessageConent = useMemo(() => {
+  const getWarningMessageContent = useMemo(() => {
     if (setupMode === SetupMode.AUTO) {
       return parse(localLL.helpers.warningAutoMode());
     }
@@ -66,7 +66,7 @@ export const AddDeviceConfigStep = () => {
   return (
     <Card id="add-device-config-step" shaded>
       <h2>{localLL.title()}</h2>
-      <MessageBox type={MessageBoxType.WARNING}>{getWarningMessageConent}</MessageBox>
+      <MessageBox type={MessageBoxType.WARNING}>{getWarningMessageContent}</MessageBox>
       <Input
         label={localLL.inputNameLabel()}
         value={device.name}
@@ -78,14 +78,21 @@ export const AddDeviceConfigStep = () => {
       <div className="info">
         <p>{localLL.qrInfo()}</p>
       </div>
-      <DeviceConfigsCard
-        deviceId={device.id}
-        publicKey={publicKey}
-        privateKey={privateKey}
-        userId={userData.id}
-        networks={networks}
-        deviceName={device.name}
-      />
+      {networks.length > 0 && (
+        <DeviceConfigsCard
+          deviceId={device.id}
+          publicKey={publicKey}
+          privateKey={privateKey}
+          userId={userData.id}
+          networks={networks}
+          deviceName={device.name}
+        />
+      )}
+      {networks.length === 0 && (
+        <MessageBox type={MessageBoxType.WARNING}>
+          {localLL.helpers.warningNoNetworks()}
+        </MessageBox>
+      )}
     </Card>
   );
 };

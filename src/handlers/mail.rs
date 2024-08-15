@@ -17,13 +17,13 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    config::DefGuardConfig,
     db::{models::enrollment::TokenError, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
+    server_config,
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
-    DbPool, SERVER_CONFIG,
+    DbPool,
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -100,8 +100,8 @@ pub async fn test_mail(
     }
 }
 
-async fn read_logs(config: &DefGuardConfig) -> String {
-    let Some(path) = &config.log_file else {
+async fn read_logs() -> String {
+    let Some(path) = &server_config().log_file else {
         return "Log file not configured".to_string();
     };
 
@@ -123,7 +123,7 @@ pub async fn send_support_data(
         "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
         session.user.username
     );
-    let config = dump_config(&appstate.pool, &appstate.config).await;
+    let config = dump_config(&appstate.pool).await;
     let config =
         serde_json::to_string_pretty(&config).unwrap_or("Json formatting error".to_string());
     let config = Attachment {
@@ -131,7 +131,7 @@ pub async fn send_support_data(
         content: config.into(),
         content_type: ContentType::TEXT_PLAIN,
     };
-    let logs = read_logs(&appstate.config).await;
+    let logs = read_logs().await;
     let logs = Attachment {
         filename: format!("defguard-logs-{}.txt", Utc::now()),
         content: logs.into(),
@@ -216,11 +216,7 @@ pub async fn send_gateway_disconnected_email(
     pool: &DbPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
-    let admin_group_name = &SERVER_CONFIG
-        .get()
-        .ok_or(WebError::ServerConfigMissing)?
-        .admin_groupname;
-    let admin_users = User::find_by_group_name(pool, admin_group_name).await?;
+    let admin_users = User::find_by_group_name(pool, &server_config().admin_groupname).await?;
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         let mail = Mail {
@@ -320,10 +316,7 @@ pub fn send_mfa_configured_email(
 ) -> Result<(), TemplateError> {
     debug!("Sending MFA configured mail to {}", user.email);
 
-    let subject = format!(
-        "MFA method {} was activated on your account",
-        mfa_method.to_string()
-    );
+    let subject = format!("MFA method {mfa_method} has been activated on your account");
 
     let mail = Mail {
         to: user.email.clone(),
@@ -363,7 +356,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(code, session)?,
+        content: templates::email_mfa_activation_mail(&code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -385,7 +378,7 @@ pub fn send_email_mfa_activation_email(
 pub fn send_email_mfa_code_email(
     user: &User,
     mail_tx: &UnboundedSender<Mail>,
-    session: &Session,
+    session: Option<&Session>,
 ) -> Result<(), TemplateError> {
     debug!("Sending email MFA code mail to {}", user.email);
 
@@ -398,7 +391,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code, session)?,
+        content: templates::email_mfa_code_mail(&code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };

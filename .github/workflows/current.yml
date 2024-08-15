@@ -17,7 +17,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Login to GitHub container registry
@@ -29,7 +29,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
       - name: Build container

@@ -5,13 +5,13 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          config-inline: |
+          buildkitd-config-inline: |
             [registry."docker.io"]
               mirrors = ["dockerhub-proxy.teonite.net"]
       - name: Login to GitHub container registry
@@ -21,12 +21,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version-file: './e2e/.nvmrc'
+          node-version-file: "./e2e/.nvmrc"
       - name: Install pnpm
         id: pnpm-install
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v3
         with:
           version: 8
           run_install: false
@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -44,21 +44,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       - name: Pull images
-        run: docker-compose --file './docker-compose.e2e.yaml' pull
+        run: docker compose --file './docker-compose.e2e.yaml' pull
       - name: Start compose
-        run: docker-compose --file './docker-compose.e2e.yaml' up -d
+        run: docker compose --file './docker-compose.e2e.yaml' up -d
       - name: Install E2E dependencies
         working-directory: ./e2e
         run: pnpm install --frozen-lockfile
       - name: Install playwright chromium
         working-directory: ./e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: run tests
         working-directory: ./e2e
         run: pnpm test
       - name: Stop compose
         if: always()
-        run: docker-compose --file './docker-compose.e2e.yaml' down
+        run: docker compose --file './docker-compose.e2e.yaml' down
       - uses: actions/upload-artifact@v3
         if: failure()
         with:

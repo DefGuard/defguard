@@ -1,7 +1,8 @@
-use super::DbPool;
-use crate::{auth::SESSION_TIMEOUT, random::gen_alphanumeric};
 use chrono::{Duration, Utc};
 use sqlx::{query, query_as, Error as SqlxError};
+
+use super::DbPool;
+use crate::{random::gen_alphanumeric, server_config};
 
 pub struct OAuth2Token {
     pub oauth2authorizedapp_id: i64,
@@ -15,7 +16,8 @@ pub struct OAuth2Token {
 impl OAuth2Token {
     #[must_use]
     pub fn new(oauth2authorizedapp_id: i64, redirect_uri: String, scope: String) -> Self {
-        let expiration = Utc::now() + Duration::seconds(SESSION_TIMEOUT as i64);
+        let timeout = server_config().session_timeout;
+        let expiration = Utc::now() + Duration::seconds(timeout.as_secs() as i64);
         Self {
             oauth2authorizedapp_id,
             access_token: gen_alphanumeric(24),
@@ -28,9 +30,10 @@ impl OAuth2Token {
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
     pub async fn refresh_and_save(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+        let timeout = server_config().session_timeout;
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
-        let expiration = Utc::now() + Duration::seconds(SESSION_TIMEOUT as i64);
+        let expiration = Utc::now() + Duration::seconds(timeout.as_secs() as i64);
         self.expires_in = expiration.timestamp();
 
         query!(

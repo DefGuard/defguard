@@ -21,15 +21,16 @@ use crate::{
     db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
+    server_config,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
 pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
 pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
-pub const SESSION_TIMEOUT: u64 = 3600 * 24 * 7;
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
-pub const EMAIL_CODE_VALIDITY_PERIOD: u64 = 60;
+pub const EMAIL_CODE_DIGITS: u32 = 6;
+pub const TOTP_CODE_DIGITS: u32 = 6;
 
 #[derive(Clone, Copy, Default)]
 pub enum ClaimsType {
@@ -37,6 +38,7 @@ pub enum ClaimsType {
     Auth,
     Gateway,
     YubiBridge,
+    DesktopClient,
 }
 
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
@@ -82,7 +84,7 @@ impl Claims {
 
     fn get_secret(claims_type: ClaimsType) -> String {
         let env_var = match claims_type {
-            ClaimsType::Auth => AUTH_SECRET_ENV,
+            ClaimsType::Auth | ClaimsType::DesktopClient => AUTH_SECRET_ENV,
             ClaimsType::Gateway => GATEWAY_SECRET_ENV,
             ClaimsType::YubiBridge => YUBIBRIDGE_SECRET_ENV,
         };
@@ -191,12 +193,11 @@ where
             let Ok(groups) = user.member_of(&appstate.pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
+            let groupname = server_config().admin_groupname.clone();
             Ok(SessionInfo {
                 session,
                 user,
-                is_admin: groups
-                    .iter()
-                    .any(|group| group.name == appstate.config.admin_groupname),
+                is_admin: groups.iter().any(|group| group.name == groupname),
                 groups,
             })
         } else {
@@ -222,10 +223,9 @@ macro_rules! role {
                 parts: &mut Parts,
                 state: &S,
             ) -> Result<Self, Self::Rejection> {
-                let appstate = AppState::from_ref(state);
                 let session_info = SessionInfo::from_request_parts(parts, state).await?;
                 $(
-                if session_info.contains_group(&appstate.config.$config_field) {
+                if session_info.contains_group(&server_config().$config_field) {
                     return Ok(Self {});
                 }
                 )*

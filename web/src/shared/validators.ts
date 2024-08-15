@@ -52,3 +52,14 @@ export const validateIp = (ip: string, allowMask = false): boolean => {
   }
   return patternValidIp.test(ip);
 };
+
+export const validatePort = (val: string) => {
+  const parsed = parseInt(val);
+  if (!isNaN(parsed)) {
+    return parsed <= 65535;
+  }
+};
+
+export const numericString = (val: string) => /^\d+$/.test(val);
+
+export const numericStringFloat = (val: string) => /^\d*\.?\d+$/.test(val);

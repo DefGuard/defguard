@@ -1,8 +1,11 @@
 use tokio::sync::mpsc::UnboundedSender;
-use tonic::{Request, Response, Status};
+use tonic::Status;
 
+use super::proto::{
+    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+    PasswordResetStartResponse,
+};
 use crate::{
-    config::DefGuardConfig,
     db::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         DbPool, User,
@@ -13,103 +16,90 @@ use crate::{
     },
     ldap::utils::ldap_change_password,
     mail::Mail,
+    server_config,
 };
 
-use self::proto::{
-    password_reset_service_server, PasswordResetInitializeRequest, PasswordResetRequest,
-    PasswordResetStartRequest, PasswordResetStartResponse,
-};
-
-pub mod proto {
-    tonic::include_proto!("password_reset");
-}
-
-pub struct PasswordResetServer {
+pub(super) struct PasswordResetServer {
     pool: DbPool,
     mail_tx: UnboundedSender<Mail>,
-    config: DefGuardConfig,
-    ldap_feature_active: bool,
+    // ldap_feature_active: bool,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>, config: DefGuardConfig) -> Self {
+    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>) -> Self {
         // FIXME: check if LDAP feature is enabled
-        let ldap_feature_active = true;
+        // let ldap_feature_active = true;
         Self {
             pool,
             mail_tx,
-            config,
-            ldap_feature_active,
+            // ldap_feature_active,
         }
     }
 
     // check if token provided with request corresponds to a valid enrollment session
-    async fn validate_session<T: std::fmt::Debug>(
-        &self,
-        request: &Request<T>,
-    ) -> Result<Token, Status> {
-        debug!("Validating enrollment session token: {request:?}");
-        let token = if let Some(token) = request.metadata().get("authorization") {
-            token
-                .to_str()
-                .map_err(|_| Status::unauthenticated("Invalid token"))?
-        } else {
+    async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+        debug!("Validating enrollment session");
+        let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
 
+        debug!("Validating enrollment session token: {token}");
         let enrollment = Token::find_by_id(&self.pool, token).await?;
 
-        if enrollment.is_session_valid(self.config.enrollment_session_timeout.as_secs()) {
+        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+            info!(
+                "Enrollment session validated for user {}.",
+                enrollment.user_id
+            );
             Ok(enrollment)
         } else {
             error!("Enrollment session expired");
             Err(Status::unauthenticated("Enrollment session expired"))
         }
     }
-}
 
-#[tonic::async_trait]
-impl password_reset_service_server::PasswordResetService for PasswordResetServer {
-    async fn request_password_reset(
+    pub async fn request_password_reset(
         &self,
-        request: Request<PasswordResetInitializeRequest>,
-    ) -> Result<Response<()>, Status> {
+        request: PasswordResetInitializeRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
+        let config = server_config();
         debug!("Starting password reset request");
 
-        let ip_address = request
-            .metadata()
-            .get("ip_address")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
 
-        let user_agent = request
-            .metadata()
-            .get("user_agent")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
-
-        let request = request.into_inner();
         let email = request.email;
 
         let user = User::find_by_email(&self.pool, email.to_string().as_str())
             .await
             .map_err(|_| {
-                error!("Failed to fetch user by email");
+                error!("Failed to fetch user by email: {email}");
                 Status::internal("unexpected error")
             })?;
 
-        if user.is_none() {
+        let Some(user) = user else {
             // Do not return information whether user exists
-            return Ok(Response::new(()));
-        }
+            debug!("Password reset skipped for non-existing user {email}");
+            return Ok(());
+        };
 
-        let user = user.unwrap();
-
-        // Do not allow password change if user is not active
-        if !user.has_password() {
-            return Ok(Response::new(()));
+        // Do not allow password change if user is disabled or not enrolled
+        if !user.has_password() || !user.is_active {
+            debug!(
+                "Password reset skipped for disabled or not enrolled user {} ({email})",
+                user.username
+            );
+            return Ok(());
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -127,7 +117,7 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             user.id.expect("Missing user ID"),
             None,
             Some(email.clone()),
-            self.config.password_reset_token_timeout.as_secs(),
+            config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
         enrollment.save(&mut transaction).await?;
@@ -140,32 +130,46 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         send_password_reset_email(
             &user,
             &self.mail_tx,
-            self.config.enrollment_url.clone(),
+            config.enrollment_url.clone(),
             &enrollment.id,
             Some(&ip_address),
             Some(&user_agent),
         )?;
 
-        Ok(Response::new(()))
+        info!(
+            "Finished processing password reset request for user {}.",
+            user.username
+        );
+
+        Ok(())
     }
 
-    async fn start_password_reset(
+    pub async fn start_password_reset(
         &self,
-        request: Request<PasswordResetStartRequest>,
-    ) -> Result<Response<PasswordResetStartResponse>, Status> {
+        request: PasswordResetStartRequest,
+    ) -> Result<PasswordResetStartResponse, Status> {
         debug!("Starting password reset session: {request:?}");
-        let request = request.into_inner();
 
         let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
 
         if enrollment.token_type != Some("PASSWORD_RESET".to_string()) {
+            error!(
+                "Invalid token type ({:?}) for password reset session",
+                enrollment.token_type
+            );
             return Err(Status::permission_denied("invalid token"));
         }
 
         let user = enrollment.fetch_user(&self.pool).await?;
 
-        if !user.has_password() {
-            return Err(Status::permission_denied("user inactive"));
+        if !user.has_password() || !user.is_active {
+            error!(
+                "Can't start password reset for a disabled or not enrolled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied(
+                "user disabled or not yet enrolled",
+            ));
         }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
@@ -176,12 +180,12 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
         let session_deadline = enrollment
             .start_session(
                 &mut transaction,
-                self.config.password_reset_session_timeout.as_secs(),
+                server_config().password_reset_session_timeout.as_secs(),
             )
             .await?;
 
         let response = PasswordResetStartResponse {
-            deadline_timestamp: session_deadline.timestamp(),
+            deadline_timestamp: session_deadline.and_utc().timestamp(),
         };
 
         transaction.commit().await.map_err(|_| {
@@ -189,35 +193,46 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             Status::internal("unexpected error")
         })?;
 
-        Ok(Response::new(response))
+        info!(
+            "Finished processing password reset session for user {}.",
+            user.username
+        );
+
+        Ok(response)
     }
 
-    async fn reset_password(
+    pub async fn reset_password(
         &self,
-        request: Request<PasswordResetRequest>,
-    ) -> Result<Response<()>, Status> {
+        request: PasswordResetRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
         debug!("Starting password reset: {request:?}");
-        let enrollment = self.validate_session(&request).await?;
+        let enrollment = self.validate_session(request.token.as_deref()).await?;
 
-        let ip_address = request
-            .metadata()
-            .get("ip_address")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
 
-        let user_agent = request
-            .metadata()
-            .get("user_agent")
-            .and_then(|value| value.to_str().map(ToString::to_string).ok())
-            .unwrap_or_default();
-
-        let request = request.into_inner();
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
         }
 
         let mut user = enrollment.fetch_user(&self.pool).await?;
+
+        if !user.is_active {
+            error!(
+                "Can't reset password for a disabled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied("user disabled"));
+        }
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
@@ -231,9 +246,9 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             Status::internal("unexpected error")
         })?;
 
-        if self.ldap_feature_active {
-            let _ = ldap_change_password(&self.pool, &user.username, &request.password).await;
-        };
+        // if self.ldap_feature_active {
+        let _ = ldap_change_password(&self.pool, &user.username, &request.password).await;
+        // };
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -247,6 +262,6 @@ impl password_reset_service_server::PasswordResetService for PasswordResetServer
             Some(&user_agent),
         )?;
 
-        Ok(Response::new(()))
+        Ok(())
     }
 }

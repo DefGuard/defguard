@@ -1,4 +1,14 @@
-FROM rust:1.74 as chef
+FROM node:20-alpine as web
+
+WORKDIR /app
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
+RUN npm i -g pnpm
+RUN pnpm install --ignore-scripts --frozen-lockfile
+COPY web/ .
+RUN pnpm run generate-translation-types
+RUN pnpm build
+
+FROM rust:1.80 as chef
 
 WORKDIR /build
 
@@ -20,6 +30,9 @@ COPY --from=planner /build/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # build project
+COPY --from=web /app/dist ./web/dist
+COPY web/src/shared/images/svg ./web/src/shared/images/svg
+COPY user_agent_header_regexes.yaml /build/user_agent_header_regexes.yaml
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
 COPY Cargo.toml Cargo.lock build.rs ./
 COPY .sqlx .sqlx
@@ -30,26 +43,11 @@ COPY proto proto
 COPY migrations migrations
 RUN cargo install --locked --path . --root /build
 
-FROM node:20.5-alpine3.17 as web
-
-WORKDIR /app
-COPY web/package.json .
-COPY web/pnpm-lock.yaml .
-COPY web/.npmrc .
-RUN npm i -g pnpm
-RUN pnpm install --ignore-scripts --frozen-lockfile
-COPY web/ .
-RUN pnpm run generate-translation-types
-RUN pnpm build
-
 # run
 FROM debian:bookworm-slim as runtime
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
     rm -rf /var/lib/apt/lists/*
-COPY user_agent_header_regexes.yaml /app/user_agent_header_regexes.yaml
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
-COPY --from=web /app/dist ./web/dist
-COPY web/src/shared/images/svg ./web/src/shared/images/svg
 ENTRYPOINT ["./defguard"]

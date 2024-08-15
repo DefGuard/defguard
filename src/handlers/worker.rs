@@ -42,37 +42,41 @@ pub async fn create_job(
         "User {} creating a worker job for worker {worker} and user {username}",
         session.user.username,
     );
-    match User::find_by_username(&appstate.pool, &job_data.username).await? {
-        Some(user) => {
-            // only admins should be able to create jobs for other users
-            if user != session.user && !session.is_admin {
-                return Err(WebError::Forbidden(
-                    "Cannot schedule jobs for other users.".into(),
-                ));
-            };
+    if let Some(user) = User::find_by_username(&appstate.pool, &job_data.username).await? {
+        // only admins should be able to create jobs for other users
+        if user != session.user && !session.is_admin {
+            warn!(
+                "User {} cannot schedule jobs for other users",
+                session.user.username
+            );
+            return Err(WebError::Forbidden(
+                "Cannot schedule jobs for other users.".into(),
+            ));
+        };
 
-            let mut state = worker_state.lock().unwrap();
-            debug!("Creating job");
-            let id = state.create_job(
-                &job_data.worker,
-                user.first_name.clone(),
-                user.last_name.clone(),
-                user.email,
-                job_data.username,
-            );
-            info!(
-                "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse {
-                json: json!(Jobid { id }),
-                status: StatusCode::CREATED,
-            })
-        }
-        None => Err(WebError::ObjectNotFound(format!(
+        let mut state = worker_state.lock().unwrap();
+        debug!("Creating job");
+        let id = state.create_job(
+            &job_data.worker,
+            user.first_name.clone(),
+            user.last_name.clone(),
+            user.email,
+            job_data.username,
+        );
+        info!(
+            "User {} created a worker job (ID {id}) for worker {worker} and user {username}",
+            session.user.username,
+        );
+        Ok(ApiResponse {
+            json: json!(Jobid { id }),
+            status: StatusCode::CREATED,
+        })
+    } else {
+        error!("Failed to create job, user {} not found", job_data.username);
+        Err(WebError::ObjectNotFound(format!(
             "user {} not found",
             job_data.username
-        ))),
+        )))
     }
 }
 
@@ -96,8 +100,10 @@ pub async fn list_workers(
     _admin: AdminRole,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
 ) -> ApiResult {
+    debug!("Listing workers");
     let state = worker_state.lock().unwrap();
     let workers = state.list_workers();
+    debug!("Listed workers");
     Ok(ApiResponse {
         json: json!(workers),
         status: StatusCode::OK,
@@ -128,21 +134,34 @@ pub async fn job_status(
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
     Path(id): Path<u32>,
 ) -> ApiResult {
+    debug!(
+        "User {} fetching job status for job {id}",
+        session.user.username
+    );
     let state = worker_state.lock().unwrap();
     let job_response = state.get_job_status(id);
     if let Some(response) = job_response {
         // prevent non-admin users from accessing other users' jobs status
         if !session.is_admin && response.username != session.user.username {
+            warn!(
+                "User {} cannot fetch job status for other users' jobs",
+                session.user.username
+            );
             return Err(WebError::Forbidden(
                 "Cannot fetch job status for other users' jobs.".into(),
             ));
         }
         if response.success {
+            debug!("Fetched job status for job {id}");
             Ok(ApiResponse {
                 json: json!(job_response),
                 status: StatusCode::OK,
             })
         } else {
+            error!(
+                "Failed to fetch job status for job {id}: {}",
+                response.error
+            );
             Ok(ApiResponse {
                 json: json!(JobResponseError {
                     message: response.error.clone()
@@ -151,6 +170,7 @@ pub async fn job_status(
             })
         }
     } else {
+        debug!("Fetched job status for job {id}");
         Ok(ApiResponse {
             json: json!(job_response),
             status: StatusCode::OK,

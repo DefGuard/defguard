@@ -6,6 +6,7 @@ import {
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
+  ApiError,
   ApiHook,
   AuthorizedClient,
   ChangeOpenidClientStateRequest,
@@ -22,6 +23,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  OpenIdProvider,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -151,6 +153,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
 
+  const getOpenidInfo: ApiHook['auth']['openid']['getOpenIdInfo'] = () =>
+    client.get(`/openid/auth_info`).then(unpackRequest);
+
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
@@ -202,6 +207,12 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const removeFromGroup = ({ group, username }: UserGroupRequest) =>
     client.delete(`/group/${group}/user/${username}`);
+
+  const createGroup: ApiHook['groups']['createGroup'] = async (data) =>
+    client.post(`/group`, data).then(unpackRequest);
+
+  const editGroup: ApiHook['groups']['editGroup'] = async ({ originalName, ...rest }) =>
+    client.put(`/group/${originalName}`, rest).then(unpackRequest);
 
   const deleteWorker = (id: string) =>
     client.delete<EmptyApiResponse>(`/worker/${id}`).then((res) => res.data);
@@ -349,6 +360,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const editSettings = async (settings: Settings) =>
     client.put('/settings', settings).then(unpackRequest);
 
+  const getEnterpriseStatus = () => client.get('/enterprise_status').then(unpackRequest);
+
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
@@ -383,6 +396,33 @@ const useApi = (props?: HookProps): ApiHook => {
   const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
+  const getAuthenticationKeysInfo: ApiHook['user']['getAuthenticationKeysInfo'] = (
+    data,
+  ) => client.get(`/user/${data.username}/auth_key`).then(unpackRequest);
+
+  const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
+    client.post(`/user/${data.username}/auth_key`, data).then(unpackRequest);
+
+  const renameAuthenticationKey: ApiHook['user']['renameAuthenticationKey'] = (data) =>
+    client
+      .post(`/user/${data.username}/auth_key/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (data) =>
+    client.delete(`/user/${data.username}/auth_key/${data.id}`).then(unpackRequest);
+
+  const renameYubikey: ApiHook['user']['renameYubikey'] = (data) =>
+    client
+      .post(`/user/${data.username}/yubikey/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteYubiKey: ApiHook['user']['deleteYubiKey'] = (data) =>
+    client.delete(`/user/${data.username}/yubikey/${data.id}`).then(unpackRequest);
+
   const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -391,6 +431,41 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
+
+  const getGroupsInfo: ApiHook['groups']['getGroupsInfo'] = () =>
+    client.get('/group-info').then(unpackRequest);
+
+  const deleteGroup: ApiHook['groups']['deleteGroup'] = (group) =>
+    client.delete(`/group/${group}`);
+
+  const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
+    client.post('/groups-assign', data).then(unpackRequest);
+
+  const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
+    client.get<OpenIdProvider>(`/openid/provider`).then((res) => res.data);
+
+  const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
+    client.post(`/openid/provider`, data).then(unpackRequest);
+
+  const deleteOpenIdProvider: ApiHook['settings']['deleteOpenIdProvider'] = async (
+    name,
+  ) => client.delete(`/openid/provider/${name}`).then(unpackRequest);
+
+  const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = async (data) =>
+    client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
+
+  const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
+    client.post('/openid/callback', data).then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
 
   useEffect(() => {
     client.interceptors.response.use(
@@ -401,9 +476,14 @@ const useApi = (props?: HookProps): ApiHook => {
         }
         return res;
       },
-      (err) => {
+      (err: ApiError) => {
         if (props?.notifyError) {
-          toaster.error(LL.messages.error());
+          const responseMessage = err.response?.data.msg || err.response?.data.message;
+          if (responseMessage) {
+            toaster.error(responseMessage.trim());
+          } else {
+            toaster.error(LL.messages.error());
+          }
         }
         return Promise.reject(err);
       },
@@ -416,11 +496,17 @@ const useApi = (props?: HookProps): ApiHook => {
   return {
     getAppInfo,
     changePasswordSelf,
+    getEnterpriseStatus,
     oAuth: {
       consent: oAuthConsent,
     },
     groups: {
+      deleteGroup,
+      getGroupsInfo,
       getGroups,
+      createGroup,
+      editGroup,
+      addUsersToGroups,
     },
     user: {
       getMe,
@@ -439,6 +525,12 @@ const useApi = (props?: HookProps): ApiHook => {
       removeFromGroup,
       startEnrollment,
       startDesktopActivation,
+      getAuthenticationKeysInfo: getAuthenticationKeysInfo,
+      addAuthenticationKey,
+      deleteAuthenticationKey,
+      renameAuthenticationKey,
+      deleteYubiKey,
+      renameYubikey,
     },
     device: {
       addDevice: addDevice,
@@ -466,6 +558,10 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      openid: {
+        getOpenIdInfo: getOpenidInfo,
+        callback: openIdCallback,
+      },
       mfa: {
         disable: mfaDisable,
         enable: mfaEnable,
@@ -533,6 +629,10 @@ const useApi = (props?: HookProps): ApiHook => {
       patchSettings,
       getEssentialSettings,
       testLdapSettings,
+      fetchOpenIdProviders: fetchOpenIdProvider,
+      addOpenIdProvider,
+      deleteOpenIdProvider,
+      editOpenIdProvider,
     },
     support: {
       downloadSupportData,

@@ -1,0 +1,67 @@
+#user-groups-list-modal {
+  --max-list-height: 75dvh;
+  --content-horizontal-padding: 15px;
+  --list-scroll-track-distance: 5px;
+
+  @include media-breakpoint-up(lg) {
+    --max-list-height: 300px;
+    --content-horizontal-padding: 40px;
+    --list-scroll-track-distance: 10px;
+  }
+
+  background-color: var(--surface-frame-bg);
+
+  padding: 60px
+    calc(var(--content-horizontal-padding) - var(--list-scroll-track-distance) - 4px) 20px
+    var(--content-horizontal-padding);
+  box-sizing: border-box;
+
+  .content {
+    padding: 0;
+
+    & > .scroll-wrapper {
+      width: 100%;
+      max-height: var(--max-list-height);
+      overflow: auto;
+      scrollbar-gutter: stable;
+      padding-right: var(--list-scroll-track-distance);
+      box-sizing: border-box;
+    }
+
+    .groups-list {
+      display: flex;
+      flex-flow: column;
+      row-gap: 10px;
+      width: 100%;
+
+      & > .group {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding: 9px 15px;
+        border: 0 solid transparent;
+        background-color: var(--surface-default-modal);
+        border-radius: 15px;
+        min-height: 60px;
+        overflow: hidden;
+        max-width: 100%;
+        height: max-content;
+
+        & > p,
+        & > span {
+          display: block;
+          @include typography(app-strap);
+          text-wrap: wrap;
+          text-align: left;
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+          white-space-collapse: collapse;
+          word-break: break-all;
+        }
+      }
+    }
+  }
+}

@@ -74,7 +74,31 @@ type RootTranslation = {
 			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			RestoreDefault: string
+			/**
+			 * D​e​l​e​t​e
+			 */
+			'delete': string
+			/**
+			 * R​e​n​a​m​e
+			 */
+			rename: string
+			/**
+			 * C​o​p​y
+			 */
+			copy: string
+			/**
+			 * E​d​i​t
+			 */
+			edit: string
 		}
+		/**
+		 * K​e​y
+		 */
+		key: string
+		/**
+		 * N​a​m​e
+		 */
+		name: string
 	}
 	messages: {
 		/**
@@ -93,6 +117,10 @@ type RootTranslation = {
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
 		clipboard: {
 			/**
 			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
@@ -105,6 +133,77 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * A​d​d​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * C​r​e​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
+		editGroup: {
+			/**
+			 * E​d​i​t​ ​g​r​o​u​p
+			 */
+			title: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
+			 */
+			selectAll: string
+			/**
+			 * G​r​o​u​p​ ​n​a​m​e
+			 */
+			groupName: string
+			/**
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
+			 */
+			searchPlaceholder: string
+			/**
+			 * U​p​d​a​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+		}
+		deleteGroup: {
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
+			 * @param {string} name
+			 */
+			title: RequiredParams<'name'>
+			/**
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
+			 */
+			subTitle: string
+			/**
+			 * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
+			 */
+			locationListHeader: string
+			/**
+			 * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
+			 */
+			locationListFooter: string
+			/**
+			 * D​e​l​e​t​e​ ​g​r​o​u​p
+			 */
+			submit: string
+			/**
+			 * C​a​n​c​e​l
+			 */
+			cancel: string
+		}
 		deviceConfig: {
 			/**
 			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
@@ -168,7 +267,7 @@ type RootTranslation = {
 				 */
 				success: string
 				/**
-				 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n​ ​s​t​a​r​t​e​d
+				 * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
 				 */
 				successDesktop: string
 				/**
@@ -553,6 +652,54 @@ type RootTranslation = {
 				success: RequiredParams<'username'>
 			}
 		}
+		disableUser: {
+			/**
+			 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
+		enableUser: {
+			/**
+			 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+			 */
+			title: string
+			controls: {
+				/**
+				 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
+				 */
+				submit: string
+			}
+			/**
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
+			 * @param {string} username
+			 */
+			message: RequiredParams<'username'>
+			messages: {
+				/**
+				 * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
+				 * @param {string} username
+				 */
+				success: RequiredParams<'username'>
+			}
+		}
 		deleteProvisioner: {
 			/**
 			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
@@ -894,7 +1041,7 @@ type RootTranslation = {
 			setupMethod: {
 				remote: {
 					/**
-					 * R​e​m​o​t​e​ ​D​e​s​k​t​o​p​ ​A​c​t​i​v​a​t​i​o​n
+					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 					 */
 					title: string
 					/**
@@ -952,6 +1099,10 @@ type RootTranslation = {
 			
 					 */
 					warningManualMode: string
+					/**
+					 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​n​y​ ​n​e​t​w​o​r​k​.
+					 */
+					warningNoNetworks: string
 					/**
 					 * 
 				​ ​ ​ ​ ​ ​ ​<​p​>​
@@ -1105,6 +1256,20 @@ type RootTranslation = {
 					 * E​-​m​a​i​l
 					 */
 					label: string
+				}
+				status: {
+					/**
+					 * S​t​a​t​u​s
+					 */
+					label: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+					/**
+					 * D​i​s​a​b​l​e​d
+					 */
+					disabled: string
 				}
 				groups: {
 					/**
@@ -1438,6 +1603,158 @@ type RootTranslation = {
 				line2: string
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​K​e​y
+			 */
+			addKey: string
+			keysList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * K​e​y
+					 */
+					key: string
+					/**
+					 * D​o​w​n​l​o​a​d
+					 */
+					download: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
+					 */
+					serialNumber: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				title: string
+				/**
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
+				 */
+				header: string
+				/**
+				 * K​e​y​ ​T​y​p​e
+				 */
+				keyType: string
+				keyForm: {
+					placeholders: {
+						/**
+						 * K​e​y​ ​N​a​m​e
+						 */
+						title: string
+						key: {
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
+							 */
+							ssh: string
+							/**
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
+							 */
+							gpg: string
+						}
+					}
+					labels: {
+						/**
+						 * N​a​m​e
+						 */
+						title: string
+						/**
+						 * K​e​y
+						 */
+						key: string
+					}
+					/**
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
+					 * @param {string} name
+					 */
+					submit: RequiredParams<'name'>
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
+						 */
+						info: string
+						/**
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
+						 */
+						selectLabel: string
+						/**
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
+						 */
+						noData: string
+						/**
+						 * A​v​a​i​l​a​b​l​e
+						 */
+						available: string
+						/**
+						 * U​n​a​v​a​i​l​a​b​l​e
+						 */
+						unavailable: string
+					}
+					provisioning: {
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
+						 */
+						inProgress: string
+						/**
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
+						 */
+						error: string
+						/**
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
+						 */
+						success: string
+					}
+					/**
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
+					 */
+					submit: string
+				}
+				messages: {
+					/**
+					 * K​e​y​ ​a​d​d​e​d​.
+					 */
+					keyAdded: string
+					/**
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
+					 */
+					keyExists: string
+					/**
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
+					 */
+					unsupportedKeyFormat: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -1501,9 +1818,17 @@ type RootTranslation = {
 				 */
 				edit: string
 				/**
-				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
+				 * A​d​d​ ​Y​u​b​i​K​e​y
 				 */
-				provision: string
+				addYubikey: string
+				/**
+				 * A​d​d​ ​S​S​H​ ​K​e​y
+				 */
+				addSSH: string
+				/**
+				 * A​d​d​ ​G​P​G​ ​K​e​y
+				 */
+				addGPG: string
 				/**
 				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
@@ -1513,7 +1838,7 @@ type RootTranslation = {
 				 */
 				startEnrollment: string
 				/**
-				 * R​e​m​o​t​e​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
+				 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 				 */
 				activateDesktop: string
 				/**
@@ -1565,8 +1890,16 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			support: string
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 		}
 		mobileTitles: {
+			/**
+			 * G​r​o​u​p​s
+			 */
+			groups: string
 			/**
 			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
@@ -1670,7 +2003,11 @@ type RootTranslation = {
 		}
 		error: {
 			/**
-			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
+			 */
+			forbiddenCharacter: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
 			 */
 			usernameTaken: string
 			/**
@@ -1685,6 +2022,10 @@ type RootTranslation = {
 			 * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 			 */
 			required: string
+			/**
+			 * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidCode: string
 			/**
 			 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
 			 */
@@ -1738,13 +2079,31 @@ type RootTranslation = {
 			 */
 			allowedIps: string
 			/**
-			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
 			 */
 			startFromNumber: string
 			/**
-			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
+			/**
+			 * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
+			 */
+			number: string
+			/**
+			 * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} value
+			 */
+			minimumValue: RequiredParams<'value'>
+			/**
+			 * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
+			 * @param {number} value
+			 */
+			maximumValue: RequiredParams<'value'>
+			/**
+			 * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​a​ ​f​e​w​ ​m​i​n​u​t​e​s​.
+			 */
+			tooManyBadLoginAttempts: string
 		}
 		floatingErrors: {
 			/**
@@ -1835,6 +2194,10 @@ type RootTranslation = {
 			 * L​D​A​P
 			 */
 			ldap: string
+			/**
+			 * O​p​e​n​I​D
+			 */
+			openid: string
 		}
 		messages: {
 			/**
@@ -1845,6 +2208,20 @@ type RootTranslation = {
 			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
+		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
 		}
 		ldapSettings: {
 			/**
@@ -1917,6 +2294,92 @@ type RootTranslation = {
 					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
 					 */
 					error: string
+				}
+			}
+		}
+		openIdSettings: {
+			general: {
+				/**
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				helper: string
+				createAccount: {
+					/**
+					 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
+					 */
+					label: string
+					/**
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
+					 */
+					helper: string
+				}
+			}
+			form: {
+				/**
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+				 */
+				helper: string
+				/**
+				 * C​u​s​t​o​m
+				 */
+				custom: string
+				/**
+				 * D​o​c​u​m​e​n​t​a​t​i​o​n
+				 */
+				documentation: string
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
+				 */
+				'delete': string
+				labels: {
+					provider: {
+						/**
+						 * P​r​o​v​i​d​e​r
+						 */
+						label: string
+						/**
+						 * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
+						 */
+						helper: string
+					}
+					client_id: {
+						/**
+						 * C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					client_secret: {
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					base_url: {
+						/**
+						 * B​a​s​e​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -2080,6 +2543,52 @@ type RootTranslation = {
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
+		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
+					 */
+					link: string
+				}
+				licenseKey: {
+					/**
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
+					 */
+					link: string
+				}
+			}
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -2519,6 +3028,12 @@ type RootTranslation = {
 							 */
 							label: string
 						}
+						groups: {
+							/**
+							 * G​r​o​u​p​s
+							 */
+							label: string
+						}
 					}
 					controls: {
 						/**
@@ -2757,6 +3272,10 @@ type RootTranslation = {
 			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
 			 */
 			phone: string
+			/**
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
+			 */
+			groups: string
 		}
 		controls: {
 			/**
@@ -2999,6 +3518,24 @@ type RootTranslation = {
 					 */
 					placeholder: string
 				}
+				mfa_enabled: {
+					/**
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				keepalive_interval: {
+					/**
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
+					 */
+					label: string
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
+					 */
+					label: string
+				}
 			}
 			controls: {
 				/**
@@ -3017,15 +3554,39 @@ type RootTranslation = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
-		 */
-		header: string
+		header: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+			 */
+			main: string
+			/**
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
+			 */
+			dockerBasedGatewaySetup: string
+			/**
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
+			 */
+			fromPackage: string
+			/**
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
+			 */
+			oneLineInstall: string
+		}
 		card: {
 			/**
 			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+			 */
+			authToken: string
+		}
+		button: {
+			/**
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
+			 */
+			availablePackages: string
 		}
 		controls: {
 			/**
@@ -3035,35 +3596,53 @@ type RootTranslation = {
 		}
 		messages: {
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
 			 */
 			createNetwork: string
 			/**
-			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
+			 * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
 			 */
 			noConnection: string
 			/**
-			 * <​p​>​G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.​<​/​p​>
+			 * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
 			 */
 			connected: string
 			/**
 			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
 			 */
 			statusError: string
+			/**
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
+			 */
+			oneLineInstall: string
+			/**
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			fromPackage: RequiredParams<'setupGatewayDocs'>
+			/**
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
 		}
 	}
 	loginPage: {
@@ -3071,6 +3650,16 @@ type RootTranslation = {
 		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
 		 */
 		pageTitle: string
+		callback: {
+			/**
+			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
+			 */
+			'return': string
+			/**
+			 * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
+			 */
+			error: string
+		}
 		mfa: {
 			/**
 			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
@@ -3603,7 +4192,31 @@ export type TranslationFunctions = {
 			 * Restore default
 			 */
 			RestoreDefault: () => LocalizedString
+			/**
+			 * Delete
+			 */
+			'delete': () => LocalizedString
+			/**
+			 * Rename
+			 */
+			rename: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			copy: () => LocalizedString
+			/**
+			 * Edit
+			 */
+			edit: () => LocalizedString
 		}
+		/**
+		 * Key
+		 */
+		key: () => LocalizedString
+		/**
+		 * Name
+		 */
+		name: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -3622,6 +4235,10 @@ export type TranslationFunctions = {
 		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
 		clipboard: {
 			/**
 			 * Clipboard is not accessible.
@@ -3634,6 +4251,76 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		addGroup: {
+			/**
+			 * Add group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Create group
+			 */
+			submit: () => LocalizedString
+		}
+		editGroup: {
+			/**
+			 * Edit group
+			 */
+			title: () => LocalizedString
+			/**
+			 * Select all users
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Group name
+			 */
+			groupName: () => LocalizedString
+			/**
+			 * Filter/Search
+			 */
+			searchPlaceholder: () => LocalizedString
+			/**
+			 * Update group
+			 */
+			submit: () => LocalizedString
+		}
+		deleteGroup: {
+			/**
+			 * Delete group {name}
+			 */
+			title: (arg: { name: string }) => LocalizedString
+			/**
+			 * This action will permanently delete this group.
+			 */
+			subTitle: () => LocalizedString
+			/**
+			 * This group is currently assigned to following VPN Locations:
+			 */
+			locationListHeader: () => LocalizedString
+			/**
+			 * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
+			 */
+			locationListFooter: () => LocalizedString
+			/**
+			 * Delete group
+			 */
+			submit: () => LocalizedString
+			/**
+			 * Cancel
+			 */
+			cancel: () => LocalizedString
+		}
 		deviceConfig: {
 			/**
 			 * Device VPN configurations
@@ -3697,7 +4384,7 @@ export type TranslationFunctions = {
 				 */
 				success: () => LocalizedString
 				/**
-				 * Desktop activation started
+				 * Desktop configuration started
 				 */
 				successDesktop: () => LocalizedString
 				/**
@@ -4077,6 +4764,50 @@ export type TranslationFunctions = {
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
+		disableUser: {
+			/**
+			 * Disable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Disable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to disable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} disabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
+		enableUser: {
+			/**
+			 * Enable account
+			 */
+			title: () => LocalizedString
+			controls: {
+				/**
+				 * Enable account
+				 */
+				submit: () => LocalizedString
+			}
+			/**
+			 * Do you want to enable {username} account?
+			 */
+			message: (arg: { username: string }) => LocalizedString
+			messages: {
+				/**
+				 * {username} enabled.
+				 */
+				success: (arg: { username: string }) => LocalizedString
+			}
+		}
 		deleteProvisioner: {
 			/**
 			 * Delete provisioner
@@ -4415,7 +5146,7 @@ export type TranslationFunctions = {
 			setupMethod: {
 				remote: {
 					/**
-					 * Remote Desktop Activation
+					 * Configure Desktop Client
 					 */
 					title: () => LocalizedString
 					/**
@@ -4473,6 +5204,10 @@ export type TranslationFunctions = {
 			
 					 */
 					warningManualMode: () => LocalizedString
+					/**
+					 * You don't have access to any network.
+					 */
+					warningNoNetworks: () => LocalizedString
 					/**
 					 * 
 				      <p>
@@ -4625,6 +5360,20 @@ export type TranslationFunctions = {
 					 * E-mail
 					 */
 					label: () => LocalizedString
+				}
+				status: {
+					/**
+					 * Status
+					 */
+					label: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+					/**
+					 * Disabled
+					 */
+					disabled: () => LocalizedString
 				}
 				groups: {
 					/**
@@ -4958,6 +5707,156 @@ export type TranslationFunctions = {
 				line2: () => LocalizedString
 			}
 		}
+		authenticationKeys: {
+			/**
+			 * User Authentication Keys
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new Key
+			 */
+			addKey: () => LocalizedString
+			keysList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Key
+					 */
+					key: () => LocalizedString
+					/**
+					 * Download
+					 */
+					download: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Serial Number
+					 */
+					serialNumber: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete Authentication Key
+				 */
+				title: () => LocalizedString
+				/**
+				 * Key {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new Authentication Key
+				 */
+				header: () => LocalizedString
+				/**
+				 * Key Type
+				 */
+				keyType: () => LocalizedString
+				keyForm: {
+					placeholders: {
+						/**
+						 * Key Name
+						 */
+						title: () => LocalizedString
+						key: {
+							/**
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
+							 */
+							ssh: () => LocalizedString
+							/**
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
+							 */
+							gpg: () => LocalizedString
+						}
+					}
+					labels: {
+						/**
+						 * Name
+						 */
+						title: () => LocalizedString
+						/**
+						 * Key
+						 */
+						key: () => LocalizedString
+					}
+					/**
+					 * Add {name} key
+					 */
+					submit: (arg: { name: string }) => LocalizedString
+				}
+				yubikeyForm: {
+					selectWorker: {
+						/**
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
+						 */
+						info: () => LocalizedString
+						/**
+						 * Select on of the following provisioners to provision a YubiKey
+						 */
+						selectLabel: () => LocalizedString
+						/**
+						 * No workers are registered right now.
+						 */
+						noData: () => LocalizedString
+						/**
+						 * Available
+						 */
+						available: () => LocalizedString
+						/**
+						 * Unavailable
+						 */
+						unavailable: () => LocalizedString
+					}
+					provisioning: {
+						/**
+						 * Provisioning in progress, please wait.
+						 */
+						inProgress: () => LocalizedString
+						/**
+						 * Provisioning failed !
+						 */
+						error: () => LocalizedString
+						/**
+						 * Yubikey provisioned successfully
+						 */
+						success: () => LocalizedString
+					}
+					/**
+					 * Provision Yubikey
+					 */
+					submit: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * Key added.
+					 */
+					keyAdded: () => LocalizedString
+					/**
+					 * Key has already been added.
+					 */
+					keyExists: () => LocalizedString
+					/**
+					 * Unsupported key format.
+					 */
+					unsupportedKeyFormat: () => LocalizedString
+					/**
+					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -5021,9 +5920,17 @@ export type TranslationFunctions = {
 				 */
 				edit: () => LocalizedString
 				/**
-				 * Provision YubiKey
+				 * Add YubiKey
 				 */
-				provision: () => LocalizedString
+				addYubikey: () => LocalizedString
+				/**
+				 * Add SSH Key
+				 */
+				addSSH: () => LocalizedString
+				/**
+				 * Add GPG Key
+				 */
+				addGPG: () => LocalizedString
 				/**
 				 * Delete account
 				 */
@@ -5033,7 +5940,7 @@ export type TranslationFunctions = {
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * Remote desktop activation
+				 * Configure Desktop Client
 				 */
 				activateDesktop: () => LocalizedString
 				/**
@@ -5085,8 +5992,16 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			support: () => LocalizedString
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * Groups
+			 */
+			groups: () => LocalizedString
 			/**
 			 * Create location
 			 */
@@ -5188,7 +6103,11 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
-			 * Username is already in use
+			 * Field contains forbidden characters.
+			 */
+			forbiddenCharacter: () => LocalizedString
+			/**
+			 * Username is already in use.
 			 */
 			usernameTaken: () => LocalizedString
 			/**
@@ -5203,6 +6122,10 @@ export type TranslationFunctions = {
 			 * Field is required.
 			 */
 			required: () => LocalizedString
+			/**
+			 * Submitted code is invalid.
+			 */
+			invalidCode: () => LocalizedString
 			/**
 			 * Maximum length exceeded.
 			 */
@@ -5256,13 +6179,29 @@ export type TranslationFunctions = {
 			 */
 			allowedIps: () => LocalizedString
 			/**
-			 * Cannot start from number
+			 * Cannot start from number.
 			 */
 			startFromNumber: () => LocalizedString
 			/**
-			 * Fields don't match
+			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
+			/**
+			 * Expected a valid number.
+			 */
+			number: () => LocalizedString
+			/**
+			 * Minimum value of {value} not reached.
+			 */
+			minimumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Maximum value of {value} exceeded.
+			 */
+			maximumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Too many bad login attempts. Please try again in a few minutes.
+			 */
+			tooManyBadLoginAttempts: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
@@ -5353,6 +6292,10 @@ export type TranslationFunctions = {
 			 * LDAP
 			 */
 			ldap: () => LocalizedString
+			/**
+			 * OpenID
+			 */
+			openid: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -5363,6 +6306,20 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
 		}
 		ldapSettings: {
 			/**
@@ -5435,6 +6392,92 @@ export type TranslationFunctions = {
 					 * LDAP connection rejected
 					 */
 					error: () => LocalizedString
+				}
+			}
+		}
+		openIdSettings: {
+			general: {
+				/**
+				 * External OpenID Settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can change general OpenID behavior in your Defguard instance.
+				 */
+				helper: () => LocalizedString
+				createAccount: {
+					/**
+					 * Automatically create user account when logging in for the first time through external OpenID.
+					 */
+					label: () => LocalizedString
+					/**
+					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * External OpenID Client Settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
+				 */
+				helper: () => LocalizedString
+				/**
+				 * Custom
+				 */
+				custom: () => LocalizedString
+				/**
+				 * Documentation
+				 */
+				documentation: () => LocalizedString
+				/**
+				 * Delete provider
+				 */
+				'delete': () => LocalizedString
+				labels: {
+					provider: {
+						/**
+						 * Provider
+						 */
+						label: () => LocalizedString
+						/**
+						 * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
+						 */
+						helper: () => LocalizedString
+					}
+					client_id: {
+						/**
+						 * Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					client_secret: {
+						/**
+						 * Client Secret
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client Secret provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					base_url: {
+						/**
+						 * Base URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -5595,6 +6638,52 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * Here you can manage your Defguard Enterprise version license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * To learn more about Defguard Enterprise, visit our webiste.
+					 */
+					link: () => LocalizedString
+				}
+				licenseKey: {
+					/**
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * You can purchase the license here.
+					 */
+					link: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -6031,6 +7120,12 @@ export type TranslationFunctions = {
 							 */
 							label: () => LocalizedString
 						}
+						groups: {
+							/**
+							 * Groups
+							 */
+							label: () => LocalizedString
+						}
 					}
 					controls: {
 						/**
@@ -6268,6 +7363,10 @@ export type TranslationFunctions = {
 			 * Know your phone number.
 			 */
 			phone: () => LocalizedString
+			/**
+			 * Know your groups membership.
+			 */
+			groups: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -6507,6 +7606,24 @@ export type TranslationFunctions = {
 					 */
 					placeholder: () => LocalizedString
 				}
+				mfa_enabled: {
+					/**
+					 * Require MFA for this Location
+					 */
+					label: () => LocalizedString
+				}
+				keepalive_interval: {
+					/**
+					 * Keepalive interval [seconds]
+					 */
+					label: () => LocalizedString
+				}
+				peer_disconnect_threshold: {
+					/**
+					 * Peer disconnect threshold [seconds]
+					 */
+					label: () => LocalizedString
+				}
 			}
 			controls: {
 				/**
@@ -6525,15 +7642,39 @@ export type TranslationFunctions = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * Gateway server setup
-		 */
-		header: () => LocalizedString
+		header: {
+			/**
+			 * Gateway server setup
+			 */
+			main: () => LocalizedString
+			/**
+			 * Docker Based Gateway Setup
+			 */
+			dockerBasedGatewaySetup: () => LocalizedString
+			/**
+			 * From Package
+			 */
+			fromPackage: () => LocalizedString
+			/**
+			 * One Line Install
+			 */
+			oneLineInstall: () => LocalizedString
+		}
 		card: {
 			/**
 			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
+			/**
+			 * Authentication Token
+			 */
+			authToken: () => LocalizedString
+		}
+		button: {
+			/**
+			 * Available Packages
+			 */
+			availablePackages: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -6543,34 +7684,49 @@ export type TranslationFunctions = {
 		}
 		messages: {
 			/**
-			 * 
-		          <p>
-		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-		            More details can be found in the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+			 * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the [documentation]({setupGatewayDocs}).
 		            There are several ways to deploy the gateway server,
-		            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
-		          </p>
+		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
+		          
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 
-		          <p>
-		            Please create the network before running the gateway process.
-		          </p>
+			 * Please create the network before running the gateway process.
 			 */
 			createNetwork: () => LocalizedString
 			/**
-			 * <p>No connection established, please run provided command.</p>
+			 * No connection established, please run provided command.
 			 */
 			noConnection: () => LocalizedString
 			/**
-			 * <p>Gateway connected.</p>
+			 * Gateway connected.
 			 */
 			connected: () => LocalizedString
 			/**
 			 * Failed to get gateway status
 			 */
 			statusError: () => LocalizedString
+			/**
+			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+		          you don't need to do anything.
+			 */
+			oneLineInstall: () => LocalizedString
+			/**
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+		          according to the [documentation]({setupGatewayDocs}).
+			 */
+			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}
 	}
 	loginPage: {
@@ -6578,6 +7734,16 @@ export type TranslationFunctions = {
 		 * Enter your credentials
 		 */
 		pageTitle: () => LocalizedString
+		callback: {
+			/**
+			 * Go back to login
+			 */
+			'return': () => LocalizedString
+			/**
+			 * An error occurred during external OpenID login
+			 */
+			error: () => LocalizedString
+		}
 		mfa: {
 			/**
 			 * Two-factor authentication

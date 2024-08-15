@@ -18,6 +18,7 @@ import useApi from '../../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../../shared/hooks/useToaster';
 import { patternNumbersOnly } from '../../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../../shared/queries';
+import { trimObjectStrings } from '../../../../../../../../shared/utils/trimObjectStrings';
 import { useEmailMFAModal } from '../../hooks/useEmailMFAModal';
 
 type FormFields = {
@@ -104,8 +105,9 @@ export const RegisterMFAEmailForm = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
+    data = trimObjectStrings(data);
     mutateFinish({
-      code: Number.parseInt(data.code),
+      code: String(data.code),
     });
   };
 
