@@ -66,8 +66,8 @@ jobs:
           path: |
             ./e2e/playwright-report
           retention-days: 7
-  # trigger-dev-deploy:
-  #   needs: test
-  #   if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
-  #   uses: ./.github/workflows/dev-deployment.yml
-  #   secrets: inherit
+  trigger-dev-deploy:
+    needs: test
+    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+    uses: ./.github/workflows/dev-deployment.yml
+    secrets: inherit

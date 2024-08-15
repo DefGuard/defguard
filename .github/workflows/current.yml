@@ -4,7 +4,6 @@ on:
     branches:
       - main
       - dev
-      - fix-e2e-lockfile
     paths-ignore:
       - "*.md"
       - "LICENSE"
