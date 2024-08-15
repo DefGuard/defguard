@@ -16,44 +16,23 @@ env:
 jobs:
   rustdoc:
     runs-on: [self-hosted, Linux, X64]
-    container: rust:1.77
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: defguard
-          POSTGRES_USER: defguard
-          POSTGRES_PASSWORD: defguard
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    container: rust:1-slim
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set database URL
-        run: sed -i -e 's,localhost,postgres,' .env
-
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
 
       - name: Build Docs
         env:
-          DEFGUARD_DB_HOST: postgres
-          DEFGUARD_DB_PORT: 5432
-          DEFGUARD_DB_NAME: defguard
-          DEFGUARD_DB_USER: defguard
-          DEFGUARD_DB_PASSWORD: defguard
           SQLX_OFFLINE: true
-        run: cargo doc --all --no-deps
+        run: cargo doc --no-deps --workspace
 
       - name: Deploy Docs
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
