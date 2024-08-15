@@ -1,7 +1,8 @@
-use super::UserInfo;
-use crate::DbPool;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError, FromRow};
+
+use super::UserInfo;
+use crate::DbPool;
 
 /// App events which triggers webhook action
 #[derive(Debug)]

@@ -360,6 +360,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const editSettings = async (settings: Settings) =>
     client.put('/settings', settings).then(unpackRequest);
 
+  const getEnterpriseStatus = () => client.get('/enterprise_status').then(unpackRequest);
+
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
@@ -494,6 +496,7 @@ const useApi = (props?: HookProps): ApiHook => {
   return {
     getAppInfo,
     changePasswordSelf,
+    getEnterpriseStatus,
     oAuth: {
       consent: oAuthConsent,
     },

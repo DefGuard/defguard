@@ -3,15 +3,15 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serde_json::json;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::openid_provider::OpenIdProvider,
     handlers::{ApiResponse, ApiResult},
 };
-
-use serde_json::json;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {
@@ -38,6 +38,7 @@ impl AddProviderData {
 }
 
 pub async fn add_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -66,6 +67,7 @@ pub async fn add_openid_provider(
 }
 
 pub async fn get_current_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -82,6 +84,7 @@ pub async fn get_current_openid_provider(
 }
 
 pub async fn delete_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -115,6 +118,7 @@ pub async fn delete_openid_provider(
 }
 
 pub async fn modify_openid_provider(
+    _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -151,6 +155,7 @@ pub async fn modify_openid_provider(
 }
 
 pub async fn list_openid_providers(
+    _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {

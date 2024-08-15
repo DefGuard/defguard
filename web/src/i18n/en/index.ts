@@ -33,6 +33,7 @@ const en: BaseTranslation = {
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
     insecureContext: 'Context is not secure.',
+    details: 'Details:',
     clipboard: {
       error: 'Clipboard is not accessible.',
       success: 'Content copied to clipboard.',
@@ -896,6 +897,11 @@ const en: BaseTranslation = {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
     },
+    enterpriseOnly: {
+      title: 'This feature is available only in Defguard Enterprise.',
+      subtitle: 'To learn more, visit our ',
+      website: 'website',
+    },
     ldapSettings: {
       title: 'LDAP Settings',
       form: {
@@ -1041,6 +1047,28 @@ const en: BaseTranslation = {
             Read more in documentation.
           </a>
 			`,
+    },
+    license: {
+      header: 'Enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Here you can manage your Defguard Enterprise version license.',
+          link: 'To learn more about Defguard Enterprise, visit our webiste.',
+        },
+        licenseKey: {
+          text: 'Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.',
+          link: 'You can purchase the license here.',
+        },
+      },
+      form: {
+        title: 'License',
+        fields: {
+          key: {
+            label: 'License key',
+            placeholder: 'Your Defguard license key',
+          },
+        },
+      },
     },
     smtp: {
       form: {

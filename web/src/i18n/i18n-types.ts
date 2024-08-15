@@ -117,6 +117,10 @@ type RootTranslation = {
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
 		clipboard: {
 			/**
 			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
@@ -2205,6 +2209,20 @@ type RootTranslation = {
 			 */
 			challengeSuccess: string
 		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
+		}
 		ldapSettings: {
 			/**
 			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
@@ -2525,6 +2543,52 @@ type RootTranslation = {
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
+		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
+					 */
+					link: string
+				}
+				licenseKey: {
+					/**
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
+					 */
+					link: string
+				}
+			}
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -4171,6 +4235,10 @@ export type TranslationFunctions = {
 		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
 		clipboard: {
 			/**
 			 * Clipboard is not accessible.
@@ -6239,6 +6307,20 @@ export type TranslationFunctions = {
 			 */
 			challengeSuccess: () => LocalizedString
 		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
+		}
 		ldapSettings: {
 			/**
 			 * LDAP Settings
@@ -6556,6 +6638,52 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * Here you can manage your Defguard Enterprise version license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * To learn more about Defguard Enterprise, visit our webiste.
+					 */
+					link: () => LocalizedString
+				}
+				licenseKey: {
+					/**
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * You can purchase the license here.
+					 */
+					link: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {

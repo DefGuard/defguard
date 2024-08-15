@@ -1,7 +1,8 @@
-use super::{DbPool, NewOpenIDClient};
-use crate::random::gen_alphanumeric;
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
+
+use super::{DbPool, NewOpenIDClient};
+use crate::random::gen_alphanumeric;
 
 #[derive(Deserialize, Model, Serialize)]
 pub struct OAuth2Client {

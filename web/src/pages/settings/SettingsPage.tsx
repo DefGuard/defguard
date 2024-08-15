@@ -47,8 +47,8 @@ export const SettingsPage = () => {
     refetchOnWindowFocus: false,
   });
 
-  const tabs = useMemo(
-    (): CardTabsData[] => [
+  const tabs = useMemo((): CardTabsData[] => {
+    return [
       {
         key: 0,
         content: LL.settingsPage.tabs.global(),
@@ -73,9 +73,8 @@ export const SettingsPage = () => {
         active: activeCard === 3,
         onClick: () => setActiveCard(3),
       },
-    ],
-    [LL.settingsPage.tabs, activeCard],
-  );
+    ];
+  }, [LL.settingsPage.tabs, activeCard]);
 
   // set store
   useEffect(() => {
