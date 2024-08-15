@@ -25,7 +25,7 @@ jobs:
         type=ref,event=branch
         type=sha
 
-  # trigger-e2e:
-  #   needs: docker-manifest
-  #   uses: ./.github/workflows/e2e.yml
-  #   secrets: inherit
+  trigger-e2e:
+    needs: docker-manifest
+    uses: ./.github/workflows/e2e.yml
+    secrets: inherit
