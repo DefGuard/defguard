@@ -1,14 +1,8 @@
-use axum::http::StatusCode;
-
-use axum::Json;
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use serde_json::json;
-
-use time::Duration;
-
 use axum::extract::State;
-
+use axum::http::StatusCode;
+use axum::Json;
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::{CookieJar, PrivateCookieJar};
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
@@ -21,7 +15,10 @@ use openidconnect::{
     ProviderMetadata, RedirectUrl,
 };
 use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
+use serde_json::json;
+use time::Duration;
 
+use super::LicenseInfo;
 use crate::appstate::AppState;
 use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
@@ -105,6 +102,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
 }
 
 pub async fn get_auth_info(
+    _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -177,6 +175,7 @@ pub struct AuthenticationResponse {
 }
 
 pub async fn auth_callback(
+    _license: LicenseInfo,
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,

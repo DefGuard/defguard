@@ -1394,8 +1394,9 @@ pub async fn delete_authorized_app(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use claims::{assert_err, assert_ok};
+
+    use super::*;
 
     #[test]
     fn test_username_validation() {

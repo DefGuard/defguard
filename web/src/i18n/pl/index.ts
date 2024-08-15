@@ -32,6 +32,7 @@ const pl: Translation = {
     error: 'Wystąpił błąd.',
     success: 'Operacja zakończyła się sukcesem',
     errorVersion: 'Nie udało się uzyskać wersji aplikacji.',
+    details: 'Szczegóły:',
     clipboard: {
       success: 'Skopiowano do schowka',
       error: 'Schowek nie jest dostępny',
@@ -883,6 +884,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       editSuccess: 'Ustawienia zaktualizowane.',
       challengeSuccess: 'Zmieniono wiadomość do podpisu.',
     },
+    enterpriseOnly: {
+      title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
+      website: 'stronę internetową',
+    },
     ldapSettings: {
       title: 'Ustawienia LDAP',
       form: {
@@ -1029,6 +1035,28 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
 					Przeczytaj więcej w dokumentacji.
           </a>
 			`,
+    },
+    license: {
+      header: 'Funkcje enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Tutaj możesz zarządzać swoją licencją Defguard Enterprise.',
+          link: 'By dowiedzieć się więcej, odwiedź naszą stronę.',
+        },
+        licenseKey: {
+          text: 'Wprowadź poniżej klucz licencyjny Defguard Enterprise. Powinieneś otrzymać go na swoją skrzynkę e-mailową po zakupie licencji.',
+          link: 'Licencję możesz zakupić tutaj.',
+        },
+      },
+      form: {
+        title: 'Licencja',
+        fields: {
+          key: {
+            label: 'Klucz licencji',
+            placeholder: 'Klucz licencji dla twojej instancji Defguard',
+          },
+        },
+      },
     },
     smtp: {
       form: {

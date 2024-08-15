@@ -4,6 +4,12 @@
 //! it should be removed from gateway configuration and marked as "not allowed",
 //! which enforces an authentication requirement to connect again.
 
+use std::time::Duration;
+
+use sqlx::{query_as, Error as SqlxError};
+use thiserror::Error;
+use tokio::{sync::broadcast::Sender, time::sleep};
+
 use crate::db::{
     models::{
         device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
@@ -12,10 +18,6 @@ use crate::db::{
     },
     DbPool, Device, GatewayEvent, WireguardNetwork,
 };
-use sqlx::{query_as, Error as SqlxError};
-use std::time::Duration;
-use thiserror::Error;
-use tokio::{sync::broadcast::Sender, time::sleep};
 
 // How long to sleep between loop iterations
 const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 60; // 1 minute

@@ -1,7 +1,8 @@
-use super::DbPool;
-use crate::{random::gen_alphanumeric, server_config};
 use chrono::{Duration, Utc};
 use sqlx::{query, query_as, Error as SqlxError};
+
+use super::DbPool;
+use crate::{random::gen_alphanumeric, server_config};
 
 pub struct OAuth2Token {
     pub oauth2authorizedapp_id: i64,
