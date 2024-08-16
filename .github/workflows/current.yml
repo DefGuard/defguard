@@ -4,7 +4,6 @@ on:
     branches:
       - main
       - dev
-      - build_multiarch
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -12,9 +11,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  GHCR_REPO: ghcr.io/defguard/defguard
 
 jobs:
   build-current:
