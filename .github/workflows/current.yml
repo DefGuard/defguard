@@ -22,6 +22,6 @@ jobs:
         type=sha
 
   trigger-e2e:
-    needs: docker-manifest
+    needs: build-current
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
