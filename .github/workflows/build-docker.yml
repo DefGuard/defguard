@@ -70,11 +70,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create manifest
+      - name: Create and push manifests
         run: |
-          docker manifest create ${{ env.GHCR_REPO }}:${{ github.sha }} \
-            ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 \
-            ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
-      - name: Push manifest
-        run: |
-          docker manifest push ${{ env.GHCR_REPO }}:${{ github.sha }}
+          for tag in ${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }} \
+          do \
+            docker manifest create ${{ tag }} \
+              ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 \
+              ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64 \
+            docker manifest push ${{ env.GHCR_REPO }}:${{ github.sha }} \
+          done
