@@ -12,6 +12,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { AxiosError } from 'axios';
 
 export const PermissionsForm = () => {
   const { LL } = useI18nContext();
@@ -26,12 +27,12 @@ export const PermissionsForm = () => {
 
   const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], patchSettings, {
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_ESSENTIAL_SETTINGS]);
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
-    onError: () => {
+    onError: (err: AxiosError) => {
       toaster.error(LL.messages.error());
+      console.error(err);
     },
   });
 
@@ -47,7 +48,7 @@ export const PermissionsForm = () => {
         <LabeledCheckbox
           disabled={isLoading}
           label={LL.settingsPage.permissions.fields.deviceCreation.label()}
-          value={settings.openid_enabled}
+          value={settings.disable_device_creation}
           onChange={() =>
             mutate({ disable_device_creation: !settings.disable_device_creation })
           }

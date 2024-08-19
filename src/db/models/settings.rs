@@ -65,6 +65,8 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
+    // If true, only admins can create devices
+    pub disable_device_creation: bool,
 }
 
 impl Settings {

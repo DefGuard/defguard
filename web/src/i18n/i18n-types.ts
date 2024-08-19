@@ -1946,7 +1946,7 @@ type RootTranslation = {
 			support: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
 		 */
 		copyright: string
 		version: {
@@ -1956,7 +1956,7 @@ type RootTranslation = {
 			 */
 			open: RequiredParams<'version'>
 			/**
-			 * v​ ​{​v​e​r​s​i​o​n​}
+			 * v​{​v​e​r​s​i​o​n​}
 			 * @param {string} version
 			 */
 			closed: RequiredParams<'version'>
@@ -3625,8 +3625,7 @@ type RootTranslation = {
 			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
@@ -6074,7 +6073,7 @@ export type TranslationFunctions = {
 			support: () => LocalizedString
 		}
 		/**
-		 * Copyright © 2023 
+		 * Copyright ©2023-2024
 		 */
 		copyright: () => LocalizedString
 		version: {
@@ -6083,7 +6082,7 @@ export type TranslationFunctions = {
 			 */
 			open: (arg: { version: string }) => LocalizedString
 			/**
-			 * v {version}
+			 * v{version}
 			 */
 			closed: (arg: { version: string }) => LocalizedString
 		}
@@ -7740,7 +7739,6 @@ export type TranslationFunctions = {
 		            More details can be found in the [documentation]({setupGatewayDocs}).
 		            There are several ways to deploy the gateway server,
 		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
-		          
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
