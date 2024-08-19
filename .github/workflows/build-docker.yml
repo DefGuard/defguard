@@ -72,7 +72,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create and push manifests
         run: |
-          for tag in ${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }} \
+          tags='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+          for tag in ${tags} \
           do \
             docker manifest create ${tag} \
               ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 \
