@@ -65,8 +65,6 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
-    // If true, only admins can create devices
-    pub disable_device_creation: bool,
 }
 
 impl Settings {
@@ -124,7 +122,6 @@ pub struct SettingsEssentials {
     pub webhooks_enabled: bool,
     pub worker_enabled: bool,
     pub openid_enabled: bool,
-    pub disable_device_creation: bool,
 }
 
 impl SettingsEssentials {
@@ -135,7 +132,7 @@ impl SettingsEssentials {
         query_as!(
             SettingsEssentials,
             "SELECT instance_name, main_logo_url, nav_logo_url, wireguard_enabled, \
-            webhooks_enabled, worker_enabled, openid_enabled, disable_device_creation \
+            webhooks_enabled, worker_enabled, openid_enabled \
             FROM settings WHERE id = 1"
         )
         .fetch_one(executor)
@@ -153,7 +150,6 @@ impl From<Settings> for SettingsEssentials {
             nav_logo_url: settings.nav_logo_url,
             instance_name: settings.instance_name,
             main_logo_url: settings.main_logo_url,
-            disable_device_creation: settings.disable_device_creation,
         }
     }
 }
