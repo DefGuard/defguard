@@ -156,7 +156,7 @@ Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-
 # Built and sponsored by
 
 <p align="center">
-      <a href="https://teonite.com" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="build by teonite" /></a>
+      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="build by teonite" /></a>
 </p>
 
 # Legal
