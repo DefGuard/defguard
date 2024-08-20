@@ -389,6 +389,9 @@ pub fn build_webapp(
             .route("/settings/:id", put(set_default_branding))
             // settings for frontend
             .route("/settings_essentials", get(get_settings_essentials))
+            // enterprise settings
+            .route("/settings_enterprise", get(get_enterprise_settings))
+            .route("/settings_enterprise", patch(patch_enterprise_settings))
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))
@@ -412,10 +415,7 @@ pub fn build_webapp(
             .route("/provider", post(add_openid_provider))
             .route("/provider/:name", delete(delete_openid_provider))
             .route("/callback", post(auth_callback))
-            .route("/auth_info", get(get_auth_info))
-            // Settings
-            .route("/enterprise_settings", get(get_enterprise_settings))
-            .route("/enterprise_settings", patch(patch_enterprise_settings)),
+            .route("/auth_info", get(get_auth_info)),
     );
     let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 

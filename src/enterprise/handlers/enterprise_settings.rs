@@ -25,7 +25,6 @@ pub async fn get_enterprise_settings(
     );
     Ok(ApiResponse {
         json: json!(settings),
-        // json: json!({}),
         status: StatusCode::OK,
     })
 }

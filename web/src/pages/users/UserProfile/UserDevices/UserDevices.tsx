@@ -17,13 +17,14 @@ import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDevice
 export const UserDevices = () => {
   const navigate = useNavigate();
   const appInfo = useAppStore((state) => state.appInfo);
-  const settings = useAppStore((state) => state.settings);
+  const settings = useAppStore((state) => state.enterprise_settings);
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
+  console.log(settings?.disable_device_management);
   const canManageDevices = !!(
     userProfile &&
-    (!settings?.disable_device_creation || isUserAdmin(userProfile.user))
+    (!settings?.disable_device_management || isUserAdmin(userProfile.user))
   );
 
   return (

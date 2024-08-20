@@ -7,6 +7,7 @@ use crate::enterprise::license::{get_cached_license, validate_license};
 #[derive(Model, Deserialize, Serialize, Patch, Default)]
 #[patch(attribute(derive(Serialize, Deserialize)))]
 pub struct EnterpriseSettings {
+    #[serde(skip)]
     pub id: Option<i64>,
     // If true, only admins can manage devices
     pub disable_device_management: bool,

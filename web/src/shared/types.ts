@@ -586,7 +586,8 @@ export interface ApiHook {
     setDefaultBranding: (id: string) => Promise<Settings>;
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
-    getEnterpriseSettings: () => Promise<SettingsEssentials>;
+    getEnterpriseSettings: () => Promise<SettingsEnterprise>;
+    patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) => EmptyApiResponse;
     testLdapSettings: () => Promise<EmptyApiResponse>;
     fetchOpenIdProviders: () => Promise<OpenIdProvider>;
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
