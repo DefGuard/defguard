@@ -1,4 +1,4 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{RwLock, RwLockReadGuard};
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -14,17 +14,17 @@ use crate::{
     server_config,
 };
 
-static LICENSE: Mutex<Option<License>> = Mutex::new(None);
+static LICENSE: RwLock<Option<License>> = RwLock::new(None);
 
 pub fn set_cached_license(license: Option<License>) {
     *LICENSE
-        .lock()
+        .write()
         .expect("Failed to acquire lock on the license mutex.") = license;
 }
 
-pub fn get_cached_license() -> MutexGuard<'static, Option<License>> {
+pub fn get_cached_license() -> RwLockReadGuard<'static, Option<License>> {
     LICENSE
-        .lock()
+        .read()
         .expect("Failed to acquire lock on the license mutex.")
 }
 
