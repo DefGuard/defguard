@@ -73,7 +73,7 @@ sqlx = { version = "0.7", features = [
     "uuid",
 ] }
 ssh-key = "0.6"
-struct-patch = "0.7"
+struct-patch = "0.8"
 tera = "1.20"
 thiserror = "1.0"
 # match axum-extra -> cookies

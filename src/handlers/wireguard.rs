@@ -17,7 +17,9 @@ use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
-    appstate::AppState, auth::{Claims, ClaimsType, SessionInfo, VpnRole}, db::{
+    appstate::AppState,
+    auth::{Claims, ClaimsType, SessionInfo, VpnRole},
+    db::{
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
@@ -25,7 +27,13 @@ use crate::{
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
-    }, enterprise::db::models::enterprise_settings::EnterpriseSettings, grpc::GatewayMap, handlers::mail::send_new_device_added_email, server_config, templates::TemplateLocation, wg_config::{parse_wireguard_config, ImportedDevice}
+    },
+    enterprise::db::models::enterprise_settings::EnterpriseSettings,
+    grpc::GatewayMap,
+    handlers::mail::send_new_device_added_email,
+    server_config,
+    templates::TemplateLocation,
+    wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -628,11 +636,12 @@ pub async fn add_device(
 async fn can_manage_devices_or_error(pool: &DbPool, session: &SessionInfo) -> Result<(), WebError> {
     let settings = EnterpriseSettings::get(pool).await?;
     if settings.disable_device_management && !session.is_admin {
-        return Err(WebError::Forbidden(
+        Err(WebError::Forbidden(
             "Only admin users can manage devices".into(),
-        ));
+        ))
+    } else {
+        Ok(())
     }
-    Ok(())
 }
 
 /// Modify device

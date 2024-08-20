@@ -1,15 +1,14 @@
 use axum::{extract::State, http::StatusCode, Json};
 use serde_json::json;
+use struct_patch::Patch;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::enterprise_settings::{EnterpriseSettings, EnterpriseSettingsPatch},
     handlers::{ApiResponse, ApiResult},
 };
-use struct_patch::Patch;
-
-use super::LicenseInfo;
 
 pub async fn get_enterprise_settings(
     session: SessionInfo,

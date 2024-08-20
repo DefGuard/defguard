@@ -31,7 +31,7 @@ where
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let license = get_cached_license();
 
-        match validate_license((*license).as_ref()) {
+        match validate_license(license.as_ref()) {
             // Useless struct, but may come in handy later
             Ok(_) => Ok(LicenseInfo { valid: true }),
             Err(e) => Err(WebError::Forbidden(e.to_string())),
