@@ -814,7 +814,7 @@ export type Settings = SettingsModules &
   SettingsPermissions;
 
 // essentials for core frontend, includes only those that are required for frontend operations
-export type SettingsEssentials = SettingsModules & SettingsBranding;
+export type SettingsEssentials = SettingsModules & SettingsBranding & SettingsPermissions;
 
 export type SettingsEnrollment = {
   enrollment_vpn_step_optional: boolean;

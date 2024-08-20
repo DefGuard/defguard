@@ -4,6 +4,7 @@ import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { isUserAdmin } from '../../../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useAddDevicePageStore } from '../../../addDevice/hooks/useAddDevicePageStore';
@@ -16,9 +17,14 @@ import { EditUserDeviceModal } from './modals/EditUserDeviceModal/EditUserDevice
 export const UserDevices = () => {
   const navigate = useNavigate();
   const appInfo = useAppStore((state) => state.appInfo);
+  const settings = useAppStore((state) => state.settings);
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
+  const canManageDevices = !!(
+    userProfile &&
+    (!settings?.disable_device_creation || isUserAdmin(userProfile.user))
+  );
 
   return (
     <section id="user-devices">
@@ -37,7 +43,11 @@ export const UserDevices = () => {
           {userProfile.devices && userProfile.devices.length > 0 && (
             <div className="devices">
               {userProfile.devices.map((device) => (
-                <DeviceCard key={device.id} device={device} />
+                <DeviceCard
+                  key={device.id}
+                  device={device}
+                  modifiable={canManageDevices}
+                />
               ))}
             </div>
           )}
@@ -45,7 +55,7 @@ export const UserDevices = () => {
             <AddComponentBox
               data-testid="add-device"
               text={LL.userPage.devices.addDevice.web()}
-              disabled={!appInfo?.network_present}
+              disabled={!appInfo?.network_present || !canManageDevices}
               callback={() => {
                 initAddDevice({
                   username: userProfile.user.username,
