@@ -586,6 +586,7 @@ export interface ApiHook {
     setDefaultBranding: (id: string) => Promise<Settings>;
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
+    getEnterpriseSettings: () => Promise<SettingsEssentials>;
     testLdapSettings: () => Promise<EmptyApiResponse>;
     fetchOpenIdProviders: () => Promise<OpenIdProvider>;
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
@@ -810,11 +811,10 @@ export type Settings = SettingsModules &
   SettingsBranding &
   SettingsLDAP &
   SettingsOpenID &
-  SettingsLicense &
-  SettingsPermissions;
+  SettingsLicense;
 
 // essentials for core frontend, includes only those that are required for frontend operations
-export type SettingsEssentials = SettingsModules & SettingsBranding & SettingsPermissions;
+export type SettingsEssentials = SettingsModules & SettingsBranding;
 
 export type SettingsEnrollment = {
   enrollment_vpn_step_optional: boolean;
@@ -872,8 +872,8 @@ export type SettingsLicense = {
   license: string;
 };
 
-export type SettingsPermissions = {
-  disable_device_creation: boolean;
+export type SettingsEnterprise = {
+  disable_device_management: boolean;
 };
 
 export interface Webhook {

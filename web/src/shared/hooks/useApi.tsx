@@ -429,6 +429,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
     client.get('/settings_essentials').then(unpackRequest);
 
+  const getEnterpriseSettings: ApiHook['settings']['getEnterpriseSettings'] = () =>
+    client.get('/settings_essentials').then(unpackRequest);
+
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
 

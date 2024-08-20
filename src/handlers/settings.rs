@@ -108,7 +108,7 @@ pub async fn patch_settings(
     session: SessionInfo,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
-    debug!("Admin {} patching settings.", &session.user.username);
+    debug!("Admin {} patching settings.", session.user.username);
     let mut settings = Settings::get_settings(&appstate.pool).await?;
 
     // Handle updating the cached license
@@ -119,7 +119,7 @@ pub async fn patch_settings(
 
     settings.apply(data);
     settings.save(&appstate.pool).await?;
-    info!("Admin {} patched settings.", &session.user.username);
+    info!("Admin {} patched settings.", session.user.username);
     Ok(ApiResponse::default())
 }
 

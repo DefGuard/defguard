@@ -13,15 +13,16 @@ use axum::{
 };
 use enterprise::handlers::{
     check_enterprise_status,
+    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
-use handlers::ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
-    ssh_authorized_keys::rename_authentication_key,
+    ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+        rename_authentication_key,
+    },
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -157,10 +158,10 @@ mod openapi {
         AddDevice, UserDetails, UserInfo,
     };
     use error::WebError;
-    use handlers::wireguard as device;
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, WalletInfoShort},
+        wireguard as device,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         StartEnrollmentRequest, Username, WalletChange, WalletSignature,
@@ -406,11 +407,15 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/openid",
         Router::new()
+            // OpenID
             .route("/provider", get(get_current_openid_provider))
             .route("/provider", post(add_openid_provider))
             .route("/provider/:name", delete(delete_openid_provider))
             .route("/callback", post(auth_callback))
-            .route("/auth_info", get(get_auth_info)),
+            .route("/auth_info", get(get_auth_info))
+            // Settings
+            .route("/enterprise_settings", get(get_enterprise_settings))
+            .route("/enterprise_settings", patch(patch_enterprise_settings)),
     );
     let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
