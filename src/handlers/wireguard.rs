@@ -25,7 +25,8 @@ use crate::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
             },
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
-        }, AddDevice, DbPool, Device, GatewayEvent, Settings, WireguardNetwork
+        },
+        AddDevice, DbPool, Device, GatewayEvent, Settings, WireguardNetwork,
     },
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
@@ -630,10 +631,13 @@ pub async fn add_device(
     })
 }
 
+/// Returns an error if current session user cannot manage devices.
 async fn can_manage_devices_or_error(pool: &DbPool, session: &SessionInfo) -> Result<(), WebError> {
     let settings = Settings::get_settings(pool).await?;
     if settings.disable_device_creation && !session.is_admin {
-        return Err(WebError::Forbidden("Only admin users can manage devices".into()));
+        return Err(WebError::Forbidden(
+            "Only admin users can manage devices".into(),
+        ));
     }
     Ok(())
 }
@@ -678,6 +682,7 @@ pub async fn modify_device(
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    can_manage_devices_or_error(&appstate.pool, &session).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {
@@ -799,6 +804,7 @@ pub async fn delete_device(
 ) -> ApiResult {
     debug!("User {} deleting device {device_id}", session.user.username);
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
+    can_manage_devices_or_error(&appstate.pool, &session).await?;
     appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(
         DeviceInfo::from_device(&appstate.pool, device.clone()).await?,
     ));
