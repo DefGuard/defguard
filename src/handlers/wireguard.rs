@@ -17,7 +17,9 @@ use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
-    appstate::AppState, auth::{Claims, ClaimsType, SessionInfo, VpnRole}, db::{
+    appstate::AppState,
+    auth::{Claims, ClaimsType, SessionInfo, VpnRole},
+    db::{
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
@@ -25,7 +27,13 @@ use crate::{
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
-    }, enterprise::handlers::CanManageDevices, grpc::GatewayMap, handlers::mail::send_new_device_added_email, server_config, templates::TemplateLocation, wg_config::{parse_wireguard_config, ImportedDevice}
+    },
+    enterprise::handlers::CanManageDevices,
+    grpc::GatewayMap,
+    handlers::mail::send_new_device_added_email,
+    server_config,
+    templates::TemplateLocation,
+    wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
 #[derive(Deserialize, Serialize, ToSchema)]
