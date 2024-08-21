@@ -1,4 +1,5 @@
 use crate::{
+    auth::SessionInfo,
     enterprise::license::validate_license,
     handlers::{ApiResponse, ApiResult},
 };
@@ -13,12 +14,14 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
-use super::license::get_cached_license;
+use super::{db::models::enterprise_settings::EnterpriseSettings, license::get_cached_license};
 use crate::{appstate::AppState, error::WebError};
 
 pub struct LicenseInfo {
     pub valid: bool,
 }
+
+pub struct CanManageDevices;
 
 #[async_trait]
 impl<S> FromRequestParts<S> for LicenseInfo
@@ -48,4 +51,27 @@ pub async fn check_enterprise_status() -> ApiResult {
         json: serde_json::json!({ "enabled": valid }),
         status: StatusCode::OK,
     })
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for CanManageDevices
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
+
+    /// Returns an error if current session user is not allowed to manage devices.
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let appstate = AppState::from_ref(state);
+        let session = SessionInfo::from_request_parts(parts, state).await?;
+        let settings = EnterpriseSettings::get(&appstate.pool).await?;
+        if settings.admin_device_management && !session.is_admin {
+            Err(WebError::Forbidden(
+                "Only admin users can manage devices".into(),
+            ))
+        } else {
+            Ok(Self)
+        }
+    }
 }

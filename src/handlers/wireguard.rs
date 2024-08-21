@@ -17,9 +17,7 @@ use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
-    appstate::AppState,
-    auth::{Claims, ClaimsType, SessionInfo, VpnRole},
-    db::{
+    appstate::AppState, auth::{Claims, ClaimsType, SessionInfo, VpnRole}, db::{
         models::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
@@ -27,13 +25,7 @@ use crate::{
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
-    },
-    enterprise::db::models::enterprise_settings::EnterpriseSettings,
-    grpc::GatewayMap,
-    handlers::mail::send_new_device_added_email,
-    server_config,
-    templates::TemplateLocation,
-    wg_config::{parse_wireguard_config, ImportedDevice},
+    }, enterprise::handlers::CanManageDevices, grpc::GatewayMap, handlers::mail::send_new_device_added_email, server_config, templates::TemplateLocation, wg_config::{parse_wireguard_config, ImportedDevice}
 };
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -518,6 +510,7 @@ pub struct AddDeviceResult {
     )
 )]
 pub async fn add_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -531,7 +524,6 @@ pub async fn add_device(
     );
 
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    can_manage_devices_or_error(&appstate.pool, &session).await?;
 
     // Let admins manage devices for disabled users
     if !user.is_active && !session.is_admin {
@@ -632,18 +624,6 @@ pub async fn add_device(
     })
 }
 
-/// Returns an error if current session user cannot manage devices.
-async fn can_manage_devices_or_error(pool: &DbPool, session: &SessionInfo) -> Result<(), WebError> {
-    let settings = EnterpriseSettings::get(pool).await?;
-    if settings.admin_device_management && !session.is_admin {
-        Err(WebError::Forbidden(
-            "Only admin users can manage devices".into(),
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 /// Modify device
 ///
 /// Update a device for a user by sending `ModifyDevice` object.
@@ -677,6 +657,7 @@ async fn can_manage_devices_or_error(pool: &DbPool, session: &SessionInfo) -> Re
     )
 )]
 pub async fn modify_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -684,7 +665,6 @@ pub async fn modify_device(
 ) -> ApiResult {
     debug!("User {} updating device {device_id}", session.user.username);
     let mut device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    can_manage_devices_or_error(&appstate.pool, &session).await?;
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     if networks.is_empty() {
@@ -800,13 +780,13 @@ pub async fn get_device(
     )
 )]
 pub async fn delete_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("User {} deleting device {device_id}", session.user.username);
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    can_manage_devices_or_error(&appstate.pool, &session).await?;
     appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(
         DeviceInfo::from_device(&appstate.pool, device.clone()).await?,
     ));
