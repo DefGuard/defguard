@@ -410,7 +410,6 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1/openid",
         Router::new()
-            // OpenID
             .route("/provider", get(get_current_openid_provider))
             .route("/provider", post(add_openid_provider))
             .route("/provider/:name", delete(delete_openid_provider))

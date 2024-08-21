@@ -31,6 +31,8 @@ impl EnterpriseSettings {
     where
         E: PgExecutor<'e>,
     {
+        // avoid holding the rwlock across await, makes the future !Send
+        // and therefore unusable in axum handlers
         let is_valid = {
             let license = get_cached_license();
             validate_license(license.as_ref()).is_ok()
