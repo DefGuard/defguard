@@ -879,7 +879,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       global: 'Globalne',
       ldap: 'LDAP',
       openid: 'OpenID',
-      permissions: 'Uprawnienia',
+      behaviour: 'Zachowanie',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -1168,14 +1168,14 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
     },
-    permissions: {
-      header: 'Uprawnienia',
-      helper: '<p>Tutaj możesz zmienić podstawowe uprawnienia użytkowników.</p>',
+    behaviour: {
+      header: 'Zachowanie',
+      helper: '<p>Tutaj możesz zmienić zachowanie aplikacji.</p>',
       fields: {
-        deviceCreation: {
-          label: 'Zablokuj możliwość tworzenia urządzeń przez użytkowników',
+        deviceManagement: {
+          label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
           helper:
-            'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą dodawać urządzenia w profilu użytkownika',
+            'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
         },
       },
     },

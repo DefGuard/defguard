@@ -12,10 +12,10 @@ import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTab
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
+import { BehaviourSettings } from './components/BehaviourSettings/BehaviourSettings';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
-import { PermissionsSettings } from './components/PermissionsSettings/PermissionsSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
 
@@ -24,7 +24,7 @@ const tabsContent: ReactNode[] = [
   <SmtpSettings key={1} />,
   <LdapSettings key={2} />,
   <OpenIdSettings key={3} />,
-  <PermissionsSettings key={4} />,
+  <BehaviourSettings key={4} />,
 ];
 
 export const SettingsPage = () => {
@@ -77,7 +77,7 @@ export const SettingsPage = () => {
       },
       {
         key: 4,
-        content: LL.settingsPage.tabs.permissions(),
+        content: LL.settingsPage.tabs.behaviour(),
         active: activeCard === 4,
         onClick: () => setActiveCard(4),
       },

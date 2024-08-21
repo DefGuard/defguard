@@ -14,7 +14,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
 
-export const PermissionsForm = () => {
+export const BehaviourForm = () => {
   const { LL } = useI18nContext();
   const toaster = useToaster();
   const {
@@ -43,18 +43,18 @@ export const PermissionsForm = () => {
   if (!settings) return null;
 
   return (
-    <section id="permissions-settings">
+    <section id="behaviour-settings">
       <header>
-        <h2>{LL.settingsPage.permissions.header()}</h2>
-        <Helper>{parse(LL.settingsPage.permissions.helper())}</Helper>
+        <h2>{LL.settingsPage.behaviour.header()}</h2>
+        <Helper>{parse(LL.settingsPage.behaviour.helper())}</Helper>
       </header>
       <Card shaded bordered hideMobile>
         <LabeledCheckbox
           disabled={isLoading}
-          label={LL.settingsPage.permissions.fields.deviceCreation.label()}
+          label={LL.settingsPage.behaviour.fields.deviceManagement.label()}
           value={settings.admin_device_management}
           onChange={() =>
-            mutate({ admin_device_management: !settings.disable_device_management })
+            mutate({ admin_device_management: !settings.admin_device_management })
           }
         />
       </Card>

@@ -2199,9 +2199,9 @@ type RootTranslation = {
 			 */
 			openid: string
 			/**
-			 * P​e​r​m​i​s​s​i​o​n​s
+			 * B​e​h​a​v​i​o​u​r
 			 */
-			permissions: string
+			behaviour: string
 		}
 		messages: {
 			/**
@@ -2805,23 +2805,23 @@ type RootTranslation = {
 				}
 			}
 		}
-		permissions: {
+		behaviour: {
 			/**
-			 * P​e​r​m​i​s​s​i​o​n​s
+			 * B​e​h​a​v​i​o​u​r
 			 */
 			header: string
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​b​a​s​i​c​ ​u​s​e​r​ ​p​e​r​m​i​s​s​i​o​n​s​.​<​/​p​>
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​a​p​p​ ​b​e​h​a​v​i​o​u​r​.​<​/​p​>
 			 */
 			helper: string
 			fields: {
-				deviceCreation: {
+				deviceManagement: {
 					/**
-					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​a​d​d​ ​t​h​e​i​r​ ​o​w​n​ ​d​e​v​i​c​e​s
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
 					 */
 					label: string
 					/**
-					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​a​d​d​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
 					 */
 					helper: string
 				}
@@ -6322,9 +6322,9 @@ export type TranslationFunctions = {
 			 */
 			openid: () => LocalizedString
 			/**
-			 * Permissions
+			 * Behaviour
 			 */
-			permissions: () => LocalizedString
+			behaviour: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6925,23 +6925,23 @@ export type TranslationFunctions = {
 				}
 			}
 		}
-		permissions: {
+		behaviour: {
 			/**
-			 * Permissions
+			 * Behaviour
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>Here you can change basic user permissions.</p>
+			 * <p>Here you can change app behaviour.</p>
 			 */
 			helper: () => LocalizedString
 			fields: {
-				deviceCreation: {
+				deviceManagement: {
 					/**
-					 * Disable users ability to add their own devices
+					 * Disable users ability to manage their devices
 					 */
 					label: () => LocalizedString
 					/**
-					 * When this option is enabled, only users in the Admin group can add devices in user profile (it's disabled for all other users)
+					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
 					 */
 					helper: () => LocalizedString
 				}
