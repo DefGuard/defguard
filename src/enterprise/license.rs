@@ -165,7 +165,7 @@ impl License {
             .map_err(|_| LicenseError::SignatureMismatch)
     }
 
-    /// Deserialize the license object from a base64 encoded string
+    /// Deserialize the license object from a base64 encoded string.
     /// Also verifies the signature of the license
     pub fn from_base64(key: &str) -> Result<License, LicenseError> {
         debug!("Decoding the license key from a provided base64 string...");
@@ -350,12 +350,12 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     };
 
     // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
-    let license_server_url = "http://update-service-dev.teonite.net/api/license/renew";
+    const LICENSE_SERVER_URL: &str = "http://update-service-dev.teonite.net/api/license/renew";
 
     let new_license_key = match client
-        .post(license_server_url)
+        .post(LICENSE_SERVER_URL)
         .json(&request_body)
-        .header("User-Agent", format!("DefGuard/{VERSION}"))
+        .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
         .send()
         .await
     {
@@ -542,15 +542,30 @@ mod test {
 
     #[test]
     fn test_license() {
-        let license = "ChMKCTEyMzEyMzEyMxABGMju8bUGErkCCrYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAma8d0sACgkQIRoGfgHZ0SvTlwf/TGAsexg4lwBREpb2LaaVGhPIZQE6Jm9IvQXiAkpgqdFruu7A5+wnw90RwKtS8tPlLsCEj6vHHeZUVEAgMZ6HKF56Vkk3fTBvVsLIFoGxLj9GEqBdaxjTZumsHCGUxy7aun/kwprvREsiw/V/tibuXakHUX0SgJZKU/a2bNEg/xdyyqrovYCQVUDFZunLP1Pk8EJbRRLzvlupTq6e726cu3axhDNqKysG3M40WUzMqTicjh/bA7ZXCLiZm0q3vmvwCdPRs51m/Kijo7xTaPzusTjXcicsqiEBinH8i3w/ZwA+pqEo2U92t4oSosJVg/5RKRnGmZSGanEQj6NEp/7Yew==";
+        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
         let license = License::from_base64(license).unwrap();
-        assert_eq!(license.customer_id, "123123123");
-        assert!(license.subscription);
+        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 14, 9, 22, 16).unwrap()
+            Utc.with_ymd_and_hms(2024, 8, 21, 10, 19, 30).unwrap()
         );
 
         assert!(license.is_expired());
+    }
+
+    #[test]
+    fn test_new_license() {
+        // This key has an additional test_field in the metadata that doesn't exist in the proto definition
+        // It should still be able to decode the license correctly
+        let license = "CjIKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGMv0lrYGIggxMjM0NTY3OBK2AokBMwQAAQoAHRYhBPIf1FvxLkjvxtFjOCEaBn4B2dErBQJmxbpSAAoJECEaBn4B2dEru6sH/0FBWgj8Nl1n/hwx1CdwrmKkKOCRpTf244wS07EcwQDr/A5TA011Y4PFJBSFfoIlyuGFHh20KoczFVUPfyiIGkqMMGOe8BH0Pbst6n5hd1S67m5fKgNV+NdaWg1aJfMdbGdworpZWTnsHnsTnER+fhoC/CohPtTshTdBZX0wmyfAWKQW3HM0YcE73+KFvGMzTMyin/bOrjr7bW0d5yoQLaEIpAASTlb6DaX5avyTFitXLf77cMjRu4wysnlPfwIpSqQI+ESHNh+OepOUqxmox+U9hGVtvlIJhvBOLgJ/Kmldc1Kj7uZaldLhWDG5e7+dVdnhbwfuoUsgS9jmpAmeWsg=";
+        let license = License::from_base64(license).unwrap();
+
+        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert!(!license.subscription);
+        assert_eq!(
+            license.valid_until.unwrap(),
+            Utc.with_ymd_and_hms(2024, 8, 21, 9, 58, 35).unwrap()
+        );
     }
 }
