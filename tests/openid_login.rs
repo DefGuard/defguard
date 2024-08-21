@@ -13,6 +13,7 @@ async fn make_client() -> TestClient {
     client
 }
 
+#[allow(dead_code)]
 async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> TestClient {
     let (client, _) = make_base_client(pool, config).await;
     client
