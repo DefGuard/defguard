@@ -4,13 +4,24 @@ use struct_patch::Patch;
 
 use crate::enterprise::license::{get_cached_license, validate_license};
 
-#[derive(Model, Deserialize, Serialize, Patch, Default)]
+#[derive(Model, Deserialize, Serialize, Patch)]
 #[patch(attribute(derive(Serialize, Deserialize)))]
 pub struct EnterpriseSettings {
     #[serde(skip)]
     pub id: Option<i64>,
     // If true, only admins can manage devices
     pub disable_device_management: bool,
+}
+
+// We want to be conscious of what the defaults are here
+#[allow(clippy::derivable_impls)]
+impl Default for EnterpriseSettings {
+    fn default() -> Self {
+        Self {
+            id: None,
+            disable_device_management: false,
+        }
+    }
 }
 
 impl EnterpriseSettings {
