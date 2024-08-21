@@ -21,10 +21,9 @@ export const UserDevices = () => {
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
-  console.log(settings?.disable_device_management);
   const canManageDevices = !!(
     userProfile &&
-    (!settings?.disable_device_management || isUserAdmin(userProfile.user))
+    (!settings?.admin_device_management || isUserAdmin(userProfile.user))
   );
 
   return (

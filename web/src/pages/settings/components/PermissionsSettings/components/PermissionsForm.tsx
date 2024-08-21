@@ -52,9 +52,9 @@ export const PermissionsForm = () => {
         <LabeledCheckbox
           disabled={isLoading}
           label={LL.settingsPage.permissions.fields.deviceCreation.label()}
-          value={settings.disable_device_management}
+          value={settings.admin_device_management}
           onChange={() =>
-            mutate({ disable_device_management: !settings.disable_device_management })
+            mutate({ admin_device_management: !settings.disable_device_management })
           }
         />
       </Card>

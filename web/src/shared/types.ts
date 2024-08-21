@@ -874,7 +874,7 @@ export type SettingsLicense = {
 };
 
 export type SettingsEnterprise = {
-  disable_device_management: boolean;
+  admin_device_management: boolean;
 };
 
 export interface Webhook {

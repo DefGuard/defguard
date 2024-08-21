@@ -10,7 +10,7 @@ pub struct EnterpriseSettings {
     #[serde(skip)]
     pub id: Option<i64>,
     // If true, only admins can manage devices
-    pub disable_device_management: bool,
+    pub admin_device_management: bool,
 }
 
 // We want to be conscious of what the defaults are here
@@ -19,7 +19,7 @@ impl Default for EnterpriseSettings {
     fn default() -> Self {
         Self {
             id: None,
-            disable_device_management: false,
+            admin_device_management: false,
         }
     }
 }

@@ -635,7 +635,7 @@ pub async fn add_device(
 /// Returns an error if current session user cannot manage devices.
 async fn can_manage_devices_or_error(pool: &DbPool, session: &SessionInfo) -> Result<(), WebError> {
     let settings = EnterpriseSettings::get(pool).await?;
-    if settings.disable_device_management && !session.is_admin {
+    if settings.admin_device_management && !session.is_admin {
         Err(WebError::Forbidden(
             "Only admin users can manage devices".into(),
         ))
