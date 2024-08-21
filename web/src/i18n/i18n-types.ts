@@ -2199,9 +2199,9 @@ type RootTranslation = {
 			 */
 			openid: string
 			/**
-			 * B​e​h​a​v​i​o​r
+			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
 			 */
-			behavior: string
+			enterprise: string
 		}
 		messages: {
 			/**
@@ -2805,13 +2805,13 @@ type RootTranslation = {
 				}
 			}
 		}
-		behavior: {
+		enterprise: {
 			/**
-			 * B​e​h​a​v​i​o​r
+			 * E​n​t​e​r​p​r​i​s​e​ ​F​e​a​t​u​r​e​s
 			 */
 			header: string
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​a​p​p​ ​b​e​h​a​v​i​o​r​.​<​/​p​>
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.​<​/​p​>
 			 */
 			helper: string
 			fields: {
@@ -6322,9 +6322,9 @@ export type TranslationFunctions = {
 			 */
 			openid: () => LocalizedString
 			/**
-			 * Behavior
+			 * Enterprise features
 			 */
-			behavior: () => LocalizedString
+			enterprise: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6925,13 +6925,13 @@ export type TranslationFunctions = {
 				}
 			}
 		}
-		behavior: {
+		enterprise: {
 			/**
-			 * Behavior
+			 * Enterprise Features
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>Here you can change app behavior.</p>
+			 * <p>Here you can change enterprise settings.</p>
 			 */
 			helper: () => LocalizedString
 			fields: {

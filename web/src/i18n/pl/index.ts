@@ -879,7 +879,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       global: 'Globalne',
       ldap: 'LDAP',
       openid: 'OpenID',
-      behavior: 'Zachowanie',
+      enterprise: 'Funkcjonalności enterprise',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -1168,9 +1168,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
     },
-    behavior: {
-      header: 'Zachowanie',
-      helper: '<p>Tutaj możesz zmienić zachowanie aplikacji.</p>',
+    enterprise: {
+      header: 'Funkcjonalności Enterprise',
+      helper: '<p>Tutaj możesz zmienić ustawienia enterprise.</p>',
       fields: {
         deviceManagement: {
           label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',

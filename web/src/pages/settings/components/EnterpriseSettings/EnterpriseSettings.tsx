@@ -1,8 +1,8 @@
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { BehaviorForm } from './components/BehaviorForm';
+import { EnterpriseForm } from './components/EnterpriseForm';
 
-export const BehaviorSettings = () => {
+export const EnterpriseSettings = () => {
   const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.enterpriseOnly;
@@ -25,7 +25,7 @@ export const BehaviorSettings = () => {
         </div>
       )}
       <div className="left">
-        <BehaviorForm />
+        <EnterpriseForm />
       </div>
       <div className="right"></div>
     </>
