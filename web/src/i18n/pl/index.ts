@@ -879,6 +879,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       global: 'Globalne',
       ldap: 'LDAP',
       openid: 'OpenID',
+      behavior: 'Zachowanie',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -1164,6 +1165,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         useMessageAsEmail: {
           label: 'Taki sam jak wiadomość powitalna',
+        },
+      },
+    },
+    behavior: {
+      header: 'Zachowanie',
+      helper: '<p>Tutaj możesz zmienić zachowanie aplikacji.</p>',
+      fields: {
+        deviceManagement: {
+          label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
+          helper:
+            'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
         },
       },
     },

@@ -429,6 +429,13 @@ const useApi = (props?: HookProps): ApiHook => {
   const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
     client.get('/settings_essentials').then(unpackRequest);
 
+  const getEnterpriseSettings: ApiHook['settings']['getEnterpriseSettings'] = () =>
+    client.get('/settings_enterprise').then(unpackRequest);
+
+  const patchEnterpriseSettings: ApiHook['settings']['patchEnterpriseSettings'] = (
+    data,
+  ) => client.patch('/settings_enterprise', data).then(unpackRequest);
+
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
 
@@ -628,6 +635,8 @@ const useApi = (props?: HookProps): ApiHook => {
       setDefaultBranding: setDefaultBranding,
       patchSettings,
       getEssentialSettings,
+      getEnterpriseSettings,
+      patchEnterpriseSettings,
       testLdapSettings,
       fetchOpenIdProviders: fetchOpenIdProvider,
       addOpenIdProvider,
