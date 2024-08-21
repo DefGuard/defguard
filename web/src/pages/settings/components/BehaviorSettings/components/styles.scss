@@ -1,7 +1,7 @@
 @use '@scssutils' as *;
 
 #behavior-settings {
-  &>.card {
+  & > .card {
     display: flex;
     flex-flow: column;
     row-gap: 16px;
@@ -10,7 +10,7 @@
       padding: 16px 15px;
     }
 
-    &>.checkbox-row {
+    & > .checkbox-row {
       display: flex;
       align-items: center;
       gap: 10px;
