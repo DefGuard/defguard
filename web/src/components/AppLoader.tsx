@@ -30,7 +30,7 @@ export const AppLoader = () => {
     getAppInfo,
     getEnterpriseStatus,
     user: { getMe },
-    settings: { getEssentialSettings },
+    settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
@@ -81,6 +81,18 @@ export const AppLoader = () => {
     retry: false,
   });
 
+  useQuery([QueryKeys.FETCH_ENTERPRISE_SETTINGS], getEnterpriseSettings, {
+    onSuccess: (settings) => {
+      setAppStore({ enterprise_settings: settings });
+    },
+    onError: (err) => {
+      // FIXME: Add a proper error message
+      toaster.error(LL.messages.errorVersion());
+      console.error(err);
+    },
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
     [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
     getEssentialSettings,

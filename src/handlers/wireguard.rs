@@ -28,6 +28,7 @@ use crate::{
         },
         AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
     },
+    enterprise::handlers::CanManageDevices,
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -517,6 +518,7 @@ pub struct AddDeviceResult {
     )
 )]
 pub async fn add_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -663,6 +665,7 @@ pub async fn add_device(
     )
 )]
 pub async fn modify_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -785,6 +788,7 @@ pub async fn get_device(
     )
 )]
 pub async fn delete_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,

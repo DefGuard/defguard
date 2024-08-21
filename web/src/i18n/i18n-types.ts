@@ -1946,7 +1946,7 @@ type RootTranslation = {
 			support: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
 		 */
 		copyright: string
 		version: {
@@ -1956,7 +1956,7 @@ type RootTranslation = {
 			 */
 			open: RequiredParams<'version'>
 			/**
-			 * v​ ​{​v​e​r​s​i​o​n​}
+			 * v​{​v​e​r​s​i​o​n​}
 			 * @param {string} version
 			 */
 			closed: RequiredParams<'version'>
@@ -2198,6 +2198,10 @@ type RootTranslation = {
 			 * O​p​e​n​I​D
 			 */
 			openid: string
+			/**
+			 * B​e​h​a​v​i​o​r
+			 */
+			behavior: string
 		}
 		messages: {
 			/**
@@ -2798,6 +2802,28 @@ type RootTranslation = {
 					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					label: string
+				}
+			}
+		}
+		behavior: {
+			/**
+			 * B​e​h​a​v​i​o​r
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​a​p​p​ ​b​e​h​a​v​i​o​r​.​<​/​p​>
+			 */
+			helper: string
+			fields: {
+				deviceManagement: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 */
+					helper: string
 				}
 			}
 		}
@@ -3599,8 +3625,7 @@ type RootTranslation = {
 			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
@@ -6048,7 +6073,7 @@ export type TranslationFunctions = {
 			support: () => LocalizedString
 		}
 		/**
-		 * Copyright © 2023 
+		 * Copyright ©2023-2024
 		 */
 		copyright: () => LocalizedString
 		version: {
@@ -6057,7 +6082,7 @@ export type TranslationFunctions = {
 			 */
 			open: (arg: { version: string }) => LocalizedString
 			/**
-			 * v {version}
+			 * v{version}
 			 */
 			closed: (arg: { version: string }) => LocalizedString
 		}
@@ -6296,6 +6321,10 @@ export type TranslationFunctions = {
 			 * OpenID
 			 */
 			openid: () => LocalizedString
+			/**
+			 * Behavior
+			 */
+			behavior: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6893,6 +6922,28 @@ export type TranslationFunctions = {
 					 * Same as welcome message
 					 */
 					label: () => LocalizedString
+				}
+			}
+		}
+		behavior: {
+			/**
+			 * Behavior
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can change app behavior.</p>
+			 */
+			helper: () => LocalizedString
+			fields: {
+				deviceManagement: {
+					/**
+					 * Disable users ability to manage their devices
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
 				}
 			}
 		}
@@ -7688,7 +7739,6 @@ export type TranslationFunctions = {
 		            More details can be found in the [documentation]({setupGatewayDocs}).
 		            There are several ways to deploy the gateway server,
 		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
-		          
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**

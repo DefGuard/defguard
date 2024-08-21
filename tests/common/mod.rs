@@ -2,7 +2,6 @@ pub(crate) mod client;
 
 use std::sync::{Arc, Mutex};
 
-use chrono::{DateTime, TimeZone, Utc};
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,

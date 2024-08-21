@@ -892,6 +892,7 @@ const en: BaseTranslation = {
       global: 'Global settings',
       ldap: 'LDAP',
       openid: 'OpenID',
+      behavior: 'Behavior',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1177,6 +1178,17 @@ const en: BaseTranslation = {
         },
         useMessageAsEmail: {
           label: 'Same as welcome message',
+        },
+      },
+    },
+    behavior: {
+      header: 'Behavior',
+      helper: '<p>Here you can change app behavior.</p>',
+      fields: {
+        deviceManagement: {
+          label: 'Disable users ability to manage their devices',
+          helper:
+            "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
       },
     },

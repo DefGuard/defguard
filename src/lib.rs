@@ -13,15 +13,16 @@ use axum::{
 };
 use enterprise::handlers::{
     check_enterprise_status,
+    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
-use handlers::ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
-};
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
-    ssh_authorized_keys::rename_authentication_key,
+    ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+        rename_authentication_key,
+    },
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -157,10 +158,10 @@ mod openapi {
         AddDevice, UserDetails, UserInfo,
     };
     use error::WebError;
-    use handlers::wireguard as device;
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
         user::{self, WalletInfoShort},
+        wireguard as device,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         StartEnrollmentRequest, Username, WalletChange, WalletSignature,
@@ -388,6 +389,9 @@ pub fn build_webapp(
             .route("/settings/:id", put(set_default_branding))
             // settings for frontend
             .route("/settings_essentials", get(get_settings_essentials))
+            // enterprise settings
+            .route("/settings_enterprise", get(get_enterprise_settings))
+            .route("/settings_enterprise", patch(patch_enterprise_settings))
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))

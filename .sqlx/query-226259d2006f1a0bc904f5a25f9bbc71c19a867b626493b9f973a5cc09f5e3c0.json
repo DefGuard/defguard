@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"enterprisesettings\" SET \"admin_device_management\" = $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "226259d2006f1a0bc904f5a25f9bbc71c19a867b626493b9f973a5cc09f5e3c0"
+}
