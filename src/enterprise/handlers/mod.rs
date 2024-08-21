@@ -21,6 +21,7 @@ pub struct LicenseInfo {
     pub valid: bool,
 }
 
+/// Used to check if user is allowed to manage his devices.
 pub struct CanManageDevices;
 
 #[async_trait]
@@ -62,6 +63,7 @@ where
     type Rejection = WebError;
 
     /// Returns an error if current session user is not allowed to manage devices.
+    /// The permission is defined by [`EnterpriseSettings::admin_device_management`] setting.
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
         let session = SessionInfo::from_request_parts(parts, state).await?;
