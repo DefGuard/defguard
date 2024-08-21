@@ -42,7 +42,7 @@ where
 pub async fn check_enterprise_status() -> ApiResult {
     let license = get_cached_license();
 
-    let valid = validate_license((*license).as_ref()).is_ok();
+    let valid = validate_license((license).as_ref()).is_ok();
 
     Ok(ApiResponse {
         json: serde_json::json!({ "enabled": valid }),
