@@ -49,14 +49,19 @@ export const BehaviorForm = () => {
         <Helper>{parse(LL.settingsPage.behavior.helper())}</Helper>
       </header>
       <Card shaded bordered hideMobile>
-        <LabeledCheckbox
-          disabled={isLoading}
-          label={LL.settingsPage.behavior.fields.deviceManagement.label()}
-          value={settings.admin_device_management}
-          onChange={() =>
-            mutate({ admin_device_management: !settings.admin_device_management })
-          }
-        />
+        <div className="checkbox-row">
+          <LabeledCheckbox
+            disabled={isLoading}
+            label={LL.settingsPage.behavior.fields.deviceManagement.label()}
+            value={settings.admin_device_management}
+            onChange={() =>
+              mutate({ admin_device_management: !settings.admin_device_management })
+            }
+          />
+          <Helper>
+            {parse(LL.settingsPage.behavior.fields.deviceManagement.helper())}
+          </Helper>
+        </div>
       </Card>
     </section>
   );

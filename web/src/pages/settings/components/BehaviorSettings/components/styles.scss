@@ -1,12 +1,19 @@
 @use '@scssutils' as *;
 
-#modules-settings {
-  & > .card {
+#behavior-settings {
+  &>.card {
     display: flex;
     flex-flow: column;
     row-gap: 16px;
+
     @include media-breakpoint-up(lg) {
       padding: 16px 15px;
+    }
+
+    &>.checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
   }
 }
