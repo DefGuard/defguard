@@ -90,7 +90,7 @@ export const AppLoader = () => {
       toaster.error(LL.messages.errorVersion());
       console.error(err);
     },
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     retry: false,
   });
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
