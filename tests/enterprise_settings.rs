@@ -1,34 +1,217 @@
-// mod common;
+mod common;
 
-use defguard::handlers::Auth;
+use defguard::enterprise::{
+    db::models::enterprise_settings::EnterpriseSettings,
+    license::{get_cached_license, set_cached_license},
+};
 use reqwest::StatusCode;
 
 use self::common::make_test_client;
-use defguard::{
-    db::{
-        models::{
-            device::WireguardNetworkDevice,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        },
-        Device, GatewayEvent, WireguardNetwork,
-    },
-    handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
-};
-use matches::assert_matches;
+use defguard::handlers::Auth;
 use serde_json::{json, Value};
+
+fn make_network() -> Value {
+    json!({
+        "name": "network",
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180
+    })
+}
 
 #[tokio::test]
 async fn test_only_enterprise_can_modify() {
-    let (client, client_state) = make_test_client().await;
-
+    // admin login
+    let (client, _client_state) = make_test_client().await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
+    // unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    // try to patch enterprise settings
+    let settings = EnterpriseSettings {
+        id: None,
+        admin_device_management: true,
+    };
+
     let response = client
-        .post("/api/v1/openid/provider")
-        .json(&provider_data)
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
         .send()
         .await;
 
+    // server should say nono
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // restore valid license and try again
+    set_cached_license(license);
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+
+    // server should say ok
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_admin_devices_management_is_enforced() {
+    // admin login
+    let (client, _) = make_test_client().await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // setup admin devices management
+    let settings = EnterpriseSettings {
+        id: None,
+        admin_device_management: true,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // make sure admin can still manage devices
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // ensure normal users can't manage devices
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // add
+    let device = json!({
+        "name": "userdevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // modify
+    let device = json!({
+        "name": "modifieddevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client.put("/api/v1/device/2").json(&device).send().await;
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // delete
+    let device = json!({
+        "name": "modifieddevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client.put("/api/v1/device/2").json(&device).send().await;
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_regular_user_device_management() {
+    // admin login
+    let (client, _) = make_test_client().await;
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create network
+    let response = client
+        .post("/api/v1/network")
+        .json(&make_network())
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // setup admin devices management
+    let settings = EnterpriseSettings {
+        id: None,
+        admin_device_management: false,
+    };
+    let response = client
+        .patch("/api/v1/settings_enterprise")
+        .json(&settings)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // make sure admin can manage devices
+    let device = json!({
+        "name": "device",
+        "wireguard_pubkey": "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // ensure normal users can manage devices
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // add
+    let device = json!({
+        "name": "userdevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client
+        .post("/api/v1/device/hpotter")
+        .json(&device)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // modify
+    let device = json!({
+        "name": "modifieddevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client.put("/api/v1/device/2").json(&device).send().await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // delete
+    let device = json!({
+        "name": "modifieddevice",
+        "wireguard_pubkey": "AJwxGkzvVVn5Q1xjpCDFo5RJSU9KOPHeoEixYaj+20M=",
+    });
+    let response = client.put("/api/v1/device/2").json(&device).send().await;
+
+    assert_eq!(response.status(), StatusCode::OK);
 }
