@@ -1,8 +1,12 @@
-use std::sync::{Mutex, MutexGuard};
+use std::{
+    sync::{Mutex, MutexGuard},
+    time::Duration,
+};
 
 use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
+use humantime::format_duration;
 use pgp::{Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
 use sqlx::error::Error as SqlxError;
@@ -11,7 +15,7 @@ use tokio::time::sleep;
 
 use crate::{
     db::{DbPool, Settings},
-    server_config,
+    VERSION,
 };
 
 static LICENSE: Mutex<Option<License>> = Mutex::new(None);
@@ -55,21 +59,44 @@ Aao60J8cOm8J96u1MsUK
 #[cfg(not(test))]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mQENBGa0jtoBCAC63WkY0btyVzHI8JGVfIkFClNggcDgK+X/if5ndJtHKRXcW6DB
-bRTBNCdUr7sDzCMEYWu8t400Yn/mrLKuubA3G6rp3Eo2nHnOicoZ6mfAdUQL862l
-m9M8zpJtFodWR5G0nznyvabQi9kI1JT87DEIAdfLhN4eoMpgEm+jASSgFeT63oJ9
-fLHofMZLwYZW/mqsnGxElmUsfnVWeseUSgmKBP4IgdtX4LsCx8XiOyQJww6bEUTj
-ZBSqwwuRa1ybtsV3ihEKjDBmXQo5+J3fsadm/6m5PRJVk5rq9/LGVKIBG9m/x6Pn
-xeYaLsjNyAwOSHH2KpeBLPVEfjsqWRt8fyAzABEBAAG0HEF1dG9nZW5lcmF0ZWQg
-S2V5IDxkZWZndWFyZD6JAU4EEwEKADgWIQTyH9Rb8S5I78bRYzghGgZ+AdnRKwUC
-ZrSO2gIbLwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRAhGgZ+AdnRKyzzCACW
-oGBnAPHkCuvlnZjcYUAJVrjI/S02x4t3wFjaFOu+GQSjeB+AjDawF/S4D5ReQ8iq
-D3dTvno3lk/F5HvqV/ZDU9WMmkDFzJoEwKbNIlWwQvvrTnoyy7lpKskNxwwsErEL
-2+rW+lW/N5KNHFaUh2d5JhK08VRPfyl0WA8gqQ99Wnhq4rHF7ijKFm3im0RlzkMI
-NTXxxee/9J0/Pzh+7zFZlMxnnjwiHlxJXpQFwh7+TS9C3IpChW3ipyPgp1DkzsNv
-Xry1crUOhOyEozdKYh2H6tZEi3bjtGwpYkXJs/g3f6HPKjS8rDOMXw4Japb7LYtC
-Aao60J8cOm8J96u1MsUK
-=6cHp
+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
+IQyvDB2pcQYgS91DqeDU1BRosIlCkpeh
+=vSch
 -----END PGP PUBLIC KEY BLOCK-----
 ";
 
@@ -77,7 +104,7 @@ Aao60J8cOm8J96u1MsUK
 pub enum LicenseError {
     #[error("Provided license is invalid: {0}")]
     InvalidLicense(String),
-    #[error("Provided signature is does not match the license")]
+    #[error("Provided signature does not match the license")]
     SignatureMismatch,
     #[error("Provided signature is invalid")]
     InvalidSignature,
@@ -85,7 +112,7 @@ pub enum LicenseError {
     DbError(#[from] SqlxError),
     #[error("License decoding error: {0}")]
     DecodeError(String),
-    #[error("License is expired and has reached its maximum overdue time, please contact sales")]
+    #[error("License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net")]
     LicenseExpired,
     #[error("License not found")]
     LicenseNotFound,
@@ -152,19 +179,19 @@ impl License {
                 "The license key is malformed, check if the provided key is correct.".to_string(),
             )
         })?;
-        let metadata = license_key.metadata.ok_or(LicenseError::InvalidLicense(
-            "License metadata is missing from the license key, the provided license key is incorrect.".to_string(),
-        ))?;
-        let signature = license_key.signature.ok_or(LicenseError::InvalidLicense(
-            "License signature is missing from the license key, the provided license key is incorrect.".to_string(),
-        ))?;
-        let metadata_bytes = metadata.encode_to_vec();
+
+        let metadata_bytes: &[u8] = &license_key.metadata;
+        let signature_bytes: &[u8] = &license_key.signature;
 
         debug!("Deserialized the license object, verifying the license signature...");
 
-        match Self::verify_signature(&metadata_bytes, &signature.signature) {
+        match Self::verify_signature(metadata_bytes, signature_bytes) {
             Ok(_) => {
-                info!("Successfully decoded the license validated the license signature");
+                info!("Successfully decoded the license and validated the license signature");
+                let metadata = LicenseMetadata::decode(metadata_bytes).map_err(|_| {
+                    LicenseError::DecodeError("Failed to decode the license metadata".to_string())
+                })?;
+
                 let valid_until = match metadata.valid_until {
                     Some(until) => DateTime::from_timestamp(until, 0),
                     None => None,
@@ -297,7 +324,12 @@ impl License {
 
     /// Checks if the license has reached its maximum overdue time.
     pub fn is_max_overdue(&self) -> bool {
-        self.time_overdue() > MAX_OVERDUE_TIME
+        if !self.subscription {
+            // Non-subscription licenses are considered expired immediately, no grace period is required
+            self.is_expired()
+        } else {
+            self.time_overdue() > MAX_OVERDUE_TIME
+        }
     }
 }
 
@@ -318,11 +350,12 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     };
 
     // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
-    let license_server_url = &server_config().license_server_url;
+    let license_server_url = "http://update-service-dev.teonite.net/api/license/renew";
 
     let new_license_key = match client
         .post(license_server_url)
         .json(&request_body)
+        .header("User-Agent", format!("DefGuard/{VERSION}"))
         .send()
         .await
     {
@@ -408,15 +441,27 @@ const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 /// Maximum amount of time a license can be over its expiry date.
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::hours(24);
 
+/// Periodic license check task
+const CHECK_PERIOD: Duration = Duration::from_secs(12 * 60 * 60);
+
+/// Periodic license check task for the case when no license is present
+const CHECK_PERIOD_NO_LICENSE: Duration = Duration::from_secs(24 * 60 * 60);
+
+/// Periodic license check task for the case when the license is about to expire
+const CHECK_PERIOD_RENEWAL_WINDOW: Duration = Duration::from_secs(60 * 60);
+
 pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError> {
-    let mut check_period = server_config().license_check_period;
-    info!("Starting periodic license check every {check_period:?}");
+    let mut check_period: Duration = CHECK_PERIOD;
+    info!(
+        "Starting periodic license renewal check every {}",
+        format_duration(check_period)
+    );
     loop {
         debug!("Checking the license status...");
         // Check if the license is present in the mutex, if not skip the check
         if get_cached_license().is_none() {
             debug!("No license found, skipping license check");
-            sleep(*server_config().license_check_period_no_license).await;
+            sleep(CHECK_PERIOD_NO_LICENSE).await;
             continue;
         }
 
@@ -438,9 +483,9 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
                             debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
                             true
                         } else {
-                            check_period = server_config().license_check_period;
+                            check_period = CHECK_PERIOD;
                             warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {check_period}");
+                            debug!("Changing check period to {}", format_duration(check_period));
                             false
                         }
                     } else {
@@ -462,27 +507,30 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
 
         if requires_renewal {
             info!("License requires renewal, renewing license...");
-            check_period = server_config().license_check_period_renewal_window;
-            debug!("Changing check period to {check_period}");
+            check_period = CHECK_PERIOD_RENEWAL_WINDOW;
+            debug!("Changing check period to {}", format_duration(check_period));
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
                     Ok(_) => {
                         update_cached_license(Some(&new_license_key))?;
-                        check_period = server_config().license_check_period;
-                        debug!("Changing check period to {check_period} seconds");
-                        info!("Successfully renewed the license, new license key saved to the database");
+                        check_period = CHECK_PERIOD;
+                        debug!("Changing check period to {}", format_duration(check_period));
+                        info!("Successfully renewed the license");
                     }
                     Err(err) => {
                         error!("Couldn't save the newly fetched license key to the database, error: {}", err);
                     }
                 },
                 Err(err) => {
-                    warn!("Failed to renew the license: {err}. Retrying in {check_period} seconds");
+                    warn!(
+                        "Failed to renew the license: {err}. Retrying in {} seconds",
+                        format_duration(check_period)
+                    );
                 }
             }
         }
 
-        sleep(*check_period).await;
+        sleep(check_period).await;
     }
 }
 
