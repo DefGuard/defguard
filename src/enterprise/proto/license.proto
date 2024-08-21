@@ -7,11 +7,7 @@ message LicenseMetadata {
     optional int64 valid_until = 3;
 }
 
-message LicenseSignature {
-    bytes signature = 1;
-}
-
 message LicenseKey {
-    LicenseMetadata metadata = 1;
-    LicenseSignature signature = 2;
+    bytes metadata = 1;
+    bytes signature = 2;
 }

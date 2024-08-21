@@ -163,34 +163,6 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub gateway_disconnection_notification_timeout: Duration,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_LICENSE_SERVER_URL",
-        default_value = "https://update-service-dev.teonite.net/api/license/refresh"
-    )]
-    #[serde(skip_serializing)]
-    pub license_server_url: String,
-
-    #[arg(long, env = "DEFGUARD_LICENSE_CHECK_PERIOD", default_value = "10s")]
-    #[serde(skip_serializing)]
-    pub license_check_period: Duration,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LICENSE_CHECK_PERIOD_RENEWAL_WINDOW",
-        default_value = "5s"
-    )]
-    #[serde(skip_serializing)]
-    pub license_check_period_renewal_window: Duration,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_LICENSE_CHECK_PERIOD_NO_LICENSE",
-        default_value = "15s"
-    )]
-    #[serde(skip_serializing)]
-    pub license_check_period_no_license: Duration,
-
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
