@@ -37,9 +37,10 @@ const formatDate = (date: string): string => {
 
 interface Props {
   device: Device;
+  modifiable: boolean;
 }
 
-export const DeviceCard = ({ device }: Props) => {
+export const DeviceCard = ({ device, modifiable }: Props) => {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
@@ -144,6 +145,7 @@ export const DeviceCard = ({ device }: Props) => {
         <EditButton visible={true}>
           <EditButtonOption
             text={LL.userPage.devices.card.edit.edit()}
+            disabled={!modifiable}
             onClick={() => {
               setEditDeviceModal({
                 visible: true,
@@ -171,6 +173,7 @@ export const DeviceCard = ({ device }: Props) => {
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             text={LL.userPage.devices.card.edit.delete()}
+            disabled={!modifiable}
             onClick={() =>
               setDeleteDeviceModal({
                 visible: true,

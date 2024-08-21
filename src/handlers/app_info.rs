@@ -26,7 +26,7 @@ pub(crate) async fn get_app_info(
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let settings = Settings::get_settings(&appstate.pool).await?;
     let license = get_cached_license();
-    let enterprise = validate_license((*license).as_ref()).is_ok();
+    let enterprise = validate_license((license).as_ref()).is_ok();
     let res = AppInfo {
         network_present: !networks.is_empty(),
         smtp_enabled: settings.smtp_configured(),
