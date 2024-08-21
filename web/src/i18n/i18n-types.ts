@@ -2199,9 +2199,9 @@ type RootTranslation = {
 			 */
 			openid: string
 			/**
-			 * B​e​h​a​v​i​o​u​r
+			 * B​e​h​a​v​i​o​r
 			 */
-			behaviour: string
+			behavior: string
 		}
 		messages: {
 			/**
@@ -2805,13 +2805,13 @@ type RootTranslation = {
 				}
 			}
 		}
-		behaviour: {
+		behavior: {
 			/**
-			 * B​e​h​a​v​i​o​u​r
+			 * B​e​h​a​v​i​o​r
 			 */
 			header: string
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​a​p​p​ ​b​e​h​a​v​i​o​u​r​.​<​/​p​>
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​a​p​p​ ​b​e​h​a​v​i​o​r​.​<​/​p​>
 			 */
 			helper: string
 			fields: {
@@ -6322,9 +6322,9 @@ export type TranslationFunctions = {
 			 */
 			openid: () => LocalizedString
 			/**
-			 * Behaviour
+			 * Behavior
 			 */
-			behaviour: () => LocalizedString
+			behavior: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6925,13 +6925,13 @@ export type TranslationFunctions = {
 				}
 			}
 		}
-		behaviour: {
+		behavior: {
 			/**
-			 * Behaviour
+			 * Behavior
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>Here you can change app behaviour.</p>
+			 * <p>Here you can change app behavior.</p>
 			 */
 			helper: () => LocalizedString
 			fields: {

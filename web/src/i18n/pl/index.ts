@@ -879,7 +879,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       global: 'Globalne',
       ldap: 'LDAP',
       openid: 'OpenID',
-      behaviour: 'Zachowanie',
+      behavior: 'Zachowanie',
     },
     messages: {
       editSuccess: 'Ustawienia zaktualizowane.',
@@ -1168,7 +1168,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
     },
-    behaviour: {
+    behavior: {
       header: 'Zachowanie',
       helper: '<p>Tutaj możesz zmienić zachowanie aplikacji.</p>',
       fields: {

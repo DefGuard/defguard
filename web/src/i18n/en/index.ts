@@ -892,7 +892,7 @@ const en: BaseTranslation = {
       global: 'Global settings',
       ldap: 'LDAP',
       openid: 'OpenID',
-      behaviour: 'Behaviour',
+      behavior: 'Behavior',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1181,9 +1181,9 @@ const en: BaseTranslation = {
         },
       },
     },
-    behaviour: {
-      header: 'Behaviour',
-      helper: '<p>Here you can change app behaviour.</p>',
+    behavior: {
+      header: 'Behavior',
+      helper: '<p>Here you can change app behavior.</p>',
       fields: {
         deviceManagement: {
           label: 'Disable users ability to manage their devices',
