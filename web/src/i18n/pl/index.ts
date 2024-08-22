@@ -929,7 +929,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         usePreferredUsername: {
           label: 'Użyj preferowanej nazwy z tokena dostawcy OpenID',
-          helper: 'Jeśli ta opcja jest włączona, Defguard użyje preferowanej nazwy z tokena dostawcy OpenID jako nazwy użytkownika. W przeciwnym razie nazwa użytkownika zostanie wygenerowana na podstawie adresu e-mail.',
+          helper:
+            'Jeśli ta opcja jest włączona, Defguard użyje preferowanej nazwy z tokena dostawcy OpenID jako nazwy użytkownika. W przeciwnym razie nazwa użytkownika zostanie wygenerowana na podstawie adresu e-mail.',
         },
       },
       form: {

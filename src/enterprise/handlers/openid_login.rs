@@ -246,17 +246,17 @@ pub async fn auth_callback(
 
         preferred_username
     } else {
-    let username = email
-        .split('@')
-        .next()
-        .ok_or(WebError::BadRequest(
-            "Failed to extract username from email address".to_string(),
-        ))?
-        // + is not allowed in usernames, but fairly common in email addresses
-        // TODO: Make this more robust, maybe trim everything that's forbidden in usernames
-        .replace('+', "_");
+        let username = email
+            .split('@')
+            .next()
+            .ok_or(WebError::BadRequest(
+                "Failed to extract username from email address".to_string(),
+            ))?
+            // + is not allowed in usernames, but fairly common in email addresses
+            // TODO: Make this more robust, maybe trim everything that's forbidden in usernames
+            .replace('+', "_");
 
-    check_username(&username)?;
+        check_username(&username)?;
 
         username
     };
