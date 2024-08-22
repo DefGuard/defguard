@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"openid_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\",\"uuid\",\"ldap_url\",\"ldap_bind_username\",\"ldap_bind_password\" \"ldap_bind_password?: SecretString\",\"ldap_group_search_base\",\"ldap_user_search_base\",\"ldap_user_obj_class\",\"ldap_group_obj_class\",\"ldap_username_attr\",\"ldap_groupname_attr\",\"ldap_group_member_attr\",\"ldap_member_attr\",\"openid_create_account\",\"license\" FROM \"settings\"",
+  "query": "SELECT id \"id?\", \"openid_enabled\",\"wireguard_enabled\",\"webhooks_enabled\",\"worker_enabled\",\"challenge_template\",\"instance_name\",\"main_logo_url\",\"nav_logo_url\",\"smtp_server\",\"smtp_port\",\"smtp_encryption\" \"smtp_encryption: _\",\"smtp_user\",\"smtp_password\" \"smtp_password?: SecretString\",\"smtp_sender\",\"enrollment_vpn_step_optional\",\"enrollment_welcome_message\",\"enrollment_welcome_email\",\"enrollment_welcome_email_subject\",\"enrollment_use_welcome_message_as_email\",\"uuid\",\"ldap_url\",\"ldap_bind_username\",\"ldap_bind_password\" \"ldap_bind_password?: SecretString\",\"ldap_group_search_base\",\"ldap_user_search_base\",\"ldap_user_obj_class\",\"ldap_group_obj_class\",\"ldap_username_attr\",\"ldap_groupname_attr\",\"ldap_group_member_attr\",\"ldap_member_attr\",\"openid_create_account\",\"openid_use_preferred_username\",\"license\" FROM \"settings\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -181,12 +181,19 @@
       },
       {
         "ordinal": 33,
+        "name": "openid_use_preferred_username",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 34,
         "name": "license",
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -222,8 +229,9 @@
       true,
       true,
       false,
+      false,
       true
     ]
   },
-  "hash": "e626ef3ad2f23b3981f911da0c81d452f3b0e9c64f20488bf7f5d6c2fdd38a16"
+  "hash": "6b36a905fbd31deebe555894ba0b4e3bffa5987e393d5d335c95d3af3cf4daec"
 }
