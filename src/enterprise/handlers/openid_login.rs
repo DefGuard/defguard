@@ -23,7 +23,7 @@ use crate::appstate::AppState;
 use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
 use crate::enterprise::db::models::openid_provider::OpenIdProvider;
 use crate::error::WebError;
-use crate::handlers::user::check_username;
+use crate::handlers::user::{check_username, prune_username};
 use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
 use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
 use crate::server_config;
@@ -230,17 +230,26 @@ pub async fn auth_callback(
     let email = token_claims.email().ok_or(WebError::BadRequest(
         "Email not found in the information returned from provider.".to_string(),
     ))?;
-    let username = email
-        .split('@')
-        .next()
-        .ok_or(WebError::BadRequest(
-            "Failed to extract username from email address".to_string(),
-        ))?
-        // + is not allowed in usernames, but fairly common in email addresses
-        // TODO: Make this more robust, maybe trim everything that's forbidden in usernames
-        .replace('+', "_");
 
-    check_username(&username)?;
+    let preferred_username = token_claims.preferred_username();
+
+    // Try to get the username from the preferred_username claim, if it's not there, extract it from the email
+    let username = if let Some(username) = preferred_username {
+        let mut username: String = username.to_string();
+        username = prune_username(&username);
+        // Check if the username is valid just in case, not everything can be handled by the pruning
+        check_username(&username)?;
+        username
+    } else {
+        // Extract the username from the email address
+        let username = email.split('@').next().ok_or(WebError::BadRequest(
+            "Failed to extract username from email address".to_string(),
+        ))?;
+        let username = prune_username(username);
+        // Check if the username is valid just in case, not everything can be handled by the pruning
+        check_username(&username)?;
+        username
+    };
 
     // Handle logging in or creating the user
     let settings = Settings::get_settings(&appstate.pool).await?;
