@@ -86,8 +86,6 @@ export const AppLoader = () => {
       setAppStore({ enterprise_settings: settings });
     },
     onError: (err) => {
-      // FIXME: Add a proper error message
-      toaster.error(LL.messages.errorVersion());
       console.error(err);
     },
     refetchOnWindowFocus: true,
