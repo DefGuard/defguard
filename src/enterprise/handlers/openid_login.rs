@@ -231,10 +231,8 @@ pub async fn auth_callback(
         "Email not found in the information returned from provider.".to_string(),
     ))?;
 
-    let preferred_username = token_claims.preferred_username();
-
     // Try to get the username from the preferred_username claim, if it's not there, extract it from the email
-    let username = if let Some(username) = preferred_username {
+    let username = if let Some(username) = token_claims.preferred_username() {
         let mut username: String = username.to_string();
         username = prune_username(&username);
         // Check if the username is valid just in case, not everything can be handled by the pruning
