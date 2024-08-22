@@ -262,7 +262,6 @@ pub async fn auth_callback(
     };
 
     // Handle logging in or creating the user
-    let settings = Settings::get_settings(&appstate.pool).await?;
     let user = match User::find_by_email(&appstate.pool, email).await {
         Ok(Some(mut user)) => {
             // Make sure the user is not disabled
