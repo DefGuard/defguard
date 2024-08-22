@@ -29,4 +29,10 @@
     align-items: center;
     gap: 10px;
   }
+
+  & > div {
+    display: flex;
+    flex-flow: column;
+    gap: 10px;
+  }
 }

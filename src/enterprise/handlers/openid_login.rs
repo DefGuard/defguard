@@ -230,6 +230,22 @@ pub async fn auth_callback(
     let email = token_claims.email().ok_or(WebError::BadRequest(
         "Email not found in the information returned from provider.".to_string(),
     ))?;
+
+    let settings = Settings::get_settings(&appstate.pool).await?;
+
+    let username = if settings.openid_use_preferred_username {
+        let preferred_username = token_claims
+            .preferred_username()
+            .ok_or(WebError::BadRequest(
+                "Preferred username not found in the information returned from provider."
+                    .to_string(),
+            ))?
+            .to_string();
+
+        check_username(&preferred_username)?;
+
+        preferred_username
+    } else {
     let username = email
         .split('@')
         .next()
@@ -241,6 +257,9 @@ pub async fn auth_callback(
         .replace('+', "_");
 
     check_username(&username)?;
+
+        username
+    };
 
     // Handle logging in or creating the user
     let settings = Settings::get_settings(&appstate.pool).await?;

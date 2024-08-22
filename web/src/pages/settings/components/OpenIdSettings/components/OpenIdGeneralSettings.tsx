@@ -46,18 +46,29 @@ export const OpenIdGeneralSettings = () => {
         <Helper>{parse(localLL.general.helper())}</Helper>
       </header>
       <div>
-        <div>
-          <div className="checkbox-row">
-            <LabeledCheckbox
-              disabled={isLoading || !enterpriseEnabled}
-              label={localLL.general.createAccount.label()}
-              value={settings.openid_create_account}
-              onChange={() =>
-                mutate({ openid_create_account: !settings.openid_create_account })
-              }
-            />
-            <Helper>{localLL.general.createAccount.helper()}</Helper>
-          </div>
+        <div className="checkbox-row">
+          <LabeledCheckbox
+            disabled={isLoading || !enterpriseEnabled}
+            label={localLL.general.createAccount.label()}
+            value={settings.openid_create_account}
+            onChange={() =>
+              mutate({ openid_create_account: !settings.openid_create_account })
+            }
+          />
+          <Helper>{localLL.general.createAccount.helper()}</Helper>
+        </div>
+        <div className="checkbox-row">
+          <LabeledCheckbox
+            disabled={isLoading || !enterpriseEnabled}
+            label={localLL.general.usePreferredUsername.label()}
+            value={settings.openid_use_preferred_username}
+            onChange={() =>
+              mutate({
+                openid_use_preferred_username: !settings.openid_use_preferred_username,
+              })
+            }
+          />
+          <Helper>{localLL.general.usePreferredUsername.helper()}</Helper>
         </div>
       </div>
     </section>

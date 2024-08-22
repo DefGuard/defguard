@@ -867,6 +867,7 @@ export type SettingsWeb3 = {
 
 export type SettingsOpenID = {
   openid_create_account: boolean;
+  openid_use_preferred_username: boolean;
 };
 
 export type SettingsLicense = {

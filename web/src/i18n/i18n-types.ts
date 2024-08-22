@@ -2321,6 +2321,16 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
+				usePreferredUsername: {
+					/**
+					 * U​s​e​ ​p​r​e​f​e​r​r​e​d​ ​u​s​e​r​n​a​m​e​ ​f​r​o​m​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r
+					 */
+					label: string
+					/**
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​p​r​e​f​e​r​r​e​d​ ​u​s​e​r​n​a​m​e​ ​f​r​o​m​ ​t​h​e​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​t​o​k​e​n​ ​a​s​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​u​s​e​r​n​a​m​e​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​w​i​l​l​ ​b​e​ ​g​e​n​e​r​a​t​e​d​ ​b​a​s​e​d​ ​o​n​ ​t​h​e​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
+					 */
+					helper: string
+				}
 			}
 			form: {
 				/**
@@ -6441,6 +6451,16 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
+				usePreferredUsername: {
+					/**
+					 * Use preferred username from OpenID provider
+					 */
+					label: () => LocalizedString
+					/**
+					 * If this option is enabled, Defguard will use the preferred username from the OpenID provider token as the Defguard username. Otherwise, the username will be generated based on the email address.
 					 */
 					helper: () => LocalizedString
 				}

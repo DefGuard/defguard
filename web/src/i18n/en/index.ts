@@ -939,6 +939,11 @@ const en: BaseTranslation = {
           helper:
             'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
         },
+        usePreferredUsername: {
+          label: 'Use preferred username from OpenID provider',
+          helper:
+            'If this option is enabled, Defguard will use the preferred username from the OpenID provider token as the Defguard username. Otherwise, the username will be generated based on the email address.',
+        },
       },
       form: {
         title: 'External OpenID Client Settings',
