@@ -117,6 +117,10 @@ type RootTranslation = {
 		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
+		/**
+		 * D​e​t​a​i​l​s​:
+		 */
+		details: string
 		clipboard: {
 			/**
 			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
@@ -1942,7 +1946,7 @@ type RootTranslation = {
 			support: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​ ​2​0​2​3​ 
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
 		 */
 		copyright: string
 		version: {
@@ -1952,7 +1956,7 @@ type RootTranslation = {
 			 */
 			open: RequiredParams<'version'>
 			/**
-			 * v​ ​{​v​e​r​s​i​o​n​}
+			 * v​{​v​e​r​s​i​o​n​}
 			 * @param {string} version
 			 */
 			closed: RequiredParams<'version'>
@@ -2096,6 +2100,10 @@ type RootTranslation = {
 			 * @param {number} value
 			 */
 			maximumValue: RequiredParams<'value'>
+			/**
+			 * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​a​ ​f​e​w​ ​m​i​n​u​t​e​s​.
+			 */
+			tooManyBadLoginAttempts: string
 		}
 		floatingErrors: {
 			/**
@@ -2186,6 +2194,14 @@ type RootTranslation = {
 			 * L​D​A​P
 			 */
 			ldap: string
+			/**
+			 * O​p​e​n​I​D
+			 */
+			openid: string
+			/**
+			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
+			 */
+			enterprise: string
 		}
 		messages: {
 			/**
@@ -2196,6 +2212,20 @@ type RootTranslation = {
 			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
+		}
+		enterpriseOnly: {
+			/**
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+			 */
+			title: string
+			/**
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
+			 */
+			subtitle: string
+			/**
+			 * w​e​b​s​i​t​e
+			 */
+			website: string
 		}
 		ldapSettings: {
 			/**
@@ -2268,6 +2298,92 @@ type RootTranslation = {
 					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
 					 */
 					error: string
+				}
+			}
+		}
+		openIdSettings: {
+			general: {
+				/**
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
+				 */
+				helper: string
+				createAccount: {
+					/**
+					 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
+					 */
+					label: string
+					/**
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
+					 */
+					helper: string
+				}
+			}
+			form: {
+				/**
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
+				 */
+				title: string
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+				 */
+				helper: string
+				/**
+				 * C​u​s​t​o​m
+				 */
+				custom: string
+				/**
+				 * D​o​c​u​m​e​n​t​a​t​i​o​n
+				 */
+				documentation: string
+				/**
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
+				 */
+				'delete': string
+				labels: {
+					provider: {
+						/**
+						 * P​r​o​v​i​d​e​r
+						 */
+						label: string
+						/**
+						 * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
+						 */
+						helper: string
+					}
+					client_id: {
+						/**
+						 * C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					client_secret: {
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
+						 */
+						helper: string
+					}
+					base_url: {
+						/**
+						 * B​a​s​e​ ​U​R​L
+						 */
+						label: string
+						/**
+						 * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -2431,6 +2547,52 @@ type RootTranslation = {
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
+		}
+		license: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e
+			 */
+			header: string
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
+					 */
+					link: string
+				}
+				licenseKey: {
+					/**
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
+					 */
+					text: string
+					/**
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
+					 */
+					link: string
+				}
+			}
+			form: {
+				/**
+				 * L​i​c​e​n​s​e
+				 */
+				title: string
+				fields: {
+					key: {
+						/**
+						 * L​i​c​e​n​s​e​ ​k​e​y
+						 */
+						label: string
+						/**
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
+						 */
+						placeholder: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -2640,6 +2802,28 @@ type RootTranslation = {
 					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					label: string
+				}
+			}
+		}
+		enterprise: {
+			/**
+			 * E​n​t​e​r​p​r​i​s​e​ ​F​e​a​t​u​r​e​s
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.​<​/​p​>
+			 */
+			helper: string
+			fields: {
+				deviceManagement: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 */
+					helper: string
 				}
 			}
 		}
@@ -3396,15 +3580,39 @@ type RootTranslation = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
-		 */
-		header: string
+		header: {
+			/**
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
+			 */
+			main: string
+			/**
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
+			 */
+			dockerBasedGatewaySetup: string
+			/**
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
+			 */
+			fromPackage: string
+			/**
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
+			 */
+			oneLineInstall: string
+		}
 		card: {
 			/**
 			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
+			/**
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
+			 */
+			authToken: string
+		}
+		button: {
+			/**
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
+			 */
+			availablePackages: string
 		}
 		controls: {
 			/**
@@ -3414,35 +3622,52 @@ type RootTranslation = {
 		}
 		messages: {
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
+			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​<​a​ ​h​r​e​f​=​"​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>
+			 * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
 			 */
 			createNetwork: string
 			/**
-			 * <​p​>​N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.​<​/​p​>
+			 * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
 			 */
 			noConnection: string
 			/**
-			 * <​p​>​G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.​<​/​p​>
+			 * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
 			 */
 			connected: string
 			/**
 			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
 			 */
 			statusError: string
+			/**
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
+			 */
+			oneLineInstall: string
+			/**
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			fromPackage: RequiredParams<'setupGatewayDocs'>
+			/**
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
+			/**
+			 * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
+			 * @param {string} setupGatewayDocs
+			 */
+			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
 		}
 	}
 	loginPage: {
@@ -3450,6 +3675,16 @@ type RootTranslation = {
 		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
 		 */
 		pageTitle: string
+		callback: {
+			/**
+			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
+			 */
+			'return': string
+			/**
+			 * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
+			 */
+			error: string
+		}
 		mfa: {
 			/**
 			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
@@ -4025,6 +4260,10 @@ export type TranslationFunctions = {
 		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
+		/**
+		 * Details:
+		 */
+		details: () => LocalizedString
 		clipboard: {
 			/**
 			 * Clipboard is not accessible.
@@ -5834,7 +6073,7 @@ export type TranslationFunctions = {
 			support: () => LocalizedString
 		}
 		/**
-		 * Copyright © 2023 
+		 * Copyright ©2023-2024
 		 */
 		copyright: () => LocalizedString
 		version: {
@@ -5843,7 +6082,7 @@ export type TranslationFunctions = {
 			 */
 			open: (arg: { version: string }) => LocalizedString
 			/**
-			 * v {version}
+			 * v{version}
 			 */
 			closed: (arg: { version: string }) => LocalizedString
 		}
@@ -5984,6 +6223,10 @@ export type TranslationFunctions = {
 			 * Maximum value of {value} exceeded.
 			 */
 			maximumValue: (arg: { value: number }) => LocalizedString
+			/**
+			 * Too many bad login attempts. Please try again in a few minutes.
+			 */
+			tooManyBadLoginAttempts: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
@@ -6074,6 +6317,14 @@ export type TranslationFunctions = {
 			 * LDAP
 			 */
 			ldap: () => LocalizedString
+			/**
+			 * OpenID
+			 */
+			openid: () => LocalizedString
+			/**
+			 * Enterprise features
+			 */
+			enterprise: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -6084,6 +6335,20 @@ export type TranslationFunctions = {
 			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
+		}
+		enterpriseOnly: {
+			/**
+			 * This feature is available only in Defguard Enterprise.
+			 */
+			title: () => LocalizedString
+			/**
+			 * To learn more, visit our 
+			 */
+			subtitle: () => LocalizedString
+			/**
+			 * website
+			 */
+			website: () => LocalizedString
 		}
 		ldapSettings: {
 			/**
@@ -6156,6 +6421,92 @@ export type TranslationFunctions = {
 					 * LDAP connection rejected
 					 */
 					error: () => LocalizedString
+				}
+			}
+		}
+		openIdSettings: {
+			general: {
+				/**
+				 * External OpenID Settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can change general OpenID behavior in your Defguard instance.
+				 */
+				helper: () => LocalizedString
+				createAccount: {
+					/**
+					 * Automatically create user account when logging in for the first time through external OpenID.
+					 */
+					label: () => LocalizedString
+					/**
+					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
+					 */
+					helper: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * External OpenID Client Settings
+				 */
+				title: () => LocalizedString
+				/**
+				 * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
+				 */
+				helper: () => LocalizedString
+				/**
+				 * Custom
+				 */
+				custom: () => LocalizedString
+				/**
+				 * Documentation
+				 */
+				documentation: () => LocalizedString
+				/**
+				 * Delete provider
+				 */
+				'delete': () => LocalizedString
+				labels: {
+					provider: {
+						/**
+						 * Provider
+						 */
+						label: () => LocalizedString
+						/**
+						 * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
+						 */
+						helper: () => LocalizedString
+					}
+					client_id: {
+						/**
+						 * Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					client_secret: {
+						/**
+						 * Client Secret
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client Secret provided by your OpenID provider.
+						 */
+						helper: () => LocalizedString
+					}
+					base_url: {
+						/**
+						 * Base URL
+						 */
+						label: () => LocalizedString
+						/**
+						 * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -6316,6 +6667,52 @@ export type TranslationFunctions = {
 				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
+		}
+		license: {
+			/**
+			 * Enterprise
+			 */
+			header: () => LocalizedString
+			helpers: {
+				enterpriseHeader: {
+					/**
+					 * Here you can manage your Defguard Enterprise version license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * To learn more about Defguard Enterprise, visit our webiste.
+					 */
+					link: () => LocalizedString
+				}
+				licenseKey: {
+					/**
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
+					 */
+					text: () => LocalizedString
+					/**
+					 * You can purchase the license here.
+					 */
+					link: () => LocalizedString
+				}
+			}
+			form: {
+				/**
+				 * License
+				 */
+				title: () => LocalizedString
+				fields: {
+					key: {
+						/**
+						 * License key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Your Defguard license key
+						 */
+						placeholder: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -6525,6 +6922,28 @@ export type TranslationFunctions = {
 					 * Same as welcome message
 					 */
 					label: () => LocalizedString
+				}
+			}
+		}
+		enterprise: {
+			/**
+			 * Enterprise Features
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can change enterprise settings.</p>
+			 */
+			helper: () => LocalizedString
+			fields: {
+				deviceManagement: {
+					/**
+					 * Disable users ability to manage their devices
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
 				}
 			}
 		}
@@ -7274,15 +7693,39 @@ export type TranslationFunctions = {
 		}
 	}
 	gatewaySetup: {
-		/**
-		 * Gateway server setup
-		 */
-		header: () => LocalizedString
+		header: {
+			/**
+			 * Gateway server setup
+			 */
+			main: () => LocalizedString
+			/**
+			 * Docker Based Gateway Setup
+			 */
+			dockerBasedGatewaySetup: () => LocalizedString
+			/**
+			 * From Package
+			 */
+			fromPackage: () => LocalizedString
+			/**
+			 * One Line Install
+			 */
+			oneLineInstall: () => LocalizedString
+		}
 		card: {
 			/**
 			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
+			/**
+			 * Authentication Token
+			 */
+			authToken: () => LocalizedString
+		}
+		button: {
+			/**
+			 * Available Packages
+			 */
+			availablePackages: () => LocalizedString
 		}
 		controls: {
 			/**
@@ -7292,34 +7735,48 @@ export type TranslationFunctions = {
 		}
 		messages: {
 			/**
-			 * 
-		          <p>
-		            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-		            More details can be found in the <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
+			 * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the [documentation]({setupGatewayDocs}).
 		            There are several ways to deploy the gateway server,
-		            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs}" target="_blank">documentation</a>.
-		          </p>
+		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 
-		          <p>
-		            Please create the network before running the gateway process.
-		          </p>
+			 * Please create the network before running the gateway process.
 			 */
 			createNetwork: () => LocalizedString
 			/**
-			 * <p>No connection established, please run provided command.</p>
+			 * No connection established, please run provided command.
 			 */
 			noConnection: () => LocalizedString
 			/**
-			 * <p>Gateway connected.</p>
+			 * Gateway connected.
 			 */
 			connected: () => LocalizedString
 			/**
 			 * Failed to get gateway status
 			 */
 			statusError: () => LocalizedString
+			/**
+			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+		          you don't need to do anything.
+			 */
+			oneLineInstall: () => LocalizedString
+			/**
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+		          according to the [documentation]({setupGatewayDocs}).
+			 */
+			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
+			/**
+			 * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
+			 */
+			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}
 	}
 	loginPage: {
@@ -7327,6 +7784,16 @@ export type TranslationFunctions = {
 		 * Enter your credentials
 		 */
 		pageTitle: () => LocalizedString
+		callback: {
+			/**
+			 * Go back to login
+			 */
+			'return': () => LocalizedString
+			/**
+			 * An error occurred during external OpenID login
+			 */
+			error: () => LocalizedString
+		}
 		mfa: {
 			/**
 			 * Two-factor authentication

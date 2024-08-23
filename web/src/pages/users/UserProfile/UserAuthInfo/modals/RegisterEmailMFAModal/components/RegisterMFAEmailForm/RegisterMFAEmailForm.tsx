@@ -107,7 +107,7 @@ export const RegisterMFAEmailForm = () => {
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     data = trimObjectStrings(data);
     mutateFinish({
-      code: Number.parseInt(data.code),
+      code: String(data.code),
     });
   };
 

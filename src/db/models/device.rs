@@ -9,6 +9,7 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection, PgExecutor};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
@@ -31,7 +32,7 @@ pub struct DeviceConfig {
     pub(crate) keepalive_interval: i32,
 }
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug)]
+#[derive(Clone, Deserialize, Model, Serialize, Debug, ToSchema)]
 pub struct Device {
     pub id: Option<i64>,
     pub name: String,
@@ -92,7 +93,7 @@ impl DeviceInfo {
 
 // helper struct which includes full device info
 // including network activity metadata
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, ToSchema)]
 pub struct UserDevice {
     #[serde(flatten)]
     pub device: Device,
@@ -175,13 +176,13 @@ pub struct WireguardNetworkDevice {
     pub authorized_at: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct AddDevice {
     pub name: String,
     pub wireguard_pubkey: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, ToSchema)]
 pub struct ModifyDevice {
     pub name: String,
     pub wireguard_pubkey: String,
@@ -620,9 +621,10 @@ impl Device {
 
 #[cfg(test)]
 mod test {
+    use claims::{assert_err, assert_ok};
+
     use super::*;
     use crate::db::User;
-    use claims::{assert_err, assert_ok};
 
     impl Device {
         /// Create new device and assign IP in a given network

@@ -7,6 +7,7 @@ use defguard::{
     build_webapp,
     config::DefGuardConfig,
     db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
+    enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,
     mail::Mail,
@@ -119,6 +120,16 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
     let user_agent_parser = create_user_agent_parser();
+
+    let license = License::new(
+        "test_customer".to_string(),
+        true,
+        // Some(Utc.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap()),
+        // Permanent license
+        None,
+    );
+
+    set_cached_license(Some(license));
 
     let client_state = ClientState::new(
         pool.clone(),

@@ -14,17 +14,14 @@ export const ApplicationVersion = ({ isOpen }: Props) => {
   return (
     <div className="app-version">
       <p>
-        {isOpen && <>{LL.navigation.copyright()}</>}
+        <>{isOpen ? LL.navigation.copyright() : '©'}&nbsp;</>
         <a href="https://www.teonite.com" target="_blank" rel="noreferrer">
-          {!isOpen && '\u00A9'}teonite
+          teonite
         </a>
       </p>
       {version && (
         <p>
-          <a
-            rel="noreferrer"
-            href={`https://github.com/DefGuard/defguard/releases/tag/v${version}`}
-          >
+          <a rel="noreferrer" href={`https://github.com/DefGuard/defguard/releases/`}>
             {isOpen
               ? LL.navigation.version.open({ version })
               : LL.navigation.version.closed({ version })}

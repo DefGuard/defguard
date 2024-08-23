@@ -1,10 +1,4 @@
 {
-    "cSpell.words": [
-        "MFATOTP",
-        "openidclient",
-        "TOTP",
-        "Typesafe",
-        "walletconnect"
-    ],
-    "typescript.tsdk": "node_modules/typescript/lib"
+  "cSpell.words": ["MFATOTP", "openidclient", "TOTP", "Typesafe", "walletconnect"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

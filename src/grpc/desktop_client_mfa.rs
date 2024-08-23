@@ -1,3 +1,9 @@
+use std::collections::HashMap;
+
+use chrono::Utc;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::Status;
+
 use super::proto::{
     ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
     MfaMethod,
@@ -11,10 +17,6 @@ use crate::{
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
-use chrono::Utc;
-use std::collections::HashMap;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::Status;
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
@@ -202,13 +204,13 @@ impl ClientMfaServer {
         // validate code
         match method {
             MfaMethod::Totp => {
-                if !user.verify_totp_code(request.code) {
+                if !user.verify_totp_code(&request.code.to_string()) {
                     error!("Provided TOTP code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
             MfaMethod::Email => {
-                if !user.verify_email_mfa_code(request.code) {
+                if !user.verify_email_mfa_code(&request.code.to_string()) {
                     error!("Provided email code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }

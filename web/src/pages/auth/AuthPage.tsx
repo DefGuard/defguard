@@ -13,6 +13,7 @@ import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { UserMFAMethod } from '../../shared/types';
 import { RedirectPage } from '../redirect/RedirectPage';
+import { OpenIDCallback } from './Callback/Callback';
 import { Login } from './Login/Login';
 import { MFARoute } from './MFARoute/MFARoute';
 import { useMFAStore } from './shared/hooks/useMFAStore';
@@ -47,6 +48,8 @@ export const AuthPage = () => {
   const toaster = useToaster();
 
   const setAppStore = useAppStore((state) => state.setState);
+
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
@@ -152,6 +155,7 @@ export const AuthPage = () => {
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
         <Route path="mfa/*" element={<MFARoute />} />
+        {enterpriseEnabled && <Route path="callback" element={<OpenIDCallback />} />}
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
     </div>

@@ -2,22 +2,24 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - "e2e/**"
   pull_request:
     branches:
       - main
+      - dev
     paths:
       - "e2e/**"
 
 jobs:
   lint-e2e:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 19
+          node-version: 20
       - name: install deps
         working-directory: ./e2e
         run: |

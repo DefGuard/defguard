@@ -4,50 +4,19 @@ on:
     tags:
       - v*.*.*
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  publish-docker:
-    runs-on: [self-hosted, Linux]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ghcr.io/DefGuard/defguard
-          tags: |
-            type=raw,value=latest
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker BuildX
-        uses: docker/setup-buildx-action@v3
-        with:
-          buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["dockerhub-proxy.teonite.net"]
-      - name: Login to GitHub container registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build container
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64, linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  build-latest:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      tags: |
+        type=raw,value=latest
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=sha
 
   create-release:
     name: create-release
@@ -57,32 +26,32 @@ jobs:
     steps:
       - name: Create GitHub release
         id: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           draft: true
           generate_release_notes: true
 
   build-binaries:
-    needs: [ "create-release" ]
+    needs: [create-release]
     runs-on:
       - self-hosted
       - ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        build: [ linux, linux-arm, linux-arm64, freebsd ]
+        build: [linux, linux-arm64, freebsd]
         include:
           - build: linux
+            arch: amd64
             os: Linux
             target: x86_64-unknown-linux-gnu
-          - build: linux-arm
-            os: Linux
-            target: armv7-unknown-linux-gnueabihf
           - build: linux-arm64
+            arch: arm64
             os: Linux
             target: aarch64-unknown-linux-gnu
           - build: freebsd
+            arch: amd64
             os: Linux
             target: x86_64-unknown-freebsd
     steps:
@@ -121,7 +90,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: ./web/pnpm-lock.yaml
 
       - name: Install frontend dependencies
@@ -162,10 +131,10 @@ jobs:
 
       - name: Build DEB package
         if: matrix.build == 'linux'
-        uses: bpicode/github-action-fpm@master
+        uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
-          fpm_opts: "--debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type deb --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.deb"
 
       - name: Upload DEB
         if: matrix.build == 'linux'
@@ -180,10 +149,10 @@ jobs:
 
       - name: Build RPM package
         if: matrix.build == 'linux'
-        uses: bpicode/github-action-fpm@master
+        uses: defGuard/fpm-action@main
         with:
           fpm_args: "defguard-${{ github.ref_name }}-${{ matrix.target }}=/usr/bin/defguard defguard.service=/usr/lib/systemd/system/defguard.service .env=/etc/defguard/core.conf"
-          fpm_opts: "--debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type rpm --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm"
 
       - name: Upload RPM
         if: matrix.build == 'linux'
@@ -194,4 +163,22 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
           asset_name: defguard-${{ env.VERSION }}-${{ matrix.target }}.rpm
+          asset_content_type: application/octet-stream
+
+      - name: Build FreeBSD package
+        if: matrix.build == 'freebsd'
+        uses: defGuard/fpm-action@main
+        with:
+          fpm_args: "${{ matrix.asset_name }}-${{ github.ref_name }}=/usr/local/bin/defguard defguard.service.freebsd=/usr/local/etc/rc.d/defguard"
+          fpm_opts: "--architecture ${{ matrix.arch }} --debug --output-type freebsd --version ${{ env.VERSION }} --package defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg --freebsd-osversion '*'"
+
+      - name: Upload FreeBSD
+        if: matrix.build == 'freebsd'
+        uses: actions/upload-release-asset@v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
+          asset_name: defguard-${{ env.VERSION }}_${{ matrix.target }}.pkg
           asset_content_type: application/octet-stream
