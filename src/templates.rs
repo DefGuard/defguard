@@ -256,7 +256,7 @@ pub fn gateway_disconnected_mail(
 
 pub fn email_mfa_activation_mail(
     user: &User,
-    code: u32,
+    code: &str,
     session: &Session,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
@@ -272,7 +272,7 @@ pub fn email_mfa_activation_mail(
 
 pub fn email_mfa_code_mail(
     user: &User,
-    code: u32,
+    code: &str,
     session: Option<&Session>,
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
