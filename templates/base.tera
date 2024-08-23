@@ -251,17 +251,17 @@
                                   ">
                                     {% if date_now %}
                                       <p style="margin: auto;">
-                                        Date: {{ date_now | safe }}
+                                        <span>Date:</span> {{ date_now | safe }}
                                       </p>
                                     {% endif %}
                                     {% if ip_address %}
-                                      <p style="margin: auto;">
-                                        IP Address: {{ ip_address | safe }}
+                                      < style="margin: auto;">
+                                        <span>IP Address:</span> {{ ip_address | safe }}
                                       </p>
                                     {% endif %}
                                     {% if device_type %}
                                       <p style="margin: auto;">
-                                        Device type: {{ device_type | safe }}
+                                        <span>Device type:</span> {{ device_type | safe }}
                                       </p>
                                     {% endif %}
                                   </div>
