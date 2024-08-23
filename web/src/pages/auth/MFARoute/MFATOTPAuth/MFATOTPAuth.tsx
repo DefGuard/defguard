@@ -65,7 +65,7 @@ export const MFATOTPAuth = () => {
 
   const handleValidSubmit: SubmitHandler<Inputs> = (values) => {
     const trimmed = trimObjectStrings(values);
-    mutate({ code: Number(trimmed.code) });
+    mutate({ code: String(trimmed.code) });
   };
 
   useEffect(() => {

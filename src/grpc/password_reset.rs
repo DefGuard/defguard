@@ -1,6 +1,10 @@
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
+use super::proto::{
+    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+    PasswordResetStartResponse,
+};
 use crate::{
     db::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
@@ -13,11 +17,6 @@ use crate::{
     ldap::utils::ldap_change_password,
     mail::Mail,
     server_config,
-};
-
-use super::proto::{
-    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
-    PasswordResetStartResponse,
 };
 
 pub(super) struct PasswordResetServer {

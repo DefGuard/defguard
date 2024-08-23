@@ -1,12 +1,13 @@
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
+use utoipa::ToSchema;
 
 use crate::{
     db::{models::error::ModelError, User, WireguardNetwork},
     server_config,
 };
 
-#[derive(Model, Debug)]
+#[derive(Model, Debug, ToSchema)]
 pub struct Group {
     pub(crate) id: Option<i64>,
     pub name: String,
@@ -60,7 +61,7 @@ impl Group {
                 User,
                 "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
                 FROM \"user\" \
                 JOIN group_user ON \"user\".id = group_user.user_id \
                 WHERE group_user.group_id = $1",

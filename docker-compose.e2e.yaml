@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   core:
     image: ghcr.io/defguard/defguard:current

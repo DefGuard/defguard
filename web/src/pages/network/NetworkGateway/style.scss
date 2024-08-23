@@ -1,11 +1,22 @@
 #network-page {
   .gateway {
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
+
+    & > section.header-section {
+      h2,
+      p {
+        margin-bottom: 35px;
+      }
+    }
+
     & > .message-box {
-      min-height: 80px;
-      margin-bottom: 2rem;
+      min-height: 15px;
+      margin-bottom: 20px;
 
       @include media-breakpoint-up(lg) {
-        margin-bottom: 4rem;
+        margin-bottom: 40px;
       }
     }
 
@@ -24,10 +35,40 @@
           @include small-text;
 
           line-height: 22px;
+          color: var(--text-body-secondary);
+          padding: 20px 0px;
         }
       }
 
-      margin-bottom: 3rem;
+      margin-bottom: 30px;
+    }
+
+    h2 {
+      @include typography(app-body-1);
+      color: var(--text-body-primary);
+      text-align: center;
+    }
+
+    h3 {
+      @include typography(modal-title);
+
+      color: var(--text-body-primary);
+    }
+
+    p {
+      & > a {
+        color: var(--text-body-secondary);
+      }
+      @include typography(app-modal-2);
+      color: var(--text-body-secondary);
+    }
+
+    & > p {
+      text-align: center;
+    }
+
+    & > .btn {
+      width: 100%;
     }
   }
 }

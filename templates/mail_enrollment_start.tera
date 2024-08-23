@@ -24,6 +24,7 @@ macros::paragraph(content="<b>1. Enrollment by desktop client</b>"),
 macros::paragraph(content="Download the official defguard desktop client for Windows, macOS or Linux: " ~ release_link),
 macros::paragraph(content="After installation, please add a defguard instance by entering:"),
 macros::paragraph(content="<ul><li>Instance URL: " ~ enrollment_link ~ "</li><li>Enrollment token: <b>" ~ token ~ "</b></li></ul>"),
+macros::paragraph(content="<b>Please note that: the token is only valid for 24 hours after receiving this email. When the enrollment process starts user will have 10 minutes to complete the process.</b>"),
 macros::paragraph(content="For more details go to the desktop client documentation: " ~ client_docs_link),
 ] %}
 {{ macros::text_section(content_array=section_content)}}
@@ -35,7 +36,8 @@ macros::paragraph(content="If you choose this option, you will be able to change
 Desktop client can still be activated later, by accessing your profile in defguard: " ~ defguard_link ~ "."),
 macros::paragraph(content= "If you wish to do enrollment via Web, please copy & paste the following URL in your browser: "),
 macros::link(content=link_url, href=link_url),
-macros::paragraph(content="Or click the button below:"),
+macros::paragraph(content="<b>Please note that: this option is only valid for 24 hours after receiving this email. When the enrollment process starts user will have 10 minutes to complete the process.</b>"),
+macros::paragraph(content="You can also click the button below to start the enrollment:"),
 ] %}
 {{ macros::text_section(content_array=section_content)}}
 <p style="text-align: center;"><a href={{ link_url }} target="_blank" aria-label="Start enrollment" style="

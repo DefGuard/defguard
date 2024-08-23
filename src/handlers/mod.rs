@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde_json::{json, Value};
+use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 #[cfg(feature = "wireguard")]
@@ -11,6 +12,7 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{DbPool, User, UserInfo},
+    enterprise::license::LicenseError,
     error::WebError,
     VERSION,
 };
@@ -36,9 +38,9 @@ pub mod worker;
 pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
-static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
-#[derive(Default)]
+#[derive(Default, ToSchema)]
 pub struct ApiResponse {
     pub json: Value,
     pub status: StatusCode,
@@ -104,6 +106,34 @@ impl From<WebError> for ApiResponse {
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::LicenseError(err) => match err {
+                LicenseError::DecodeError(msg) | LicenseError::InvalidLicense(msg) => {
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::SignatureMismatch => {
+                    let msg = "License signature doesn't match its content";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::InvalidSignature => {
+                    let msg = "License signature is malformed and couldn't be read";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::BAD_REQUEST)
+                }
+                LicenseError::LicenseNotFound => {
+                    let msg = "License not found";
+                    warn!(msg);
+                    ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
+                }
+                _ => {
+                    error!("License error: {err}");
+                    ApiResponse::new(
+                        json!({"msg": "Internal server error"}),
+                        StatusCode::FORBIDDEN,
+                    )
+                }
+            },
         }
     }
 }
@@ -161,17 +191,17 @@ impl AuthTotp {
 
 #[derive(Deserialize, Serialize)]
 pub struct AuthCode {
-    code: u32,
+    code: String,
 }
 
 impl AuthCode {
     #[must_use]
-    pub fn new(code: u32) -> Self {
-        Self { code }
+    pub fn new<S: Into<String>>(code: S) -> Self {
+        Self { code: code.into() }
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
@@ -190,13 +220,13 @@ impl GroupInfo {
 }
 
 /// Dedicated `GroupInfo` variant for group modification operations.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct Username {
     pub username: String,
 }
@@ -211,37 +241,37 @@ pub struct AddUserData {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct StartEnrollmentRequest {
     #[serde(default)]
     pub send_enrollment_notification: bool,
     pub email: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChangeSelf {
     pub old_password: String,
     pub new_password: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletSignature {
     pub address: String,
     pub signature: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WalletChallenge {
     pub id: i64,
     pub message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct WalletChange {
     pub use_for_mfa: bool,
 }
@@ -290,13 +320,23 @@ pub async fn user_for_admin_or_self(
     username: &str,
 ) -> Result<User, WebError> {
     if session.user.username == username || session.is_admin {
+        debug!("The user meets one or both of these conditions: 1) the user from the current session has admin privileges, 2) the user performs this operation on themself.");
         match User::find_by_username(pool, username).await? {
-            Some(user) => Ok(user),
-            None => Err(WebError::ObjectNotFound(format!(
-                "user {username} not found"
-            ))),
+            Some(user) => {
+                debug!("User {} has been found in database.", user.username);
+                Ok(user)
+            }
+            None => {
+                debug!("User with {} does not exist in database.", username);
+                Err(WebError::ObjectNotFound(format!(
+                    "user {username} not found"
+                )))
+            }
         }
     } else {
+        debug!(
+            "User from the current session doesn't have enough privileges to do this operation."
+        );
         Err(WebError::Forbidden("requires privileged access".into()))
     }
 }

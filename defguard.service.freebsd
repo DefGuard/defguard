@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# PROVIDE: defguard
+# REQUIRE: NETWORKING wireguard
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="defguard"
+rcvar=defguard_enable
+command="/usr/local/bin/defguard"
+start_cmd="${name}_start"
+
+defguard_start()
+{
+  ${command} --config ${config} &
+}
+
+load_rc_config $name
+run_rc_command "$1"

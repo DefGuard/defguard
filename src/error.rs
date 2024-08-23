@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -8,13 +9,14 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         wireguard::WireguardNetworkError,
     },
+    enterprise::license::LicenseError,
     grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -52,6 +54,8 @@ pub enum WebError {
     TemplateError(#[from] TemplateError),
     #[error("Server config missing")]
     ServerConfigMissing,
+    #[error("License error: {0}")]
+    LicenseError(#[from] LicenseError),
 }
 
 impl From<tonic::Status> for WebError {

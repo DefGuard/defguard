@@ -9,8 +9,8 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use otpauth::TOTP;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, Type};
+use totp_lite::{totp_custom, Sha1};
 
 use super::{
     device::{Device, UserDevice},
@@ -20,7 +20,7 @@ use super::{
     DbPool, MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
-    auth::TOTP_CODE_VALIDITY_PERIOD,
+    auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::Session,
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
@@ -78,6 +78,8 @@ pub struct User {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
+    // Whether the user has logged in using OIDC
+    pub openid_login: bool,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
@@ -124,6 +126,7 @@ impl User {
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
             is_active: true,
+            openid_login: false,
         }
     }
 
@@ -154,6 +157,14 @@ impl User {
         format!("{} {}", self.first_name, self.last_name)
     }
 
+    /// Check if user is enrolled.
+    /// We assume the user is enrolled if they have a password set
+    /// or they have logged in using an external OIDC.
+    #[must_use]
+    pub fn is_enrolled(&self) -> bool {
+        self.password_hash.is_some() || self.openid_login
+    }
+
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
     pub async fn new_totp_secret<'e, E>(&mut self, executor: E) -> Result<String, SqlxError>
     where
@@ -169,7 +180,7 @@ impl User {
             .execute(executor)
             .await?;
         }
-        let secret_base32 = TOTP::from_bytes(&secret).base32_secret();
+        let secret_base32 = base32::encode(base32::Alphabet::Rfc4648 { padding: false }, &secret);
         self.totp_secret = Some(secret);
         Ok(secret_base32)
     }
@@ -455,7 +466,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active, openid_login \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -469,7 +480,7 @@ impl User {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
-                enrolled: u.password_hash.is_some(),
+                enrolled: u.password_hash.is_some() || u.openid_login,
             })
             .collect();
         Ok(res)
@@ -485,7 +496,7 @@ impl User {
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
@@ -499,43 +510,80 @@ impl User {
 
     /// Check if TOTP `code` is valid.
     #[must_use]
-    pub fn verify_totp_code(&self, code: u32) -> bool {
+    pub fn verify_totp_code(&self, code: &str) -> bool {
         if let Some(totp_secret) = &self.totp_secret {
-            let totp = TOTP::from_bytes(totp_secret);
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, TOTP_CODE_VALIDITY_PERIOD, timestamp.as_secs());
+                let expected_code = totp_custom::<Sha1>(
+                    TOTP_CODE_VALIDITY_PERIOD,
+                    TOTP_CODE_DIGITS,
+                    totp_secret,
+                    timestamp.as_secs(),
+                );
+                eprintln!("{expected_code} ?? {code}");
+                return code == expected_code;
             }
         }
         false
     }
 
-    pub fn generate_email_mfa_code(&self) -> Result<u32, WebError> {
-        match &self.email_mfa_secret {
-            Some(email_mfa_secret) => {
-                let auth = TOTP::from_bytes(email_mfa_secret);
-                let timeout = &server_config().mfa_code_timeout;
-                let timestamp = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let code = auth.generate(timeout.as_secs(), timestamp);
+    /// Generate MFA code for email verification.
+    ///
+    /// NOTE: This code will be valid for two time frames. See comment for verify_email_mfa_code().
+    pub fn generate_email_mfa_code(&self) -> Result<String, WebError> {
+        if let Some(email_mfa_secret) = &self.email_mfa_secret {
+            let timeout = &server_config().mfa_code_timeout;
+            if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+                let code = totp_custom::<Sha1>(
+                    timeout.as_secs(),
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs(),
+                );
                 Ok(code)
+            } else {
+                Err(WebError::EmailMfa("SystemTime before UNIX epoch".into()))
             }
-            None => Err(WebError::EmailMfa(format!(
+        } else {
+            Err(WebError::EmailMfa(format!(
                 "Email MFA secret not configured for user {}",
                 self.username
-            ))),
+            )))
         }
     }
 
     /// Check if email MFA `code` is valid.
+    ///
+    /// IMPORTANT: because current implementation uses TOTP for email verification,
+    /// allow the code for the previous time frame. This approach pretends the code is valid
+    /// for a certain *period of time* (as opposed to a TOTP code which is valid for a certain time *frame*).
+    ///
+    /// ```text
+    /// |<---- frame #0 ---->|<---- frame #1 ---->|<---- frame #2 ---->|
+    /// |................[*]email sent.................................|
+    /// |......................[*]email code verified..................|
+    /// ```
     #[must_use]
-    pub fn verify_email_mfa_code(&self, code: u32) -> bool {
+    pub fn verify_email_mfa_code(&self, code: &str) -> bool {
         if let Some(email_mfa_secret) = &self.email_mfa_secret {
-            let totp = TOTP::from_bytes(email_mfa_secret);
-            let timeout = &server_config().mfa_code_timeout;
+            let timeout = server_config().mfa_code_timeout.as_secs();
             if let Ok(timestamp) = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
-                return totp.verify(code, timeout.as_secs(), timestamp.as_secs());
+                let expected_code = totp_custom::<Sha1>(
+                    timeout,
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs(),
+                );
+                if code == expected_code {
+                    return true;
+                }
+
+                let previous_code = totp_custom::<Sha1>(
+                    timeout,
+                    EMAIL_CODE_DIGITS,
+                    email_mfa_secret,
+                    timestamp.as_secs() - timeout,
+                );
+                return code == previous_code;
             }
         }
         false
@@ -576,7 +624,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -592,7 +640,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
             FROM \"user\" WHERE email = $1",
             email
         )
@@ -817,6 +865,30 @@ impl User {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+
+    #[sqlx::test]
+    async fn test_mfa_code(pool: DbPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let mut user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        user.new_email_secret(&pool).await.unwrap();
+        assert!(user.email_mfa_secret.is_some());
+        let code = user.generate_email_mfa_code().unwrap();
+        assert!(
+            user.verify_email_mfa_code(&code),
+            "code={code}, secret={:?}",
+            user.email_mfa_secret.unwrap()
+        );
+    }
 
     #[sqlx::test]
     async fn test_user(pool: DbPool) {

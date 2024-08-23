@@ -5,19 +5,24 @@ use std::{
 };
 
 use anyhow::anyhow;
+use assets::{index, svg, web_asset};
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
-    serve, Extension, Router,
+    serve, Extension, Json, Router,
 };
-
-use assets::{index, svg, web_asset};
-use handlers::ssh_authorized_keys::{
-    add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+use enterprise::handlers::{
+    check_enterprise_status,
+    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
-    ssh_authorized_keys::rename_authentication_key,
+    ssh_authorized_keys::{
+        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+        rename_authentication_key,
+    },
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -33,7 +38,33 @@ use tokio::{
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use uaparser::UserAgentParser;
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_swagger_ui::SwaggerUi;
 
+#[cfg(feature = "wireguard")]
+use self::handlers::wireguard::{
+    add_device, add_user_devices, create_network, create_network_token, delete_device,
+    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
+    list_networks, list_user_devices, modify_device, modify_network, network_details,
+    network_stats, remove_gateway, user_stats,
+};
+#[cfg(feature = "worker")]
+use self::handlers::worker::{
+    create_job, create_worker_token, job_status, list_workers, remove_worker,
+};
+#[cfg(feature = "openid")]
+use self::handlers::{
+    openid_clients::{
+        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+        get_openid_client, list_openid_clients,
+    },
+    openid_flow::{
+        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
+    },
+};
 use self::{
     appstate::AppState,
     auth::{Claims, ClaimsType},
@@ -74,28 +105,6 @@ use self::{
     },
     mail::Mail,
 };
-
-#[cfg(feature = "wireguard")]
-use self::handlers::wireguard::{
-    add_device, add_user_devices, create_network, create_network_token, delete_device,
-    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
-    list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway, user_stats,
-};
-#[cfg(feature = "worker")]
-use self::handlers::worker::{
-    create_job, create_worker_token, job_status, list_workers, remove_worker,
-};
-#[cfg(feature = "openid")]
-use self::handlers::{
-    openid_clients::{
-        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
-        get_openid_client, list_openid_clients,
-    },
-    openid_flow::{
-        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
-    },
-};
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
     auth::failed_login::FailedLoginMap,
@@ -109,6 +118,7 @@ pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
+pub mod enterprise;
 mod error;
 pub mod grpc;
 pub mod handlers;
@@ -130,7 +140,7 @@ extern crate tracing;
 #[macro_use]
 extern crate serde;
 
-pub static VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), "-", env!("VERGEN_GIT_SHA"));
 pub static SERVER_CONFIG: OnceCell<DefGuardConfig> = OnceCell::const_new();
 
 pub(crate) fn server_config() -> &'static DefGuardConfig {
@@ -142,6 +152,115 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 // WireGuard key length in bytes.
 pub(crate) const KEY_LENGTH: usize = 32;
 
+mod openapi {
+    use db::{
+        models::device::{ModifyDevice, UserDevice},
+        AddDevice, UserDetails, UserInfo,
+    };
+    use error::WebError;
+    use handlers::{
+        group::{self, BulkAssignToGroupsRequest, Groups},
+        user::{self, WalletInfoShort},
+        wireguard as device,
+        wireguard::AddDeviceResult,
+        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
+    };
+    use utoipa::OpenApi;
+
+    use super::*;
+
+    #[derive(OpenApi)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        paths(
+            // /user
+            user::list_users,
+            user::get_user,
+            user::add_user,
+            user::start_enrollment,
+            user::start_remote_desktop_configuration,
+            user::username_available,
+            user::modify_user,
+            user::delete_user,
+            user::change_self_password,
+            user::change_password,
+            user::reset_password,
+            user::wallet_challenge,
+            user::set_wallet,
+            user::update_wallet,
+            user::delete_wallet,
+            user::delete_security_key,
+            user::me,
+            user::delete_authorized_app,
+            // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
+            // /group
+            group::bulk_assign_to_groups,
+            group::list_groups_info,
+            group::list_groups,
+            group::get_group,
+            group::create_group,
+            group::modify_group,
+            group::delete_group,
+            group::add_group_member,
+            group::remove_group_member,
+        ),
+        components(
+            schemas(
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletInfoShort, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+            ),
+        ),
+        tags(
+            (name = "user", description = "
+Endpoints that allow to control user data.
+
+Available actions:
+- list all users
+- CRUD mechanism for handling users
+- operations on user wallet
+- operations on security key and authorized app
+- change user password.
+            "),
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "group", description = "
+Endpoints that allow to control groups in your network.
+
+Available actions:
+- list all groups
+- CRUD mechanism for handling groups
+- add or delete a group member.
+            ")
+        )
+    )]
+    pub struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                // TODO: add an appropriate security schema
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                )
+            }
+        }
+    }
+}
+
 /// Simple health-check.
 async fn health_check() -> &'static str {
     "alive"
@@ -149,6 +268,10 @@ async fn health_check() -> &'static str {
 
 async fn handle_404() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not found")
+}
+
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::ApiDoc::openapi())
 }
 
 pub fn build_webapp(
@@ -176,6 +299,7 @@ pub fn build_webapp(
             .route("/health", get(health_check))
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
+            .route("/api-docs", get(openapi))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -265,6 +389,9 @@ pub fn build_webapp(
             .route("/settings/:id", put(set_default_branding))
             // settings for frontend
             .route("/settings_essentials", get(get_settings_essentials))
+            // enterprise settings
+            .route("/settings_enterprise", get(get_enterprise_settings))
+            .route("/settings_enterprise", patch(patch_enterprise_settings))
             // support
             .route("/support/configuration", get(configuration))
             .route("/support/logs", get(logs))
@@ -278,6 +405,18 @@ pub fn build_webapp(
             // ldap
             .route("/ldap/test", get(test_ldap_settings)),
     );
+
+    // Enterprise features
+    let webapp = webapp.nest(
+        "/api/v1/openid",
+        Router::new()
+            .route("/provider", get(get_current_openid_provider))
+            .route("/provider", post(add_openid_provider))
+            .route("/provider/:name", delete(delete_openid_provider))
+            .route("/callback", post(auth_callback))
+            .route("/auth_info", get(get_auth_info)),
+    );
+    let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
 
     #[cfg(feature = "openid")]
     let webapp = webapp
@@ -305,6 +444,7 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
+            // FIXME: change /device/:device_id to /device/:username
             .route("/device/:device_id", post(add_device))
             .route("/device/:device_id", put(modify_device))
             .route("/device/:device_id", get(get_device))
@@ -345,6 +485,9 @@ pub fn build_webapp(
             .layer(Extension(worker_state)),
     );
 
+    let swagger =
+        SwaggerUi::new("/api-docs").url("/api-docs/openapi.json", openapi::ApiDoc::openapi());
+
     webapp
         .with_state(AppState::new(
             pool,
@@ -366,6 +509,7 @@ pub fn build_webapp(
                 })
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .merge(swagger)
 }
 
 /// Runs core web server exposing REST API.

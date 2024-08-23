@@ -12,8 +12,10 @@ import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTab
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
+import { EnterpriseSettings } from './components/EnterpriseSettings/EnterpriseSettings';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
+import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
 
@@ -21,6 +23,8 @@ const tabsContent: ReactNode[] = [
   <GlobalSettings key={0} />,
   <SmtpSettings key={1} />,
   <LdapSettings key={2} />,
+  <OpenIdSettings key={3} />,
+  <EnterpriseSettings key={4} />,
 ];
 
 export const SettingsPage = () => {
@@ -64,6 +68,18 @@ export const SettingsPage = () => {
         content: LL.settingsPage.tabs.ldap(),
         active: activeCard === 2,
         onClick: () => setActiveCard(2),
+      },
+      {
+        key: 3,
+        content: LL.settingsPage.tabs.openid(),
+        active: activeCard === 3,
+        onClick: () => setActiveCard(3),
+      },
+      {
+        key: 4,
+        content: LL.settingsPage.tabs.enterprise(),
+        active: activeCard === 4,
+        onClick: () => setActiveCard(4),
       },
     ],
     [LL.settingsPage.tabs, activeCard],

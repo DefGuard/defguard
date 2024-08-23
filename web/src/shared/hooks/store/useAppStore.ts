@@ -3,12 +3,14 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { Locales } from '../../../i18n/i18n-types';
-import { AppInfo, SettingsEssentials } from '../../types';
+import { AppInfo, SettingsEnterprise, SettingsEssentials } from '../../types';
 
 const defaultValues: StoreValues = {
   settings: undefined,
   language: undefined,
   appInfo: undefined,
+  enterprise_enabled: false,
+  enterprise_settings: undefined,
 };
 
 const persistKeys: Array<keyof StoreValues> = ['language'];
@@ -35,6 +37,8 @@ type StoreValues = {
   settings?: SettingsEssentials;
   language?: Locales;
   appInfo?: AppInfo;
+  enterprise_enabled?: boolean;
+  enterprise_settings?: SettingsEnterprise;
 };
 
 type StoreMethods = {
