@@ -254,7 +254,11 @@ pub fn gateway_disconnected_mail(
     Ok(tera.render("mail_gateway_disconnected", &context)?)
 }
 
-pub fn email_mfa_activation_mail(user: &User, code: u32, session: &Session) -> Result<String, TemplateError> {
+pub fn email_mfa_activation_mail(
+    user: &User,
+    code: u32,
+    session: &Session,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
@@ -266,7 +270,11 @@ pub fn email_mfa_activation_mail(user: &User, code: u32, session: &Session) -> R
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(user: &User, code: u32, session: Option<&Session>) -> Result<String, TemplateError> {
+pub fn email_mfa_code_mail(
+    user: &User,
+    code: u32,
+    session: Option<&Session>,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
