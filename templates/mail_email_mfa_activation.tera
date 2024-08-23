@@ -6,13 +6,15 @@ code -> 6-digit zero-padded verification code
 {% import "macros.tera" as macros %}
 {% block mail_content %}
 {% set section_content = [
-  macros::paragraph(content="You are activating Multi-Factor Authentication using email verification codes. DUPA"),
+  macros::title(content="Hello, " ~ name),
+  macros::paragraph(content="You are activating Multi-Factor Authentication using email verification codes.", align="center"),
 ] %}
 {{ macros::text_section(content_array=section_content) }}
-{{ macros::spacer(height="10px") }}
+{{ macros::spacer(height="40px") }}
 {% set section_content = [
-  macros::paragraph(content="Your code is: <b>" ~ code ~ "</b> - use this code to complete MFA setup."),
-  macros::paragraph(content="The code is valid for " ~ timeout ~ "."),
+  macros::title(content="" ~ code, font_size="45px"),
+  macros::spacer(height="40px"),
+  macros::paragraph(content="The code is valid for " ~ timeout ~ ".", align="center", font_size="15px"),
 ] %}
 {{ macros::text_section(content_array=section_content) }}
 {{ macros::spacer(height="10px") }}
