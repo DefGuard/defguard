@@ -356,7 +356,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(&code, session)?,
+        content: templates::email_mfa_activation_mail(user, &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -391,7 +391,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(&code, session)?,
+        content: templates::email_mfa_code_mail(user, &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };

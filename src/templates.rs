@@ -254,21 +254,31 @@ pub fn gateway_disconnected_mail(
     Ok(tera.render("mail_gateway_disconnected", &context)?)
 }
 
-pub fn email_mfa_activation_mail(code: &str, session: &Session) -> Result<String, TemplateError> {
+pub fn email_mfa_activation_mail(
+    user: &User,
+    code: &str,
+    session: &Session,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     let timeout = server_config().mfa_code_timeout;
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
+    context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
 
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(code: &str, session: Option<&Session>) -> Result<String, TemplateError> {
+pub fn email_mfa_code_mail(
+    user: &User,
+    code: &str,
+    session: Option<&Session>,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
     context.insert("code", code);
     context.insert("timeout", &timeout.to_string());
+    context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
 
     Ok(tera.render("mail_email_mfa_code", &context)?)

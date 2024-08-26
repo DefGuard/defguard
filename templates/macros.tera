@@ -53,13 +53,14 @@
 </div>
 {% endmacro text_section %}
 
-{% macro paragraph(content="", color="#222", font_size="12px", align="left", line_height="120%") %}
+{% macro paragraph(content="", color="#222", font_size="12px", align="left", line_height="120%", font_weight="400") %}
 <p style="
   font-family: Roboto, Arial;
   font-size: {{ font_size }};
   color: {{ color }};
   line-height: {{ line_height }};
   text-align: {{ align }};
+  font-weight: {{ font_weight }};
   ">
     {{ content | safe }}
 </p>
@@ -128,7 +129,7 @@ size="12px", line_height="120%", weight="400") %}
 </a>
 {% endmacro link %}
 
-{% macro title(content="") %}
+{% macro title(content="", font_size="28px") %}
 <div style="margin: 0px auto; max-width: 600px">
     <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width: 100%">
         <tbody>
@@ -162,7 +163,7 @@ size="12px", line_height="120%", weight="400") %}
                             ">
                                                         <div style="
                                 font-family: Poppins, Arial;
-                                font-size: 28px;
+                                font-size: {{ font_size }};
                                 font-weight: 600;
                                 line-height: 120%;
                                 text-align: center;
