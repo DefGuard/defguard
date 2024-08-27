@@ -7,7 +7,7 @@ code -> 6-digit zero-padded verification code
 {% block mail_content %}
 {% set section_content = [
   macros::title(content="Hello, " ~ name),
-  macros::paragraph(content="It seams like you are trying to login to defguard.", line_height="0%", align="center"),
+  macros::paragraph(content="It seems like you are trying to login to defguard.", line_height="0%", align="center"),
   macros::paragraph(content="Here is the code you need to access your account:", align="center"),
 ] %}
 {{ macros::text_section(content_array=section_content) }}
