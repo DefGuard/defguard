@@ -17,6 +17,10 @@ use crate::{
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
+pub static AUTH_TOKEN_TYPE: &str = "AUTH";
+
+// TODO(jck): move to option / setting?
+pub static AUTH_TOKEN_VALIDITY_SECS: u64 = 60 * 60 * 24 * 31;
 
 static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";

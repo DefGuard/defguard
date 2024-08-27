@@ -409,7 +409,9 @@ pub async fn run_grpc_bidi_stream(
                                 .activate_user(request, received.device_info)
                                 .await
                             {
-                                Ok(()) => Some(core_response::Payload::Empty(())),
+                                Ok(response) => {
+                                    Some(core_response::Payload::ActivateUserResponse(response))
+                                }
                                 Err(err) => {
                                     error!("activate user error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))

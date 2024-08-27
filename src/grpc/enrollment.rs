@@ -8,15 +8,17 @@ use tonic::Status;
 use uaparser::UserAgentParser;
 
 use super::proto::{
-    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-    InitialUserInfo, NewDevice,
+    ActivateUserRequest, ActivateUserResponse, AdminInfo, Device as ProtoDevice,
+    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
+    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
 use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{
+                Token, TokenError, AUTH_TOKEN_TYPE, AUTH_TOKEN_VALIDITY_SECS, ENROLLMENT_TOKEN_TYPE,
+            },
             wireguard::WireguardNetwork,
         },
         DbPool, Device, GatewayEvent, Settings, User,
@@ -219,7 +221,7 @@ impl EnrollmentServer {
         &self,
         request: ActivateUserRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
-    ) -> Result<(), Status> {
+    ) -> Result<ActivateUserResponse, Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
@@ -326,14 +328,26 @@ impl EnrollmentServer {
             )?;
         }
 
+        // create auth token for further client communication
+        debug!("Creating auth token for further client communication");
+        // TODO(jck): unwrap
+        let token = Token::new(
+            user.id.unwrap(),
+            None,
+            None,
+            AUTH_TOKEN_VALIDITY_SECS,
+            Some(AUTH_TOKEN_TYPE.to_string()),
+        );
+        token.save(&mut transaction).await?;
+
+        debug!("Commiting transaction");
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
 
         info!("User {} activated", user.username);
-
-        Ok(())
+        Ok(super::proto::ActivateUserResponse { token: token.id })
     }
 
     pub async fn create_device(
