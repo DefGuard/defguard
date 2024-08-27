@@ -276,35 +276,31 @@ impl worker_service_server::WorkerService for WorkerServer {
                                 }
                                 None => "YubiKey".to_string(),
                             };
-                            let mut new_yubi = YubiKey::new(name, message.yubikey_serial, user_id);
-                            new_yubi
+                            let new_yubi = YubiKey::new(name, message.yubikey_serial, user_id)
                                 .save(&self.pool)
                                 .await
                                 .map_err(|_| Status::internal("Failed to save yubikey"))?;
-                            if let Some(key_id) = new_yubi.id {
-                                let mut ssh = AuthenticationKey::new(
-                                    user_id,
-                                    message.ssh_key,
-                                    None,
-                                    AuthenticationKeyType::Ssh,
-                                    Some(key_id),
-                                );
-                                let mut gpg = AuthenticationKey::new(
-                                    user_id,
-                                    message.public_key,
-                                    None,
-                                    AuthenticationKeyType::Gpg,
-                                    Some(key_id),
-                                );
-                                ssh.save(&self.pool)
-                                    .await
-                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
-                                gpg.save(&self.pool)
-                                    .await
-                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
-                            } else {
-                                return Err(Status::internal("Yubikey did not get an id"));
-                            }
+                            let key_id = new_yubi.id();
+                            let mut ssh = AuthenticationKey::new(
+                                user_id,
+                                message.ssh_key,
+                                None,
+                                AuthenticationKeyType::Ssh,
+                                Some(key_id),
+                            );
+                            let mut gpg = AuthenticationKey::new(
+                                user_id,
+                                message.public_key,
+                                None,
+                                AuthenticationKeyType::Gpg,
+                                Some(key_id),
+                            );
+                            ssh.save(&self.pool)
+                                .await
+                                .map_err(|_| Status::internal("Failed to save auth key"))?;
+                            gpg.save(&self.pool)
+                                .await
+                                .map_err(|_| Status::internal("Failed to save auth key"))?;
                         } else {
                             return Err(Status::internal("User has no ID"));
                         }
