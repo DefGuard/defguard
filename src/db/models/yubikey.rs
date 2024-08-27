@@ -1,12 +1,12 @@
 // use model_derive::Model;
-use sqlx::{query, query_as, PgExecutor};
+use sqlx::{query, query_as, query_scalar, PgExecutor, Type};
 
 pub struct NoId;
-#[derive(Deserialize, Serialize, sqlx::Type)]
+#[derive(Deserialize, Serialize, Type)]
 #[sqlx(transparent)]
 pub struct Id(i64);
 
-#[derive(Deserialize, Serialize, sqlx::FromRow)]
+#[derive(Deserialize, Serialize)]
 pub struct YubiKey<I> {
     id: I,
     pub name: String,
@@ -27,9 +27,9 @@ impl YubiKey<NoId> {
 
     pub async fn save<'e, E>(self, executor: E) -> Result<YubiKey<Id>, sqlx::Error>
     where
-        E: sqlx::PgExecutor<'e>,
+        E: PgExecutor<'e>,
     {
-        let id = sqlx::query_scalar!(
+        let id = query_scalar!(
             "INSERT INTO \"yubikey\" (name, serial, user_id) VALUES ($1, $2, $3) RETURNING id",
             self.name,
             self.serial,
