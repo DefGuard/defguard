@@ -255,7 +255,7 @@
                                       </p>
                                     {% endif %}
                                     {% if ip_address %}
-                                      < style="margin: auto;">
+                                      <p style="margin: auto;">
                                         <span>IP Address:</span> {{ ip_address | safe }}
                                       </p>
                                     {% endif %}
