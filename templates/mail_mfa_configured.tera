@@ -6,6 +6,6 @@ mfa_method -> what method was activated
 {% import "macros.tera" as macros %}
 {% block mail_content %}
 {% set section_content = [macros::paragraph(content="A Multi-Factor Authorization method: " ~ mfa_method ~ " has been
-activated in your account.")] %}
+activated in your account.", align="center")] %}
 {{ macros::text_section(content_array=section_content) }}
 {% endblock %}

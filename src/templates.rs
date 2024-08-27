@@ -261,7 +261,8 @@ pub fn email_mfa_activation_mail(
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     let timeout = server_config().mfa_code_timeout;
-    context.insert("code", code);
+    // zero-pad code to make sure it's always 6 digits long
+    context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
     context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
@@ -276,7 +277,8 @@ pub fn email_mfa_code_mail(
 ) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
-    context.insert("code", code);
+    // zero-pad code to make sure it's always 6 digits long
+    context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
     context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
