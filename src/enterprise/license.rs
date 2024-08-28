@@ -439,7 +439,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 
 /// Maximum amount of time a license can be over its expiry date.
-const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::hours(24);
+const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
 /// Periodic license check task
 const CHECK_PERIOD: Duration = Duration::from_secs(12 * 60 * 60);
