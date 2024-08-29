@@ -1080,7 +1080,8 @@ const en: BaseTranslation = {
           },
           offline: {
             label: 'Offline',
-            helper: 'The license is valid until the expiry date and does not automatically renew',
+            helper:
+              'The license is valid until the expiry date and does not automatically renew',
           },
         },
         fields: {
@@ -1091,7 +1092,7 @@ const en: BaseTranslation = {
             label: 'Valid until',
           },
         },
-      }
+      },
     },
     smtp: {
       form: {
