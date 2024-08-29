@@ -18,15 +18,15 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
-import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
-import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
-import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 
 type FormFields = {
   license: string;

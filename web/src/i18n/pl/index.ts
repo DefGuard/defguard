@@ -1079,7 +1079,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             label: 'Ważna do',
           },
         },
-      }
+      },
     },
     smtp: {
       form: {
