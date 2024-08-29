@@ -18,7 +18,10 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -41,6 +44,7 @@ export const LicenseSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
+  const licenseInfo = useAppStore((state) => state.enterprise_status?.license_info);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -124,13 +128,48 @@ export const LicenseSettings = () => {
             type="submit"
           />
         </div>
-        <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
-          <FormInput
-            label={LL.settingsPage.license.form.fields.key.label()}
-            controller={{ control, name: 'license' }}
-            placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
-          />
-        </form>
+        <div>
+          <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
+            <FormInput
+              label={LL.settingsPage.license.form.fields.key.label()}
+              controller={{ control, name: 'license' }}
+              placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
+            />
+          </form>
+          <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()}>
+            {licenseInfo ? (
+              <div id="license-info">
+                <div>
+                  <Label>{LL.settingsPage.license.licenseInfo.fields.type.label()}</Label>
+                  <div className="with-helper">
+                    <p>
+                      {licenseInfo.subscription
+                        ? LL.settingsPage.license.licenseInfo.types.subscription.label()
+                        : LL.settingsPage.license.licenseInfo.types.offline.label()}
+                    </p>
+                    <Helper>
+                      {licenseInfo.subscription
+                        ? LL.settingsPage.license.licenseInfo.types.subscription.helper()
+                        : LL.settingsPage.license.licenseInfo.types.offline.helper()}
+                    </Helper>
+                  </div>
+                </div>
+                <div>
+                  <Label>
+                    {LL.settingsPage.license.licenseInfo.fields.validUntil.label()}
+                  </Label>
+                  <p>
+                    {licenseInfo.valid_until
+                      ? new Date(licenseInfo.valid_until).toLocaleString()
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
+            )}
+          </ExpandableCard>
+        </div>
       </Card>
     </section>
   );

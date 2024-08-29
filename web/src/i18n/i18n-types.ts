@@ -2593,6 +2593,52 @@ type RootTranslation = {
 					}
 				}
 			}
+			licenseInfo: {
+				/**
+				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * N​o​ ​l​i​c​e​n​s​e
+				 */
+				noLicense: string
+				types: {
+					subscription: {
+						/**
+						 * S​u​b​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * A​ ​l​i​c​e​n​s​e​ ​t​h​a​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w​s​ ​a​t​ ​r​e​g​u​l​a​r​ ​i​n​t​e​r​v​a​l​s
+						 */
+						helper: string
+					}
+					offline: {
+						/**
+						 * O​f​f​l​i​n​e
+						 */
+						label: string
+						/**
+						 * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​v​a​l​i​d​ ​u​n​t​i​l​ ​t​h​e​ ​e​x​p​i​r​y​ ​d​a​t​e​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w
+						 */
+						helper: string
+					}
+				}
+				fields: {
+					type: {
+						/**
+						 * T​y​p​e
+						 */
+						label: string
+					}
+					validUntil: {
+						/**
+						 * V​a​l​i​d​ ​u​n​t​i​l
+						 */
+						label: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -6710,6 +6756,52 @@ export type TranslationFunctions = {
 						 * Your Defguard license key
 						 */
 						placeholder: () => LocalizedString
+					}
+				}
+			}
+			licenseInfo: {
+				/**
+				 * License information
+				 */
+				title: () => LocalizedString
+				/**
+				 * No license
+				 */
+				noLicense: () => LocalizedString
+				types: {
+					subscription: {
+						/**
+						 * Subscription
+						 */
+						label: () => LocalizedString
+						/**
+						 * A license that automatically renews at regular intervals
+						 */
+						helper: () => LocalizedString
+					}
+					offline: {
+						/**
+						 * Offline
+						 */
+						label: () => LocalizedString
+						/**
+						 * The license is valid until the expiry date and does not automatically renew
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				fields: {
+					type: {
+						/**
+						 * Type
+						 */
+						label: () => LocalizedString
+					}
+					validUntil: {
+						/**
+						 * Valid until
+						 */
+						label: () => LocalizedString
 					}
 				}
 			}

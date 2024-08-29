@@ -41,7 +41,7 @@ export const Login = () => {
   } = useApi();
   const toaster = useToaster();
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],

@@ -6,7 +6,7 @@ import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
 
 export const OpenIdSettings = () => {
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.enterpriseOnly;
 

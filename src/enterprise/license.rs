@@ -350,7 +350,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     };
 
     // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
-    const LICENSE_SERVER_URL: &str = "http://update-service-dev.teonite.net/api/license/renew";
+    const LICENSE_SERVER_URL: &str = "https://update-service-dev.teonite.net/api/license/renew";
 
     let new_license_key = match client
         .post(LICENSE_SERVER_URL)
