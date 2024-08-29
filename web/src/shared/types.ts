@@ -875,7 +875,7 @@ export type SettingsEnterprise = {
 
 export type LicenseInfo = {
   valid_until?: string;
-  subscription?: boolean;
+  subscription: boolean;
 };
 
 export type EnterpriseStatus = {
