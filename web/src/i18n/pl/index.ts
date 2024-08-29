@@ -378,6 +378,7 @@ const pl: Translation = {
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
+            link: '[więcej informacji tutaj](https://defguard.gitbook.io/defguard/help/enrollment)',
           },
         },
       },

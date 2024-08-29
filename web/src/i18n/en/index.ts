@@ -375,8 +375,8 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
           enableEnrollment: {
-            label:
-              'Use user self-enrollment process <a href="https://defguard.gitbook.io/defguard/help/enrollment">more information here</a>',
+            label: 'Use user self-enrollment process',
+            link: '[more information here](https://defguard.gitbook.io/defguard/help/enrollment)',
           },
         },
       },
