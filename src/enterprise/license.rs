@@ -13,7 +13,10 @@ use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::db::{DbPool, Settings};
+use crate::{
+    db::{DbPool, Settings},
+    VERSION,
+};
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
 
