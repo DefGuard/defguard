@@ -879,7 +879,7 @@ type RootTranslation = {
 					}
 					enableEnrollment: {
 						/**
-						 * U​s​e​ ​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
+						 * U​s​e​ ​u​s​e​r​ ​s​e​l​f​-​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
 						 */
 						label: string
 					}
@@ -5056,7 +5056,7 @@ export type TranslationFunctions = {
 					}
 					enableEnrollment: {
 						/**
-						 * Use enrollment process
+						 * Use user self-enrollment process <a href="https://defguard.gitbook.io/defguard/help/enrollment">more information here</a>
 						 */
 						label: () => LocalizedString
 					}

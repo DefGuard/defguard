@@ -2,6 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parser from 'html-react-parser';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
@@ -190,7 +191,7 @@ export const AddUserForm = () => {
     >
       <FormCheckBox
         labelPlacement="right"
-        label={LL.modals.addUser.form.fields.enableEnrollment.label()}
+        label={parser(LL.modals.addUser.form.fields.enableEnrollment.label())}
         controller={{ control, name: 'enable_enrollment' }}
       />
       <div className="row">
