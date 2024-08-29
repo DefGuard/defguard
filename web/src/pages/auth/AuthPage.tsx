@@ -49,7 +49,7 @@ export const AuthPage = () => {
 
   const setAppStore = useAppStore((state) => state.setState);
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
