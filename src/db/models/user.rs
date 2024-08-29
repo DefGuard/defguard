@@ -683,6 +683,9 @@ impl User {
         }
     }
 
+    /// Returns a vector of [`UserDevice`]s (hence the name).
+    /// [`UserDevice`] is a struct containing additional network info about a device.
+    /// If you only need [`Device`]s, use [`User::devices()`] instead.
     pub async fn user_devices(&self, pool: &DbPool) -> Result<Vec<UserDevice>, SqlxError> {
         let devices = self.devices(pool).await?;
         let mut user_devices = Vec::new();
@@ -694,6 +697,8 @@ impl User {
         Ok(user_devices)
     }
 
+    /// Returns a vector of [`Device`]s related to a user. If you want to get [`UserDevice`]s (which contain additional network info),
+    /// use [`User::user_devices()`] instead.
     pub async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device>, SqlxError>
     where
         E: PgExecutor<'e>,
