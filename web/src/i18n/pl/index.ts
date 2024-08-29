@@ -1058,6 +1058,28 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
         },
       },
+      licenseInfo: {
+        title: 'Informacje o licencji',
+        noLicense: 'Brak licencji',
+        types: {
+          subscription: {
+            label: 'Subskrypcja',
+            helper: 'Subskrypcja automatycznie odnawiana cyklicznie',
+          },
+          offline: {
+            label: 'Offline',
+            helper: 'Licencja ważna do daty wygaśnięcia, odnawiana ręcznie',
+          },
+        },
+        fields: {
+          type: {
+            label: 'Typ',
+          },
+          validUntil: {
+            label: 'Ważna do',
+          },
+        },
+      }
     },
     smtp: {
       form: {

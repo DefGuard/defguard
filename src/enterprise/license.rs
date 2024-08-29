@@ -13,10 +13,7 @@ use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::{
-    db::{DbPool, Settings},
-    VERSION,
-};
+use crate::db::{DbPool, Settings};
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
 
@@ -350,7 +347,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     };
 
     // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
-    const LICENSE_SERVER_URL: &str = "http://update-service-dev.teonite.net/api/license/renew";
+    const LICENSE_SERVER_URL: &str = "https://update-service-dev.teonite.net/api/license/renew";
 
     let new_license_key = match client
         .post(LICENSE_SERVER_URL)
