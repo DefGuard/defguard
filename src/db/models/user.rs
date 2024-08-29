@@ -683,24 +683,30 @@ impl User {
         }
     }
 
-    pub async fn devices(&self, pool: &DbPool) -> Result<Vec<UserDevice>, SqlxError> {
+    pub async fn user_devices(&self, pool: &DbPool) -> Result<Vec<UserDevice>, SqlxError> {
+        let devices = self.devices(pool).await?;
+        let mut user_devices = Vec::new();
+        for device in devices {
+            if let Some(user_device) = UserDevice::from_device(pool, device).await? {
+                user_devices.push(user_device);
+            }
+        }
+        Ok(user_devices)
+    }
+
+    pub async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
         if let Some(id) = self.id {
-            let devices = query_as!(
+            query_as!(
                 Device,
-                "SELECT device.id \"id?\", name, wireguard_pubkey, user_id, created \
+                "SELECT id \"id!\", name, wireguard_pubkey, user_id, created \
                 FROM device WHERE user_id = $1",
                 id
             )
-            .fetch_all(pool)
-            .await?;
-
-            let mut user_devices = Vec::new();
-            for device in devices {
-                if let Some(user_device) = UserDevice::from_device(pool, device).await? {
-                    user_devices.push(user_device);
-                }
-            }
-            Ok(user_devices)
+            .fetch_all(executor)
+            .await
         } else {
             Ok(Vec::new())
         }

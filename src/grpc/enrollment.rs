@@ -573,7 +573,7 @@ impl From<User> for AdminInfo {
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
         let enrolled = user.is_enrolled();
-        let devices = user.devices(pool).await?;
+        let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
             first_name: user.first_name,
