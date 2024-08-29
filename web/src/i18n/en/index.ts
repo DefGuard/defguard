@@ -1070,6 +1070,28 @@ const en: BaseTranslation = {
           },
         },
       },
+      licenseInfo: {
+        title: 'License information',
+        noLicense: 'No license',
+        types: {
+          subscription: {
+            label: 'Subscription',
+            helper: 'A license that automatically renews at regular intervals',
+          },
+          offline: {
+            label: 'Offline',
+            helper: 'The license is valid until the expiry date and does not automatically renew',
+          },
+        },
+        fields: {
+          type: {
+            label: 'Type',
+          },
+          validUntil: {
+            label: 'Valid until',
+          },
+        },
+      }
     },
     smtp: {
       form: {
