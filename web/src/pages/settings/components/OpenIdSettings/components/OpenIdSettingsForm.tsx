@@ -37,7 +37,7 @@ export const OpenIdSettingsForm = () => {
   const queryClient = useQueryClient();
   const docsLink =
     'https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers';
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
