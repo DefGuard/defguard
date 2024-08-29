@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
+import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -188,11 +189,16 @@ export const AddUserForm = () => {
       data-testid="add-user-form"
       onSubmit={handleSubmit(onSubmit)}
     >
-      <FormCheckBox
-        labelPlacement="right"
-        label={LL.modals.addUser.form.fields.enableEnrollment.label()}
-        controller={{ control, name: 'enable_enrollment' }}
-      />
+      <div className="checkbox-space">
+        <FormCheckBox
+          labelPlacement="right"
+          label={LL.modals.addUser.form.fields.enableEnrollment.label()}
+          controller={{ control, name: 'enable_enrollment' }}
+        />
+        <ReactMarkdown>
+          {LL.modals.addUser.form.fields.enableEnrollment.link()}
+        </ReactMarkdown>
+      </div>
       <div className="row">
         <div className="item">
           <FormInput
