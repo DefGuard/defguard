@@ -1120,6 +1120,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           submit: 'Zapisz zmiany',
         },
       },
+      delete: 'Usuń konfiguracje',
       testForm: {
         title: 'Wyślij testowy e-mail',
         fields: {

@@ -1134,6 +1134,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
+      delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
         fields: {
