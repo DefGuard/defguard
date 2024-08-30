@@ -907,6 +907,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Usuń konfigurację',
       },
       test: {
         title: 'Test połączenia LDAP',
@@ -1119,6 +1120,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           submit: 'Zapisz zmiany',
         },
       },
+      delete: 'Usuń konfigurację',
       testForm: {
         title: 'Wyślij testowy e-mail',
         fields: {
