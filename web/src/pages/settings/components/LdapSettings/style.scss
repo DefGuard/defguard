@@ -1,0 +1,14 @@
+@use '@scssutils' as *;
+
+#ldap-settings {
+  & > header {
+    & > .btn {
+      margin-left: 100px;
+    }
+
+    & > .controls {
+      display: flex;
+      gap: 10px;
+    }
+  }
+}

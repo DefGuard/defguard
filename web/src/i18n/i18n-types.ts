@@ -2283,6 +2283,10 @@ type RootTranslation = {
 					 */
 					ldap_group_obj_class: string
 				}
+				/**
+				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				'delete': string
 			}
 			test: {
 				/**
@@ -6456,6 +6460,10 @@ export type TranslationFunctions = {
 					 */
 					ldap_group_obj_class: () => LocalizedString
 				}
+				/**
+				 * Delete configuration
+				 */
+				'delete': () => LocalizedString
 			}
 			test: {
 				/**

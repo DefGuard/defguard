@@ -920,6 +920,7 @@ const en: BaseTranslation = {
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Delete configuration',
       },
       test: {
         title: 'Test LDAP Connection',

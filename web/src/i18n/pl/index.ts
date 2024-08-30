@@ -907,6 +907,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Usuń konfiguracje',
       },
       test: {
         title: 'Test połączenia LDAP',
