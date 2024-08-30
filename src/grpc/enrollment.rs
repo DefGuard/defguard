@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use super::InstanceInfo;
 use ipnetwork::IpNetwork;
-use reqwest::Url;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
@@ -37,40 +37,6 @@ pub(super) struct EnrollmentServer {
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
     ldap_feature_active: bool,
-}
-
-#[derive(Debug)]
-struct InstanceInfo {
-    id: uuid::Uuid,
-    name: String,
-    url: Url,
-    proxy_url: Url,
-    username: String,
-}
-
-impl InstanceInfo {
-    pub fn new<S: Into<String>>(settings: Settings, username: S) -> Self {
-        let config = server_config();
-        InstanceInfo {
-            id: settings.uuid,
-            name: settings.instance_name,
-            url: config.url.clone(),
-            proxy_url: config.enrollment_url.clone(),
-            username: username.into(),
-        }
-    }
-}
-
-impl From<InstanceInfo> for super::proto::InstanceInfo {
-    fn from(instance: InstanceInfo) -> Self {
-        Self {
-            name: instance.name,
-            id: instance.id.to_string(),
-            url: instance.url.to_string(),
-            proxy_url: instance.proxy_url.to_string(),
-            username: instance.username,
-        }
-    }
 }
 
 impl EnrollmentServer {
