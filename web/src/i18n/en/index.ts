@@ -376,7 +376,7 @@ const en: BaseTranslation = {
           },
           enableEnrollment: {
             label: 'Use user self-enrollment process',
-            link: '[more information here](https://defguard.gitbook.io/defguard/help/enrollment)',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>',
           },
         },
       },
