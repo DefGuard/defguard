@@ -109,7 +109,11 @@ pub struct DefGuardConfig {
     #[serde(skip_serializing)]
     pub enrollment_token_timeout: Duration,
 
-    #[arg(long, env = "DEFGUARD_CLIENT_AUTH_TOKEN_TIMEOUT", default_value = "30d")]
+    #[arg(
+        long,
+        env = "DEFGUARD_CLIENT_AUTH_TOKEN_TIMEOUT",
+        default_value = "30d"
+    )]
     #[serde(skip_serializing)]
     pub client_auth_token_timeout: Duration,
 

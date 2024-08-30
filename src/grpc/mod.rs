@@ -44,8 +44,11 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, db::{AppEvent, Settings},
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, Settings},
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+    server_config,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -671,4 +674,3 @@ impl From<InstanceInfo> for crate::grpc::proto::InstanceInfo {
         }
     }
 }
-
