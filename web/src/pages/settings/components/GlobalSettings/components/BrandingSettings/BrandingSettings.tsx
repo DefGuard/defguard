@@ -3,7 +3,7 @@ import './styles.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import { z } from 'zod';
@@ -106,14 +106,8 @@ export const BrandingSettings = () => {
   const defaultValues = useMemo((): FormFields => {
     return {
       instance_name: settings?.instance_name ?? '',
-      main_logo_url:
-        settings?.main_logo_url === defaultSettings.main_logo_url
-          ? ''
-          : settings?.main_logo_url ?? '',
-      nav_logo_url:
-        settings?.nav_logo_url === defaultSettings.nav_logo_url
-          ? ''
-          : settings?.nav_logo_url ?? '',
+      main_logo_url: settings?.main_logo_url ?? '',
+      nav_logo_url: settings?.nav_logo_url ?? '',
     };
   }, [settings?.instance_name, settings?.main_logo_url, settings?.nav_logo_url]);
 
@@ -122,10 +116,6 @@ export const BrandingSettings = () => {
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
-
-  useEffect(() => {
-    reset();
-  }, [reset, defaultValues]);
 
   const onSubmit: SubmitHandler<FormFields> = (submitted) => {
     mutate(mergeWithDefaults(submitted));
@@ -156,7 +146,10 @@ export const BrandingSettings = () => {
             icon={<IconCheckmarkWhite />}
             styleVariant={ButtonStyleVariant.PRIMARY}
             loading={isLoading}
-            onClick={() => setDefaultBrandingMutation('1')}
+            onClick={() => {
+              setDefaultBrandingMutation('1');
+              reset(defaultSettings);
+            }}
           />
           <Button
             form="branding-form"
