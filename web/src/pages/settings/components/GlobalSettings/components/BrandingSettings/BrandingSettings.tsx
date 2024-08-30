@@ -117,7 +117,7 @@ export const BrandingSettings = () => {
     };
   }, [settings?.instance_name, settings?.main_logo_url, settings?.nav_logo_url]);
 
-  const { control, handleSubmit, reset } = useForm<Settings>({
+  const { control, handleSubmit, setValue } = useForm<Settings>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
@@ -154,7 +154,9 @@ export const BrandingSettings = () => {
             loading={isLoading}
             onClick={() => {
               setDefaultBrandingMutation('1');
-              reset(defaultValues);
+              setValue('instance_name', defaultSettings.instance_name);
+              setValue('main_logo_url', '');
+              setValue('nav_logo_url', '');
             }}
           />
           <Button
