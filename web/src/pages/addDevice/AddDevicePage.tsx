@@ -22,6 +22,8 @@ import { AddDeviceSetupMethodStep } from './steps/AddDeviceSetupMethodStep/AddDe
 import { AddDeviceSetupStep } from './steps/AddDeviceSetupStep/AddDeviceSetupStep';
 import { AddDeviceTokenStep } from './steps/AddDeviceTokenStep/AddDeviceTokenStep';
 import { AddDeviceMethod } from './types';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
+import useEffectOnce from '../../shared/helpers/useEffectOnce';
 
 export const AddDevicePage = () => {
   const { LL } = useI18nContext();
@@ -29,9 +31,10 @@ export const AddDevicePage = () => {
   const navigate = useNavigate();
 
   const userData = useAddDevicePageStore((state) => state.userData);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
-  const [currentStep, setupMethod] = useAddDevicePageStore(
-    (state) => [state.currentStep, state.method],
+  const [currentStep, setupMethod, setState] = useAddDevicePageStore(
+    (state) => [state.currentStep, state.method, state.setState],
     shallow,
   );
 
@@ -68,6 +71,7 @@ export const AddDevicePage = () => {
               onClick={() => {
                 navigate('/', { replace: true });
               }}
+              disabled={currentStep === 0 && enterpriseSettings?.only_client_activation}
             />
             <Button
               data-testid="next-step"
@@ -85,6 +89,7 @@ export const AddDevicePage = () => {
                 />
               }
               onClick={() => nextSubject.next()}
+              disabled={currentStep === 0 && enterpriseSettings?.only_client_activation}
             />
           </div>
         </header>

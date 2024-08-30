@@ -1034,6 +1034,10 @@ type RootTranslation = {
 			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
 			 */
 			setupOpt: string
+			/**
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
+			 */
+			client: string
 		}
 		messages: {
 			/**
@@ -2875,6 +2879,16 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
+				manualConfig: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​p​r​e​s​e​n​t​e​d​ ​w​i​t​h​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​m​a​n​u​a​l​ ​c​l​i​e​n​t​ ​s​e​t​u​p
+					 */
+					helper: string
+				}
 			}
 		}
 	}
@@ -4074,7 +4088,7 @@ type RootTranslation = {
 			}
 		}
 		/**
-		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​t​h​e​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​c​o​n​f​i​r​m​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​I​n​ ​t​h​i​s​ ​p​a​n​e​l​ ​y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​ ​m​e​s​s​a​g​e​s​ ​f​o​r​ ​i​t​.
+		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​i​z​e​ ​i​t​ ​h​e​r​e​.
 		 */
 		messageBox: string
 		settings: {
@@ -5214,6 +5228,10 @@ export type TranslationFunctions = {
 			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
 			 */
 			setupOpt: () => LocalizedString
+			/**
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
+			 */
+			client: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -7045,6 +7063,16 @@ export type TranslationFunctions = {
 					 */
 					helper: () => LocalizedString
 				}
+				manualConfig: {
+					/**
+					 * Disable users ability to download manual WireGuard configuration
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup
+					 */
+					helper: () => LocalizedString
+				}
 			}
 		}
 	}
@@ -8233,7 +8261,7 @@ export type TranslationFunctions = {
 			}
 		}
 		/**
-		 * Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.
+		 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.
 		 */
 		messageBox: () => LocalizedString
 		settings: {

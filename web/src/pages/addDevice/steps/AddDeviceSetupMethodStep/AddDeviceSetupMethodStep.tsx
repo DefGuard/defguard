@@ -15,6 +15,9 @@ import { externalLink } from '../../../../shared/links';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 import { AddDeviceMethod } from '../../types';
 import { DeviceSetupMethodCard } from './components/DeviceSetupMethodCard/DeviceSetupMethodCard';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import useEffectOnce from '../../../../shared/helpers/useEffectOnce';
+import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 
 export const AddDeviceSetupMethodStep = () => {
   const {
@@ -26,6 +29,7 @@ export const AddDeviceSetupMethodStep = () => {
   const methodRef = useRef(setupMethod);
 
   const userData = useAddDevicePageStore((state) => state.userData);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const [setPageState, next, nextSubject] = useAddDevicePageStore(
     (state) => [state.setState, state.nextStep, state.nextSubject],
@@ -69,43 +73,58 @@ export const AddDeviceSetupMethodStep = () => {
     setPageState({ loading: isLoading });
   }, [isLoading, setPageState]);
 
+  useEffectOnce(() => {
+    if (enterpriseSettings?.only_client_activation) {
+      setPageState({ method: AddDeviceMethod.DESKTOP });
+      nextSubject.next();
+    }
+  });
+
   return (
     <>
-      <MessageBox
-        type={MessageBoxType.WARNING}
-        message={LL.addDevicePage.helpers.setupOpt()}
-        dismissId="add-device-page-method-opt-message"
-      />
-      <Card shaded id="setup-method-step">
-        <DeviceSetupMethodCard
-          testId="choice-desktop"
-          title={localLL.remote.title()}
-          subtitle={localLL.remote.subTitle()}
-          logo={<SvgDefguardNavLogo />}
-          linkText={localLL.remote.link()}
-          link={externalLink.defguardReleases}
-          selected={setupMethod === AddDeviceMethod.DESKTOP}
-          onSelect={() => {
-            if (setupMethod !== AddDeviceMethod.DESKTOP) {
-              setPageState({ method: AddDeviceMethod.DESKTOP });
-            }
-          }}
-        />
-        <DeviceSetupMethodCard
-          testId="choice-manual"
-          title={localLL.manual.title()}
-          subtitle={localLL.manual.subTitle()}
-          logo={<SvgWireguardLogo />}
-          linkText={localLL.manual.link()}
-          link={externalLink.wireguard.download}
-          selected={setupMethod === AddDeviceMethod.MANUAL}
-          onSelect={() => {
-            if (setupMethod !== AddDeviceMethod.MANUAL) {
-              setPageState({ method: AddDeviceMethod.MANUAL });
-            }
-          }}
-        />
-      </Card>
+      {!enterpriseSettings?.only_client_activation ? (
+        <>
+          <MessageBox
+            type={MessageBoxType.WARNING}
+            message={LL.addDevicePage.helpers.setupOpt()}
+            dismissId="add-device-page-method-opt-message"
+          />
+          <Card shaded id="setup-method-step">
+            <DeviceSetupMethodCard
+              testId="choice-desktop"
+              title={localLL.remote.title()}
+              subtitle={localLL.remote.subTitle()}
+              logo={<SvgDefguardNavLogo />}
+              linkText={localLL.remote.link()}
+              link={externalLink.defguardReleases}
+              selected={setupMethod === AddDeviceMethod.DESKTOP}
+              onSelect={() => {
+                if (setupMethod !== AddDeviceMethod.DESKTOP) {
+                  setPageState({ method: AddDeviceMethod.DESKTOP });
+                }
+              }}
+            />
+            <DeviceSetupMethodCard
+              testId="choice-manual"
+              title={localLL.manual.title()}
+              subtitle={localLL.manual.subTitle()}
+              logo={<SvgWireguardLogo />}
+              linkText={localLL.manual.link()}
+              link={externalLink.wireguard.download}
+              selected={setupMethod === AddDeviceMethod.MANUAL}
+              onSelect={() => {
+                if (setupMethod !== AddDeviceMethod.MANUAL) {
+                  setPageState({ method: AddDeviceMethod.MANUAL });
+                }
+              }}
+            />
+          </Card>
+        </>
+      ) : (
+        <div id="spinner-box">
+          <LoaderSpinner size={80} />
+        </div>
+      )}
     </>
   );
 };

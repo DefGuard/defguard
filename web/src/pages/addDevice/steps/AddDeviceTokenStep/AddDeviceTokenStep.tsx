@@ -12,6 +12,11 @@ import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+
+import parse from 'html-react-parser';
 
 export const AddDeviceTokenStep = () => {
   const { writeToClipboard } = useClipboard();
@@ -20,6 +25,7 @@ export const AddDeviceTokenStep = () => {
   const navigate = useNavigate();
 
   const userData = useAddDevicePageStore((state) => state.userData);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const [url, token] = useAddDevicePageStore((state) => [
     state.enrollment?.url,
@@ -78,14 +84,21 @@ export const AddDeviceTokenStep = () => {
   }, [resetPage, nextSubject, navigate, userData]);
 
   return (
-    <Card id="add-device-token-step" shaded>
-      <h2>{localLL.title()}</h2>
-      <ExpandableCard title={localLL.urlCardTitle()} actions={urlActions} expanded>
-        <p>{url}</p>
-      </ExpandableCard>
-      <ExpandableCard title={localLL.tokenCardTitle()} actions={tokenActions} expanded>
-        <p>{token}</p>
-      </ExpandableCard>
-    </Card>
+    <>
+      <MessageBox
+        type={MessageBoxType.WARNING}
+        message={parse(LL.addDevicePage.helpers.client())}
+        dismissId="add-device-page-method-opt-message"
+      />
+      <Card id="add-device-token-step" shaded>
+        <h2>{localLL.title()}</h2>
+        <ExpandableCard title={localLL.urlCardTitle()} actions={urlActions} expanded>
+          <p>{url}</p>
+        </ExpandableCard>
+        <ExpandableCard title={localLL.tokenCardTitle()} actions={tokenActions} expanded>
+          <p>{token}</p>
+        </ExpandableCard>
+      </Card>
+    </>
   );
 };

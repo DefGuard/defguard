@@ -356,6 +356,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
         .post(LICENSE_SERVER_URL)
         .json(&request_body)
         .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
+        .timeout(Duration::from_secs(10))
         .send()
         .await
     {

@@ -26,6 +26,7 @@ import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 dayjs.extend(utc);
 
@@ -48,6 +49,7 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
   const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
   const openDeviceConfigModal = useDeviceConfigModal((state) => state.open);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const cn = useMemo(
     () =>
@@ -153,23 +155,25 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
               });
             }}
           />
-          <EditButtonOption
-            styleVariant={EditButtonOptionStyleVariant.STANDARD}
-            text={LL.userPage.devices.card.edit.showConfigurations()}
-            disabled={!device.networks?.length}
-            onClick={() => {
-              openDeviceConfigModal({
-                deviceName: device.name,
-                publicKey: device.wireguard_pubkey,
-                deviceId: device.id,
-                userId: user.user.id,
-                networks: device.networks.map((n) => ({
-                  networkId: n.network_id,
-                  networkName: n.network_name,
-                })),
-              });
-            }}
-          />
+          {!enterpriseSettings?.only_client_activation && (
+            <EditButtonOption
+              styleVariant={EditButtonOptionStyleVariant.STANDARD}
+              text={LL.userPage.devices.card.edit.showConfigurations()}
+              disabled={!device.networks?.length}
+              onClick={() => {
+                openDeviceConfigModal({
+                  deviceName: device.name,
+                  publicKey: device.wireguard_pubkey,
+                  deviceId: device.id,
+                  userId: user.user.id,
+                  networks: device.networks.map((n) => ({
+                    networkId: n.network_id,
+                    networkName: n.network_name,
+                  })),
+                });
+              }}
+            />
+          )}
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             text={LL.userPage.devices.card.edit.delete()}
