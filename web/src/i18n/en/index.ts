@@ -1219,7 +1219,7 @@ const en: BaseTranslation = {
           label: 'Disable users ability to download manual WireGuard configuration',
           helper:
             "When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup",
-        }
+        },
       },
     },
   },

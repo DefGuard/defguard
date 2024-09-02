@@ -8,16 +8,16 @@ import { useI18nContext } from '../../../../i18n/i18n-react';
 import SvgDefguardNavLogo from '../../../../shared/components/svg/DefguardNavLogo';
 import SvgWireguardLogo from '../../../../shared/components/svg/WireguardLogo';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import useEffectOnce from '../../../../shared/helpers/useEffectOnce';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { externalLink } from '../../../../shared/links';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 import { AddDeviceMethod } from '../../types';
 import { DeviceSetupMethodCard } from './components/DeviceSetupMethodCard/DeviceSetupMethodCard';
-import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import useEffectOnce from '../../../../shared/helpers/useEffectOnce';
-import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 
 export const AddDeviceSetupMethodStep = () => {
   const {

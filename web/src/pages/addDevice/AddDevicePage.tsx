@@ -16,14 +16,13 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/defguard-ui/components/Layout/Button/types';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAddDevicePageStore } from './hooks/useAddDevicePageStore';
 import { AddDeviceConfigStep } from './steps/AddDeviceConfigStep/AddDeviceConfigStep';
 import { AddDeviceSetupMethodStep } from './steps/AddDeviceSetupMethodStep/AddDeviceSetupMethodStep';
 import { AddDeviceSetupStep } from './steps/AddDeviceSetupStep/AddDeviceSetupStep';
 import { AddDeviceTokenStep } from './steps/AddDeviceTokenStep/AddDeviceTokenStep';
 import { AddDeviceMethod } from './types';
-import { useAppStore } from '../../shared/hooks/store/useAppStore';
-import useEffectOnce from '../../shared/helpers/useEffectOnce';
 
 export const AddDevicePage = () => {
   const { LL } = useI18nContext();
@@ -33,8 +32,8 @@ export const AddDevicePage = () => {
   const userData = useAddDevicePageStore((state) => state.userData);
   const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
-  const [currentStep, setupMethod, setState] = useAddDevicePageStore(
-    (state) => [state.currentStep, state.method, state.setState],
+  const [currentStep, setupMethod] = useAddDevicePageStore(
+    (state) => [state.currentStep, state.method],
     shallow,
   );
 

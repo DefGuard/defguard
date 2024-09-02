@@ -1,5 +1,6 @@
 import './style.scss';
 
+import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { ReactNode, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
@@ -10,13 +11,11 @@ import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/A
 import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
-import { useClipboard } from '../../../../shared/hooks/useClipboard';
-import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
-import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-
-import parse from 'html-react-parser';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useClipboard } from '../../../../shared/hooks/useClipboard';
+import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
 export const AddDeviceTokenStep = () => {
   const { writeToClipboard } = useClipboard();
@@ -25,7 +24,6 @@ export const AddDeviceTokenStep = () => {
   const navigate = useNavigate();
 
   const userData = useAddDevicePageStore((state) => state.userData);
-  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const [url, token] = useAddDevicePageStore((state) => [
     state.enrollment?.url,

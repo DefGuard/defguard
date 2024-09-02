@@ -20,13 +20,13 @@ import { EditButtonOption } from '../../../../../shared/defguard-ui/components/L
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 dayjs.extend(utc);
 

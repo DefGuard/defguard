@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 /** 
 Under normal circumstances, useEffect should run only once when passed an empty dependency array.
@@ -10,7 +10,7 @@ export default function useEffectOnce(fn: () => void) {
   const isMounted = useRef(false);
   useEffect(() => {
     if (isMounted.current) {
-        return;
+      return;
     }
 
     fn();
