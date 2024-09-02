@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -38,6 +38,10 @@ export const LdapSettingsForm = () => {
     onSuccess: () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       toaster.success(LL.settingsPage.messages.editSuccess());
+    },
+    onError: (error) => {
+      toaster.error(LL.messages.error());
+      console.error(error);
     },
   });
 
@@ -79,7 +83,24 @@ export const LdapSettingsForm = () => {
     [settings],
   );
 
-  const { handleSubmit, control } = useForm<FormFields>({
+  const emptyValues: SettingsLDAP = useMemo(
+    () => ({
+      ldap_group_search_base: '',
+      ldap_group_member_attr: '',
+      ldap_group_obj_class: '',
+      ldap_username_attr: '',
+      ldap_user_search_base: '',
+      ldap_user_obj_class: '',
+      ldap_url: '',
+      ldap_member_attr: '',
+      ldap_groupname_attr: '',
+      ldap_bind_password: '',
+      ldap_bind_username: '',
+    }),
+    [],
+  );
+
+  const { handleSubmit, reset, control } = useForm<FormFields>({
     resolver: zodResolver(schema),
     defaultValues,
     mode: 'all',
@@ -88,19 +109,36 @@ export const LdapSettingsForm = () => {
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     mutate(data);
   };
+
+  const handleDeleteSubmit = useCallback(() => {
+    mutate(emptyValues);
+    reset(emptyValues);
+  }, [mutate, emptyValues, reset]);
+
   return (
     <section id="ldap-settings">
       <header>
         <h2>{localLL.title()}</h2>
-        <Button
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          text={LL.common.controls.saveChanges()}
-          type="submit"
-          loading={isLoading}
-          icon={<IconCheckmarkWhite />}
-          onClick={() => submitRef.current?.click()}
-        />
+        <div className="controls">
+          <Button
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            text={LL.common.controls.saveChanges()}
+            type="submit"
+            loading={isLoading}
+            icon={<IconCheckmarkWhite />}
+            onClick={() => submitRef.current?.click()}
+          />
+          <Button
+            text={localLL.form.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            onClick={() => {
+              handleDeleteSubmit();
+            }}
+          />
+        </div>
       </header>
       <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput

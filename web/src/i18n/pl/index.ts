@@ -378,7 +378,7 @@ const pl: Translation = {
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
-            link: '[więcej informacji tutaj](https://defguard.gitbook.io/defguard/help/enrollment)',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">więcej informacji tutaj</a>',
           },
         },
       },
@@ -909,6 +909,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Usuń konfigurację',
       },
       test: {
         title: 'Test połączenia LDAP',
@@ -1121,6 +1122,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           submit: 'Zapisz zmiany',
         },
       },
+      delete: 'Usuń konfigurację',
       testForm: {
         title: 'Wyślij testowy e-mail',
         fields: {

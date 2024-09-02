@@ -2,10 +2,10 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import parse from 'html-react-parser';
 import { omit } from 'lodash-es';
 import { useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useController, useForm } from 'react-hook-form';
-import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -195,9 +195,7 @@ export const AddUserForm = () => {
           label={LL.modals.addUser.form.fields.enableEnrollment.label()}
           controller={{ control, name: 'enable_enrollment' }}
         />
-        <ReactMarkdown>
-          {LL.modals.addUser.form.fields.enableEnrollment.link()}
-        </ReactMarkdown>
+        <>{parse(LL.modals.addUser.form.fields.enableEnrollment.link())}</>
       </div>
       <div className="row">
         <div className="item">

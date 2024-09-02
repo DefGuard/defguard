@@ -3,7 +3,7 @@ import './styles.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import { z } from 'zod';
@@ -78,15 +78,11 @@ export const LicenseSettings = () => {
     };
   }, [settings?.license]);
 
-  const { control, handleSubmit, reset } = useForm<Settings>({
+  const { control, handleSubmit } = useForm<Settings>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
-
-  useEffect(() => {
-    reset();
-  }, [reset, defaultValues]);
 
   const onSubmit: SubmitHandler<FormFields> = (submitted) => {
     mutate(submitted);
