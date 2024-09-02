@@ -883,7 +883,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * [​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​)
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
 						 */
 						link: string
 					}
@@ -2287,6 +2287,10 @@ type RootTranslation = {
 					 */
 					ldap_group_obj_class: string
 				}
+				/**
+				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				'delete': string
 			}
 			test: {
 				/**
@@ -2728,6 +2732,10 @@ type RootTranslation = {
 					submit: string
 				}
 			}
+			/**
+			 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+			 */
+			'delete': string
 			testForm: {
 				/**
 				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
@@ -5078,7 +5086,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * [more information here](https://defguard.gitbook.io/defguard/help/enrollment)
+						 * <a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>
 						 */
 						link: () => LocalizedString
 					}
@@ -6474,6 +6482,10 @@ export type TranslationFunctions = {
 					 */
 					ldap_group_obj_class: () => LocalizedString
 				}
+				/**
+				 * Delete configuration
+				 */
+				'delete': () => LocalizedString
 			}
 			test: {
 				/**
@@ -6912,6 +6924,10 @@ export type TranslationFunctions = {
 					submit: () => LocalizedString
 				}
 			}
+			/**
+			 * Delete configuration
+			 */
+			'delete': () => LocalizedString
 			testForm: {
 				/**
 				 * Send test email

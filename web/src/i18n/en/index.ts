@@ -376,7 +376,7 @@ const en: BaseTranslation = {
           },
           enableEnrollment: {
             label: 'Use user self-enrollment process',
-            link: '[more information here](https://defguard.gitbook.io/defguard/help/enrollment)',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>',
           },
         },
       },
@@ -921,6 +921,7 @@ const en: BaseTranslation = {
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Delete configuration',
       },
       test: {
         title: 'Test LDAP Connection',
@@ -1134,6 +1135,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
+      delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
         fields: {
