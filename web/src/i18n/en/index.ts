@@ -1216,6 +1216,11 @@ const en: BaseTranslation = {
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
+        disableAllTraffic: {
+          label: 'Disable the option to route all traffic through VPN',
+          helper:
+            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
+        },
       },
     },
   },

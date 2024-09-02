@@ -2883,6 +2883,16 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
+				disableAllTraffic: {
+					/**
+					 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
+					 */
+					helper: string
+				}
 			}
 		}
 	}
@@ -7058,6 +7068,16 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
+				}
+				disableAllTraffic: {
+					/**
+					 * Disable the option to route all traffic through VPN
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
 					 */
 					helper: () => LocalizedString
 				}

@@ -1202,6 +1202,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
         },
+        disableAllTraffic: {
+          label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
+          helper:
+            'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
+        },
       },
     },
   },
