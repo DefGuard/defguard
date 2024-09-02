@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id?\", \"admin_device_management\",\"disable_all_traffic\" FROM \"enterprisesettings\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "admin_device_management",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "disable_all_traffic",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "58b40568ab5722525d811748c54b9533cdfa1efa6bf1c14e92f30960d56e445e"
+}

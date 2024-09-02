@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"admin_device_management\" FROM \"enterprisesettings\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"admin_device_management\",\"disable_all_traffic\" FROM \"enterprisesettings\"",
   "describe": {
     "columns": [
       {
@@ -12,17 +12,21 @@
         "ordinal": 1,
         "name": "admin_device_management",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "disable_all_traffic",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false
     ]
   },
-  "hash": "a1836fa232271fdd5d61f0d34048741a269f654ef6eb1fa2f6b95e68ed7e04e1"
+  "hash": "63cef35852393b62a7c753919c31324a6739545bea1430de0b282b10d8b18a00"
 }

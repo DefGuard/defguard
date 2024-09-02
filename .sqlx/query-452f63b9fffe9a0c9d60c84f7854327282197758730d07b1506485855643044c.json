@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"enterprisesettings\" (\"admin_device_management\") VALUES ($1) RETURNING id",
+  "query": "INSERT INTO \"enterprisesettings\" (\"admin_device_management\",\"disable_all_traffic\") VALUES ($1,$2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Bool",
         "Bool"
       ]
     },
@@ -18,5 +19,5 @@
       false
     ]
   },
-  "hash": "c0883840b92550c4a2ba682d15ee4841bf9cdce2d87fa952457b157afbe2d756"
+  "hash": "452f63b9fffe9a0c9d60c84f7854327282197758730d07b1506485855643044c"
 }
