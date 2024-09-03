@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id?\", \"admin_device_management\",\"only_client_activation\" FROM \"enterprisesettings\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "admin_device_management",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "only_client_activation",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6332fe33694ebd090eba2ef0777ea91e86978f827cbff94a6a28338a7b0bf6ee"
+}
