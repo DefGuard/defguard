@@ -448,7 +448,9 @@ const pl: Translation = {
     },
     helpers: {
       setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
+      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
     },
+
     steps: {
       setupDevice: {
         title: 'Dodaj urządzenie',
@@ -1201,6 +1203,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
+        },
+        manualConfig: {
+          label: 'Wyłącz wyświetlanie konfiguracji WireGuard',
+          helper:
+            'Kiedy ta opcja jest włączona, konfiguracja WireGuard nie będzie wyświetlana użytkownikom podczas konfiguracji urządzenia.',
         },
       },
     },

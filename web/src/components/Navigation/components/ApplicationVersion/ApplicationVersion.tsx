@@ -24,7 +24,9 @@ export const ApplicationVersion = ({ isOpen }: Props) => {
           <a rel="noreferrer" href={`https://github.com/DefGuard/defguard/releases/`}>
             {isOpen
               ? LL.navigation.version.open({ version })
-              : LL.navigation.version.closed({ version })}
+              : LL.navigation.version.closed({
+                  version: version.split('-')[0],
+                })}
           </a>
         </p>
       )}

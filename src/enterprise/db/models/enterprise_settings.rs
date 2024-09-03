@@ -11,6 +11,8 @@ pub struct EnterpriseSettings {
     pub id: Option<i64>,
     // If true, only admins can manage devices
     pub admin_device_management: bool,
+    // If true, manual WireGuard setup is disabled
+    pub only_client_activation: bool,
 }
 
 // We want to be conscious of what the defaults are here
@@ -20,6 +22,7 @@ impl Default for EnterpriseSettings {
         Self {
             id: None,
             admin_device_management: false,
+            only_client_activation: false,
         }
     }
 }

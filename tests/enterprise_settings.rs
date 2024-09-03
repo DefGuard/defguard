@@ -41,6 +41,7 @@ async fn test_only_enterprise_can_modify() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: true,
+        only_client_activation: false,
     };
 
     let response = client
@@ -84,6 +85,7 @@ async fn test_admin_devices_management_is_enforced() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: true,
+        only_client_activation: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -160,6 +162,7 @@ async fn test_regular_user_device_management() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: false,
+        only_client_activation: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")

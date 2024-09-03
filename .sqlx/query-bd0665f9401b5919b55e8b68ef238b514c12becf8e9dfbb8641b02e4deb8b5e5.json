@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"enterprisesettings\" (\"admin_device_management\") VALUES ($1) RETURNING id",
+  "query": "INSERT INTO \"enterprisesettings\" (\"admin_device_management\",\"only_client_activation\") VALUES ($1,$2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Bool",
         "Bool"
       ]
     },
@@ -18,5 +19,5 @@
       false
     ]
   },
-  "hash": "c0883840b92550c4a2ba682d15ee4841bf9cdce2d87fa952457b157afbe2d756"
+  "hash": "bd0665f9401b5919b55e8b68ef238b514c12becf8e9dfbb8641b02e4deb8b5e5"
 }

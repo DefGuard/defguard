@@ -132,7 +132,7 @@ export const LicenseSettings = () => {
               placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
             />
           </form>
-          <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()}>
+          <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()} expanded>
             {licenseInfo ? (
               <div id="license-info">
                 <div>

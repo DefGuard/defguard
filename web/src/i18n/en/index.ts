@@ -443,6 +443,7 @@ const en: BaseTranslation = {
     title: 'Add device',
     helpers: {
       setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
+      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
     },
     messages: {
       deviceAdded: 'Device added',
@@ -1216,6 +1217,11 @@ const en: BaseTranslation = {
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
+        manualConfig: {
+          label: 'Disable users ability to download manual WireGuard configuration',
+          helper:
+            "When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup",
+        },
       },
     },
   },
@@ -1727,7 +1733,7 @@ const en: BaseTranslation = {
       },
     },
     messageBox:
-      'Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.',
+      'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.',
     settings: {
       welcomeMessage: {
         title: 'Welcome message',
