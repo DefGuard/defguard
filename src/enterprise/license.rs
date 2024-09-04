@@ -234,7 +234,8 @@ impl License {
     fn verify_signature(data: &[u8], signature: &[u8]) -> Result<(), LicenseError> {
         let sig = StandaloneSignature::from_bytes(signature)
             .map_err(|_| LicenseError::InvalidSignature)?;
-        let (public_key, _headers_public) = SignedPublicKey::from_string(PUBLIC_KEY).unwrap();
+        let (public_key, _headers_public) =
+            SignedPublicKey::from_string(PUBLIC_KEY).expect("Failed to parse the public key");
 
         // If the public key has subkeys, extract the signing key from them
         // Otherwise, use the primary key
