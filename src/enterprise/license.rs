@@ -7,7 +7,9 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
+use pgp::{
+    types::KeyTrait, Deserializable, SignedPublicKey, SignedPublicSubKey, StandaloneSignature,
+};
 use prost::Message;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
@@ -229,26 +231,35 @@ impl License {
         Ok(bytes)
     }
 
-    // Extract the signing key from the public key, the public key may contain multiple subkeys some of which have different purposes
-    fn get_signing_key() -> Result<pgp::SignedPublicSubKey, LicenseError> {
-        // A hardcoded public key should be always valid, so we can unwrap here
-        let (public_key, _headers_public) = SignedPublicKey::from_string(PUBLIC_KEY).unwrap();
-        let signing_key = public_key
-            .public_subkeys
-            .into_iter()
-            .find(|subkey| subkey.is_signing_key())
-            .ok_or(LicenseError::LicenseServerError(
-                "Failed to find a signing key in the provided public key".to_string(),
-            ))?;
-        Ok(signing_key)
-    }
-
     fn verify_signature(data: &[u8], signature: &[u8]) -> Result<(), LicenseError> {
-        let public_key = Self::get_signing_key()?;
         let sig = StandaloneSignature::from_bytes(signature)
             .map_err(|_| LicenseError::InvalidSignature)?;
-        sig.verify(&public_key, data)
-            .map_err(|_| LicenseError::SignatureMismatch)
+        let (public_key, _headers_public) = SignedPublicKey::from_string(PUBLIC_KEY).unwrap();
+
+        // If the public key has subkeys, extract the signing key from them
+        // Otherwise, use the primary key
+        if public_key.public_subkeys.is_empty() {
+            debug!(
+                "Using the public key's primary key {:?} to verify the signature...",
+                public_key.key_id()
+            );
+            sig.verify(&public_key, data)
+                .map_err(|_| LicenseError::SignatureMismatch)
+        } else {
+            let signing_key = public_key
+                .public_subkeys
+                .into_iter()
+                .find(|subkey| subkey.is_signing_key())
+                .ok_or(LicenseError::LicenseServerError(
+                    "Failed to find a signing key in the provided public key".to_string(),
+                ))?;
+            debug!(
+                "Using the public key's subkey {:?} to verify the signature...",
+                signing_key.key_id()
+            );
+            sig.verify(&signing_key, data)
+                .map_err(|_| LicenseError::SignatureMismatch)
+        }
     }
 
     /// Deserialize the license object from a base64 encoded string.
