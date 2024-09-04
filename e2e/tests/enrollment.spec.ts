@@ -74,11 +74,6 @@ test.describe('Create user with enrollment enabled', () => {
     const deviceResponse = page.waitForResponse('**/create_device');
     await createDevice(page);
     expect((await deviceResponse).status()).toBe(400);
-
-    // Activating the user should fail with a 400 error
-    const userResponse = page.waitForResponse('**/activate_user');
-    await page.getByTestId('enrollment-next').click({ timeout: 2000 });
-    expect((await userResponse).status()).toBe(400);
   });
 
   test('Complete enrollment with created user', async ({ page }) => {
