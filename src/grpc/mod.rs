@@ -9,8 +9,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use crate::enterprise::grpc::polling::PollingServer;
+use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use reqwest::Url;
 use serde::Serialize;
 use thiserror::Error;

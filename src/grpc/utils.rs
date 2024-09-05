@@ -42,8 +42,8 @@ pub(crate) async fn build_device_config_response(
     };
     for network in networks {
         let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
-                    continue;
-                };
+            continue;
+        };
         let wireguard_network_device = WireguardNetworkDevice::find(pool, device_id, network_id)
             .await
             .map_err(|err| {
