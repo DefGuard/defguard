@@ -39,24 +39,31 @@ impl PasswordResetServer {
 
     // check if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
-        debug!("Validating enrollment session");
+        info!("Validating password reset session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
-
-        debug!("Validating enrollment session token: {token}");
         let enrollment = Token::find_by_id(&self.pool, token).await?;
+        debug!("Found matching token, verifying validity: {enrollment:?}.");
+        if !enrollment
+            .token_type
+            .as_ref()
+            .is_some_and(|token_type| token_type == PASSWORD_RESET_TOKEN_TYPE)
+        {
+            error!(
+                "Invalid token type used in password reset process: {:?}",
+                enrollment.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
 
         if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
-            info!(
-                "Enrollment session validated for user {}.",
-                enrollment.user_id
-            );
+            info!("Password reset session validated: {enrollment:?}.",);
             Ok(enrollment)
         } else {
-            error!("Enrollment session expired");
-            Err(Status::unauthenticated("Enrollment session expired"))
+            error!("Password reset session expired: {enrollment:?}");
+            Err(Status::unauthenticated("Session expired"))
         }
     }
 

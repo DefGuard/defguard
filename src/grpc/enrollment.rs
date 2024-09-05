@@ -8,9 +8,9 @@ use tonic::Status;
 use uaparser::UserAgentParser;
 
 use super::proto::{
-    ActivateUserRequest, AdminInfo, Device as ProtoDevice,
-    DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
-    EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
+    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
+    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+    InitialUserInfo, NewDevice,
 };
 use crate::{
     db::{
@@ -60,20 +60,29 @@ impl EnrollmentServer {
 
     // check if token provided with request corresponds to a valid session
     async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
-        info!("Start validating session. Token {token:?}");
+        info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
-        debug!("Validating session token: {token}");
-
         let enrollment = Token::find_by_id(&self.pool, token).await?;
-        debug!("Verify is token valid {enrollment:?}.");
+        debug!("Found matching token, verifying validity: {enrollment:?}.");
+        if !enrollment
+            .token_type
+            .as_ref()
+            .is_some_and(|token_type| token_type == ENROLLMENT_TOKEN_TYPE)
+        {
+            error!(
+                "Invalid token type used in enrollment process: {:?}",
+                enrollment.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
         if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
-            info!("Session validated");
+            info!("Enrollment session validated: {enrollment:?}");
             Ok(enrollment)
         } else {
-            error!("Session expired");
+            error!("Enrollment session expired: {enrollment:?}");
             Err(Status::unauthenticated("Session expired"))
         }
     }
