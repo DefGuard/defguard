@@ -37,7 +37,7 @@ where
 
         match validate_license(license.as_ref()) {
             // Useless struct, but may come in handy later
-            Ok(_) => Ok(LicenseInfo { valid: true }),
+            Ok(()) => Ok(LicenseInfo { valid: true }),
             Err(e) => Err(WebError::Forbidden(e.to_string())),
         }
     }

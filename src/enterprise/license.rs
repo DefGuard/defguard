@@ -7,9 +7,7 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{
-    types::KeyTrait, Deserializable, SignedPublicKey, SignedPublicSubKey, StandaloneSignature,
-};
+use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
@@ -19,6 +17,9 @@ use crate::{
     db::{DbPool, Settings},
     VERSION,
 };
+
+// FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
+const LICENSE_SERVER_URL: &str = "https://update-service-dev.defguard.net/api/license/renew";
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
 
@@ -250,7 +251,7 @@ impl License {
             let signing_key = public_key
                 .public_subkeys
                 .into_iter()
-                .find(|subkey| subkey.is_signing_key())
+                .find(KeyTrait::is_signing_key)
                 .ok_or(LicenseError::LicenseServerError(
                     "Failed to find a signing key in the provided public key".to_string(),
                 ))?;
@@ -282,7 +283,7 @@ impl License {
         debug!("Deserialized the license object, verifying the license signature...");
 
         match Self::verify_signature(metadata_bytes, signature_bytes) {
-            Ok(_) => {
+            Ok(()) => {
                 info!("Successfully decoded the license and validated the license signature");
                 let metadata = LicenseMetadata::decode(metadata_bytes).map_err(|_| {
                     LicenseError::DecodeError("Failed to decode the license metadata".to_string())
@@ -332,12 +333,11 @@ impl License {
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
     pub async fn load(pool: &DbPool) -> Result<Option<License>, LicenseError> {
-        match Self::get_key(pool).await? {
-            Some(key) => Ok(Some(Self::from_base64(&key)?)),
-            None => {
-                debug!("No license key found in the database");
-                Ok(None)
-            }
+        if let Some(key) = Self::get_key(pool).await? {
+            Ok(Some(Self::from_base64(&key)?))
+        } else {
+            debug!("No license key found in the database");
+            Ok(None)
         }
     }
 
@@ -347,7 +347,9 @@ impl License {
         match Self::load(pool).await? {
             Some(license) => {
                 if license.requires_renewal() {
-                    if !license.is_max_overdue() {
+                    if license.is_max_overdue() {
+                        Err(LicenseError::LicenseExpired)
+                    } else {
                         info!("License requires renewal, trying to renew it...");
                         match renew_license(pool).await {
                             Ok(new_key) => {
@@ -361,8 +363,6 @@ impl License {
                                 Ok(Some(license))
                             }
                         }
-                    } else {
-                        Err(LicenseError::LicenseExpired)
                     }
                 } else {
                     info!("Successfully loaded the license from the database.");
@@ -377,6 +377,7 @@ impl License {
     ///
     /// NOTE: license should be considered valid for an additional period of `MAX_OVERDUE_TIME`.
     /// If you want to check if the license reached this point, use `is_max_overdue` instead.
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         match self.valid_until {
             Some(time) => time < Utc::now(),
@@ -385,12 +386,14 @@ impl License {
     }
 
     /// Checks how much time has left until the `valid_until` time.
+    #[must_use]
     pub fn time_left(&self) -> Option<TimeDelta> {
         self.valid_until.map(|time| time - Utc::now())
     }
 
     /// Gets the time the license is past its expiry date.
     /// If the license doesn't have a `valid_until` field, it will return 0.
+    #[must_use]
     pub fn time_overdue(&self) -> TimeDelta {
         match self.valid_until {
             Some(time) => {
@@ -406,6 +409,7 @@ impl License {
     }
 
     /// Checks whether we should try to renew the license.
+    #[must_use]
     pub fn requires_renewal(&self) -> bool {
         if self.subscription {
             if let Some(remaining) = self.time_left() {
@@ -419,6 +423,7 @@ impl License {
     }
 
     /// Checks if the license has reached its maximum overdue time.
+    #[must_use]
     pub fn is_max_overdue(&self) -> bool {
         if !self.subscription {
             // Non-subscription licenses are considered expired immediately, no grace period is required
@@ -434,9 +439,8 @@ impl License {
 /// Doesn't update the cached license, nor does it save the new key in the database.
 async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     debug!("Exchanging license for a new one...");
-    let old_license_key = match Settings::get_settings(db_pool).await?.license {
-        Some(key) => key,
-        None => return Err(LicenseError::LicenseNotFound),
+    let Some(old_license_key) = Settings::get_settings(db_pool).await?.license else {
+        return Err(LicenseError::LicenseNotFound);
     };
 
     let client = reqwest::Client::new();
@@ -444,9 +448,6 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
     let request_body = RefreshRequestResponse {
         key: old_license_key,
     };
-
-    // FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
-    const LICENSE_SERVER_URL: &str = "https://update-service-dev.defguard.net/api/license/renew";
 
     let new_license_key = match client
         .post(LICENSE_SERVER_URL)
@@ -576,21 +577,23 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
                     if license.requires_renewal() {
                         // check if we are pass the maximum expiration date, after which we don't
                         // want to try to renew the license anymore
-                        if !license.is_max_overdue() {
-                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
-                            true
-                        } else {
+                        if license.is_max_overdue() {
                             check_period = CHECK_PERIOD;
                             warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
                             debug!("Changing check period to {}", format_duration(check_period));
                             false
+                        } else {
+                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
+                            true
                         }
                     } else {
                         // This if is only for logging purposes, to provide more detailed information
                         if license.subscription {
-                            debug!("License doesn't need to be renewed yet, skipping renewal check")
+                            debug!(
+                                "License doesn't need to be renewed yet, skipping renewal check"
+                            );
                         } else {
-                            debug!("License is not a subscription, skipping renewal check")
+                            debug!("License is not a subscription, skipping renewal check");
                         }
                         false
                     }
@@ -608,7 +611,7 @@ pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError
             debug!("Changing check period to {}", format_duration(check_period));
             match renew_license(&pool).await {
                 Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
-                    Ok(_) => {
+                    Ok(()) => {
                         update_cached_license(Some(&new_license_key))?;
                         check_period = CHECK_PERIOD;
                         debug!("Changing check period to {}", format_duration(check_period));
