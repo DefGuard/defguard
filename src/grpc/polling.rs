@@ -117,6 +117,7 @@ impl PollingServer {
                 device: Some(device.into()),
                 configs,
                 instance: Some(InstanceInfo::new(settings, &user.username).into()),
+                token: None,
             };
 
             let response = InstanceInfoResponse {

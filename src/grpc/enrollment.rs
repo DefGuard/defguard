@@ -8,7 +8,7 @@ use tonic::Status;
 use uaparser::UserAgentParser;
 
 use super::proto::{
-    ActivateUserRequest, ActivateUserResponse, AdminInfo, Device as ProtoDevice,
+    ActivateUserRequest, AdminInfo, Device as ProtoDevice,
     DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, EnrollmentStartRequest,
     EnrollmentStartResponse, ExistingDevice, InitialUserInfo, NewDevice,
 };
@@ -187,7 +187,7 @@ impl EnrollmentServer {
         &self,
         request: ActivateUserRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
-    ) -> Result<ActivateUserResponse, Status> {
+    ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_deref()).await?;
 
@@ -294,18 +294,6 @@ impl EnrollmentServer {
             )?;
         }
 
-        // create auth token for further client communication
-        debug!("Creating auth token for further client communication");
-        // TODO(jck): unwrap
-        let token = Token::new(
-            user.id.unwrap(),
-            None,
-            None,
-            AUTH_TOKEN_VALIDITY_SECS,
-            Some(AUTH_TOKEN_TYPE.to_string()),
-        );
-        token.save(&mut transaction).await?;
-
         debug!("Commiting transaction");
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -313,7 +301,7 @@ impl EnrollmentServer {
         })?;
 
         info!("User {} activated", user.username);
-        Ok(super::proto::ActivateUserResponse { token: token.id })
+        Ok(())
     }
 
     pub async fn create_device(
@@ -415,6 +403,18 @@ impl EnrollmentServer {
             })?;
         debug!("Settings {settings:?}");
 
+        // create auth token for further client communication
+        debug!("Creating auth token for further client communication");
+        // TODO(jck): unwrap
+        let token = Token::new(
+            user.id.unwrap(),
+            None,
+            None,
+            AUTH_TOKEN_VALIDITY_SECS,
+            Some(AUTH_TOKEN_TYPE.to_string()),
+        );
+        token.save(&mut transaction).await?;
+
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
@@ -449,6 +449,7 @@ impl EnrollmentServer {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(InstanceInfo::new(settings, &user.username).into()),
+            token: Some(token.id),
         };
         debug!("Created a create device response {response:?}.");
 
@@ -531,6 +532,7 @@ impl EnrollmentServer {
                 device: Some(device.into()),
                 configs,
                 instance: Some(InstanceInfo::new(settings, &user.username).into()),
+                token: None,
             };
 
             Ok(response)
