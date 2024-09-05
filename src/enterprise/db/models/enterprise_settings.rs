@@ -13,6 +13,8 @@ pub struct EnterpriseSettings {
     pub admin_device_management: bool,
     // If true, the option to route all traffic through the vpn is disabled in the client
     pub disable_all_traffic: bool,
+    // If true, manual WireGuard setup is disabled
+    pub only_client_activation: bool,
 }
 
 // We want to be conscious of what the defaults are here
@@ -23,6 +25,7 @@ impl Default for EnterpriseSettings {
             id: None,
             admin_device_management: false,
             disable_all_traffic: false,
+            only_client_activation: false,
         }
     }
 }

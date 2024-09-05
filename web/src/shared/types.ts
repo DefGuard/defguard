@@ -872,6 +872,7 @@ export type SettingsLicense = {
 export type SettingsEnterprise = {
   admin_device_management: boolean;
   disable_all_traffic: boolean;
+  only_client_activation: boolean;
 };
 
 export type LicenseInfo = {
