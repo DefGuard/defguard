@@ -16,10 +16,17 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo},
-            enrollment::{Token, TokenError, AUTH_TOKEN_TYPE, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, POLLING_TOKEN_TYPE},
         },
         DbPool, Device, GatewayEvent, Settings, User,
-    }, grpc::utils::build_device_config_response, handlers::{mail::send_new_device_added_email, user::check_password_strength}, headers::get_device_info, ldap::utils::ldap_add_user, mail::Mail, server_config, templates::{self, TemplateLocation}
+    },
+    grpc::utils::build_device_config_response,
+    handlers::{mail::send_new_device_added_email, user::check_password_strength},
+    headers::get_device_info,
+    ldap::utils::ldap_add_user,
+    mail::Mail,
+    server_config,
+    templates::{self, TemplateLocation},
 };
 
 pub(super) struct EnrollmentServer {
@@ -294,7 +301,6 @@ impl EnrollmentServer {
             )?;
         }
 
-        debug!("Commiting transaction");
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
@@ -416,7 +422,7 @@ impl EnrollmentServer {
             None,
             // Auth tokens are valid indefinitely
             0,
-            Some(AUTH_TOKEN_TYPE.to_string()),
+            Some(POLLING_TOKEN_TYPE.to_string()),
         );
         token.save(&mut transaction).await?;
 

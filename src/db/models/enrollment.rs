@@ -17,7 +17,7 @@ use crate::{
 
 pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
 pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
-pub static AUTH_TOKEN_TYPE: &str = "AUTH";
+pub static POLLING_TOKEN_TYPE: &str = "POLLING";
 
 static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";

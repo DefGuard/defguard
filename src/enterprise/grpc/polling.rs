@@ -1,6 +1,6 @@
 use crate::{
     db::{
-        models::enrollment::{Token, AUTH_TOKEN_TYPE},
+        models::enrollment::{Token, POLLING_TOKEN_TYPE},
         DbPool,
     },
     enterprise::license::{get_cached_license, validate_license},
@@ -36,7 +36,7 @@ impl PollingServer {
         if token
             .token_type
             .as_ref()
-            .is_some_and(|token_type| token_type == AUTH_TOKEN_TYPE)
+            .is_some_and(|token_type| token_type == POLLING_TOKEN_TYPE)
         {
             Ok(token)
         } else {
