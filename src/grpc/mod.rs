@@ -10,7 +10,7 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use polling::PollingServer;
+use crate::enterprise::grpc::polling::PollingServer;
 use reqwest::Url;
 use serde::Serialize;
 use thiserror::Error;
@@ -64,7 +64,6 @@ pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
-pub mod polling;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;

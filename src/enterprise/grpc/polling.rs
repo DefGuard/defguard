@@ -7,9 +7,9 @@ use crate::{
 };
 use tonic::Status;
 
-use super::proto::{InstanceInfoRequest, InstanceInfoResponse};
+use crate::grpc::proto::{InstanceInfoRequest, InstanceInfoResponse};
 
-pub(super) struct PollingServer {
+pub struct PollingServer {
     pool: DbPool,
 }
 
