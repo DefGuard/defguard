@@ -37,7 +37,7 @@ impl PasswordResetServer {
         }
     }
 
-    // check if token provided with request corresponds to a valid enrollment session
+    /// Checks if token provided with request corresponds to a valid password reset session
     async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
         info!("Validating password reset session. Token: {token:?}");
         let Some(token) = token else {

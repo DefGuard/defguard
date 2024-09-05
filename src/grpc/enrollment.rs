@@ -49,7 +49,7 @@ impl EnrollmentServer {
         }
     }
 
-    // check if token provided with request corresponds to a valid session
+    /// Checks if token provided with request corresponds to a valid enrollment session
     async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
         info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {

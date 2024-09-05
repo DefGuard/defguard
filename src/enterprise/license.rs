@@ -391,7 +391,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
 ///
 /// This function checks the following two things:
 /// 1. Does the cached license exist
-/// 2. Does the cached license is past its maximum expiry date
+/// 2. Is the cached license past its maximum expiry date
 pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
     debug!("Validating if the license is present and not expired...");
     match license {
