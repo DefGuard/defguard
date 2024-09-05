@@ -530,6 +530,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       messages: {
         deleteApp: 'Aplikacja i wszystkie tokeny usunięte.',
       },
+      warningModals: {
+        title: 'Ostrzeżenie',
+        content: {
+          usernameChange: `Zmiana nazwy użytkownika ma znaczący wpływ na usługi, do których użytkownik zalogował się za pomocą Defguard. Po zmianie nazwy użytkownika użytkownik może stracić do nich dostęp (ponieważ nie będą go rozpoznawać). Czy na pewno chcesz kontynuować?`,
+          emailChange: `Jeśli korzystasz z zewnętrznych dostawców OpenID Connect (OIDC) do uwierzytelniania użytkowników, zmiana adresu e-mail użytkownika może mieć wpływ na jego możliwość zalogowania się do Defguarda. Czy na pewno chcesz kontynuować?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
+      },
       fields: {
         username: {
           label: 'Nazwa użytkownika',
