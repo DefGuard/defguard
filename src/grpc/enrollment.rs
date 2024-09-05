@@ -15,20 +15,11 @@ use super::proto::{
 use crate::{
     db::{
         models::{
-            device::{DeviceConfig, DeviceInfo, WireguardNetworkDevice},
-            enrollment::{
-                Token, TokenError, AUTH_TOKEN_TYPE, AUTH_TOKEN_VALIDITY_SECS, ENROLLMENT_TOKEN_TYPE,
-            },
-            wireguard::WireguardNetwork,
+            device::{DeviceConfig, DeviceInfo},
+            enrollment::{Token, TokenError, AUTH_TOKEN_TYPE, ENROLLMENT_TOKEN_TYPE},
         },
         DbPool, Device, GatewayEvent, Settings, User,
-    },
-    handlers::{mail::send_new_device_added_email, user::check_password_strength},
-    headers::get_device_info,
-    ldap::utils::ldap_add_user,
-    mail::Mail,
-    server_config,
-    templates::{self, TemplateLocation},
+    }, grpc::utils::build_device_config_response, handlers::{mail::send_new_device_added_email, user::check_password_strength}, headers::get_device_info, ldap::utils::ldap_add_user, mail::Mail, server_config, templates::{self, TemplateLocation}
 };
 
 pub(super) struct EnrollmentServer {
@@ -59,7 +50,7 @@ impl EnrollmentServer {
     }
 
     // check if token provided with request corresponds to a valid session
-    async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+    async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
         info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
@@ -198,7 +189,7 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_session(request.token.as_deref()).await?;
+        let enrollment = self.validate_session(&request.token).await?;
 
         let ip_address;
         let device_info;
@@ -319,7 +310,7 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
-        let enrollment = self.validate_session(request.token.as_deref()).await?;
+        let enrollment = self.validate_session(&request.token).await?;
 
         // fetch related users
         let user = enrollment.fetch_user(&self.pool).await?;
@@ -414,12 +405,17 @@ impl EnrollmentServer {
 
         // create auth token for further client communication
         debug!("Creating auth token for further client communication");
-        // TODO(jck): unwrap
+        let user_id = user.id.ok_or_else(|| {
+            error!("User.id is None, can't create auth token: {user:?}");
+            Status::internal("unexpected error")
+        })?;
+
         let token = Token::new(
-            user.id.unwrap(),
+            user_id,
             None,
             None,
-            AUTH_TOKEN_VALIDITY_SECS,
+            // Auth tokens are valid indefinitely
+            0,
             Some(AUTH_TOKEN_TYPE.to_string()),
         );
         token.save(&mut transaction).await?;
@@ -465,89 +461,14 @@ impl EnrollmentServer {
         Ok(response)
     }
 
-    /// Get all information needed
-    /// to update instance information for desktop client
+    /// Get all information needed to update instance information for desktop client
     pub async fn get_network_info(
         &self,
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let enrollment = self.validate_session(request.token.as_deref()).await?;
-
-        // get enrollment user
-        let user = enrollment.fetch_user(&self.pool).await?;
-
-        Device::validate_pubkey(&request.pubkey).map_err(|_| {
-            error!("Invalid pubkey {}", request.pubkey);
-            Status::invalid_argument("invalid pubkey")
-        })?;
-        // Find existing device by public key
-        let device = Device::find_by_pubkey(&self.pool, &request.pubkey)
-            .await
-            .map_err(|_| {
-                error!("Failed to get device by its pubkey: {}", request.pubkey);
-                Status::internal("unexpected error")
-            })?;
-
-        let settings = Settings::get_settings(&self.pool).await.map_err(|_| {
-            error!("Failed to get settings");
-            Status::internal("unexpected error")
-        })?;
-
-        let networks = WireguardNetwork::all(&self.pool).await.map_err(|err| {
-            error!("Failed to fetch all networks: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
-
-        let mut configs: Vec<ProtoDeviceConfig> = Vec::new();
-        if let Some(device) = device {
-            for network in networks {
-                let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
-                    continue;
-                };
-                let wireguard_network_device =
-                    WireguardNetworkDevice::find(&self.pool, device_id, network_id)
-                        .await
-                        .map_err(|err| {
-                            error!("Failed to fetch wireguard network device for device {} and network {}: {err}", device_id, network_id);
-                            Status::internal(format!("unexpected error: {err}"))
-                        })?;
-                if let Some(wireguard_network_device) = wireguard_network_device {
-                    let allowed_ips = network
-                        .allowed_ips
-                        .iter()
-                        .map(IpNetwork::to_string)
-                        .collect::<Vec<String>>()
-                        .join(",");
-                    let config = ProtoDeviceConfig {
-                        config: device.create_config(&network, &wireguard_network_device),
-                        network_id,
-                        network_name: network.name,
-                        assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
-                        endpoint: format!("{}:{}", network.endpoint, network.port),
-                        pubkey: network.pubkey,
-                        allowed_ips,
-                        dns: network.dns,
-                        mfa_enabled: network.mfa_enabled,
-                        keepalive_interval: network.keepalive_interval,
-                    };
-                    configs.push(config);
-                }
-            }
-
-            info!("Device {} configs fetched", device.name);
-
-            let response = DeviceConfigResponse {
-                device: Some(device.into()),
-                configs,
-                instance: Some(InstanceInfo::new(settings, &user.username).into()),
-                token: None,
-            };
-
-            Ok(response)
-        } else {
-            Err(Status::internal("device not found error"))
-        }
+        let token = self.validate_session(&request.token).await?;
+        build_device_config_response(&self.pool, &token, &request.pubkey).await
     }
 }
 

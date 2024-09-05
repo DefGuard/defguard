@@ -65,6 +65,7 @@ pub(crate) mod gateway;
 mod interceptor;
 pub mod password_reset;
 pub mod polling;
+pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 

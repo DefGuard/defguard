@@ -38,7 +38,7 @@ impl PasswordResetServer {
     }
 
     // check if token provided with request corresponds to a valid enrollment session
-    async fn validate_session(&self, token: Option<&str>) -> Result<Token, Status> {
+    async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
         info!("Validating password reset session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
@@ -214,7 +214,7 @@ impl PasswordResetServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Starting password reset: {request:?}");
-        let enrollment = self.validate_session(request.token.as_deref()).await?;
+        let enrollment = self.validate_session(&request.token).await?;
 
         let ip_address;
         let user_agent;
