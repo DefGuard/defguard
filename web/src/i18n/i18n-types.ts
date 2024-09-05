@@ -1234,6 +1234,32 @@ type RootTranslation = {
 				 */
 				deleteApp: string
 			}
+			warningModals: {
+				/**
+				 * W​a​r​n​i​n​g
+				 */
+				title: string
+				content: {
+					/**
+					 * C​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​y​ ​h​a​v​e​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​,​ ​a​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					usernameChange: string
+					/**
+					 * I​f​ ​y​o​u​ ​a​r​e​ ​u​s​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​ ​(​O​I​D​C​)​ ​p​r​o​v​i​d​e​r​s​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​u​s​e​r​s​,​ ​c​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​'​s​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​m​a​y​ ​h​a​v​e​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​t​h​e​i​r​ ​a​b​i​l​i​t​y​ ​t​o​ ​l​o​g​ ​i​n​ ​t​o​ ​D​e​f​g​u​a​r​d​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					emailChange: string
+				}
+				buttons: {
+					/**
+					 * P​r​o​c​e​e​d
+					 */
+					proceed: string
+					/**
+					 * C​a​n​c​e​l
+					 */
+					cancel: string
+				}
+			}
 			fields: {
 				username: {
 					/**
@@ -5434,6 +5460,32 @@ export type TranslationFunctions = {
 				 * App and all tokens deleted.
 				 */
 				deleteApp: () => LocalizedString
+			}
+			warningModals: {
+				/**
+				 * Warning
+				 */
+				title: () => LocalizedString
+				content: {
+					/**
+					 * Changing a username has a significant impact on services they have logged into using Defguard. After changing the username, a user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
+					 */
+					usernameChange: () => LocalizedString
+					/**
+					 * If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?
+					 */
+					emailChange: () => LocalizedString
+				}
+				buttons: {
+					/**
+					 * Proceed
+					 */
+					proceed: () => LocalizedString
+					/**
+					 * Cancel
+					 */
+					cancel: () => LocalizedString
+				}
 			}
 			fields: {
 				username: {
