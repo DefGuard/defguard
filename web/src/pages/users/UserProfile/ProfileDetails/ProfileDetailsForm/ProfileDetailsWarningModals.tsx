@@ -1,9 +1,10 @@
+import './style.scss';
+
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useProfileDetailsWarningModal } from './hooks/useProfileDetailsWarningModal';
-import './style.scss';
 
 export const ProfileDetailsWarningModals = () => {
   const warningModals = useProfileDetailsWarningModal((state) => state);

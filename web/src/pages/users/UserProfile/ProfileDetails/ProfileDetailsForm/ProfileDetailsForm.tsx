@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick, values } from 'lodash-es';
@@ -25,10 +27,9 @@ import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
+import { useProfileDetailsWarningModal } from './hooks/useProfileDetailsWarningModal';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
 import { ProfileDetailsWarningModals } from './ProfileDetailsWarningModals';
-import { useProfileDetailsWarningModal } from './hooks/useProfileDetailsWarningModal';
-import './style.scss';
 
 interface Inputs {
   username: string;
