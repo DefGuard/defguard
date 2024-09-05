@@ -27,6 +27,7 @@ pub struct DeleteProviderData {
 }
 
 impl AddProviderData {
+    #[must_use]
     pub fn new(name: &str, base_url: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
             name: name.to_string(),

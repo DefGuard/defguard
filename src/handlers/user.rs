@@ -91,7 +91,7 @@ pub fn prune_username(username: &str) -> String {
         .to_string();
 
     result.retain(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
-    result = result.replace(" ", "");
+    result = result.replace(' ', "");
 
     result
 }
