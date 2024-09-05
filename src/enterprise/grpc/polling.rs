@@ -23,9 +23,13 @@ impl PollingServer {
     /// Checks if token provided with request corresponds to a valid auth session
     async fn validate_session(&self, token: &str) -> Result<Token, Status> {
         debug!("Validating auth session. Token: {token}");
+
         // Polling service is enterprise-only, check the lincense
-        validate_license(get_cached_license().as_ref())
-            .map_err(|_| Status::permission_denied("no valid license"))?;
+        if validate_license(get_cached_license().as_ref()).is_err() {
+            debug!("No valid license, denying instance polling info");
+            return Err(Status::permission_denied("no valid license"));
+        }
+
         let token = Token::find_by_id(&self.pool, token).await?;
         debug!("Found matching token, verifying validity: {token:?}.");
         // Auth tokens are valid indefinitely
