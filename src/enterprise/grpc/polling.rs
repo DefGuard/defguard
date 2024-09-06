@@ -1,8 +1,5 @@
 use crate::{
-    db::{
-        models::enrollment::{Token, POLLING_TOKEN_TYPE},
-        DbPool,
-    },
+    db::{models::polling_token::PollingToken, DbPool, Device},
     enterprise::license::{get_cached_license, validate_license},
     grpc::utils::build_device_config_response,
 };
@@ -20,9 +17,9 @@ impl PollingServer {
         Self { pool }
     }
 
-    /// Checks if token provided with request corresponds to a valid auth session
-    async fn validate_session(&self, token: &str) -> Result<Token, Status> {
-        debug!("Validating auth session. Token: {token}");
+    /// Checks validity of polling session
+    async fn validate_session(&self, token: &str) -> Result<PollingToken, Status> {
+        debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
         if validate_license(get_cached_license().as_ref()).is_err() {
@@ -30,30 +27,32 @@ impl PollingServer {
             return Err(Status::permission_denied("no valid license"));
         }
 
-        let token = Token::find_by_id(&self.pool, token).await?;
-        debug!("Found matching token, verifying validity: {token:?}.");
-        // Auth tokens are valid indefinitely
-        if token
-            .token_type
-            .as_ref()
-            .is_some_and(|token_type| token_type == POLLING_TOKEN_TYPE)
-        {
-            Ok(token)
-        } else {
-            error!(
-                "Invalid token type used in polling process: {:?}",
-                token.token_type
-            );
-            Err(Status::permission_denied("invalid token"))
-        }
+        // Validate the token
+        let Some(token) = PollingToken::find(&self.pool, token).await.map_err(|err| {
+            error!("Failed to retrieve token: {err}");
+            Status::internal("failed to retrieve token")
+        })? else {
+            error!("Invalid token {token:?}");
+            return Err(Status::permission_denied("invalid token"));
+        };
+
+        info!("Token validation successful {token:?}.");
+        Ok(token)
     }
 
     /// Prepares instance info for polling requests. Enterprise only.
     pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
         let token = self.validate_session(&request.token).await?;
+        let Some(device) = Device::find_by_id(&self.pool, token.device_id).await.map_err(|err| {
+            error!("Failed to retrieve device id {}: {err}", token.device_id);
+            Status::internal("failed to retrieve device")
+        })? else {
+            error!("Device id {} not found", token.device_id);
+            return Err(Status::internal("device not found"));
+        };
         let device_config =
-            build_device_config_response(&self.pool, &token, &request.pubkey).await?;
+            build_device_config_response(&self.pool, &device.wireguard_pubkey).await?;
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),
         })

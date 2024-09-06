@@ -860,6 +860,24 @@ impl User {
         }
         Ok(())
     }
+
+    pub async fn find_by_device_id<'e, E>(executor: E, device_id: i64) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT u.id \"id?\", u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_login \
+            FROM \"user\" as u \
+            JOIN \"device\" as d ON u.id = d.user_id \
+            WHERE d.id = $1",
+            device_id
+        )
+        .fetch_optional(executor)
+        .await
+    }
 }
 
 #[cfg(test)]

@@ -4,18 +4,14 @@ use tonic::Status;
 
 use super::proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse};
 use crate::db::{
-    models::{device::WireguardNetworkDevice, enrollment::Token, wireguard::WireguardNetwork},
-    DbPool, Device, Settings,
+    models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
+    DbPool, Device, Settings, User,
 };
 
 pub(crate) async fn build_device_config_response(
     pool: &DbPool,
-    token: &Token,
     pubkey: &str,
 ) -> Result<DeviceConfigResponse, Status> {
-    // get enrollment user
-    let user = token.fetch_user(pool).await?;
-
     Device::validate_pubkey(pubkey).map_err(|_| {
         error!("Invalid pubkey {pubkey}");
         Status::invalid_argument("invalid pubkey")
@@ -25,7 +21,6 @@ pub(crate) async fn build_device_config_response(
         error!("Failed to get device by its pubkey: {pubkey}");
         Status::internal("unexpected error")
     })?;
-
     let settings = Settings::get_settings(pool).await.map_err(|_| {
         error!("Failed to get settings");
         Status::internal("unexpected error")
@@ -40,6 +35,13 @@ pub(crate) async fn build_device_config_response(
     let Some(device) = device else {
         return Err(Status::internal("device not found error"));
     };
+    let user = User::find_by_id(pool, device.user_id).await.map_err(|_| {
+        error!("Failed to get user: {}", device.user_id);
+        Status::internal("unexpected error")
+    })?.ok_or_else(|| {
+        error!("User not found: {}", device.user_id);
+        Status::internal("unexpected error")
+    })?;
     for network in networks {
         let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
             continue;
