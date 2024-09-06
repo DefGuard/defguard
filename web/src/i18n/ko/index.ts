@@ -104,7 +104,8 @@ const ko: BaseTranslation = {
         },
         submit: '등록 시작',
         submitDesktop: '데스크톱 활성화',
-        smtpDisabled: '이메일로 토큰을 보내려면 SMTP를 구성하십시오. 설정 -> SMTP로 이동하십시오.',
+        smtpDisabled:
+          '이메일로 토큰을 보내려면 SMTP를 구성하십시오. 설정 -> SMTP로 이동하십시오.',
       },
       tokenCard: {
         title: '활성화 토큰',
@@ -325,8 +326,7 @@ const ko: BaseTranslation = {
     },
     provisionKeys: {
       title: 'Yubikey 프로비저닝:',
-      warning:
-        '이 작업은 yubikey의 openpgp 애플리케이션을 삭제하고 재구성합니다.',
+      warning: '이 작업은 yubikey의 openpgp 애플리케이션을 삭제하고 재구성합니다.',
       infoBox: `선택한 프로비저너에는 프로비저닝할 <b>깨끗한</b> YubiKey가
                 연결되어 있어야 합니다. 사용된 YubiKey를 청소하려면 프로비저닝하기 전에
                 <b>gpg --card-edit </b>를 실행하십시오.`,
@@ -467,7 +467,7 @@ const ko: BaseTranslation = {
         title: '장치 구성',
         messages: {
           copyConfig: '구성이 클립보드에 복사되었습니다',
-    },
+        },
         helpers: {
           warningAutoMode: `
     <p>
@@ -482,7 +482,7 @@ const ko: BaseTranslation = {
       여기에 제공된 구성에는 개인 키가 포함되어 있지 않으며 공개 키를 사용하여 채워져 있습니다. 구성이 제대로 작동하려면 직접 교체해야 합니다.
     </p>
 `,
-          warningNoNetworks: "액세스할 수 있는 네트워크가 없습니다.",
+          warningNoNetworks: '액세스할 수 있는 네트워크가 없습니다.',
           qrHelper: `
       <p>
         이 QR 코드를 스캔하여 wireguard 애플리케이션으로 장치를 더 빠르게 설정할 수 있습니다.
@@ -740,7 +740,8 @@ const ko: BaseTranslation = {
         yubikeyForm: {
           selectWorker: {
             info: '이 작업은 YubiKey의 openpgp 애플리케이션을 삭제하고 재구성합니다.',
-            selectLabel: '다음 프로비저너 중 하나를 선택하여 YubiKey를 프로비저닝하십시오',
+            selectLabel:
+              '다음 프로비저너 중 하나를 선택하여 YubiKey를 프로비저닝하십시오',
             noData: '현재 등록된 작업자가 없습니다.',
             available: '사용 가능',
             unavailable: '사용 불가',
@@ -772,7 +773,7 @@ const ko: BaseTranslation = {
       users: '사용자만',
     },
     usersCount: '모든 사용자',
-    addNewUser: '새로 추가',
+    addNewUser: '새 추가',
     list: {
       headers: {
         name: '사용자 이름',
@@ -809,7 +810,7 @@ const ko: BaseTranslation = {
     },
     mobileTitles: {
       groups: '그룹',
-      wizard: '위치 생성',
+      wizard: 'Location 생성',
       users: '사용자',
       settings: '설정',
       user: '사용자 프로필',
@@ -948,8 +949,7 @@ const ko: BaseTranslation = {
         title: '외부 OpenID 설정',
         helper: '여기에서 Defguard 인스턴스의 일반 OpenID 동작을 변경할 수 있습니다.',
         createAccount: {
-          label:
-            '외부 OpenID를 통해 처음 로그인할 때 사용자 계정을 자동으로 생성합니다.',
+          label: '외부 OpenID를 통해 처음 로그인할 때 사용자 계정을 자동으로 생성합니다.',
           helper:
             '이 옵션을 활성화하면 Defguard는 외부 OpenID 공급자를 사용하여 처음 로그인하는 사용자에 대한 새 계정을 자동으로 생성합니다. 그렇지 않으면 관리자가 먼저 사용자 계정을 생성해야 합니다.',
         },
@@ -1094,8 +1094,7 @@ const ko: BaseTranslation = {
           },
           offline: {
             label: '오프라인',
-            helper:
-              '라이선스는 만료 날짜까지 유효하며 자동으로 갱신되지 않습니다',
+            helper: '라이선스는 만료 날짜까지 유효하며 자동으로 갱신되지 않습니다',
           },
         },
         fields: {
@@ -1169,7 +1168,7 @@ const ko: BaseTranslation = {
     },
     enrollment: {
       helper:
-        '등록은 신입 직원이 새 계정을 활성화하고, 비밀번호를 생성하고, VPN 장치를 구성할 수 있도록 하는 프로세스입니다.',
+        '등록은 신규 직원이 새 계정을 활성화 및 비밀번호를 생성하고, VPN 장치를 구성할 수 있도록 하는 프로세스입니다.',
       vpnOptionality: {
         header: 'VPN 단계 선택 사항',
         helper:
@@ -1226,12 +1225,12 @@ const ko: BaseTranslation = {
         deviceManagement: {
           label: '사용자가 자신의 장치를 관리하는 기능 비활성화',
           helper:
-            "이 옵션을 활성화하면 관리자 그룹의 사용자만 사용자 프로필에서 장치를 관리할 수 있습니다(다른 모든 사용자는 비활성화됨)",
+            '이 옵션을 활성화하면 관리자 그룹의 사용자만 사용자 프로필에서 장치를 관리할 수 있습니다(다른 모든 사용자는 비활성화됨)',
         },
         manualConfig: {
           label: '사용자가 수동 WireGuard 구성을 다운로드하는 기능 비활성화',
           helper:
-            "이 옵션을 활성화하면 사용자에게 수동 클라이언트 설정을 위한 WireGuard 구성이 표시되지 않습니다.",
+            '이 옵션을 활성화하면 사용자에게 수동 클라이언트 설정을 위한 WireGuard 구성이 표시되지 않습니다.',
         },
       },
     },
@@ -1247,7 +1246,7 @@ const ko: BaseTranslation = {
       disabled: '비활성화됨',
     },
     clientCount: '모든 앱',
-    addNewApp: '새로 추가',
+    addNewApp: '새 추가',
     list: {
       headers: {
         name: '이름',
@@ -1268,7 +1267,7 @@ const ko: BaseTranslation = {
     },
     messages: {
       copySuccess: '클라이언트 ID가 복사되었습니다.',
-      noLicenseMessage: "이 기능에 대한 라이선스가 없습니다.",
+      noLicenseMessage: '이 기능에 대한 라이선스가 없습니다.',
       noClientsFound: '결과를 찾을 수 없습니다.',
     },
     deleteApp: {
@@ -1354,7 +1353,7 @@ const ko: BaseTranslation = {
       disabled: '비활성화됨',
     },
     webhooksCount: '모든 웹훅',
-    addNewWebhook: '새로 추가',
+    addNewWebhook: '새 추가',
     noWebhooksFound: '웹훅을 찾을 수 없습니다.',
     list: {
       headers: {
@@ -1387,7 +1386,7 @@ const ko: BaseTranslation = {
     },
     provisionersCount: '모든 프로비저너',
     noProvisionersFound: '프로비저너를 찾을 수 없습니다.',
-    noLicenseMessage: "이 기능에 대한 라이선스가 없습니다.",
+    noLicenseMessage: '이 기능에 대한 라이선스가 없습니다.',
     provisioningStation: {
       header: 'YubiKey 프로비저닝 스테이션',
       content: `YubiKeys를 프로비저닝하려면 먼저 USB 슬롯이 있는 물리적 시스템을
@@ -1499,8 +1498,7 @@ const ko: BaseTranslation = {
           '이 주소를 기반으로 VPN 네트워크 주소가 정의됩니다. 예: 10.10.10.1/24 (VPN 네트워크는 10.10.10.0/24가 됩니다)',
         gateway: 'VPN 사용자가 연결하는 데 사용되는 게이트웨이 공개 주소',
         dns: 'wireguard 인터페이스가 활성화될 때 쿼리할 DNS 확인자를 지정합니다.',
-        allowedIps:
-          'VPN 네트워크를 통해 라우팅되어야 하는 주소/마스크 목록입니다.',
+        allowedIps: 'VPN 네트워크를 통해 라우팅되어야 하는 주소/마스크 목록입니다.',
         allowedGroups:
           '기본적으로 모든 사용자가 이 위치에 연결할 수 있습니다. 특정 그룹으로 이 위치에 대한 액세스를 제한하려면 아래에서 선택하십시오.',
       },
@@ -1724,7 +1722,7 @@ const ko: BaseTranslation = {
   },
   layout: {
     select: {
-      addNewOptionDefault: '새로 추가 +',
+      addNewOptionDefault: '새 추가 +',
     },
   },
   redirectPage: {
