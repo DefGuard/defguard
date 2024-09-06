@@ -378,6 +378,7 @@ const pl: Translation = {
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">więcej informacji tutaj</a>',
           },
         },
       },
@@ -447,7 +448,9 @@ const pl: Translation = {
     },
     helpers: {
       setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
+      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
     },
+
     steps: {
       setupDevice: {
         title: 'Dodaj urządzenie',
@@ -526,6 +529,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       header: 'Szczegóły profilu',
       messages: {
         deleteApp: 'Aplikacja i wszystkie tokeny usunięte.',
+      },
+      warningModals: {
+        title: 'Ostrzeżenie',
+        content: {
+          usernameChange: `Zmiana nazwy użytkownika ma znaczący wpływ na usługi, do których użytkownik zalogował się za pomocą Defguard. Po zmianie nazwy użytkownika użytkownik może stracić do nich dostęp (ponieważ nie będą go rozpoznawać). Czy na pewno chcesz kontynuować?`,
+          emailChange: `Jeśli korzystasz z zewnętrznych dostawców OpenID Connect (OIDC) do uwierzytelniania użytkowników, zmiana adresu e-mail użytkownika może mieć wpływ na jego możliwość zalogowania się do Defguarda. Czy na pewno chcesz kontynuować?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
       },
       fields: {
         username: {
@@ -906,6 +920,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Usuń konfigurację',
       },
       test: {
         title: 'Test połączenia LDAP',
@@ -1058,6 +1073,28 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
         },
       },
+      licenseInfo: {
+        title: 'Informacje o licencji',
+        noLicense: 'Brak licencji',
+        types: {
+          subscription: {
+            label: 'Subskrypcja',
+            helper: 'Subskrypcja automatycznie odnawiana cyklicznie',
+          },
+          offline: {
+            label: 'Offline',
+            helper: 'Licencja ważna do daty wygaśnięcia, odnawiana ręcznie',
+          },
+        },
+        fields: {
+          type: {
+            label: 'Typ',
+          },
+          validUntil: {
+            label: 'Ważna do',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -1096,6 +1133,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           submit: 'Zapisz zmiany',
         },
       },
+      delete: 'Usuń konfigurację',
       testForm: {
         title: 'Wyślij testowy e-mail',
         fields: {
@@ -1176,6 +1214,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
+        },
+        manualConfig: {
+          label: 'Wyłącz wyświetlanie konfiguracji WireGuard',
+          helper:
+            'Kiedy ta opcja jest włączona, konfiguracja WireGuard nie będzie wyświetlana użytkownikom podczas konfiguracji urządzenia.',
         },
       },
     },

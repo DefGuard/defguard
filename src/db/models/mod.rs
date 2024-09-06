@@ -199,7 +199,7 @@ pub struct UserDetails {
 
 impl UserDetails {
     pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
-        let devices = user.devices(pool).await?;
+        let devices = user.user_devices(pool).await?;
         let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 

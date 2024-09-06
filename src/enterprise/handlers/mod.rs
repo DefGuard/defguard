@@ -37,7 +37,7 @@ where
 
         match validate_license(license.as_ref()) {
             // Useless struct, but may come in handy later
-            Ok(_) => Ok(LicenseInfo { valid: true }),
+            Ok(()) => Ok(LicenseInfo { valid: true }),
             Err(e) => Err(WebError::Forbidden(e.to_string())),
         }
     }
@@ -45,11 +45,19 @@ where
 
 pub async fn check_enterprise_status() -> ApiResult {
     let license = get_cached_license();
-
     let valid = validate_license((license).as_ref()).is_ok();
-
+    let license_info = license.as_ref().map(|license| {
+        serde_json::json!(
+            {
+                "valid_until": license.valid_until,
+                "subscription": license.subscription,
+            }
+        )
+    });
     Ok(ApiResponse {
-        json: serde_json::json!({ "enabled": valid }),
+        json: serde_json::json!({ "enabled": valid,
+               "license_info": license_info
+        }),
         status: StatusCode::OK,
     })
 }

@@ -1,5 +1,6 @@
 import './style.scss';
 
+import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
 import { ReactNode, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
@@ -10,6 +11,8 @@ import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/A
 import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
+import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
@@ -78,14 +81,21 @@ export const AddDeviceTokenStep = () => {
   }, [resetPage, nextSubject, navigate, userData]);
 
   return (
-    <Card id="add-device-token-step" shaded>
-      <h2>{localLL.title()}</h2>
-      <ExpandableCard title={localLL.urlCardTitle()} actions={urlActions} expanded>
-        <p>{url}</p>
-      </ExpandableCard>
-      <ExpandableCard title={localLL.tokenCardTitle()} actions={tokenActions} expanded>
-        <p>{token}</p>
-      </ExpandableCard>
-    </Card>
+    <>
+      <MessageBox
+        type={MessageBoxType.WARNING}
+        message={parse(LL.addDevicePage.helpers.client())}
+        dismissId="add-device-page-method-opt-message"
+      />
+      <Card id="add-device-token-step" shaded>
+        <h2>{localLL.title()}</h2>
+        <ExpandableCard title={localLL.urlCardTitle()} actions={urlActions} expanded>
+          <p>{url}</p>
+        </ExpandableCard>
+        <ExpandableCard title={localLL.tokenCardTitle()} actions={tokenActions} expanded>
+          <p>{token}</p>
+        </ExpandableCard>
+      </Card>
+    </>
   );
 };

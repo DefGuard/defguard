@@ -3,7 +3,7 @@ import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { EnterpriseForm } from './components/EnterpriseForm';
 
 export const EnterpriseSettings = () => {
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_enabled);
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.enterpriseOnly;
   return (

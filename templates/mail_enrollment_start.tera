@@ -9,7 +9,7 @@ token -> enrollment token
 {% block mail_content %}
 {% set client_docs_url="https://defguard.gitbook.io/defguard/features/desktop-client" %}
 {% set client_docs_link=macros::link(content=client_docs_url, href=client_docs_url) %}
-{% set release_url="https://github.com/DefGuard/client/releases/latest" %}
+{% set release_url="https://defguard.net/download/" %}
 {% set release_link=macros::link(content=release_url, href=release_url) %}
 {# intro #}
 {% set section_content = [
@@ -21,7 +21,7 @@ macros::paragraph(content="In order to start the enrollment process please choos
 {% set enrollment_link=macros::link(content=enrollment_url, href=enrollment_url) %}
 {% set section_content = [
 macros::paragraph(content="<b>1. Enrollment by desktop client</b>"),
-macros::paragraph(content="Download the official defguard desktop client for macOS or Linux from the release page: " ~ release_link),
+macros::paragraph(content="Download the official defguard desktop client for Windows, macOS or Linux: " ~ release_link),
 macros::paragraph(content="After installation, please add a defguard instance by entering:"),
 macros::paragraph(content="<ul><li>Instance URL: " ~ enrollment_link ~ "</li><li>Enrollment token: <b>" ~ token ~ "</b></li></ul>"),
 macros::paragraph(content="<b>Please note that: the token is only valid for 24 hours after receiving this email. When the enrollment process starts user will have 10 minutes to complete the process.</b>"),

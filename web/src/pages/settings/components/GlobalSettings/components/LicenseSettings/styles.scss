@@ -16,3 +16,27 @@
   align-items: center;
   gap: 10px;
 }
+
+#license-info {
+  display: flex;
+  flex-flow: row;
+  column-gap: 16px;
+  justify-content: space-evenly;
+
+  & > div {
+    display: flex;
+    flex-flow: column;
+    row-gap: 8px;
+
+    text-align: center;
+
+    & > .with-helper {
+      display: flex;
+      gap: 5px;
+    }
+  }
+}
+
+#no-license {
+  text-align: center;
+}

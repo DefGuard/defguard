@@ -370,7 +370,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
-    client.get(`/settings/${id}`).then(unpackRequest);
+    client.put(`/settings/${id}`).then(unpackRequest);
 
   const downloadSupportData: ApiHook['support']['downloadSupportData'] = async () =>
     client.get<unknown>(`/support/configuration`).then((res) => res.data);

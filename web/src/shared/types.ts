@@ -433,14 +433,10 @@ export type AuthenticationKey = {
   key: string;
 };
 
-export type EnterpriseStatusResponse = {
-  enabled: boolean;
-};
-
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
-  getEnterpriseStatus: () => Promise<EnterpriseStatusResponse>;
+  getEnterpriseStatus: () => Promise<EnterpriseStatus>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -875,6 +871,18 @@ export type SettingsLicense = {
 
 export type SettingsEnterprise = {
   admin_device_management: boolean;
+  only_client_activation: boolean;
+};
+
+export type LicenseInfo = {
+  valid_until?: string;
+  subscription: boolean;
+};
+
+export type EnterpriseStatus = {
+  enabled: boolean;
+  // If there is no license, there is no license info
+  license_info?: LicenseInfo;
 };
 
 export interface Webhook {

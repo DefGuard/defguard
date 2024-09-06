@@ -21,6 +21,7 @@ use crate::{
         DbPool, Device, GatewayEvent, Settings, User,
     },
     grpc::utils::build_device_config_response,
+    enterprise::db::models::enterprise_settings::EnterpriseSettings,
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     ldap::utils::ldap_add_user,
@@ -166,6 +167,17 @@ impl EnrollmentServer {
             debug!("Admin info {admin_info:?}");
 
             debug!("Create a new enrollment response.");
+            let enterprise_settings =
+                EnterpriseSettings::get(&mut *transaction)
+                    .await
+                    .map_err(|_| {
+                        error!("Failed to get enterprise settings");
+                        Status::internal("unexpected error")
+                    })?;
+            let enrollment_settings = super::proto::Settings {
+                vpn_setup_optional,
+                only_client_activation: enterprise_settings.only_client_activation,
+            };
             let response = super::proto::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
@@ -173,8 +185,8 @@ impl EnrollmentServer {
                 final_page_content: enrollment
                     .get_welcome_page_content(&mut transaction)
                     .await?,
-                vpn_setup_optional,
                 instance: Some(instance_info.into()),
+                settings: Some(enrollment_settings),
             };
             debug!("Response {response:?}");
 
@@ -487,7 +499,7 @@ impl From<User> for AdminInfo {
 impl InitialUserInfo {
     async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
         let enrolled = user.is_enrolled();
-        let devices = user.devices(pool).await?;
+        let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
         Ok(Self {
             first_name: user.first_name,

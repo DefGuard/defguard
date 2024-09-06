@@ -52,32 +52,22 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
-    let provider_metadata = match CoreProviderMetadata::discover_async(
-        issuer_url,
-        async_http_client,
-    )
-    .await
-    {
-        Ok(metadata) => metadata,
-        Err(_) => {
-            return Err(WebError::Authorization(format!(
-                "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
-
-            )));
-        }
+    let Ok(provider_metadata) =
+        CoreProviderMetadata::discover_async(issuer_url, async_http_client).await
+    else {
+        return Err(WebError::Authorization(format!(
+            "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
+        )));
     };
 
     Ok(provider_metadata)
 }
 
 async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
-    let provider = match OpenIdProvider::get_current(pool).await? {
-        Some(provider) => provider,
-        None => {
-            return Err(WebError::ObjectNotFound(
-                "OpenID provider not set".to_string(),
-            ));
-        }
+    let Some(provider) = OpenIdProvider::get_current(pool).await? else {
+        return Err(WebError::ObjectNotFound(
+            "OpenID provider not set".to_string(),
+        ));
     };
 
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
@@ -88,7 +78,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let redirect_url = match RedirectUrl::new(url) {
         Ok(url) => url,
         Err(err) => {
-            error!("Failed to create redirect URL: {:?}", err);
+            error!("Failed to create redirect URL: {err:?}");
             return Err(WebError::Authorization(
                 "Failed to create redirect URL".to_string(),
             ));
@@ -273,8 +263,7 @@ pub async fn auth_callback(
                     .is_some()
                 {
                     return Err(WebError::Authorization(format!(
-                        "User with username {} already exists",
-                        username
+                        "User with username {username} already exists"
                     )));
                 }
 
