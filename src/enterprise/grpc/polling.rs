@@ -43,7 +43,7 @@ impl PollingServer {
 
     /// Prepares instance info for polling requests. Enterprise only.
     pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
-        debug!("Getting network info for device: {:?}", request.pubkey);
+        trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;
         let Some(device) = Device::find_by_id(&self.pool, token.device_id).await.map_err(|err| {
             error!("Failed to retrieve device id {}: {err}", token.device_id);
@@ -52,6 +52,7 @@ impl PollingServer {
             error!("Device id {} not found", token.device_id);
             return Err(Status::internal("device not found"));
         };
+        debug!("Polling info for device: {}", device.wireguard_pubkey);
 
         // Ensure user is active
         let device_id = device.id.expect("missing device id");
