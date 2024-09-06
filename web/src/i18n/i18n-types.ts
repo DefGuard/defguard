@@ -1242,7 +1242,7 @@ type RootTranslation = {
 				title: string
 				content: {
 					/**
-					 * C​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​y​ ​h​a​v​e​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​,​ ​a​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 * C​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​ ​u​s​e​r​ ​h​a​s​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​i​t​,​ ​t​h​e​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
 					 */
 					usernameChange: string
 					/**
@@ -5469,7 +5469,7 @@ export type TranslationFunctions = {
 				title: () => LocalizedString
 				content: {
 					/**
-					 * Changing a username has a significant impact on services they have logged into using Defguard. After changing the username, a user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
+					 * Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
 					 */
 					usernameChange: () => LocalizedString
 					/**
