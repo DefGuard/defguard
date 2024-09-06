@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 
@@ -12,7 +12,7 @@ pub struct PollingToken {
     pub id: Option<i64>,
     pub token: String,
     pub device_id: i64,
-    pub created_at: Option<NaiveDateTime>,
+    pub created_at: NaiveDateTime,
 }
 
 impl PollingToken {
@@ -21,7 +21,7 @@ impl PollingToken {
             id: None,
             device_id,
             token: gen_alphanumeric(32),
-            created_at: None,
+            created_at: Utc::now().naive_utc(),
         }
     }
 
