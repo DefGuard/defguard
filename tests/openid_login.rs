@@ -1,5 +1,11 @@
+use chrono::{Duration, Utc};
 use defguard::{
-    config::DefGuardConfig, db::DbPool, enterprise::handlers::openid_providers::AddProviderData,
+    config::DefGuardConfig,
+    db::DbPool,
+    enterprise::{
+        handlers::openid_providers::AddProviderData,
+        license::{set_cached_license, License},
+    },
     handlers::Auth,
 };
 use reqwest::{StatusCode, Url};
@@ -67,4 +73,14 @@ async fn test_openid_providers() {
     assert!(state.is_some());
     let redirect_uri = url.query_pairs().find(|(key, _)| key == "redirect_uri");
     assert!(redirect_uri.is_some());
+
+    // Test that the endpoint is forbidden when the license is expired
+    let new_license = License {
+        customer_id: "test".to_string(),
+        subscription: false,
+        valid_until: Some(Utc::now() - Duration::days(1)),
+    };
+    set_cached_license(Some(new_license));
+    let response = client.get("/api/v1/openid/auth_info").send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
