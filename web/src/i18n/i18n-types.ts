@@ -3,7 +3,7 @@
 import type { BaseTranslation as BaseTranslationType, LocalizedString, RequiredParams } from 'typesafe-i18n'
 
 export type BaseTranslation = BaseTranslationType
-export type BaseLocale = 'ko'
+export type BaseLocale = 'en'
 
 export type Locales =
 	| 'en'
@@ -18,117 +18,117 @@ type RootTranslation = {
 	common: {
 		conditions: {
 			/**
-			 * 또​는
+			 * o​r
 			 */
 			or: string
 			/**
-			 * 그​리​고
+			 * a​n​d
 			 */
 			and: string
 			/**
-			 * 같​음
+			 * e​q​u​a​l
 			 */
 			equal: string
 		}
 		controls: {
 			/**
-			 * 다​음
+			 * N​e​x​t
 			 */
 			next: string
 			/**
-			 * 뒤​로
+			 * B​a​c​k
 			 */
 			back: string
 			/**
-			 * 취​소
+			 * C​a​n​c​e​l
 			 */
 			cancel: string
 			/**
-			 * 확​인
+			 * C​o​n​f​i​r​m
 			 */
 			confirm: string
 			/**
-			 * 제​출
+			 * S​u​b​m​i​t
 			 */
 			submit: string
 			/**
-			 * 닫​기
+			 * C​l​o​s​e
 			 */
 			close: string
 			/**
-			 * 선​택
+			 * S​e​l​e​c​t
 			 */
 			select: string
 			/**
-			 * 완​료
+			 * F​i​n​i​s​h
 			 */
 			finish: string
 			/**
-			 * 변​경​ ​사​항​ ​저​장
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
 			 */
 			saveChanges: string
 			/**
-			 * 저​장
+			 * S​a​v​e
 			 */
 			save: string
 			/**
-			 * 기​본​값​ ​복​원
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			RestoreDefault: string
 			/**
-			 * 삭​제
+			 * D​e​l​e​t​e
 			 */
 			'delete': string
 			/**
-			 * 이​름​ ​변​경
+			 * R​e​n​a​m​e
 			 */
 			rename: string
 			/**
-			 * 복​사
+			 * C​o​p​y
 			 */
 			copy: string
 			/**
-			 * 편​집
+			 * E​d​i​t
 			 */
 			edit: string
 		}
 		/**
-		 * 키
+		 * K​e​y
 		 */
 		key: string
 		/**
-		 * 이​름
+		 * N​a​m​e
 		 */
 		name: string
 	}
 	messages: {
 		/**
-		 * 오​류​가​ ​발​생​했​습​니​다​.
+		 * E​r​r​o​r​ ​h​a​s​ ​o​c​c​u​r​r​e​d​.
 		 */
 		error: string
 		/**
-		 * 작​업​이​ ​성​공​했​습​니​다
+		 * O​p​e​r​a​t​i​o​n​ ​s​u​c​c​e​e​d​e​d
 		 */
 		success: string
 		/**
-		 * 애​플​리​케​이​션​ ​버​전​을​ ​가​져​오​지​ ​못​했​습​니​다​.
+		 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​.
 		 */
 		errorVersion: string
 		/**
-		 * 컨​텍​스​트​가​ ​안​전​하​지​ ​않​습​니​다​.
+		 * C​o​n​t​e​x​t​ ​i​s​ ​n​o​t​ ​s​e​c​u​r​e​.
 		 */
 		insecureContext: string
 		/**
-		 * 상​세​내​용​:
+		 * D​e​t​a​i​l​s​:
 		 */
 		details: string
 		clipboard: {
 			/**
-			 * 클​립​보​드​에​ ​액​세​스​할​ ​수​ ​없​습​니​다​.
+			 * C​l​i​p​b​o​a​r​d​ ​i​s​ ​n​o​t​ ​a​c​c​e​s​s​i​b​l​e​.
 			 */
 			error: string
 			/**
-			 * 클​립​보​드​에​ ​복​사​되​었​습​니​다​.
+			 * C​o​n​t​e​n​t​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d​.
 			 */
 			success: string
 		}
@@ -136,243 +136,243 @@ type RootTranslation = {
 	modals: {
 		addGroup: {
 			/**
-			 * 그​룹​ ​추​가
+			 * A​d​d​ ​g​r​o​u​p
 			 */
 			title: string
 			/**
-			 * 모​든​ ​사​용​자​ ​선​택
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
 			 */
 			selectAll: string
 			/**
-			 * 그​룹​ ​이​름
+			 * G​r​o​u​p​ ​n​a​m​e
 			 */
 			groupName: string
 			/**
-			 * 필​터​/​검​색
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
 			 */
 			searchPlaceholder: string
 			/**
-			 * 그​룹​ ​생​성
+			 * C​r​e​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
 		}
 		editGroup: {
 			/**
-			 * 그​룹​ ​편​집
+			 * E​d​i​t​ ​g​r​o​u​p
 			 */
 			title: string
 			/**
-			 * 모​든​ ​사​용​자​ ​선​택
+			 * S​e​l​e​c​t​ ​a​l​l​ ​u​s​e​r​s
 			 */
 			selectAll: string
 			/**
-			 * 그​룹​ ​이​름
+			 * G​r​o​u​p​ ​n​a​m​e
 			 */
 			groupName: string
 			/**
-			 * 필​터​/​검​색
+			 * F​i​l​t​e​r​/​S​e​a​r​c​h
 			 */
 			searchPlaceholder: string
 			/**
-			 * 그​룹​ ​업​데​이​트
+			 * U​p​d​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
 		}
 		deleteGroup: {
 			/**
-			 * {​n​a​m​e​}​ ​그​룹​ ​삭​제
+			 * D​e​l​e​t​e​ ​g​r​o​u​p​ ​{​n​a​m​e​}
 			 * @param {string} name
 			 */
 			title: RequiredParams<'name'>
 			/**
-			 * 이​ ​작​업​은​ ​이​ ​그​룹​을​ ​영​구​적​으​로​ ​삭​제​합​니​다​.
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​g​r​o​u​p​.
 			 */
 			subTitle: string
 			/**
-			 * 이​ ​그​룹​은​ ​현​재​ ​다​음​ ​V​P​N​ ​위​치​에​ ​할​당​되​어​ ​있​습​니​다​:
+			 * T​h​i​s​ ​g​r​o​u​p​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​f​o​l​l​o​w​i​n​g​ ​V​P​N​ ​L​o​c​a​t​i​o​n​s​:
 			 */
 			locationListHeader: string
 			/**
-			 * 이​것​이​ ​주​어​진​ ​위​치​에​ ​허​용​된​ ​유​일​한​ ​그​룹​인​ ​경​우​,​ ​해​당​ ​위​치​는​ ​<​b​>​모​든​ ​사​용​자​가​ ​액​세​스​할​ ​수​ ​있​게​<​/​b​>​ ​됩​니​다​.
+			 * I​f​ ​t​h​i​s​ ​i​s​ ​t​h​e​ ​o​n​l​y​ ​a​l​l​o​w​e​d​ ​g​r​o​u​p​ ​f​o​r​ ​a​ ​g​i​v​e​n​ ​l​o​c​a​t​i​o​n​,​ ​t​h​e​ ​l​o​c​a​t​i​o​n​ ​w​i​l​l​ ​b​e​c​o​m​e​ ​<​b​>​a​c​c​e​s​s​i​b​l​e​ ​t​o​ ​a​l​l​ ​u​s​e​r​s​<​/​b​>​.
 			 */
 			locationListFooter: string
 			/**
-			 * 그​룹​ ​삭​제
+			 * D​e​l​e​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
 			/**
-			 * 취​소
+			 * C​a​n​c​e​l
 			 */
 			cancel: string
 		}
 		deviceConfig: {
 			/**
-			 * 장​치​ ​V​P​N​ ​구​성
+			 * D​e​v​i​c​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s
 			 */
 			title: string
 		}
 		changePasswordSelf: {
 			/**
-			 * 비​밀​번​호​ ​변​경
+			 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
 			 */
 			title: string
 			messages: {
 				/**
-				 * 비​밀​번​호​가​ ​변​경​되​었​습​니​다
+				 * P​a​s​s​w​o​r​d​ ​h​a​s​ ​b​e​e​n​ ​c​h​a​n​g​e​d
 				 */
 				success: string
 				/**
-				 * 비​밀​번​호​ ​변​경​에​ ​실​패​했​습​니​다
+				 * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​d​ ​p​a​s​s​w​o​r​d
 				 */
 				error: string
 			}
 			form: {
 				labels: {
 					/**
-					 * 새​ ​비​밀​번​호
+					 * N​e​w​ ​p​a​s​s​w​o​r​d
 					 */
 					newPassword: string
 					/**
-					 * 현​재​ ​비​밀​번​호
+					 * C​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d
 					 */
 					oldPassword: string
 					/**
-					 * 새​ ​비​밀​번​호​ ​확​인
+					 * C​o​n​f​i​r​m​ ​n​e​w​ ​p​a​s​s​w​o​r​d
 					 */
 					repeat: string
 				}
 			}
 			controls: {
 				/**
-				 * 비​밀​번​호​ ​변​경
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
 				 */
 				submit: string
 				/**
-				 * 취​소
+				 * C​a​n​c​e​l
 				 */
 				cancel: string
 			}
 		}
 		startEnrollment: {
 			/**
-			 * 등​록​ ​시​작
+			 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 			 */
 			title: string
 			/**
-			 * 데​스​크​톱​ ​활​성​화
+			 * D​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 			 */
 			desktopTitle: string
 			messages: {
 				/**
-				 * 사​용​자​ ​등​록​이​ ​시​작​되​었​습​니​다
+				 * U​s​e​r​ ​e​n​r​o​l​l​m​e​n​t​ ​s​t​a​r​t​e​d
 				 */
 				success: string
 				/**
-				 * 데​스​크​톱​ ​구​성​이​ ​시​작​되​었​습​니​다
+				 * D​e​s​k​t​o​p​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​s​t​a​r​t​e​d
 				 */
 				successDesktop: string
 				/**
-				 * 사​용​자​ ​등​록​을​ ​시​작​하​지​ ​못​했​습​니​다
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​u​s​e​r​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				error: string
 				/**
-				 * 데​스​크​톱​ ​활​성​화​를​ ​시​작​하​지​ ​못​했​습​니​다
+				 * F​a​i​l​e​d​ ​t​o​ ​s​t​a​r​t​ ​d​e​s​k​t​o​p​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				errorDesktop: string
 			}
 			form: {
 				email: {
 					/**
-					 * 이​메​일
+					 * E​m​a​i​l
 					 */
 					label: string
 				}
 				mode: {
 					options: {
 						/**
-						 * 이​메​일​로​ ​토​큰​ ​보​내​기
+						 * S​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l
 						 */
 						email: string
 						/**
-						 * 직​접​ ​토​큰​ ​전​달
+						 * D​e​l​i​v​e​r​ ​t​o​k​e​n​ ​y​o​u​r​s​e​l​f
 						 */
 						manual: string
 					}
 				}
 				/**
-				 * 등​록​ ​시​작
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				submit: string
 				/**
-				 * 데​스​크​톱​ ​활​성​화
+				 * A​c​t​i​v​a​t​e​ ​d​e​s​k​t​o​p
 				 */
 				submitDesktop: string
 				/**
-				 * 이​메​일​로​ ​토​큰​을​ ​보​내​려​면​ ​S​M​T​P​를​ ​구​성​하​십​시​오​.​ ​설​정​ ​-​>​ ​S​M​T​P​로​ ​이​동​하​십​시​오​.
+				 * C​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​t​o​ ​s​e​n​d​ ​t​o​k​e​n​ ​b​y​ ​e​m​a​i​l​.​ ​G​o​ ​t​o​ ​S​e​t​t​i​n​g​s​ ​-​>​ ​S​M​T​P​.
 				 */
 				smtpDisabled: string
 			}
 			tokenCard: {
 				/**
-				 * 활​성​화​ ​토​큰
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
 				 */
 				title: string
 			}
 			urlCard: {
 				/**
-				 * D​e​f​g​u​a​r​d​ ​인​스​턴​스​ ​U​R​L
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
 				 */
 				title: string
 			}
 		}
 		deleteNetwork: {
 			/**
-			 * {​n​a​m​e​}​ ​위​치​ ​삭​제
+			 * D​e​l​e​t​e​ ​{​n​a​m​e​}​ ​l​o​c​a​t​i​o​n
 			 * @param {string} name
 			 */
 			title: RequiredParams<'name'>
 			/**
-			 * 이​ ​작​업​은​ ​이​ ​위​치​를​ ​영​구​적​으​로​ ​삭​제​합​니​다​.
+			 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​p​e​r​m​a​n​e​n​t​l​y​ ​d​e​l​e​t​e​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.
 			 */
 			subTitle: string
 			/**
-			 * 위​치​ ​삭​제
+			 * D​e​l​e​t​e​ ​l​o​c​a​t​i​o​n
 			 */
 			submit: string
 			/**
-			 * 취​소
+			 * C​a​n​c​e​l
 			 */
 			cancel: string
 		}
 		changeWebhook: {
 			messages: {
 				/**
-				 * W​e​b​h​o​o​k​이​ ​변​경​되​었​습​니​다​.
+				 * W​e​b​h​o​o​k​ ​c​h​a​n​g​e​d​.
 				 */
 				success: string
 			}
 		}
 		manageWebAuthNKeys: {
 			/**
-			 * 보​안​ ​키
+			 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 			 */
 			title: string
 			messages: {
 				/**
-				 * W​e​b​A​u​t​h​N​ ​키​가​ ​삭​제​되​었​습​니​다​.
+				 * W​e​b​A​u​t​h​N​ ​k​e​y​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				deleted: string
 				/**
-				 * 키​가​ ​이​미​ ​등​록​되​어​ ​있​습​니​다
+				 * K​e​y​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
 				 */
 				duplicateKeyError: string
 			}
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​보​안​ ​키​는​ ​인​증​ ​코​드​ ​대​신​ ​2​단​계​ ​인​증​으​로​ ​사​용​될​ ​수​ ​있​습​니​다​.​
-		​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​보​안​ ​키​ ​구​성​에​ ​대​해​ ​자​세​히​ ​알​아​보​세​요​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​c​u​r​i​t​y​ ​k​e​y​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
 			 */
@@ -380,21 +380,21 @@ type RootTranslation = {
 			form: {
 				messages: {
 					/**
-					 * 보​안​ ​키​가​ ​추​가​되​었​습​니​다​.
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d​.
 					 */
 					success: string
 				}
 				fields: {
 					name: {
 						/**
-						 * 새​ ​키​ ​이​름
+						 * N​e​w​ ​k​e​y​ ​n​a​m​e
 						 */
 						label: string
 					}
 				}
 				controls: {
 					/**
-					 * 새​ ​키​ ​추​가
+					 * A​d​d​ ​n​e​w​ ​K​e​y
 					 */
 					submit: string
 				}
@@ -402,25 +402,25 @@ type RootTranslation = {
 		}
 		recoveryCodes: {
 			/**
-			 * 복​구​ ​코​드
+			 * R​e​c​o​v​e​r​y​ ​c​o​d​e​s
 			 */
 			title: string
 			/**
-			 * 코​드​를​ ​저​장​했​습​니​다
+			 * I​ ​h​a​v​e​ ​s​a​v​e​d​ ​m​y​ ​c​o​d​e​s
 			 */
 			submit: string
 			messages: {
 				/**
-				 * 코​드​가​ ​복​사​되​었​습​니​다​.
+				 * C​o​d​e​s​ ​c​o​p​i​e​d​.
 				 */
 				copied: string
 			}
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​복​구​ ​코​드​는​ ​비​밀​번​호​와​ ​동​일​한​ ​수​준​의​ ​주​의​를​ ​기​울​여​ ​취​급​하​십​시​오​!​
-		​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​또​는​ ​K​e​e​p​e​r​와​ ​같​은​ ​비​밀​번​호​ ​관​리​자​를​ ​사​용​하​여​ ​저​장​하​는​ ​것​을​ ​권​장​합​니​다​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
 			 */
@@ -428,48 +428,48 @@ type RootTranslation = {
 		}
 		registerTOTP: {
 			/**
-			 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​앱​ ​설​정
+			 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​A​p​p​ ​S​e​t​u​p
 			 */
 			title: string
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​F​A​를​ ​설​정​하​려​면​,​ ​이​ ​Q​R​ ​코​드​를​ ​인​증​ ​앱​으​로​ ​스​캔​한​ ​다​음​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​아​래​ ​필​드​에​ ​코​드​를​ ​입​력​하​세​요​:​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
 			 */
 			infoMessage: string
 			messages: {
 				/**
-				 * T​O​T​P​ ​경​로​가​ ​복​사​되​었​습​니​다​.
+				 * T​O​T​P​ ​p​a​t​h​ ​c​o​p​i​e​d​.
 				 */
 				totpCopied: string
 				/**
-				 * T​O​T​P​가​ ​활​성​화​되​었​습​니​다
+				 * T​O​T​P​ ​E​n​a​b​l​e​d
 				 */
 				success: string
 			}
 			/**
-			 * T​O​T​P​ ​경​로​ ​복​사
+			 * C​o​p​y​ ​T​O​T​P​ ​p​a​t​h
 			 */
 			copyPath: string
 			form: {
 				fields: {
 					code: {
 						/**
-						 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​코​드
+						 * A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
 						 */
 						label: string
 						/**
-						 * 코​드​가​ ​유​효​하​지​ ​않​습​니​다
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
 						 */
 						error: string
 					}
 				}
 				controls: {
 					/**
-					 * 코​드​ ​확​인
+					 * V​e​r​i​f​y​ ​c​o​d​e
 					 */
 					submit: string
 				}
@@ -477,13 +477,13 @@ type RootTranslation = {
 		}
 		registerEmailMFA: {
 			/**
-			 * 이​메​일​ ​M​F​A​ ​설​정
+			 * E​m​a​i​l​ ​M​F​A​ ​S​e​t​u​p
 			 */
 			title: string
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​F​A​를​ ​설​정​하​려​면​ ​계​정​ ​이​메​일​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​로​ ​전​송​된​ ​코​드​를​ ​입​력​하​세​요​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 	
 			 * @param {string} email
@@ -491,11 +491,11 @@ type RootTranslation = {
 			infoMessage: RequiredParams<'email'>
 			messages: {
 				/**
-				 * 이​메​일​ ​M​F​A​가​ ​활​성​화​되​었​습​니​다
+				 * E​m​a​i​l​ ​M​F​A​ ​E​n​a​b​l​e​d
 				 */
 				success: string
 				/**
-				 * 인​증​ ​코​드​가​ ​재​전​송​되​었​습​니​다
+				 * V​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​ ​r​e​s​e​n​t
 				 */
 				resend: string
 			}
@@ -503,22 +503,22 @@ type RootTranslation = {
 				fields: {
 					code: {
 						/**
-						 * 이​메​일​ ​코​드
+						 * E​m​a​i​l​ ​c​o​d​e
 						 */
 						label: string
 						/**
-						 * 코​드​가​ ​유​효​하​지​ ​않​습​니​다
+						 * C​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d
 						 */
 						error: string
 					}
 				}
 				controls: {
 					/**
-					 * 코​드​ ​확​인
+					 * V​e​r​i​f​y​ ​c​o​d​e
 					 */
 					submit: string
 					/**
-					 * 이​메​일​ ​재​전​송
+					 * R​e​s​e​n​d​ ​e​m​a​i​l
 					 */
 					resend: string
 				}
@@ -526,12 +526,12 @@ type RootTranslation = {
 		}
 		editDevice: {
 			/**
-			 * 장​치​ ​편​집
+			 * E​d​i​t​ ​d​e​v​i​c​e
 			 */
 			title: string
 			messages: {
 				/**
-				 * 장​치​가​ ​업​데​이​트​되​었​습​니​다​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​u​p​d​a​t​e​d​.
 				 */
 				success: string
 			}
@@ -539,20 +539,20 @@ type RootTranslation = {
 				fields: {
 					name: {
 						/**
-						 * 장​치​ ​이​름
+						 * D​e​v​i​c​e​ ​N​a​m​e
 						 */
 						label: string
 					}
 					publicKey: {
 						/**
-						 * 장​치​ ​공​개​ ​키​ ​(​W​i​r​e​G​u​a​r​d​)
+						 * D​e​v​i​c​e​ ​P​u​b​l​i​c​ ​K​e​y​ ​(​W​i​r​e​G​u​a​r​d​)
 						 */
 						label: string
 					}
 				}
 				controls: {
 					/**
-					 * 장​치​ ​편​집
+					 * E​d​i​t​ ​d​e​v​i​c​e
 					 */
 					submit: string
 				}
@@ -560,60 +560,60 @@ type RootTranslation = {
 		}
 		deleteDevice: {
 			/**
-			 * 장​치​ ​삭​제
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 			 */
 			title: string
 			/**
-			 * {​d​e​v​i​c​e​N​a​m​e​}​ ​장​치​를​ ​삭​제​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​d​e​v​i​c​e​N​a​m​e​}​ ​d​e​v​i​c​e​ ​?
 			 * @param {unknown} deviceName
 			 */
 			message: RequiredParams<'deviceName'>
 			/**
-			 * 장​치​ ​삭​제
+			 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 			 */
 			submit: string
 			messages: {
 				/**
-				 * 장​치​가​ ​삭​제​되​었​습​니​다​.
+				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
 			}
 		}
 		addWallet: {
 			/**
-			 * 지​갑​ ​추​가
+			 * A​d​d​ ​w​a​l​l​e​t
 			 */
 			title: string
 			/**
-			 * E​T​H​ ​지​갑​을​ ​추​가​하​려​면​ ​메​시​지​에​ ​서​명​해​야​ ​합​니​다​.
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​a​d​d​ ​a​ ​E​T​H​ ​w​a​l​l​e​t​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​s​i​g​n​ ​m​e​s​s​a​g​e​.
 			 */
 			infoBox: string
 			form: {
 				fields: {
 					name: {
 						/**
-						 * 지​갑​ ​이​름
+						 * W​a​l​l​e​t​ ​n​a​m​e
 						 */
 						placeholder: string
 						/**
-						 * 이​름
+						 * N​a​m​e
 						 */
 						label: string
 					}
 					address: {
 						/**
-						 * 지​갑​ ​주​소
+						 * W​a​l​l​e​t​ ​a​d​d​r​e​s​s
 						 */
 						placeholder: string
 						/**
-						 * 주​소
+						 * A​d​d​r​e​s​s
 						 */
 						label: string
 					}
 				}
 				controls: {
 					/**
-					 * 지​갑​ ​추​가
+					 * A​d​d​ ​w​a​l​l​e​t
 					 */
 					submit: string
 				}
@@ -621,33 +621,33 @@ type RootTranslation = {
 		}
 		keyDetails: {
 			/**
-			 * Y​u​b​i​K​e​y​ ​세​부​ ​정​보
+			 * Y​u​b​i​K​e​y​ ​d​e​t​a​i​l​s
 			 */
 			title: string
 			/**
-			 * 모​든​ ​키​ ​다​운​로​드
+			 * D​o​w​n​l​o​a​d​ ​a​l​l​ ​k​e​y​s
 			 */
 			downloadAll: string
 		}
 		deleteUser: {
 			/**
-			 * 계​정​ ​삭​제
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 			 */
 			title: string
 			controls: {
 				/**
-				 * 계​정​ ​삭​제
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
 				submit: string
 			}
 			/**
-			 * {​u​s​e​r​n​a​m​e​}​ ​계​정​을​ ​영​구​적​으​로​ ​삭​제​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​ ​p​e​r​m​a​n​e​n​t​l​y​ ​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
 			messages: {
 				/**
-				 * {​u​s​e​r​n​a​m​e​}​이​(​가​)​ ​삭​제​되​었​습​니​다​.
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​e​l​e​t​e​d​.
 				 * @param {string} username
 				 */
 				success: RequiredParams<'username'>
@@ -655,23 +655,23 @@ type RootTranslation = {
 		}
 		disableUser: {
 			/**
-			 * 계​정​ ​비​활​성​화
+			 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
 			 */
 			title: string
 			controls: {
 				/**
-				 * 계​정​ ​비​활​성​화
+				 * D​i​s​a​b​l​e​ ​a​c​c​o​u​n​t
 				 */
 				submit: string
 			}
 			/**
-			 * {​u​s​e​r​n​a​m​e​}​ ​계​정​을​ ​비​활​성​화​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​i​s​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
 			messages: {
 				/**
-				 * {​u​s​e​r​n​a​m​e​}​이​(​가​)​ ​비​활​성​화​되​었​습​니​다​.
+				 * {​u​s​e​r​n​a​m​e​}​ ​d​i​s​a​b​l​e​d​.
 				 * @param {string} username
 				 */
 				success: RequiredParams<'username'>
@@ -679,23 +679,23 @@ type RootTranslation = {
 		}
 		enableUser: {
 			/**
-			 * 계​정​ ​활​성​화
+			 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
 			 */
 			title: string
 			controls: {
 				/**
-				 * 계​정​ ​활​성​화
+				 * E​n​a​b​l​e​ ​a​c​c​o​u​n​t
 				 */
 				submit: string
 			}
 			/**
-			 * {​u​s​e​r​n​a​m​e​}​ ​계​정​을​ ​활​성​화​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​{​u​s​e​r​n​a​m​e​}​ ​a​c​c​o​u​n​t​?
 			 * @param {string} username
 			 */
 			message: RequiredParams<'username'>
 			messages: {
 				/**
-				 * {​u​s​e​r​n​a​m​e​}​이​(​가​)​ ​활​성​화​되​었​습​니​다​.
+				 * {​u​s​e​r​n​a​m​e​}​ ​e​n​a​b​l​e​d​.
 				 * @param {string} username
 				 */
 				success: RequiredParams<'username'>
@@ -703,23 +703,23 @@ type RootTranslation = {
 		}
 		deleteProvisioner: {
 			/**
-			 * 프​로​비​저​너​ ​삭​제
+			 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
 			 */
 			title: string
 			controls: {
 				/**
-				 * 프​로​비​저​너​ ​삭​제
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
 				 */
 				submit: string
 			}
 			/**
-			 * {​i​d​}​ ​프​로​비​저​너​를​ ​삭​제​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​i​d​}​ ​p​r​o​v​i​s​i​o​n​e​r​?
 			 * @param {string} id
 			 */
 			message: RequiredParams<'id'>
 			messages: {
 				/**
-				 * {​p​r​o​v​i​s​i​o​n​e​r​}​이​(​가​)​ ​삭​제​되​었​습​니​다​.
+				 * {​p​r​o​v​i​s​i​o​n​e​r​}​ ​d​e​l​e​t​e​d​.
 				 * @param {string} provisioner
 				 */
 				success: RequiredParams<'provisioner'>
@@ -728,31 +728,31 @@ type RootTranslation = {
 		changeUserPassword: {
 			messages: {
 				/**
-				 * 비​밀​번​호​가​ ​변​경​되​었​습​니​다​.
+				 * P​a​s​s​w​o​r​d​ ​c​h​a​n​g​e​d​.
 				 */
 				success: string
 			}
 			/**
-			 * 사​용​자​ ​비​밀​번​호​ ​변​경
+			 * C​h​a​n​g​e​ ​u​s​e​r​ ​p​a​s​s​w​o​r​d
 			 */
 			title: string
 			form: {
 				controls: {
 					/**
-					 * 새​ ​비​밀​번​호​ ​저​장
+					 * S​a​v​e​ ​n​e​w​ ​p​a​s​s​w​o​r​d
 					 */
 					submit: string
 				}
 				fields: {
 					newPassword: {
 						/**
-						 * 새​ ​비​밀​번​호
+						 * N​e​w​ ​p​a​s​s​w​o​r​d
 						 */
 						label: string
 					}
 					confirmPassword: {
 						/**
-						 * 비​밀​번​호​ ​다​시​ ​입​력
+						 * R​e​p​e​a​t​ ​p​a​s​s​w​o​r​d
 						 */
 						label: string
 					}
@@ -761,130 +761,130 @@ type RootTranslation = {
 		}
 		provisionKeys: {
 			/**
-			 * Y​u​b​i​k​e​y​ ​프​로​비​저​닝​:
+			 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​:
 			 */
 			title: string
 			/**
-			 * 이​ ​작​업​은​ ​y​u​b​i​k​e​y​의​ ​o​p​e​n​p​g​p​ ​애​플​리​케​이​션​을​ ​삭​제​하​고​ ​재​구​성​합​니​다​.
+			 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​y​u​b​i​k​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
 			 */
 			warning: string
 			/**
-			 * 선​택​한​ ​프​로​비​저​너​에​는​ ​프​로​비​저​닝​할​ ​<​b​>​깨​끗​한​<​/​b​>​ ​Y​u​b​i​K​e​y​가​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​연​결​되​어​ ​있​어​야​ ​합​니​다​.​ ​사​용​된​ ​Y​u​b​i​K​e​y​를​ ​청​소​하​려​면​ ​프​로​비​저​닝​하​기​ ​전​에​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​를​ ​실​행​하​십​시​오​.
+			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​s​i​o​n​e​r​ ​m​u​s​t​ ​h​a​v​e​ ​a​ ​<​b​>​c​l​e​a​n​<​/​b​>​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​l​u​g​g​e​d​ ​i​n​ ​b​e​ ​p​r​o​v​i​s​i​o​n​e​d​.​ ​T​o​ ​c​l​e​a​n​ ​a​ ​u​s​e​d​ ​Y​u​b​i​K​e​y​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​b​>​g​p​g​ ​-​-​c​a​r​d​-​e​d​i​t​ ​<​/​b​>​ ​b​e​f​o​r​e​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
 			 */
 			infoBox: string
 			/**
-			 * 다​음​ ​프​로​비​저​너​ ​중​ ​하​나​를​ ​선​택​하​여​ ​Y​u​b​i​K​e​y​를​ ​프​로​비​저​닝​하​십​시​오​:
+			 * S​e​l​e​c​t​ ​o​n​e​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y​:
 			 */
 			selectionLabel: string
 			noData: {
 				/**
-				 * 작​업​자​를​ ​찾​을​ ​수​ ​없​습​니​다​.​ ​대​기​ ​중​.​.​.
+				 * N​o​ ​w​o​r​k​e​r​s​ ​f​o​u​n​d​,​ ​w​a​i​t​i​n​g​.​.​.
 				 */
 				workers: string
 			}
 			controls: {
 				/**
-				 * Y​u​b​i​K​e​y​ ​프​로​비​저​닝
+				 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​K​e​y
 				 */
 				submit: string
 			}
 			messages: {
 				/**
-				 * 키​가​ ​프​로​비​저​닝​되​었​습​니​다
+				 * K​e​y​s​ ​p​r​o​v​i​s​i​o​n​e​d
 				 */
 				success: string
 				/**
-				 * 작​업​자​ ​상​태​를​ ​가​져​오​는​ ​중​ ​오​류​가​ ​발​생​했​습​니​다​.
+				 * E​r​r​o​r​ ​w​h​i​l​e​ ​g​e​t​t​i​n​g​ ​w​o​r​k​e​r​ ​s​t​a​t​u​s​.
 				 */
 				errorStatus: string
 			}
 		}
 		addUser: {
 			/**
-			 * 새​ ​사​용​자​ ​추​가
+			 * A​d​d​ ​n​e​w​ ​u​s​e​r
 			 */
 			title: string
 			messages: {
 				/**
-				 * 사​용​자​가​ ​추​가​되​었​습​니​다
+				 * U​s​e​r​ ​a​d​d​e​d
 				 */
 				userAdded: string
 			}
 			form: {
 				/**
-				 * 사​용​자​ ​추​가
+				 * A​d​d​ ​u​s​e​r
 				 */
 				submit: string
 				fields: {
 					username: {
 						/**
-						 * 로​그​인
+						 * l​o​g​i​n
 						 */
 						placeholder: string
 						/**
-						 * 로​그​인
+						 * L​o​g​i​n
 						 */
 						label: string
 					}
 					password: {
 						/**
-						 * 비​밀​번​호
+						 * P​a​s​s​w​o​r​d
 						 */
 						placeholder: string
 						/**
-						 * 비​밀​번​호
+						 * P​a​s​s​w​o​r​d
 						 */
 						label: string
 					}
 					email: {
 						/**
-						 * 사​용​자​ ​이​메​일
+						 * U​s​e​r​ ​e​-​m​a​i​l
 						 */
 						placeholder: string
 						/**
-						 * 사​용​자​ ​이​메​일
+						 * U​s​e​r​ ​e​-​m​a​i​l
 						 */
 						label: string
 					}
 					firstName: {
 						/**
-						 * 이​름
+						 * F​i​r​s​t​ ​n​a​m​e
 						 */
 						placeholder: string
 						/**
-						 * 이​름
+						 * F​i​r​s​t​ ​n​a​m​e
 						 */
 						label: string
 					}
 					lastName: {
 						/**
-						 * 성
+						 * L​a​s​t​ ​n​a​m​e
 						 */
 						placeholder: string
 						/**
-						 * 성
+						 * L​a​s​t​ ​n​a​m​e
 						 */
 						label: string
 					}
 					phone: {
 						/**
-						 * 전​화​번​호
+						 * P​h​o​n​e
 						 */
 						placeholder: string
 						/**
-						 * 전​화​번​호
+						 * P​h​o​n​e
 						 */
 						label: string
 					}
 					enableEnrollment: {
 						/**
-						 * 등​록​ ​프​로​세​스​ ​사​용
+						 * U​s​e​ ​u​s​e​r​ ​s​e​l​f​-​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
 						 */
 						label: string
 						/**
-						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​자​세​한​ ​정​보​는​ ​여​기​를​ ​참​고​하​세​요​<​/​a​>
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
 						 */
 						link: string
 					}
@@ -894,81 +894,81 @@ type RootTranslation = {
 		webhookModal: {
 			title: {
 				/**
-				 * 웹​훅​ ​추​가​.
+				 * A​d​d​ ​w​e​b​h​o​o​k​.
 				 */
 				addWebhook: string
 				/**
-				 * 웹​훅​ ​편​집
+				 * E​d​i​t​ ​w​e​b​h​o​o​k
 				 */
 				editWebhook: string
 			}
 			messages: {
 				/**
-				 * 클​라​이​언​트​ ​I​D​가​ ​복​사​되​었​습​니​다​.
+				 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
 				 */
 				clientIdCopy: string
 				/**
-				 * 클​라​이​언​트​ ​암​호​가​ ​복​사​되​었​습​니​다​.
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
 				 */
 				clientSecretCopy: string
 			}
 			form: {
 				/**
-				 * 트​리​거​ ​이​벤​트​:
+				 * T​r​i​g​g​e​r​ ​e​v​e​n​t​s​:
 				 */
 				triggers: string
 				messages: {
 					/**
-					 * 웹​훅​이​ ​생​성​되​었​습​니​다​.
+					 * W​e​b​h​o​o​k​ ​c​r​e​a​t​e​d​.
 					 */
 					successAdd: string
 					/**
-					 * 웹​훅​이​ ​수​정​되​었​습​니​다​.
+					 * W​e​b​h​o​o​k​ ​m​o​d​i​f​i​e​d​.
 					 */
 					successModify: string
 				}
 				error: {
 					/**
-					 * U​R​L​이​ ​필​요​합​니​다​.
+					 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 					 */
 					urlRequired: string
 					/**
-					 * 유​효​한​ ​U​R​L​이​어​야​ ​합​니​다​.
+					 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
 					 */
 					validUrl: string
 					/**
-					 * 최​소​ ​하​나​의​ ​트​리​거​가​ ​있​어​야​ ​합​니​다​.
+					 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​t​r​i​g​g​e​r​.
 					 */
 					scopeValidation: string
 					/**
-					 * 토​큰​이​ ​필​요​합​니​다​.
+					 * T​o​k​e​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 					 */
 					tokenRequired: string
 				}
 				fields: {
 					description: {
 						/**
-						 * 설​명
+						 * D​e​s​c​r​i​p​t​i​o​n
 						 */
 						label: string
 						/**
-						 * 새​ ​사​용​자​ ​생​성​ ​시​ ​g​m​a​i​l​ ​계​정​을​ ​생​성​하​는​ ​웹​훅
+						 * W​e​b​h​o​o​k​ ​t​o​ ​c​r​e​a​t​e​ ​g​m​a​i​l​ ​a​c​c​o​u​n​t​ ​o​n​ ​n​e​w​ ​u​s​e​r
 						 */
 						placeholder: string
 					}
 					token: {
 						/**
-						 * 비​밀​ ​토​큰
+						 * S​e​c​r​e​t​ ​t​o​k​e​n
 						 */
 						label: string
 						/**
-						 * 인​증​ ​토​큰
+						 * A​u​t​h​o​r​i​z​a​t​i​o​n​ ​t​o​k​e​n
 						 */
 						placeholder: string
 					}
 					url: {
 						/**
-						 * 웹​훅​ ​U​R​L
+						 * W​e​b​h​o​o​k​ ​U​R​L
 						 */
 						label: string
 						/**
@@ -978,25 +978,25 @@ type RootTranslation = {
 					}
 					userCreated: {
 						/**
-						 * 새​ ​사​용​자​ ​생​성​됨
+						 * N​e​w​ ​u​s​e​r​ ​C​r​e​a​t​e​d
 						 */
 						label: string
 					}
 					userDeleted: {
 						/**
-						 * 사​용​자​ ​삭​제​됨
+						 * U​s​e​r​ ​d​e​l​e​t​e​d
 						 */
 						label: string
 					}
 					userModified: {
 						/**
-						 * 사​용​자​ ​수​정​됨
+						 * U​s​e​r​ ​m​o​d​i​f​i​e​d
 						 */
 						label: string
 					}
 					hwkeyProvision: {
 						/**
-						 * 사​용​자​ ​Y​u​b​i​k​e​y​ ​프​로​비​저​닝
+						 * U​s​e​r​ ​Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n
 						 */
 						label: string
 					}
@@ -1005,21 +1005,21 @@ type RootTranslation = {
 		}
 		deleteWebhook: {
 			/**
-			 * 웹​훅​ ​삭​제
+			 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
 			 */
 			title: string
 			/**
-			 * {​n​a​m​e​}​ ​웹​훅​을​ ​삭​제​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​n​a​m​e​}​ ​w​e​b​h​o​o​k​ ​?
 			 * @param {string} name
 			 */
 			message: RequiredParams<'name'>
 			/**
-			 * 삭​제
+			 * D​e​l​e​t​e
 			 */
 			submit: string
 			messages: {
 				/**
-				 * 웹​훅​이​ ​삭​제​되​었​습​니​다​.
+				 * W​e​b​h​o​o​k​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
 			}
@@ -1027,22 +1027,22 @@ type RootTranslation = {
 	}
 	addDevicePage: {
 		/**
-		 * 장​치​ ​추​가
+		 * A​d​d​ ​d​e​v​i​c​e
 		 */
 		title: string
 		helpers: {
 			/**
-			 * 이​ ​마​법​사​를​ ​사​용​하​여​ ​장​치​를​ ​추​가​할​ ​수​ ​있​습​니​다​.​ ​당​사​의​ ​기​본​ ​애​플​리​케​이​션​인​ ​"​d​e​f​g​u​a​r​d​"​ ​또​는​ ​다​른​ ​W​i​r​e​G​u​a​r​d​ ​클​라​이​언​트​를​ ​선​택​하​세​요​.​ ​잘​ ​모​르​시​겠​다​면​ ​간​편​하​게​ ​d​e​f​g​u​a​r​d​를​ ​사​용​하​는​ ​것​을​ ​권​장​합​니​다​.
+			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
 			 */
 			setupOpt: string
 			/**
-			 * d​e​f​g​u​a​r​d​ ​데​스​크​톱​ ​클​라​이​언​트​는​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​여​기​<​/​a​>​에​서​ ​다​운​로​드​하​고​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​이​ ​가​이​드​<​/​a​>​를​ ​따​르​세​요​.
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
 			 */
 			client: string
 		}
 		messages: {
 			/**
-			 * 장​치​가​ ​추​가​되​었​습​니​다
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
 			 */
 			deviceAdded: string
 		}
@@ -1050,41 +1050,41 @@ type RootTranslation = {
 			setupMethod: {
 				remote: {
 					/**
-					 * 데​스​크​톱​ ​클​라​이​언​트​ ​구​성
+					 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 					 */
 					title: string
 					/**
-					 * 단​일​ ​토​큰​으​로​ ​간​편​하​게​ ​설​정​할​ ​수​ ​있​습​니​다​.​ ​클​라​이​언​트​를​ ​다​운​로​드​하​고​ ​간​단​한​ ​보​안​을​ ​즐​기​세​요​.
+					 * A​ ​b​r​e​e​z​e​ ​t​o​ ​s​e​t​ ​u​p​ ​w​i​t​h​ ​j​u​s​t​ ​a​ ​s​i​n​g​l​e​ ​t​o​k​e​n​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​e​n​j​o​y​ ​s​t​r​a​i​g​h​t​f​o​r​w​a​r​d​ ​s​e​c​u​r​i​t​y​.
 					 */
 					subTitle: string
 					/**
-					 * d​e​f​g​u​a​r​d​ ​클​라​이​언​트​ ​다​운​로​드
+					 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​l​i​e​n​t
 					 */
 					link: string
 				}
 				manual: {
 					/**
-					 * 수​동​ ​W​i​r​e​G​u​a​r​d​ ​클​라​이​언​트
+					 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
 					 */
 					title: string
 					/**
-					 * 고​급​ ​사​용​자​의​ ​경​우​ ​다​운​로​드​ ​또​는​ ​Q​R​ ​코​드​를​ ​통​해​ ​고​유​한​ ​구​성​을​ ​얻​으​세​요​.​ ​클​라​이​언​트​를​ ​다​운​로​드​하​고​ ​V​P​N​ ​설​정​을​ ​제​어​하​세​요​.
+					 * F​o​r​ ​a​d​v​a​n​c​e​d​ ​u​s​e​r​s​,​ ​g​e​t​ ​a​ ​u​n​i​q​u​e​ ​c​o​n​f​i​g​ ​v​i​a​ ​d​o​w​n​l​o​a​d​ ​o​r​ ​Q​R​ ​c​o​d​e​.​ ​D​o​w​n​l​o​a​d​ ​t​h​e​ ​c​l​i​e​n​t​ ​a​n​d​ ​t​a​k​e​ ​c​o​n​t​r​o​l​ ​o​f​ ​y​o​u​r​ ​V​P​N​ ​s​e​t​u​p​.
 					 */
 					subTitle: string
 					/**
-					 * W​i​r​e​G​u​a​r​d​ ​클​라​이​언​트​ ​다​운​로​드
+					 * D​o​w​n​l​o​a​d​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
 					 */
 					link: string
 				}
 			}
 			configDevice: {
 				/**
-				 * 장​치​ ​구​성
+				 * C​o​n​f​i​g​u​r​e​ ​d​e​v​i​c​e
 				 */
 				title: string
 				messages: {
 					/**
-					 * 구​성​이​ ​클​립​보​드​에​ ​복​사​되​었​습​니​다
+					 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​h​a​s​ ​b​e​e​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
 					 */
 					copyConfig: string
 				}
@@ -1092,10 +1092,10 @@ type RootTranslation = {
 					/**
 					 * 
 				​ ​ ​ ​ ​<​p​>​
-				​ ​ ​ ​ ​ ​ ​개​인​ ​키​를​ ​저​장​하​지​ ​않​으​므​로​
-				​ ​ ​ ​ ​ ​ ​지​금​ ​구​성​을​ ​다​운​로​드​해​야​ ​합​니​다​.​
-				​ ​ ​ ​ ​ ​ ​이​ ​페​이​지​가​ ​닫​히​면​ ​전​체​ ​구​성​ ​파​일​(​개​인​ ​키​ ​포​함​,​ ​빈​ ​템​플​릿​만​)​을​
-				​ ​ ​ ​ ​ ​ ​가​져​올​ ​수​ ​없​습​니​다​.​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
+				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
+				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
 				​ ​ ​ ​ ​<​/​p​>​
 			
 					 */
@@ -1103,46 +1103,46 @@ type RootTranslation = {
 					/**
 					 * 
 				​ ​ ​ ​ ​<​p​>​
-				​ ​ ​ ​ ​ ​ ​여​기​에​ ​제​공​된​ ​구​성​에​는​ ​개​인​ ​키​가​ ​포​함​되​어​ ​있​지​ ​않​으​며​ ​공​개​ ​키​를​ ​사​용​하​여​ ​채​워​져​ ​있​습​니​다​.​ ​구​성​이​ ​제​대​로​ ​작​동​하​려​면​ ​직​접​ ​교​체​해​야​ ​합​니​다​.​
+				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
 				​ ​ ​ ​ ​<​/​p​>​
 			
 					 */
 					warningManualMode: string
 					/**
-					 * 액​세​스​할​ ​수​ ​있​는​ ​네​트​워​크​가​ ​없​습​니​다​.
+					 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​n​y​ ​n​e​t​w​o​r​k​.
 					 */
 					warningNoNetworks: string
 					/**
 					 * 
 				​ ​ ​ ​ ​ ​ ​<​p​>​
-				​ ​ ​ ​ ​ ​ ​ ​ ​이​ ​Q​R​ ​코​드​를​ ​스​캔​하​여​ ​w​i​r​e​g​u​a​r​d​ ​애​플​리​케​이​션​으​로​ ​장​치​를​ ​더​ ​빠​르​게​ ​설​정​할​ ​수​ ​있​습​니​다​.​
+				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
 				​ ​ ​ ​ ​ ​ ​<​/​p​>
 					 */
 					qrHelper: string
 				}
 				/**
-				 * 아​래​ ​제​공​된​ ​구​성​ ​파​일​을​ ​Q​R​ ​코​드​를​ ​스​캔​하​거​나​ ​장​치​의​ ​W​i​r​e​G​u​a​r​d​ ​인​스​턴​스​에​ ​파​일​로​ ​가​져​와​서​ ​사​용​하​세​요​.
+				 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
 				 */
 				qrInfo: string
 				/**
-				 * 장​치​ ​이​름
+				 * D​e​v​i​c​e​ ​N​a​m​e
 				 */
 				inputNameLabel: string
 				/**
-				 * W​i​r​e​G​u​a​r​d​ ​구​성​ ​파​일
+				 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​F​i​l​e
 				 */
 				qrLabel: string
 			}
 			setupDevice: {
 				/**
-				 * V​P​N​ ​장​치​ ​생​성
+				 * C​r​e​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e
 				 */
 				title: string
 				/**
 				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​장​치​에​서​ ​W​i​r​e​G​u​a​r​d​V​P​N​을​ ​구​성​해​야​ ​합​니​다​.​ ​방​법​을​ ​모​르​는​ ​경​우​&​n​b​s​p​;​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​문​서​<​/​a​>​를​ ​참​조​하​세​요​.​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		
 				 * @param {string} addDevicesDocs
@@ -1150,11 +1150,11 @@ type RootTranslation = {
 				infoMessage: RequiredParams<'addDevicesDocs'>
 				options: {
 					/**
-					 * 키​ ​쌍​ ​생​성
+					 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
 					 */
 					auto: string
 					/**
-					 * 내​ ​공​개​ ​키​ ​사​용
+					 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
 					 */
 					manual: string
 				}
@@ -1162,13 +1162,13 @@ type RootTranslation = {
 					fields: {
 						name: {
 							/**
-							 * 장​치​ ​이​름
+							 * D​e​v​i​c​e​ ​N​a​m​e
 							 */
 							label: string
 						}
 						publicKey: {
 							/**
-							 * 공​개​ ​키​ ​제​공
+							 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
 							 */
 							label: string
 						}
@@ -1176,7 +1176,7 @@ type RootTranslation = {
 					errors: {
 						name: {
 							/**
-							 * 이​ ​이​름​을​ ​가​진​ ​장​치​가​ ​이​미​ ​존​재​합​니​다
+							 * D​e​v​i​c​e​ ​w​i​t​h​ ​t​h​i​s​ ​n​a​m​e​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s
 							 */
 							duplicatedName: string
 						}
@@ -1185,15 +1185,15 @@ type RootTranslation = {
 			}
 			copyToken: {
 				/**
-				 * 클​라​이​언​트​ ​활​성​화
+				 * C​l​i​e​n​t​ ​a​c​t​i​v​a​t​i​o​n
 				 */
 				title: string
 				/**
-				 * 활​성​화​ ​토​큰
+				 * A​c​t​i​v​a​t​i​o​n​ ​t​o​k​e​n
 				 */
 				tokenCardTitle: string
 				/**
-				 * D​e​f​g​u​a​r​d​ ​인​스​턴​스​ ​U​R​L
+				 * D​e​f​g​u​a​r​d​ ​I​n​s​t​a​n​c​e​ ​U​R​L
 				 */
 				urlCardTitle: string
 			}
@@ -1202,61 +1202,61 @@ type RootTranslation = {
 	userPage: {
 		title: {
 			/**
-			 * 사​용​자​ ​프​로​필
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
 			 */
 			view: string
 			/**
-			 * 사​용​자​ ​프​로​필​ ​편​집
+			 * E​d​i​t​ ​U​s​e​r​ ​P​r​o​f​i​l​e
 			 */
 			edit: string
 		}
 		messages: {
 			/**
-			 * 사​용​자​가​ ​업​데​이​트​되​었​습​니​다​.
+			 * U​s​e​r​ ​u​p​d​a​t​e​d​.
 			 */
 			editSuccess: string
 			/**
-			 * 사​용​자​ ​정​보​를​ ​가​져​올​ ​수​ ​없​습​니​다​.
+			 * C​o​u​l​d​ ​n​o​t​ ​g​e​t​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​.
 			 */
 			failedToFetchUserData: string
 			/**
-			 * 비​밀​번​호​ ​재​설​정​ ​이​메​일​이​ ​전​송​되​었​습​니​다​.
+			 * P​a​s​s​w​o​r​d​ ​r​e​s​e​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​.
 			 */
 			passwordResetEmailSent: string
 		}
 		userDetails: {
 			/**
-			 * 프​로​필​ ​세​부​ ​정​보
+			 * P​r​o​f​i​l​e​ ​D​e​t​a​i​l​s
 			 */
 			header: string
 			messages: {
 				/**
-				 * 앱​ ​및​ ​모​든​ ​토​큰​이​ ​삭​제​되​었​습​니​다​.
+				 * A​p​p​ ​a​n​d​ ​a​l​l​ ​t​o​k​e​n​s​ ​d​e​l​e​t​e​d​.
 				 */
 				deleteApp: string
 			}
 			warningModals: {
 				/**
-				 * 경​고
+				 * W​a​r​n​i​n​g
 				 */
 				title: string
 				content: {
 					/**
-					 * 사​용​자​ ​이​름​을​ ​변​경​하​면​ ​D​e​f​g​u​a​r​d​를​ ​사​용​하​여​ ​로​그​인​한​ ​서​비​스​에​ ​큰​ ​영​향​을​ ​미​칩​니​다​.​ ​사​용​자​ ​이​름​을​ ​변​경​하​면​ ​사​용​자​가​ ​애​플​리​케​이​션​에​ ​대​한​ ​액​세​스​ ​권​한​을​ ​잃​을​ ​수​ ​있​습​니​다​(​애​플​리​케​이​션​에​서​ ​해​당​ ​사​용​자​를​ ​인​식​하​지​ ​못​하​기​ ​때​문​에​)​.​ ​계​속​ ​진​행​하​시​겠​습​니​까​?
+					 * C​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​y​ ​h​a​v​e​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​,​ ​a​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
 					 */
 					usernameChange: string
 					/**
-					 * 외​부​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​(​O​I​D​C​)​ ​공​급​자​를​ ​사​용​하​여​ ​사​용​자​를​ ​인​증​하​는​ ​경​우​ ​사​용​자​의​ ​이​메​일​ ​주​소​를​ ​변​경​하​면​ ​D​e​f​g​u​a​r​d​에​ ​로​그​인​하​는​ ​기​능​에​ ​큰​ ​영​향​을​ ​미​칠​ ​수​ ​있​습​니​다​.​ ​계​속​ ​진​행​하​시​겠​습​니​까​?
+					 * I​f​ ​y​o​u​ ​a​r​e​ ​u​s​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​ ​(​O​I​D​C​)​ ​p​r​o​v​i​d​e​r​s​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​u​s​e​r​s​,​ ​c​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​'​s​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​m​a​y​ ​h​a​v​e​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​t​h​e​i​r​ ​a​b​i​l​i​t​y​ ​t​o​ ​l​o​g​ ​i​n​ ​t​o​ ​D​e​f​g​u​a​r​d​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
 					 */
 					emailChange: string
 				}
 				buttons: {
 					/**
-					 * 진​행
+					 * P​r​o​c​e​e​d
 					 */
 					proceed: string
 					/**
-					 * 취​소
+					 * C​a​n​c​e​l
 					 */
 					cancel: string
 				}
@@ -1264,65 +1264,65 @@ type RootTranslation = {
 			fields: {
 				username: {
 					/**
-					 * 사​용​자​ ​이​름
+					 * U​s​e​r​n​a​m​e
 					 */
 					label: string
 				}
 				firstName: {
 					/**
-					 * 이​름
+					 * F​i​r​s​t​ ​n​a​m​e
 					 */
 					label: string
 				}
 				lastName: {
 					/**
-					 * 성
+					 * L​a​s​t​ ​n​a​m​e
 					 */
 					label: string
 				}
 				phone: {
 					/**
-					 * 전​화​번​호
+					 * P​h​o​n​e​ ​n​u​m​b​e​r
 					 */
 					label: string
 				}
 				email: {
 					/**
-					 * 이​메​일
+					 * E​-​m​a​i​l
 					 */
 					label: string
 				}
 				status: {
 					/**
-					 * 상​태
+					 * S​t​a​t​u​s
 					 */
 					label: string
 					/**
-					 * 활​성
+					 * A​c​t​i​v​e
 					 */
 					active: string
 					/**
-					 * 비​활​성
+					 * D​i​s​a​b​l​e​d
 					 */
 					disabled: string
 				}
 				groups: {
 					/**
-					 * 사​용​자​ ​그​룹
+					 * U​s​e​r​ ​g​r​o​u​p​s
 					 */
 					label: string
 					/**
-					 * 그​룹​ ​없​음
+					 * N​o​ ​g​r​o​u​p​s
 					 */
 					noData: string
 				}
 				apps: {
 					/**
-					 * 승​인​된​ ​앱
+					 * A​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
 					 */
 					label: string
 					/**
-					 * 승​인​된​ ​앱​ ​없​음
+					 * N​o​ ​a​u​t​h​o​r​i​z​e​d​ ​a​p​p​s
 					 */
 					noData: string
 				}
@@ -1330,130 +1330,130 @@ type RootTranslation = {
 		}
 		userAuthInfo: {
 			/**
-			 * 비​밀​번​호​ ​및​ ​인​증
+			 * P​a​s​s​w​o​r​d​ ​a​n​d​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
 			 */
 			header: string
 			password: {
 				/**
-				 * 비​밀​번​호​ ​설​정
+				 * P​a​s​s​w​o​r​d​ ​s​e​t​t​i​n​g​s
 				 */
 				header: string
 				/**
-				 * 비​밀​번​호​ ​변​경
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
 				 */
 				changePassword: string
 			}
 			recovery: {
 				/**
-				 * 복​구​ ​옵​션
+				 * R​e​c​o​v​e​r​y​ ​o​p​t​i​o​n​s
 				 */
 				header: string
 				codes: {
 					/**
-					 * 복​구​ ​코​드
+					 * R​e​c​o​v​e​r​y​ ​C​o​d​e​s
 					 */
 					label: string
 					/**
-					 * 조​회​됨
+					 * V​i​e​w​e​d
 					 */
 					viewed: string
 				}
 			}
 			mfa: {
 				/**
-				 * 이​중​ ​인​증​ ​방​법
+				 * T​w​o​-​f​a​c​t​o​r​ ​m​e​t​h​o​d​s
 				 */
 				header: string
 				edit: {
 					/**
-					 * M​F​A​ ​비​활​성​화
+					 * D​i​s​a​b​l​e​ ​M​F​A
 					 */
 					disable: string
 				}
 				messages: {
 					/**
-					 * M​F​A​가​ ​비​활​성​화​되​었​습​니​다​.
+					 * M​F​A​ ​d​i​s​a​b​l​e​d​.
 					 */
 					mfaDisabled: string
 					/**
-					 * 일​회​용​ ​비​밀​번​호​가​ ​비​활​성​화​되​었​습​니​다​.
+					 * O​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​ ​d​i​s​a​b​l​e​d​.
 					 */
 					OTPDisabled: string
 					/**
-					 * 이​메​일​ ​M​F​A​가​ ​비​활​성​화​되​었​습​니​다​.
+					 * E​m​a​i​l​ ​M​F​A​ ​d​i​s​a​b​l​e​d​.
 					 */
 					EmailMFADisabled: string
 					/**
-					 * M​F​A​ ​방​법​이​ ​변​경​되​었​습​니​다
+					 * M​F​A​ ​m​e​t​h​o​d​ ​c​h​a​n​g​e​d
 					 */
 					changeMFAMethod: string
 				}
 				securityKey: {
 					/**
-					 * 보​안​ ​키
+					 * s​e​c​u​r​i​t​y​ ​k​e​y
 					 */
 					singular: string
 					/**
-					 * 보​안​ ​키
+					 * s​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
 					plural: string
 				}
 				/**
-				 * 기​본​값
+				 * d​e​f​a​u​l​t
 				 */
 				'default': string
 				/**
-				 * 활​성​화​됨
+				 * E​n​a​b​l​e​d
 				 */
 				enabled: string
 				/**
-				 * 비​활​성​화​됨
+				 * D​i​s​a​b​l​e​d
 				 */
 				disabled: string
 				wallet: {
 					/**
-					 * 지​갑
+					 * W​a​l​l​e​t
 					 */
 					singular: string
 					/**
-					 * 지​갑
+					 * W​a​l​l​e​t​s
 					 */
 					plural: string
 				}
 				labels: {
 					/**
-					 * 시​간​ ​기​반​ ​일​회​용​ ​비​밀​번​호
+					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
 					 */
 					totp: string
 					/**
-					 * 이​메​일
+					 * E​m​a​i​l
 					 */
 					email: string
 					/**
-					 * 보​안​ ​키
+					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
 					webauth: string
 					/**
-					 * 지​갑
+					 * W​a​l​l​e​t​s
 					 */
 					wallets: string
 				}
 				editMode: {
 					/**
-					 * 활​성​화
+					 * E​n​a​b​l​e
 					 */
 					enable: string
 					/**
-					 * 비​활​성​화
+					 * D​i​s​a​b​l​e
 					 */
 					disable: string
 					/**
-					 * 기​본​값​으​로​ ​설​정
+					 * M​a​k​e​ ​d​e​f​a​u​l​t
 					 */
 					makeDefault: string
 					webauth: {
 						/**
-						 * 보​안​ ​키​ ​관​리
+						 * M​a​n​a​g​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​s
 						 */
 						manage: string
 					}
@@ -1462,75 +1462,75 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
-			 * 프​로​필​ ​편​집
+			 * E​d​i​t​ ​p​r​o​f​i​l​e
 			 */
 			editButton: string
 			/**
-			 * 계​정​ ​삭​제
+			 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 			 */
 			deleteAccount: string
 		}
 		devices: {
 			/**
-			 * 사​용​자​ ​장​치
+			 * U​s​e​r​ ​d​e​v​i​c​e​s
 			 */
 			header: string
 			addDevice: {
 				/**
-				 * 새​ ​장​치​ ​추​가
+				 * A​d​d​ ​n​e​w​ ​d​e​v​i​c​e
 				 */
 				web: string
 				/**
-				 * 이​ ​장​치​ ​추​가
+				 * A​d​d​ ​t​h​i​s​ ​d​e​v​i​c​e
 				 */
 				desktop: string
 			}
 			card: {
 				labels: {
 					/**
-					 * 공​개​ ​I​P
+					 * P​u​b​l​i​c​ ​I​P
 					 */
 					publicIP: string
 					/**
-					 * 연​결​ ​방​식
+					 * C​o​n​n​e​c​t​e​d​ ​t​h​r​o​u​g​h
 					 */
 					connectedThrough: string
 					/**
-					 * 연​결​ ​날​짜
+					 * C​o​n​n​e​c​t​e​d​ ​d​a​t​e
 					 */
 					connectionDate: string
 					/**
-					 * 마​지​막​ ​연​결​ ​위​치
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d​ ​f​r​o​m
 					 */
 					lastLocation: string
 					/**
-					 * 마​지​막​ ​연​결
+					 * L​a​s​t​ ​c​o​n​n​e​c​t​e​d
 					 */
 					lastConnected: string
 					/**
-					 * 할​당​된​ ​I​P
+					 * A​s​s​i​g​n​e​d​ ​I​P
 					 */
 					assignedIp: string
 					/**
-					 * 활​성
+					 * a​c​t​i​v​e
 					 */
 					active: string
 					/**
-					 * 연​결​된​ ​적​ ​없​음
+					 * N​e​v​e​r​ ​c​o​n​n​e​c​t​e​d
 					 */
 					noData: string
 				}
 				edit: {
 					/**
-					 * 장​치​ ​편​집
+					 * E​d​i​t​ ​d​e​v​i​c​e
 					 */
 					edit: string
 					/**
-					 * 장​치​ ​삭​제
+					 * D​e​l​e​t​e​ ​d​e​v​i​c​e
 					 */
 					'delete': string
 					/**
-					 * 구​성​ ​보​기
+					 * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 					 */
 					showConfigurations: string
 				}
@@ -1539,31 +1539,31 @@ type RootTranslation = {
 		wallets: {
 			messages: {
 				/**
-				 * 주​소​가​ ​복​사​되​었​습​니​다​.
+				 * A​d​d​r​e​s​s​ ​c​o​p​i​e​d​.
 				 */
 				addressCopied: string
 				duplicate: {
 					/**
-					 * 연​결​된​ ​지​갑​이​ ​이​미​ ​등​록​되​어​ ​있​습​니​다
+					 * C​o​n​n​e​c​t​e​d​ ​w​a​l​l​e​t​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
 					 */
 					primary: string
 					/**
-					 * 사​용​되​지​ ​않​은​ ​지​갑​을​ ​연​결​하​세​요​.
+					 * P​l​e​a​s​e​ ​c​o​n​n​e​c​t​ ​u​n​u​s​e​d​ ​w​a​l​l​e​t​.
 					 */
 					sub: string
 				}
 			}
 			/**
-			 * 사​용​자​ ​지​갑
+			 * U​s​e​r​ ​w​a​l​l​e​t​s
 			 */
 			header: string
 			/**
-			 * 새​ ​지​갑​ ​추​가
+			 * A​d​d​ ​n​e​w​ ​w​a​l​l​e​t
 			 */
 			addWallet: string
 			card: {
 				/**
-				 * 주​소
+				 * A​d​d​r​e​s​s
 				 */
 				address: string
 				/**
@@ -1572,33 +1572,33 @@ type RootTranslation = {
 				mfaBadge: string
 				edit: {
 					/**
-					 * M​F​A​ ​활​성​화
+					 * E​n​a​b​l​e​ ​M​F​A
 					 */
 					enableMFA: string
 					/**
-					 * M​F​A​ ​비​활​성​화
+					 * D​i​s​a​b​l​e​ ​M​F​A
 					 */
 					disableMFA: string
 					/**
-					 * 삭​제
+					 * D​e​l​e​t​e
 					 */
 					'delete': string
 					/**
-					 * 주​소​ ​복​사
+					 * C​o​p​y​ ​a​d​d​r​e​s​s
 					 */
 					copyAddress: string
 				}
 				messages: {
 					/**
-					 * 지​갑​이​ ​삭​제​되​었​습​니​다
+					 * W​a​l​l​e​t​ ​d​e​l​e​t​e​d
 					 */
 					deleteSuccess: string
 					/**
-					 * 지​갑​ ​M​F​A​가​ ​활​성​화​되​었​습​니​다
+					 * W​a​l​l​e​t​ ​M​F​A​ ​e​n​a​b​l​e​d
 					 */
 					enableMFA: string
 					/**
-					 * 지​갑​ ​M​F​A​가​ ​비​활​성​화​되​었​습​니​다
+					 * W​a​l​l​e​t​ ​M​F​A​ ​d​i​s​a​b​l​e​d
 					 */
 					disableMFA: string
 				}
@@ -1606,121 +1606,124 @@ type RootTranslation = {
 		}
 		yubiKey: {
 			/**
-			 * 사​용​자​ ​Y​u​b​i​K​e​y
+			 * U​s​e​r​ ​Y​u​b​i​K​e​y
 			 */
 			header: string
 			/**
-			 * Y​u​b​i​K​e​y​ ​프​로​비​저​닝
+			 * P​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
 			 */
 			provision: string
 			keys: {
 				/**
-				 * P​G​P​ ​키
+				 * P​G​P​ ​k​e​y
 				 */
 				pgp: string
 				/**
-				 * S​S​H​ ​키
+				 * S​S​H​ ​k​e​y
 				 */
 				ssh: string
 			}
 			noLicense: {
 				/**
-				 * Y​u​b​i​K​e​y​ ​모​듈
+				 * Y​u​b​i​K​e​y​ ​m​o​d​u​l​e
 				 */
 				moduleName: string
 				/**
-				 * Y​u​b​i​K​e​y​ ​관​리​ ​및​ ​프​로​비​저​닝​을​ ​위​한​ ​엔​터​프​라​이​즈​ ​모​듈​입​니​다​.
+				 * T​h​i​s​ ​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​m​o​d​u​l​e​ ​f​o​r​ ​Y​u​b​i​K​e​y
 				 */
 				line1: string
+				/**
+				 * m​a​n​a​g​e​m​e​n​t​ ​a​n​d​ ​p​r​o​v​i​s​i​o​n​i​n​g​.
+				 */
 				line2: string
 			}
 		}
 		authenticationKeys: {
 			/**
-			 * 사​용​자​ ​인​증​ ​키
+			 * U​s​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y​s
 			 */
 			header: string
 			/**
-			 * 새​ ​키​ ​추​가
+			 * A​d​d​ ​n​e​w​ ​K​e​y
 			 */
 			addKey: string
 			keysList: {
 				common: {
 					/**
-					 * 이​름​ ​변​경
+					 * R​e​n​a​m​e
 					 */
 					rename: string
 					/**
-					 * 키
+					 * K​e​y
 					 */
 					key: string
 					/**
-					 * 다​운​로​드
+					 * D​o​w​n​l​o​a​d
 					 */
 					download: string
 					/**
-					 * 복​사
+					 * C​o​p​y
 					 */
 					copy: string
 					/**
-					 * 시​리​얼​ ​번​호
+					 * S​e​r​i​a​l​ ​N​u​m​b​e​r
 					 */
 					serialNumber: string
 					/**
-					 * 삭​제
+					 * D​e​l​e​t​e
 					 */
 					'delete': string
 				}
 			}
 			deleteModal: {
 				/**
-				 * 인​증​ ​키​ ​삭​제
+				 * D​e​l​e​t​e​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
 				 */
 				title: string
 				/**
-				 * {​n​a​m​e​}​ ​키​가​ ​영​구​적​으​로​ ​삭​제​됩​니​다​.
+				 * K​e​y​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
 				 * @param {string} name
 				 */
 				confirmMessage: RequiredParams<'name'>
 			}
 			addModal: {
 				/**
-				 * 새​ ​인​증​ ​키​ ​추​가
+				 * A​d​d​ ​n​e​w​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​K​e​y
 				 */
 				header: string
 				/**
-				 * 키​ ​유​형
+				 * K​e​y​ ​T​y​p​e
 				 */
 				keyType: string
 				keyForm: {
 					placeholders: {
 						/**
-						 * 키​ ​이​름
+						 * K​e​y​ ​N​a​m​e
 						 */
 						title: string
 						key: {
 							/**
-							 * s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.​ ​로​ ​시​작
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​s​s​h​-​r​s​a​,​ ​e​c​d​s​a​-​s​h​a​2​-​n​i​s​t​p​2​5​6​,​ ​.​.​.
 							 */
 							ssh: string
 							/**
-							 * -​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-​ ​로​ ​시​작
+							 * B​e​g​i​n​s​ ​w​i​t​h​ ​-​-​-​-​-​B​E​G​I​N​ ​P​G​P​ ​P​U​B​L​I​C​ ​K​E​Y​ ​B​L​O​C​K​-​-​-​-​-
 							 */
 							gpg: string
 						}
 					}
 					labels: {
 						/**
-						 * 이​름
+						 * N​a​m​e
 						 */
 						title: string
 						/**
-						 * 키
+						 * K​e​y
 						 */
 						key: string
 					}
 					/**
-					 * {​n​a​m​e​}​ ​키​ ​추​가
+					 * A​d​d​ ​{​n​a​m​e​}​ ​k​e​y
 					 * @param {string} name
 					 */
 					submit: RequiredParams<'name'>
@@ -1728,60 +1731,60 @@ type RootTranslation = {
 				yubikeyForm: {
 					selectWorker: {
 						/**
-						 * 이​ ​작​업​은​ ​Y​u​b​i​K​e​y​의​ ​o​p​e​n​p​g​p​ ​애​플​리​케​이​션​을​ ​삭​제​하​고​ ​재​구​성​합​니​다​.
+						 * P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​t​h​i​s​ ​o​p​e​r​a​t​i​o​n​ ​w​i​l​l​ ​w​i​p​e​ ​o​p​e​n​p​g​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​o​n​ ​Y​u​b​i​K​e​y​ ​a​n​d​ ​r​e​c​o​n​f​i​g​u​r​e​ ​i​t​.
 						 */
 						info: string
 						/**
-						 * 다​음​ ​프​로​비​저​너​ ​중​ ​하​나​를​ ​선​택​하​여​ ​Y​u​b​i​K​e​y​를​ ​프​로​비​저​닝​하​십​시​오
+						 * S​e​l​e​c​t​ ​o​n​ ​o​f​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​a​ ​Y​u​b​i​K​e​y
 						 */
 						selectLabel: string
 						/**
-						 * 현​재​ ​등​록​된​ ​작​업​자​가​ ​없​습​니​다​.
+						 * N​o​ ​w​o​r​k​e​r​s​ ​a​r​e​ ​r​e​g​i​s​t​e​r​e​d​ ​r​i​g​h​t​ ​n​o​w​.
 						 */
 						noData: string
 						/**
-						 * 사​용​ ​가​능
+						 * A​v​a​i​l​a​b​l​e
 						 */
 						available: string
 						/**
-						 * 사​용​ ​불​가
+						 * U​n​a​v​a​i​l​a​b​l​e
 						 */
 						unavailable: string
 					}
 					provisioning: {
 						/**
-						 * 프​로​비​저​닝​ ​진​행​ ​중​,​ ​잠​시​ ​기​다​려​ ​주​세​요​.
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​i​n​ ​p​r​o​g​r​e​s​s​,​ ​p​l​e​a​s​e​ ​w​a​i​t​.
 						 */
 						inProgress: string
 						/**
-						 * 프​로​비​저​닝​ ​실​패​!
+						 * P​r​o​v​i​s​i​o​n​i​n​g​ ​f​a​i​l​e​d​ ​!
 						 */
 						error: string
 						/**
-						 * Y​u​b​i​k​e​y​가​ ​성​공​적​으​로​ ​프​로​비​저​닝​되​었​습​니​다
+						 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
 						 */
 						success: string
 					}
 					/**
-					 * Y​u​b​i​k​e​y​ ​프​로​비​저​닝
+					 * P​r​o​v​i​s​i​o​n​ ​Y​u​b​i​k​e​y
 					 */
 					submit: string
 				}
 				messages: {
 					/**
-					 * 키​가​ ​추​가​되​었​습​니​다​.
+					 * K​e​y​ ​a​d​d​e​d​.
 					 */
 					keyAdded: string
 					/**
-					 * 키​가​ ​이​미​ ​추​가​되​었​습​니​다​.
+					 * K​e​y​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
 					 */
 					keyExists: string
 					/**
-					 * 지​원​되​지​ ​않​는​ ​키​ ​형​식​입​니​다​.
+					 * U​n​s​u​p​p​o​r​t​e​d​ ​k​e​y​ ​f​o​r​m​a​t​.
 					 */
 					unsupportedKeyFormat: string
 					/**
-					 * 키​를​ ​추​가​할​ ​수​ ​없​습​니​다​.​ ​나​중​에​ ​다​시​ ​시​도​하​십​시​오​.
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​t​h​e​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
 					 */
 					genericError: string
 				}
@@ -1790,91 +1793,91 @@ type RootTranslation = {
 	}
 	usersOverview: {
 		/**
-		 * 사​용​자
+		 * U​s​e​r​s
 		 */
 		pageTitle: string
 		search: {
 			/**
-			 * 사​용​자​ ​찾​기
+			 * F​i​n​d​ ​u​s​e​r​s
 			 */
 			placeholder: string
 		}
 		filterLabels: {
 			/**
-			 * 모​든​ ​사​용​자
+			 * A​l​l​ ​u​s​e​r​s
 			 */
 			all: string
 			/**
-			 * 관​리​자​만
+			 * A​d​m​i​n​s​ ​o​n​l​y
 			 */
 			admin: string
 			/**
-			 * 사​용​자​만
+			 * U​s​e​r​s​ ​o​n​l​y
 			 */
 			users: string
 		}
 		/**
-		 * 모​든​ ​사​용​자
+		 * A​l​l​ ​u​s​e​r​s
 		 */
 		usersCount: string
 		/**
-		 * 새​ ​추​가
+		 * A​d​d​ ​n​e​w
 		 */
 		addNewUser: string
 		list: {
 			headers: {
 				/**
-				 * 사​용​자​ ​이​름
+				 * U​s​e​r​ ​n​a​m​e
 				 */
 				name: string
 				/**
-				 * 로​그​인
+				 * L​o​g​i​n
 				 */
 				username: string
 				/**
-				 * 전​화
+				 * P​h​o​n​e
 				 */
 				phone: string
 				/**
-				 * 작​업
+				 * A​c​t​i​o​n​s
 				 */
 				actions: string
 			}
 			editButton: {
 				/**
-				 * 비​밀​번​호​ ​변​경
+				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
 				 */
 				changePassword: string
 				/**
-				 * 계​정​ ​편​집
+				 * E​d​i​t​ ​a​c​c​o​u​n​t
 				 */
 				edit: string
 				/**
-				 * Y​u​b​i​K​e​y​ ​추​가
+				 * A​d​d​ ​Y​u​b​i​K​e​y
 				 */
 				addYubikey: string
 				/**
-				 * S​S​H​ ​키​ ​추​가
+				 * A​d​d​ ​S​S​H​ ​K​e​y
 				 */
 				addSSH: string
 				/**
-				 * G​P​G​ ​키​ ​추​가
+				 * A​d​d​ ​G​P​G​ ​K​e​y
 				 */
 				addGPG: string
 				/**
-				 * 계​정​ ​삭​제
+				 * D​e​l​e​t​e​ ​a​c​c​o​u​n​t
 				 */
 				'delete': string
 				/**
-				 * 등​록​ ​시​작
+				 * S​t​a​r​t​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				startEnrollment: string
 				/**
-				 * 데​스​크​톱​ ​클​라​이​언​트​ ​구​성
+				 * C​o​n​f​i​g​u​r​e​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t
 				 */
 				activateDesktop: string
 				/**
-				 * 비​밀​번​호​ ​재​설​정
+				 * R​e​s​e​t​ ​p​a​s​s​w​o​r​d
 				 */
 				resetPassword: string
 			}
@@ -1883,11 +1886,11 @@ type RootTranslation = {
 	navigation: {
 		bar: {
 			/**
-			 * V​P​N​ ​개​요
+			 * V​P​N​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
 			/**
-			 * 사​용​자
+			 * U​s​e​r​s
 			 */
 			users: string
 			/**
@@ -1899,53 +1902,53 @@ type RootTranslation = {
 			 */
 			webhooks: string
 			/**
-			 * O​p​e​n​I​D​ ​앱
+			 * O​p​e​n​I​D​ ​A​p​p​s
 			 */
 			openId: string
 			/**
-			 * 내​ ​프​로​필
+			 * M​y​ ​P​r​o​f​i​l​e
 			 */
 			myProfile: string
 			/**
-			 * 설​정
+			 * S​e​t​t​i​n​g​s
 			 */
 			settings: string
 			/**
-			 * 로​그​아​웃
+			 * L​o​g​ ​o​u​t
 			 */
 			logOut: string
 			/**
-			 * 등​록
+			 * E​n​r​o​l​l​m​e​n​t
 			 */
 			enrollment: string
 			/**
-			 * 지​원
+			 * S​u​p​p​o​r​t
 			 */
 			support: string
 			/**
-			 * 그​룹
+			 * G​r​o​u​p​s
 			 */
 			groups: string
 		}
 		mobileTitles: {
 			/**
-			 * 그​룹
+			 * G​r​o​u​p​s
 			 */
 			groups: string
 			/**
-			 * L​o​c​a​t​i​o​n​ ​생​성
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
 			wizard: string
 			/**
-			 * 사​용​자
+			 * U​s​e​r​s
 			 */
 			users: string
 			/**
-			 * 설​정
+			 * S​e​t​t​i​n​g​s
 			 */
 			settings: string
 			/**
-			 * 사​용​자​ ​프​로​필
+			 * U​s​e​r​ ​P​r​o​f​i​l​e
 			 */
 			user: string
 			/**
@@ -1957,23 +1960,23 @@ type RootTranslation = {
 			 */
 			webhooks: string
 			/**
-			 * O​p​e​n​I​d​ ​앱
+			 * O​p​e​n​I​d​ ​A​p​p​s
 			 */
 			openId: string
 			/**
-			 * 위​치​ ​개​요
+			 * L​o​c​a​t​i​o​n​ ​O​v​e​r​v​i​e​w
 			 */
 			overview: string
 			/**
-			 * 위​치​ ​편​집
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 			 */
 			networkSettings: string
 			/**
-			 * 등​록
+			 * E​n​r​o​l​l​m​e​n​t
 			 */
 			enrollment: string
 			/**
-			 * 지​원
+			 * S​u​p​p​o​r​t
 			 */
 			support: string
 		}
@@ -1983,7 +1986,7 @@ type RootTranslation = {
 		copyright: string
 		version: {
 			/**
-			 * 애​플​리​케​이​션​ ​버​전​:​ ​{​v​e​r​s​i​o​n​}
+			 * A​p​p​l​i​c​a​t​i​o​n​ ​v​e​r​s​i​o​n​:​ ​{​v​e​r​s​i​o​n​}
 			 * @param {string} version
 			 */
 			open: RequiredParams<'version'>
@@ -1996,150 +1999,150 @@ type RootTranslation = {
 	}
 	form: {
 		/**
-		 * 다​운​로​드
+		 * D​o​w​n​l​o​a​d
 		 */
 		download: string
 		/**
-		 * 복​사
+		 * C​o​p​y
 		 */
 		copy: string
 		/**
-		 * 변​경​ ​사​항​ ​저​장
+		 * S​a​v​e​ ​c​h​a​n​g​e​s
 		 */
 		saveChanges: string
 		/**
-		 * 제​출
+		 * S​u​b​m​i​t
 		 */
 		submit: string
 		/**
-		 * 로​그​인
+		 * S​i​g​n​ ​i​n
 		 */
 		login: string
 		/**
-		 * 취​소
+		 * C​a​n​c​e​l
 		 */
 		cancel: string
 		/**
-		 * 닫​기
+		 * C​l​o​s​e
 		 */
 		close: string
 		placeholders: {
 			/**
-			 * 비​밀​번​호
+			 * P​a​s​s​w​o​r​d
 			 */
 			password: string
 			/**
-			 * 사​용​자​ ​이​름
+			 * U​s​e​r​n​a​m​e
 			 */
 			username: string
 		}
 		error: {
 			/**
-			 * 필​드​에​ ​금​지​된​ ​문​자​가​ ​포​함​되​어​ ​있​습​니​다​.
+			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
 			 */
 			forbiddenCharacter: string
 			/**
-			 * 사​용​자​ ​이​름​이​ ​이​미​ ​사​용​ ​중​입​니​다​.
+			 * U​s​e​r​n​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
 			 */
 			usernameTaken: string
 			/**
-			 * 키​가​ ​유​효​하​지​ ​않​습​니​다​.
+			 * K​e​y​ ​i​s​ ​i​n​v​a​l​i​d​.
 			 */
 			invalidKey: string
 			/**
-			 * 필​드​가​ ​유​효​하​지​ ​않​습​니​다​.
+			 * F​i​e​l​d​ ​i​s​ ​i​n​v​a​l​i​d​.
 			 */
 			invalid: string
 			/**
-			 * 필​드​는​ ​필​수​입​니​다​.
+			 * F​i​e​l​d​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 			 */
 			required: string
 			/**
-			 * 제​출​된​ ​코​드​가​ ​유​효​하​지​ ​않​습​니​다​.
+			 * S​u​b​m​i​t​t​e​d​ ​c​o​d​e​ ​i​s​ ​i​n​v​a​l​i​d​.
 			 */
 			invalidCode: string
 			/**
-			 * 최​대​ ​길​이​를​ ​초​과​했​습​니​다​.
+			 * M​a​x​i​m​u​m​ ​l​e​n​g​t​h​ ​e​x​c​e​e​d​e​d​.
 			 */
 			maximumLength: string
 			/**
-			 * 최​소​ ​길​이​에​ ​도​달​하​지​ ​않​았​습​니​다​.
+			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​n​o​t​ ​r​e​a​c​h​e​d​.
 			 */
 			minimumLength: string
 			/**
-			 * 특​수​ ​문​자​는​ ​허​용​되​지​ ​않​습​니​다​.
+			 * N​o​ ​s​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​s​ ​a​r​e​ ​a​l​l​o​w​e​d​.
 			 */
 			noSpecialChars: string
 			/**
-			 * 숫​자​ ​하​나​가​ ​필​요​합​니​다​.
+			 * O​n​e​ ​d​i​g​i​t​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneDigit: string
 			/**
-			 * 특​수​ ​문​자​가​ ​필​요​합​니​다​.
+			 * S​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneSpecial: string
 			/**
-			 * 대​문​자​ ​하​나​가​ ​필​요​합​니​다​.
+			 * O​n​e​ ​u​p​p​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneUppercase: string
 			/**
-			 * 소​문​자​ ​하​나​가​ ​필​요​합​니​다​.
+			 * O​n​e​ ​l​o​w​e​r​c​a​s​e​ ​c​h​a​r​a​c​t​e​r​ ​r​e​q​u​i​r​e​d​.
 			 */
 			oneLowercase: string
 			/**
-			 * 최​대​ ​포​트​는​ ​6​5​5​3​5​입​니​다​.
+			 * M​a​x​i​m​u​m​ ​p​o​r​t​ ​i​s​ ​6​5​5​3​5​.
 			 */
 			portMax: string
 			/**
-			 * 유​효​한​ ​엔​드​포​인​트​를​ ​입​력​하​세​요​.
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​e​n​d​p​o​i​n​t​.
 			 */
 			endpoint: string
 			/**
-			 * 유​효​한​ ​주​소​를​ ​입​력​하​세​요​.
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​.
 			 */
 			address: string
 			/**
-			 * 유​효​한​ ​포​트​를​ ​입​력​하​세​요​.
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
 			 */
 			validPort: string
 			/**
-			 * 코​드​는​ ​6​자​리​여​야​ ​합​니​다​.
+			 * C​o​d​e​ ​s​h​o​u​l​d​ ​h​a​v​e​ ​6​ ​d​i​g​i​t​s​.
 			 */
 			validCode: string
 			/**
-			 * 유​효​한​ ​I​P​ ​또​는​ ​도​메​인​만​ ​허​용​됩​니​다​.
+			 * O​n​l​y​ ​v​a​l​i​d​ ​I​P​ ​o​r​ ​d​o​m​a​i​n​ ​i​s​ ​a​l​l​o​w​e​d​.
 			 */
 			allowedIps: string
 			/**
-			 * 숫​자​로​ ​시​작​할​ ​수​ ​없​습​니​다​.
+			 * C​a​n​n​o​t​ ​s​t​a​r​t​ ​f​r​o​m​ ​n​u​m​b​e​r​.
 			 */
 			startFromNumber: string
 			/**
-			 * 필​드​가​ ​일​치​하​지​ ​않​습​니​다​.
+			 * F​i​e​l​d​s​ ​d​o​n​'​t​ ​m​a​t​c​h​.
 			 */
 			repeat: string
 			/**
-			 * 유​효​한​ ​숫​자​를​ ​입​력​해​야​ ​합​니​다​.
+			 * E​x​p​e​c​t​e​d​ ​a​ ​v​a​l​i​d​ ​n​u​m​b​e​r​.
 			 */
 			number: string
 			/**
-			 * {​v​a​l​u​e​}​의​ ​최​솟​값​에​ ​도​달​하​지​ ​않​았​습​니​다​.
+			 * M​i​n​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
 			 * @param {number} value
 			 */
 			minimumValue: RequiredParams<'value'>
 			/**
-			 * {​v​a​l​u​e​}​의​ ​최​댓​값​을​ ​초​과​했​습​니​다​.
+			 * M​a​x​i​m​u​m​ ​v​a​l​u​e​ ​o​f​ ​{​v​a​l​u​e​}​ ​e​x​c​e​e​d​e​d​.
 			 * @param {number} value
 			 */
 			maximumValue: RequiredParams<'value'>
 			/**
-			 * 잘​못​된​ ​로​그​인​ ​시​도​가​ ​너​무​ ​많​습​니​다​.​ ​몇​ ​분​ ​후​에​ ​다​시​ ​시​도​하​십​시​오​.
+			 * T​o​o​ ​m​a​n​y​ ​b​a​d​ ​l​o​g​i​n​ ​a​t​t​e​m​p​t​s​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​i​n​ ​a​ ​f​e​w​ ​m​i​n​u​t​e​s​.
 			 */
 			tooManyBadLoginAttempts: string
 		}
 		floatingErrors: {
 			/**
-			 * 다​음​을​ ​수​정​하​십​시​오​:
+			 * P​l​e​a​s​e​ ​c​o​r​r​e​c​t​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​:
 			 */
 			title: string
 		}
@@ -2147,50 +2150,50 @@ type RootTranslation = {
 	components: {
 		deviceConfigsCard: {
 			/**
-			 * 위​치​에​ ​대​한​ ​W​i​r​e​G​u​a​r​d​ ​구​성​:
+			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
 			 */
 			cardTitle: string
 			messages: {
 				/**
-				 * 클​립​보​드​에​ ​구​성​이​ ​복​사​되​었​습​니​다​.
+				 * C​o​n​f​i​g​u​r​a​t​i​o​n​ ​c​o​p​i​e​d​ ​t​o​ ​t​h​e​ ​c​l​i​p​b​o​a​r​d
 				 */
 				copyConfig: string
 			}
 		}
 		gatewaysStatus: {
 			/**
-			 * 게​이​트​웨​이
+			 * G​a​t​e​w​a​y​s
 			 */
 			label: string
 			states: {
 				/**
-				 * 모​두​ ​연​결​됨
+				 * A​l​l​ ​c​o​n​n​e​c​t​e​d
 				 */
 				connected: string
 				/**
-				 * 하​나​ ​이​상​ ​작​동​하​지​ ​않​음
+				 * O​n​e​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​n​o​t​ ​w​o​r​k​i​n​g
 				 */
 				partial: string
 				/**
-				 * 연​결​ ​끊​김
+				 * D​i​s​c​o​n​n​e​c​t​e​d
 				 */
 				disconnected: string
 				/**
-				 * 연​결​ ​정​보​를​ ​가​져​오​는​ ​데​ ​실​패​했​습​니​다​.
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s​ ​f​a​i​l​e​d
 				 */
 				error: string
 				/**
-				 * 연​결​ ​정​보​를​ ​가​져​오​는​ ​중
+				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s
 				 */
 				loading: string
 			}
 			messages: {
 				/**
-				 * 게​이​트​웨​이​ ​상​태​를​ ​가​져​오​지​ ​못​했​습​니​다
+				 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​s​ ​s​t​a​t​u​s
 				 */
 				error: string
 				/**
-				 * 게​이​트​웨​이​를​ ​삭​제​하​지​ ​못​했​습​니​다
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​g​a​t​e​w​a​y
 				 */
 				deleteError: string
 			}
@@ -2198,11 +2201,11 @@ type RootTranslation = {
 		noLicenseBox: {
 			footer: {
 				/**
-				 * 엔​터​프​라​이​즈​ ​라​이​선​스​ ​받​기
+				 * G​e​t​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e
 				 */
 				get: string
 				/**
-				 * 연​락​처​:
+				 * b​y​ ​c​o​n​t​a​c​t​i​n​g​:
 				 */
 				contact: string
 			}
@@ -2210,7 +2213,7 @@ type RootTranslation = {
 	}
 	settingsPage: {
 		/**
-		 * 설​정
+		 * S​e​t​t​i​n​g​s
 		 */
 		title: string
 		tabs: {
@@ -2219,7 +2222,7 @@ type RootTranslation = {
 			 */
 			smtp: string
 			/**
-			 * 전​역​ ​설​정
+			 * G​l​o​b​a​l​ ​s​e​t​t​i​n​g​s
 			 */
 			global: string
 			/**
@@ -2231,37 +2234,37 @@ type RootTranslation = {
 			 */
 			openid: string
 			/**
-			 * 엔​터​프​라​이​즈​ ​기​능
+			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
 			 */
 			enterprise: string
 		}
 		messages: {
 			/**
-			 * 설​정​이​ ​업​데​이​트​되​었​습​니​다
+			 * S​e​t​t​i​n​g​s​ ​u​p​d​a​t​e​d
 			 */
 			editSuccess: string
 			/**
-			 * 챌​린​지​ ​메​시​지​가​ ​변​경​되​었​습​니​다
+			 * C​h​a​l​l​e​n​g​e​ ​m​e​s​s​a​g​e​ ​c​h​a​n​g​e​d
 			 */
 			challengeSuccess: string
 		}
 		enterpriseOnly: {
 			/**
-			 * 이​ ​기​능​은​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​에​서​만​ ​사​용​할​ ​수​ ​있​습​니​다​.
+			 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
 			 */
 			title: string
 			/**
-			 * 자​세​한​ ​내​용​은​ 
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
 			 */
 			subtitle: string
 			/**
-			 * 웹​사​이​트
+			 * w​e​b​s​i​t​e
 			 */
 			website: string
 		}
 		ldapSettings: {
 			/**
-			 * L​D​A​P​ ​설​정
+			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
 			 */
 			title: string
 			form: {
@@ -2271,67 +2274,67 @@ type RootTranslation = {
 					 */
 					ldap_url: string
 					/**
-					 * 바​인​드​ ​사​용​자​ ​이​름
+					 * B​i​n​d​ ​U​s​e​r​n​a​m​e
 					 */
 					ldap_bind_username: string
 					/**
-					 * 바​인​드​ ​비​밀​번​호
+					 * B​i​n​d​ ​P​a​s​s​w​o​r​d
 					 */
 					ldap_bind_password: string
 					/**
-					 * 멤​버​ ​속​성
+					 * M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_member_attr: string
 					/**
-					 * 사​용​자​ ​이​름​ ​속​성
+					 * U​s​e​r​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_username_attr: string
 					/**
-					 * 사​용​자​ ​객​체​ ​클​래​스
+					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_user_obj_class: string
 					/**
-					 * 사​용​자​ ​검​색​ ​기​준
+					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
 					 */
 					ldap_user_search_base: string
 					/**
-					 * 그​룹​ ​이​름​ ​속​성
+					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_groupname_attr: string
 					/**
-					 * 그​룹​ ​검​색​ ​기​준
+					 * G​r​o​u​p​ ​S​e​a​r​c​h​ ​B​a​s​e
 					 */
 					ldap_group_search_base: string
 					/**
-					 * 그​룹​ ​멤​버​ ​속​성
+					 * G​r​o​u​p​ ​M​e​m​b​e​r​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_group_member_attr: string
 					/**
-					 * 그​룹​ ​객​체​ ​클​래​스
+					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_group_obj_class: string
 				}
 				/**
-				 * 구​성​ ​삭​제
+				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				'delete': string
 			}
 			test: {
 				/**
-				 * L​D​A​P​ ​연​결​ ​테​스​트
+				 * T​e​s​t​ ​L​D​A​P​ ​C​o​n​n​e​c​t​i​o​n
 				 */
 				title: string
 				/**
-				 * 테​스​트
+				 * T​e​s​t
 				 */
 				submit: string
 				messages: {
 					/**
-					 * L​D​A​P​ ​연​결​ ​성​공
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​e​d​ ​s​u​c​c​e​s​s​f​u​l​l​y
 					 */
 					success: string
 					/**
-					 * L​D​A​P​ ​연​결​ ​거​부​됨
+					 * L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​r​e​j​e​c​t​e​d
 					 */
 					error: string
 				}
@@ -2340,83 +2343,83 @@ type RootTranslation = {
 		openIdSettings: {
 			general: {
 				/**
-				 * 외​부​ ​O​p​e​n​I​D​ ​설​정
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
 				 */
 				title: string
 				/**
-				 * 여​기​에​서​ ​D​e​f​g​u​a​r​d​ ​인​스​턴​스​의​ ​일​반​ ​O​p​e​n​I​D​ ​동​작​을​ ​변​경​할​ ​수​ ​있​습​니​다​.
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​g​e​n​e​r​a​l​ ​O​p​e​n​I​D​ ​b​e​h​a​v​i​o​r​ ​i​n​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​i​n​s​t​a​n​c​e​.
 				 */
 				helper: string
 				createAccount: {
 					/**
-					 * 외​부​ ​O​p​e​n​I​D​를​ ​통​해​ ​처​음​ ​로​그​인​할​ ​때​ ​사​용​자​ ​계​정​을​ ​자​동​으​로​ ​생​성​합​니​다​.
+					 * A​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​w​h​e​n​ ​l​o​g​g​i​n​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​t​h​r​o​u​g​h​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​.
 					 */
 					label: string
 					/**
-					 * 이​ ​옵​션​을​ ​활​성​화​하​면​ ​D​e​f​g​u​a​r​d​는​ ​외​부​ ​O​p​e​n​I​D​ ​공​급​자​를​ ​사​용​하​여​ ​처​음​ ​로​그​인​하​는​ ​사​용​자​에​ ​대​한​ ​새​ ​계​정​을​ ​자​동​으​로​ ​생​성​합​니​다​.​ ​그​렇​지​ ​않​으​면​ ​관​리​자​가​ ​먼​저​ ​사​용​자​ ​계​정​을​ ​생​성​해​야​ ​합​니​다​.
+					 * I​f​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​r​e​a​t​e​s​ ​n​e​w​ ​a​c​c​o​u​n​t​s​ ​f​o​r​ ​u​s​e​r​s​ ​w​h​o​ ​l​o​g​ ​i​n​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​t​i​m​e​ ​u​s​i​n​g​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​O​t​h​e​r​w​i​s​e​,​ ​t​h​e​ ​u​s​e​r​ ​a​c​c​o​u​n​t​ ​m​u​s​t​ ​f​i​r​s​t​ ​b​e​ ​c​r​e​a​t​e​d​ ​b​y​ ​a​n​ ​a​d​m​i​n​i​s​t​r​a​t​o​r​.
 					 */
 					helper: string
 				}
 			}
 			form: {
 				/**
-				 * 외​부​ ​O​p​e​n​I​D​ ​클​라​이​언​트​ ​설​정
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
 				 */
 				title: string
 				/**
-				 * 여​기​에​서​ ​외​부​ ​O​p​e​n​I​D​ ​공​급​자​가​ ​제​공​한​ ​값​으​로​ ​O​p​e​n​I​D​ ​클​라​이​언​트​ ​설​정​을​ ​구​성​할​ ​수​ ​있​습​니​다​.
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​O​p​e​n​I​D​ ​c​l​i​e​n​t​ ​s​e​t​t​i​n​g​s​ ​w​i​t​h​ ​v​a​l​u​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
 				 */
 				helper: string
 				/**
-				 * 사​용​자​ ​정​의
+				 * C​u​s​t​o​m
 				 */
 				custom: string
 				/**
-				 * 설​명​서
+				 * D​o​c​u​m​e​n​t​a​t​i​o​n
 				 */
 				documentation: string
 				/**
-				 * 공​급​자​ ​삭​제
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
 				 */
 				'delete': string
 				labels: {
 					provider: {
 						/**
-						 * 공​급​자
+						 * P​r​o​v​i​d​e​r
 						 */
 						label: string
 						/**
-						 * O​p​e​n​I​D​ ​공​급​자​를​ ​선​택​하​세​요​.​ ​사​용​자​ ​정​의​ ​공​급​자​를​ ​사​용​하​고​ ​직​접​ ​기​본​ ​U​R​L​을​ ​입​력​할​ ​수​ ​있​습​니​다​.
+						 * S​e​l​e​c​t​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​c​u​s​t​o​m​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​i​l​l​ ​i​n​ ​t​h​e​ ​b​a​s​e​ ​U​R​L​ ​b​y​ ​y​o​u​r​s​e​l​f​.
 						 */
 						helper: string
 					}
 					client_id: {
 						/**
-						 * 클​라​이​언​트​ ​I​D
+						 * C​l​i​e​n​t​ ​I​D
 						 */
 						label: string
 						/**
-						 * O​p​e​n​I​D​ ​공​급​자​가​ ​제​공​한​ ​클​라​이​언​트​ ​I​D​입​니​다​.
+						 * C​l​i​e​n​t​ ​I​D​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
 						 */
 						helper: string
 					}
 					client_secret: {
 						/**
-						 * 클​라​이​언​트​ ​보​안​ ​비​밀
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t
 						 */
 						label: string
 						/**
-						 * O​p​e​n​I​D​ ​공​급​자​가​ ​제​공​한​ ​클​라​이​언​트​ ​보​안​ ​비​밀​입​니​다​.
+						 * C​l​i​e​n​t​ ​S​e​c​r​e​t​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​.
 						 */
 						helper: string
 					}
 					base_url: {
 						/**
-						 * 기​본​ ​U​R​L
+						 * B​a​s​e​ ​U​R​L
 						 */
 						label: string
 						/**
-						 * O​p​e​n​I​D​ ​공​급​자​의​ ​기​본​ ​U​R​L​입​니​다​(​예​:​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​)​.​ ​자​세​한​ ​정​보​ ​및​ ​예​는​ ​설​명​서​를​ ​확​인​하​십​시​오​.
+						 * B​a​s​e​ ​U​R​L​ ​o​f​ ​y​o​u​r​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​,​ ​e​.​g​.​ ​h​t​t​p​s​:​/​/​a​c​c​o​u​n​t​s​.​g​o​o​g​l​e​.​c​o​m​.​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
 						 */
 						helper: string
 					}
@@ -2425,15 +2428,15 @@ type RootTranslation = {
 		}
 		modulesVisibility: {
 			/**
-			 * 모​듈​ ​가​시​성
+			 * M​o​d​u​l​e​s​ ​V​i​s​i​b​i​l​i​t​y
 			 */
 			header: string
 			/**
 			 * <​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​사​용​하​지​ ​않​는​ ​모​듈​이​ ​있​는​ ​경​우​ ​해​당​ ​모​듈​의​ ​가​시​성​을​ ​비​활​성​화​할​ ​수​ ​있​습​니​다​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​I​f​ ​y​o​u​r​ ​n​o​t​ ​u​s​i​n​g​ ​s​o​m​e​ ​m​o​d​u​l​e​s​ ​y​o​u​ ​c​a​n​ ​d​i​s​a​b​l​e​ ​t​h​e​i​r​ ​v​i​s​i​b​i​l​i​t​y​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​자​세​한​ ​내​용​은​ ​설​명​서​를​ ​참​조​하​십​시​오​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
 			 * @param {string} documentationLink
 			 */
@@ -2447,13 +2450,13 @@ type RootTranslation = {
 				}
 				webhooks_enabled: {
 					/**
-					 * 웹​훅
+					 * W​e​b​h​o​o​k​s
 					 */
 					label: string
 				}
 				worker_enabled: {
 					/**
-					 * Y​u​b​i​k​e​y​ ​프​로​비​저​닝
+					 * Y​u​b​i​k​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g
 					 */
 					label: string
 				}
@@ -2467,24 +2470,24 @@ type RootTranslation = {
 		}
 		defaultNetworkSelect: {
 			/**
-			 * 기​본​ ​위​치​ ​보​기
+			 * D​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w
 			 */
 			header: string
 			/**
-			 * <​p​>​여​기​에​서​ ​기​본​ ​위​치​ ​보​기​를​ ​변​경​할​ ​수​ ​있​습​니​다​.​<​/​p​>​
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​y​o​u​r​ ​d​e​f​a​u​l​t​ ​l​o​c​a​t​i​o​n​ ​v​i​e​w​.​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​자​세​한​ ​내​용​은​ ​설​명​서​를​ ​참​조​하​십​시​오​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>
 			 * @param {string} documentationLink
 			 */
 			helper: RequiredParams<'documentationLink'>
 			filterLabels: {
 				/**
-				 * 그​리​드​ ​보​기
+				 * G​r​i​d​ ​v​i​e​w
 				 */
 				grid: string
 				/**
-				 * 목​록​ ​보​기
+				 * L​i​s​t​ ​v​i​e​w
 				 */
 				list: string
 			}
@@ -2497,32 +2500,32 @@ type RootTranslation = {
 			fields: {
 				signMessage: {
 					/**
-					 * 기​본​ ​서​명​ ​메​시​지​ ​템​플​릿
+					 * D​e​f​a​u​l​t​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​t​e​m​p​l​a​t​e
 					 */
 					label: string
 				}
 			}
 			controls: {
 				/**
-				 * 변​경​ ​사​항​ ​저​장
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
 				 */
 				save: string
 			}
 		}
 		instanceBranding: {
 			/**
-			 * 인​스​턴​스​ ​브​랜​딩
+			 * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
 			 */
 			header: string
 			form: {
 				/**
-				 * 이​름​ ​및​ ​로​고​:
+				 * N​a​m​e​ ​&​ ​L​o​g​o​:
 				 */
 				title: string
 				fields: {
 					instanceName: {
 						/**
-						 * 인​스​턴​스​ ​이​름
+						 * I​n​s​t​a​n​c​e​ ​n​a​m​e
 						 */
 						label: string
 						/**
@@ -2532,40 +2535,40 @@ type RootTranslation = {
 					}
 					mainLogoUrl: {
 						/**
-						 * 로​그​인​ ​로​고​ ​u​r​l
+						 * L​o​g​i​n​ ​l​o​g​o​ ​u​r​l
 						 */
 						label: string
 						/**
-						 * <​p​>​최​대​ ​사​진​ ​크​기​는​ ​2​5​0​x​1​0​0​ ​ ​p​x​입​니​다​<​/​p​>
+						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x​<​/​p​>
 						 */
 						helper: string
 						/**
-						 * 기​본​ ​이​미​지
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
 						 */
 						placeholder: string
 					}
 					navLogoUrl: {
 						/**
-						 * 메​뉴​ ​및​ ​탐​색​ ​작​은​ ​로​고
+						 * M​e​n​u​ ​&​ ​n​a​v​i​g​a​t​i​o​n​ ​s​m​a​l​l​ ​l​o​g​o
 						 */
 						label: string
 						/**
-						 * <​p​>​최​대​ ​사​진​ ​크​기​는​ ​1​0​0​x​1​0​0​ ​p​x​입​니​다​<​/​p​>
+						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x​<​/​p​>
 						 */
 						helper: string
 						/**
-						 * 기​본​ ​이​미​지
+						 * D​e​f​a​u​l​t​ ​i​m​a​g​e
 						 */
 						placeholder: string
 					}
 				}
 				controls: {
 					/**
-					 * 기​본​값​ ​복​원
+					 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 					 */
 					restoreDefault: string
 					/**
-					 * 변​경​ ​사​항​ ​저​장
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
 					 */
 					submit: string
 				}
@@ -2573,11 +2576,11 @@ type RootTranslation = {
 			/**
 			 * 
 		​	​	​	​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​여​기​에​서​ ​d​e​f​g​u​a​r​d​ ​인​스​턴​스​의​ ​로​고​ ​및​ ​이​름​ ​u​r​l​을​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​추​가​할​ ​수​ ​있​습​니​다​.​ ​d​e​f​g​u​a​r​d​ ​대​신​ ​표​시​됩​니​다​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​d​o​c​u​m​e​n​t​a​t​i​o​n​L​i​n​k​}​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​자​세​한​ ​내​용​은​ ​설​명​서​를​ ​참​조​하​십​시​오​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​R​e​a​d​ ​m​o​r​e​ ​i​n​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​a​>​
 		​	​	​
 			 * @param {string} documentationLink
@@ -2586,44 +2589,44 @@ type RootTranslation = {
 		}
 		license: {
 			/**
-			 * 엔​터​프​라​이​즈
+			 * E​n​t​e​r​p​r​i​s​e
 			 */
 			header: string
 			helpers: {
 				enterpriseHeader: {
 					/**
-					 * 여​기​에​서​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​버​전​ ​라​이​선​스​를​ ​관​리​할​ ​수​ ​있​습​니​다​.
+					 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​v​e​r​s​i​o​n​ ​l​i​c​e​n​s​e​.
 					 */
 					text: string
 					/**
-					 * D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​에​ ​대​한​ ​자​세​한​ ​내​용​은​ ​웹​사​이​트​를​ ​방​문​하​십​시​오​.
+					 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​,​ ​v​i​s​i​t​ ​o​u​r​ ​w​e​b​i​s​t​e​.
 					 */
 					link: string
 				}
 				licenseKey: {
 					/**
-					 * 아​래​에​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​라​이​선​스​ ​키​를​ ​입​력​하​세​요​.​ ​라​이​선​스​ ​구​매​ ​후​ ​이​메​일​을​ ​통​해​ ​받​아​야​ ​합​니​다​.
+					 * E​n​t​e​r​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​k​e​y​ ​b​e​l​o​w​.​ ​Y​o​u​ ​s​h​o​u​l​d​ ​r​e​c​e​i​v​e​ ​i​t​ ​v​i​a​ ​e​m​a​i​l​ ​a​f​t​e​r​ ​p​u​r​c​h​a​s​i​n​g​ ​t​h​e​ ​l​i​c​e​n​s​e​.
 					 */
 					text: string
 					/**
-					 * 라​이​선​스​는​ ​여​기​에​서​ ​구​입​할​ ​수​ ​있​습​니​다​.
+					 * Y​o​u​ ​c​a​n​ ​p​u​r​c​h​a​s​e​ ​t​h​e​ ​l​i​c​e​n​s​e​ ​h​e​r​e​.
 					 */
 					link: string
 				}
 			}
 			form: {
 				/**
-				 * 라​이​선​스
+				 * L​i​c​e​n​s​e
 				 */
 				title: string
 				fields: {
 					key: {
 						/**
-						 * 라​이​선​스​ ​키
+						 * L​i​c​e​n​s​e​ ​k​e​y
 						 */
 						label: string
 						/**
-						 * D​e​f​g​u​a​r​d​ ​라​이​선​스​ ​키
+						 * Y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​l​i​c​e​n​s​e​ ​k​e​y
 						 */
 						placeholder: string
 					}
@@ -2631,31 +2634,31 @@ type RootTranslation = {
 			}
 			licenseInfo: {
 				/**
-				 * 라​이​선​스​ ​정​보
+				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
 				 */
 				title: string
 				/**
-				 * 라​이​선​스​ ​없​음
+				 * N​o​ ​l​i​c​e​n​s​e
 				 */
 				noLicense: string
 				types: {
 					subscription: {
 						/**
-						 * 구​독
+						 * S​u​b​s​c​r​i​p​t​i​o​n
 						 */
 						label: string
 						/**
-						 * 정​기​적​으​로​ ​자​동​ ​갱​신​되​는​ ​라​이​선​스
+						 * A​ ​l​i​c​e​n​s​e​ ​t​h​a​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w​s​ ​a​t​ ​r​e​g​u​l​a​r​ ​i​n​t​e​r​v​a​l​s
 						 */
 						helper: string
 					}
 					offline: {
 						/**
-						 * 오​프​라​인
+						 * O​f​f​l​i​n​e
 						 */
 						label: string
 						/**
-						 * 라​이​선​스​는​ ​만​료​ ​날​짜​까​지​ ​유​효​하​며​ ​자​동​으​로​ ​갱​신​되​지​ ​않​습​니​다
+						 * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​v​a​l​i​d​ ​u​n​t​i​l​ ​t​h​e​ ​e​x​p​i​r​y​ ​d​a​t​e​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w
 						 */
 						helper: string
 					}
@@ -2663,13 +2666,13 @@ type RootTranslation = {
 				fields: {
 					type: {
 						/**
-						 * 유​형
+						 * T​y​p​e
 						 */
 						label: string
 					}
 					validUntil: {
 						/**
-						 * 유​효​ ​기​간
+						 * V​a​l​i​d​ ​u​n​t​i​l
 						 */
 						label: string
 					}
@@ -2679,70 +2682,70 @@ type RootTranslation = {
 		smtp: {
 			form: {
 				/**
-				 * S​M​T​P​ ​구​성
+				 * S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				title: string
 				fields: {
 					encryption: {
 						/**
-						 * 암​호​화
+						 * E​n​c​r​y​p​t​i​o​n
 						 */
 						label: string
 					}
 					server: {
 						/**
-						 * 서​버​ ​주​소
+						 * S​e​r​v​e​r​ ​a​d​d​r​e​s​s
 						 */
 						label: string
 						/**
-						 * 주​소
+						 * A​d​d​r​e​s​s
 						 */
 						placeholder: string
 					}
 					port: {
 						/**
-						 * 서​버​ ​포​트
+						 * S​e​r​v​e​r​ ​p​o​r​t
 						 */
 						label: string
 						/**
-						 * 포​트
+						 * P​o​r​t
 						 */
 						placeholder: string
 					}
 					user: {
 						/**
-						 * 서​버​ ​사​용​자​ ​이​름
+						 * S​e​r​v​e​r​ ​u​s​e​r​n​a​m​e
 						 */
 						label: string
 						/**
-						 * 사​용​자​ ​이​름
+						 * U​s​e​r​n​a​m​e
 						 */
 						placeholder: string
 					}
 					password: {
 						/**
-						 * 서​버​ ​비​밀​번​호
+						 * S​e​r​v​e​r​ ​p​a​s​s​w​o​r​d
 						 */
 						label: string
 						/**
-						 * 비​밀​번​호
+						 * P​a​s​s​w​o​r​d
 						 */
 						placeholder: string
 					}
 					sender: {
 						/**
-						 * 보​내​는​ ​사​람​ ​이​메​일​ ​주​소
+						 * S​e​n​d​e​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
 						 */
 						label: string
 						/**
-						 * 주​소
+						 * A​d​d​r​e​s​s
 						 */
 						placeholder: string
 						/**
 						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​시​스​템​ ​메​시​지​는​ ​이​ ​주​소​에​서​ ​발​송​됩​니​다​.​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​예​:​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 						 */
@@ -2751,43 +2754,43 @@ type RootTranslation = {
 				}
 				controls: {
 					/**
-					 * 변​경​ ​사​항​ ​저​장
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
 					 */
 					submit: string
 				}
 			}
 			/**
-			 * 구​성​ ​삭​제
+			 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 			 */
 			'delete': string
 			testForm: {
 				/**
-				 * 테​스​트​ ​이​메​일​ ​보​내​기
+				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
 				 */
 				title: string
 				fields: {
 					to: {
 						/**
-						 * 주​소
+						 * A​d​d​r​e​s​s
 						 */
 						label: string
 						/**
-						 * 주​소
+						 * A​d​d​r​e​s​s
 						 */
 						placeholder: string
 					}
 				}
 				controls: {
 					/**
-					 * 보​내​기
+					 * S​e​n​d
 					 */
 					submit: string
 					/**
-					 * 테​스​트​ ​이​메​일​ ​전​송​됨
+					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
 					 */
 					success: string
 					/**
-					 * 이​메​일​ ​전​송​ ​오​류
+					 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
 					 */
 					error: string
 				}
@@ -2795,39 +2798,39 @@ type RootTranslation = {
 			/**
 			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​여​기​에​서​ ​사​용​자​에​게​ ​시​스​템​ ​메​시​지​를​ ​보​내​는​ ​데​ ​사​용​되​는​ ​S​M​T​P​ ​서​버​를​ ​구​성​할​ ​수​ ​있​습​니​다​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+		​	​	​
 			 */
 			helper: string
 		}
 		enrollment: {
 			/**
-			 * 등​록​은​ ​신​규​ ​직​원​이​ ​새​ ​계​정​을​ ​활​성​화​ ​및​ ​비​밀​번​호​를​ ​생​성​하​고​,​ ​V​P​N​ ​장​치​를​ ​구​성​할​ ​수​ ​있​도​록​ ​하​는​ ​프​로​세​스​입​니​다​.
+			 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.
 			 */
 			helper: string
 			vpnOptionality: {
 				/**
-				 * V​P​N​ ​단​계​ ​선​택​ ​사​항
+				 * V​P​N​ ​s​t​e​p​ ​o​p​t​i​o​n​a​l​i​t​y
 				 */
 				header: string
 				/**
-				 * 등​록​ ​중​ ​V​P​N​ ​장​치​ ​생​성​을​ ​선​택​ ​사​항​ ​또​는​ ​필​수​ ​사​항​으​로​ ​선​택​할​ ​수​ ​있​습​니​다​.
+				 * Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​w​h​e​t​h​e​r​ ​c​r​e​a​t​i​n​g​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​o​r​ ​m​a​n​d​a​t​o​r​y​ ​d​u​r​i​n​g​ ​e​n​r​o​l​l​m​e​n​t
 				 */
 				helper: string
 			}
 			welcomeMessage: {
 				/**
-				 * 환​영​ ​메​시​지
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 				 */
 				header: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​이​ ​텍​스​트​ ​입​력​란​에​서​는​ ​M​a​r​k​d​o​w​n​을​ ​사​용​할​ ​수​ ​있​습​니​다​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​제​목​은​ ​해​시​ ​#​로​ ​시​작​합​니​다​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​별​표​를​ ​사​용​하​여​ ​<​i​>​*​이​탤​릭​체​*​<​/​i​>​를​ ​만​듭​니​다​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​별​표​ ​두​ ​개​를​ ​사​용​하​여​ ​<​b​>​*​*​굵​게​*​*​<​/​b​>​ ​만​듭​니​다​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
 			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
@@ -2835,16 +2838,16 @@ type RootTranslation = {
 			}
 			welcomeEmail: {
 				/**
-				 * 환​영​ ​이​메​일
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
 				 */
 				header: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​이​ ​텍​스​트​ ​입​력​란​에​서​는​ ​M​a​r​k​d​o​w​n​을​ ​사​용​할​ ​수​ ​있​습​니​다​:​<​/​p​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​제​목​은​ ​해​시​ ​#​로​ ​시​작​합​니​다​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​별​표​를​ ​사​용​하​여​ ​<​i​>​*​이​탤​릭​체​*​<​/​i​>​를​ ​만​듭​니​다​<​/​l​i​>​
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​별​표​ ​두​ ​개​를​ ​사​용​하​여​ ​<​b​>​*​*​굵​게​*​*​<​/​b​>​ ​만​듭​니​다​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
 			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
@@ -2853,39 +2856,39 @@ type RootTranslation = {
 			form: {
 				controls: {
 					/**
-					 * 변​경​ ​사​항​ ​저​장
+					 * S​a​v​e​ ​c​h​a​n​g​e​s
 					 */
 					submit: string
 				}
 				welcomeMessage: {
 					/**
-					 * 등​록​이​ ​완​료​되​면​ ​사​용​자​에​게​ ​이​ ​정​보​가​ ​표​시​됩​니​다​.​ ​관​련​ ​링​크​를​ ​삽​입​하​고​ ​다​음​ ​단​계​를​ ​간​략​하​게​ ​설​명​하​는​ ​것​이​ ​좋​습​니​다​.
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
 					 */
 					helper: string
 					/**
-					 * 환​영​ ​메​시​지​를​ ​입​력​하​세​요
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					placeholder: string
 				}
 				welcomeEmail: {
 					/**
-					 * 등​록​이​ ​완​료​되​면​ ​사​용​자​에​게​ ​이​ ​정​보​가​ ​전​송​됩​니​다​.​ ​관​련​ ​링​크​를​ ​삽​입​하​고​ ​다​음​ ​단​계​를​ ​간​략​하​게​ ​설​명​하​는​ ​것​이​ ​좋​습​니​다​.​ ​환​영​ ​메​시​지​를​ ​여​기​에​서​ ​다​시​ ​사​용​할​ ​수​ ​있​습​니​다​.
+					 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​y​o​u​ ​t​o​ ​i​n​s​e​r​t​ ​r​e​l​e​v​a​n​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​r​e​u​s​e​ ​t​h​e​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e​ ​h​e​r​e​.
 					 */
 					helper: string
 					/**
-					 * 환​영​ ​이​메​일​을​ ​입​력​하​세​요
+					 * P​l​e​a​s​e​ ​i​n​p​u​t​ ​w​e​l​c​o​m​e​ ​e​m​a​i​l
 					 */
 					placeholder: string
 				}
 				welcomeEmailSubject: {
 					/**
-					 * 제​목
+					 * S​u​b​j​e​c​t
 					 */
 					label: string
 				}
 				useMessageAsEmail: {
 					/**
-					 * 환​영​ ​메​시​지​와​ ​동​일​하​게
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					label: string
 				}
@@ -2893,31 +2896,31 @@ type RootTranslation = {
 		}
 		enterprise: {
 			/**
-			 * 엔​터​프​라​이​즈​ ​기​능
+			 * E​n​t​e​r​p​r​i​s​e​ ​F​e​a​t​u​r​e​s
 			 */
 			header: string
 			/**
-			 * <​p​>​여​기​에​서​ ​엔​터​프​라​이​즈​ ​설​정​을​ ​변​경​할​ ​수​ ​있​습​니​다​.​<​/​p​>
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.​<​/​p​>
 			 */
 			helper: string
 			fields: {
 				deviceManagement: {
 					/**
-					 * 사​용​자​가​ ​자​신​의​ ​장​치​를​ ​관​리​하​는​ ​기​능​ ​비​활​성​화
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
 					 */
 					label: string
 					/**
-					 * 이​ ​옵​션​을​ ​활​성​화​하​면​ ​관​리​자​ ​그​룹​의​ ​사​용​자​만​ ​사​용​자​ ​프​로​필​에​서​ ​장​치​를​ ​관​리​할​ ​수​ ​있​습​니​다​(​다​른​ ​모​든​ ​사​용​자​는​ ​비​활​성​화​됨​)
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
 					 */
 					helper: string
 				}
 				manualConfig: {
 					/**
-					 * 사​용​자​가​ ​수​동​ ​W​i​r​e​G​u​a​r​d​ ​구​성​을​ ​다​운​로​드​하​는​ ​기​능​ ​비​활​성​화
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 					 */
 					label: string
 					/**
-					 * 이​ ​옵​션​을​ ​활​성​화​하​면​ ​사​용​자​에​게​ ​수​동​ ​클​라​이​언​트​ ​설​정​을​ ​위​한​ ​W​i​r​e​G​u​a​r​d​ ​구​성​이​ ​표​시​되​지​ ​않​습​니​다​.
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​p​r​e​s​e​n​t​e​d​ ​w​i​t​h​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​m​a​n​u​a​l​ ​c​l​i​e​n​t​ ​s​e​t​u​p
 					 */
 					helper: string
 				}
@@ -2926,116 +2929,116 @@ type RootTranslation = {
 	}
 	openidOverview: {
 		/**
-		 * O​p​e​n​I​D​ ​앱
+		 * O​p​e​n​I​D​ ​A​p​p​s
 		 */
 		pageTitle: string
 		search: {
 			/**
-			 * 앱​ ​찾​기
+			 * F​i​n​d​ ​a​p​p​s
 			 */
 			placeholder: string
 		}
 		filterLabels: {
 			/**
-			 * 모​든​ ​앱
+			 * A​l​l​ ​a​p​p​s
 			 */
 			all: string
 			/**
-			 * 활​성​화​됨
+			 * E​n​a​b​l​e​d
 			 */
 			enabled: string
 			/**
-			 * 비​활​성​화​됨
+			 * D​i​s​a​b​l​e​d
 			 */
 			disabled: string
 		}
 		/**
-		 * 모​든​ ​앱
+		 * A​l​l​ ​a​p​p​s
 		 */
 		clientCount: string
 		/**
-		 * 새​ ​추​가
+		 * A​d​d​ ​n​e​w
 		 */
 		addNewApp: string
 		list: {
 			headers: {
 				/**
-				 * 이​름
+				 * N​a​m​e
 				 */
 				name: string
 				/**
-				 * 상​태
+				 * S​t​a​t​u​s
 				 */
 				status: string
 				/**
-				 * 작​업
+				 * A​c​t​i​o​n​s
 				 */
 				actions: string
 			}
 			editButton: {
 				/**
-				 * 앱​ ​편​집
+				 * E​d​i​t​ ​a​p​p
 				 */
 				edit: string
 				/**
-				 * 앱​ ​삭​제
+				 * D​e​l​e​t​e​ ​a​p​p
 				 */
 				'delete': string
 				/**
-				 * 비​활​성​화
+				 * D​i​s​a​b​l​e
 				 */
 				disable: string
 				/**
-				 * 활​성​화
+				 * E​n​a​b​l​e
 				 */
 				enable: string
 				/**
-				 * 클​라​이​언​트​ ​I​D​ ​복​사
+				 * C​o​p​y​ ​c​l​i​e​n​t​ ​I​D
 				 */
 				copy: string
 			}
 			status: {
 				/**
-				 * 활​성​화​됨
+				 * E​n​a​b​l​e​d
 				 */
 				enabled: string
 				/**
-				 * 비​활​성​화​됨
+				 * D​i​s​a​b​l​e​d
 				 */
 				disabled: string
 			}
 		}
 		messages: {
 			/**
-			 * 클​라​이​언​트​ ​I​D​가​ ​복​사​되​었​습​니​다​.
+			 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
 			 */
 			copySuccess: string
 			/**
-			 * 이​ ​기​능​에​ ​대​한​ ​라​이​선​스​가​ ​없​습​니​다​.
+			 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
 			 */
 			noLicenseMessage: string
 			/**
-			 * 결​과​를​ ​찾​을​ ​수​ ​없​습​니​다​.
+			 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d​.
 			 */
 			noClientsFound: string
 		}
 		deleteApp: {
 			/**
-			 * 앱​ ​삭​제
+			 * D​e​l​e​t​e​ ​a​p​p
 			 */
 			title: string
 			/**
-			 * {​a​p​p​N​a​m​e​}​ ​앱​을​ ​삭​제​하​시​겠​습​니​까​?
+			 * D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​d​e​l​e​t​e​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p​ ​?
 			 * @param {string} appName
 			 */
 			message: RequiredParams<'appName'>
 			/**
-			 * 앱​ ​삭​제
+			 * D​e​l​e​t​e​ ​a​p​p
 			 */
 			submit: string
 			messages: {
 				/**
-				 * 앱​이​ ​삭​제​되​었​습​니​다​.
+				 * A​p​p​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
 			}
@@ -3043,7 +3046,7 @@ type RootTranslation = {
 		enableApp: {
 			messages: {
 				/**
-				 * 앱​이​ ​활​성​화​되​었​습​니​다​.
+				 * A​p​p​ ​e​n​a​b​l​e​d​.
 				 */
 				success: string
 			}
@@ -3051,7 +3054,7 @@ type RootTranslation = {
 		disableApp: {
 			messages: {
 				/**
-				 * 앱​이​ ​비​활​성​화​되​었​습​니​다​.
+				 * A​p​p​ ​d​i​s​a​b​l​e​d​.
 				 */
 				success: string
 			}
@@ -3060,64 +3063,64 @@ type RootTranslation = {
 			openidClientModal: {
 				title: {
 					/**
-					 * 애​플​리​케​이​션​ ​추​가
+					 * A​d​d​ ​A​p​p​l​i​c​a​t​i​o​n
 					 */
 					addApp: string
 					/**
-					 * {​a​p​p​N​a​m​e​}​ ​앱​ ​편​집
+					 * E​d​i​t​ ​{​a​p​p​N​a​m​e​}​ ​a​p​p
 					 * @param {string} appName
 					 */
 					editApp: RequiredParams<'appName'>
 				}
 				/**
-				 * 범​위​:
+				 * S​c​o​p​e​s​:
 				 */
 				scopes: string
 				messages: {
 					/**
-					 * 클​라​이​언​트​ ​I​D​ ​복​사​됨​.
+					 * C​l​i​e​n​t​ ​I​D​ ​c​o​p​i​e​d​.
 					 */
 					clientIdCopy: string
 					/**
-					 * 클​라​이​언​트​ ​암​호​ ​복​사​됨​.
+					 * C​l​i​e​n​t​ ​s​e​c​r​e​t​ ​c​o​p​i​e​d​.
 					 */
 					clientSecretCopy: string
 				}
 				form: {
 					messages: {
 						/**
-						 * 앱​ ​생​성​됨​.
+						 * A​p​p​ ​c​r​e​a​t​e​d​.
 						 */
 						successAdd: string
 						/**
-						 * 앱​ ​수​정​됨​.
+						 * A​p​p​ ​m​o​d​i​f​i​e​d​.
 						 */
 						successModify: string
 					}
 					error: {
 						/**
-						 * U​R​L​이​ ​필​요​합​니​다​.
+						 * U​R​L​ ​i​s​ ​r​e​q​u​i​r​e​d​.
 						 */
 						urlRequired: string
 						/**
-						 * 유​효​한​ ​U​R​L​이​어​야​ ​합​니​다​.
+						 * M​u​s​t​ ​b​e​ ​a​ ​v​a​l​i​d​ ​U​R​L​.
 						 */
 						validUrl: string
 						/**
-						 * 최​소​ ​하​나​의​ ​범​위​가​ ​있​어​야​ ​합​니​다​.
+						 * M​u​s​t​ ​h​a​v​e​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​c​o​p​e​.
 						 */
 						scopeValidation: string
 					}
 					fields: {
 						name: {
 							/**
-							 * 앱​ ​이​름
+							 * A​p​p​ ​n​a​m​e
 							 */
 							label: string
 						}
 						redirectUri: {
 							/**
-							 * 리​디​렉​션​ ​U​R​L​ ​{​c​o​u​n​t​}
+							 * R​e​d​i​r​e​c​t​ ​U​R​L​ ​{​c​o​u​n​t​}
 							 * @param {number} count
 							 */
 							label: RequiredParams<'count'>
@@ -3134,42 +3137,42 @@ type RootTranslation = {
 						}
 						profile: {
 							/**
-							 * 프​로​필
+							 * P​r​o​f​i​l​e
 							 */
 							label: string
 						}
 						email: {
 							/**
-							 * 이​메​일
+							 * E​m​a​i​l
 							 */
 							label: string
 						}
 						phone: {
 							/**
-							 * 전​화
+							 * P​h​o​n​e
 							 */
 							label: string
 						}
 						groups: {
 							/**
-							 * 그​룹
+							 * G​r​o​u​p​s
 							 */
 							label: string
 						}
 					}
 					controls: {
 						/**
-						 * U​R​L​ ​추​가
+						 * A​d​d​ ​U​R​L
 						 */
 						addUrl: string
 					}
 				}
 				/**
-				 * 클​라​이​언​트​ ​I​D
+				 * C​l​i​e​n​t​ ​I​D
 				 */
 				clientId: string
 				/**
-				 * 클​라​이​언​트​ ​암​호
+				 * C​l​i​e​n​t​ ​s​e​c​r​e​t
 				 */
 				clientSecret: string
 			}
@@ -3182,80 +3185,80 @@ type RootTranslation = {
 		pageTitle: string
 		search: {
 			/**
-			 * U​R​L​로​ ​웹​훅​ ​찾​기
+			 * F​i​n​d​ ​w​e​b​h​o​o​k​s​ ​b​y​ ​u​r​l
 			 */
 			placeholder: string
 		}
 		filterLabels: {
 			/**
-			 * 모​든​ ​웹​훅
+			 * A​l​l​ ​w​e​b​h​o​o​k​s
 			 */
 			all: string
 			/**
-			 * 활​성​화​됨
+			 * E​n​a​b​l​e​d
 			 */
 			enabled: string
 			/**
-			 * 비​활​성​화​됨
+			 * D​i​s​a​b​l​e​d
 			 */
 			disabled: string
 		}
 		/**
-		 * 모​든​ ​웹​훅
+		 * A​l​l​ ​w​e​b​h​o​o​k​s
 		 */
 		webhooksCount: string
 		/**
-		 * 새​ ​추​가
+		 * A​d​d​ ​n​e​w
 		 */
 		addNewWebhook: string
 		/**
-		 * 웹​훅​을​ ​찾​을​ ​수​ ​없​습​니​다​.
+		 * N​o​ ​w​e​b​h​o​o​k​s​ ​f​o​u​n​d​.
 		 */
 		noWebhooksFound: string
 		list: {
 			headers: {
 				/**
-				 * 이​름
+				 * N​a​m​e
 				 */
 				name: string
 				/**
-				 * 설​명
+				 * D​e​s​c​r​i​p​t​i​o​n
 				 */
 				description: string
 				/**
-				 * 상​태
+				 * S​t​a​t​u​s
 				 */
 				status: string
 				/**
-				 * 작​업
+				 * A​c​t​i​o​n​s
 				 */
 				actions: string
 			}
 			editButton: {
 				/**
-				 * 편​집
+				 * E​d​i​t
 				 */
 				edit: string
 				/**
-				 * 웹​훅​ ​삭​제
+				 * D​e​l​e​t​e​ ​w​e​b​h​o​o​k
 				 */
 				'delete': string
 				/**
-				 * 비​활​성​화
+				 * D​i​s​a​b​l​e
 				 */
 				disable: string
 				/**
-				 * 활​성​화
+				 * E​n​a​b​l​e
 				 */
 				enable: string
 			}
 			status: {
 				/**
-				 * 활​성​화​됨
+				 * E​n​a​b​l​e​d
 				 */
 				enabled: string
 				/**
-				 * 비​활​성​화​됨
+				 * D​i​s​a​b​l​e​d
 				 */
 				disabled: string
 			}
@@ -3263,61 +3266,61 @@ type RootTranslation = {
 	}
 	provisionersOverview: {
 		/**
-		 * 프​로​비​저​너
+		 * P​r​o​v​i​s​i​o​n​e​r​s
 		 */
 		pageTitle: string
 		search: {
 			/**
-			 * 프​로​비​저​너​ ​찾​기
+			 * F​i​n​d​ ​p​r​o​v​i​s​i​o​n​e​r​s
 			 */
 			placeholder: string
 		}
 		filterLabels: {
 			/**
-			 * 전​체
+			 * A​l​l
 			 */
 			all: string
 			/**
-			 * 사​용​ ​가​능
+			 * A​v​a​i​l​a​b​l​e
 			 */
 			available: string
 			/**
-			 * 사​용​ ​불​가
+			 * U​n​a​v​a​i​l​a​b​l​e
 			 */
 			unavailable: string
 		}
 		/**
-		 * 모​든​ ​프​로​비​저​너
+		 * A​l​l​ ​p​r​o​v​i​s​i​o​n​e​r​s
 		 */
 		provisionersCount: string
 		/**
-		 * 프​로​비​저​너​를​ ​찾​을​ ​수​ ​없​습​니​다​.
+		 * N​o​ ​p​r​o​v​i​s​i​o​n​e​r​s​ ​f​o​u​n​d​.
 		 */
 		noProvisionersFound: string
 		/**
-		 * 이​ ​기​능​에​ ​대​한​ ​라​이​선​스​가​ ​없​습​니​다​.
+		 * Y​o​u​ ​d​o​n​'​t​ ​h​a​v​e​ ​a​ ​l​i​c​e​n​s​e​ ​f​o​r​ ​t​h​i​s​ ​f​e​a​t​u​r​e​.
 		 */
 		noLicenseMessage: string
 		provisioningStation: {
 			/**
-			 * Y​u​b​i​K​e​y​ ​프​로​비​저​닝​ ​스​테​이​션
+			 * Y​u​b​i​K​e​y​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n
 			 */
 			header: string
 			/**
-			 * Y​u​b​i​K​e​y​s​를​ ​프​로​비​저​닝​하​려​면​ ​먼​저​ ​U​S​B​ ​슬​롯​이​ ​있​는​ ​물​리​적​ ​시​스​템​을​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​설​정​해​야​ ​합​니​다​.​ ​선​택​한​ ​시​스​템​에​서​ ​제​공​된​ ​명​령​을​ ​실​행​하​여​ ​등​록​하​고​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​키​ ​프​로​비​저​닝​을​ ​시​작​하​세​요​.
+			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​b​e​ ​a​b​l​e​ ​t​o​ ​p​r​o​v​i​s​i​o​n​ ​y​o​u​r​ ​Y​u​b​i​K​e​y​s​,​ ​f​i​r​s​t​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​ ​u​p​
+		​ ​ ​ ​ ​ ​ ​ ​ ​p​h​y​s​i​c​a​l​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​U​S​B​ ​s​l​o​t​.​ ​R​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​ ​o​n​ ​y​o​u​r​ ​c​h​o​s​e​n​
+		​ ​ ​ ​ ​ ​ ​ ​ ​m​a​c​h​i​n​e​ ​t​o​ ​r​e​g​i​s​t​e​r​ ​i​t​ ​a​n​d​ ​s​t​a​r​t​ ​p​r​o​v​i​s​i​o​n​i​n​g​ ​y​o​u​r​ ​k​e​y​s​.
 			 */
 			content: string
 			dockerCard: {
 				/**
-				 * 프​로​비​저​닝​ ​스​테​이​션​ ​도​커​ ​설​정​ ​명​령
+				 * P​r​o​v​i​s​i​o​n​i​n​g​ ​s​t​a​t​i​o​n​ ​d​o​c​k​e​r​ ​s​e​t​u​p​ ​c​o​m​m​a​n​d
 				 */
 				title: string
 			}
 			tokenCard: {
 				/**
-				 * 액​세​스​ ​토​큰
+				 * A​c​c​e​s​s​ ​t​o​k​e​n
 				 */
 				title: string
 			}
@@ -3325,35 +3328,35 @@ type RootTranslation = {
 		list: {
 			headers: {
 				/**
-				 * 이​름
+				 * N​a​m​e
 				 */
 				name: string
 				/**
-				 * I​P​ ​주​소
+				 * I​P​ ​a​d​d​r​e​s​s
 				 */
 				ip: string
 				/**
-				 * 상​태
+				 * S​t​a​t​u​s
 				 */
 				status: string
 				/**
-				 * 작​업
+				 * A​c​t​i​o​n​s
 				 */
 				actions: string
 			}
 			editButton: {
 				/**
-				 * 프​로​비​저​너​ ​삭​제
+				 * D​e​l​e​t​e​ ​p​r​o​v​i​s​i​o​n​e​r
 				 */
 				'delete': string
 			}
 			status: {
 				/**
-				 * 사​용​ ​가​능
+				 * A​v​a​i​l​a​b​l​e
 				 */
 				available: string
 				/**
-				 * 사​용​ ​불​가
+				 * U​n​a​v​a​i​l​a​b​l​e
 				 */
 				unavailable: string
 			}
@@ -3361,11 +3364,11 @@ type RootTranslation = {
 		messages: {
 			copy: {
 				/**
-				 * 토​큰​ ​복​사​됨
+				 * T​o​k​e​n​ ​c​o​p​i​e​d
 				 */
 				token: string
 				/**
-				 * 명​령​ ​복​사​됨
+				 * C​o​m​m​a​n​d​ ​c​o​p​i​e​d
 				 */
 				command: string
 			}
@@ -3373,157 +3376,157 @@ type RootTranslation = {
 	}
 	openidAllow: {
 		/**
-		 * {​n​a​m​e​}​이​(​가​)​ ​다​음​을​ ​원​합​니​다​:
+		 * {​n​a​m​e​}​ ​w​o​u​l​d​ ​l​i​k​e​ ​t​o​:
 		 * @param {string} name
 		 */
 		header: RequiredParams<'name'>
 		scopes: {
 			/**
-			 * 향​후​ ​로​그​인​을​ ​위​해​ ​프​로​필​ ​데​이​터​를​ ​사​용​합​니​다​.
+			 * U​s​e​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​d​a​t​a​ ​f​o​r​ ​f​u​t​u​r​e​ ​l​o​g​i​n​s​.
 			 */
 			openid: string
 			/**
-			 * 이​름​,​ ​프​로​필​ ​사​진​ ​등​ ​프​로​필​의​ ​기​본​ ​정​보​를​ ​알​고​ ​있​습​니​다​.
+			 * K​n​o​w​ ​b​a​s​i​c​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​y​o​u​r​ ​p​r​o​f​i​l​e​ ​l​i​k​e​ ​n​a​m​e​,​ ​p​r​o​f​i​l​e​ ​p​i​c​t​u​r​e​ ​e​t​c​.
 			 */
 			profile: string
 			/**
-			 * 이​메​일​ ​주​소​를​ ​알​고​ ​있​습​니​다​.
+			 * K​n​o​w​ ​y​o​u​r​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​.
 			 */
 			email: string
 			/**
-			 * 전​화​번​호​를​ ​알​고​ ​있​습​니​다​.
+			 * K​n​o​w​ ​y​o​u​r​ ​p​h​o​n​e​ ​n​u​m​b​e​r​.
 			 */
 			phone: string
 			/**
-			 * 그​룹​ ​멤​버​십​을​ ​알​고​ ​있​습​니​다​.
+			 * K​n​o​w​ ​y​o​u​r​ ​g​r​o​u​p​s​ ​m​e​m​b​e​r​s​h​i​p​.
 			 */
 			groups: string
 		}
 		controls: {
 			/**
-			 * 수​락
+			 * A​c​c​e​p​t
 			 */
 			accept: string
 			/**
-			 * 취​소
+			 * C​a​n​c​e​l
 			 */
 			cancel: string
 		}
 	}
 	networkOverview: {
 		/**
-		 * 위​치​ ​개​요
+		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
 		pageTitle: string
 		controls: {
 			/**
-			 * 위​치​ ​설​정​ ​편​집
+			 * E​d​i​t​ ​L​o​c​a​t​i​o​n​s​ ​s​e​t​t​i​n​g​s
 			 */
 			editNetworks: string
 			selectNetwork: {
 				/**
-				 * 위​치​ ​로​드​ ​중
+				 * L​o​a​d​i​n​g​ ​l​o​c​a​t​i​o​n​s
 				 */
 				placeholder: string
 			}
 		}
 		filterLabels: {
 			/**
-			 * 그​리​드​ ​보​기
+			 * G​r​i​d​ ​v​i​e​w
 			 */
 			grid: string
 			/**
-			 * 목​록​ ​보​기
+			 * L​i​s​t​ ​v​i​e​w
 			 */
 			list: string
 		}
 		stats: {
 			/**
-			 * 현​재​ ​활​성​ ​사​용​자
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
 			 */
 			currentlyActiveUsers: string
 			/**
-			 * 현​재​ ​활​성​ ​장​치
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​d​e​v​i​c​e​s
 			 */
 			currentlyActiveDevices: string
 			/**
-			 * {​h​o​u​r​}​시​간​ ​내​ ​활​성​ ​사​용​자
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​H
 			 * @param {number} hour
 			 */
 			activeUsersFilter: RequiredParams<'hour'>
 			/**
-			 * {​h​o​u​r​}​시​간​ ​내​ ​활​성​ ​장​치
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​H
 			 * @param {number} hour
 			 */
 			activeDevicesFilter: RequiredParams<'hour'>
 			/**
-			 * 총​ ​전​송​량​:
+			 * T​o​t​a​l​ ​t​r​a​n​s​f​e​r​:
 			 */
 			totalTransfer: string
 			/**
-			 * {​h​o​u​r​}​시​간​ ​내​ ​활​동
+			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
 			 * @param {number} hour
 			 */
 			activityIn: RequiredParams<'hour'>
 			/**
-			 * 들​어​오​는​ ​트​래​픽​:
+			 * I​n​:
 			 */
 			'in': string
 			/**
-			 * 나​가​는​ ​트​래​픽​:
+			 * O​u​t​:
 			 */
 			out: string
 			/**
-			 * 게​이​트​웨​이​ ​연​결​ ​끊​김
+			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d
 			 */
 			gatewayDisconnected: string
 		}
 	}
 	connectedUsersOverview: {
 		/**
-		 * 연​결​된​ ​사​용​자
+		 * C​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
 		 */
 		pageTitle: string
 		/**
-		 * 현​재​ ​연​결​된​ ​사​용​자​가​ ​없​습​니​다
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​a​r​e​ ​n​o​ ​c​o​n​n​e​c​t​e​d​ ​u​s​e​r​s
 		 */
 		noUsersMessage: string
 		userList: {
 			/**
-			 * 사​용​자​ ​이​름
+			 * U​s​e​r​n​a​m​e
 			 */
 			username: string
 			/**
-			 * 장​치
+			 * D​e​v​i​c​e
 			 */
 			device: string
 			/**
-			 * 연​결​됨
+			 * C​o​n​n​e​c​t​e​d
 			 */
 			connected: string
 			/**
-			 * 장​치​ ​위​치
+			 * D​e​v​i​c​e​ ​l​o​c​a​t​i​o​n
 			 */
 			deviceLocation: string
 			/**
-			 * 네​트​워​크​ ​사​용​량
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
 			 */
 			networkUsage: string
 		}
 	}
 	networkPage: {
 		/**
-		 * 위​치​ ​편​집
+		 * E​d​i​t​ ​L​o​c​a​t​i​o​n
 		 */
 		pageTitle: string
 		/**
-		 * +​ ​새​ ​위​치​ ​추​가
+		 * +​ ​A​d​d​ ​n​e​w​ ​l​o​c​a​t​i​o​n
 		 */
 		addNetwork: string
 		controls: {
 			networkSelect: {
 				/**
-				 * 위​치​ ​선​택
+				 * L​o​c​a​t​i​o​n​ ​c​h​o​i​c​e
 				 */
 				label: string
 			}
@@ -3531,11 +3534,11 @@ type RootTranslation = {
 	}
 	activityOverview: {
 		/**
-		 * 활​동​ ​스​트​림
+		 * A​c​t​i​v​i​t​y​ ​s​t​r​e​a​m
 		 */
 		header: string
 		/**
-		 * 현​재​ ​감​지​된​ ​활​동​이​ ​없​습​니​다
+		 * C​u​r​r​e​n​t​l​y​ ​t​h​e​r​e​ ​i​s​ ​n​o​ ​a​c​t​i​v​i​t​y​ ​d​e​t​e​c​t​e​d
 		 */
 		noData: string
 	}
@@ -3543,84 +3546,84 @@ type RootTranslation = {
 		messages: {
 			'delete': {
 				/**
-				 * 네​트​워​크​ ​삭​제​됨
+				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
 				 */
 				success: string
 				/**
-				 * 네​트​워​크​ ​삭​제​ ​실​패
+				 * F​a​i​l​e​d​ ​t​o​ ​d​e​l​e​t​e​ ​n​e​t​w​o​r​k
 				 */
 				error: string
 			}
 		}
 		/**
-		 * 위​치​ ​구​성
+		 * L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		header: string
 		/**
-		 * 위​치​ ​가​져​오​기
+		 * L​o​c​a​t​i​o​n​ ​i​m​p​o​r​t
 		 */
 		importHeader: string
 		form: {
 			helpers: {
 				/**
-				 * 이​ ​주​소​를​ ​기​반​으​로​ ​V​P​N​ ​네​트​워​크​ ​주​소​가​ ​정​의​됩​니​다​.​ ​예​:​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​V​P​N​ ​네​트​워​크​는​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​가​ ​됩​니​다​)
+				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
 				 */
 				address: string
 				/**
-				 * V​P​N​ ​사​용​자​가​ ​연​결​하​는​ ​데​ ​사​용​되​는​ ​게​이​트​웨​이​ ​공​개​ ​주​소
+				 * G​a​t​e​w​a​y​ ​p​u​b​l​i​c​ ​a​d​d​r​e​s​s​,​ ​u​s​e​d​ ​b​y​ ​V​P​N​ ​u​s​e​r​s​ ​t​o​ ​c​o​n​n​e​c​t
 				 */
 				gateway: string
 				/**
-				 * w​i​r​e​g​u​a​r​d​ ​인​터​페​이​스​가​ ​활​성​화​될​ ​때​ ​쿼​리​할​ ​D​N​S​ ​확​인​자​를​ ​지​정​합​니​다​.
+				 * S​p​e​c​i​f​y​ ​t​h​e​ ​D​N​S​ ​r​e​s​o​l​v​e​r​s​ ​t​o​ ​q​u​e​r​y​ ​w​h​e​n​ ​t​h​e​ ​w​i​r​e​g​u​a​r​d​ ​i​n​t​e​r​f​a​c​e​ ​i​s​ ​u​p​.
 				 */
 				dns: string
 				/**
-				 * V​P​N​ ​네​트​워​크​를​ ​통​해​ ​라​우​팅​되​어​야​ ​하​는​ ​주​소​/​마​스​크​ ​목​록​입​니​다​.
+				 * L​i​s​t​ ​o​f​ ​a​d​d​r​e​s​s​e​s​/​m​a​s​k​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​r​o​u​t​e​d​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​n​e​t​w​o​r​k​.
 				 */
 				allowedIps: string
 				/**
-				 * 기​본​적​으​로​ ​모​든​ ​사​용​자​가​ ​이​ ​위​치​에​ ​연​결​할​ ​수​ ​있​습​니​다​.​ ​특​정​ ​그​룹​으​로​ ​이​ ​위​치​에​ ​대​한​ ​액​세​스​를​ ​제​한​하​려​면​ ​아​래​에​서​ ​선​택​하​십​시​오​.
+				 * B​y​ ​d​e​f​a​u​l​t​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​l​l​o​w​e​d​ ​t​o​ ​c​o​n​n​e​c​t​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.​ ​I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​t​r​i​c​t​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​t​o​ ​a​ ​s​p​e​c​i​f​i​c​ ​g​r​o​u​p​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​i​t​ ​b​e​l​o​w​.
 				 */
 				allowedGroups: string
 			}
 			messages: {
 				/**
-				 * 위​치​가​ ​수​정​되​었​습​니​다​.
+				 * L​o​c​a​t​i​o​n​ ​m​o​d​i​f​i​e​d​.
 				 */
 				networkModified: string
 				/**
-				 * 위​치​가​ ​생​성​되​었​습​니​다
+				 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
 				 */
 				networkCreated: string
 			}
 			fields: {
 				name: {
 					/**
-					 * 위​치​ ​이​름
+					 * L​o​c​a​t​i​o​n​ ​n​a​m​e
 					 */
 					label: string
 				}
 				address: {
 					/**
-					 * 게​이​트​웨​이​ ​V​P​N​ ​I​P​ ​주​소​ ​및​ ​넷​마​스​크
+					 * G​a​t​e​w​a​y​ ​V​P​N​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​n​d​ ​n​e​t​m​a​s​k
 					 */
 					label: string
 				}
 				endpoint: {
 					/**
-					 * 게​이​트​웨​이​ ​주​소
+					 * G​a​t​e​w​a​y​ ​a​d​d​r​e​s​s
 					 */
 					label: string
 				}
 				allowedIps: {
 					/**
-					 * 허​용​된​ ​I​P
+					 * A​l​l​o​w​e​d​ ​I​p​s
 					 */
 					label: string
 				}
 				port: {
 					/**
-					 * 게​이​트​웨​이​ ​포​트
+					 * G​a​t​e​w​a​y​ ​p​o​r​t
 					 */
 					label: string
 				}
@@ -3632,44 +3635,44 @@ type RootTranslation = {
 				}
 				allowedGroups: {
 					/**
-					 * 허​용​된​ ​그​룹
+					 * A​l​l​o​w​e​d​ ​g​r​o​u​p​s
 					 */
 					label: string
 					/**
-					 * 모​든​ ​그​룹
+					 * A​l​l​ ​g​r​o​u​p​s
 					 */
 					placeholder: string
 				}
 				mfa_enabled: {
 					/**
-					 * 이​ ​위​치​에​ ​M​F​A​ ​필​요
+					 * R​e​q​u​i​r​e​ ​M​F​A​ ​f​o​r​ ​t​h​i​s​ ​L​o​c​a​t​i​o​n
 					 */
 					label: string
 				}
 				keepalive_interval: {
 					/**
-					 * K​e​e​p​a​l​i​v​e​ ​간​격​ ​[​초​]
+					 * K​e​e​p​a​l​i​v​e​ ​i​n​t​e​r​v​a​l​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * 피​어​ ​연​결​ ​끊​김​ ​임​계​값​ ​[​초​]
+					 * P​e​e​r​ ​d​i​s​c​o​n​n​e​c​t​ ​t​h​r​e​s​h​o​l​d​ ​[​s​e​c​o​n​d​s​]
 					 */
 					label: string
 				}
 			}
 			controls: {
 				/**
-				 * 변​경​ ​사​항​ ​저​장
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
 				 */
 				submit: string
 				/**
-				 * 개​요​로​ ​돌​아​가​기
+				 * B​a​c​k​ ​t​o​ ​O​v​e​r​v​i​e​w
 				 */
 				cancel: string
 				/**
-				 * 위​치​ ​제​거
+				 * R​e​m​o​v​e​ ​l​o​c​a​t​i​o​n
 				 */
 				'delete': string
 			}
@@ -3678,89 +3681,89 @@ type RootTranslation = {
 	gatewaySetup: {
 		header: {
 			/**
-			 * 게​이​트​웨​이​ ​서​버​ ​설​정
+			 * G​a​t​e​w​a​y​ ​s​e​r​v​e​r​ ​s​e​t​u​p
 			 */
 			main: string
 			/**
-			 * D​o​c​k​e​r​ ​기​반​ ​게​이​트​웨​이​ ​설​정
+			 * D​o​c​k​e​r​ ​B​a​s​e​d​ ​G​a​t​e​w​a​y​ ​S​e​t​u​p
 			 */
 			dockerBasedGatewaySetup: string
 			/**
-			 * 패​키​지​로​부​터
+			 * F​r​o​m​ ​P​a​c​k​a​g​e
 			 */
 			fromPackage: string
 			/**
-			 * 한​ ​줄​ ​설​치
+			 * O​n​e​ ​L​i​n​e​ ​I​n​s​t​a​l​l
 			 */
 			oneLineInstall: string
 		}
 		card: {
 			/**
-			 * D​o​c​k​e​r​ ​기​반​ ​게​이​트​웨​이​ ​설​정
+			 * D​o​c​k​e​r​ ​b​a​s​e​d​ ​g​a​t​e​w​a​y​ ​s​e​t​u​p
 			 */
 			title: string
 			/**
-			 * 인​증​ ​토​큰
+			 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​T​o​k​e​n
 			 */
 			authToken: string
 		}
 		button: {
 			/**
-			 * 사​용​ ​가​능​한​ ​패​키​지
+			 * A​v​a​i​l​a​b​l​e​ ​P​a​c​k​a​g​e​s
 			 */
 			availablePackages: string
 		}
 		controls: {
 			/**
-			 * 연​결​ ​상​태​ ​확​인
+			 * C​h​e​c​k​ ​c​o​n​n​e​c​t​i​o​n​ ​s​t​a​t​u​s
 			 */
 			status: string
 		}
 		messages: {
 			/**
-			 * D​e​f​g​u​a​r​d​는​ ​v​p​n​ ​서​버​에​서​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​을​ ​제​어​하​기​ ​위​해​ ​게​이​트​웨​이​ ​노​드​를​ ​배​포​해​야​ ​합​니​다​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​자​세​한​ ​내​용​은​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​를​ ​참​조​하​십​시​오​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​게​이​트​웨​이​ ​서​버​를​ ​배​포​하​는​ ​방​법​에​는​ ​여​러​ ​가​지​가​ ​있​으​며​,​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​아​래​는​ ​D​o​c​k​e​r​ ​기​반​ ​예​시​입​니​다​.​ ​다​른​ ​예​시​는​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​를​ ​참​조​하​십​시​오​.
+			 * D​e​f​g​u​a​r​d​ ​r​e​q​u​i​r​e​s​ ​t​o​ ​d​e​p​l​o​y​ ​a​ ​g​a​t​e​w​a​y​ ​n​o​d​e​ ​t​o​ ​c​o​n​t​r​o​l​ ​w​i​r​e​g​u​a​r​d​ ​V​P​N​ ​o​n​ ​t​h​e​ ​v​p​n​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​o​r​e​ ​d​e​t​a​i​l​s​ ​c​a​n​ ​b​e​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​h​e​r​e​ ​a​r​e​ ​s​e​v​e​r​a​l​ ​w​a​y​s​ ​t​o​ ​d​e​p​l​o​y​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​,​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​,​ ​f​o​r​ ​o​t​h​e​r​ ​e​x​a​m​p​l​e​s​ ​p​l​e​a​s​e​ ​v​i​s​i​t​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			runCommand: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 * 게​이​트​웨​이​ ​프​로​세​스​를​ ​실​행​하​기​ ​전​에​ ​네​트​워​크​를​ ​생​성​하​십​시​오​.
+			 * P​l​e​a​s​e​ ​c​r​e​a​t​e​ ​t​h​e​ ​n​e​t​w​o​r​k​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​p​r​o​c​e​s​s​.
 			 */
 			createNetwork: string
 			/**
-			 * 연​결​이​ ​설​정​되​지​ ​않​았​습​니​다​.​ ​제​공​된​ ​명​령​을​ ​실​행​하​십​시​오​.
+			 * N​o​ ​c​o​n​n​e​c​t​i​o​n​ ​e​s​t​a​b​l​i​s​h​e​d​,​ ​p​l​e​a​s​e​ ​r​u​n​ ​p​r​o​v​i​d​e​d​ ​c​o​m​m​a​n​d​.
 			 */
 			noConnection: string
 			/**
-			 * 게​이​트​웨​이​가​ ​연​결​되​었​습​니​다​.
+			 * G​a​t​e​w​a​y​ ​c​o​n​n​e​c​t​e​d​.
 			 */
 			connected: string
 			/**
-			 * 게​이​트​웨​이​ ​상​태​를​ ​가​져​오​지​ ​못​했​습​니​다
+			 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​g​a​t​e​w​a​y​ ​s​t​a​t​u​s
 			 */
 			statusError: string
 			/**
-			 * 한​ ​줄​ ​설​치​를​ ​수​행​하​는​ ​경​우​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​아​무​ ​것​도​ ​할​ ​필​요​가​ ​없​습​니​다​.
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
 			 */
 			oneLineInstall: string
 			/**
-			 * h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​에​서​ ​사​용​ ​가​능​한​ ​패​키​지​를​ ​설​치​하​고​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​에​ ​따​라​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​을​ ​구​성​하​십​시​오​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			fromPackage: RequiredParams<'setupGatewayDocs'>
 			/**
-			 * 아​래​ ​토​큰​은​ ​게​이​트​웨​이​ ​노​드​를​ ​인​증​하​고​ ​구​성​하​는​ ​데​ ​필​요​합​니​다​.​ ​이​ ​토​큰​을​ ​안​전​하​게​ ​보​관​하​고​
-		​ ​ ​ ​ ​ ​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​에​ ​제​공​된​ ​배​포​ ​지​침​에​ ​따​라​ ​게​이​트​웨​이​ ​서​버​를​ ​성​공​적​으​로​ ​설​정​하​십​시​오​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​자​세​한​ ​내​용​ ​및​ ​정​확​한​ ​단​계​는​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​를​ ​참​조​하​십​시​오​.
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			authToken: RequiredParams<'setupGatewayDocs' | 'setupGatewayDocs'>
 			/**
-			 * 아​래​는​ ​D​o​c​k​e​r​ ​기​반​ ​예​시​입​니​다​.​ ​자​세​한​ ​내​용​ ​및​ ​정​확​한​ ​단​계​는​ ​[​문​서​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​를​ ​참​조​하​십​시​오​.
+			 * B​e​l​o​w​ ​i​s​ ​a​ ​D​o​c​k​e​r​ ​b​a​s​e​d​ ​e​x​a​m​p​l​e​.​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			dockerBasedGatewaySetup: RequiredParams<'setupGatewayDocs'>
@@ -3768,61 +3771,61 @@ type RootTranslation = {
 	}
 	loginPage: {
 		/**
-		 * 자​격​ ​증​명​을​ ​입​력​하​세​요
+		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
 		 */
 		pageTitle: string
 		callback: {
 			/**
-			 * 로​그​인​으​로​ ​돌​아​가​기
+			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
 			 */
 			'return': string
 			/**
-			 * 외​부​ ​O​p​e​n​I​D​ ​로​그​인​ ​중​ ​오​류​가​ ​발​생​했​습​니​다
+			 * A​n​ ​e​r​r​o​r​ ​o​c​c​u​r​r​e​d​ ​d​u​r​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​l​o​g​i​n
 			 */
 			error: string
 		}
 		mfa: {
 			/**
-			 * 이​중​ ​인​증
+			 * T​w​o​-​f​a​c​t​o​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n
 			 */
 			title: string
 			controls: {
 				/**
-				 * 대​신​ ​인​증​ ​앱​ ​사​용
+				 * U​s​e​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​ ​i​n​s​t​e​a​d
 				 */
 				useAuthenticator: string
 				/**
-				 * 대​신​ ​지​갑​ ​사​용
+				 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​i​n​s​t​e​a​d
 				 */
 				useWallet: string
 				/**
-				 * 대​신​ ​보​안​ ​키​ ​사​용
+				 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
 				 */
 				useWebauthn: string
 				/**
-				 * 대​신​ ​복​구​ ​코​드​ ​사​용
+				 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​ ​i​n​s​t​e​a​d
 				 */
 				useRecoveryCode: string
 				/**
-				 * 대​신​ ​이​메​일​ ​사​용
+				 * U​s​e​ ​E​-​m​a​i​l​ ​i​n​s​t​e​a​d
 				 */
 				useEmail: string
 			}
 			email: {
 				/**
-				 * 이​메​일​로​ ​전​송​된​ ​코​드​를​ ​사​용​하​여​ ​진​행​하​십​시​오​.
+				 * U​s​e​ ​c​o​d​e​ ​w​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​e​-​m​a​i​l​ ​t​o​ ​p​r​o​c​e​e​d​.
 				 */
 				header: string
 				form: {
 					labels: {
 						/**
-						 * 코​드
+						 * C​o​d​e
 						 */
 						code: string
 					}
 					controls: {
 						/**
-						 * 코​드​ ​재​전​송
+						 * R​e​s​e​n​d​ ​C​o​d​e
 						 */
 						resendCode: string
 					}
@@ -3830,21 +3833,21 @@ type RootTranslation = {
 			}
 			totp: {
 				/**
-				 * 인​증​ ​앱​의​ ​코​드​를​ ​사​용​하​고​ ​버​튼​을​ ​클​릭​하​여​ ​진​행​하​십​시​오​.
+				 * U​s​e​ ​c​o​d​e​ ​f​r​o​m​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​p​p​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​p​r​o​c​e​e​d​.
 				 */
 				header: string
 				form: {
 					fields: {
 						code: {
 							/**
-							 * 인​증​ ​코​드​ ​입​력
+							 * E​n​t​e​r​ ​A​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
 							 */
 							placeholder: string
 						}
 					}
 					controls: {
 						/**
-						 * 인​증​ ​코​드​ ​사​용
+						 * U​s​e​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​c​o​d​e
 						 */
 						submit: string
 					}
@@ -3852,21 +3855,21 @@ type RootTranslation = {
 			}
 			recoveryCode: {
 				/**
-				 * 활​성​ ​복​구​ ​코​드​ ​중​ ​하​나​를​ ​입​력​하​고​ ​버​튼​을​ ​클​릭​하​여​ ​로​그​인​하​십​시​오​.
+				 * E​n​t​e​r​ ​o​n​e​ ​o​f​ ​a​c​t​i​v​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​a​n​d​ ​c​l​i​c​k​ ​b​u​t​t​o​n​ ​t​o​ ​l​o​g​ ​i​n​.
 				 */
 				header: string
 				form: {
 					fields: {
 						code: {
 							/**
-							 * 복​구​ ​코​드
+							 * R​e​c​o​v​e​r​y​ ​c​o​d​e
 							 */
 							placeholder: string
 						}
 					}
 					controls: {
 						/**
-						 * 복​구​ ​코​드​ ​사​용
+						 * U​s​e​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e
 						 */
 						submit: string
 					}
@@ -3874,40 +3877,40 @@ type RootTranslation = {
 			}
 			wallet: {
 				/**
-				 * 암​호​화​폐​ ​지​갑​을​ ​사​용​하​여​ ​로​그​인​하​려​면​ ​지​갑​ ​앱​ ​또​는​ ​확​장​ ​프​로​그​램​에​서​ ​메​시​지​에​ ​서​명​하​십​시​오​.
+				 * U​s​e​ ​y​o​u​r​ ​c​r​y​p​t​o​ ​w​a​l​l​e​t​ ​t​o​ ​s​i​g​n​ ​i​n​,​ ​p​l​e​a​s​e​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​i​n​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​a​p​p​ ​o​r​ ​e​x​t​e​n​s​i​o​n​.
 				 */
 				header: string
 				controls: {
 					/**
-					 * 지​갑​ ​사​용
+					 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t
 					 */
 					submit: string
 				}
 				messages: {
 					/**
-					 * 서​명​ ​프​로​세​스​ ​중​ ​지​갑​ ​연​결​이​ ​끊​어​졌​습​니​다​.
+					 * W​a​l​l​e​t​ ​w​a​s​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​d​u​r​i​n​g​ ​s​i​g​n​i​n​g​ ​p​r​o​c​e​s​s​.
 					 */
 					walletError: string
 					/**
-					 * 지​갑​이​ ​M​F​A​ ​로​그​인​에​ ​대​해​ ​승​인​되​지​ ​않​았​습​니​다​.​ ​승​인​된​ ​지​갑​을​ ​사​용​하​십​시​오​.
+					 * W​a​l​l​e​t​ ​i​s​ ​n​o​t​ ​a​u​t​h​o​r​i​z​e​d​ ​f​o​r​ ​M​F​A​ ​l​o​g​i​n​.​ ​P​l​e​a​s​e​ ​u​s​e​ ​a​u​t​h​o​r​i​z​e​d​ ​w​a​l​l​e​t​.
 					 */
 					walletErrorMfa: string
 				}
 			}
 			webauthn: {
 				/**
-				 * 인​증​할​ ​준​비​가​ ​되​면​ ​아​래​ ​버​튼​을​ ​누​르​십​시​오​.
+				 * W​h​e​n​ ​y​o​u​ ​a​r​e​ ​r​e​a​d​y​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​,​ ​p​r​e​s​s​ ​t​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​.
 				 */
 				header: string
 				controls: {
 					/**
-					 * 보​안​ ​키​ ​사​용
+					 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y
 					 */
 					submit: string
 				}
 				messages: {
 					/**
-					 * 키​를​ ​읽​지​ ​못​했​습​니​다​.​ ​다​시​ ​시​도​하​십​시​오​.
+					 * F​a​i​l​e​d​ ​t​o​ ​r​e​a​d​ ​k​e​y​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
 					 */
 					error: string
 				}
@@ -3916,63 +3919,63 @@ type RootTranslation = {
 	}
 	wizard: {
 		/**
-		 * 위​치​ ​설​정​ ​완​료
+		 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p​ ​c​o​m​p​l​e​t​e​d
 		 */
 		completed: string
 		configuration: {
 			/**
-			 * 위​치​ ​생​성​됨
+			 * L​o​c​a​t​i​o​n​ ​c​r​e​a​t​e​d
 			 */
 			successMessage: string
 		}
 		welcome: {
 			/**
-			 * 위​치​ ​마​법​사​에​ ​오​신​ ​것​을​ ​환​영​합​니​다​!
+			 * W​e​l​c​o​m​e​ ​t​o​ ​l​o​c​a​t​i​o​n​ ​w​i​z​a​r​d​!
 			 */
 			header: string
 			/**
-			 * V​P​N​을​ ​사​용​하​기​ ​전​에​ ​먼​저​ ​위​치​를​ ​설​정​해​야​ ​합​니​다​.​ ​확​실​하​지​ ​않​은​ ​경​우​ ​<​R​e​a​c​t​>​ ​아​이​콘​을​ ​클​릭​하​십​시​오​.
+			 * B​e​f​o​r​e​ ​y​o​u​ ​s​t​a​r​t​ ​u​s​i​n​g​ ​V​P​N​ ​y​o​u​ ​n​e​e​d​ ​t​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​f​i​r​s​t​ ​l​o​c​a​t​i​o​n​.​ ​W​h​e​n​ ​i​n​ ​d​o​u​b​t​ ​c​l​i​c​k​ ​o​n​ ​<​R​e​a​c​t​>​ ​i​c​o​n​.
 			 */
 			sub: string
 			/**
-			 * 위​치​ ​설​정
+			 * S​e​t​u​p​ ​l​o​c​a​t​i​o​n
 			 */
 			button: string
 		}
 		navigation: {
 			/**
-			 * 위​치​ ​설​정
+			 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 			 */
 			top: string
 			titles: {
 				/**
-				 * 위​치​ ​설​정
+				 * L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 				 */
 				welcome: string
 				/**
-				 * 위​치​ ​설​정​ ​선​택
+				 * C​h​o​s​e​ ​L​o​c​a​t​i​o​n​ ​s​e​t​u​p
 				 */
 				choseNetworkSetup: string
 				/**
-				 * 기​존​ ​위​치​ ​가​져​오​기
+				 * I​m​p​o​r​t​ ​e​x​i​s​t​i​n​g​ ​l​o​c​a​t​i​o​n
 				 */
 				importConfig: string
 				/**
-				 * 위​치​ ​구​성
+				 * C​o​n​f​i​g​u​r​e​ ​l​o​c​a​t​i​o​n
 				 */
 				manualConfig: string
 				/**
-				 * 가​져​온​ ​장​치​ ​매​핑
+				 * M​a​p​ ​i​m​p​o​r​t​e​d​ ​d​e​v​i​c​e​s
 				 */
 				mapDevices: string
 			}
 			buttons: {
 				/**
-				 * 다​음
+				 * N​e​x​t
 				 */
 				next: string
 				/**
-				 * 뒤​로
+				 * B​a​c​k
 				 */
 				back: string
 			}
@@ -3980,18 +3983,18 @@ type RootTranslation = {
 		deviceMap: {
 			messages: {
 				/**
-				 * 장​치​ ​추​가​됨
+				 * D​e​v​i​c​e​s​ ​a​d​d​e​d
 				 */
 				crateSuccess: string
 				/**
-				 * 표​시​된​ ​필​드​를​ ​채​워​주​세​요​.
+				 * P​l​e​a​s​e​ ​f​i​l​l​ ​m​a​r​k​e​d​ ​f​i​e​l​d​s​.
 				 */
 				errorsInForm: string
 			}
 			list: {
 				headers: {
 					/**
-					 * 장​치​ ​이​름
+					 * D​e​v​i​c​e​ ​N​a​m​e
 					 */
 					deviceName: string
 					/**
@@ -3999,7 +4002,7 @@ type RootTranslation = {
 					 */
 					deviceIP: string
 					/**
-					 * 사​용​자
+					 * U​s​e​r
 					 */
 					user: string
 				}
@@ -4008,66 +4011,66 @@ type RootTranslation = {
 		wizardType: {
 			manual: {
 				/**
-				 * 수​동​ ​구​성
+				 * M​a​n​u​a​l​ ​C​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				title: string
 				/**
-				 * 수​동​ ​위​치​ ​구​성
+				 * M​a​n​u​a​l​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				description: string
 			}
 			'import': {
 				/**
-				 * 파​일​에​서​ ​가​져​오​기
+				 * I​m​p​o​r​t​ ​F​r​o​m​ ​F​i​l​e
 				 */
 				title: string
 				/**
-				 * W​i​r​e​G​u​a​r​d​ ​구​성​ ​파​일​에​서​ ​가​져​오​기
+				 * I​m​p​o​r​t​ ​f​r​o​m​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​ ​f​i​l​e
 				 */
 				description: string
 			}
 			/**
-			 * 위​치​ ​생​성
+			 * C​r​e​a​t​e​ ​l​o​c​a​t​i​o​n
 			 */
 			createNetwork: string
 		}
 		common: {
 			/**
-			 * 선​택
+			 * S​e​l​e​c​t
 			 */
 			select: string
 		}
 		locations: {
 			form: {
 				/**
-				 * 이​름
+				 * N​a​m​e
 				 */
 				name: string
 				/**
-				 * I​P​ ​주​소
+				 * I​P​ ​a​d​d​r​e​s​s
 				 */
 				ip: string
 				/**
-				 * 사​용​자
+				 * U​s​e​r
 				 */
 				user: string
 				/**
-				 * 파​일
+				 * F​i​l​e
 				 */
 				fileName: string
 				/**
-				 * 파​일​ ​선​택
+				 * S​e​l​e​c​t​ ​f​i​l​e
 				 */
 				selectFile: string
 				messages: {
 					/**
-					 * 장​치​ ​생​성​됨
+					 * D​e​v​i​c​e​s​ ​c​r​e​a​t​e​d
 					 */
 					devicesCreated: string
 				}
 				validation: {
 					/**
-					 * 잘​못​된​ ​주​소
+					 * I​n​v​a​l​i​d​ ​a​d​d​r​e​s​s
 					 */
 					invalidAddress: string
 				}
@@ -4077,76 +4080,76 @@ type RootTranslation = {
 	layout: {
 		select: {
 			/**
-			 * 새​ ​추​가​ ​+
+			 * A​d​d​ ​n​e​w​ ​+
 			 */
 			addNewOptionDefault: string
 		}
 	}
 	redirectPage: {
 		/**
-		 * 로​그​인​되​었​습​니​다
+		 * Y​o​u​ ​h​a​v​e​ ​b​e​e​n​ ​l​o​g​g​e​d​ ​i​n
 		 */
 		title: string
 		/**
-		 * 잠​시​ ​후​ ​리​디​렉​션​됩​니​다​.​.​.
+		 * Y​o​u​ ​w​i​l​l​ ​b​e​ ​r​e​d​i​r​e​c​t​e​d​ ​i​n​ ​a​ ​m​o​m​e​n​t​.​.​.
 		 */
 		subtitle: string
 	}
 	enrollmentPage: {
 		/**
-		 * 등​록
+		 * E​n​r​o​l​l​m​e​n​t
 		 */
 		title: string
 		controls: {
 			/**
-			 * 기​본​값​ ​복​원
+			 * R​e​s​t​o​r​e​ ​d​e​f​a​u​l​t
 			 */
 			'default': string
 			/**
-			 * 변​경​ ​사​항​ ​저​장
+			 * S​a​v​e​ ​c​h​a​n​g​e​s
 			 */
 			save: string
 		}
 		messages: {
 			edit: {
 				/**
-				 * 설​정​이​ ​변​경​되​었​습​니​다
+				 * S​e​t​t​i​n​g​s​ ​c​h​a​n​g​e​d
 				 */
 				success: string
 				/**
-				 * 저​장​ ​실​패
+				 * S​a​v​e​ ​f​a​i​l​e​d
 				 */
 				error: string
 			}
 		}
 		/**
-		 * 등​록​은​ ​신​입​ ​직​원​이​ ​새​ ​계​정​을​ ​확​인​하​고​,​ ​비​밀​번​호​를​ ​생​성​하​고​,​ ​V​P​N​ ​장​치​를​ ​구​성​할​ ​수​ ​있​도​록​ ​하​는​ ​프​로​세​스​입​니​다​.​ ​이​ ​패​널​에​서​ ​관​련​ ​메​시​지​를​ ​사​용​자​ ​지​정​할​ ​수​ ​있​습​니​다​.
+		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​i​z​e​ ​i​t​ ​h​e​r​e​.
 		 */
 		messageBox: string
 		settings: {
 			welcomeMessage: {
 				/**
-				 * 환​영​ ​메​시​지
+				 * W​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 				 */
 				title: string
 				/**
-				 * 이​ ​정​보​는​ ​등​록​이​ ​완​료​되​면​ ​서​비​스​ ​내​ ​사​용​자​에​게​ ​표​시​됩​니​다​.​ ​링​크​를​ ​삽​입​하​고​ ​다​음​ ​단​계​를​ ​간​략​하​게​ ​설​명​하​는​ ​것​이​ ​좋​습​니​다​.​ ​이​메​일​에​ ​있​는​ ​것​과​ ​동​일​한​ ​메​시​지​를​ ​사​용​할​ ​수​ ​있​습​니​다​.
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​f​o​r​ ​u​s​e​r​ ​i​n​ ​s​e​r​v​i​c​e​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.​ ​Y​o​u​ ​c​a​n​ ​u​s​e​ ​s​a​m​e​ ​m​e​s​s​a​g​e​ ​a​s​ ​i​n​ ​t​h​e​ ​e​-​m​a​i​l​.
 				 */
 				messageBox: string
 			}
 			vpnOptionality: {
 				/**
-				 * V​P​N​ ​설​정​ ​선​택​ ​사​항
+				 * V​P​N​ ​s​e​t​ ​o​p​t​i​o​n​a​l​l​i​t​y
 				 */
 				title: string
 				select: {
 					options: {
 						/**
-						 * 선​택​ ​사​항
+						 * O​p​t​i​o​n​a​l
 						 */
 						optional: string
 						/**
-						 * 필​수
+						 * M​a​n​d​a​t​o​r​y
 						 */
 						mandatory: string
 					}
@@ -4154,22 +4157,22 @@ type RootTranslation = {
 			}
 			welcomeEmail: {
 				/**
-				 * 환​영​ ​이​메​일
+				 * W​e​l​c​o​m​e​ ​e​-​m​a​i​l
 				 */
 				title: string
 				subject: {
 					/**
-					 * 이​메​일​ ​제​목
+					 * E​-​m​a​i​l​ ​s​u​b​j​e​c​t
 					 */
 					label: string
 				}
 				/**
-				 * 등​록​이​ ​완​료​되​면​ ​사​용​자​에​게​ ​이​ ​정​보​가​ ​전​송​됩​니​다​.​ ​관​련​ ​링​크​를​ ​삽​입​하​고​ ​다​음​ ​단​계​를​ ​간​략​하​게​ ​설​명​하​는​ ​것​이​ ​좋​습​니​다​.
+				 * T​h​i​s​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​t​o​ ​u​s​e​r​ ​o​n​c​e​ ​e​n​r​o​l​l​m​e​n​t​ ​i​s​ ​c​o​m​p​l​e​t​e​d​.​ ​W​e​ ​a​d​v​i​s​e​ ​t​o​ ​i​n​s​e​r​t​ ​l​i​n​k​s​ ​a​n​d​ ​e​x​p​l​a​i​n​ ​n​e​x​t​ ​s​t​e​p​s​ ​b​r​i​e​f​l​y​.
 				 */
 				messageBox: string
 				controls: {
 					/**
-					 * 환​영​ ​메​시​지​와​ ​동​일
+					 * S​a​m​e​ ​a​s​ ​w​e​l​c​o​m​e​ ​m​e​s​s​a​g​e
 					 */
 					duplicateWelcome: string
 				}
@@ -4178,73 +4181,73 @@ type RootTranslation = {
 	}
 	supportPage: {
 		/**
-		 * 지​원
+		 * S​u​p​p​o​r​t
 		 */
 		title: string
 		modals: {
 			confirmDataSend: {
 				/**
-				 * 지​원​ ​데​이​터​ ​보​내​기
+				 * S​e​n​d​ ​S​u​p​p​o​r​t​ ​D​a​t​a
 				 */
 				title: string
 				/**
-				 * 실​제​로​ ​지​원​ ​디​버​그​ ​정​보​를​ ​보​내​려​는​ ​것​인​지​ ​확​인​하​십​시​오​.​ ​개​인​ ​정​보​는​ ​전​송​되​지​ ​않​습​니​다​(​w​i​r​e​g​u​a​r​d​ ​키​,​ ​이​메​일​ ​주​소​ ​등​은​ ​전​송​되​지​ ​않​음​)​.
+				 * P​l​e​a​s​e​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​y​o​u​ ​a​c​t​u​a​l​l​y​ ​w​a​n​t​ ​t​o​ ​s​e​n​d​ ​s​u​p​p​o​r​t​ ​d​e​b​u​g​ ​i​n​f​o​r​m​a​t​i​o​n​.​ ​N​o​n​e​ ​o​f​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​(​w​i​r​e​g​u​a​r​d​ ​k​e​y​s​,​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​e​s​,​ ​e​t​c​.​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​e​n​t​)​.
 				 */
 				subTitle: string
 				/**
-				 * 지​원​ ​데​이​터​ ​보​내​기
+				 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
 				 */
 				submit: string
 			}
 		}
 		debugDataCard: {
 			/**
-			 * 지​원​ ​데​이​터
+			 * S​u​p​p​o​r​t​ ​d​a​t​a
 			 */
 			title: string
 			/**
 			 * 
-		​지​원​이​ ​필​요​하​거​나​ ​저​희​ ​팀​(​예​:​ ​M​a​t​r​i​x​ ​지​원​ ​채​널​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​에​서​ ​지​원​ ​데​이​터​ ​생​성​을​ ​요​청​받​은​ ​경​우​ ​다​음​ ​두​ ​가​지​ ​옵​션​이​ ​있​습​니​다​.​
-		​*​ ​S​M​T​P​ ​설​정​을​ ​구​성​하​고​ ​"​지​원​ ​데​이​터​ ​보​내​기​"​를​ ​클​릭​합​니​다​.​
-		​*​ ​또​는​ ​"​지​원​ ​데​이​터​ ​다​운​로​드​"​를​ ​클​릭​하​고​ ​이​ ​파​일​을​ ​첨​부​하​여​ ​G​i​t​H​u​b​에​ ​버​그​ ​보​고​서​를​ ​생​성​합​니​다​.​
+		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
+		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
+		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
 	
 			 */
 			body: string
 			/**
-			 * 지​원​ ​데​이​터​ ​다​운​로​드
+			 * D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
 			 */
 			downloadSupportData: string
 			/**
-			 * 로​그​ ​다​운​로​드
+			 * D​o​w​n​l​o​a​d​ ​l​o​g​s
 			 */
 			downloadLogs: string
 			/**
-			 * 지​원​ ​데​이​터​ ​보​내​기
+			 * S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a
 			 */
 			sendMail: string
 			/**
-			 * 이​메​일​ ​전​송​됨
+			 * E​m​a​i​l​ ​s​e​n​t
 			 */
 			mailSent: string
 			/**
-			 * 이​메​일​ ​전​송​ ​오​류
+			 * E​r​r​o​r​ ​s​e​n​d​i​n​g​ ​e​m​a​i​l
 			 */
 			mailError: string
 		}
 		supportCard: {
 			/**
-			 * 지​원
+			 * S​u​p​p​o​r​t
 			 */
 			title: string
 			/**
 			 * 
-		​G​i​t​H​u​b​에​ ​문​의​하​거​나​ ​문​제​를​ ​제​출​하​기​ ​전​에​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​에​서​ ​제​공​되​는​ ​D​e​f​g​u​a​r​d​ ​문​서​를​ ​숙​지​하​십​시​오​.​
+		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
 		​
-		​제​출​하​려​면​:​
-		​*​ ​버​그​ ​-​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​로​ ​이​동​하​십​시​오​.​
-		​*​ ​기​능​ ​요​청​ ​-​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​로​ ​이​동​하​십​시​오​.​
+		​T​o​ ​s​u​b​m​i​t​:​
+		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
+		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
 		​
-		​기​타​ ​요​청​은​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​으​로​ ​문​의​하​십​시​오​.​
+		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
 	
 			 */
 			body: string
@@ -4256,117 +4259,117 @@ export type TranslationFunctions = {
 	common: {
 		conditions: {
 			/**
-			 * 또는
+			 * or
 			 */
 			or: () => LocalizedString
 			/**
-			 * 그리고
+			 * and
 			 */
 			and: () => LocalizedString
 			/**
-			 * 같음
+			 * equal
 			 */
 			equal: () => LocalizedString
 		}
 		controls: {
 			/**
-			 * 다음
+			 * Next
 			 */
 			next: () => LocalizedString
 			/**
-			 * 뒤로
+			 * Back
 			 */
 			back: () => LocalizedString
 			/**
-			 * 취소
+			 * Cancel
 			 */
 			cancel: () => LocalizedString
 			/**
-			 * 확인
+			 * Confirm
 			 */
 			confirm: () => LocalizedString
 			/**
-			 * 제출
+			 * Submit
 			 */
 			submit: () => LocalizedString
 			/**
-			 * 닫기
+			 * Close
 			 */
 			close: () => LocalizedString
 			/**
-			 * 선택
+			 * Select
 			 */
 			select: () => LocalizedString
 			/**
-			 * 완료
+			 * Finish
 			 */
 			finish: () => LocalizedString
 			/**
-			 * 변경 사항 저장
+			 * Save changes
 			 */
 			saveChanges: () => LocalizedString
 			/**
-			 * 저장
+			 * Save
 			 */
 			save: () => LocalizedString
 			/**
-			 * 기본값 복원
+			 * Restore default
 			 */
 			RestoreDefault: () => LocalizedString
 			/**
-			 * 삭제
+			 * Delete
 			 */
 			'delete': () => LocalizedString
 			/**
-			 * 이름 변경
+			 * Rename
 			 */
 			rename: () => LocalizedString
 			/**
-			 * 복사
+			 * Copy
 			 */
 			copy: () => LocalizedString
 			/**
-			 * 편집
+			 * Edit
 			 */
 			edit: () => LocalizedString
 		}
 		/**
-		 * 키
+		 * Key
 		 */
 		key: () => LocalizedString
 		/**
-		 * 이름
+		 * Name
 		 */
 		name: () => LocalizedString
 	}
 	messages: {
 		/**
-		 * 오류가 발생했습니다.
+		 * Error has occurred.
 		 */
 		error: () => LocalizedString
 		/**
-		 * 작업이 성공했습니다
+		 * Operation succeeded
 		 */
 		success: () => LocalizedString
 		/**
-		 * 애플리케이션 버전을 가져오지 못했습니다.
+		 * Failed to get application version.
 		 */
 		errorVersion: () => LocalizedString
 		/**
-		 * 컨텍스트가 안전하지 않습니다.
+		 * Context is not secure.
 		 */
 		insecureContext: () => LocalizedString
 		/**
-		 * 상세내용:
+		 * Details:
 		 */
 		details: () => LocalizedString
 		clipboard: {
 			/**
-			 * 클립보드에 액세스할 수 없습니다.
+			 * Clipboard is not accessible.
 			 */
 			error: () => LocalizedString
 			/**
-			 * 클립보드에 복사되었습니다.
+			 * Content copied to clipboard.
 			 */
 			success: () => LocalizedString
 		}
@@ -4374,241 +4377,241 @@ export type TranslationFunctions = {
 	modals: {
 		addGroup: {
 			/**
-			 * 그룹 추가
+			 * Add group
 			 */
 			title: () => LocalizedString
 			/**
-			 * 모든 사용자 선택
+			 * Select all users
 			 */
 			selectAll: () => LocalizedString
 			/**
-			 * 그룹 이름
+			 * Group name
 			 */
 			groupName: () => LocalizedString
 			/**
-			 * 필터/검색
+			 * Filter/Search
 			 */
 			searchPlaceholder: () => LocalizedString
 			/**
-			 * 그룹 생성
+			 * Create group
 			 */
 			submit: () => LocalizedString
 		}
 		editGroup: {
 			/**
-			 * 그룹 편집
+			 * Edit group
 			 */
 			title: () => LocalizedString
 			/**
-			 * 모든 사용자 선택
+			 * Select all users
 			 */
 			selectAll: () => LocalizedString
 			/**
-			 * 그룹 이름
+			 * Group name
 			 */
 			groupName: () => LocalizedString
 			/**
-			 * 필터/검색
+			 * Filter/Search
 			 */
 			searchPlaceholder: () => LocalizedString
 			/**
-			 * 그룹 업데이트
+			 * Update group
 			 */
 			submit: () => LocalizedString
 		}
 		deleteGroup: {
 			/**
-			 * {name} 그룹 삭제
+			 * Delete group {name}
 			 */
 			title: (arg: { name: string }) => LocalizedString
 			/**
-			 * 이 작업은 이 그룹을 영구적으로 삭제합니다.
+			 * This action will permanently delete this group.
 			 */
 			subTitle: () => LocalizedString
 			/**
-			 * 이 그룹은 현재 다음 VPN 위치에 할당되어 있습니다:
+			 * This group is currently assigned to following VPN Locations:
 			 */
 			locationListHeader: () => LocalizedString
 			/**
-			 * 이것이 주어진 위치에 허용된 유일한 그룹인 경우, 해당 위치는 <b>모든 사용자가 액세스할 수 있게</b> 됩니다.
+			 * If this is the only allowed group for a given location, the location will become <b>accessible to all users</b>.
 			 */
 			locationListFooter: () => LocalizedString
 			/**
-			 * 그룹 삭제
+			 * Delete group
 			 */
 			submit: () => LocalizedString
 			/**
-			 * 취소
+			 * Cancel
 			 */
 			cancel: () => LocalizedString
 		}
 		deviceConfig: {
 			/**
-			 * 장치 VPN 구성
+			 * Device VPN configurations
 			 */
 			title: () => LocalizedString
 		}
 		changePasswordSelf: {
 			/**
-			 * 비밀번호 변경
+			 * Change password
 			 */
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * 비밀번호가 변경되었습니다
+				 * Password has been changed
 				 */
 				success: () => LocalizedString
 				/**
-				 * 비밀번호 변경에 실패했습니다
+				 * Failed to changed password
 				 */
 				error: () => LocalizedString
 			}
 			form: {
 				labels: {
 					/**
-					 * 새 비밀번호
+					 * New password
 					 */
 					newPassword: () => LocalizedString
 					/**
-					 * 현재 비밀번호
+					 * Current password
 					 */
 					oldPassword: () => LocalizedString
 					/**
-					 * 새 비밀번호 확인
+					 * Confirm new password
 					 */
 					repeat: () => LocalizedString
 				}
 			}
 			controls: {
 				/**
-				 * 비밀번호 변경
+				 * Change password
 				 */
 				submit: () => LocalizedString
 				/**
-				 * 취소
+				 * Cancel
 				 */
 				cancel: () => LocalizedString
 			}
 		}
 		startEnrollment: {
 			/**
-			 * 등록 시작
+			 * Start enrollment
 			 */
 			title: () => LocalizedString
 			/**
-			 * 데스크톱 활성화
+			 * Desktop activation
 			 */
 			desktopTitle: () => LocalizedString
 			messages: {
 				/**
-				 * 사용자 등록이 시작되었습니다
+				 * User enrollment started
 				 */
 				success: () => LocalizedString
 				/**
-				 * 데스크톱 구성이 시작되었습니다
+				 * Desktop configuration started
 				 */
 				successDesktop: () => LocalizedString
 				/**
-				 * 사용자 등록을 시작하지 못했습니다
+				 * Failed to start user enrollment
 				 */
 				error: () => LocalizedString
 				/**
-				 * 데스크톱 활성화를 시작하지 못했습니다
+				 * Failed to start desktop activation
 				 */
 				errorDesktop: () => LocalizedString
 			}
 			form: {
 				email: {
 					/**
-					 * 이메일
+					 * Email
 					 */
 					label: () => LocalizedString
 				}
 				mode: {
 					options: {
 						/**
-						 * 이메일로 토큰 보내기
+						 * Send token by email
 						 */
 						email: () => LocalizedString
 						/**
-						 * 직접 토큰 전달
+						 * Deliver token yourself
 						 */
 						manual: () => LocalizedString
 					}
 				}
 				/**
-				 * 등록 시작
+				 * Start enrollment
 				 */
 				submit: () => LocalizedString
 				/**
-				 * 데스크톱 활성화
+				 * Activate desktop
 				 */
 				submitDesktop: () => LocalizedString
 				/**
-				 * 이메일로 토큰을 보내려면 SMTP를 구성하십시오. 설정 -> SMTP로 이동하십시오.
+				 * Configure SMTP to send token by email. Go to Settings -> SMTP.
 				 */
 				smtpDisabled: () => LocalizedString
 			}
 			tokenCard: {
 				/**
-				 * 활성화 토큰
+				 * Activation token
 				 */
 				title: () => LocalizedString
 			}
 			urlCard: {
 				/**
-				 * Defguard 인스턴스 URL
+				 * Defguard Instance URL
 				 */
 				title: () => LocalizedString
 			}
 		}
 		deleteNetwork: {
 			/**
-			 * {name} 위치 삭제
+			 * Delete {name} location
 			 */
 			title: (arg: { name: string }) => LocalizedString
 			/**
-			 * 이 작업은 이 위치를 영구적으로 삭제합니다.
+			 * This action will permanently delete this location.
 			 */
 			subTitle: () => LocalizedString
 			/**
-			 * 위치 삭제
+			 * Delete location
 			 */
 			submit: () => LocalizedString
 			/**
-			 * 취소
+			 * Cancel
 			 */
 			cancel: () => LocalizedString
 		}
 		changeWebhook: {
 			messages: {
 				/**
-				 * Webhook이 변경되었습니다.
+				 * Webhook changed.
 				 */
 				success: () => LocalizedString
 			}
 		}
 		manageWebAuthNKeys: {
 			/**
-			 * 보안 키
+			 * Security keys
 			 */
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * WebAuthN 키가 삭제되었습니다.
+				 * WebAuthN key has been deleted.
 				 */
 				deleted: () => LocalizedString
 				/**
-				 * 키가 이미 등록되어 있습니다
+				 * Key is already registered
 				 */
 				duplicateKeyError: () => LocalizedString
 			}
 			/**
 			 * 
 		        <p>
-		          보안 키는 인증 코드 대신 2단계 인증으로 사용될 수 있습니다.
-	
-		          보안 키 구성에 대해 자세히 알아보세요.
+		          Security keys can be used as your second factor of authentication
+		          instead of a verification code. Learn more about configuring a
+		          security key.
 		        </p>
 	
 			 */
@@ -4616,21 +4619,21 @@ export type TranslationFunctions = {
 			form: {
 				messages: {
 					/**
-					 * 보안 키가 추가되었습니다.
+					 * Security key added.
 					 */
 					success: () => LocalizedString
 				}
 				fields: {
 					name: {
 						/**
-						 * 새 키 이름
+						 * New key name
 						 */
 						label: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 새 키 추가
+					 * Add new Key
 					 */
 					submit: () => LocalizedString
 				}
@@ -4638,25 +4641,25 @@ export type TranslationFunctions = {
 		}
 		recoveryCodes: {
 			/**
-			 * 복구 코드
+			 * Recovery codes
 			 */
 			title: () => LocalizedString
 			/**
-			 * 코드를 저장했습니다
+			 * I have saved my codes
 			 */
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * 코드가 복사되었습니다.
+				 * Codes copied.
 				 */
 				copied: () => LocalizedString
 			}
 			/**
 			 * 
 		        <p>
-		          복구 코드는 비밀번호와 동일한 수준의 주의를 기울여 취급하십시오!
-	
-		          Lastpass, bitwarden 또는 Keeper와 같은 비밀번호 관리자를 사용하여 저장하는 것을 권장합니다.
+		          Treat your recovery codes with the same level of attention as you
+		          would your password! We recommend saving them with a password manager
+		          such as Lastpass, bitwarden or Keeper.
 		        </p>
 	
 			 */
@@ -4664,48 +4667,48 @@ export type TranslationFunctions = {
 		}
 		registerTOTP: {
 			/**
-			 * Authenticator 앱 설정
+			 * Authenticator App Setup
 			 */
 			title: () => LocalizedString
 			/**
 			 * 
 		        <p>
-		          MFA를 설정하려면, 이 QR 코드를 인증 앱으로 스캔한 다음,
-		          아래 필드에 코드를 입력하세요:
+		          To setup your MFA, scan this QR code with your authenticator app, then
+		          enter the code in the field below:
 		        </p>
 	
 			 */
 			infoMessage: () => LocalizedString
 			messages: {
 				/**
-				 * TOTP 경로가 복사되었습니다.
+				 * TOTP path copied.
 				 */
 				totpCopied: () => LocalizedString
 				/**
-				 * TOTP가 활성화되었습니다
+				 * TOTP Enabled
 				 */
 				success: () => LocalizedString
 			}
 			/**
-			 * TOTP 경로 복사
+			 * Copy TOTP path
 			 */
 			copyPath: () => LocalizedString
 			form: {
 				fields: {
 					code: {
 						/**
-						 * Authenticator 코드
+						 * Authenticator code
 						 */
 						label: () => LocalizedString
 						/**
-						 * 코드가 유효하지 않습니다
+						 * Code is invalid
 						 */
 						error: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 코드 확인
+					 * Verify code
 					 */
 					submit: () => LocalizedString
 				}
@@ -4713,24 +4716,24 @@ export type TranslationFunctions = {
 		}
 		registerEmailMFA: {
 			/**
-			 * 이메일 MFA 설정
+			 * Email MFA Setup
 			 */
 			title: () => LocalizedString
 			/**
 			 * 
 		        <p>
-		          MFA를 설정하려면 계정 이메일: <strong>{email}</strong>로 전송된 코드를 입력하세요
+		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
 		        </p>
 	
 			 */
 			infoMessage: (arg: { email: string }) => LocalizedString
 			messages: {
 				/**
-				 * 이메일 MFA가 활성화되었습니다
+				 * Email MFA Enabled
 				 */
 				success: () => LocalizedString
 				/**
-				 * 인증 코드가 재전송되었습니다
+				 * Verification code resent
 				 */
 				resend: () => LocalizedString
 			}
@@ -4738,22 +4741,22 @@ export type TranslationFunctions = {
 				fields: {
 					code: {
 						/**
-						 * 이메일 코드
+						 * Email code
 						 */
 						label: () => LocalizedString
 						/**
-						 * 코드가 유효하지 않습니다
+						 * Code is invalid
 						 */
 						error: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 코드 확인
+					 * Verify code
 					 */
 					submit: () => LocalizedString
 					/**
-					 * 이메일 재전송
+					 * Resend email
 					 */
 					resend: () => LocalizedString
 				}
@@ -4761,12 +4764,12 @@ export type TranslationFunctions = {
 		}
 		editDevice: {
 			/**
-			 * 장치 편집
+			 * Edit device
 			 */
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * 장치가 업데이트되었습니다.
+				 * Device has been updated.
 				 */
 				success: () => LocalizedString
 			}
@@ -4774,20 +4777,20 @@ export type TranslationFunctions = {
 				fields: {
 					name: {
 						/**
-						 * 장치 이름
+						 * Device Name
 						 */
 						label: () => LocalizedString
 					}
 					publicKey: {
 						/**
-						 * 장치 공개 키 (WireGuard)
+						 * Device Public Key (WireGuard)
 						 */
 						label: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 장치 편집
+					 * Edit device
 					 */
 					submit: () => LocalizedString
 				}
@@ -4795,59 +4798,59 @@ export type TranslationFunctions = {
 		}
 		deleteDevice: {
 			/**
-			 * 장치 삭제
+			 * Delete device
 			 */
 			title: () => LocalizedString
 			/**
-			 * {deviceName} 장치를 삭제하시겠습니까?
+			 * Do you want to delete {deviceName} device ?
 			 */
 			message: (arg: { deviceName: unknown }) => LocalizedString
 			/**
-			 * 장치 삭제
+			 * Delete device
 			 */
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * 장치가 삭제되었습니다.
+				 * Device has been deleted.
 				 */
 				success: () => LocalizedString
 			}
 		}
 		addWallet: {
 			/**
-			 * 지갑 추가
+			 * Add wallet
 			 */
 			title: () => LocalizedString
 			/**
-			 * ETH 지갑을 추가하려면 메시지에 서명해야 합니다.
+			 * In order to add a ETH wallet you will need to sign message.
 			 */
 			infoBox: () => LocalizedString
 			form: {
 				fields: {
 					name: {
 						/**
-						 * 지갑 이름
+						 * Wallet name
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 이름
+						 * Name
 						 */
 						label: () => LocalizedString
 					}
 					address: {
 						/**
-						 * 지갑 주소
+						 * Wallet address
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 주소
+						 * Address
 						 */
 						label: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 지갑 추가
+					 * Add wallet
 					 */
 					submit: () => LocalizedString
 				}
@@ -4855,98 +4858,98 @@ export type TranslationFunctions = {
 		}
 		keyDetails: {
 			/**
-			 * YubiKey 세부 정보
+			 * YubiKey details
 			 */
 			title: () => LocalizedString
 			/**
-			 * 모든 키 다운로드
+			 * Download all keys
 			 */
 			downloadAll: () => LocalizedString
 		}
 		deleteUser: {
 			/**
-			 * 계정 삭제
+			 * Delete account
 			 */
 			title: () => LocalizedString
 			controls: {
 				/**
-				 * 계정 삭제
+				 * Delete account
 				 */
 				submit: () => LocalizedString
 			}
 			/**
-			 * {username} 계정을 영구적으로 삭제하시겠습니까?
+			 * Do you want to delete {username} account permanently ?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
 				/**
-				 * {username}이(가) 삭제되었습니다.
+				 * {username} deleted.
 				 */
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
 		disableUser: {
 			/**
-			 * 계정 비활성화
+			 * Disable account
 			 */
 			title: () => LocalizedString
 			controls: {
 				/**
-				 * 계정 비활성화
+				 * Disable account
 				 */
 				submit: () => LocalizedString
 			}
 			/**
-			 * {username} 계정을 비활성화하시겠습니까?
+			 * Do you want to disable {username} account?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
 				/**
-				 * {username}이(가) 비활성화되었습니다.
+				 * {username} disabled.
 				 */
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
 		enableUser: {
 			/**
-			 * 계정 활성화
+			 * Enable account
 			 */
 			title: () => LocalizedString
 			controls: {
 				/**
-				 * 계정 활성화
+				 * Enable account
 				 */
 				submit: () => LocalizedString
 			}
 			/**
-			 * {username} 계정을 활성화하시겠습니까?
+			 * Do you want to enable {username} account?
 			 */
 			message: (arg: { username: string }) => LocalizedString
 			messages: {
 				/**
-				 * {username}이(가) 활성화되었습니다.
+				 * {username} enabled.
 				 */
 				success: (arg: { username: string }) => LocalizedString
 			}
 		}
 		deleteProvisioner: {
 			/**
-			 * 프로비저너 삭제
+			 * Delete provisioner
 			 */
 			title: () => LocalizedString
 			controls: {
 				/**
-				 * 프로비저너 삭제
+				 * Delete provisioner
 				 */
 				submit: () => LocalizedString
 			}
 			/**
-			 * {id} 프로비저너를 삭제하시겠습니까?
+			 * Do you want to delete {id} provisioner?
 			 */
 			message: (arg: { id: string }) => LocalizedString
 			messages: {
 				/**
-				 * {provisioner}이(가) 삭제되었습니다.
+				 * {provisioner} deleted.
 				 */
 				success: (arg: { provisioner: string }) => LocalizedString
 			}
@@ -4954,31 +4957,31 @@ export type TranslationFunctions = {
 		changeUserPassword: {
 			messages: {
 				/**
-				 * 비밀번호가 변경되었습니다.
+				 * Password changed.
 				 */
 				success: () => LocalizedString
 			}
 			/**
-			 * 사용자 비밀번호 변경
+			 * Change user password
 			 */
 			title: () => LocalizedString
 			form: {
 				controls: {
 					/**
-					 * 새 비밀번호 저장
+					 * Save new password
 					 */
 					submit: () => LocalizedString
 				}
 				fields: {
 					newPassword: {
 						/**
-						 * 새 비밀번호
+						 * New password
 						 */
 						label: () => LocalizedString
 					}
 					confirmPassword: {
 						/**
-						 * 비밀번호 다시 입력
+						 * Repeat password
 						 */
 						label: () => LocalizedString
 					}
@@ -4987,130 +4990,130 @@ export type TranslationFunctions = {
 		}
 		provisionKeys: {
 			/**
-			 * Yubikey 프로비저닝:
+			 * Yubikey provisioning:
 			 */
 			title: () => LocalizedString
 			/**
-			 * 이 작업은 yubikey의 openpgp 애플리케이션을 삭제하고 재구성합니다.
+			 * Please be advised that this operation wll wipe openpgp application on yubikey and reconfigure it.
 			 */
 			warning: () => LocalizedString
 			/**
-			 * 선택한 프로비저너에는 프로비저닝할 <b>깨끗한</b> YubiKey가
-		                연결되어 있어야 합니다. 사용된 YubiKey를 청소하려면 프로비저닝하기 전에
-		                <b>gpg --card-edit </b>를 실행하십시오.
+			 * The selected provisioner must have a <b>clean</b> YubiKey
+		                plugged in be provisioned. To clean a used YubiKey
+		                <b>gpg --card-edit </b> before provisioning.
 			 */
 			infoBox: () => LocalizedString
 			/**
-			 * 다음 프로비저너 중 하나를 선택하여 YubiKey를 프로비저닝하십시오:
+			 * Select one of the following provisioners to provision a YubiKey:
 			 */
 			selectionLabel: () => LocalizedString
 			noData: {
 				/**
-				 * 작업자를 찾을 수 없습니다. 대기 중...
+				 * No workers found, waiting...
 				 */
 				workers: () => LocalizedString
 			}
 			controls: {
 				/**
-				 * YubiKey 프로비저닝
+				 * Provision YubiKey
 				 */
 				submit: () => LocalizedString
 			}
 			messages: {
 				/**
-				 * 키가 프로비저닝되었습니다
+				 * Keys provisioned
 				 */
 				success: () => LocalizedString
 				/**
-				 * 작업자 상태를 가져오는 중 오류가 발생했습니다.
+				 * Error while getting worker status.
 				 */
 				errorStatus: () => LocalizedString
 			}
 		}
 		addUser: {
 			/**
-			 * 새 사용자 추가
+			 * Add new user
 			 */
 			title: () => LocalizedString
 			messages: {
 				/**
-				 * 사용자가 추가되었습니다
+				 * User added
 				 */
 				userAdded: () => LocalizedString
 			}
 			form: {
 				/**
-				 * 사용자 추가
+				 * Add user
 				 */
 				submit: () => LocalizedString
 				fields: {
 					username: {
 						/**
-						 * 로그인
+						 * login
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 로그인
+						 * Login
 						 */
 						label: () => LocalizedString
 					}
 					password: {
 						/**
-						 * 비밀번호
+						 * Password
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 비밀번호
+						 * Password
 						 */
 						label: () => LocalizedString
 					}
 					email: {
 						/**
-						 * 사용자 이메일
+						 * User e-mail
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 사용자 이메일
+						 * User e-mail
 						 */
 						label: () => LocalizedString
 					}
 					firstName: {
 						/**
-						 * 이름
+						 * First name
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 이름
+						 * First name
 						 */
 						label: () => LocalizedString
 					}
 					lastName: {
 						/**
-						 * 성
+						 * Last name
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 성
+						 * Last name
 						 */
 						label: () => LocalizedString
 					}
 					phone: {
 						/**
-						 * 전화번호
+						 * Phone
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 * 전화번호
+						 * Phone
 						 */
 						label: () => LocalizedString
 					}
 					enableEnrollment: {
 						/**
-						 * 등록 프로세스 사용
+						 * Use user self-enrollment process
 						 */
 						label: () => LocalizedString
 						/**
-						 * <a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">자세한 정보는 여기를 참고하세요</a>
+						 * <a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>
 						 */
 						link: () => LocalizedString
 					}
@@ -5120,81 +5123,81 @@ export type TranslationFunctions = {
 		webhookModal: {
 			title: {
 				/**
-				 * 웹훅 추가.
+				 * Add webhook.
 				 */
 				addWebhook: () => LocalizedString
 				/**
-				 * 웹훅 편집
+				 * Edit webhook
 				 */
 				editWebhook: () => LocalizedString
 			}
 			messages: {
 				/**
-				 * 클라이언트 ID가 복사되었습니다.
+				 * Client ID copied.
 				 */
 				clientIdCopy: () => LocalizedString
 				/**
-				 * 클라이언트 암호가 복사되었습니다.
+				 * Client secret copied.
 				 */
 				clientSecretCopy: () => LocalizedString
 			}
 			form: {
 				/**
-				 * 트리거 이벤트:
+				 * Trigger events:
 				 */
 				triggers: () => LocalizedString
 				messages: {
 					/**
-					 * 웹훅이 생성되었습니다.
+					 * Webhook created.
 					 */
 					successAdd: () => LocalizedString
 					/**
-					 * 웹훅이 수정되었습니다.
+					 * Webhook modified.
 					 */
 					successModify: () => LocalizedString
 				}
 				error: {
 					/**
-					 * URL이 필요합니다.
+					 * URL is required.
 					 */
 					urlRequired: () => LocalizedString
 					/**
-					 * 유효한 URL이어야 합니다.
+					 * Must be a valid URL.
 					 */
 					validUrl: () => LocalizedString
 					/**
-					 * 최소 하나의 트리거가 있어야 합니다.
+					 * Must have at least one trigger.
 					 */
 					scopeValidation: () => LocalizedString
 					/**
-					 * 토큰이 필요합니다.
+					 * Token is required.
 					 */
 					tokenRequired: () => LocalizedString
 				}
 				fields: {
 					description: {
 						/**
-						 * 설명
+						 * Description
 						 */
 						label: () => LocalizedString
 						/**
-						 * 새 사용자 생성 시 gmail 계정을 생성하는 웹훅
+						 * Webhook to create gmail account on new user
 						 */
 						placeholder: () => LocalizedString
 					}
 					token: {
 						/**
-						 * 비밀 토큰
+						 * Secret token
 						 */
 						label: () => LocalizedString
 						/**
-						 * 인증 토큰
+						 * Authorization token
 						 */
 						placeholder: () => LocalizedString
 					}
 					url: {
 						/**
-						 * 웹훅 URL
+						 * Webhook URL
 						 */
 						label: () => LocalizedString
 						/**
@@ -5204,25 +5207,25 @@ export type TranslationFunctions = {
 					}
 					userCreated: {
 						/**
-						 * 새 사용자 생성됨
+						 * New user Created
 						 */
 						label: () => LocalizedString
 					}
 					userDeleted: {
 						/**
-						 * 사용자 삭제됨
+						 * User deleted
 						 */
 						label: () => LocalizedString
 					}
 					userModified: {
 						/**
-						 * 사용자 수정됨
+						 * User modified
 						 */
 						label: () => LocalizedString
 					}
 					hwkeyProvision: {
 						/**
-						 * 사용자 Yubikey 프로비저닝
+						 * User Yubikey provision
 						 */
 						label: () => LocalizedString
 					}
@@ -5231,20 +5234,20 @@ export type TranslationFunctions = {
 		}
 		deleteWebhook: {
 			/**
-			 * 웹훅 삭제
+			 * Delete webhook
 			 */
 			title: () => LocalizedString
 			/**
-			 * {name} 웹훅을 삭제하시겠습니까?
+			 * Do you want to delete {name} webhook ?
 			 */
 			message: (arg: { name: string }) => LocalizedString
 			/**
-			 * 삭제
+			 * Delete
 			 */
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * 웹훅이 삭제되었습니다.
+				 * Webhook deleted.
 				 */
 				success: () => LocalizedString
 			}
@@ -5252,22 +5255,22 @@ export type TranslationFunctions = {
 	}
 	addDevicePage: {
 		/**
-		 * 장치 추가
+		 * Add device
 		 */
 		title: () => LocalizedString
 		helpers: {
 			/**
-			 * 이 마법사를 사용하여 장치를 추가할 수 있습니다. 당사의 기본 애플리케이션인 "defguard" 또는 다른 WireGuard 클라이언트를 선택하세요. 잘 모르시겠다면 간편하게 defguard를 사용하는 것을 권장합니다.
+			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
 			 */
 			setupOpt: () => LocalizedString
 			/**
-			 * defguard 데스크톱 클라이언트는 <a href="https://defguard.net/download" target="_blank">여기</a>에서 다운로드하고 <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">이 가이드</a>를 따르세요.
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
 			 */
 			client: () => LocalizedString
 		}
 		messages: {
 			/**
-			 * 장치가 추가되었습니다
+			 * Device added
 			 */
 			deviceAdded: () => LocalizedString
 		}
@@ -5275,41 +5278,41 @@ export type TranslationFunctions = {
 			setupMethod: {
 				remote: {
 					/**
-					 * 데스크톱 클라이언트 구성
+					 * Configure Desktop Client
 					 */
 					title: () => LocalizedString
 					/**
-					 * 단일 토큰으로 간편하게 설정할 수 있습니다. 클라이언트를 다운로드하고 간단한 보안을 즐기세요.
+					 * A breeze to set up with just a single token. Download the client and enjoy straightforward security.
 					 */
 					subTitle: () => LocalizedString
 					/**
-					 * defguard 클라이언트 다운로드
+					 * Download defguard Client
 					 */
 					link: () => LocalizedString
 				}
 				manual: {
 					/**
-					 * 수동 WireGuard 클라이언트
+					 * Manual WireGuard Client
 					 */
 					title: () => LocalizedString
 					/**
-					 * 고급 사용자의 경우 다운로드 또는 QR 코드를 통해 고유한 구성을 얻으세요. 클라이언트를 다운로드하고 VPN 설정을 제어하세요.
+					 * For advanced users, get a unique config via download or QR code. Download the client and take control of your VPN setup.
 					 */
 					subTitle: () => LocalizedString
 					/**
-					 * WireGuard 클라이언트 다운로드
+					 * Download WireGuard Client
 					 */
 					link: () => LocalizedString
 				}
 			}
 			configDevice: {
 				/**
-				 * 장치 구성
+				 * Configure device
 				 */
 				title: () => LocalizedString
 				messages: {
 					/**
-					 * 구성이 클립보드에 복사되었습니다
+					 * Configuration has been copied to the clipboard
 					 */
 					copyConfig: () => LocalizedString
 				}
@@ -5317,10 +5320,10 @@ export type TranslationFunctions = {
 					/**
 					 * 
 				    <p>
-				      개인 키를 저장하지 않으므로
-				      지금 구성을 다운로드해야 합니다.
-				      이 페이지가 닫히면 전체 구성 파일(개인 키 포함, 빈 템플릿만)을
-				      가져올 수 없습니다.
+				      Please be advised that you have to download the configuration now,
+				      since <strong>we do not</strong> store your private key. After this
+				      page is closed, you <strong>will not be able</strong> to get your
+				      full configuration file (with private keys, only blank template).
 				    </p>
 			
 					 */
@@ -5328,57 +5331,57 @@ export type TranslationFunctions = {
 					/**
 					 * 
 				    <p>
-				      여기에 제공된 구성에는 개인 키가 포함되어 있지 않으며 공개 키를 사용하여 채워져 있습니다. 구성이 제대로 작동하려면 직접 교체해야 합니다.
+				      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
 				    </p>
 			
 					 */
 					warningManualMode: () => LocalizedString
 					/**
-					 * 액세스할 수 있는 네트워크가 없습니다.
+					 * You don't have access to any network.
 					 */
 					warningNoNetworks: () => LocalizedString
 					/**
 					 * 
 				      <p>
-				        이 QR 코드를 스캔하여 wireguard 애플리케이션으로 장치를 더 빠르게 설정할 수 있습니다.
+				        You can setup your device faster with wireguard application by scanning this QR code.
 				      </p>
 					 */
 					qrHelper: () => LocalizedString
 				}
 				/**
-				 * 아래 제공된 구성 파일을 QR 코드를 스캔하거나 장치의 WireGuard 인스턴스에 파일로 가져와서 사용하세요.
+				 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard instance.
 				 */
 				qrInfo: () => LocalizedString
 				/**
-				 * 장치 이름
+				 * Device Name
 				 */
 				inputNameLabel: () => LocalizedString
 				/**
-				 * WireGuard 구성 파일
+				 * WireGuard Config File
 				 */
 				qrLabel: () => LocalizedString
 			}
 			setupDevice: {
 				/**
-				 * VPN 장치 생성
+				 * Create VPN device
 				 */
 				title: () => LocalizedString
 				/**
 				 * 
 			        <p>
-			          장치에서 WireGuardVPN을 구성해야 합니다. 방법을 모르는 경우&nbsp;
-			          <a href="{addDevicesDocs}">문서</a>를 참조하세요.
+			          You need to configure WireGuardVPN on your device, please visit&nbsp;
+			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 			        </p>
 		
 				 */
 				infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
 				options: {
 					/**
-					 * 키 쌍 생성
+					 * Generate key pair
 					 */
 					auto: () => LocalizedString
 					/**
-					 * 내 공개 키 사용
+					 * Use my own public key
 					 */
 					manual: () => LocalizedString
 				}
@@ -5386,13 +5389,13 @@ export type TranslationFunctions = {
 					fields: {
 						name: {
 							/**
-							 * 장치 이름
+							 * Device Name
 							 */
 							label: () => LocalizedString
 						}
 						publicKey: {
 							/**
-							 * 공개 키 제공
+							 * Provide Your Public Key
 							 */
 							label: () => LocalizedString
 						}
@@ -5400,7 +5403,7 @@ export type TranslationFunctions = {
 					errors: {
 						name: {
 							/**
-							 * 이 이름을 가진 장치가 이미 존재합니다
+							 * Device with this name already exists
 							 */
 							duplicatedName: () => LocalizedString
 						}
@@ -5409,15 +5412,15 @@ export type TranslationFunctions = {
 			}
 			copyToken: {
 				/**
-				 * 클라이언트 활성화
+				 * Client activation
 				 */
 				title: () => LocalizedString
 				/**
-				 * 활성화 토큰
+				 * Activation token
 				 */
 				tokenCardTitle: () => LocalizedString
 				/**
-				 * Defguard 인스턴스 URL
+				 * Defguard Instance URL
 				 */
 				urlCardTitle: () => LocalizedString
 			}
@@ -5426,61 +5429,61 @@ export type TranslationFunctions = {
 	userPage: {
 		title: {
 			/**
-			 * 사용자 프로필
+			 * User Profile
 			 */
 			view: () => LocalizedString
 			/**
-			 * 사용자 프로필 편집
+			 * Edit User Profile
 			 */
 			edit: () => LocalizedString
 		}
 		messages: {
 			/**
-			 * 사용자가 업데이트되었습니다.
+			 * User updated.
 			 */
 			editSuccess: () => LocalizedString
 			/**
-			 * 사용자 정보를 가져올 수 없습니다.
+			 * Could not get user information.
 			 */
 			failedToFetchUserData: () => LocalizedString
 			/**
-			 * 비밀번호 재설정 이메일이 전송되었습니다.
+			 * Password reset email has been sent.
 			 */
 			passwordResetEmailSent: () => LocalizedString
 		}
 		userDetails: {
 			/**
-			 * 프로필 세부 정보
+			 * Profile Details
 			 */
 			header: () => LocalizedString
 			messages: {
 				/**
-				 * 앱 및 모든 토큰이 삭제되었습니다.
+				 * App and all tokens deleted.
 				 */
 				deleteApp: () => LocalizedString
 			}
 			warningModals: {
 				/**
-				 * 경고
+				 * Warning
 				 */
 				title: () => LocalizedString
 				content: {
 					/**
-					 * 사용자 이름을 변경하면 Defguard를 사용하여 로그인한 서비스에 큰 영향을 미칩니다. 사용자 이름을 변경하면 사용자가 애플리케이션에 대한 액세스 권한을 잃을 수 있습니다(애플리케이션에서 해당 사용자를 인식하지 못하기 때문에). 계속 진행하시겠습니까?
+					 * Changing a username has a significant impact on services they have logged into using Defguard. After changing the username, a user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
 					 */
 					usernameChange: () => LocalizedString
 					/**
-					 * 외부 OpenID Connect(OIDC) 공급자를 사용하여 사용자를 인증하는 경우 사용자의 이메일 주소를 변경하면 Defguard에 로그인하는 기능에 큰 영향을 미칠 수 있습니다. 계속 진행하시겠습니까?
+					 * If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?
 					 */
 					emailChange: () => LocalizedString
 				}
 				buttons: {
 					/**
-					 * 진행
+					 * Proceed
 					 */
 					proceed: () => LocalizedString
 					/**
-					 * 취소
+					 * Cancel
 					 */
 					cancel: () => LocalizedString
 				}
@@ -5488,65 +5491,65 @@ export type TranslationFunctions = {
 			fields: {
 				username: {
 					/**
-					 * 사용자 이름
+					 * Username
 					 */
 					label: () => LocalizedString
 				}
 				firstName: {
 					/**
-					 * 이름
+					 * First name
 					 */
 					label: () => LocalizedString
 				}
 				lastName: {
 					/**
-					 * 성
+					 * Last name
 					 */
 					label: () => LocalizedString
 				}
 				phone: {
 					/**
-					 * 전화번호
+					 * Phone number
 					 */
 					label: () => LocalizedString
 				}
 				email: {
 					/**
-					 * 이메일
+					 * E-mail
 					 */
 					label: () => LocalizedString
 				}
 				status: {
 					/**
-					 * 상태
+					 * Status
 					 */
 					label: () => LocalizedString
 					/**
-					 * 활성
+					 * Active
 					 */
 					active: () => LocalizedString
 					/**
-					 * 비활성
+					 * Disabled
 					 */
 					disabled: () => LocalizedString
 				}
 				groups: {
 					/**
-					 * 사용자 그룹
+					 * User groups
 					 */
 					label: () => LocalizedString
 					/**
-					 * 그룹 없음
+					 * No groups
 					 */
 					noData: () => LocalizedString
 				}
 				apps: {
 					/**
-					 * 승인된 앱
+					 * Authorized apps
 					 */
 					label: () => LocalizedString
 					/**
-					 * 승인된 앱 없음
+					 * No authorized apps
 					 */
 					noData: () => LocalizedString
 				}
@@ -5554,130 +5557,130 @@ export type TranslationFunctions = {
 		}
 		userAuthInfo: {
 			/**
-			 * 비밀번호 및 인증
+			 * Password and authentication
 			 */
 			header: () => LocalizedString
 			password: {
 				/**
-				 * 비밀번호 설정
+				 * Password settings
 				 */
 				header: () => LocalizedString
 				/**
-				 * 비밀번호 변경
+				 * Change password
 				 */
 				changePassword: () => LocalizedString
 			}
 			recovery: {
 				/**
-				 * 복구 옵션
+				 * Recovery options
 				 */
 				header: () => LocalizedString
 				codes: {
 					/**
-					 * 복구 코드
+					 * Recovery Codes
 					 */
 					label: () => LocalizedString
 					/**
-					 * 조회됨
+					 * Viewed
 					 */
 					viewed: () => LocalizedString
 				}
 			}
 			mfa: {
 				/**
-				 * 이중 인증 방법
+				 * Two-factor methods
 				 */
 				header: () => LocalizedString
 				edit: {
 					/**
-					 * MFA 비활성화
+					 * Disable MFA
 					 */
 					disable: () => LocalizedString
 				}
 				messages: {
 					/**
-					 * MFA가 비활성화되었습니다.
+					 * MFA disabled.
 					 */
 					mfaDisabled: () => LocalizedString
 					/**
-					 * 일회용 비밀번호가 비활성화되었습니다.
+					 * One time password disabled.
 					 */
 					OTPDisabled: () => LocalizedString
 					/**
-					 * 이메일 MFA가 비활성화되었습니다.
+					 * Email MFA disabled.
 					 */
 					EmailMFADisabled: () => LocalizedString
 					/**
-					 * MFA 방법이 변경되었습니다
+					 * MFA method changed
 					 */
 					changeMFAMethod: () => LocalizedString
 				}
 				securityKey: {
 					/**
-					 * 보안 키
+					 * security key
 					 */
 					singular: () => LocalizedString
 					/**
-					 * 보안 키
+					 * security keys
 					 */
 					plural: () => LocalizedString
 				}
 				/**
-				 * 기본값
+				 * default
 				 */
 				'default': () => LocalizedString
 				/**
-				 * 활성화됨
+				 * Enabled
 				 */
 				enabled: () => LocalizedString
 				/**
-				 * 비활성화됨
+				 * Disabled
 				 */
 				disabled: () => LocalizedString
 				wallet: {
 					/**
-					 * 지갑
+					 * Wallet
 					 */
 					singular: () => LocalizedString
 					/**
-					 * 지갑
+					 * Wallets
 					 */
 					plural: () => LocalizedString
 				}
 				labels: {
 					/**
-					 * 시간 기반 일회용 비밀번호
+					 * Time based one time passwords
 					 */
 					totp: () => LocalizedString
 					/**
-					 * 이메일
+					 * Email
 					 */
 					email: () => LocalizedString
 					/**
-					 * 보안 키
+					 * Security keys
 					 */
 					webauth: () => LocalizedString
 					/**
-					 * 지갑
+					 * Wallets
 					 */
 					wallets: () => LocalizedString
 				}
 				editMode: {
 					/**
-					 * 활성화
+					 * Enable
 					 */
 					enable: () => LocalizedString
 					/**
-					 * 비활성화
+					 * Disable
 					 */
 					disable: () => LocalizedString
 					/**
-					 * 기본값으로 설정
+					 * Make default
 					 */
 					makeDefault: () => LocalizedString
 					webauth: {
 						/**
-						 * 보안 키 관리
+						 * Manage security keys
 						 */
 						manage: () => LocalizedString
 					}
@@ -5686,75 +5689,75 @@ export type TranslationFunctions = {
 		}
 		controls: {
 			/**
-			 * 프로필 편집
+			 * Edit profile
 			 */
 			editButton: () => LocalizedString
 			/**
-			 * 계정 삭제
+			 * Delete account
 			 */
 			deleteAccount: () => LocalizedString
 		}
 		devices: {
 			/**
-			 * 사용자 장치
+			 * User devices
 			 */
 			header: () => LocalizedString
 			addDevice: {
 				/**
-				 * 새 장치 추가
+				 * Add new device
 				 */
 				web: () => LocalizedString
 				/**
-				 * 이 장치 추가
+				 * Add this device
 				 */
 				desktop: () => LocalizedString
 			}
 			card: {
 				labels: {
 					/**
-					 * 공개 IP
+					 * Public IP
 					 */
 					publicIP: () => LocalizedString
 					/**
-					 * 연결 방식
+					 * Connected through
 					 */
 					connectedThrough: () => LocalizedString
 					/**
-					 * 연결 날짜
+					 * Connected date
 					 */
 					connectionDate: () => LocalizedString
 					/**
-					 * 마지막 연결 위치
+					 * Last connected from
 					 */
 					lastLocation: () => LocalizedString
 					/**
-					 * 마지막 연결
+					 * Last connected
 					 */
 					lastConnected: () => LocalizedString
 					/**
-					 * 할당된 IP
+					 * Assigned IP
 					 */
 					assignedIp: () => LocalizedString
 					/**
-					 * 활성
+					 * active
 					 */
 					active: () => LocalizedString
 					/**
-					 * 연결된 적 없음
+					 * Never connected
 					 */
 					noData: () => LocalizedString
 				}
 				edit: {
 					/**
-					 * 장치 편집
+					 * Edit device
 					 */
 					edit: () => LocalizedString
 					/**
-					 * 장치 삭제
+					 * Delete device
 					 */
 					'delete': () => LocalizedString
 					/**
-					 * 구성 보기
+					 * Show configuration
 					 */
 					showConfigurations: () => LocalizedString
 				}
@@ -5763,31 +5766,31 @@ export type TranslationFunctions = {
 		wallets: {
 			messages: {
 				/**
-				 * 주소가 복사되었습니다.
+				 * Address copied.
 				 */
 				addressCopied: () => LocalizedString
 				duplicate: {
 					/**
-					 * 연결된 지갑이 이미 등록되어 있습니다
+					 * Connected wallet is already registered
 					 */
 					primary: () => LocalizedString
 					/**
-					 * 사용되지 않은 지갑을 연결하세요.
+					 * Please connect unused wallet.
 					 */
 					sub: () => LocalizedString
 				}
 			}
 			/**
-			 * 사용자 지갑
+			 * User wallets
 			 */
 			header: () => LocalizedString
 			/**
-			 * 새 지갑 추가
+			 * Add new wallet
 			 */
 			addWallet: () => LocalizedString
 			card: {
 				/**
-				 * 주소
+				 * Address
 				 */
 				address: () => LocalizedString
 				/**
@@ -5796,33 +5799,33 @@ export type TranslationFunctions = {
 				mfaBadge: () => LocalizedString
 				edit: {
 					/**
-					 * MFA 활성화
+					 * Enable MFA
 					 */
 					enableMFA: () => LocalizedString
 					/**
-					 * MFA 비활성화
+					 * Disable MFA
 					 */
 					disableMFA: () => LocalizedString
 					/**
-					 * 삭제
+					 * Delete
 					 */
 					'delete': () => LocalizedString
 					/**
-					 * 주소 복사
+					 * Copy address
 					 */
 					copyAddress: () => LocalizedString
 				}
 				messages: {
 					/**
-					 * 지갑이 삭제되었습니다
+					 * Wallet deleted
 					 */
 					deleteSuccess: () => LocalizedString
 					/**
-					 * 지갑 MFA가 활성화되었습니다
+					 * Wallet MFA enabled
 					 */
 					enableMFA: () => LocalizedString
 					/**
-					 * 지갑 MFA가 비활성화되었습니다
+					 * Wallet MFA disabled
 					 */
 					disableMFA: () => LocalizedString
 				}
@@ -5830,180 +5833,183 @@ export type TranslationFunctions = {
 		}
 		yubiKey: {
 			/**
-			 * 사용자 YubiKey
+			 * User YubiKey
 			 */
 			header: () => LocalizedString
 			/**
-			 * YubiKey 프로비저닝
+			 * Provision a YubiKey
 			 */
 			provision: () => LocalizedString
 			keys: {
 				/**
-				 * PGP 키
+				 * PGP key
 				 */
 				pgp: () => LocalizedString
 				/**
-				 * SSH 키
+				 * SSH key
 				 */
 				ssh: () => LocalizedString
 			}
 			noLicense: {
 				/**
-				 * YubiKey 모듈
+				 * YubiKey module
 				 */
 				moduleName: () => LocalizedString
 				/**
-				 * YubiKey 관리 및 프로비저닝을 위한 엔터프라이즈 모듈입니다.
+				 * This is enterprise module for YubiKey
 				 */
 				line1: () => LocalizedString
+				/**
+				 * management and provisioning.
+				 */
 				line2: () => LocalizedString
 			}
 		}
 		authenticationKeys: {
 			/**
-			 * 사용자 인증 키
+			 * User Authentication Keys
 			 */
 			header: () => LocalizedString
 			/**
-			 * 새 키 추가
+			 * Add new Key
 			 */
 			addKey: () => LocalizedString
 			keysList: {
 				common: {
 					/**
-					 * 이름 변경
+					 * Rename
 					 */
 					rename: () => LocalizedString
 					/**
-					 * 키
+					 * Key
 					 */
 					key: () => LocalizedString
 					/**
-					 * 다운로드
+					 * Download
 					 */
 					download: () => LocalizedString
 					/**
-					 * 복사
+					 * Copy
 					 */
 					copy: () => LocalizedString
 					/**
-					 * 시리얼 번호
+					 * Serial Number
 					 */
 					serialNumber: () => LocalizedString
 					/**
-					 * 삭제
+					 * Delete
 					 */
 					'delete': () => LocalizedString
 				}
 			}
 			deleteModal: {
 				/**
-				 * 인증 키 삭제
+				 * Delete Authentication Key
 				 */
 				title: () => LocalizedString
 				/**
-				 * {name} 키가 영구적으로 삭제됩니다.
+				 * Key {name} will be deleted permanently.
 				 */
 				confirmMessage: (arg: { name: string }) => LocalizedString
 			}
 			addModal: {
 				/**
-				 * 새 인증 키 추가
+				 * Add new Authentication Key
 				 */
 				header: () => LocalizedString
 				/**
-				 * 키 유형
+				 * Key Type
 				 */
 				keyType: () => LocalizedString
 				keyForm: {
 					placeholders: {
 						/**
-						 * 키 이름
+						 * Key Name
 						 */
 						title: () => LocalizedString
 						key: {
 							/**
-							 * ssh-rsa, ecdsa-sha2-nistp256, ... 로 시작
+							 * Begins with ssh-rsa, ecdsa-sha2-nistp256, ...
 							 */
 							ssh: () => LocalizedString
 							/**
-							 * -----BEGIN PGP PUBLIC KEY BLOCK----- 로 시작
+							 * Begins with -----BEGIN PGP PUBLIC KEY BLOCK-----
 							 */
 							gpg: () => LocalizedString
 						}
 					}
 					labels: {
 						/**
-						 * 이름
+						 * Name
 						 */
 						title: () => LocalizedString
 						/**
-						 * 키
+						 * Key
 						 */
 						key: () => LocalizedString
 					}
 					/**
-					 * {name} 키 추가
+					 * Add {name} key
 					 */
 					submit: (arg: { name: string }) => LocalizedString
 				}
 				yubikeyForm: {
 					selectWorker: {
 						/**
-						 * 이 작업은 YubiKey의 openpgp 애플리케이션을 삭제하고 재구성합니다.
+						 * Please be advised that this operation will wipe openpgp application on YubiKey and reconfigure it.
 						 */
 						info: () => LocalizedString
 						/**
-						 * 다음 프로비저너 중 하나를 선택하여 YubiKey를 프로비저닝하십시오
+						 * Select on of the following provisioners to provision a YubiKey
 						 */
 						selectLabel: () => LocalizedString
 						/**
-						 * 현재 등록된 작업자가 없습니다.
+						 * No workers are registered right now.
 						 */
 						noData: () => LocalizedString
 						/**
-						 * 사용 가능
+						 * Available
 						 */
 						available: () => LocalizedString
 						/**
-						 * 사용 불가
+						 * Unavailable
 						 */
 						unavailable: () => LocalizedString
 					}
 					provisioning: {
 						/**
-						 * 프로비저닝 진행 중, 잠시 기다려 주세요.
+						 * Provisioning in progress, please wait.
 						 */
 						inProgress: () => LocalizedString
 						/**
-						 * 프로비저닝 실패!
+						 * Provisioning failed !
 						 */
 						error: () => LocalizedString
 						/**
-						 * Yubikey가 성공적으로 프로비저닝되었습니다
+						 * Yubikey provisioned successfully
 						 */
 						success: () => LocalizedString
 					}
 					/**
-					 * Yubikey 프로비저닝
+					 * Provision Yubikey
 					 */
 					submit: () => LocalizedString
 				}
 				messages: {
 					/**
-					 * 키가 추가되었습니다.
+					 * Key added.
 					 */
 					keyAdded: () => LocalizedString
 					/**
-					 * 키가 이미 추가되었습니다.
+					 * Key has already been added.
 					 */
 					keyExists: () => LocalizedString
 					/**
-					 * 지원되지 않는 키 형식입니다.
+					 * Unsupported key format.
 					 */
 					unsupportedKeyFormat: () => LocalizedString
 					/**
-					 * 키를 추가할 수 없습니다. 나중에 다시 시도하십시오.
+					 * Could not add the key. Please try again later.
 					 */
 					genericError: () => LocalizedString
 				}
@@ -6012,91 +6018,91 @@ export type TranslationFunctions = {
 	}
 	usersOverview: {
 		/**
-		 * 사용자
+		 * Users
 		 */
 		pageTitle: () => LocalizedString
 		search: {
 			/**
-			 * 사용자 찾기
+			 * Find users
 			 */
 			placeholder: () => LocalizedString
 		}
 		filterLabels: {
 			/**
-			 * 모든 사용자
+			 * All users
 			 */
 			all: () => LocalizedString
 			/**
-			 * 관리자만
+			 * Admins only
 			 */
 			admin: () => LocalizedString
 			/**
-			 * 사용자만
+			 * Users only
 			 */
 			users: () => LocalizedString
 		}
 		/**
-		 * 모든 사용자
+		 * All users
 		 */
 		usersCount: () => LocalizedString
 		/**
-		 * 새 추가
+		 * Add new
 		 */
 		addNewUser: () => LocalizedString
 		list: {
 			headers: {
 				/**
-				 * 사용자 이름
+				 * User name
 				 */
 				name: () => LocalizedString
 				/**
-				 * 로그인
+				 * Login
 				 */
 				username: () => LocalizedString
 				/**
-				 * 전화
+				 * Phone
 				 */
 				phone: () => LocalizedString
 				/**
-				 * 작업
+				 * Actions
 				 */
 				actions: () => LocalizedString
 			}
 			editButton: {
 				/**
-				 * 비밀번호 변경
+				 * Change password
 				 */
 				changePassword: () => LocalizedString
 				/**
-				 * 계정 편집
+				 * Edit account
 				 */
 				edit: () => LocalizedString
 				/**
-				 * YubiKey 추가
+				 * Add YubiKey
 				 */
 				addYubikey: () => LocalizedString
 				/**
-				 * SSH 키 추가
+				 * Add SSH Key
 				 */
 				addSSH: () => LocalizedString
 				/**
-				 * GPG 키 추가
+				 * Add GPG Key
 				 */
 				addGPG: () => LocalizedString
 				/**
-				 * 계정 삭제
+				 * Delete account
 				 */
 				'delete': () => LocalizedString
 				/**
-				 * 등록 시작
+				 * Start enrollment
 				 */
 				startEnrollment: () => LocalizedString
 				/**
-				 * 데스크톱 클라이언트 구성
+				 * Configure Desktop Client
 				 */
 				activateDesktop: () => LocalizedString
 				/**
-				 * 비밀번호 재설정
+				 * Reset password
 				 */
 				resetPassword: () => LocalizedString
 			}
@@ -6105,11 +6111,11 @@ export type TranslationFunctions = {
 	navigation: {
 		bar: {
 			/**
-			 * VPN 개요
+			 * VPN Overview
 			 */
 			overview: () => LocalizedString
 			/**
-			 * 사용자
+			 * Users
 			 */
 			users: () => LocalizedString
 			/**
@@ -6121,53 +6127,53 @@ export type TranslationFunctions = {
 			 */
 			webhooks: () => LocalizedString
 			/**
-			 * OpenID 앱
+			 * OpenID Apps
 			 */
 			openId: () => LocalizedString
 			/**
-			 * 내 프로필
+			 * My Profile
 			 */
 			myProfile: () => LocalizedString
 			/**
-			 * 설정
+			 * Settings
 			 */
 			settings: () => LocalizedString
 			/**
-			 * 로그아웃
+			 * Log out
 			 */
 			logOut: () => LocalizedString
 			/**
-			 * 등록
+			 * Enrollment
 			 */
 			enrollment: () => LocalizedString
 			/**
-			 * 지원
+			 * Support
 			 */
 			support: () => LocalizedString
 			/**
-			 * 그룹
+			 * Groups
 			 */
 			groups: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
-			 * 그룹
+			 * Groups
 			 */
 			groups: () => LocalizedString
 			/**
-			 * Location 생성
+			 * Create location
 			 */
 			wizard: () => LocalizedString
 			/**
-			 * 사용자
+			 * Users
 			 */
 			users: () => LocalizedString
 			/**
-			 * 설정
+			 * Settings
 			 */
 			settings: () => LocalizedString
 			/**
-			 * 사용자 프로필
+			 * User Profile
 			 */
 			user: () => LocalizedString
 			/**
@@ -6179,23 +6185,23 @@ export type TranslationFunctions = {
 			 */
 			webhooks: () => LocalizedString
 			/**
-			 * OpenId 앱
+			 * OpenId Apps
 			 */
 			openId: () => LocalizedString
 			/**
-			 * 위치 개요
+			 * Location Overview
 			 */
 			overview: () => LocalizedString
 			/**
-			 * 위치 편집
+			 * Edit Location
 			 */
 			networkSettings: () => LocalizedString
 			/**
-			 * 등록
+			 * Enrollment
 			 */
 			enrollment: () => LocalizedString
 			/**
-			 * 지원
+			 * Support
 			 */
 			support: () => LocalizedString
 		}
@@ -6205,7 +6211,7 @@ export type TranslationFunctions = {
 		copyright: () => LocalizedString
 		version: {
 			/**
-			 * 애플리케이션 버전: {version}
+			 * Application version: {version}
 			 */
 			open: (arg: { version: string }) => LocalizedString
 			/**
@@ -6216,148 +6222,148 @@ export type TranslationFunctions = {
 	}
 	form: {
 		/**
-		 * 다운로드
+		 * Download
 		 */
 		download: () => LocalizedString
 		/**
-		 * 복사
+		 * Copy
 		 */
 		copy: () => LocalizedString
 		/**
-		 * 변경 사항 저장
+		 * Save changes
 		 */
 		saveChanges: () => LocalizedString
 		/**
-		 * 제출
+		 * Submit
 		 */
 		submit: () => LocalizedString
 		/**
-		 * 로그인
+		 * Sign in
 		 */
 		login: () => LocalizedString
 		/**
-		 * 취소
+		 * Cancel
 		 */
 		cancel: () => LocalizedString
 		/**
-		 * 닫기
+		 * Close
 		 */
 		close: () => LocalizedString
 		placeholders: {
 			/**
-			 * 비밀번호
+			 * Password
 			 */
 			password: () => LocalizedString
 			/**
-			 * 사용자 이름
+			 * Username
 			 */
 			username: () => LocalizedString
 		}
 		error: {
 			/**
-			 * 필드에 금지된 문자가 포함되어 있습니다.
+			 * Field contains forbidden characters.
 			 */
 			forbiddenCharacter: () => LocalizedString
 			/**
-			 * 사용자 이름이 이미 사용 중입니다.
+			 * Username is already in use.
 			 */
 			usernameTaken: () => LocalizedString
 			/**
-			 * 키가 유효하지 않습니다.
+			 * Key is invalid.
 			 */
 			invalidKey: () => LocalizedString
 			/**
-			 * 필드가 유효하지 않습니다.
+			 * Field is invalid.
 			 */
 			invalid: () => LocalizedString
 			/**
-			 * 필드는 필수입니다.
+			 * Field is required.
 			 */
 			required: () => LocalizedString
 			/**
-			 * 제출된 코드가 유효하지 않습니다.
+			 * Submitted code is invalid.
 			 */
 			invalidCode: () => LocalizedString
 			/**
-			 * 최대 길이를 초과했습니다.
+			 * Maximum length exceeded.
 			 */
 			maximumLength: () => LocalizedString
 			/**
-			 * 최소 길이에 도달하지 않았습니다.
+			 * Minimum length not reached.
 			 */
 			minimumLength: () => LocalizedString
 			/**
-			 * 특수 문자는 허용되지 않습니다.
+			 * No special characters are allowed.
 			 */
 			noSpecialChars: () => LocalizedString
 			/**
-			 * 숫자 하나가 필요합니다.
+			 * One digit required.
 			 */
 			oneDigit: () => LocalizedString
 			/**
-			 * 특수 문자가 필요합니다.
+			 * Special character required.
 			 */
 			oneSpecial: () => LocalizedString
 			/**
-			 * 대문자 하나가 필요합니다.
+			 * One uppercase character required.
 			 */
 			oneUppercase: () => LocalizedString
 			/**
-			 * 소문자 하나가 필요합니다.
+			 * One lowercase character required.
 			 */
 			oneLowercase: () => LocalizedString
 			/**
-			 * 최대 포트는 65535입니다.
+			 * Maximum port is 65535.
 			 */
 			portMax: () => LocalizedString
 			/**
-			 * 유효한 엔드포인트를 입력하세요.
+			 * Enter a valid endpoint.
 			 */
 			endpoint: () => LocalizedString
 			/**
-			 * 유효한 주소를 입력하세요.
+			 * Enter a valid address.
 			 */
 			address: () => LocalizedString
 			/**
-			 * 유효한 포트를 입력하세요.
+			 * Enter a valid port.
 			 */
 			validPort: () => LocalizedString
 			/**
-			 * 코드는 6자리여야 합니다.
+			 * Code should have 6 digits.
 			 */
 			validCode: () => LocalizedString
 			/**
-			 * 유효한 IP 또는 도메인만 허용됩니다.
+			 * Only valid IP or domain is allowed.
 			 */
 			allowedIps: () => LocalizedString
 			/**
-			 * 숫자로 시작할 수 없습니다.
+			 * Cannot start from number.
 			 */
 			startFromNumber: () => LocalizedString
 			/**
-			 * 필드가 일치하지 않습니다.
+			 * Fields don't match.
 			 */
 			repeat: () => LocalizedString
 			/**
-			 * 유효한 숫자를 입력해야 합니다.
+			 * Expected a valid number.
 			 */
 			number: () => LocalizedString
 			/**
-			 * {value}의 최솟값에 도달하지 않았습니다.
+			 * Minimum value of {value} not reached.
 			 */
 			minimumValue: (arg: { value: number }) => LocalizedString
 			/**
-			 * {value}의 최댓값을 초과했습니다.
+			 * Maximum value of {value} exceeded.
 			 */
 			maximumValue: (arg: { value: number }) => LocalizedString
 			/**
-			 * 잘못된 로그인 시도가 너무 많습니다. 몇 분 후에 다시 시도하십시오.
+			 * Too many bad login attempts. Please try again in a few minutes.
 			 */
 			tooManyBadLoginAttempts: () => LocalizedString
 		}
 		floatingErrors: {
 			/**
-			 * 다음을 수정하십시오:
+			 * Please correct the following:
 			 */
 			title: () => LocalizedString
 		}
@@ -6365,50 +6371,50 @@ export type TranslationFunctions = {
 	components: {
 		deviceConfigsCard: {
 			/**
-			 * 위치에 대한 WireGuard 구성:
+			 * WireGuard Config for location:
 			 */
 			cardTitle: () => LocalizedString
 			messages: {
 				/**
-				 * 클립보드에 구성이 복사되었습니다.
+				 * Configuration copied to the clipboard
 				 */
 				copyConfig: () => LocalizedString
 			}
 		}
 		gatewaysStatus: {
 			/**
-			 * 게이트웨이
+			 * Gateways
 			 */
 			label: () => LocalizedString
 			states: {
 				/**
-				 * 모두 연결됨
+				 * All connected
 				 */
 				connected: () => LocalizedString
 				/**
-				 * 하나 이상 작동하지 않음
+				 * One or more are not working
 				 */
 				partial: () => LocalizedString
 				/**
-				 * 연결 끊김
+				 * Disconnected
 				 */
 				disconnected: () => LocalizedString
 				/**
-				 * 연결 정보를 가져오는 데 실패했습니다.
+				 * Retrieving connections failed
 				 */
 				error: () => LocalizedString
 				/**
-				 * 연결 정보를 가져오는 중
+				 * Retrieving connections
 				 */
 				loading: () => LocalizedString
 			}
 			messages: {
 				/**
-				 * 게이트웨이 상태를 가져오지 못했습니다
+				 * Failed to get gateways status
 				 */
 				error: () => LocalizedString
 				/**
-				 * 게이트웨이를 삭제하지 못했습니다
+				 * Failed to delete gateway
 				 */
 				deleteError: () => LocalizedString
 			}
@@ -6416,11 +6422,11 @@ export type TranslationFunctions = {
 		noLicenseBox: {
 			footer: {
 				/**
-				 * 엔터프라이즈 라이선스 받기
+				 * Get an enterprise license
 				 */
 				get: () => LocalizedString
 				/**
-				 * 연락처:
+				 * by contacting:
 				 */
 				contact: () => LocalizedString
 			}
@@ -6428,7 +6434,7 @@ export type TranslationFunctions = {
 	}
 	settingsPage: {
 		/**
-		 * 설정
+		 * Settings
 		 */
 		title: () => LocalizedString
 		tabs: {
@@ -6437,7 +6443,7 @@ export type TranslationFunctions = {
 			 */
 			smtp: () => LocalizedString
 			/**
-			 * 전역 설정
+			 * Global settings
 			 */
 			global: () => LocalizedString
 			/**
@@ -6449,37 +6455,37 @@ export type TranslationFunctions = {
 			 */
 			openid: () => LocalizedString
 			/**
-			 * 엔터프라이즈 기능
+			 * Enterprise features
 			 */
 			enterprise: () => LocalizedString
 		}
 		messages: {
 			/**
-			 * 설정이 업데이트되었습니다
+			 * Settings updated
 			 */
 			editSuccess: () => LocalizedString
 			/**
-			 * 챌린지 메시지가 변경되었습니다
+			 * Challenge message changed
 			 */
 			challengeSuccess: () => LocalizedString
 		}
 		enterpriseOnly: {
 			/**
-			 * 이 기능은 Defguard Enterprise에서만 사용할 수 있습니다.
+			 * This feature is available only in Defguard Enterprise.
 			 */
 			title: () => LocalizedString
 			/**
-			 * 자세한 내용은 
+			 * To learn more, visit our 
 			 */
 			subtitle: () => LocalizedString
 			/**
-			 * 웹사이트
+			 * website
 			 */
 			website: () => LocalizedString
 		}
 		ldapSettings: {
 			/**
-			 * LDAP 설정
+			 * LDAP Settings
 			 */
 			title: () => LocalizedString
 			form: {
@@ -6489,67 +6495,67 @@ export type TranslationFunctions = {
 					 */
 					ldap_url: () => LocalizedString
 					/**
-					 * 바인드 사용자 이름
+					 * Bind Username
 					 */
 					ldap_bind_username: () => LocalizedString
 					/**
-					 * 바인드 비밀번호
+					 * Bind Password
 					 */
 					ldap_bind_password: () => LocalizedString
 					/**
-					 * 멤버 속성
+					 * Member Attribute
 					 */
 					ldap_member_attr: () => LocalizedString
 					/**
-					 * 사용자 이름 속성
+					 * Username Attribute
 					 */
 					ldap_username_attr: () => LocalizedString
 					/**
-					 * 사용자 객체 클래스
+					 * User Object Class
 					 */
 					ldap_user_obj_class: () => LocalizedString
 					/**
-					 * 사용자 검색 기준
+					 * User Search Base
 					 */
 					ldap_user_search_base: () => LocalizedString
 					/**
-					 * 그룹 이름 속성
+					 * Groupname Attribute
 					 */
 					ldap_groupname_attr: () => LocalizedString
 					/**
-					 * 그룹 검색 기준
+					 * Group Search Base
 					 */
 					ldap_group_search_base: () => LocalizedString
 					/**
-					 * 그룹 멤버 속성
+					 * Group Member Attribute
 					 */
 					ldap_group_member_attr: () => LocalizedString
 					/**
-					 * 그룹 객체 클래스
+					 * Group Object Class
 					 */
 					ldap_group_obj_class: () => LocalizedString
 				}
 				/**
-				 * 구성 삭제
+				 * Delete configuration
 				 */
 				'delete': () => LocalizedString
 			}
 			test: {
 				/**
-				 * LDAP 연결 테스트
+				 * Test LDAP Connection
 				 */
 				title: () => LocalizedString
 				/**
-				 * 테스트
+				 * Test
 				 */
 				submit: () => LocalizedString
 				messages: {
 					/**
-					 * LDAP 연결 성공
+					 * LDAP connected successfully
 					 */
 					success: () => LocalizedString
 					/**
-					 * LDAP 연결 거부됨
+					 * LDAP connection rejected
 					 */
 					error: () => LocalizedString
 				}
@@ -6558,83 +6564,83 @@ export type TranslationFunctions = {
 		openIdSettings: {
 			general: {
 				/**
-				 * 외부 OpenID 설정
+				 * External OpenID Settings
 				 */
 				title: () => LocalizedString
 				/**
-				 * 여기에서 Defguard 인스턴스의 일반 OpenID 동작을 변경할 수 있습니다.
+				 * Here you can change general OpenID behavior in your Defguard instance.
 				 */
 				helper: () => LocalizedString
 				createAccount: {
 					/**
-					 * 외부 OpenID를 통해 처음 로그인할 때 사용자 계정을 자동으로 생성합니다.
+					 * Automatically create user account when logging in for the first time through external OpenID.
 					 */
 					label: () => LocalizedString
 					/**
-					 * 이 옵션을 활성화하면 Defguard는 외부 OpenID 공급자를 사용하여 처음 로그인하는 사용자에 대한 새 계정을 자동으로 생성합니다. 그렇지 않으면 관리자가 먼저 사용자 계정을 생성해야 합니다.
+					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
 					 */
 					helper: () => LocalizedString
 				}
 			}
 			form: {
 				/**
-				 * 외부 OpenID 클라이언트 설정
+				 * External OpenID Client Settings
 				 */
 				title: () => LocalizedString
 				/**
-				 * 여기에서 외부 OpenID 공급자가 제공한 값으로 OpenID 클라이언트 설정을 구성할 수 있습니다.
+				 * Here you can configure the OpenID client settings with values provided by your external OpenID provider.
 				 */
 				helper: () => LocalizedString
 				/**
-				 * 사용자 정의
+				 * Custom
 				 */
 				custom: () => LocalizedString
 				/**
-				 * 설명서
+				 * Documentation
 				 */
 				documentation: () => LocalizedString
 				/**
-				 * 공급자 삭제
+				 * Delete provider
 				 */
 				'delete': () => LocalizedString
 				labels: {
 					provider: {
 						/**
-						 * 공급자
+						 * Provider
 						 */
 						label: () => LocalizedString
 						/**
-						 * OpenID 공급자를 선택하세요. 사용자 정의 공급자를 사용하고 직접 기본 URL을 입력할 수 있습니다.
+						 * Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.
 						 */
 						helper: () => LocalizedString
 					}
 					client_id: {
 						/**
-						 * 클라이언트 ID
+						 * Client ID
 						 */
 						label: () => LocalizedString
 						/**
-						 * OpenID 공급자가 제공한 클라이언트 ID입니다.
+						 * Client ID provided by your OpenID provider.
 						 */
 						helper: () => LocalizedString
 					}
 					client_secret: {
 						/**
-						 * 클라이언트 보안 비밀
+						 * Client Secret
 						 */
 						label: () => LocalizedString
 						/**
-						 * OpenID 공급자가 제공한 클라이언트 보안 비밀입니다.
+						 * Client Secret provided by your OpenID provider.
 						 */
 						helper: () => LocalizedString
 					}
 					base_url: {
 						/**
-						 * 기본 URL
+						 * Base URL
 						 */
 						label: () => LocalizedString
 						/**
-						 * OpenID 공급자의 기본 URL입니다(예: https://accounts.google.com). 자세한 정보 및 예는 설명서를 확인하십시오.
+						 * Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.
 						 */
 						helper: () => LocalizedString
 					}
@@ -6643,15 +6649,15 @@ export type TranslationFunctions = {
 		}
 		modulesVisibility: {
 			/**
-			 * 모듈 가시성
+			 * Modules Visibility
 			 */
 			header: () => LocalizedString
 			/**
 			 * <p>
-		            사용하지 않는 모듈이 있는 경우 해당 모듈의 가시성을 비활성화할 수 있습니다.
+		            If your not using some modules you can disable their visibility.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
-		            자세한 내용은 설명서를 참조하십시오.
+		            Read more in documentation.
 		          </a>
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
@@ -6664,13 +6670,13 @@ export type TranslationFunctions = {
 				}
 				webhooks_enabled: {
 					/**
-					 * 웹훅
+					 * Webhooks
 					 */
 					label: () => LocalizedString
 				}
 				worker_enabled: {
 					/**
-					 * Yubikey 프로비저닝
+					 * Yubikey provisioning
 					 */
 					label: () => LocalizedString
 				}
@@ -6684,23 +6690,23 @@ export type TranslationFunctions = {
 		}
 		defaultNetworkSelect: {
 			/**
-			 * 기본 위치 보기
+			 * Default location view
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>여기에서 기본 위치 보기를 변경할 수 있습니다.</p>
+			 * <p>Here you can change your default location view.</p>
 		          <a href="{documentationLink}" target="_blank">
-		            자세한 내용은 설명서를 참조하십시오.
+		            Read more in documentation.
 		          </a>
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
 			filterLabels: {
 				/**
-				 * 그리드 보기
+				 * Grid view
 				 */
 				grid: () => LocalizedString
 				/**
-				 * 목록 보기
+				 * List view
 				 */
 				list: () => LocalizedString
 			}
@@ -6713,32 +6719,32 @@ export type TranslationFunctions = {
 			fields: {
 				signMessage: {
 					/**
-					 * 기본 서명 메시지 템플릿
+					 * Default sign message template
 					 */
 					label: () => LocalizedString
 				}
 			}
 			controls: {
 				/**
-				 * 변경 사항 저장
+				 * Save changes
 				 */
 				save: () => LocalizedString
 			}
 		}
 		instanceBranding: {
 			/**
-			 * 인스턴스 브랜딩
+			 * Instance Branding
 			 */
 			header: () => LocalizedString
 			form: {
 				/**
-				 * 이름 및 로고:
+				 * Name & Logo:
 				 */
 				title: () => LocalizedString
 				fields: {
 					instanceName: {
 						/**
-						 * 인스턴스 이름
+						 * Instance name
 						 */
 						label: () => LocalizedString
 						/**
@@ -6748,40 +6754,40 @@ export type TranslationFunctions = {
 					}
 					mainLogoUrl: {
 						/**
-						 * 로그인 로고 url
+						 * Login logo url
 						 */
 						label: () => LocalizedString
 						/**
-						 * <p>최대 사진 크기는 250x100  px입니다</p>
+						 * <p>Maximum picture size is 250x100  px</p>
 						 */
 						helper: () => LocalizedString
 						/**
-						 * 기본 이미지
+						 * Default image
 						 */
 						placeholder: () => LocalizedString
 					}
 					navLogoUrl: {
 						/**
-						 * 메뉴 및 탐색 작은 로고
+						 * Menu & navigation small logo
 						 */
 						label: () => LocalizedString
 						/**
-						 * <p>최대 사진 크기는 100x100 px입니다</p>
+						 * <p>Maximum picture size is 100x100 px</p>
 						 */
 						helper: () => LocalizedString
 						/**
-						 * 기본 이미지
+						 * Default image
 						 */
 						placeholder: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 기본값 복원
+					 * Restore default
 					 */
 					restoreDefault: () => LocalizedString
 					/**
-					 * 변경 사항 저장
+					 * Save changes
 					 */
 					submit: () => LocalizedString
 				}
@@ -6789,11 +6795,11 @@ export type TranslationFunctions = {
 			/**
 			 * 
 					      <p>
-		            여기에서 defguard 인스턴스의 로고 및 이름 url을
-		            추가할 수 있습니다. defguard 대신 표시됩니다.
+		            Here you can add url of your logo and name for your defguard
+		            instance it will be displayed instead of defguard.
 		          </p>
 		          <a href="{documentationLink}" target="_blank">
-		            자세한 내용은 설명서를 참조하십시오.
+		            Read more in documentation.
 		          </a>
 				
 			 */
@@ -6801,44 +6807,44 @@ export type TranslationFunctions = {
 		}
 		license: {
 			/**
-			 * 엔터프라이즈
+			 * Enterprise
 			 */
 			header: () => LocalizedString
 			helpers: {
 				enterpriseHeader: {
 					/**
-					 * 여기에서 Defguard Enterprise 버전 라이선스를 관리할 수 있습니다.
+					 * Here you can manage your Defguard Enterprise version license.
 					 */
 					text: () => LocalizedString
 					/**
-					 * Defguard Enterprise에 대한 자세한 내용은 웹사이트를 방문하십시오.
+					 * To learn more about Defguard Enterprise, visit our webiste.
 					 */
 					link: () => LocalizedString
 				}
 				licenseKey: {
 					/**
-					 * 아래에 Defguard Enterprise 라이선스 키를 입력하세요. 라이선스 구매 후 이메일을 통해 받아야 합니다.
+					 * Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.
 					 */
 					text: () => LocalizedString
 					/**
-					 * 라이선스는 여기에서 구입할 수 있습니다.
+					 * You can purchase the license here.
 					 */
 					link: () => LocalizedString
 				}
 			}
 			form: {
 				/**
-				 * 라이선스
+				 * License
 				 */
 				title: () => LocalizedString
 				fields: {
 					key: {
 						/**
-						 * 라이선스 키
+						 * License key
 						 */
 						label: () => LocalizedString
 						/**
-						 * Defguard 라이선스 키
+						 * Your Defguard license key
 						 */
 						placeholder: () => LocalizedString
 					}
@@ -6846,31 +6852,31 @@ export type TranslationFunctions = {
 			}
 			licenseInfo: {
 				/**
-				 * 라이선스 정보
+				 * License information
 				 */
 				title: () => LocalizedString
 				/**
-				 * 라이선스 없음
+				 * No license
 				 */
 				noLicense: () => LocalizedString
 				types: {
 					subscription: {
 						/**
-						 * 구독
+						 * Subscription
 						 */
 						label: () => LocalizedString
 						/**
-						 * 정기적으로 자동 갱신되는 라이선스
+						 * A license that automatically renews at regular intervals
 						 */
 						helper: () => LocalizedString
 					}
 					offline: {
 						/**
-						 * 오프라인
+						 * Offline
 						 */
 						label: () => LocalizedString
 						/**
-						 * 라이선스는 만료 날짜까지 유효하며 자동으로 갱신되지 않습니다
+						 * The license is valid until the expiry date and does not automatically renew
 						 */
 						helper: () => LocalizedString
 					}
@@ -6878,13 +6884,13 @@ export type TranslationFunctions = {
 				fields: {
 					type: {
 						/**
-						 * 유형
+						 * Type
 						 */
 						label: () => LocalizedString
 					}
 					validUntil: {
 						/**
-						 * 유효 기간
+						 * Valid until
 						 */
 						label: () => LocalizedString
 					}
@@ -6894,70 +6900,70 @@ export type TranslationFunctions = {
 		smtp: {
 			form: {
 				/**
-				 * SMTP 구성
+				 * SMTP configuration
 				 */
 				title: () => LocalizedString
 				fields: {
 					encryption: {
 						/**
-						 * 암호화
+						 * Encryption
 						 */
 						label: () => LocalizedString
 					}
 					server: {
 						/**
-						 * 서버 주소
+						 * Server address
 						 */
 						label: () => LocalizedString
 						/**
-						 * 주소
+						 * Address
 						 */
 						placeholder: () => LocalizedString
 					}
 					port: {
 						/**
-						 * 서버 포트
+						 * Server port
 						 */
 						label: () => LocalizedString
 						/**
-						 * 포트
+						 * Port
 						 */
 						placeholder: () => LocalizedString
 					}
 					user: {
 						/**
-						 * 서버 사용자 이름
+						 * Server username
 						 */
 						label: () => LocalizedString
 						/**
-						 * 사용자 이름
+						 * Username
 						 */
 						placeholder: () => LocalizedString
 					}
 					password: {
 						/**
-						 * 서버 비밀번호
+						 * Server password
 						 */
 						label: () => LocalizedString
 						/**
-						 * 비밀번호
+						 * Password
 						 */
 						placeholder: () => LocalizedString
 					}
 					sender: {
 						/**
-						 * 보내는 사람 이메일 주소
+						 * Sender email address
 						 */
 						label: () => LocalizedString
 						/**
-						 * 주소
+						 * Address
 						 */
 						placeholder: () => LocalizedString
 						/**
 						 * 
 					              <p>
-					                시스템 메시지는 이 주소에서 발송됩니다.
-					                예: no-reply@my-company.com.
+					                System messages will be sent from this address.
+					                E.g. no-reply@my-company.com.
 					              </p>
 					            
 						 */
@@ -6966,43 +6972,43 @@ export type TranslationFunctions = {
 				}
 				controls: {
 					/**
-					 * 변경 사항 저장
+					 * Save changes
 					 */
 					submit: () => LocalizedString
 				}
 			}
 			/**
-			 * 구성 삭제
+			 * Delete configuration
 			 */
 			'delete': () => LocalizedString
 			testForm: {
 				/**
-				 * 테스트 이메일 보내기
+				 * Send test email
 				 */
 				title: () => LocalizedString
 				fields: {
 					to: {
 						/**
-						 * 주소
+						 * Address
 						 */
 						label: () => LocalizedString
 						/**
-						 * 주소
+						 * Address
 						 */
 						placeholder: () => LocalizedString
 					}
 				}
 				controls: {
 					/**
-					 * 보내기
+					 * Send
 					 */
 					submit: () => LocalizedString
 					/**
-					 * 테스트 이메일 전송됨
+					 * Test email sent
 					 */
 					success: () => LocalizedString
 					/**
-					 * 이메일 전송 오류
+					 * Error sending email
 					 */
 					error: () => LocalizedString
 				}
@@ -7010,39 +7016,39 @@ export type TranslationFunctions = {
 			/**
 			 * 
 		        <p>
-		          여기에서 사용자에게 시스템 메시지를 보내는 데 사용되는 SMTP 서버를 구성할 수 있습니다.
+		          Here you can configure SMTP server used to send system messages to the users.
 		        </p>
-		            
+				
 			 */
 			helper: () => LocalizedString
 		}
 		enrollment: {
 			/**
-			 * 등록은 신규 직원이 새 계정을 활성화 및 비밀번호를 생성하고, VPN 장치를 구성할 수 있도록 하는 프로세스입니다.
+			 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device.
 			 */
 			helper: () => LocalizedString
 			vpnOptionality: {
 				/**
-				 * VPN 단계 선택 사항
+				 * VPN step optionality
 				 */
 				header: () => LocalizedString
 				/**
-				 * 등록 중 VPN 장치 생성을 선택 사항 또는 필수 사항으로 선택할 수 있습니다.
+				 * You can choose whether creating a VPN device is optional or mandatory during enrollment
 				 */
 				helper: () => LocalizedString
 			}
 			welcomeMessage: {
 				/**
-				 * 환영 메시지
+				 * Welcome message
 				 */
 				header: () => LocalizedString
 				/**
 				 * 
-			        <p>이 텍스트 입력란에서는 Markdown을 사용할 수 있습니다:</p>
+			        <p>In this text input you can use Markdown:</p>
 			        <ul>
-			          <li>제목은 해시 #로 시작합니다</li>
-			          <li>별표를 사용하여 <i>*이탤릭체*</i>를 만듭니다</li>
-			          <li>별표 두 개를 사용하여 <b>**굵게**</b> 만듭니다</li>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
 			        </ul>
 			        
 				 */
@@ -7050,16 +7056,16 @@ export type TranslationFunctions = {
 			}
 			welcomeEmail: {
 				/**
-				 * 환영 이메일
+				 * Welcome e-mail
 				 */
 				header: () => LocalizedString
 				/**
 				 * 
-			        <p>이 텍스트 입력란에서는 Markdown을 사용할 수 있습니다:</p>
+			        <p>In this text input you can use Markdown:</p>
 			        <ul>
-			          <li>제목은 해시 #로 시작합니다</li>
-			          <li>별표를 사용하여 <i>*이탤릭체*</i>를 만듭니다</li>
-			          <li>별표 두 개를 사용하여 <b>**굵게**</b> 만듭니다</li>
+			          <li>Headings start with a hash #</li>
+			          <li>Use asterisks for <i>*italics*</i></li>
+			          <li>Use two asterisks for <b>**bold**</b></li>
 			        </ul>
 			        
 				 */
@@ -7068,39 +7074,39 @@ export type TranslationFunctions = {
 			form: {
 				controls: {
 					/**
-					 * 변경 사항 저장
+					 * Save changes
 					 */
 					submit: () => LocalizedString
 				}
 				welcomeMessage: {
 					/**
-					 * 등록이 완료되면 사용자에게 이 정보가 표시됩니다. 관련 링크를 삽입하고 다음 단계를 간략하게 설명하는 것이 좋습니다.
+					 * This information will be displayed for the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly.
 					 */
 					helper: () => LocalizedString
 					/**
-					 * 환영 메시지를 입력하세요
+					 * Please input welcome message
 					 */
 					placeholder: () => LocalizedString
 				}
 				welcomeEmail: {
 					/**
-					 * 등록이 완료되면 사용자에게 이 정보가 전송됩니다. 관련 링크를 삽입하고 다음 단계를 간략하게 설명하는 것이 좋습니다. 환영 메시지를 여기에서 다시 사용할 수 있습니다.
+					 * This information will be sent to the user once enrollment is completed. We advise you to insert relevant links and explain next steps briefly. You can reuse the welcome message here.
 					 */
 					helper: () => LocalizedString
 					/**
-					 * 환영 이메일을 입력하세요
+					 * Please input welcome email
 					 */
 					placeholder: () => LocalizedString
 				}
 				welcomeEmailSubject: {
 					/**
-					 * 제목
+					 * Subject
 					 */
 					label: () => LocalizedString
 				}
 				useMessageAsEmail: {
 					/**
-					 * 환영 메시지와 동일하게
+					 * Same as welcome message
 					 */
 					label: () => LocalizedString
 				}
@@ -7108,31 +7114,31 @@ export type TranslationFunctions = {
 		}
 		enterprise: {
 			/**
-			 * 엔터프라이즈 기능
+			 * Enterprise Features
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>여기에서 엔터프라이즈 설정을 변경할 수 있습니다.</p>
+			 * <p>Here you can change enterprise settings.</p>
 			 */
 			helper: () => LocalizedString
 			fields: {
 				deviceManagement: {
 					/**
-					 * 사용자가 자신의 장치를 관리하는 기능 비활성화
+					 * Disable users ability to manage their devices
 					 */
 					label: () => LocalizedString
 					/**
-					 * 이 옵션을 활성화하면 관리자 그룹의 사용자만 사용자 프로필에서 장치를 관리할 수 있습니다(다른 모든 사용자는 비활성화됨)
+					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
 					 */
 					helper: () => LocalizedString
 				}
 				manualConfig: {
 					/**
-					 * 사용자가 수동 WireGuard 구성을 다운로드하는 기능 비활성화
+					 * Disable users ability to download manual WireGuard configuration
 					 */
 					label: () => LocalizedString
 					/**
-					 * 이 옵션을 활성화하면 사용자에게 수동 클라이언트 설정을 위한 WireGuard 구성이 표시되지 않습니다.
+					 * When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup
 					 */
 					helper: () => LocalizedString
 				}
@@ -7141,115 +7147,115 @@ export type TranslationFunctions = {
 	}
 	openidOverview: {
 		/**
-		 * OpenID 앱
+		 * OpenID Apps
 		 */
 		pageTitle: () => LocalizedString
 		search: {
 			/**
-			 * 앱 찾기
+			 * Find apps
 			 */
 			placeholder: () => LocalizedString
 		}
 		filterLabels: {
 			/**
-			 * 모든 앱
+			 * All apps
 			 */
 			all: () => LocalizedString
 			/**
-			 * 활성화됨
+			 * Enabled
 			 */
 			enabled: () => LocalizedString
 			/**
-			 * 비활성화됨
+			 * Disabled
 			 */
 			disabled: () => LocalizedString
 		}
 		/**
-		 * 모든 앱
+		 * All apps
 		 */
 		clientCount: () => LocalizedString
 		/**
-		 * 새 추가
+		 * Add new
 		 */
 		addNewApp: () => LocalizedString
 		list: {
 			headers: {
 				/**
-				 * 이름
+				 * Name
 				 */
 				name: () => LocalizedString
 				/**
-				 * 상태
+				 * Status
 				 */
 				status: () => LocalizedString
 				/**
-				 * 작업
+				 * Actions
 				 */
 				actions: () => LocalizedString
 			}
 			editButton: {
 				/**
-				 * 앱 편집
+				 * Edit app
 				 */
 				edit: () => LocalizedString
 				/**
-				 * 앱 삭제
+				 * Delete app
 				 */
 				'delete': () => LocalizedString
 				/**
-				 * 비활성화
+				 * Disable
 				 */
 				disable: () => LocalizedString
 				/**
-				 * 활성화
+				 * Enable
 				 */
 				enable: () => LocalizedString
 				/**
-				 * 클라이언트 ID 복사
+				 * Copy client ID
 				 */
 				copy: () => LocalizedString
 			}
 			status: {
 				/**
-				 * 활성화됨
+				 * Enabled
 				 */
 				enabled: () => LocalizedString
 				/**
-				 * 비활성화됨
+				 * Disabled
 				 */
 				disabled: () => LocalizedString
 			}
 		}
 		messages: {
 			/**
-			 * 클라이언트 ID가 복사되었습니다.
+			 * Client ID copied.
 			 */
 			copySuccess: () => LocalizedString
 			/**
-			 * 이 기능에 대한 라이선스가 없습니다.
+			 * You don't have a license for this feature.
 			 */
 			noLicenseMessage: () => LocalizedString
 			/**
-			 * 결과를 찾을 수 없습니다.
+			 * No results found.
 			 */
 			noClientsFound: () => LocalizedString
 		}
 		deleteApp: {
 			/**
-			 * 앱 삭제
+			 * Delete app
 			 */
 			title: () => LocalizedString
 			/**
-			 * {appName} 앱을 삭제하시겠습니까?
+			 * Do you want to delete {appName} app ?
 			 */
 			message: (arg: { appName: string }) => LocalizedString
 			/**
-			 * 앱 삭제
+			 * Delete app
 			 */
 			submit: () => LocalizedString
 			messages: {
 				/**
-				 * 앱이 삭제되었습니다.
+				 * App deleted.
 				 */
 				success: () => LocalizedString
 			}
@@ -7257,7 +7263,7 @@ export type TranslationFunctions = {
 		enableApp: {
 			messages: {
 				/**
-				 * 앱이 활성화되었습니다.
+				 * App enabled.
 				 */
 				success: () => LocalizedString
 			}
@@ -7265,7 +7271,7 @@ export type TranslationFunctions = {
 		disableApp: {
 			messages: {
 				/**
-				 * 앱이 비활성화되었습니다.
+				 * App disabled.
 				 */
 				success: () => LocalizedString
 			}
@@ -7274,63 +7280,63 @@ export type TranslationFunctions = {
 			openidClientModal: {
 				title: {
 					/**
-					 * 애플리케이션 추가
+					 * Add Application
 					 */
 					addApp: () => LocalizedString
 					/**
-					 * {appName} 앱 편집
+					 * Edit {appName} app
 					 */
 					editApp: (arg: { appName: string }) => LocalizedString
 				}
 				/**
-				 * 범위:
+				 * Scopes:
 				 */
 				scopes: () => LocalizedString
 				messages: {
 					/**
-					 * 클라이언트 ID 복사됨.
+					 * Client ID copied.
 					 */
 					clientIdCopy: () => LocalizedString
 					/**
-					 * 클라이언트 암호 복사됨.
+					 * Client secret copied.
 					 */
 					clientSecretCopy: () => LocalizedString
 				}
 				form: {
 					messages: {
 						/**
-						 * 앱 생성됨.
+						 * App created.
 						 */
 						successAdd: () => LocalizedString
 						/**
-						 * 앱 수정됨.
+						 * App modified.
 						 */
 						successModify: () => LocalizedString
 					}
 					error: {
 						/**
-						 * URL이 필요합니다.
+						 * URL is required.
 						 */
 						urlRequired: () => LocalizedString
 						/**
-						 * 유효한 URL이어야 합니다.
+						 * Must be a valid URL.
 						 */
 						validUrl: () => LocalizedString
 						/**
-						 * 최소 하나의 범위가 있어야 합니다.
+						 * Must have at least one scope.
 						 */
 						scopeValidation: () => LocalizedString
 					}
 					fields: {
 						name: {
 							/**
-							 * 앱 이름
+							 * App name
 							 */
 							label: () => LocalizedString
 						}
 						redirectUri: {
 							/**
-							 * 리디렉션 URL {count}
+							 * Redirect URL {count}
 							 */
 							label: (arg: { count: number }) => LocalizedString
 							/**
@@ -7346,42 +7352,42 @@ export type TranslationFunctions = {
 						}
 						profile: {
 							/**
-							 * 프로필
+							 * Profile
 							 */
 							label: () => LocalizedString
 						}
 						email: {
 							/**
-							 * 이메일
+							 * Email
 							 */
 							label: () => LocalizedString
 						}
 						phone: {
 							/**
-							 * 전화
+							 * Phone
 							 */
 							label: () => LocalizedString
 						}
 						groups: {
 							/**
-							 * 그룹
+							 * Groups
 							 */
 							label: () => LocalizedString
 						}
 					}
 					controls: {
 						/**
-						 * URL 추가
+						 * Add URL
 						 */
 						addUrl: () => LocalizedString
 					}
 				}
 				/**
-				 * 클라이언트 ID
+				 * Client ID
 				 */
 				clientId: () => LocalizedString
 				/**
-				 * 클라이언트 암호
+				 * Client secret
 				 */
 				clientSecret: () => LocalizedString
 			}
@@ -7394,80 +7400,80 @@ export type TranslationFunctions = {
 		pageTitle: () => LocalizedString
 		search: {
 			/**
-			 * URL로 웹훅 찾기
+			 * Find webhooks by url
 			 */
 			placeholder: () => LocalizedString
 		}
 		filterLabels: {
 			/**
-			 * 모든 웹훅
+			 * All webhooks
 			 */
 			all: () => LocalizedString
 			/**
-			 * 활성화됨
+			 * Enabled
 			 */
 			enabled: () => LocalizedString
 			/**
-			 * 비활성화됨
+			 * Disabled
 			 */
 			disabled: () => LocalizedString
 		}
 		/**
-		 * 모든 웹훅
+		 * All webhooks
 		 */
 		webhooksCount: () => LocalizedString
 		/**
-		 * 새 추가
+		 * Add new
 		 */
 		addNewWebhook: () => LocalizedString
 		/**
-		 * 웹훅을 찾을 수 없습니다.
+		 * No webhooks found.
 		 */
 		noWebhooksFound: () => LocalizedString
 		list: {
 			headers: {
 				/**
-				 * 이름
+				 * Name
 				 */
 				name: () => LocalizedString
 				/**
-				 * 설명
+				 * Description
 				 */
 				description: () => LocalizedString
 				/**
-				 * 상태
+				 * Status
 				 */
 				status: () => LocalizedString
 				/**
-				 * 작업
+				 * Actions
 				 */
 				actions: () => LocalizedString
 			}
 			editButton: {
 				/**
-				 * 편집
+				 * Edit
 				 */
 				edit: () => LocalizedString
 				/**
-				 * 웹훅 삭제
+				 * Delete webhook
 				 */
 				'delete': () => LocalizedString
 				/**
-				 * 비활성화
+				 * Disable
 				 */
 				disable: () => LocalizedString
 				/**
-				 * 활성화
+				 * Enable
 				 */
 				enable: () => LocalizedString
 			}
 			status: {
 				/**
-				 * 활성화됨
+				 * Enabled
 				 */
 				enabled: () => LocalizedString
 				/**
-				 * 비활성화됨
+				 * Disabled
 				 */
 				disabled: () => LocalizedString
 			}
@@ -7475,61 +7481,61 @@ export type TranslationFunctions = {
 	}
 	provisionersOverview: {
 		/**
-		 * 프로비저너
+		 * Provisioners
 		 */
 		pageTitle: () => LocalizedString
 		search: {
 			/**
-			 * 프로비저너 찾기
+			 * Find provisioners
 			 */
 			placeholder: () => LocalizedString
 		}
 		filterLabels: {
 			/**
-			 * 전체
+			 * All
 			 */
 			all: () => LocalizedString
 			/**
-			 * 사용 가능
+			 * Available
 			 */
 			available: () => LocalizedString
 			/**
-			 * 사용 불가
+			 * Unavailable
 			 */
 			unavailable: () => LocalizedString
 		}
 		/**
-		 * 모든 프로비저너
+		 * All provisioners
 		 */
 		provisionersCount: () => LocalizedString
 		/**
-		 * 프로비저너를 찾을 수 없습니다.
+		 * No provisioners found.
 		 */
 		noProvisionersFound: () => LocalizedString
 		/**
-		 * 이 기능에 대한 라이선스가 없습니다.
+		 * You don't have a license for this feature.
 		 */
 		noLicenseMessage: () => LocalizedString
 		provisioningStation: {
 			/**
-			 * YubiKey 프로비저닝 스테이션
+			 * YubiKey provisioning station
 			 */
 			header: () => LocalizedString
 			/**
-			 * YubiKeys를 프로비저닝하려면 먼저 USB 슬롯이 있는 물리적 시스템을
-		                설정해야 합니다. 선택한 시스템에서 제공된 명령을 실행하여 등록하고
-		                키 프로비저닝을 시작하세요.
+			 * In order to be able to provision your YubiKeys, first you need to set up
+		        physical machine with USB slot. Run provided command on your chosen
+		        machine to register it and start provisioning your keys.
 			 */
 			content: () => LocalizedString
 			dockerCard: {
 				/**
-				 * 프로비저닝 스테이션 도커 설정 명령
+				 * Provisioning station docker setup command
 				 */
 				title: () => LocalizedString
 			}
 			tokenCard: {
 				/**
-				 * 액세스 토큰
+				 * Access token
 				 */
 				title: () => LocalizedString
 			}
@@ -7537,35 +7543,35 @@ export type TranslationFunctions = {
 		list: {
 			headers: {
 				/**
-				 * 이름
+				 * Name
 				 */
 				name: () => LocalizedString
 				/**
-				 * IP 주소
+				 * IP address
 				 */
 				ip: () => LocalizedString
 				/**
-				 * 상태
+				 * Status
 				 */
 				status: () => LocalizedString
 				/**
-				 * 작업
+				 * Actions
 				 */
 				actions: () => LocalizedString
 			}
 			editButton: {
 				/**
-				 * 프로비저너 삭제
+				 * Delete provisioner
 				 */
 				'delete': () => LocalizedString
 			}
 			status: {
 				/**
-				 * 사용 가능
+				 * Available
 				 */
 				available: () => LocalizedString
 				/**
-				 * 사용 불가
+				 * Unavailable
 				 */
 				unavailable: () => LocalizedString
 			}
@@ -7573,11 +7579,11 @@ export type TranslationFunctions = {
 		messages: {
 			copy: {
 				/**
-				 * 토큰 복사됨
+				 * Token copied
 				 */
 				token: () => LocalizedString
 				/**
-				 * 명령 복사됨
+				 * Command copied
 				 */
 				command: () => LocalizedString
 			}
@@ -7585,153 +7591,153 @@ export type TranslationFunctions = {
 	}
 	openidAllow: {
 		/**
-		 * {name}이(가) 다음을 원합니다:
+		 * {name} would like to:
 		 */
 		header: (arg: { name: string }) => LocalizedString
 		scopes: {
 			/**
-			 * 향후 로그인을 위해 프로필 데이터를 사용합니다.
+			 * Use your profile data for future logins.
 			 */
 			openid: () => LocalizedString
 			/**
-			 * 이름, 프로필 사진 등 프로필의 기본 정보를 알고 있습니다.
+			 * Know basic information from your profile like name, profile picture etc.
 			 */
 			profile: () => LocalizedString
 			/**
-			 * 이메일 주소를 알고 있습니다.
+			 * Know your email address.
 			 */
 			email: () => LocalizedString
 			/**
-			 * 전화번호를 알고 있습니다.
+			 * Know your phone number.
 			 */
 			phone: () => LocalizedString
 			/**
-			 * 그룹 멤버십을 알고 있습니다.
+			 * Know your groups membership.
 			 */
 			groups: () => LocalizedString
 		}
 		controls: {
 			/**
-			 * 수락
+			 * Accept
 			 */
 			accept: () => LocalizedString
 			/**
-			 * 취소
+			 * Cancel
 			 */
 			cancel: () => LocalizedString
 		}
 	}
 	networkOverview: {
 		/**
-		 * 위치 개요
+		 * Location overview
 		 */
 		pageTitle: () => LocalizedString
 		controls: {
 			/**
-			 * 위치 설정 편집
+			 * Edit Locations settings
 			 */
 			editNetworks: () => LocalizedString
 			selectNetwork: {
 				/**
-				 * 위치 로드 중
+				 * Loading locations
 				 */
 				placeholder: () => LocalizedString
 			}
 		}
 		filterLabels: {
 			/**
-			 * 그리드 보기
+			 * Grid view
 			 */
 			grid: () => LocalizedString
 			/**
-			 * 목록 보기
+			 * List view
 			 */
 			list: () => LocalizedString
 		}
 		stats: {
 			/**
-			 * 현재 활성 사용자
+			 * Currently active users
 			 */
 			currentlyActiveUsers: () => LocalizedString
 			/**
-			 * 현재 활성 장치
+			 * Currently active devices
 			 */
 			currentlyActiveDevices: () => LocalizedString
 			/**
-			 * {hour}시간 내 활성 사용자
+			 * Active users in {hour}H
 			 */
 			activeUsersFilter: (arg: { hour: number }) => LocalizedString
 			/**
-			 * {hour}시간 내 활성 장치
+			 * Active devices in {hour}H
 			 */
 			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
 			/**
-			 * 총 전송량:
+			 * Total transfer:
 			 */
 			totalTransfer: () => LocalizedString
 			/**
-			 * {hour}시간 내 활동
+			 * Activity in {hour}H
 			 */
 			activityIn: (arg: { hour: number }) => LocalizedString
 			/**
-			 * 들어오는 트래픽:
+			 * In:
 			 */
 			'in': () => LocalizedString
 			/**
-			 * 나가는 트래픽:
+			 * Out:
 			 */
 			out: () => LocalizedString
 			/**
-			 * 게이트웨이 연결 끊김
+			 * Gateway disconnected
 			 */
 			gatewayDisconnected: () => LocalizedString
 		}
 	}
 	connectedUsersOverview: {
 		/**
-		 * 연결된 사용자
+		 * Connected users
 		 */
 		pageTitle: () => LocalizedString
 		/**
-		 * 현재 연결된 사용자가 없습니다
+		 * Currently there are no connected users
 		 */
 		noUsersMessage: () => LocalizedString
 		userList: {
 			/**
-			 * 사용자 이름
+			 * Username
 			 */
 			username: () => LocalizedString
 			/**
-			 * 장치
+			 * Device
 			 */
 			device: () => LocalizedString
 			/**
-			 * 연결됨
+			 * Connected
 			 */
 			connected: () => LocalizedString
 			/**
-			 * 장치 위치
+			 * Device location
 			 */
 			deviceLocation: () => LocalizedString
 			/**
-			 * 네트워크 사용량
+			 * Network usage
 			 */
 			networkUsage: () => LocalizedString
 		}
 	}
 	networkPage: {
 		/**
-		 * 위치 편집
+		 * Edit Location
 		 */
 		pageTitle: () => LocalizedString
 		/**
-		 * + 새 위치 추가
+		 * + Add new location
 		 */
 		addNetwork: () => LocalizedString
 		controls: {
 			networkSelect: {
 				/**
-				 * 위치 선택
+				 * Location choice
 				 */
 				label: () => LocalizedString
 			}
@@ -7739,11 +7745,11 @@ export type TranslationFunctions = {
 	}
 	activityOverview: {
 		/**
-		 * 활동 스트림
+		 * Activity stream
 		 */
 		header: () => LocalizedString
 		/**
-		 * 현재 감지된 활동이 없습니다
+		 * Currently there is no activity detected
 		 */
 		noData: () => LocalizedString
 	}
@@ -7751,84 +7757,84 @@ export type TranslationFunctions = {
 		messages: {
 			'delete': {
 				/**
-				 * 네트워크 삭제됨
+				 * Network delted
 				 */
 				success: () => LocalizedString
 				/**
-				 * 네트워크 삭제 실패
+				 * Failed to delete network
 				 */
 				error: () => LocalizedString
 			}
 		}
 		/**
-		 * 위치 구성
+		 * Location configuration
 		 */
 		header: () => LocalizedString
 		/**
-		 * 위치 가져오기
+		 * Location import
 		 */
 		importHeader: () => LocalizedString
 		form: {
 			helpers: {
 				/**
-				 * 이 주소를 기반으로 VPN 네트워크 주소가 정의됩니다. 예: 10.10.10.1/24 (VPN 네트워크는 10.10.10.0/24가 됩니다)
+				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
 				 */
 				address: () => LocalizedString
 				/**
-				 * VPN 사용자가 연결하는 데 사용되는 게이트웨이 공개 주소
+				 * Gateway public address, used by VPN users to connect
 				 */
 				gateway: () => LocalizedString
 				/**
-				 * wireguard 인터페이스가 활성화될 때 쿼리할 DNS 확인자를 지정합니다.
+				 * Specify the DNS resolvers to query when the wireguard interface is up.
 				 */
 				dns: () => LocalizedString
 				/**
-				 * VPN 네트워크를 통해 라우팅되어야 하는 주소/마스크 목록입니다.
+				 * List of addresses/masks that should be routed through the VPN network.
 				 */
 				allowedIps: () => LocalizedString
 				/**
-				 * 기본적으로 모든 사용자가 이 위치에 연결할 수 있습니다. 특정 그룹으로 이 위치에 대한 액세스를 제한하려면 아래에서 선택하십시오.
+				 * By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.
 				 */
 				allowedGroups: () => LocalizedString
 			}
 			messages: {
 				/**
-				 * 위치가 수정되었습니다.
+				 * Location modified.
 				 */
 				networkModified: () => LocalizedString
 				/**
-				 * 위치가 생성되었습니다
+				 * Location created
 				 */
 				networkCreated: () => LocalizedString
 			}
 			fields: {
 				name: {
 					/**
-					 * 위치 이름
+					 * Location name
 					 */
 					label: () => LocalizedString
 				}
 				address: {
 					/**
-					 * 게이트웨이 VPN IP 주소 및 넷마스크
+					 * Gateway VPN IP address and netmask
 					 */
 					label: () => LocalizedString
 				}
 				endpoint: {
 					/**
-					 * 게이트웨이 주소
+					 * Gateway address
 					 */
 					label: () => LocalizedString
 				}
 				allowedIps: {
 					/**
-					 * 허용된 IP
+					 * Allowed Ips
 					 */
 					label: () => LocalizedString
 				}
 				port: {
 					/**
-					 * 게이트웨이 포트
+					 * Gateway port
 					 */
 					label: () => LocalizedString
 				}
@@ -7840,44 +7846,44 @@ export type TranslationFunctions = {
 				}
 				allowedGroups: {
 					/**
-					 * 허용된 그룹
+					 * Allowed groups
 					 */
 					label: () => LocalizedString
 					/**
-					 * 모든 그룹
+					 * All groups
 					 */
 					placeholder: () => LocalizedString
 				}
 				mfa_enabled: {
 					/**
-					 * 이 위치에 MFA 필요
+					 * Require MFA for this Location
 					 */
 					label: () => LocalizedString
 				}
 				keepalive_interval: {
 					/**
-					 * Keepalive 간격 [초]
+					 * Keepalive interval [seconds]
 					 */
 					label: () => LocalizedString
 				}
 				peer_disconnect_threshold: {
 					/**
-					 * 피어 연결 끊김 임계값 [초]
+					 * Peer disconnect threshold [seconds]
 					 */
 					label: () => LocalizedString
 				}
 			}
 			controls: {
 				/**
-				 * 변경 사항 저장
+				 * Save changes
 				 */
 				submit: () => LocalizedString
 				/**
-				 * 개요로 돌아가기
+				 * Back to Overview
 				 */
 				cancel: () => LocalizedString
 				/**
-				 * 위치 제거
+				 * Remove location
 				 */
 				'delete': () => LocalizedString
 			}
@@ -7886,147 +7892,147 @@ export type TranslationFunctions = {
 	gatewaySetup: {
 		header: {
 			/**
-			 * 게이트웨이 서버 설정
+			 * Gateway server setup
 			 */
 			main: () => LocalizedString
 			/**
-			 * Docker 기반 게이트웨이 설정
+			 * Docker Based Gateway Setup
 			 */
 			dockerBasedGatewaySetup: () => LocalizedString
 			/**
-			 * 패키지로부터
+			 * From Package
 			 */
 			fromPackage: () => LocalizedString
 			/**
-			 * 한 줄 설치
+			 * One Line Install
 			 */
 			oneLineInstall: () => LocalizedString
 		}
 		card: {
 			/**
-			 * Docker 기반 게이트웨이 설정
+			 * Docker based gateway setup
 			 */
 			title: () => LocalizedString
 			/**
-			 * 인증 토큰
+			 * Authentication Token
 			 */
 			authToken: () => LocalizedString
 		}
 		button: {
 			/**
-			 * 사용 가능한 패키지
+			 * Available Packages
 			 */
 			availablePackages: () => LocalizedString
 		}
 		controls: {
 			/**
-			 * 연결 상태 확인
+			 * Check connection status
 			 */
 			status: () => LocalizedString
 		}
 		messages: {
 			/**
-			 * Defguard는 vpn 서버에서 wireguard VPN을 제어하기 위해 게이트웨이 노드를 배포해야 합니다.
-		            자세한 내용은 [문서]({setupGatewayDocs})를 참조하십시오.
-		            게이트웨이 서버를 배포하는 방법에는 여러 가지가 있으며,
-		            아래는 Docker 기반 예시입니다. 다른 예시는 [문서]({setupGatewayDocs})를 참조하십시오.
+			 * Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+		            More details can be found in the [documentation]({setupGatewayDocs}).
+		            There are several ways to deploy the gateway server,
+		            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs}).
 			 */
 			runCommand: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 게이트웨이 프로세스를 실행하기 전에 네트워크를 생성하십시오.
+			 * Please create the network before running the gateway process.
 			 */
 			createNetwork: () => LocalizedString
 			/**
-			 * 연결이 설정되지 않았습니다. 제공된 명령을 실행하십시오.
+			 * No connection established, please run provided command.
 			 */
 			noConnection: () => LocalizedString
 			/**
-			 * 게이트웨이가 연결되었습니다.
+			 * Gateway connected.
 			 */
 			connected: () => LocalizedString
 			/**
-			 * 게이트웨이 상태를 가져오지 못했습니다
+			 * Failed to get gateway status
 			 */
 			statusError: () => LocalizedString
 			/**
-			 * 한 줄 설치를 수행하는 경우: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
-		          아무 것도 할 필요가 없습니다.
+			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+		          you don't need to do anything.
 			 */
 			oneLineInstall: () => LocalizedString
 			/**
-			 * https://github.com/DefGuard/gateway/releases/latest에서 사용 가능한 패키지를 설치하고 [문서]({setupGatewayDocs})에 따라 `/etc/defguard/gateway.toml`을 구성하십시오.
-		          
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+		          according to the [documentation]({setupGatewayDocs}).
 			 */
 			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 아래 토큰은 게이트웨이 노드를 인증하고 구성하는 데 필요합니다. 이 토큰을 안전하게 보관하고
-		      [문서]({setupGatewayDocs})에 제공된 배포 지침에 따라 게이트웨이 서버를 성공적으로 설정하십시오.
-		          자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs})를 참조하십시오.
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
+		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
 			 */
 			authToken: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * 아래는 Docker 기반 예시입니다. 자세한 내용 및 정확한 단계는 [문서]({setupGatewayDocs})를 참조하십시오.
+			 * Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
 			 */
 			dockerBasedGatewaySetup: (arg: { setupGatewayDocs: string }) => LocalizedString
 		}
 	}
 	loginPage: {
 		/**
-		 * 자격 증명을 입력하세요
+		 * Enter your credentials
 		 */
 		pageTitle: () => LocalizedString
 		callback: {
 			/**
-			 * 로그인으로 돌아가기
+			 * Go back to login
 			 */
 			'return': () => LocalizedString
 			/**
-			 * 외부 OpenID 로그인 중 오류가 발생했습니다
+			 * An error occurred during external OpenID login
 			 */
 			error: () => LocalizedString
 		}
 		mfa: {
 			/**
-			 * 이중 인증
+			 * Two-factor authentication
 			 */
 			title: () => LocalizedString
 			controls: {
 				/**
-				 * 대신 인증 앱 사용
+				 * Use Authenticator app instead
 				 */
 				useAuthenticator: () => LocalizedString
 				/**
-				 * 대신 지갑 사용
+				 * Use your wallet instead
 				 */
 				useWallet: () => LocalizedString
 				/**
-				 * 대신 보안 키 사용
+				 * Use security key instead
 				 */
 				useWebauthn: () => LocalizedString
 				/**
-				 * 대신 복구 코드 사용
+				 * Use recovery code instead
 				 */
 				useRecoveryCode: () => LocalizedString
 				/**
-				 * 대신 이메일 사용
+				 * Use E-mail instead
 				 */
 				useEmail: () => LocalizedString
 			}
 			email: {
 				/**
-				 * 이메일로 전송된 코드를 사용하여 진행하십시오.
+				 * Use code we sent to your e-mail to proceed.
 				 */
 				header: () => LocalizedString
 				form: {
 					labels: {
 						/**
-						 * 코드
+						 * Code
 						 */
 						code: () => LocalizedString
 					}
 					controls: {
 						/**
-						 * 코드 재전송
+						 * Resend Code
 						 */
 						resendCode: () => LocalizedString
 					}
@@ -8034,21 +8040,21 @@ export type TranslationFunctions = {
 			}
 			totp: {
 				/**
-				 * 인증 앱의 코드를 사용하고 버튼을 클릭하여 진행하십시오.
+				 * Use code from your authentication app and click button to proceed.
 				 */
 				header: () => LocalizedString
 				form: {
 					fields: {
 						code: {
 							/**
-							 * 인증 코드 입력
+							 * Enter Authenticator code
 							 */
 							placeholder: () => LocalizedString
 						}
 					}
 					controls: {
 						/**
-						 * 인증 코드 사용
+						 * Use authenticator code
 						 */
 						submit: () => LocalizedString
 					}
@@ -8056,21 +8062,21 @@ export type TranslationFunctions = {
 			}
 			recoveryCode: {
 				/**
-				 * 활성 복구 코드 중 하나를 입력하고 버튼을 클릭하여 로그인하십시오.
+				 * Enter one of active recovery codes and click button to log in.
 				 */
 				header: () => LocalizedString
 				form: {
 					fields: {
 						code: {
 							/**
-							 * 복구 코드
+							 * Recovery code
 							 */
 							placeholder: () => LocalizedString
 						}
 					}
 					controls: {
 						/**
-						 * 복구 코드 사용
+						 * Use recovery code
 						 */
 						submit: () => LocalizedString
 					}
@@ -8078,40 +8084,40 @@ export type TranslationFunctions = {
 			}
 			wallet: {
 				/**
-				 * 암호화폐 지갑을 사용하여 로그인하려면 지갑 앱 또는 확장 프로그램에서 메시지에 서명하십시오.
+				 * Use your crypto wallet to sign in, please sign message in your wallet app or extension.
 				 */
 				header: () => LocalizedString
 				controls: {
 					/**
-					 * 지갑 사용
+					 * Use your wallet
 					 */
 					submit: () => LocalizedString
 				}
 				messages: {
 					/**
-					 * 서명 프로세스 중 지갑 연결이 끊어졌습니다.
+					 * Wallet was disconnected during signing process.
 					 */
 					walletError: () => LocalizedString
 					/**
-					 * 지갑이 MFA 로그인에 대해 승인되지 않았습니다. 승인된 지갑을 사용하십시오.
+					 * Wallet is not authorized for MFA login. Please use authorized wallet.
 					 */
 					walletErrorMfa: () => LocalizedString
 				}
 			}
 			webauthn: {
 				/**
-				 * 인증할 준비가 되면 아래 버튼을 누르십시오.
+				 * When you are ready to authenticate, press the button below.
 				 */
 				header: () => LocalizedString
 				controls: {
 					/**
-					 * 보안 키 사용
+					 * Use security key
 					 */
 					submit: () => LocalizedString
 				}
 				messages: {
 					/**
-					 * 키를 읽지 못했습니다. 다시 시도하십시오.
+					 * Failed to read key. Please try again.
 					 */
 					error: () => LocalizedString
 				}
@@ -8120,63 +8126,63 @@ export type TranslationFunctions = {
 	}
 	wizard: {
 		/**
-		 * 위치 설정 완료
+		 * Location setup completed
 		 */
 		completed: () => LocalizedString
 		configuration: {
 			/**
-			 * 위치 생성됨
+			 * Location created
 			 */
 			successMessage: () => LocalizedString
 		}
 		welcome: {
 			/**
-			 * 위치 마법사에 오신 것을 환영합니다!
+			 * Welcome to location wizard!
 			 */
 			header: () => LocalizedString
 			/**
-			 * VPN을 사용하기 전에 먼저 위치를 설정해야 합니다. 확실하지 않은 경우 <React> 아이콘을 클릭하십시오.
+			 * Before you start using VPN you need to setup your first location. When in doubt click on <React> icon.
 			 */
 			sub: () => LocalizedString
 			/**
-			 * 위치 설정
+			 * Setup location
 			 */
 			button: () => LocalizedString
 		}
 		navigation: {
 			/**
-			 * 위치 설정
+			 * Location setup
 			 */
 			top: () => LocalizedString
 			titles: {
 				/**
-				 * 위치 설정
+				 * Location setup
 				 */
 				welcome: () => LocalizedString
 				/**
-				 * 위치 설정 선택
+				 * Chose Location setup
 				 */
 				choseNetworkSetup: () => LocalizedString
 				/**
-				 * 기존 위치 가져오기
+				 * Import existing location
 				 */
 				importConfig: () => LocalizedString
 				/**
-				 * 위치 구성
+				 * Configure location
 				 */
 				manualConfig: () => LocalizedString
 				/**
-				 * 가져온 장치 매핑
+				 * Map imported devices
 				 */
 				mapDevices: () => LocalizedString
 			}
 			buttons: {
 				/**
-				 * 다음
+				 * Next
 				 */
 				next: () => LocalizedString
 				/**
-				 * 뒤로
+				 * Back
 				 */
 				back: () => LocalizedString
 			}
@@ -8184,18 +8190,18 @@ export type TranslationFunctions = {
 		deviceMap: {
 			messages: {
 				/**
-				 * 장치 추가됨
+				 * Devices added
 				 */
 				crateSuccess: () => LocalizedString
 				/**
-				 * 표시된 필드를 채워주세요.
+				 * Please fill marked fields.
 				 */
 				errorsInForm: () => LocalizedString
 			}
 			list: {
 				headers: {
 					/**
-					 * 장치 이름
+					 * Device Name
 					 */
 					deviceName: () => LocalizedString
 					/**
@@ -8203,7 +8209,7 @@ export type TranslationFunctions = {
 					 */
 					deviceIP: () => LocalizedString
 					/**
-					 * 사용자
+					 * User
 					 */
 					user: () => LocalizedString
 				}
@@ -8212,66 +8218,66 @@ export type TranslationFunctions = {
 		wizardType: {
 			manual: {
 				/**
-				 * 수동 구성
+				 * Manual Configuration
 				 */
 				title: () => LocalizedString
 				/**
-				 * 수동 위치 구성
+				 * Manual location configuration
 				 */
 				description: () => LocalizedString
 			}
 			'import': {
 				/**
-				 * 파일에서 가져오기
+				 * Import From File
 				 */
 				title: () => LocalizedString
 				/**
-				 * WireGuard 구성 파일에서 가져오기
+				 * Import from WireGuard config file
 				 */
 				description: () => LocalizedString
 			}
 			/**
-			 * 위치 생성
+			 * Create location
 			 */
 			createNetwork: () => LocalizedString
 		}
 		common: {
 			/**
-			 * 선택
+			 * Select
 			 */
 			select: () => LocalizedString
 		}
 		locations: {
 			form: {
 				/**
-				 * 이름
+				 * Name
 				 */
 				name: () => LocalizedString
 				/**
-				 * IP 주소
+				 * IP address
 				 */
 				ip: () => LocalizedString
 				/**
-				 * 사용자
+				 * User
 				 */
 				user: () => LocalizedString
 				/**
-				 * 파일
+				 * File
 				 */
 				fileName: () => LocalizedString
 				/**
-				 * 파일 선택
+				 * Select file
 				 */
 				selectFile: () => LocalizedString
 				messages: {
 					/**
-					 * 장치 생성됨
+					 * Devices created
 					 */
 					devicesCreated: () => LocalizedString
 				}
 				validation: {
 					/**
-					 * 잘못된 주소
+					 * Invalid address
 					 */
 					invalidAddress: () => LocalizedString
 				}
@@ -8281,76 +8287,76 @@ export type TranslationFunctions = {
 	layout: {
 		select: {
 			/**
-			 * 새 추가 +
+			 * Add new +
 			 */
 			addNewOptionDefault: () => LocalizedString
 		}
 	}
 	redirectPage: {
 		/**
-		 * 로그인되었습니다
+		 * You have been logged in
 		 */
 		title: () => LocalizedString
 		/**
-		 * 잠시 후 리디렉션됩니다...
+		 * You will be redirected in a moment...
 		 */
 		subtitle: () => LocalizedString
 	}
 	enrollmentPage: {
 		/**
-		 * 등록
+		 * Enrollment
 		 */
 		title: () => LocalizedString
 		controls: {
 			/**
-			 * 기본값 복원
+			 * Restore default
 			 */
 			'default': () => LocalizedString
 			/**
-			 * 변경 사항 저장
+			 * Save changes
 			 */
 			save: () => LocalizedString
 		}
 		messages: {
 			edit: {
 				/**
-				 * 설정이 변경되었습니다
+				 * Settings changed
 				 */
 				success: () => LocalizedString
 				/**
-				 * 저장 실패
+				 * Save failed
 				 */
 				error: () => LocalizedString
 			}
 		}
 		/**
-		 * 등록은 신입 직원이 새 계정을 확인하고, 비밀번호를 생성하고, VPN 장치를 구성할 수 있도록 하는 프로세스입니다. 이 패널에서 관련 메시지를 사용자 지정할 수 있습니다.
+		 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.
 		 */
 		messageBox: () => LocalizedString
 		settings: {
 			welcomeMessage: {
 				/**
-				 * 환영 메시지
+				 * Welcome message
 				 */
 				title: () => LocalizedString
 				/**
-				 * 이 정보는 등록이 완료되면 서비스 내 사용자에게 표시됩니다. 링크를 삽입하고 다음 단계를 간략하게 설명하는 것이 좋습니다. 이메일에 있는 것과 동일한 메시지를 사용할 수 있습니다.
+				 * This information will be displayed for user in service once enrollment is completed. We advise to insert links and explain next steps briefly. You can use same message as in the e-mail.
 				 */
 				messageBox: () => LocalizedString
 			}
 			vpnOptionality: {
 				/**
-				 * VPN 설정 선택 사항
+				 * VPN set optionallity
 				 */
 				title: () => LocalizedString
 				select: {
 					options: {
 						/**
-						 * 선택 사항
+						 * Optional
 						 */
 						optional: () => LocalizedString
 						/**
-						 * 필수
+						 * Mandatory
 						 */
 						mandatory: () => LocalizedString
 					}
@@ -8358,22 +8364,22 @@ export type TranslationFunctions = {
 			}
 			welcomeEmail: {
 				/**
-				 * 환영 이메일
+				 * Welcome e-mail
 				 */
 				title: () => LocalizedString
 				subject: {
 					/**
-					 * 이메일 제목
+					 * E-mail subject
 					 */
 					label: () => LocalizedString
 				}
 				/**
-				 * 등록이 완료되면 사용자에게 이 정보가 전송됩니다. 관련 링크를 삽입하고 다음 단계를 간략하게 설명하는 것이 좋습니다.
+				 * This information will be sent to user once enrollment is completed. We advise to insert links and explain next steps briefly.
 				 */
 				messageBox: () => LocalizedString
 				controls: {
 					/**
-					 * 환영 메시지와 동일
+					 * Same as welcome message
 					 */
 					duplicateWelcome: () => LocalizedString
 				}
@@ -8382,73 +8388,73 @@ export type TranslationFunctions = {
 	}
 	supportPage: {
 		/**
-		 * 지원
+		 * Support
 		 */
 		title: () => LocalizedString
 		modals: {
 			confirmDataSend: {
 				/**
-				 * 지원 데이터 보내기
+				 * Send Support Data
 				 */
 				title: () => LocalizedString
 				/**
-				 * 실제로 지원 디버그 정보를 보내려는 것인지 확인하십시오. 개인 정보는 전송되지 않습니다(wireguard 키, 이메일 주소 등은 전송되지 않음).
+				 * Please confirm that you actually want to send support debug information. None of your private information will be sent (wireguard keys, email addresses, etc. will not be sent).
 				 */
 				subTitle: () => LocalizedString
 				/**
-				 * 지원 데이터 보내기
+				 * Send support data
 				 */
 				submit: () => LocalizedString
 			}
 		}
 		debugDataCard: {
 			/**
-			 * 지원 데이터
+			 * Support data
 			 */
 			title: () => LocalizedString
 			/**
 			 * 
-		지원이 필요하거나 저희 팀(예: Matrix 지원 채널: **#defguard-support:teonite.com**)에서 지원 데이터 생성을 요청받은 경우 다음 두 가지 옵션이 있습니다.
-		* SMTP 설정을 구성하고 "지원 데이터 보내기"를 클릭합니다.
-		* 또는 "지원 데이터 다운로드"를 클릭하고 이 파일을 첨부하여 GitHub에 버그 보고서를 생성합니다.
+		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
+		* Either you can configure SMTP settings and click "Send support data"
+		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
 	
 			 */
 			body: () => LocalizedString
 			/**
-			 * 지원 데이터 다운로드
+			 * Download support data
 			 */
 			downloadSupportData: () => LocalizedString
 			/**
-			 * 로그 다운로드
+			 * Download logs
 			 */
 			downloadLogs: () => LocalizedString
 			/**
-			 * 지원 데이터 보내기
+			 * Send support data
 			 */
 			sendMail: () => LocalizedString
 			/**
-			 * 이메일 전송됨
+			 * Email sent
 			 */
 			mailSent: () => LocalizedString
 			/**
-			 * 이메일 전송 오류
+			 * Error sending email
 			 */
 			mailError: () => LocalizedString
 		}
 		supportCard: {
 			/**
-			 * 지원
+			 * Support
 			 */
 			title: () => LocalizedString
 			/**
 			 * 
-		GitHub에 문의하거나 문제를 제출하기 전에 [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)에서 제공되는 Defguard 문서를 숙지하십시오.
+		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
 	
-		제출하려면:
-		* 버그 - [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)로 이동하십시오.
-		* 기능 요청 - [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)로 이동하십시오.
+		To submit:
+		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
 	
-		기타 요청은 support@defguard.net으로 문의하십시오.
+		Any other requests you can reach us at: support@defguard.net
 	
 			 */
 			body: () => LocalizedString
