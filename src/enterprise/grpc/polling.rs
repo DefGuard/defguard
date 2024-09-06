@@ -1,5 +1,5 @@
 use crate::{
-    db::{models::polling_token::PollingToken, DbPool, Device},
+    db::{models::polling_token::PollingToken, DbPool, Device, User},
     enterprise::license::{get_cached_license, validate_license},
     grpc::utils::build_device_config_response,
 };
@@ -36,6 +36,7 @@ impl PollingServer {
             return Err(Status::permission_denied("invalid token"));
         };
 
+        // Polling tokens are valid indefinitely
         info!("Token validation successful {token:?}.");
         Ok(token)
     }
@@ -51,6 +52,22 @@ impl PollingServer {
             error!("Device id {} not found", token.device_id);
             return Err(Status::internal("device not found"));
         };
+
+        // Ensure user is active
+        let device_id = device.id.expect("missing device id");
+        let Some(user) = User::find_by_device_id(&self.pool, device_id).await.map_err(|err| {
+            error!("Failed to retrieve user for device id {device_id}: {err}");
+            Status::internal("failed to retrieve user")
+        })? else {
+            error!("User for device id {device_id} not found");
+            return Err(Status::internal("user not found"));
+        };
+        if !user.is_active {
+            warn!("Denying polling info for inactive user {}({:?})", user.username, user.id);
+            return Err(Status::permission_denied("user inactive"));
+        }
+
+        // Build & return polling info
         let device_config =
             build_device_config_response(&self.pool, &device.wireguard_pubkey).await?;
         Ok(InstanceInfoResponse {
