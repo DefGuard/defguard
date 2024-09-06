@@ -31,7 +31,8 @@ impl PollingServer {
         let Some(token) = PollingToken::find(&self.pool, token).await.map_err(|err| {
             error!("Failed to retrieve token: {err}");
             Status::internal("failed to retrieve token")
-        })? else {
+        })?
+        else {
             error!("Invalid token {token:?}");
             return Err(Status::permission_denied("invalid token"));
         };
@@ -45,10 +46,13 @@ impl PollingServer {
     pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
         trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;
-        let Some(device) = Device::find_by_id(&self.pool, token.device_id).await.map_err(|err| {
-            error!("Failed to retrieve device id {}: {err}", token.device_id);
-            Status::internal("failed to retrieve device")
-        })? else {
+        let Some(device) = Device::find_by_id(&self.pool, token.device_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to retrieve device id {}: {err}", token.device_id);
+                Status::internal("failed to retrieve device")
+            })?
+        else {
             error!("Device id {} not found", token.device_id);
             return Err(Status::internal("device not found"));
         };
@@ -56,15 +60,21 @@ impl PollingServer {
 
         // Ensure user is active
         let device_id = device.id.expect("missing device id");
-        let Some(user) = User::find_by_device_id(&self.pool, device_id).await.map_err(|err| {
-            error!("Failed to retrieve user for device id {device_id}: {err}");
-            Status::internal("failed to retrieve user")
-        })? else {
+        let Some(user) = User::find_by_device_id(&self.pool, device_id)
+            .await
+            .map_err(|err| {
+                error!("Failed to retrieve user for device id {device_id}: {err}");
+                Status::internal("failed to retrieve user")
+            })?
+        else {
             error!("User for device id {device_id} not found");
             return Err(Status::internal("user not found"));
         };
         if !user.is_active {
-            warn!("Denying polling info for inactive user {}({:?})", user.username, user.id);
+            warn!(
+                "Denying polling info for inactive user {}({:?})",
+                user.username, user.id
+            );
             return Err(Status::permission_denied("user inactive"));
         }
 

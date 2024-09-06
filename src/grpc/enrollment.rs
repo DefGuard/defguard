@@ -16,12 +16,13 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE}, polling_token::PollingToken,
+            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            polling_token::PollingToken,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
-    grpc::utils::build_device_config_response,
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
+    grpc::utils::build_device_config_response,
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     ldap::utils::ldap_add_user,
@@ -423,12 +424,10 @@ impl EnrollmentServer {
 
         // create polling token for further client communication
         debug!("Creating polling token for further client communication");
-        let mut token = PollingToken::new(
-            device.id.ok_or_else(|| {
-                error!("No device id");
-                Status::internal("unexpected error")
-            })?,
-        );
+        let mut token = PollingToken::new(device.id.ok_or_else(|| {
+            error!("No device id");
+            Status::internal("unexpected error")
+        })?);
         token.save(&mut *transaction).await.map_err(|err| {
             error!("Failed to save PollingToken: {err}");
             Status::internal("failed to save polling token")

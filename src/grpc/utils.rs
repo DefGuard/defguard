@@ -35,13 +35,16 @@ pub(crate) async fn build_device_config_response(
     let Some(device) = device else {
         return Err(Status::internal("device not found error"));
     };
-    let user = User::find_by_id(pool, device.user_id).await.map_err(|_| {
-        error!("Failed to get user: {}", device.user_id);
-        Status::internal("unexpected error")
-    })?.ok_or_else(|| {
-        error!("User not found: {}", device.user_id);
-        Status::internal("unexpected error")
-    })?;
+    let user = User::find_by_id(pool, device.user_id)
+        .await
+        .map_err(|_| {
+            error!("Failed to get user: {}", device.user_id);
+            Status::internal("unexpected error")
+        })?
+        .ok_or_else(|| {
+            error!("User not found: {}", device.user_id);
+            Status::internal("unexpected error")
+        })?;
     for network in networks {
         let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
             continue;

@@ -872,7 +872,10 @@ impl User {
         Ok(())
     }
 
-    pub async fn find_by_device_id<'e, E>(executor: E, device_id: i64) -> Result<Option<Self>, SqlxError>
+    pub async fn find_by_device_id<'e, E>(
+        executor: E,
+        device_id: i64,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
