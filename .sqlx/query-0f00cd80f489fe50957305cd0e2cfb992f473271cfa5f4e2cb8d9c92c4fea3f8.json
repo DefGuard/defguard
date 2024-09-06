@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"pollingtoken\" SET \"token\" = $2,\"device_id\" = $3,\"created_at\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0f00cd80f489fe50957305cd0e2cfb992f473271cfa5f4e2cb8d9c92c4fea3f8"
+}
