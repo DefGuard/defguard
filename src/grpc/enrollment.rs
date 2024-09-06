@@ -16,7 +16,7 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, POLLING_TOKEN_TYPE},
+            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE}, polling_token::PollingToken,
         },
         DbPool, Device, GatewayEvent, Settings, User,
     },
@@ -409,22 +409,18 @@ impl EnrollmentServer {
             })?;
         debug!("Settings {settings:?}");
 
-        // create auth token for further client communication
-        debug!("Creating auth token for further client communication");
-        let user_id = user.id.ok_or_else(|| {
-            error!("User.id is None, can't create auth token: {user:?}");
-            Status::internal("unexpected error")
-        })?;
-
-        let token = Token::new(
-            user_id,
-            None,
-            None,
-            // Auth tokens are valid indefinitely
-            0,
-            Some(POLLING_TOKEN_TYPE.to_string()),
+        // create polling token for further client communication
+        debug!("Creating polling token for further client communication");
+        let mut token = PollingToken::new(
+            device.id.ok_or_else(|| {
+                error!("No device id");
+                Status::internal("unexpected error")
+            })?,
         );
-        token.save(&mut transaction).await?;
+        token.save(&mut *transaction).await.map_err(|err| {
+            error!("Failed to save PollingToken: {err}");
+            Status::internal("failed to save polling token")
+        })?;
 
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
@@ -460,7 +456,7 @@ impl EnrollmentServer {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
             instance: Some(InstanceInfo::new(settings, &user.username).into()),
-            token: Some(token.id),
+            token: Some(token.token),
         };
         debug!("Created a create device response {response:?}.");
 
