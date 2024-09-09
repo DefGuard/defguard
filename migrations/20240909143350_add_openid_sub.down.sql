@@ -1,0 +1,2 @@
+ALTER TABLE "user" DROP COLUMN "openid_sub";
+ALTER TABLE "user" ADD COLUMN "openid_login" BOOLEAN NOT NULL DEFAULT FALSE;

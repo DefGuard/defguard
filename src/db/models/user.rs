@@ -78,8 +78,9 @@ pub struct User {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
-    // Whether the user has logged in using OIDC
-    pub openid_login: bool,
+    /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
+    /// used OpenID to log in.
+    pub openid_sub: Option<String>,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
     pub(crate) email_mfa_enabled: bool,
@@ -126,7 +127,7 @@ impl User {
             mfa_method: MFAMethod::None,
             recovery_codes: Vec::new(),
             is_active: true,
-            openid_login: false,
+            openid_sub: None,
         }
     }
 
@@ -162,7 +163,7 @@ impl User {
     /// or they have logged in using an external OIDC.
     #[must_use]
     pub fn is_enrolled(&self) -> bool {
-        self.password_hash.is_some() || self.openid_login
+        self.password_hash.is_some() || self.openid_sub.is_some()
     }
 
     /// Generate new TOTP secret, save it, then return it as RFC 4648 base32-encoded string.
@@ -466,7 +467,7 @@ impl User {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active, openid_login \
+                mfa_method as \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -480,7 +481,7 @@ impl User {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
-                enrolled: u.password_hash.is_some() || u.openid_login,
+                enrolled: u.password_hash.is_some() || u.openid_sub.is_some(),
             })
             .collect();
         Ok(res)
@@ -496,7 +497,7 @@ impl User {
             "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\"
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
@@ -624,7 +625,7 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -640,9 +641,25 @@ impl User {
             Self,
             "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE email = $1",
             email
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
+    pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
+            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE openid_sub = $1",
+            sub
         )
         .fetch_optional(executor)
         .await
@@ -883,7 +900,7 @@ impl User {
             Self,
             "SELECT u.id \"id?\", u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_login \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
             FROM \"user\" as u \
             JOIN \"device\" as d ON u.id = d.user_id \
             WHERE d.id = $1",
