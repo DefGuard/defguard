@@ -2254,6 +2254,10 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
+			 * Y​o​u​r​ ​c​u​r​r​e​n​t​ ​l​i​c​e​n​s​e​ ​h​a​s​ ​e​x​p​i​r​e​d​.
+			 */
+			currentExpired: string
+			/**
 			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
 			 */
 			subtitle: string
@@ -6492,6 +6496,10 @@ export type TranslationFunctions = {
 			 * This feature is available only in Defguard Enterprise.
 			 */
 			title: () => LocalizedString
+			/**
+			 * Your current license has expired.
+			 */
+			currentExpired: () => LocalizedString
 			/**
 			 * To learn more, visit our 
 			 */

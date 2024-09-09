@@ -913,6 +913,7 @@ const en: BaseTranslation = {
     },
     enterpriseOnly: {
       title: 'This feature is available only in Defguard Enterprise.',
+      currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
     },

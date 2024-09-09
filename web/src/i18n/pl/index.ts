@@ -901,6 +901,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     enterpriseOnly: {
       title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      currentExpired: 'Twoja obecna licencja wygasła.',
       subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
       website: 'stronę internetową',
     },
