@@ -18,22 +18,26 @@
 }
 
 #license-info {
-  display: flex;
-  flex-flow: row;
-  column-gap: 16px;
-  justify-content: space-evenly;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 
   & > div {
     display: flex;
     flex-flow: column;
     row-gap: 8px;
-
-    text-align: center;
+    align-items: center;
 
     & > .with-helper {
       display: flex;
       gap: 5px;
     }
+  }
+
+  .license-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
 }
 
