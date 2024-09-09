@@ -12,6 +12,7 @@ pub mod oauth2authorizedapp;
 pub mod oauth2client;
 #[cfg(feature = "openid")]
 pub mod oauth2token;
+pub mod polling_token;
 pub mod session;
 pub mod settings;
 pub mod user;

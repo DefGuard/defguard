@@ -543,6 +543,17 @@ const en: BaseTranslation = {
       messages: {
         deleteApp: 'App and all tokens deleted.',
       },
+      warningModals: {
+        title: 'Warning',
+        content: {
+          usernameChange: `Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?`,
+          emailChange: `If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
+      },
       fields: {
         username: {
           label: 'Username',

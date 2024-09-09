@@ -18,7 +18,6 @@ use crate::{
     VERSION,
 };
 
-// FIXME: this should be a hardcoded IP, make sure to add appropriate host headers
 const LICENSE_SERVER_URL: &str = "https://update-service-dev.defguard.net/api/license/renew";
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
@@ -489,7 +488,7 @@ async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
 ///
 /// This function checks the following two things:
 /// 1. Does the cached license exist
-/// 2. Does the cached license is past its maximum expiry date
+/// 2. Is the cached license past its maximum expiry date
 pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
     debug!("Validating if the license is present and not expired...");
     match license {
@@ -689,5 +688,53 @@ mod test {
             license.valid_until.unwrap(),
             Utc.with_ymd_and_hms(2024, 8, 21, 9, 58, 35).unwrap()
         );
+    }
+
+    #[test]
+    fn test_invalid_license() {
+        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        let license = License::from_base64(license).unwrap();
+        assert!(validate_license(Some(&license)).is_err());
+        assert!(validate_license(None).is_err());
+
+        // One day past the expiry date, non-subscription license
+        let license = License {
+            customer_id: "test".to_string(),
+            subscription: false,
+            valid_until: Some(Utc::now() - TimeDelta::days(1)),
+        };
+        assert!(validate_license(Some(&license)).is_err());
+
+        // One day before the expiry date, non-subscription license
+        let license = License {
+            customer_id: "test".to_string(),
+            subscription: false,
+            valid_until: Some(Utc::now() + TimeDelta::days(1)),
+        };
+        assert!(validate_license(Some(&license)).is_ok());
+
+        // No expiry date, non-subscription license
+        let license = License {
+            customer_id: "test".to_string(),
+            subscription: false,
+            valid_until: None,
+        };
+        assert!(validate_license(Some(&license)).is_ok());
+
+        // One day past the maximum overdue date
+        let license = License {
+            customer_id: "test".to_string(),
+            subscription: true,
+            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+        };
+        assert!(validate_license(Some(&license)).is_err());
+
+        // One day before the maximum overdue date
+        let license = License {
+            customer_id: "test".to_string(),
+            subscription: true,
+            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+        };
+        assert!(validate_license(Some(&license)).is_ok());
     }
 }

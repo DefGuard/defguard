@@ -9,7 +9,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::enterprise::grpc::polling::PollingServer;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use reqwest::Url;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::{
@@ -42,8 +44,11 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, Settings},
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+    server_config,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -59,6 +64,7 @@ pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
+pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 
@@ -355,7 +361,8 @@ pub async fn run_grpc_bidi_stream(
         user_agent_parser,
     );
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let polling_server = PollingServer::new(pool);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint
@@ -505,6 +512,18 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
+                        // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
+                        Some(core_request::Payload::InstanceInfo(request)) => {
+                            match polling_server.info(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::InstanceInfo(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("Instance info error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // Reply without payload.
                         None => None,
                     };
@@ -618,4 +637,38 @@ pub struct WorkerDetail {
     id: String,
     ip: IpAddr,
     connected: bool,
+}
+
+#[derive(Debug)]
+pub struct InstanceInfo {
+    id: uuid::Uuid,
+    name: String,
+    url: Url,
+    proxy_url: Url,
+    username: String,
+}
+
+impl InstanceInfo {
+    pub fn new<S: Into<String>>(settings: Settings, username: S) -> Self {
+        let config = server_config();
+        InstanceInfo {
+            id: settings.uuid,
+            name: settings.instance_name,
+            url: config.url.clone(),
+            proxy_url: config.enrollment_url.clone(),
+            username: username.into(),
+        }
+    }
+}
+
+impl From<InstanceInfo> for crate::grpc::proto::InstanceInfo {
+    fn from(instance: InstanceInfo) -> Self {
+        Self {
+            name: instance.name,
+            id: instance.id.to_string(),
+            url: instance.url.to_string(),
+            proxy_url: instance.proxy_url.to_string(),
+            username: instance.username,
+        }
+    }
 }
