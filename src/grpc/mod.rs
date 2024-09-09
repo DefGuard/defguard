@@ -382,7 +382,10 @@ pub async fn run_grpc_bidi_stream(
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!("Failed to connect to proxy, retrying in 10s");
+            error!(
+                "Failed to connect to proxy @ {}, retrying in 10s",
+                endpoint.uri()
+            );
             sleep(TEN_SECS).await;
             continue;
         };
