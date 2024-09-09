@@ -87,7 +87,10 @@ pub(crate) async fn build_device_config_response(
         }
     }
 
-    info!("Device {} configs fetched", device.name);
+    info!(
+        "User {}({:?}) device {}({:?}) config fetched",
+        user.username, user.id, device.name, device.id,
+    );
 
     Ok(DeviceConfigResponse {
         device: Some(device.into()),

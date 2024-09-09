@@ -113,7 +113,10 @@ impl EnrollmentServer {
             let user = enrollment.fetch_user(&self.pool).await?;
             let admin = enrollment.fetch_admin(&self.pool).await?;
 
-            debug!("Check if {} is an active user.", user.username);
+            debug!(
+                "Checking if user {}({:?}) is active",
+                user.username, user.id
+            );
             if !user.is_active {
                 warn!(
                     "Can't start enrollment for disabled user {}.",
@@ -121,6 +124,7 @@ impl EnrollmentServer {
                 );
                 return Err(Status::permission_denied("user is disabled"));
             };
+            info!("User {}({:?}) is active", user.username, user.id);
 
             let mut transaction = self.pool.begin().await.map_err(|_| {
                 error!("Failed to begin a transaction for enrollment.");
@@ -129,8 +133,8 @@ impl EnrollmentServer {
 
             // validate token & start session
             debug!(
-                "Validate enrollment token and start session for user {}",
-                user.username
+                "Validating enrollment token and starting session for user {}({:?})",
+                user.username, user.id,
             );
             let session_deadline = enrollment
                 .start_session(
@@ -138,9 +142,15 @@ impl EnrollmentServer {
                     server_config().enrollment_session_timeout.as_secs(),
                 )
                 .await?;
-            info!("Enrollment session started for user {}", user.username);
+            info!(
+                "Enrollment session started for user {}({:?})",
+                user.username, user.id
+            );
 
-            debug!("Retrive settings for enrollment purpose.");
+            debug!(
+                "Retrieving settings for enrollment purpose for user {}({:?}).",
+                user.username, user.id
+            );
             let settings = Settings::get_settings(&mut *transaction)
                 .await
                 .map_err(|_| {
@@ -150,15 +160,25 @@ impl EnrollmentServer {
             debug!("Settings: {settings:?}");
 
             let vpn_setup_optional = settings.enrollment_vpn_step_optional;
-            debug!("Retrive informations about instance for {}.", user.username);
+            debug!(
+                "Retrieving instance info for user {}({:?}).",
+                user.username, user.id
+            );
             let instance_info = InstanceInfo::new(settings, &user.username);
             debug!("Instance info {instance_info:?}");
 
-            debug!("Prepare initial user info to send for user enrollment.");
+            debug!(
+                "Preparing initial user info to send for user enrollment, user {}({:?}).",
+                user.username, user.id
+            );
+            let (username, user_id) = (user.username.clone(), user.id);
             let user_info = InitialUserInfo::from_user(&self.pool, user)
                 .await
                 .map_err(|_| {
-                    error!("Failed to get user info");
+                    error!(
+                        "Failed to get user info for user {}({:?})",
+                        username, user_id,
+                    );
                     Status::internal("unexpected error")
                 })?;
             debug!("User info {user_info:?}");
@@ -167,7 +187,10 @@ impl EnrollmentServer {
             let admin_info = admin.map(AdminInfo::from);
             debug!("Admin info {admin_info:?}");
 
-            debug!("Create a new enrollment response.");
+            debug!(
+                "Creating enrollment start response for user {}({:?}).",
+                username, user_id,
+            );
             let enterprise_settings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
@@ -224,7 +247,7 @@ impl EnrollmentServer {
         debug!("Ip address {}, device info {device_info:?}", ip_address);
 
         // check if password is strong enough
-        debug!("Verify if password is strong enough to complete the user activation process.");
+        debug!("Verifying password strength for user activation process.");
         if let Err(err) = check_password_strength(&request.password) {
             error!("Password not strong enough: {err}");
             return Err(Status::invalid_argument("password not strong enough"));
@@ -335,13 +358,23 @@ impl EnrollmentServer {
         let user = enrollment.fetch_user(&self.pool).await?;
 
         // add device
-        debug!("Verifying if user is active or disabled.");
+        debug!(
+            "Verifying if user {}({:?}) is active",
+            user.username, user.id
+        );
         if !user.is_active {
-            error!("Can't create device for a disabled user {}", user.username);
+            error!(
+                "Can't create device for disabled user {}({:?})",
+                user.username, user.id
+            );
             return Err(Status::invalid_argument(
                 "can't add device to disabled user",
             ));
         }
+        info!(
+            "User {}({:?}) is active, proceeding with device creation, pubkey: {}",
+            user.username, user.id, request.pubkey
+        );
 
         let ip_address;
         let device_info;
@@ -355,15 +388,27 @@ impl EnrollmentServer {
         }
         debug!("Ip address {}, device info {device_info:?}", ip_address);
 
-        debug!("Start validating pubkey for device creation process...");
-        Device::validate_pubkey(&request.pubkey).map_err(|_| {
-            error!("Invalid pubkey {}", request.pubkey);
+        debug!(
+            "Validating pubkey {} for device creation process for user {}({:?})",
+            request.pubkey, user.username, user.id,
+        );
+        Device::validate_pubkey(&request.pubkey).map_err(|err| {
+            error!(
+                "Invalid pubkey {}, device won't be created for user {}({:?}): {err}",
+                request.pubkey, user.username, user.id
+            );
             Status::invalid_argument("invalid pubkey")
         })?;
-        debug!("Pubkey is validated.");
+        info!(
+            "Pubkey {} is valid for device creation process for user {}({:?})",
+            request.pubkey, user.username, user.id
+        );
 
         // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
-        debug!("Check if there is a device that has the same pubey.");
+        debug!(
+            "Checking pubkey {} uniqueness for device creation process for user {}({:?}).",
+            request.pubkey, user.username, user.id,
+        );
         if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
             .map_err(|_| {
@@ -372,29 +417,43 @@ impl EnrollmentServer {
             })?
         {
             warn!(
-                "User {} failed to add device {}, identical pubkey ({}) already exists for device {}",
+                "User {}({:?}) failed to add device {}, identical pubkey ({}) already exists for device {}",
                 user.username,
+                user.id,
                 request.name,
                 request.pubkey,
                 device.name
             );
             return Err(Status::invalid_argument("invalid key"));
         };
+        info!(
+            "Pubkey {} is unique for device creation process for user {}({:?}).",
+            request.pubkey, user.username, user.id
+        );
 
         let mut device = Device::new(request.name, request.pubkey, enrollment.user_id);
-        debug!("Create a new device {device:?}.");
+        debug!(
+            "Creating new device for user {}({:?}) {device:?}.",
+            user.username, user.id,
+        );
 
         let mut transaction = self.pool.begin().await.map_err(|_| {
             error!("Failed to begin transaction");
             Status::internal("unexpected error")
         })?;
         device.save(&mut *transaction).await.map_err(|err| {
-            error!("Failed to save device {}: {err}", device.name);
+            error!(
+                "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+                device.name, device.wireguard_pubkey, user.username, user.id,
+            );
             Status::internal("unexpected error")
         })?;
-        debug!("Device has been saved into database.");
+        info!("New device created: {device:?}.");
 
-        debug!("Add a new device to all existing user networks.");
+        debug!(
+            "Adding device {} to all existing user networks for user {}({:?}).",
+            device.wireguard_pubkey, user.username, user.id,
+        );
         let (network_info, configs) =
             device
                 .add_to_all_networks(&mut transaction)
@@ -407,34 +466,64 @@ impl EnrollmentServer {
                     Status::internal("unexpected error")
                 })?;
 
-        debug!("Send an event about a new device to gateway.");
+        info!(
+            "Added device {} to all existing user networks for user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id
+        );
+        debug!(
+            "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info,
         }));
+        info!(
+            "Sent DeviceCreated event to gateway for device {}, user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
 
-        debug!("Try to fetch settings.");
+        debug!(
+            "Fetching settings for device {} creation process for user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
         let settings = Settings::get_settings(&mut *transaction)
             .await
-            .map_err(|_| {
-                error!("Failed to get settings");
+            .map_err(|err| {
+                error!(
+            "Failed to fetch settings for device {} creation process for user {}({:?}): {err}",
+            device.wireguard_pubkey, user.username, user.id,
+);
                 Status::internal("unexpected error")
             })?;
         debug!("Settings {settings:?}");
 
         // create polling token for further client communication
-        debug!("Creating polling token for further client communication");
+        debug!(
+            "Creating polling token for further client communication for device {}, user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
         let mut token = PollingToken::new(device.id.ok_or_else(|| {
             error!("No device id");
             Status::internal("unexpected error")
         })?);
         token.save(&mut *transaction).await.map_err(|err| {
-            error!("Failed to save PollingToken: {err}");
+            error!(
+                "Failed to save PollingToken for device {}, user {}({:?}): {err}",
+                device.wireguard_pubkey, user.username, user.id
+            );
             Status::internal("failed to save polling token")
         })?;
+        info!(
+            "Created polling token for further client communication for device: {}, user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
 
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction");
+        transaction.commit().await.map_err(|err| {
+            error!(
+                "Failed to commit transaction, device {} won't be created for user {}({:?}): {err}",
+                device.wireguard_pubkey, user.username, user.id,
+            );
             Status::internal("unexpected error")
         })?;
 
@@ -446,7 +535,10 @@ impl EnrollmentServer {
             })
             .collect();
 
-        debug!("Send a mail about a new device for the user.");
+        debug!(
+            "Sending device created mail for device {}, user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id
+        );
         send_new_device_added_email(
             &device.name,
             &device.wireguard_pubkey,
@@ -456,11 +548,11 @@ impl EnrollmentServer {
             Some(&ip_address),
             device_info.as_deref(),
         )
-        .map_err(|_| Status::internal("Failed to render new device added template"))?;
+        .map_err(|_| Status::internal("error rendering email template"))?;
 
         info!(
-            "Device {} assigned to user {} and added to all networks.",
-            device.name, user.username
+            "Device {} assigned to user {}({:?}) and added to all networks.",
+            device.name, user.username, user.id,
         );
 
         let response = DeviceConfigResponse {
@@ -469,7 +561,7 @@ impl EnrollmentServer {
             instance: Some(InstanceInfo::new(settings, &user.username).into()),
             token: Some(token.token),
         };
-        debug!("Created a create device response {response:?}.");
+        debug!("{response:?}.");
 
         Ok(response)
     }
