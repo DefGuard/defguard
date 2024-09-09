@@ -87,7 +87,7 @@ export const EnterpriseForm = () => {
           <Helper>
             {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
           </Helper>
-        </div
+        </div>
       </Card>
     </section>
   );

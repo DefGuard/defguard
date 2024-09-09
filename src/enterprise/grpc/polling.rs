@@ -1,7 +1,10 @@
 use crate::{
     db::{models::polling_token::PollingToken, DbPool, Device, User},
     enterprise::license::{get_cached_license, validate_license},
-    grpc::utils::build_device_config_response,
+    grpc::{
+        proto::InstanceConfigResponse,
+        utils::{build_device_config_response, build_instance_config_response},
+    },
 };
 use tonic::Status;
 
@@ -81,8 +84,10 @@ impl PollingServer {
         // Build & return polling info
         let device_config =
             build_device_config_response(&self.pool, &device.wireguard_pubkey).await?;
+        let instance_config = build_instance_config_response(&self.pool).await?;
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),
+            instance_config: Some(instance_config),
         })
     }
 }
