@@ -113,6 +113,6 @@ pub(crate) async fn build_instance_config_response(
 
     Ok(InstanceConfigResponse {
         enterprise,
-        disable_route_all_traffic: enterprise_settings.disable_all_traffic,
+        disable_all_traffic: enterprise_settings.disable_all_traffic,
     })
 }
