@@ -12,6 +12,8 @@ import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
 import { deviceBreakpoints } from '../../../../../../shared/constants';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { ActivityIcon } from '../../../../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
+import { ActivityIconVariant } from '../../../../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -44,7 +46,7 @@ export const LicenseSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
-  const licenseInfo = useAppStore((state) => state.enterprise_status?.license_info);
+  const enterpriseStatus = useAppStore((state) => state.enterprise_status);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -133,18 +135,39 @@ export const LicenseSettings = () => {
             />
           </form>
           <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()} expanded>
-            {licenseInfo ? (
+            {enterpriseStatus?.license_info ? (
               <div id="license-info">
+                <div>
+                  <Label>
+                    {LL.settingsPage.license.licenseInfo.fields.status.label()}
+                  </Label>
+                  {enterpriseStatus?.enabled ? (
+                    <div className="license-status">
+                      <ActivityIcon status={ActivityIconVariant.CONNECTED} />
+                      <p>{LL.settingsPage.license.licenseInfo.fields.status.active()}</p>
+                      {enterpriseStatus?.license_info.subscription ? (
+                        <Helper>
+                          {LL.settingsPage.license.licenseInfo.fields.status.subscriptionHelper()}
+                        </Helper>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="license-status">
+                      <ActivityIcon status={ActivityIconVariant.ERROR} />
+                      <p>{LL.settingsPage.license.licenseInfo.fields.status.expired()}</p>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <Label>{LL.settingsPage.license.licenseInfo.fields.type.label()}</Label>
                   <div className="with-helper">
                     <p>
-                      {licenseInfo.subscription
+                      {enterpriseStatus?.license_info.subscription
                         ? LL.settingsPage.license.licenseInfo.types.subscription.label()
                         : LL.settingsPage.license.licenseInfo.types.offline.label()}
                     </p>
                     <Helper>
-                      {licenseInfo.subscription
+                      {enterpriseStatus?.license_info.subscription
                         ? LL.settingsPage.license.licenseInfo.types.subscription.helper()
                         : LL.settingsPage.license.licenseInfo.types.offline.helper()}
                     </Helper>
@@ -155,8 +178,10 @@ export const LicenseSettings = () => {
                     {LL.settingsPage.license.licenseInfo.fields.validUntil.label()}
                   </Label>
                   <p>
-                    {licenseInfo.valid_until
-                      ? new Date(licenseInfo.valid_until).toLocaleString()
+                    {enterpriseStatus?.license_info.valid_until
+                      ? new Date(
+                          enterpriseStatus?.license_info.valid_until,
+                        ).toLocaleString()
                       : '-'}
                   </p>
                 </div>
