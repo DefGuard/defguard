@@ -153,7 +153,7 @@ export const LicenseSettings = () => {
                     </div>
                   ) : (
                     <div className="license-status">
-                      <ActivityIcon status={ActivityIconVariant.DISCONNECTED} />
+                      <ActivityIcon status={ActivityIconVariant.ERROR} />
                       <p>{LL.settingsPage.license.licenseInfo.fields.status.expired()}</p>
                     </div>
                   )}
