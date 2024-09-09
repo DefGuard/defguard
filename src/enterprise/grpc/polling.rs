@@ -1,10 +1,7 @@
 use crate::{
     db::{models::polling_token::PollingToken, DbPool, Device, User},
     enterprise::license::{get_cached_license, validate_license},
-    grpc::{
-        proto::InstanceConfigResponse,
-        utils::{build_device_config_response, build_instance_config_response},
-    },
+    grpc::utils::{build_device_config_response, build_instance_config_response},
 };
 use tonic::Status;
 
