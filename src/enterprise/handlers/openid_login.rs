@@ -1,32 +1,38 @@
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum::Json;
+use axum::{extract::State, http::StatusCode, Json};
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use axum_extra::extract::{CookieJar, PrivateCookieJar};
-use axum_extra::headers::UserAgent;
-use axum_extra::TypedHeader;
-use openidconnect::core::{
-    CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
-    CoreJwsSigningAlgorithm, CoreResponseType,
+use axum_extra::{
+    extract::{
+        cookie::{Cookie, SameSite},
+        CookieJar, PrivateCookieJar,
+    },
+    headers::UserAgent,
+    TypedHeader,
 };
 use openidconnect::{
-    core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
-    ProviderMetadata, RedirectUrl,
+    core::{
+        CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
+    },
+    reqwest::async_http_client,
+    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, IdToken,
+    IssuerUrl, Nonce, ProviderMetadata, RedirectUrl, Scope,
 };
-use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
 use serde_json::json;
 use time::Duration;
 
 use super::LicenseInfo;
-use crate::appstate::AppState;
-use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
-use crate::enterprise::db::models::openid_provider::OpenIdProvider;
-use crate::error::WebError;
-use crate::handlers::user::{check_username, prune_username};
-use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
-use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
-use crate::server_config;
+use crate::{
+    appstate::AppState,
+    db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo},
+    enterprise::db::models::openid_provider::OpenIdProvider,
+    error::WebError,
+    handlers::{
+        user::{check_username, prune_username},
+        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+    },
+    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
+    server_config,
+};
 
 type ProvMeta = ProviderMetadata<
     openidconnect::EmptyAdditionalProviderMetadata,
@@ -272,7 +278,7 @@ pub async fn auth_callback(
                 } else {
                     info!(
                         "User {} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
-                        username, email
+                        username, email.as_str()
                     );
                     // Check if user with the same username already exists
                     // Usernames are unique
