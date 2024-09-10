@@ -11,6 +11,8 @@ pub struct EnterpriseSettings {
     pub id: Option<i64>,
     // If true, only admins can manage devices
     pub admin_device_management: bool,
+    // If true, the option to route all traffic through the vpn is disabled in the client
+    pub disable_all_traffic: bool,
     // If true, manual WireGuard setup is disabled
     pub only_client_activation: bool,
 }
@@ -22,6 +24,7 @@ impl Default for EnterpriseSettings {
         Self {
             id: None,
             admin_device_management: false,
+            disable_all_traffic: false,
             only_client_activation: false,
         }
     }

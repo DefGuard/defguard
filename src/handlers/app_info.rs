@@ -2,11 +2,11 @@ use axum::{extract::State, http::StatusCode};
 use serde_json::json;
 
 use super::{ApiResponse, ApiResult, VERSION};
-use crate::db::Settings;
-use crate::enterprise::license::get_cached_license;
 use crate::{
-    appstate::AppState, auth::SessionInfo, db::WireguardNetwork,
-    enterprise::license::validate_license,
+    appstate::AppState,
+    auth::SessionInfo,
+    db::{Settings, WireguardNetwork},
+    enterprise::license::{get_cached_license, validate_license},
 };
 
 /// Additional information about core state.

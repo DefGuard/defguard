@@ -9,7 +9,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::enterprise::grpc::polling::PollingServer;
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use reqwest::Url;
 use serde::Serialize;
@@ -46,6 +45,7 @@ use self::{
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, Settings},
+    enterprise::grpc::polling::PollingServer,
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
     server_config,

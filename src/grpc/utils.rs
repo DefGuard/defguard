@@ -1,11 +1,19 @@
-use super::InstanceInfo;
 use ipnetwork::IpNetwork;
 use tonic::Status;
 
-use super::proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse};
-use crate::db::{
-    models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
-    DbPool, Device, Settings, User,
+use super::{
+    proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, InstanceConfigResponse},
+    InstanceInfo,
+};
+use crate::{
+    db::{
+        models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
+        DbPool, Device, Settings, User,
+    },
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        license::{get_cached_license, validate_license},
+    },
 };
 
 pub(crate) async fn build_device_config_response(
@@ -91,5 +99,22 @@ pub(crate) async fn build_device_config_response(
         configs,
         instance: Some(InstanceInfo::new(settings, &user.username).into()),
         token: None,
+    })
+}
+
+pub(crate) async fn build_instance_config_response(
+    pool: &DbPool,
+) -> Result<InstanceConfigResponse, Status> {
+    debug!("Building instance config response");
+    let enterprise = validate_license(get_cached_license().as_ref()).is_ok();
+    let enterprise_settings = EnterpriseSettings::get(pool).await.map_err(|err| {
+        error!("Failed to get enterprise settings while building instance config response: {err}");
+        Status::internal("unexpected error")
+    })?;
+    debug!("Instance config response built");
+
+    Ok(InstanceConfigResponse {
+        enterprise,
+        disable_all_traffic: enterprise_settings.disable_all_traffic,
     })
 }
