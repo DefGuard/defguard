@@ -1,11 +1,13 @@
+use tonic::Status;
+
 use crate::{
     db::{models::polling_token::PollingToken, DbPool, Device, User},
     enterprise::license::{get_cached_license, validate_license},
-    grpc::utils::{build_device_config_response, build_instance_config_response},
+    grpc::{
+        proto::{InstanceInfoRequest, InstanceInfoResponse},
+        utils::{build_device_config_response, build_instance_config_response},
+    },
 };
-use tonic::Status;
-
-use crate::grpc::proto::{InstanceInfoRequest, InstanceInfoResponse};
 
 pub struct PollingServer {
     pool: DbPool,

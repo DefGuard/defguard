@@ -1,8 +1,10 @@
-use super::{proto::InstanceConfigResponse, InstanceInfo};
 use ipnetwork::IpNetwork;
 use tonic::Status;
 
-use super::proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse};
+use super::{
+    proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse, InstanceConfigResponse},
+    InstanceInfo,
+};
 use crate::{
     db::{
         models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},

@@ -1,14 +1,16 @@
 mod common;
 
-use defguard::enterprise::{
-    db::models::enterprise_settings::EnterpriseSettings,
-    license::{get_cached_license, set_cached_license},
+use defguard::{
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        license::{get_cached_license, set_cached_license},
+    },
+    handlers::Auth,
 };
 use reqwest::StatusCode;
+use serde_json::{json, Value};
 
 use self::common::make_test_client;
-use defguard::handlers::Auth;
-use serde_json::{json, Value};
 
 fn make_network() -> Value {
     json!({
