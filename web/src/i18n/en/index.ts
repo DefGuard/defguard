@@ -913,6 +913,7 @@ const en: BaseTranslation = {
     },
     enterpriseOnly: {
       title: 'This feature is available only in Defguard Enterprise.',
+      currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
     },
@@ -1099,6 +1100,13 @@ const en: BaseTranslation = {
           },
         },
         fields: {
+          status: {
+            label: 'Status',
+            active: 'Active',
+            expired: 'Expired',
+            subscriptionHelper:
+              'A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.',
+          },
           type: {
             label: 'Type',
           },
@@ -1579,11 +1587,11 @@ const en: BaseTranslation = {
       noConnection: `No connection established, please run provided command.`,
       connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
-      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
           you don't need to do anything.`,
-      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\` 
+      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\`
           according to the [documentation]({setupGatewayDocs:string}).`,
-      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
           provided in the [documentation]({setupGatewayDocs:string}) to successfully set up the gateway server.
           For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
       dockerBasedGatewaySetup: `Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,

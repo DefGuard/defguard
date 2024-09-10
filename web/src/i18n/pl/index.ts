@@ -901,6 +901,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     enterpriseOnly: {
       title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      currentExpired: 'Twoja obecna licencja wygasła.',
       subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
       website: 'stronę internetową',
     },
@@ -1087,6 +1088,13 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
         },
         fields: {
+          status: {
+            label: 'Status',
+            active: 'Aktywna',
+            expired: 'Wygasła',
+            subscriptionHelper:
+              'Licencja w formie subskrypcji jest ważna przez pewien czas po dacie wygaśnięcia, by uwzględnić możliwe opóźnienia w automatycznej płatności.',
+          },
           type: {
             label: 'Typ',
           },
@@ -1567,14 +1575,14 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
       connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
-      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
         nie ma potrzeby wykonywania dalszych kroków.`,
-      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\` 
+      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,
-      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu, 
+      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
         a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
         Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
-      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze. 
+      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze.
         Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
     },
   },
