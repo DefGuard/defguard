@@ -107,8 +107,8 @@ pub(crate) async fn build_instance_config_response(
 ) -> Result<InstanceConfigResponse, Status> {
     debug!("Building instance config response");
     let enterprise = validate_license(get_cached_license().as_ref()).is_ok();
-    let enterprise_settings = EnterpriseSettings::get(pool).await.map_err(|_| {
-        error!("Failed to get enterprise settings while building instance config response");
+    let enterprise_settings = EnterpriseSettings::get(pool).await.map_err(|err| {
+        error!("Failed to get enterprise settings while building instance config response: {err}");
         Status::internal("unexpected error")
     })?;
     debug!("Instance config response built");
