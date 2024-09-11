@@ -2,9 +2,8 @@ use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
 use sqlx::{query_as, Error as SqlxError};
 
-use crate::random::gen_alphanumeric;
-
 use super::DbPool;
+use crate::random::gen_alphanumeric;
 
 // Token used for polling requests.
 #[derive(Clone, Debug, Model)]

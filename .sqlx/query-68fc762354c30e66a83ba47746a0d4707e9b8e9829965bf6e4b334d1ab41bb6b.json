@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"admin_device_management\",\"only_client_activation\" FROM \"enterprisesettings\"",
+  "query": "SELECT id \"id?\", \"admin_device_management\",\"disable_all_traffic\",\"only_client_activation\" FROM \"enterprisesettings\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -15,18 +15,26 @@
       },
       {
         "ordinal": 2,
+        "name": "disable_all_traffic",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
         "name": "only_client_activation",
         "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "205507ac888563e614157c6977abb744104284cb6bc7070127797bd6df0ac7af"
+  "hash": "68fc762354c30e66a83ba47746a0d4707e9b8e9829965bf6e4b334d1ab41bb6b"
 }

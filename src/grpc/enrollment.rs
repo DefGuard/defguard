@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
-use super::InstanceInfo;
 use ipnetwork::IpNetwork;
 use sqlx::Transaction;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 use uaparser::UserAgentParser;
 
-use super::proto::{
-    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-    InitialUserInfo, NewDevice,
+use super::{
+    proto::{
+        ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
+        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+        InitialUserInfo, NewDevice,
+    },
+    InstanceInfo,
 };
 use crate::{
     db::{

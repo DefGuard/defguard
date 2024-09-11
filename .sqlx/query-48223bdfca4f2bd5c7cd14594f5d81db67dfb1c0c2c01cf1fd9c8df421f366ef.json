@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"enterprisesettings\" SET \"admin_device_management\" = $2,\"disable_all_traffic\" = $3,\"only_client_activation\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48223bdfca4f2bd5c7cd14594f5d81db67dfb1c0c2c01cf1fd9c8df421f366ef"
+}
