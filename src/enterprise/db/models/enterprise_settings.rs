@@ -4,7 +4,7 @@ use struct_patch::Patch;
 
 use crate::enterprise::license::{get_cached_license, validate_license};
 
-#[derive(Model, Deserialize, Serialize, Patch)]
+#[derive(Debug, Model, Deserialize, Serialize, Patch)]
 #[patch(attribute(derive(Serialize, Deserialize)))]
 pub struct EnterpriseSettings {
     #[serde(skip)]

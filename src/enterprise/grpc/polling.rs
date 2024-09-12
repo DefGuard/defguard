@@ -5,7 +5,7 @@ use crate::{
     enterprise::license::{get_cached_license, validate_license},
     grpc::{
         proto::{InstanceInfoRequest, InstanceInfoResponse},
-        utils::{build_device_config_response, build_instance_config_response},
+        utils::build_device_config_response,
     },
 };
 
@@ -26,7 +26,7 @@ impl PollingServer {
         // Polling service is enterprise-only, check the lincense
         if validate_license(get_cached_license().as_ref()).is_err() {
             debug!("No valid license, denying instance polling info");
-            return Err(Status::permission_denied("no valid license"));
+            return Err(Status::failed_precondition("no valid license"));
         }
 
         // Validate the token
@@ -83,10 +83,8 @@ impl PollingServer {
         // Build & return polling info
         let device_config =
             build_device_config_response(&self.pool, &device.wireguard_pubkey).await?;
-        let instance_config = build_instance_config_response(&self.pool).await?;
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),
-            instance_config: Some(instance_config),
         })
     }
 }

@@ -45,7 +45,11 @@ use self::{
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, Settings},
-    enterprise::grpc::polling::PollingServer,
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        grpc::polling::PollingServer,
+        license::{get_cached_license, validate_license},
+    },
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
     server_config,
@@ -522,7 +526,9 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("Instance info error {err}");
+                                    // The error should already be logged in the info method, hence
+                                    // only debug here.
+                                    debug!("Instance info error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
@@ -649,10 +655,16 @@ pub struct InstanceInfo {
     url: Url,
     proxy_url: Url,
     username: String,
+    disable_all_traffic: bool,
+    enterprise_enabled: bool,
 }
 
 impl InstanceInfo {
-    pub fn new<S: Into<String>>(settings: Settings, username: S) -> Self {
+    pub fn new<S: Into<String>>(
+        settings: Settings,
+        username: S,
+        enterprise_settings: EnterpriseSettings,
+    ) -> Self {
         let config = server_config();
         InstanceInfo {
             id: settings.uuid,
@@ -660,6 +672,8 @@ impl InstanceInfo {
             url: config.url.clone(),
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
+            disable_all_traffic: enterprise_settings.disable_all_traffic,
+            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
         }
     }
 }
@@ -672,6 +686,8 @@ impl From<InstanceInfo> for crate::grpc::proto::InstanceInfo {
             url: instance.url.to_string(),
             proxy_url: instance.proxy_url.to_string(),
             username: instance.username,
+            disable_all_traffic: instance.disable_all_traffic,
+            enterprise_enabled: instance.enterprise_enabled,
         }
     }
 }

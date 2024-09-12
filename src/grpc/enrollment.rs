@@ -126,7 +126,10 @@ impl EnrollmentServer {
                 );
                 return Err(Status::permission_denied("user is disabled"));
             };
-            info!("User {}({:?}) is active", user.username, user.id);
+            info!(
+                "User {}({:?}) is active, proceeding with enrollment",
+                user.username, user.id
+            );
 
             let mut transaction = self.pool.begin().await.map_err(|_| {
                 error!("Failed to begin a transaction for enrollment.");
@@ -150,7 +153,7 @@ impl EnrollmentServer {
             );
 
             debug!(
-                "Retrieving settings for enrollment purpose for user {}({:?}).",
+                "Retrieving settings for enrollment of user {}({:?}).",
                 user.username, user.id
             );
             let settings = Settings::get_settings(&mut *transaction)
@@ -161,12 +164,25 @@ impl EnrollmentServer {
                 })?;
             debug!("Settings: {settings:?}");
 
+            debug!(
+                "Retrieving enterprise settings for enrollment of user {}({:?}).",
+                user.username, user.id
+            );
+            let enterprise_settings =
+                EnterpriseSettings::get(&mut *transaction)
+                    .await
+                    .map_err(|_| {
+                        error!("Failed to get enterprise settings.");
+                        Status::internal("unexpected error")
+                    })?;
+            debug!("Enterprise settings: {enterprise_settings:?}");
+
             let vpn_setup_optional = settings.enrollment_vpn_step_optional;
             debug!(
                 "Retrieving instance info for user {}({:?}).",
                 user.username, user.id
             );
-            let instance_info = InstanceInfo::new(settings, &user.username);
+            let instance_info = InstanceInfo::new(settings, &user.username, enterprise_settings);
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -185,7 +201,7 @@ impl EnrollmentServer {
                 })?;
             debug!("User info {user_info:?}");
 
-            debug!("Try to get basic admin info...");
+            debug!("Trying to get basic admin info...");
             let admin_info = admin.map(AdminInfo::from);
             debug!("Admin info {admin_info:?}");
 
@@ -498,7 +514,22 @@ impl EnrollmentServer {
 );
                 Status::internal("unexpected error")
             })?;
-        debug!("Settings {settings:?}");
+        debug!("Settings: {settings:?}");
+
+        debug!(
+            "Fetching enterprise settings for device {} creation process for user {}({:?})",
+            device.wireguard_pubkey, user.username, user.id,
+        );
+        let enterprise_settings = EnterpriseSettings::get(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!(
+            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): {err}",
+            device.wireguard_pubkey, user.username, user.id,
+        );
+                Status::internal("unexpected error")
+            })?;
+        debug!("Enterprise settings: {enterprise_settings:?}");
 
         // create polling token for further client communication
         debug!(
@@ -560,7 +591,7 @@ impl EnrollmentServer {
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(InstanceInfo::new(settings, &user.username).into()),
+            instance: Some(InstanceInfo::new(settings, &user.username, enterprise_settings).into()),
             token: Some(token.token),
         };
         debug!("{response:?}.");
