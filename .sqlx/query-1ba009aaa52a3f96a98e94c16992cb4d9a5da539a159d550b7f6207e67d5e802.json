@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login FROM \"user\" WHERE username = $1",
+  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" WHERE email = $1",
   "describe": {
     "columns": [
       {
@@ -93,8 +93,8 @@
       },
       {
         "ordinal": 15,
-        "name": "openid_login",
-        "type_info": "Bool"
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -118,8 +118,8 @@
       false,
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "6e3362d9973d75894d3bd289e7d10d8f76bf8c7b2e3e11de5590e67c2898fe28"
+  "hash": "1ba009aaa52a3f96a98e94c16992cb4d9a5da539a159d550b7f6207e67d5e802"
 }
