@@ -264,18 +264,18 @@ pub async fn auth_callback(
             user
         }
         Ok(None) => {
-            // Check if the user should be created if they don't exist (default: true)
-            if settings.openid_create_account {
-                if let Some(mut user) = User::find_by_email(&appstate.pool, &email).await? {
-                    // User with the same email already exists, merge the accounts
-                    info!(
+            if let Some(mut user) = User::find_by_email(&appstate.pool, &email).await? {
+                // User with the same email already exists, merge the accounts
+                info!(
                         "User with email address {} is logging in through OpenID Connect for the first time and we've found an existing account with the same email address. Merging accounts.",
                         user.email
                     );
-                    user.openid_sub = Some(sub);
-                    user.save(&appstate.pool).await?;
-                    user
-                } else {
+                user.openid_sub = Some(sub);
+                user.save(&appstate.pool).await?;
+                user
+            } else {
+                // Check if the user should be created if they don't exist (default: true)
+                if settings.openid_create_account {
                     info!(
                         "User {} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
                         username, email.as_str()
@@ -320,12 +320,15 @@ pub async fn auth_callback(
                     user.openid_sub = Some(sub);
                     user.save(&appstate.pool).await?;
                     user
+                } else {
+                    warn!(
+                        "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. They should perform an enrollment first.",
+                        email.as_str()
+                    );
+                    return Err(WebError::Authorization(
+                            "User not found. The user needs to be created first in order to login using OIDC.".to_string(),
+                        ));
                 }
-            } else {
-                return Err(WebError::Authorization(
-                    "User not found. The user needs to be created first in order to login using OIDC."
-                        .to_string(),
-                ));
             }
         }
         Err(e) => {
