@@ -131,8 +131,8 @@ impl EnrollmentServer {
                 user.username, user.id
             );
 
-            let mut transaction = self.pool.begin().await.map_err(|_| {
-                error!("Failed to begin a transaction for enrollment.");
+            let mut transaction = self.pool.begin().await.map_err(|err| {
+                error!("Failed to begin a transaction for enrollment: {err}");
                 Status::internal("unexpected error")
             })?;
 
@@ -158,8 +158,8 @@ impl EnrollmentServer {
             );
             let settings = Settings::get_settings(&mut *transaction)
                 .await
-                .map_err(|_| {
-                    error!("Failed to get settings.");
+                .map_err(|err| {
+                    error!("Failed to get settings: {err}");
                     Status::internal("unexpected error")
                 })?;
             debug!("Settings: {settings:?}");
@@ -171,8 +171,8 @@ impl EnrollmentServer {
             let enterprise_settings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
-                    .map_err(|_| {
-                        error!("Failed to get enterprise settings.");
+                    .map_err(|err| {
+                        error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
             debug!("Enterprise settings: {enterprise_settings:?}");
@@ -192,9 +192,9 @@ impl EnrollmentServer {
             let (username, user_id) = (user.username.clone(), user.id);
             let user_info = InitialUserInfo::from_user(&self.pool, user)
                 .await
-                .map_err(|_| {
+                .map_err(|err| {
                     error!(
-                        "Failed to get user info for user {}({:?})",
+                        "Failed to get user info for user {}({:?}): {err}",
                         username, user_id,
                     );
                     Status::internal("unexpected error")
@@ -212,8 +212,8 @@ impl EnrollmentServer {
             let enterprise_settings =
                 EnterpriseSettings::get(&mut *transaction)
                     .await
-                    .map_err(|_| {
-                        error!("Failed to get enterprise settings");
+                    .map_err(|err| {
+                        error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
             let enrollment_settings = super::proto::Settings {
@@ -232,8 +232,8 @@ impl EnrollmentServer {
             };
             debug!("Response {response:?}");
 
-            transaction.commit().await.map_err(|_| {
-                error!("Failed to commit transaction");
+            transaction.commit().await.map_err(|err| {
+                error!("Failed to commit transaction: {err}");
                 Status::internal("unexpected error")
             })?;
 
@@ -294,8 +294,8 @@ impl EnrollmentServer {
         }
         debug!("User is active.");
 
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
 
@@ -319,8 +319,8 @@ impl EnrollmentServer {
         debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_settings(&mut *transaction)
             .await
-            .map_err(|_| {
-                error!("Failed to get settings");
+            .map_err(|err| {
+                error!("Failed to get settings: {err}");
                 Status::internal("unexpected error")
             })?;
         debug!("Successfully retrived settings.");
@@ -355,8 +355,8 @@ impl EnrollmentServer {
             )?;
         }
 
-        transaction.commit().await.map_err(|_| {
-            error!("Failed to commit transaction");
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction: {err}");
             Status::internal("unexpected error")
         })?;
 
@@ -429,8 +429,8 @@ impl EnrollmentServer {
         );
         if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
-            .map_err(|_| {
-                error!("Failed to get device by its pubkey: {}", request.pubkey);
+            .map_err(|err| {
+                error!("Failed to get device {} by its pubkey: {err}", request.pubkey);
                 Status::internal("unexpected error")
             })?
         {
@@ -455,8 +455,8 @@ impl EnrollmentServer {
             user.username, user.id,
         );
 
-        let mut transaction = self.pool.begin().await.map_err(|_| {
-            error!("Failed to begin transaction");
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
         device.save(&mut *transaction).await.map_err(|err| {
