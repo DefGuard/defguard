@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login FROM \"user\"\n            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id\n            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id\n            WHERE \"group\".name = $1",
+  "query": "SELECT u.id \"id?\", u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub FROM \"user\" as u JOIN \"device\" as d ON u.id = d.user_id WHERE d.id = $1",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 11,
@@ -93,13 +93,13 @@
       },
       {
         "ordinal": 15,
-        "name": "openid_login",
-        "type_info": "Bool"
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -112,14 +112,14 @@
       true,
       false,
       false,
-      true,
       false,
       true,
+      true,
       false,
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "246af063a89129453ca514f8f32f8a644fcfc0bbb3ebf17f1f2410e24c3a2316"
+  "hash": "965e1d9ae54914a8a34a651f489d218f060fc9608c6d233b6f6a4137cf199964"
 }

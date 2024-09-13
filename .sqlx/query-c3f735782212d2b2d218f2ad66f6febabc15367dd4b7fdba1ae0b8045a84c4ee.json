@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_login\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -50,8 +50,8 @@
       },
       {
         "ordinal": 9,
-        "name": "openid_login",
-        "type_info": "Bool"
+        "name": "openid_sub",
+        "type_info": "Text"
       },
       {
         "ordinal": 10,
@@ -98,9 +98,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -112,7 +110,7 @@
       true,
       false,
       false,
-      false,
+      true,
       false,
       false,
       true,
@@ -121,5 +119,5 @@
       false
     ]
   },
-  "hash": "fd4750032e0fcd91f0f8fad9aa946211c645f786602e89561f03a5a60661d191"
+  "hash": "c3f735782212d2b2d218f2ad66f6febabc15367dd4b7fdba1ae0b8045a84c4ee"
 }
