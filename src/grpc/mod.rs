@@ -526,9 +526,7 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    // The error should already be logged in the info method, hence
-                                    // only debug here.
-                                    debug!("Instance info error {err}");
+                                    error!("Instance info error {err}");
                                     Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
