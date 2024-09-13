@@ -430,7 +430,10 @@ impl EnrollmentServer {
         if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
             .await
             .map_err(|err| {
-                error!("Failed to get device {} by its pubkey: {err}", request.pubkey);
+                error!(
+                    "Failed to get device {} by its pubkey: {err}",
+                    request.pubkey
+                );
                 Status::internal("unexpected error")
             })?
         {
