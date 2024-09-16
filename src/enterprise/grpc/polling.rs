@@ -82,7 +82,7 @@ impl PollingServer {
 
         // Build & return polling info
         let device_config =
-            build_device_config_response(&self.pool, &device.wireguard_pubkey).await?;
+            build_device_config_response(&self.pool, &device.wireguard_pubkey, false).await?;
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),
         })

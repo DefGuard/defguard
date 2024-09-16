@@ -7,7 +7,10 @@ use super::{
 };
 use crate::{
     db::{
-        models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
+        models::{
+            device::WireguardNetworkDevice, polling_token::PollingToken,
+            wireguard::WireguardNetwork,
+        },
         DbPool, Device, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
@@ -16,6 +19,8 @@ use crate::{
 pub(crate) async fn build_device_config_response(
     pool: &DbPool,
     pubkey: &str,
+    // Whether to make a new polling token for the device
+    new_token: bool,
 ) -> Result<DeviceConfigResponse, Status> {
     Device::validate_pubkey(pubkey).map_err(|_| {
         error!("Invalid pubkey {pubkey}");
@@ -91,6 +96,59 @@ pub(crate) async fn build_device_config_response(
         }
     }
 
+    let token = if new_token {
+        debug!(
+            "Making a new polling token for device {}",
+            device.wireguard_pubkey
+        );
+        let mut transaction = pool.begin().await.map_err(|err| {
+            error!("Failed to start transaction while making a new polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+
+        // 1. Delete existing polling token for the device, if it exists
+        // 2. Create a new polling token for the device
+        PollingToken::delete_for_device_id(
+            &mut *transaction,
+            device.id.ok_or_else(|| {
+                error!(
+                    "Device {} has no id, can't delete polling token",
+                    device.wireguard_pubkey
+                );
+                Status::internal("unexpected error")
+            })?,
+        )
+        .await
+        .map_err(|err| {
+            error!("Failed to delete polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+        let mut new_token = PollingToken::new(device.id.ok_or_else(|| {
+            error!(
+                "Device {} has no id, can't create a polling token",
+                device.wireguard_pubkey
+            );
+            Status::internal("unexpected error")
+        })?);
+        new_token.save(&mut *transaction).await.map_err(|err| {
+            error!("Failed to save new polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction while making a new polling token: {err}");
+            Status::internal(format!("unexpected error: {err}"))
+        })?;
+        debug!(
+            "New polling token created for device {}",
+            device.wireguard_pubkey
+        );
+
+        Some(new_token.token)
+    } else {
+        None
+    };
+
     info!(
         "User {}({:?}) device {}({:?}) config fetched",
         user.username, user.id, device.name, device.id,
@@ -100,6 +158,6 @@ pub(crate) async fn build_device_config_response(
         device: Some(device.into()),
         configs,
         instance: Some(InstanceInfo::new(settings, &user.username, enterprise_settings).into()),
-        token: None,
+        token,
     })
 }
