@@ -139,7 +139,7 @@ pub(crate) async fn build_device_config_response(
             error!("Failed to commit transaction while making a new polling token: {err}");
             Status::internal(format!("unexpected error: {err}"))
         })?;
-        debug!(
+        info!(
             "New polling token created for device {}",
             device.wireguard_pubkey
         );
