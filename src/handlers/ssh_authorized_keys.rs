@@ -178,7 +178,7 @@ pub async fn add_authentication_key(
         return Err(WebError::ModelError("Model returned without ID".into()));
     };
 
-    let trimmed_key = data.key.trim_end_matches(|c| c == '\n' || c == '\r');
+    let trimmed_key = data.key.trim_end_matches(['\n', '\r']);
 
     // verify key
     match data.key_type {

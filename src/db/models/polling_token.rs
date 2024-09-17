@@ -15,6 +15,7 @@ pub struct PollingToken {
 }
 
 impl PollingToken {
+    #[must_use]
     pub fn new(device_id: i64) -> Self {
         Self {
             id: None,

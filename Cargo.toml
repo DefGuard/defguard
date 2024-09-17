@@ -132,8 +132,8 @@ openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
 
-[profile.dev]
-strip = "debuginfo"
+# [profile.dev]
+# strip = "debuginfo"
 
 [profile.release]
 lto = "thin"
