@@ -136,7 +136,7 @@
     "typedoc": "^0.25.7",
     "typescript": "~5.3.3",
     "typescript-eslint-language-service": "^5.0.5",
-    "vite": "^5.0.12",
+    "vite": "^5.2.14",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-package-version": "^1.1.0"
   },
