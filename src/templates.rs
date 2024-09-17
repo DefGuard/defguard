@@ -32,9 +32,6 @@ static MAIL_PASSWORD_RESET_START: &str =
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 
-#[allow(dead_code)]
-static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
-
 #[derive(Error, Debug)]
 pub enum TemplateError {
     #[error("Failed to generate email MFA code")]
@@ -56,7 +53,7 @@ pub fn get_base_tera(
     // supply context required by base
     context.insert("application_version", &VERSION);
     let now = Utc::now();
-    let current_year = format!("{:04}", &now.year());
+    let current_year = format!("{:04}", now.year());
     context.insert("current_year", &current_year);
     context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
 

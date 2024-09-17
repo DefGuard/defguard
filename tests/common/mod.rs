@@ -56,12 +56,12 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     )
     .await;
 
-    initialize_users(&pool, config.clone()).await;
+    initialize_users(&pool, &config).await;
 
     (pool, config)
 }
 
-async fn initialize_users(pool: &DbPool, config: DefGuardConfig) {
+async fn initialize_users(pool: &DbPool, config: &DefGuardConfig) {
     User::init_admin_user(pool, config.default_admin_password.expose_secret())
         .await
         .unwrap();
@@ -177,7 +177,7 @@ pub async fn make_test_client() -> (TestClient, ClientState) {
 
 #[allow(dead_code)]
 pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
-    let response = client.get(&format!("/api/v1/user/{username}")).send().await;
+    let response = client.get(format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     response.json().await
 }
