@@ -15,6 +15,8 @@ use serde_json::{json, Value};
 
 use self::common::make_test_client;
 
+static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
+
 fn make_network() -> Value {
     json!({
         "name": "network",
@@ -86,7 +88,7 @@ async fn test_stats() {
     let response = client
         .get(format!(
             "/api/v1/network/1/stats/users?from={}",
-            hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
+            hour_ago.format(DATE_FORMAT),
         ))
         .send()
         .await;
@@ -117,7 +119,7 @@ async fn test_stats() {
     let response = client
         .get(format!(
             "/api/v1/network/1/stats/users?from={}",
-            hour_ago.format("%Y-%m-%dT%H:%M:00Z"),
+            hour_ago.format(DATE_FORMAT),
         ))
         .send()
         .await;
@@ -221,7 +223,7 @@ async fn test_stats() {
     let response = client
         .get(format!(
             "/api/v1/network/1/stats/users?from={}",
-            ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
+            ten_hours_ago.format(DATE_FORMAT),
         ))
         .send()
         .await;
@@ -252,7 +254,7 @@ async fn test_stats() {
     let response = client
         .get(format!(
             "/api/v1/network/1/stats?from={}",
-            ten_hours_ago.format("%Y-%m-%dT%H:%M:00Z"),
+            ten_hours_ago.format(DATE_FORMAT),
         ))
         .send()
         .await;

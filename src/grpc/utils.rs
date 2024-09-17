@@ -157,7 +157,7 @@ pub(crate) async fn build_device_config_response(
     Ok(DeviceConfigResponse {
         device: Some(device.into()),
         configs,
-        instance: Some(InstanceInfo::new(settings, &user.username, enterprise_settings).into()),
+        instance: Some(InstanceInfo::new(settings, &user.username, &enterprise_settings).into()),
         token,
     })
 }

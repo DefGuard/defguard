@@ -182,7 +182,7 @@ impl EnrollmentServer {
                 "Retrieving instance info for user {}({:?}).",
                 user.username, user.id
             );
-            let instance_info = InstanceInfo::new(settings, &user.username, enterprise_settings);
+            let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
             debug!("Instance info {instance_info:?}");
 
             debug!(
@@ -594,7 +594,9 @@ impl EnrollmentServer {
         let response = DeviceConfigResponse {
             device: Some(device.into()),
             configs: configs.into_iter().map(Into::into).collect(),
-            instance: Some(InstanceInfo::new(settings, &user.username, enterprise_settings).into()),
+            instance: Some(
+                InstanceInfo::new(settings, &user.username, &enterprise_settings).into(),
+            ),
             token: Some(token.token),
         };
         debug!("{response:?}.");

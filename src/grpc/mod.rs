@@ -661,7 +661,7 @@ impl InstanceInfo {
     pub fn new<S: Into<String>>(
         settings: Settings,
         username: S,
-        enterprise_settings: EnterpriseSettings,
+        enterprise_settings: &EnterpriseSettings,
     ) -> Self {
         let config = server_config();
         InstanceInfo {

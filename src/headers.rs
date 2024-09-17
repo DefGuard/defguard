@@ -17,7 +17,7 @@ pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
 }
 
 #[must_use]
-pub fn parse_user_agent<'a>(
+pub(crate) fn parse_user_agent<'a>(
     user_parser: &UserAgentParser,
     user_agent: &'a str,
 ) -> Option<Client<'a>> {
@@ -29,23 +29,15 @@ pub fn parse_user_agent<'a>(
 }
 
 #[must_use]
-pub fn get_device_info(user_agent_parser: &UserAgentParser, user_agent: &str) -> Option<String> {
-    let agent = parse_user_agent(user_agent_parser, user_agent);
-
-    agent.map(|v| get_user_agent_device(&v))
+pub(crate) fn get_device_info(
+    user_agent_parser: &UserAgentParser,
+    user_agent: &str,
+) -> Option<String> {
+    parse_user_agent(user_agent_parser, user_agent).map(|v| get_user_agent_device(&v))
 }
 
 #[must_use]
-pub fn get_device_type(user_agent_client: Option<Client>) -> String {
-    if let Some(client) = user_agent_client {
-        get_user_agent_device(&client)
-    } else {
-        String::new()
-    }
-}
-
-#[must_use]
-pub fn get_user_agent_device(user_agent_client: &Client) -> String {
+pub(crate) fn get_user_agent_device(user_agent_client: &Client) -> String {
     let device_type = user_agent_client
         .device
         .model
@@ -77,7 +69,7 @@ pub fn get_user_agent_device(user_agent_client: &Client) -> String {
 }
 
 #[must_use]
-pub fn get_device_login_event(
+pub(crate) fn get_device_login_event(
     user_id: i64,
     ip_address: String,
     event_type: String,
@@ -87,7 +79,7 @@ pub fn get_device_login_event(
         .map(|client| get_user_agent_device_login_data(user_id, ip_address, event_type, &client))
 }
 
-pub fn get_user_agent_device_login_data(
+pub(crate) fn get_user_agent_device_login_data(
     user_id: i64,
     ip_address: String,
     event_type: String,
@@ -114,7 +106,7 @@ pub fn get_user_agent_device_login_data(
     )
 }
 
-pub async fn check_new_device_login(
+pub(crate) async fn check_new_device_login(
     pool: &DbPool,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
@@ -125,7 +117,7 @@ pub async fn check_new_device_login(
 ) -> Result<(), TemplateError> {
     if let Some(user_id) = user.id {
         if let Some(device_login_event) =
-            get_device_login_event(user_id, ip_address, event_type, agent.clone())
+            get_device_login_event(user_id, ip_address, event_type, agent)
         {
             if let Ok(Some(created_device_login_event)) = device_login_event
                 .check_if_device_already_logged_in(pool)

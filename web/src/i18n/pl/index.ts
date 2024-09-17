@@ -370,7 +370,7 @@ const pl: Translation = {
           },
           lastName: {
             placeholder: 'Nazwisko',
-            label: 'Ostatnie imię',
+            label: 'Nazwisko',
           },
           phone: {
             placeholder: 'Telefon',
@@ -819,7 +819,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     copy: 'Kopiuj',
     saveChanges: 'Zapisz zmiany',
     submit: 'Zapisz',
-    login: 'Zaloguj sie',
+    login: 'Zaloguj się',
     cancel: 'Anuluj',
     close: 'Zamknij',
     placeholders: {
