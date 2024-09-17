@@ -609,7 +609,8 @@ impl EnrollmentServer {
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
         let _token = self.validate_session(&request.token).await?;
-        build_device_config_response(&self.pool, &request.pubkey).await
+
+        build_device_config_response(&self.pool, &request.pubkey, true).await
     }
 }
 

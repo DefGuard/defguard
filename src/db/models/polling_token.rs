@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgExecutor};
 
 use super::DbPool;
 use crate::random::gen_alphanumeric;
@@ -33,5 +33,15 @@ impl PollingToken {
         )
         .fetch_optional(pool)
         .await
+    }
+
+    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: i64) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        sqlx::query!("DELETE FROM pollingtoken WHERE device_id = $1", device_id)
+            .execute(executor)
+            .await?;
+        Ok(())
     }
 }
