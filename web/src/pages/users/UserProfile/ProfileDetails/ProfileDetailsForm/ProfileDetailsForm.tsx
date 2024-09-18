@@ -11,6 +11,9 @@ import { z } from 'zod';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -27,9 +30,7 @@ import { OAuth2AuthorizedApps } from '../../../../../shared/types';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
-import { useProfileDetailsWarningModal } from './hooks/useProfileDetailsWarningModal';
 import { ProfileDetailsFormAppsField } from './ProfileDetailsFormAppsField';
-import { ProfileDetailsWarningModals } from './ProfileDetailsWarningModals';
 
 interface Inputs {
   username: string;
@@ -63,14 +64,14 @@ export const ProfileDetailsForm = () => {
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isMe = useUserProfileStore((state) => state.isMe);
-  const [fetchGroups, setFetchGroups] = useState(false);
+  const [fetchGroups] = useState(false);
   const {
     user: { editUser },
     groups: { getGroups },
   } = useApi();
   const { username: paramsUsername } = useParams();
   const navigate = useNavigate();
-  const warningModals = useProfileDetailsWarningModal((state) => state);
+  const [usernameChangeWarning, setUsernameChangeWarning] = useState(false);
 
   const zodSchema = useMemo(
     () =>
@@ -209,31 +210,48 @@ export const ProfileDetailsForm = () => {
   useEffect(() => {
     if (submitButton && submitButton.current) {
       const sub = submitSubject.subscribe(() => {
+        if (getValues().username !== userProfile?.user.username) {
+          setUsernameChangeWarning(true);
+          return;
+        }
         submitButton.current?.click();
       });
       return () => sub.unsubscribe();
     }
-  }, [submitSubject]);
-
-  useEffect(() => {
-    setTimeout(() => setFetchGroups(true), 500);
-    warningModals.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [submitSubject, getValues, userProfile?.user.username]);
 
   return (
     <>
-      <ProfileDetailsWarningModals />
       <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
+        <ModalWithTitle
+          className="change-warning-modal"
+          backdrop
+          isOpen={usernameChangeWarning}
+          onClose={() => {
+            setUsernameChangeWarning(false);
+          }}
+          title="Warning"
+        >
+          <p>{LL.userPage.userDetails.warningModals.content.usernameChange()}</p>
+          <div className="buttons">
+            <Button
+              text={LL.userPage.userDetails.warningModals.buttons.proceed()}
+              styleVariant={ButtonStyleVariant.DELETE}
+              onClick={() => {
+                setUsernameChangeWarning(false);
+                submitButton.current?.click();
+              }}
+            />
+            <Button
+              onClick={() => {
+                setUsernameChangeWarning(false);
+              }}
+              text={LL.userPage.userDetails.warningModals.buttons.cancel()}
+            />
+          </div>
+        </ModalWithTitle>
         <div className="row">
-          <div
-            className="item"
-            onClick={() => {
-              if (!userEditLoading && isAdmin && !warningModals.usernameChange.accepted) {
-                warningModals.open('usernameChange');
-              }
-            }}
-          >
+          <div className="item">
             <FormInput
               label={LL.userPage.userDetails.fields.username.label()}
               controller={{ control, name: 'username' }}
@@ -272,14 +290,7 @@ export const ProfileDetailsForm = () => {
           </div>
         </div>
         <div className="row">
-          <div
-            className="item"
-            onClick={() => {
-              if (!userEditLoading && isAdmin && !warningModals.emailChange.accepted) {
-                warningModals.open('emailChange');
-              }
-            }}
-          >
+          <div className="item">
             <FormInput
               label={LL.userPage.userDetails.fields.email.label()}
               controller={{ control, name: 'email' }}
