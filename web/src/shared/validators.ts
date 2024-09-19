@@ -30,7 +30,7 @@ export const validateIpOrDomainList = (
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
   for (const value of split) {
-    if (!(validateIp(value, allowMasks) && patternValidDomain.test(value))) {
+    if (!validateIp(value, allowMasks) && !patternValidDomain.test(value)) {
       return false;
     }
   }
