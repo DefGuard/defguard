@@ -64,7 +64,7 @@ export const ProfileDetailsForm = () => {
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const isMe = useUserProfileStore((state) => state.isMe);
-  const [fetchGroups] = useState(false);
+  const [fetchGroups, setFetchGroups] = useState(false);
   const {
     user: { editUser },
     groups: { getGroups },
@@ -219,6 +219,11 @@ export const ProfileDetailsForm = () => {
       return () => sub.unsubscribe();
     }
   }, [submitSubject, getValues, userProfile?.user.username]);
+
+  useEffect(() => {
+    setTimeout(() => setFetchGroups(true), 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
