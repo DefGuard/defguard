@@ -18,7 +18,7 @@ use crate::{
     VERSION,
 };
 
-const LICENSE_SERVER_URL: &str = "https://update-service-dev.defguard.net/api/license/renew";
+const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
 
