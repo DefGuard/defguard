@@ -1,14 +1,16 @@
 mod common;
 
-use defguard::enterprise::{
-    db::models::enterprise_settings::EnterpriseSettings,
-    license::{get_cached_license, set_cached_license},
+use defguard::{
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        license::{get_cached_license, set_cached_license},
+    },
+    handlers::Auth,
 };
 use reqwest::StatusCode;
+use serde_json::{json, Value};
 
 use self::common::make_test_client;
-use defguard::handlers::Auth;
-use serde_json::{json, Value};
 
 fn make_network() -> Value {
     json!({
@@ -41,6 +43,8 @@ async fn test_only_enterprise_can_modify() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: true,
+        disable_all_traffic: false,
+        only_client_activation: false,
     };
 
     let response = client
@@ -84,6 +88,8 @@ async fn test_admin_devices_management_is_enforced() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: true,
+        disable_all_traffic: false,
+        only_client_activation: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")
@@ -160,6 +166,8 @@ async fn test_regular_user_device_management() {
     let settings = EnterpriseSettings {
         id: None,
         admin_device_management: false,
+        disable_all_traffic: false,
+        only_client_activation: false,
     };
     let response = client
         .patch("/api/v1/settings_enterprise")

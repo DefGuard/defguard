@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"enterprisesettings\" (\"admin_device_management\") VALUES ($1) RETURNING id",
+  "query": "INSERT INTO \"pollingtoken\" (\"token\",\"device_id\",\"created_at\") VALUES ($1,$2,$3) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,14 @@
     ],
     "parameters": {
       "Left": [
-        "Bool"
+        "Text",
+        "Int8",
+        "Timestamp"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "c0883840b92550c4a2ba682d15ee4841bf9cdce2d87fa952457b157afbe2d756"
+  "hash": "838909479f3e9a1538980e1299be80b362b9ca168bdc2a4f10db6157b93b53e1"
 }

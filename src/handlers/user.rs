@@ -15,9 +15,12 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
     db::{
-        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
-        WebAuthn, WireguardNetwork,
+        models::{
+            device::DeviceInfo,
+            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        },
+        AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
+        UserInfo, Wallet, WebAuthn, WireguardNetwork,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
@@ -88,7 +91,7 @@ pub fn prune_username(username: &str) -> String {
         .to_string();
 
     result.retain(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
-    result = result.replace(" ", "");
+    result = result.replace(' ', "");
 
     result
 }
@@ -710,9 +713,27 @@ pub async fn delete_user(
         });
     }
     if let Some(user) = User::find_by_username(&appstate.pool, &username).await? {
-        user.delete(&appstate.pool).await?;
-        let _result = ldap_delete_user(&appstate.pool, &username).await;
+        // Get rid of all devices of the deleted user from networks first
+        debug!(
+            "User {} deleted user {username}, purging their network devices across all networks.",
+            session.user.username
+        );
+        let mut transaction = appstate.pool.begin().await?;
+        let devices = user.devices(&mut *transaction).await?;
+        let mut events = Vec::new();
+        for device in devices {
+            events.push(GatewayEvent::DeviceDeleted(
+                DeviceInfo::from_device(&mut *transaction, device).await?,
+            ));
+        }
+        appstate.send_multiple_wireguard_events(events);
+        debug!("Devices of user {username} purged from networks.");
+
+        user.delete(&mut *transaction).await?;
+        let _result = ldap_delete_user(&mut *transaction, &username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
+        transaction.commit().await?;
+
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())
     } else {

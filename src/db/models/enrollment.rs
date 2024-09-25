@@ -192,7 +192,7 @@ impl Token {
     }
 
     pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, TokenError> {
-        match query_as!(
+        if let Some(enrollment) = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
             FROM token WHERE id = $1",
@@ -201,14 +201,11 @@ impl Token {
         .fetch_optional(pool)
         .await?
         {
-            Some(enrollment) => {
-                debug!("Fetch token {enrollment:?} from database.");
-                Ok(enrollment)
-            }
-            None => {
-                debug!("Token with id {} does not exist in database.", id);
-                Err(TokenError::NotFound)
-            }
+            debug!("Fetch token {enrollment:?} from database.");
+            Ok(enrollment)
+        } else {
+            debug!("Token with id {id} does not exist in database.");
+            Err(TokenError::NotFound)
         }
     }
 

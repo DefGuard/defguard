@@ -22,6 +22,18 @@
 
 See below [full list of features](https://github.com/defguard/defguard#features)
 
+#### Video introduction
+
+Baring in mind we are no youtubers - just engineers - here is a video introduction to defguard:
+
+<div align="center">
+ <p align="center">
+  
+[![Introduction to defguard](https://img.youtube.com/vi/4PF7edMGBwk/hqdefault.jpg)](https://www.youtube.com/watch?v=4PF7edMGBwk)
+
+</p>
+</div>
+
 ### Control plane management (this video is few versions behind... - a lot has changed!)
 
 ![](https://defguard.net/images/product/core/hero-image.png)
@@ -53,12 +65,20 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 ## Quick start
 
 The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
-
 Just run the command below in your shell and follow the prompts:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGuard/deployment/main/docker-compose/setup.sh -O && bash setup.sh
 ```
+
+Here is a step-by-step video about this process:
+<div align="center">
+ <p align="center">
+  
+[![Quickly deploy defguard](https://img.youtube.com/vi/MqlE6ZTn0bg/hqdefault.jpg)](https://www.youtube.com/watch?v=MqlE6ZTn0bg)
+
+</p>
+</div>
 
 To learn more about the script and available options please see the [documentation](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
 
@@ -136,7 +156,7 @@ Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-
 # Built and sponsored by
 
 <p align="center">
-      <a href="https://teonite.com" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="build by teonite" /></a>
+      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="build by teonite" /></a>
 </p>
 
 # Legal

@@ -10,6 +10,7 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use reqwest::Url;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::{
@@ -42,8 +43,16 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, Settings},
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        grpc::polling::PollingServer,
+        license::{get_cached_license, validate_license},
+    },
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+    server_config,
 };
 #[cfg(feature = "worker")]
 use crate::{
@@ -59,6 +68,7 @@ pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
+pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 
@@ -355,7 +365,8 @@ pub async fn run_grpc_bidi_stream(
         user_agent_parser,
     );
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let polling_server = PollingServer::new(pool);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint
@@ -375,7 +386,10 @@ pub async fn run_grpc_bidi_stream(
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!("Failed to connect to proxy, retrying in 10s");
+            error!(
+                "Failed to connect to proxy @ {}, retrying in 10s",
+                endpoint.uri()
+            );
             sleep(TEN_SECS).await;
             continue;
         };
@@ -505,6 +519,18 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
+                        // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
+                        Some(core_request::Payload::InstanceInfo(request)) => {
+                            match polling_server.info(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::InstanceInfo(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("Instance info error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // Reply without payload.
                         None => None,
                     };
@@ -618,4 +644,48 @@ pub struct WorkerDetail {
     id: String,
     ip: IpAddr,
     connected: bool,
+}
+
+#[derive(Debug)]
+pub struct InstanceInfo {
+    id: uuid::Uuid,
+    name: String,
+    url: Url,
+    proxy_url: Url,
+    username: String,
+    disable_all_traffic: bool,
+    enterprise_enabled: bool,
+}
+
+impl InstanceInfo {
+    pub fn new<S: Into<String>>(
+        settings: Settings,
+        username: S,
+        enterprise_settings: &EnterpriseSettings,
+    ) -> Self {
+        let config = server_config();
+        InstanceInfo {
+            id: settings.uuid,
+            name: settings.instance_name,
+            url: config.url.clone(),
+            proxy_url: config.enrollment_url.clone(),
+            username: username.into(),
+            disable_all_traffic: enterprise_settings.disable_all_traffic,
+            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
+        }
+    }
+}
+
+impl From<InstanceInfo> for crate::grpc::proto::InstanceInfo {
+    fn from(instance: InstanceInfo) -> Self {
+        Self {
+            name: instance.name,
+            id: instance.id.to_string(),
+            url: instance.url.to_string(),
+            proxy_url: instance.proxy_url.to_string(),
+            username: instance.username,
+            disable_all_traffic: instance.disable_all_traffic,
+            enterprise_enabled: instance.enterprise_enabled,
+        }
+    }
 }

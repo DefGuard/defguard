@@ -1,6 +1,4 @@
-use std::convert::Infallible;
-use std::error::Error;
-use std::str::FromStr;
+use std::{convert::Infallible, error::Error, str::FromStr};
 
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};

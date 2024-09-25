@@ -7,6 +7,7 @@ export type BaseLocale = 'en'
 
 export type Locales =
 	| 'en'
+	| 'ko'
 	| 'pl'
 
 export type Translation = RootTranslation
@@ -879,9 +880,13 @@ type RootTranslation = {
 					}
 					enableEnrollment: {
 						/**
-						 * U​s​e​ ​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
+						 * U​s​e​ ​u​s​e​r​ ​s​e​l​f​-​e​n​r​o​l​l​m​e​n​t​ ​p​r​o​c​e​s​s
 						 */
 						label: string
+						/**
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
+						 */
+						link: string
 					}
 				}
 			}
@@ -1030,6 +1035,10 @@ type RootTranslation = {
 			 * Y​o​u​ ​c​a​n​ ​a​d​d​ ​a​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​t​h​i​s​ ​w​i​z​a​r​d​.​ ​O​p​t​ ​f​o​r​ ​o​u​r​ ​n​a​t​i​v​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​"​d​e​f​g​u​a​r​d​"​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​.​ ​I​f​ ​y​o​u​'​r​e​ ​u​n​s​u​r​e​,​ ​w​e​ ​r​e​c​o​m​m​e​n​d​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​f​o​r​ ​s​i​m​p​l​i​c​i​t​y​.
 			 */
 			setupOpt: string
+			/**
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
+			 */
+			client: string
 		}
 		messages: {
 			/**
@@ -1225,6 +1234,32 @@ type RootTranslation = {
 				 * A​p​p​ ​a​n​d​ ​a​l​l​ ​t​o​k​e​n​s​ ​d​e​l​e​t​e​d​.
 				 */
 				deleteApp: string
+			}
+			warningModals: {
+				/**
+				 * W​a​r​n​i​n​g
+				 */
+				title: string
+				content: {
+					/**
+					 * C​h​a​n​g​i​n​g​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​h​a​s​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​s​e​r​v​i​c​e​s​ ​t​h​e​ ​u​s​e​r​ ​h​a​s​ ​l​o​g​g​e​d​ ​i​n​t​o​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​.​ ​A​f​t​e​r​ ​c​h​a​n​g​i​n​g​ ​i​t​,​ ​t​h​e​ ​u​s​e​r​ ​m​a​y​ ​l​o​s​e​ ​a​c​c​e​s​s​ ​t​o​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​(​s​i​n​c​e​ ​t​h​e​y​ ​w​i​l​l​ ​n​o​t​ ​r​e​c​o​g​n​i​z​e​ ​t​h​e​m​)​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					usernameChange: string
+					/**
+					 * I​f​ ​y​o​u​ ​a​r​e​ ​u​s​i​n​g​ ​e​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​o​n​n​e​c​t​ ​(​O​I​D​C​)​ ​p​r​o​v​i​d​e​r​s​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​u​s​e​r​s​,​ ​c​h​a​n​g​i​n​g​ ​a​ ​u​s​e​r​'​s​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s​ ​m​a​y​ ​h​a​v​e​ ​a​ ​s​i​g​n​i​f​i​c​a​n​t​ ​i​m​p​a​c​t​ ​o​n​ ​t​h​e​i​r​ ​a​b​i​l​i​t​y​ ​t​o​ ​l​o​g​ ​i​n​ ​t​o​ ​D​e​f​g​u​a​r​d​.​ ​A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​p​r​o​c​e​e​d​?
+					 */
+					emailChange: string
+				}
+				buttons: {
+					/**
+					 * P​r​o​c​e​e​d
+					 */
+					proceed: string
+					/**
+					 * C​a​n​c​e​l
+					 */
+					cancel: string
+				}
 			}
 			fields: {
 				username: {
@@ -2219,6 +2254,10 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
+			 * Y​o​u​r​ ​c​u​r​r​e​n​t​ ​l​i​c​e​n​s​e​ ​h​a​s​ ​e​x​p​i​r​e​d​.
+			 */
+			currentExpired: string
+			/**
 			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
 			 */
 			subtitle: string
@@ -2279,6 +2318,10 @@ type RootTranslation = {
 					 */
 					ldap_group_obj_class: string
 				}
+				/**
+				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+				 */
+				'delete': string
 			}
 			test: {
 				/**
@@ -2593,6 +2636,70 @@ type RootTranslation = {
 					}
 				}
 			}
+			licenseInfo: {
+				/**
+				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
+				 */
+				title: string
+				/**
+				 * N​o​ ​l​i​c​e​n​s​e
+				 */
+				noLicense: string
+				types: {
+					subscription: {
+						/**
+						 * S​u​b​s​c​r​i​p​t​i​o​n
+						 */
+						label: string
+						/**
+						 * A​ ​l​i​c​e​n​s​e​ ​t​h​a​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w​s​ ​a​t​ ​r​e​g​u​l​a​r​ ​i​n​t​e​r​v​a​l​s
+						 */
+						helper: string
+					}
+					offline: {
+						/**
+						 * O​f​f​l​i​n​e
+						 */
+						label: string
+						/**
+						 * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​v​a​l​i​d​ ​u​n​t​i​l​ ​t​h​e​ ​e​x​p​i​r​y​ ​d​a​t​e​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​n​e​w
+						 */
+						helper: string
+					}
+				}
+				fields: {
+					status: {
+						/**
+						 * S​t​a​t​u​s
+						 */
+						label: string
+						/**
+						 * A​c​t​i​v​e
+						 */
+						active: string
+						/**
+						 * E​x​p​i​r​e​d
+						 */
+						expired: string
+						/**
+						 * A​ ​s​u​b​s​c​r​i​p​t​i​o​n​ ​l​i​c​e​n​s​e​ ​i​s​ ​c​o​n​s​i​d​e​r​e​d​ ​v​a​l​i​d​ ​f​o​r​ ​s​o​m​e​ ​t​i​m​e​ ​a​f​t​e​r​ ​t​h​e​ ​e​x​p​i​r​a​t​i​o​n​ ​d​a​t​e​ ​t​o​ ​a​c​c​o​u​n​t​ ​f​o​r​ ​p​o​s​s​i​b​l​e​ ​a​u​t​o​m​a​t​i​c​ ​p​a​y​m​e​n​t​ ​d​e​l​a​y​s​.
+						 */
+						subscriptionHelper: string
+					}
+					type: {
+						/**
+						 * T​y​p​e
+						 */
+						label: string
+					}
+					validUntil: {
+						/**
+						 * V​a​l​i​d​ ​u​n​t​i​l
+						 */
+						label: string
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -2674,6 +2781,10 @@ type RootTranslation = {
 					submit: string
 				}
 			}
+			/**
+			 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+			 */
+			'delete': string
 			testForm: {
 				/**
 				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
@@ -2822,6 +2933,26 @@ type RootTranslation = {
 					label: string
 					/**
 					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​o​n​l​y​ ​u​s​e​r​s​ ​i​n​ ​t​h​e​ ​A​d​m​i​n​ ​g​r​o​u​p​ ​c​a​n​ ​m​a​n​a​g​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​u​s​e​r​ ​p​r​o​f​i​l​e​ ​(​i​t​'​s​ ​d​i​s​a​b​l​e​d​ ​f​o​r​ ​a​l​l​ ​o​t​h​e​r​ ​u​s​e​r​s​)
+					 */
+					helper: string
+				}
+				disableAllTraffic: {
+					/**
+					 * D​i​s​a​b​l​e​ ​t​h​e​ ​o​p​t​i​o​n​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​V​P​N
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​r​o​u​t​e​ ​a​l​l​ ​t​r​a​f​f​i​c​ ​t​h​r​o​u​g​h​ ​t​h​e​ ​V​P​N​ ​u​s​i​n​g​ ​t​h​e​ ​d​e​f​g​u​a​r​d​ ​c​l​i​e​n​t​.
+					 */
+					helper: string
+				}
+				manualConfig: {
+					/**
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 */
+					label: string
+					/**
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​p​r​e​s​e​n​t​e​d​ ​w​i​t​h​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​m​a​n​u​a​l​ ​c​l​i​e​n​t​ ​s​e​t​u​p
 					 */
 					helper: string
 				}
@@ -3646,18 +3777,18 @@ type RootTranslation = {
 			 */
 			statusError: string
 			/**
-			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​ ​
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
 			 */
 			oneLineInstall: string
 			/**
-			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​ ​
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​p​a​c​k​a​g​e​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​g​a​t​e​w​a​y​/​r​e​l​e​a​s​e​s​/​l​a​t​e​s​t​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​`​/​e​t​c​/​d​e​f​g​u​a​r​d​/​g​a​t​e​w​a​y​.​t​o​m​l​`​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​a​c​c​o​r​d​i​n​g​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
 			 */
 			fromPackage: RequiredParams<'setupGatewayDocs'>
 			/**
-			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​ ​
+			 * T​o​k​e​n​ ​b​e​l​o​w​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​t​o​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​n​o​d​e​.​ ​E​n​s​u​r​e​ ​y​o​u​ ​k​e​e​p​ ​t​h​i​s​ ​t​o​k​e​n​ ​s​e​c​u​r​e​ ​a​n​d​ ​f​o​l​l​o​w​ ​t​h​e​ ​d​e​p​l​o​y​m​e​n​t​ ​i​n​s​t​r​u​c​t​i​o​n​s​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​p​r​o​v​i​d​e​d​ ​i​n​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​ ​t​o​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​s​e​t​ ​u​p​ ​t​h​e​ ​g​a​t​e​w​a​y​ ​s​e​r​v​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​F​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​ ​a​n​d​ ​e​x​a​c​t​ ​s​t​e​p​s​,​ ​p​l​e​a​s​e​ ​r​e​f​e​r​ ​t​o​ ​t​h​e​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​{​s​e​t​u​p​G​a​t​e​w​a​y​D​o​c​s​}​)​.
 			 * @param {string} setupGatewayDocs
@@ -4024,7 +4155,7 @@ type RootTranslation = {
 			}
 		}
 		/**
-		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​t​h​e​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​c​o​n​f​i​r​m​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​a​t​e​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​I​n​ ​t​h​i​s​ ​p​a​n​e​l​ ​y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​ ​m​e​s​s​a​g​e​s​ ​f​o​r​ ​i​t​.
+		 * E​n​r​o​l​l​m​e​n​t​ ​i​s​ ​a​ ​p​r​o​c​e​s​s​ ​b​y​ ​w​h​i​c​h​ ​a​ ​n​e​w​ ​e​m​p​l​o​y​e​e​ ​w​i​l​l​ ​b​e​ ​a​b​l​e​ ​t​o​ ​a​c​t​i​v​a​t​e​ ​t​h​e​i​r​ ​n​e​w​ ​a​c​c​o​u​n​t​,​ ​c​r​e​a​t​e​ ​a​ ​p​a​s​s​w​o​r​d​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​a​ ​V​P​N​ ​d​e​v​i​c​e​.​ ​Y​o​u​ ​c​a​n​ ​c​u​s​t​o​m​i​z​e​ ​i​t​ ​h​e​r​e​.
 		 */
 		messageBox: string
 		settings: {
@@ -5010,9 +5141,13 @@ export type TranslationFunctions = {
 					}
 					enableEnrollment: {
 						/**
-						 * Use enrollment process
+						 * Use user self-enrollment process
 						 */
 						label: () => LocalizedString
+						/**
+						 * <a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>
+						 */
+						link: () => LocalizedString
 					}
 				}
 			}
@@ -5160,6 +5295,10 @@ export type TranslationFunctions = {
 			 * You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.
 			 */
 			setupOpt: () => LocalizedString
+			/**
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
+			 */
+			client: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -5354,6 +5493,32 @@ export type TranslationFunctions = {
 				 * App and all tokens deleted.
 				 */
 				deleteApp: () => LocalizedString
+			}
+			warningModals: {
+				/**
+				 * Warning
+				 */
+				title: () => LocalizedString
+				content: {
+					/**
+					 * Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?
+					 */
+					usernameChange: () => LocalizedString
+					/**
+					 * If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?
+					 */
+					emailChange: () => LocalizedString
+				}
+				buttons: {
+					/**
+					 * Proceed
+					 */
+					proceed: () => LocalizedString
+					/**
+					 * Cancel
+					 */
+					cancel: () => LocalizedString
+				}
 			}
 			fields: {
 				username: {
@@ -6342,6 +6507,10 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
+			 * Your current license has expired.
+			 */
+			currentExpired: () => LocalizedString
+			/**
 			 * To learn more, visit our 
 			 */
 			subtitle: () => LocalizedString
@@ -6402,6 +6571,10 @@ export type TranslationFunctions = {
 					 */
 					ldap_group_obj_class: () => LocalizedString
 				}
+				/**
+				 * Delete configuration
+				 */
+				'delete': () => LocalizedString
 			}
 			test: {
 				/**
@@ -6713,6 +6886,70 @@ export type TranslationFunctions = {
 					}
 				}
 			}
+			licenseInfo: {
+				/**
+				 * License information
+				 */
+				title: () => LocalizedString
+				/**
+				 * No license
+				 */
+				noLicense: () => LocalizedString
+				types: {
+					subscription: {
+						/**
+						 * Subscription
+						 */
+						label: () => LocalizedString
+						/**
+						 * A license that automatically renews at regular intervals
+						 */
+						helper: () => LocalizedString
+					}
+					offline: {
+						/**
+						 * Offline
+						 */
+						label: () => LocalizedString
+						/**
+						 * The license is valid until the expiry date and does not automatically renew
+						 */
+						helper: () => LocalizedString
+					}
+				}
+				fields: {
+					status: {
+						/**
+						 * Status
+						 */
+						label: () => LocalizedString
+						/**
+						 * Active
+						 */
+						active: () => LocalizedString
+						/**
+						 * Expired
+						 */
+						expired: () => LocalizedString
+						/**
+						 * A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.
+						 */
+						subscriptionHelper: () => LocalizedString
+					}
+					type: {
+						/**
+						 * Type
+						 */
+						label: () => LocalizedString
+					}
+					validUntil: {
+						/**
+						 * Valid until
+						 */
+						label: () => LocalizedString
+					}
+				}
+			}
 		}
 		smtp: {
 			form: {
@@ -6794,6 +7031,10 @@ export type TranslationFunctions = {
 					submit: () => LocalizedString
 				}
 			}
+			/**
+			 * Delete configuration
+			 */
+			'delete': () => LocalizedString
 			testForm: {
 				/**
 				 * Send test email
@@ -6942,6 +7183,26 @@ export type TranslationFunctions = {
 					label: () => LocalizedString
 					/**
 					 * When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)
+					 */
+					helper: () => LocalizedString
+				}
+				disableAllTraffic: {
+					/**
+					 * Disable the option to route all traffic through VPN
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.
+					 */
+					helper: () => LocalizedString
+				}
+				manualConfig: {
+					/**
+					 * Disable users ability to download manual WireGuard configuration
+					 */
+					label: () => LocalizedString
+					/**
+					 * When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup
 					 */
 					helper: () => LocalizedString
 				}
@@ -7758,17 +8019,17 @@ export type TranslationFunctions = {
 			 */
 			statusError: () => LocalizedString
 			/**
-			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
 		          you don't need to do anything.
 			 */
 			oneLineInstall: () => LocalizedString
 			/**
-			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml` 
+			 * Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure `/etc/defguard/gateway.toml`
 		          according to the [documentation]({setupGatewayDocs}).
 			 */
 			fromPackage: (arg: { setupGatewayDocs: string }) => LocalizedString
 			/**
-			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+			 * Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
 		          provided in the [documentation]({setupGatewayDocs}) to successfully set up the gateway server.
 		          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs}).
 			 */
@@ -8133,7 +8394,7 @@ export type TranslationFunctions = {
 			}
 		}
 		/**
-		 * Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.
+		 * Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.
 		 */
 		messageBox: () => LocalizedString
 		settings: {

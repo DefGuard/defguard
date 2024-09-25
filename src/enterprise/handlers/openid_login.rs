@@ -1,32 +1,38 @@
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum::Json;
+use axum::{extract::State, http::StatusCode, Json};
 use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
-use axum_extra::extract::cookie::{Cookie, SameSite};
-use axum_extra::extract::{CookieJar, PrivateCookieJar};
-use axum_extra::headers::UserAgent;
-use axum_extra::TypedHeader;
-use openidconnect::core::{
-    CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
-    CoreJwsSigningAlgorithm, CoreResponseType,
+use axum_extra::{
+    extract::{
+        cookie::{Cookie, SameSite},
+        CookieJar, PrivateCookieJar,
+    },
+    headers::UserAgent,
+    TypedHeader,
 };
 use openidconnect::{
-    core::CoreProviderMetadata, reqwest::async_http_client, ClientId, ClientSecret, IssuerUrl,
-    ProviderMetadata, RedirectUrl,
+    core::{
+        CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
+    },
+    reqwest::async_http_client,
+    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, IdToken,
+    IssuerUrl, Nonce, ProviderMetadata, RedirectUrl, Scope,
 };
-use openidconnect::{AuthenticationFlow, CsrfToken, EmptyAdditionalClaims, IdToken, Nonce, Scope};
 use serde_json::json;
 use time::Duration;
 
 use super::LicenseInfo;
-use crate::appstate::AppState;
-use crate::db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo};
-use crate::enterprise::db::models::openid_provider::OpenIdProvider;
-use crate::error::WebError;
-use crate::handlers::user::{check_username, prune_username};
-use crate::handlers::{ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME};
-use crate::headers::{check_new_device_login, get_user_agent_device, parse_user_agent};
-use crate::server_config;
+use crate::{
+    appstate::AppState,
+    db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo},
+    enterprise::db::models::openid_provider::OpenIdProvider,
+    error::WebError,
+    handlers::{
+        user::{check_username, prune_username},
+        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+    },
+    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
+    server_config,
+};
 
 type ProvMeta = ProviderMetadata<
     openidconnect::EmptyAdditionalProviderMetadata,
@@ -52,32 +58,22 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
-    let provider_metadata = match CoreProviderMetadata::discover_async(
-        issuer_url,
-        async_http_client,
-    )
-    .await
-    {
-        Ok(metadata) => metadata,
-        Err(_) => {
-            return Err(WebError::Authorization(format!(
-                "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
-
-            )));
-        }
+    let Ok(provider_metadata) =
+        CoreProviderMetadata::discover_async(issuer_url, async_http_client).await
+    else {
+        return Err(WebError::Authorization(format!(
+            "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
+        )));
     };
 
     Ok(provider_metadata)
 }
 
 async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
-    let provider = match OpenIdProvider::get_current(pool).await? {
-        Some(provider) => provider,
-        None => {
-            return Err(WebError::ObjectNotFound(
-                "OpenID provider not set".to_string(),
-            ));
-        }
+    let Some(provider) = OpenIdProvider::get_current(pool).await? else {
+        return Err(WebError::ObjectNotFound(
+            "OpenID provider not set".to_string(),
+        ));
     };
 
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
@@ -88,7 +84,7 @@ async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
     let redirect_url = match RedirectUrl::new(url) {
         Ok(url) => url,
         Err(err) => {
-            error!("Failed to create redirect URL: {:?}", err);
+            error!("Failed to create redirect URL: {err:?}");
             return Err(WebError::Authorization(
                 "Failed to create redirect URL".to_string(),
             ));
@@ -249,69 +245,90 @@ pub async fn auth_callback(
         username
     };
 
+    // Get the sub claim from the token
+    let sub = token_claims.subject().to_string();
+
     // Handle logging in or creating the user
     let settings = Settings::get_settings(&appstate.pool).await?;
-    let user = match User::find_by_email(&appstate.pool, email).await {
-        Ok(Some(mut user)) => {
+    let user = match User::find_by_sub(&appstate.pool, &sub).await {
+        Ok(Some(user)) => {
+            debug!(
+                "User {} is trying to log in using an OpenID provider.",
+                user.username
+            );
             // Make sure the user is not disabled
             if !user.is_active {
+                debug!("User {} tried to log in, but is disabled", user.username);
                 return Err(WebError::Authorization("User is disabled".to_string()));
-            }
-
-            if !user.openid_login {
-                user.openid_login = true;
-                user.save(&appstate.pool).await?;
             }
             user
         }
         Ok(None) => {
-            // Check if the user should be created if they don't exist (default: true)
-            if settings.openid_create_account {
-                // Check if user with the same username already exists
-                if User::find_by_username(&appstate.pool, &username)
-                    .await?
-                    .is_some()
-                {
-                    return Err(WebError::Authorization(format!(
-                        "User with username {} already exists",
-                        username
-                    )));
-                }
-
-                // Extract all necessary information from the token needed to create an account
-                let given_name_error =
-                    "Given name not found in the information returned from provider.";
-                let given_name = token_claims
-                    .given_name()
-                    .ok_or(WebError::BadRequest(given_name_error.to_string()))?
-                    // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
-                    .get(None)
-                    .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
-                let family_name_error =
-                    "Family name not found in the information returned from provider.";
-                let family_name = token_claims
-                    .family_name()
-                    .ok_or(WebError::BadRequest(family_name_error.to_string()))?
-                    .get(None)
-                    .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
-                let phone = token_claims.phone_number();
-
-                let mut user = User::new(
-                    username.to_string(),
-                    None,
-                    family_name.to_string(),
-                    given_name.to_string(),
-                    email.to_string(),
-                    phone.map(|v| v.to_string()),
-                );
-                user.openid_login = true;
+            if let Some(mut user) = User::find_by_email(&appstate.pool, email).await? {
+                // User with the same email already exists, merge the accounts
+                info!(
+                        "User with email address {} is logging in through OpenID Connect for the first time and we've found an existing account with the same email address. Merging accounts.",
+                        user.email
+                    );
+                user.openid_sub = Some(sub);
                 user.save(&appstate.pool).await?;
                 user
             } else {
-                return Err(WebError::Authorization(
-                    "User not found. The user needs to be created first in order to login using OIDC."
-                        .to_string(),
-                ));
+                // Check if the user should be created if they don't exist (default: true)
+                if settings.openid_create_account {
+                    info!(
+                        "User {} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
+                        username, email.as_str()
+                    );
+                    // Check if user with the same username already exists
+                    // Usernames are unique
+                    if User::find_by_username(&appstate.pool, &username)
+                        .await?
+                        .is_some()
+                    {
+                        return Err(WebError::Authorization(format!(
+                            "User with username {username} already exists"
+                        )));
+                    }
+
+                    // Extract all necessary information from the token needed to create an account
+                    let given_name_error =
+                        "Given name not found in the information returned from provider.";
+                    let given_name = token_claims
+                        .given_name()
+                        .ok_or(WebError::BadRequest(given_name_error.to_string()))?
+                        // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
+                        .get(None)
+                        .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
+                    let family_name_error =
+                        "Family name not found in the information returned from provider.";
+                    let family_name = token_claims
+                        .family_name()
+                        .ok_or(WebError::BadRequest(family_name_error.to_string()))?
+                        .get(None)
+                        .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
+                    let phone = token_claims.phone_number();
+
+                    let mut user = User::new(
+                        username.to_string(),
+                        None,
+                        family_name.to_string(),
+                        given_name.to_string(),
+                        email.to_string(),
+                        phone.map(|v| v.to_string()),
+                    );
+                    user.openid_sub = Some(sub);
+                    user.save(&appstate.pool).await?;
+                    user
+                } else {
+                    warn!(
+                        "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. They should perform an enrollment first.",
+                        email.as_str()
+                    );
+                    return Err(WebError::Authorization(
+                            "User not found. The user needs to be created first in order to login using OIDC.".to_string(),
+                        ));
+                }
             }
         }
         Err(e) => {
@@ -352,8 +369,9 @@ pub async fn auth_callback(
     let cookies = cookies.add(auth_cookie);
     let login_event_type = "AUTHENTICATION".to_string();
 
-    info!("Authenticated user {username} with external OpenID provider. Veryfing MFA status...");
+    info!("Authenticated user {username} with external OpenID provider.");
     if user.mfa_enabled {
+        debug!("User {username} has MFA enabled, sending MFA info for further authentication.");
         if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
             check_new_device_login(
                 &appstate.pool,
@@ -378,6 +396,7 @@ pub async fn auth_callback(
             Err(WebError::DbError("MFA info read error".into()))
         }
     } else {
+        debug!("User {username} has MFA disabled, returning user info for login.");
         let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
 
         check_new_device_login(
@@ -392,7 +411,7 @@ pub async fn auth_callback(
         .await?;
 
         if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-            debug!("Found openid session cookie.");
+            debug!("Found openid session cookie, returning the redirect URL stored in the cookie.");
             let redirect_url = openid_cookie.value().to_string();
             Ok((
                 cookies,
@@ -406,7 +425,7 @@ pub async fn auth_callback(
                 },
             ))
         } else {
-            debug!("No OpenID session found");
+            debug!("No OpenID session found, proceeding with login to defguard.");
             Ok((
                 cookies,
                 private_cookies,

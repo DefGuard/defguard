@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_login\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
+  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" WHERE email = $1",
   "describe": {
     "columns": [
       {
@@ -45,36 +45,26 @@
       },
       {
         "ordinal": 8,
-        "name": "is_active",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 9,
-        "name": "openid_login",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 10,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 10,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 12,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -92,13 +82,25 @@
         }
       },
       {
-        "ordinal": 15,
-        "name": "recovery_codes: _",
+        "ordinal": 13,
+        "name": "recovery_codes",
         "type_info": "TextArray"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -111,13 +113,13 @@
       false,
       false,
       false,
-      false,
-      false,
       true,
       true,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "42fbc74f13a7febfbf6bda66cd024e61bf3fdef17222de87443fa9428ea2e30b"
+  "hash": "1ba009aaa52a3f96a98e94c16992cb4d9a5da539a159d550b7f6207e67d5e802"
 }

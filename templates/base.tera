@@ -236,7 +236,7 @@
                             width="100%">
                             <tbody>
                               <tr>
-                                <td align="left" style="
+                                <td align="center" style="
                                   font-size: 0px;
                                   padding: 10px 25px;
                                   word-break: break-word;
@@ -246,22 +246,22 @@
                                     font-size: 12px;
                                     font-weight: 400;
                                     line-height: 120%;
-                                    text-align: left;
+                                    text-align: center;
                                     color: #222222;
                                   ">
                                     {% if date_now %}
                                       <p style="margin: auto;">
-                                        <span style="font-weight: 700;">Date:</span> {{ date_now | safe }}
+                                        <span>Date:</span> {{ date_now | safe }}
                                       </p>
                                     {% endif %}
                                     {% if ip_address %}
                                       <p style="margin: auto;">
-                                        <span style="font-weight: 700;">IP Address:</span> {{ ip_address | safe }}
+                                        <span>IP Address:</span> {{ ip_address | safe }}
                                       </p>
                                     {% endif %}
                                     {% if device_type %}
                                       <p style="margin: auto;">
-                                        <span style="font-weight: 700;">Device type:</span> {{ device_type | safe }}
+                                        <span>Device type:</span> {{ device_type | safe }}
                                       </p>
                                     {% endif %}
                                   </div>
@@ -483,7 +483,7 @@
           <tr>
             <td style="direction:ltr;font-size:0px;padding:0;text-align:center;">
               <!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-              <div class="mj-column-per-100 mj-outlook-group-fix"
+              <div class="mj-column-per-100 mj-outlook-group-fix; display: flex; justify-content: center; align-items: center; gap: 10px;"
                 style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                 <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
                   <tbody>
@@ -494,10 +494,11 @@
                             <tr>
                               <td align="center" style="font-size:0px;padding:0;word-break:break-word;">
                                 <div
-                                  style="font-family:Poppins, Arial;font-size:10px;font-weight:300;line-height:120%;text-align:center;color:#899CA8;">
-                                  Copyright © {{ current_year }} <a href="https://teonite.com" target="_blank"
-                                    style="text-decoration: none; color: #899CA8;">teonite</a></br> Sent by Defguard
-                                  v.{{ application_version }}</div>
+                                  style="font-family:Poppins, Arial;font-size:12px;font-weight:400;line-height:normal;color:#899CA8; text-align: center;">
+                                    <div>Copyright © {{ current_year }} <a href="https://teonite.com" target="_blank"
+                                    style="text-decoration: none; color: #899CA8;">teonite</a></div>
+                                    <div>Sent by Defguard v.{{ application_version }}</div>
+                                </div>
                               </td>
                             </tr>
                           </tbody>

@@ -240,9 +240,8 @@ impl WireguardNetwork {
 
     /// Try to set `address` from `&str`.
     pub fn try_set_address(&mut self, address: &str) -> Result<IpNetwork, IpNetworkError> {
-        IpNetwork::from_str(address).map(|network| {
+        IpNetwork::from_str(address).inspect(|&network| {
             self.address = network;
-            network
         })
     }
 
@@ -388,7 +387,7 @@ impl WireguardNetwork {
                 .await?;
             Ok(wireguard_network_device)
         } else {
-            error!("Device {device} not allowed in network {self}");
+            info!("Device {device} not allowed in network {self}");
             Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
         }
     }

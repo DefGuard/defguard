@@ -28,4 +28,12 @@
       }
     }
   }
+
+  #spinner-box {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 500px;
+  }
 }

@@ -370,7 +370,7 @@ const pl: Translation = {
           },
           lastName: {
             placeholder: 'Nazwisko',
-            label: 'Ostatnie imię',
+            label: 'Nazwisko',
           },
           phone: {
             placeholder: 'Telefon',
@@ -378,6 +378,7 @@ const pl: Translation = {
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">więcej informacji tutaj</a>',
           },
         },
       },
@@ -447,7 +448,9 @@ const pl: Translation = {
     },
     helpers: {
       setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
+      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
     },
+
     steps: {
       setupDevice: {
         title: 'Dodaj urządzenie',
@@ -526,6 +529,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       header: 'Szczegóły profilu',
       messages: {
         deleteApp: 'Aplikacja i wszystkie tokeny usunięte.',
+      },
+      warningModals: {
+        title: 'Ostrzeżenie',
+        content: {
+          usernameChange: `Zmiana nazwy użytkownika ma znaczący wpływ na usługi, do których użytkownik zalogował się za pomocą Defguard. Po zmianie nazwy użytkownika użytkownik może stracić do nich dostęp (ponieważ nie będą go rozpoznawać). Czy na pewno chcesz kontynuować?`,
+          emailChange: `Jeśli korzystasz z zewnętrznych dostawców OpenID Connect (OIDC) do uwierzytelniania użytkowników, zmiana adresu e-mail użytkownika może mieć wpływ na jego możliwość zalogowania się do Defguarda. Czy na pewno chcesz kontynuować?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
       },
       fields: {
         username: {
@@ -805,7 +819,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     copy: 'Kopiuj',
     saveChanges: 'Zapisz zmiany',
     submit: 'Zapisz',
-    login: 'Zaloguj sie',
+    login: 'Zaloguj się',
     cancel: 'Anuluj',
     close: 'Zamknij',
     placeholders: {
@@ -887,6 +901,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     enterpriseOnly: {
       title: 'Ta funkcja jest dostępna tylko w wersji Defguard Enterprise',
+      currentExpired: 'Twoja obecna licencja wygasła.',
       subtitle: 'Aby uzyskać więcej informacji, odwiedź naszą ',
       website: 'stronę internetową',
     },
@@ -906,6 +921,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Usuń konfigurację',
       },
       test: {
         title: 'Test połączenia LDAP',
@@ -1058,6 +1074,35 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
         },
       },
+      licenseInfo: {
+        title: 'Informacje o licencji',
+        noLicense: 'Brak licencji',
+        types: {
+          subscription: {
+            label: 'Subskrypcja',
+            helper: 'Subskrypcja automatycznie odnawiana cyklicznie',
+          },
+          offline: {
+            label: 'Offline',
+            helper: 'Licencja ważna do daty wygaśnięcia, odnawiana ręcznie',
+          },
+        },
+        fields: {
+          status: {
+            label: 'Status',
+            active: 'Aktywna',
+            expired: 'Wygasła',
+            subscriptionHelper:
+              'Licencja w formie subskrypcji jest ważna przez pewien czas po dacie wygaśnięcia, by uwzględnić możliwe opóźnienia w automatycznej płatności.',
+          },
+          type: {
+            label: 'Typ',
+          },
+          validUntil: {
+            label: 'Ważna do',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -1096,6 +1141,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           submit: 'Zapisz zmiany',
         },
       },
+      delete: 'Usuń konfigurację',
       testForm: {
         title: 'Wyślij testowy e-mail',
         fields: {
@@ -1176,6 +1222,16 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
           helper:
             'Kiedy ta opcja jest włączona, tylko użytkownicy w grupie "Admin" mogą zarządzać urządzeniami w profilu użytkownika',
+        },
+        disableAllTraffic: {
+          label: 'Zablokuj możliwość przekierowania całego ruchu przez VPN',
+          helper:
+            'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
+        },
+        manualConfig: {
+          label: 'Wyłącz wyświetlanie konfiguracji WireGuard',
+          helper:
+            'Kiedy ta opcja jest włączona, konfiguracja WireGuard nie będzie wyświetlana użytkownikom podczas konfiguracji urządzenia.',
         },
       },
     },
@@ -1519,14 +1575,14 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
       connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
-      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
         nie ma potrzeby wykonywania dalszych kroków.`,
-      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\` 
+      fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,
-      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu, 
+      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
         a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
         Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
-      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze. 
+      dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze.
         Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
     },
   },

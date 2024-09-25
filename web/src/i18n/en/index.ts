@@ -375,7 +375,8 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
           enableEnrollment: {
-            label: 'Use enrollment process',
+            label: 'Use user self-enrollment process',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>',
           },
         },
       },
@@ -442,6 +443,7 @@ const en: BaseTranslation = {
     title: 'Add device',
     helpers: {
       setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
+      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
     },
     messages: {
       deviceAdded: 'Device added',
@@ -540,6 +542,17 @@ const en: BaseTranslation = {
       header: 'Profile Details',
       messages: {
         deleteApp: 'App and all tokens deleted.',
+      },
+      warningModals: {
+        title: 'Warning',
+        content: {
+          usernameChange: `Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?`,
+          emailChange: `If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
       },
       fields: {
         username: {
@@ -900,6 +913,7 @@ const en: BaseTranslation = {
     },
     enterpriseOnly: {
       title: 'This feature is available only in Defguard Enterprise.',
+      currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
     },
@@ -919,6 +933,7 @@ const en: BaseTranslation = {
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Delete configuration',
       },
       test: {
         title: 'Test LDAP Connection',
@@ -1070,6 +1085,36 @@ const en: BaseTranslation = {
           },
         },
       },
+      licenseInfo: {
+        title: 'License information',
+        noLicense: 'No license',
+        types: {
+          subscription: {
+            label: 'Subscription',
+            helper: 'A license that automatically renews at regular intervals',
+          },
+          offline: {
+            label: 'Offline',
+            helper:
+              'The license is valid until the expiry date and does not automatically renew',
+          },
+        },
+        fields: {
+          status: {
+            label: 'Status',
+            active: 'Active',
+            expired: 'Expired',
+            subscriptionHelper:
+              'A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.',
+          },
+          type: {
+            label: 'Type',
+          },
+          validUntil: {
+            label: 'Valid until',
+          },
+        },
+      },
     },
     smtp: {
       form: {
@@ -1109,6 +1154,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
+      delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
         fields: {
@@ -1189,6 +1235,16 @@ const en: BaseTranslation = {
           label: 'Disable users ability to manage their devices',
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
+        },
+        disableAllTraffic: {
+          label: 'Disable the option to route all traffic through VPN',
+          helper:
+            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
+        },
+        manualConfig: {
+          label: 'Disable users ability to download manual WireGuard configuration',
+          helper:
+            "When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup",
         },
       },
     },
@@ -1531,11 +1587,11 @@ const en: BaseTranslation = {
       noConnection: `No connection established, please run provided command.`,
       connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
-      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install 
+      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
           you don't need to do anything.`,
-      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\` 
+      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\`
           according to the [documentation]({setupGatewayDocs:string}).`,
-      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions 
+      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
           provided in the [documentation]({setupGatewayDocs:string}) to successfully set up the gateway server.
           For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
       dockerBasedGatewaySetup: `Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
@@ -1701,7 +1757,7 @@ const en: BaseTranslation = {
       },
     },
     messageBox:
-      'Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.',
+      'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.',
     settings: {
       welcomeMessage: {
         title: 'Welcome message',

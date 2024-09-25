@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pick, values } from 'lodash-es';
@@ -9,6 +11,9 @@ import { z } from 'zod';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
@@ -66,6 +71,7 @@ export const ProfileDetailsForm = () => {
   } = useApi();
   const { username: paramsUsername } = useParams();
   const navigate = useNavigate();
+  const [usernameChangeWarning, setUsernameChangeWarning] = useState(false);
 
   const zodSchema = useMemo(
     () =>
@@ -204,117 +210,151 @@ export const ProfileDetailsForm = () => {
   useEffect(() => {
     if (submitButton && submitButton.current) {
       const sub = submitSubject.subscribe(() => {
+        if (getValues().username !== userProfile?.user.username) {
+          setUsernameChangeWarning(true);
+          return;
+        }
         submitButton.current?.click();
       });
       return () => sub.unsubscribe();
     }
-  }, [submitSubject]);
+  }, [submitSubject, getValues, userProfile?.user.username]);
 
   useEffect(() => {
     setTimeout(() => setFetchGroups(true), 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
-      <div className="row">
-        <div className="item">
-          <FormInput
-            label={LL.userPage.userDetails.fields.username.label()}
-            controller={{ control, name: 'username' }}
-            disabled={userEditLoading || !isAdmin}
-            required
-          />
+    <>
+      <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
+        <ModalWithTitle
+          className="change-warning-modal"
+          backdrop
+          isOpen={usernameChangeWarning}
+          onClose={() => {
+            setUsernameChangeWarning(false);
+          }}
+          title="Warning"
+        >
+          <p>{LL.userPage.userDetails.warningModals.content.usernameChange()}</p>
+          <div className="buttons">
+            <Button
+              text={LL.userPage.userDetails.warningModals.buttons.proceed()}
+              styleVariant={ButtonStyleVariant.DELETE}
+              onClick={() => {
+                setUsernameChangeWarning(false);
+                submitButton.current?.click();
+              }}
+            />
+            <Button
+              onClick={() => {
+                setUsernameChangeWarning(false);
+              }}
+              text={LL.userPage.userDetails.warningModals.buttons.cancel()}
+            />
+          </div>
+        </ModalWithTitle>
+        <div className="row">
+          <div className="item">
+            <FormInput
+              label={LL.userPage.userDetails.fields.username.label()}
+              controller={{ control, name: 'username' }}
+              disabled={userEditLoading || !isAdmin}
+              required
+            />
+          </div>
         </div>
-      </div>
-      <div className="row">
-        <div className="item">
-          <FormInput
-            label={LL.userPage.userDetails.fields.firstName.label()}
-            controller={{ control, name: 'first_name' }}
-            disabled={userEditLoading || !isAdmin}
-            required
-          />
+        <div className="row">
+          <div className="item">
+            <FormInput
+              label={LL.userPage.userDetails.fields.firstName.label()}
+              controller={{ control, name: 'first_name' }}
+              disabled={userEditLoading || !isAdmin}
+              required
+            />
+          </div>
         </div>
-      </div>
-      <div className="row">
-        <div className="item">
-          <FormInput
-            label={LL.userPage.userDetails.fields.lastName.label()}
-            controller={{ control, name: 'last_name' }}
-            disabled={userEditLoading || !isAdmin}
-            required
-          />
+        <div className="row">
+          <div className="item">
+            <FormInput
+              label={LL.userPage.userDetails.fields.lastName.label()}
+              controller={{ control, name: 'last_name' }}
+              disabled={userEditLoading || !isAdmin}
+              required
+            />
+          </div>
         </div>
-      </div>
-      <div className="row">
-        <div className="item">
-          <FormInput
-            label={LL.userPage.userDetails.fields.phone.label()}
-            controller={{ control, name: 'phone' }}
-            disabled={userEditLoading}
-          />
+        <div className="row">
+          <div className="item">
+            <FormInput
+              label={LL.userPage.userDetails.fields.phone.label()}
+              controller={{ control, name: 'phone' }}
+              disabled={userEditLoading}
+            />
+          </div>
         </div>
-      </div>
-      <div className="row">
-        <div className="item">
-          <FormInput
-            label={LL.userPage.userDetails.fields.email.label()}
-            controller={{ control, name: 'email' }}
-            disabled={userEditLoading || !isAdmin}
-            required
-          />
+        <div className="row">
+          <div className="item">
+            <FormInput
+              label={LL.userPage.userDetails.fields.email.label()}
+              controller={{ control, name: 'email' }}
+              disabled={userEditLoading || !isAdmin}
+              required
+            />
+          </div>
         </div>
-      </div>
-      {isAdmin && !isMe && (
+        {isAdmin && !isMe && (
+          <div className="row">
+            <div className="item">
+              <FormSelect
+                data-testid="status-select"
+                options={statusOptions}
+                controller={{ control, name: 'is_active' }}
+                label={LL.userPage.userDetails.fields.status.label()}
+                disabled={userEditLoading || !isAdmin}
+                renderSelected={(val) => ({
+                  key: val ? 'active' : 'inactive',
+                  displayValue: val
+                    ? LL.userPage.userDetails.fields.status.active()
+                    : LL.userPage.userDetails.fields.status.disabled(),
+                })}
+              />
+            </div>
+          </div>
+        )}
         <div className="row">
           <div className="item">
             <FormSelect
-              data-testid="status-select"
-              options={statusOptions}
-              controller={{ control, name: 'is_active' }}
-              label={LL.userPage.userDetails.fields.status.label()}
-              disabled={userEditLoading || !isAdmin}
+              data-testid="groups-select"
+              options={groupsOptions}
+              controller={{ control, name: 'groups' }}
+              label={LL.userPage.userDetails.fields.groups.label()}
+              loading={groupsLoading || userEditLoading}
+              disabled={!isAdmin}
               renderSelected={(val) => ({
-                key: val ? 'active' : 'inactive',
-                displayValue: val
-                  ? LL.userPage.userDetails.fields.status.active()
-                  : LL.userPage.userDetails.fields.status.disabled(),
+                key: val,
+                displayValue: titleCase(val),
               })}
             />
           </div>
         </div>
-      )}
-      <div className="row">
-        <div className="item">
-          <FormSelect
-            data-testid="groups-select"
-            options={groupsOptions}
-            controller={{ control, name: 'groups' }}
-            label={LL.userPage.userDetails.fields.groups.label()}
-            loading={groupsLoading || userEditLoading}
-            disabled={!isAdmin}
-            renderSelected={(val) => ({
-              key: val,
-              displayValue: titleCase(val),
-            })}
-          />
-        </div>
-      </div>
-      {appSettings?.openid_enabled && (
-        <div className="row tags">
-          <Controller
-            control={control}
-            name="authorized_apps"
-            render={({ field }) => (
-              <ProfileDetailsFormAppsField
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-        </div>
-      )}
-      <button type="submit" className="hidden" ref={submitButton} />
-    </form>
+        {appSettings?.openid_enabled && (
+          <div className="row tags">
+            <Controller
+              control={control}
+              name="authorized_apps"
+              render={({ field }) => (
+                <ProfileDetailsFormAppsField
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+        )}
+        <button type="submit" className="hidden" ref={submitButton} />
+      </form>
+    </>
   );
 };

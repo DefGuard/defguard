@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_login\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
   "describe": {
     "columns": [
       {
@@ -45,36 +45,26 @@
       },
       {
         "ordinal": 8,
-        "name": "is_active",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 9,
-        "name": "openid_login",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 10,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 12,
+        "ordinal": 9,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 10,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 12,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -92,9 +82,19 @@
         }
       },
       {
-        "ordinal": 15,
-        "name": "recovery_codes: _",
+        "ordinal": 13,
+        "name": "recovery_codes",
         "type_info": "TextArray"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -112,14 +112,14 @@
       true,
       false,
       false,
-      false,
-      false,
-      false,
-      true,
       true,
       false,
-      false
+      true,
+      false,
+      false,
+      false,
+      true
     ]
   },
-  "hash": "fd4750032e0fcd91f0f8fad9aa946211c645f786602e89561f03a5a60661d191"
+  "hash": "afd7f44318c4c9d79211e2978ee5a2953ae5a36ad1fe509b84a9d71ff8c24f79"
 }

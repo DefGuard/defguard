@@ -16,6 +16,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../shared/defguard-ui/components/Layout/Button/types';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAddDevicePageStore } from './hooks/useAddDevicePageStore';
 import { AddDeviceConfigStep } from './steps/AddDeviceConfigStep/AddDeviceConfigStep';
 import { AddDeviceSetupMethodStep } from './steps/AddDeviceSetupMethodStep/AddDeviceSetupMethodStep';
@@ -29,6 +30,7 @@ export const AddDevicePage = () => {
   const navigate = useNavigate();
 
   const userData = useAddDevicePageStore((state) => state.userData);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const [currentStep, setupMethod] = useAddDevicePageStore(
     (state) => [state.currentStep, state.method],
@@ -68,6 +70,7 @@ export const AddDevicePage = () => {
               onClick={() => {
                 navigate('/', { replace: true });
               }}
+              disabled={currentStep === 0 && enterpriseSettings?.only_client_activation}
             />
             <Button
               data-testid="next-step"
@@ -85,6 +88,7 @@ export const AddDevicePage = () => {
                 />
               }
               onClick={() => nextSubject.next()}
+              disabled={currentStep === 0 && enterpriseSettings?.only_client_activation}
             />
           </div>
         </header>

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login FROM \"user\" WHERE email = $1",
+  "query": "SELECT u.id \"id?\", u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub FROM \"user\" as u JOIN \"device\" as d ON u.id = d.user_id WHERE d.id = $1",
   "describe": {
     "columns": [
       {
@@ -93,13 +93,13 @@
       },
       {
         "ordinal": 15,
-        "name": "openid_login",
-        "type_info": "Bool"
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -118,8 +118,8 @@
       false,
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "230fe22c6c9907c9ebab1dab9ef5ca984604c70823b13390169a5da57086df1a"
+  "hash": "965e1d9ae54914a8a34a651f489d218f060fc9608c6d233b6f6a4137cf199964"
 }

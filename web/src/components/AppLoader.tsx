@@ -70,7 +70,9 @@ export const AppLoader = () => {
 
   useQuery([QueryKeys.FETCH_ENTERPRISE_STATUS], getEnterpriseStatus, {
     onSuccess: (status) => {
-      setAppStore({ enterprise_enabled: status.enabled });
+      setAppStore({
+        enterprise_status: status,
+      });
     },
     onError: (err) => {
       // FIXME: Add a proper error message

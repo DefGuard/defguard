@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_login FROM \"user\"\n            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id\n            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id\n            WHERE \"group\".name = $1",
+  "query": "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\"\n            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id\n            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id\n            WHERE \"group\".name = $1",
   "describe": {
     "columns": [
       {
@@ -93,8 +93,8 @@
       },
       {
         "ordinal": 15,
-        "name": "openid_login",
-        "type_info": "Bool"
+        "name": "openid_sub",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -118,8 +118,8 @@
       false,
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "246af063a89129453ca514f8f32f8a644fcfc0bbb3ebf17f1f2410e24c3a2316"
+  "hash": "eaf6524ec567e823b3d3dbf90ac1f18ea4a3d84e3d79bde1991c529c803fd2bb"
 }

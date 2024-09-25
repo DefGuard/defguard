@@ -62,6 +62,32 @@ export const EnterpriseForm = () => {
             {parse(LL.settingsPage.enterprise.fields.deviceManagement.helper())}
           </Helper>
         </div>
+        <div className="checkbox-row">
+          <LabeledCheckbox
+            disabled={isLoading}
+            label={LL.settingsPage.enterprise.fields.manualConfig.label()}
+            value={settings.only_client_activation}
+            onChange={() =>
+              mutate({ only_client_activation: !settings.only_client_activation })
+            }
+          />
+          <Helper>
+            {parse(LL.settingsPage.enterprise.fields.manualConfig.helper())}
+          </Helper>
+        </div>
+        <div className="checkbox-row">
+          <LabeledCheckbox
+            disabled={isLoading}
+            label={LL.settingsPage.enterprise.fields.disableAllTraffic.label()}
+            value={settings.disable_all_traffic}
+            onChange={() =>
+              mutate({ disable_all_traffic: !settings.disable_all_traffic })
+            }
+          />
+          <Helper>
+            {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
+          </Helper>
+        </div>
       </Card>
     </section>
   );

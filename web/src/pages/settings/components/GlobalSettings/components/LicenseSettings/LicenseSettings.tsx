@@ -3,7 +3,7 @@ import './styles.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useBreakpoint } from 'use-breakpoint';
 import { z } from 'zod';
@@ -12,13 +12,18 @@ import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../../shared/components/svg/IconCheckmarkWhite';
 import { deviceBreakpoints } from '../../../../../../shared/constants';
 import { FormInput } from '../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { ActivityIcon } from '../../../../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
+import { ActivityIconVariant } from '../../../../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { Button } from '../../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Card/Card';
+import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -41,6 +46,7 @@ export const LicenseSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
+  const enterpriseStatus = useAppStore((state) => state.enterprise_status);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -74,15 +80,11 @@ export const LicenseSettings = () => {
     };
   }, [settings?.license]);
 
-  const { control, handleSubmit, reset } = useForm<Settings>({
+  const { control, handleSubmit } = useForm<Settings>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
-
-  useEffect(() => {
-    reset();
-  }, [reset, defaultValues]);
 
   const onSubmit: SubmitHandler<FormFields> = (submitted) => {
     mutate(submitted);
@@ -124,13 +126,71 @@ export const LicenseSettings = () => {
             type="submit"
           />
         </div>
-        <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
-          <FormInput
-            label={LL.settingsPage.license.form.fields.key.label()}
-            controller={{ control, name: 'license' }}
-            placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
-          />
-        </form>
+        <div>
+          <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
+            <FormInput
+              label={LL.settingsPage.license.form.fields.key.label()}
+              controller={{ control, name: 'license' }}
+              placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
+            />
+          </form>
+          <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()} expanded>
+            {enterpriseStatus?.license_info ? (
+              <div id="license-info">
+                <div>
+                  <Label>
+                    {LL.settingsPage.license.licenseInfo.fields.status.label()}
+                  </Label>
+                  {enterpriseStatus?.enabled ? (
+                    <div className="license-status">
+                      <ActivityIcon status={ActivityIconVariant.CONNECTED} />
+                      <p>{LL.settingsPage.license.licenseInfo.fields.status.active()}</p>
+                      {enterpriseStatus?.license_info.subscription ? (
+                        <Helper>
+                          {LL.settingsPage.license.licenseInfo.fields.status.subscriptionHelper()}
+                        </Helper>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="license-status">
+                      <ActivityIcon status={ActivityIconVariant.ERROR} />
+                      <p>{LL.settingsPage.license.licenseInfo.fields.status.expired()}</p>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Label>{LL.settingsPage.license.licenseInfo.fields.type.label()}</Label>
+                  <div className="with-helper">
+                    <p>
+                      {enterpriseStatus?.license_info.subscription
+                        ? LL.settingsPage.license.licenseInfo.types.subscription.label()
+                        : LL.settingsPage.license.licenseInfo.types.offline.label()}
+                    </p>
+                    <Helper>
+                      {enterpriseStatus?.license_info.subscription
+                        ? LL.settingsPage.license.licenseInfo.types.subscription.helper()
+                        : LL.settingsPage.license.licenseInfo.types.offline.helper()}
+                    </Helper>
+                  </div>
+                </div>
+                <div>
+                  <Label>
+                    {LL.settingsPage.license.licenseInfo.fields.validUntil.label()}
+                  </Label>
+                  <p>
+                    {enterpriseStatus?.license_info.valid_until
+                      ? new Date(
+                          enterpriseStatus?.license_info.valid_until,
+                        ).toLocaleString()
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
+            )}
+          </ExpandableCard>
+        </div>
       </Card>
     </section>
   );

@@ -255,7 +255,7 @@ Available actions:
                 components.add_security_scheme(
                     "api_key",
                     SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
-                )
+                );
             }
         }
     }
