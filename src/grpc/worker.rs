@@ -280,7 +280,7 @@ impl worker_service_server::WorkerService for WorkerServer {
                                 .save(&self.pool)
                                 .await
                                 .map_err(|_| Status::internal("Failed to save yubikey"))?;
-                            let key_id = new_yubi.id();
+                            let key_id = new_yubi.id;
                             let mut ssh = AuthenticationKey::new(
                                 user_id,
                                 message.ssh_key,

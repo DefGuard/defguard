@@ -2,11 +2,7 @@ use std::{convert::Infallible, error::Error, str::FromStr};
 
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    database::{HasArguments, HasValueRef},
-    encode::IsNull,
-    Database, Decode, Encode, Type,
-};
+use sqlx::{encode::IsNull, Database, Decode, Encode, Type};
 
 /// Wrapper for secrecy Secret struct which implements sqlx Postgres
 #[derive(Clone, Deserialize, Debug)]
@@ -40,9 +36,7 @@ impl<'q, DB: Database> Decode<'q, DB> for SecretString
 where
     String: Decode<'q, DB>,
 {
-    fn decode(
-        value: <DB as HasValueRef<'q>>::ValueRef,
-    ) -> Result<Self, Box<dyn Error + 'static + Send + Sync>> {
+    fn decode(value: <DB as Database>::ValueRef<'q>) -> Result<Self, Box<dyn Error + Send + Sync>> {
         <String as Decode<'q, DB>>::decode(value).map(|v| Self(Secret::from(v)))
     }
 }
@@ -51,7 +45,10 @@ impl<'q, DB: Database> Encode<'q, DB> for SecretString
 where
     String: Encode<'q, DB>,
 {
-    fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <DB as Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         <String as Encode<'q, DB>>::encode_by_ref(self.0.expose_secret(), buf)
     }
 

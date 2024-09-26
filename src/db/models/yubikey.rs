@@ -1,14 +1,12 @@
 // use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, PgExecutor, Type};
+use sqlx::{query, query_as, query_scalar, PgExecutor};
 
 pub struct NoId;
-#[derive(Deserialize, Serialize, Type)]
-#[sqlx(transparent)]
-pub struct Id(i64);
+pub type Id = i64;
 
 #[derive(Deserialize, Serialize)]
 pub struct YubiKey<I> {
-    id: I,
+    pub id: I,
     pub name: String,
     pub serial: String,
     pub user_id: i64,
@@ -39,7 +37,7 @@ impl YubiKey<NoId> {
         .await?;
 
         Ok(YubiKey {
-            id: Id(id),
+            id,
             name: self.name,
             serial: self.serial,
             user_id: self.user_id,
@@ -48,11 +46,6 @@ impl YubiKey<NoId> {
 }
 
 impl YubiKey<Id> {
-    #[must_use]
-    pub fn id(&self) -> i64 {
-        self.id.0
-    }
-
     pub async fn find_by_user_id<'e, E>(executor: E, user_id: i64) -> Result<Vec<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -95,7 +88,7 @@ impl YubiKey<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query!("DELETE FROM \"yubikey\" WHERE id = $1", self.id.0)
+        query!("DELETE FROM \"yubikey\" WHERE id = $1", self.id)
             .execute(executor)
             .await?;
 
@@ -109,7 +102,7 @@ impl YubiKey<Id> {
     {
         query!(
             "UPDATE \"yubikey\" SET name = $2, serial = $3, user_id = $4 WHERE id = $1",
-            self.id.0,
+            self.id,
             self.name,
             self.serial,
             self.user_id

@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id \"id?\", \"name\",\"serial\",\"user_id\" FROM \"yubikey\"",
+  "query": "SELECT id \"id: _\", name, serial, user_id FROM \"yubikey\" WHERE id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id?",
+        "name": "id: _",
         "type_info": "Int8"
       },
       {
@@ -25,7 +25,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -34,5 +36,5 @@
       false
     ]
   },
-  "hash": "6ed1d008a99fa449325cb3d6d4b0231304b857b23460f0ca2f74e0d17f8dbc77"
+  "hash": "c93303fea4f67f221e0fa042804ad7bc7f4782017235e7e010ebc0dbbc478cf4"
 }
