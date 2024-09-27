@@ -317,7 +317,8 @@ impl WireguardNetwork<Id> {
         debug!("Fetching all allowed devices for network {}", self);
         let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
-            Some(allowed_groups) => query_as!(
+            Some(allowed_groups) => {
+                query_as!(
                 Device,
                 "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
@@ -329,8 +330,9 @@ impl WireguardNetwork<Id> {
                     ORDER BY d.id ASC",
                 &allowed_groups
             )
-            .fetch_all(&mut *transaction)
-            .await?,
+                .fetch_all(&mut *transaction)
+                .await?
+            }
             // all devices of enabled users are allowed
             None => {
                 query_as!(
@@ -401,7 +403,7 @@ impl WireguardNetwork<Id> {
         // list all allowed devices
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
-        let mut allowed_devices: HashMap<i64, Device<Id>> = allowed_devices
+        let mut allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
             .map(|dev| (dev.id, dev))
             .collect();
@@ -493,7 +495,7 @@ impl WireguardNetwork<Id> {
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
-        let allowed_devices: HashMap<i64, Device<Id>> = allowed_devices
+        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
             .map(|dev| (dev.id, dev))
             .collect();
@@ -775,7 +777,7 @@ impl WireguardNetwork<Id> {
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
-        let mut user_map: HashMap<i64, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+        let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         let oldest_handshake =
             (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         // Retrieve connected devices from database

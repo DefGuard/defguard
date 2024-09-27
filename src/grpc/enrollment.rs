@@ -466,26 +466,13 @@ impl EnrollmentServer {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
-        let device = match device.save(&mut *transaction).await {
-            Ok(device) => device,
-            Err(err) => {
-                error!(
-                    "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
-                    request.name, request.pubkey, user.username, user.id,
-                );
-                return Err(Status::internal("unexpected error"));
-            }
-        };
-        // let device = device.save(&mut *transaction).await.map_err(|err| {
-        //     error!(
-        //         "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
-        //         &device.name,
-        //         device.wireguard_pubkey.as_str(),
-        //         user.username,
-        //         user.id,
-        //     );
-        //     Status::internal("unexpected error")
-        // })?;
+        let device = device.save(&mut *transaction).await.map_err(|err| {
+            error!(
+                "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+                request.name, request.pubkey, user.username, user.id,
+            );
+            Status::internal("unexpected error")
+        })?;
         info!("New device created: {device:?}.");
 
         debug!(

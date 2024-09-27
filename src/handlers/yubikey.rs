@@ -60,7 +60,7 @@ pub async fn rename_yubikey(
     }
     yubikey.name = data.name;
     yubikey.save(&appstate.pool).await?;
-    info!("Yubikey {:?} renamed by user {}", user.id, yubikey.id);
+    info!("Yubikey {} renamed by user {}", yubikey.id, user.id);
     Ok(ApiResponse {
         json: json!(yubikey),
         status: StatusCode::OK,

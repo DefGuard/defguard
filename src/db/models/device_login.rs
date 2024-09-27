@@ -58,32 +58,32 @@ impl DeviceLoginEvent {
             created: Utc::now().naive_utc(),
         }
     }
-}
 
-impl DeviceLoginEvent<Id> {
-    pub async fn find_device_login_event(&self, pool: &PgPool) -> Result<Option<Self>, SqlxError> {
-        query_as!(
-          Self,
-          "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created
-          FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND \
-          brand = $4 AND model = $5 AND browser = $6",
-          self.user_id, self.event_type, self.family, self.brand, self.model, self.browser
-      )
-        .fetch_optional(pool)
-        .await
-    }
-
-    pub async fn check_if_device_already_logged_in(
-        mut self,
+    pub(crate) async fn check_if_device_already_logged_in(
+        self,
         pool: &PgPool,
-    ) -> Result<Option<Self>, anyhow::Error> {
+    ) -> Result<Option<DeviceLoginEvent<Id>>, anyhow::Error> {
         let existing_login_event = self.find_device_login_event(pool).await?;
 
         if existing_login_event.is_none() {
-            self.save(pool).await?;
-            Ok(Some(self))
+            Ok(Some(self.save(pool).await?))
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn find_device_login_event(
+        &self,
+        pool: &PgPool,
+    ) -> Result<Option<DeviceLoginEvent<Id>>, SqlxError> {
+        query_as!(
+            DeviceLoginEvent::<Id>,
+            "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created
+            FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND \
+            brand = $4 AND model = $5 AND browser = $6",
+            self.user_id, self.event_type, self.family, self.brand, self.model, self.browser
+        )
+        .fetch_optional(pool)
+        .await
     }
 }

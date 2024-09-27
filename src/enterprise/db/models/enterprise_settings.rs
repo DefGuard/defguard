@@ -4,7 +4,7 @@ use struct_patch::Patch;
 use crate::enterprise::license::{get_cached_license, validate_license};
 
 #[derive(Debug, Deserialize, Patch, Serialize)]
-#[patch(attribute(derive(Deserialize, PartialEq, Serialize)))]
+#[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct EnterpriseSettings {
     // If true, only admins can manage devices
     pub admin_device_management: bool,

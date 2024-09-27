@@ -678,6 +678,7 @@ async fn test_openid_flow_new_login_mail() {
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
     assert_eq!(auth_response.state, "ABCDEF");
 
+    mail_rx.try_recv().unwrap();
     let mail = mail_rx.try_recv().unwrap();
     assert_eq!(mail.to, "admin@defguard");
     assert_eq!(mail.subject, "New login to Test application with defguard");
