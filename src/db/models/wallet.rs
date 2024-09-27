@@ -198,7 +198,7 @@ impl Wallet<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", user_id, address, name, chain_id, challenge_message, challenge_signature, \
+            "SELECT id, user_id, address, name, chain_id, challenge_message, challenge_signature, \
             creation_timestamp, validation_timestamp, use_for_mfa FROM wallet \
             WHERE user_id = $1 AND address = $2",
             user_id,

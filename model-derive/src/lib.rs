@@ -174,9 +174,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
     });
 
     // queries
-    let all_query = format!("SELECT id \"id: _\", {cs_aliased_fields} FROM \"{table_name}\"");
+    let all_query = format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\"");
     let find_by_id_query =
-        format!("SELECT id \"id: _\", {cs_aliased_fields} FROM \"{table_name}\" WHERE id = $1");
+        format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\" WHERE id = $1");
     let delete_query = format!("DELETE FROM \"{table_name}\" WHERE id = $1");
     let insert_query =
         format!("INSERT INTO \"{table_name}\" ({cs_fields}) VALUES ({cs_values}) RETURNING id");

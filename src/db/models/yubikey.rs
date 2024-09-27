@@ -30,7 +30,7 @@ impl YubiKey<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", name, serial, user_id FROM \"yubikey\" WHERE user_id = $1",
+            "SELECT id, name, serial, user_id FROM \"yubikey\" WHERE user_id = $1",
             user_id
         )
         .fetch_all(executor)

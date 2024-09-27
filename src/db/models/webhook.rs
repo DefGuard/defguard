@@ -75,7 +75,7 @@ impl WebHook<Id> {
     pub async fn find_by_url(pool: &PgPool, url: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id: _\", url, description, token, enabled, on_user_created, \
+            "SELECT id, url, description, token, enabled, on_user_created, \
             on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook WHERE url = $1",
             url
         )

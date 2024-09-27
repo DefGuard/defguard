@@ -408,7 +408,7 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd \
             ON d.id = wnd.device_id \
@@ -426,7 +426,7 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", name, wireguard_pubkey, user_id, created \
+            "SELECT id, name, wireguard_pubkey, user_id, created \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -441,7 +441,7 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id: _\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -458,7 +458,7 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id: _\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -485,7 +485,7 @@ impl Device<Id> {
     pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id \"id: _\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username

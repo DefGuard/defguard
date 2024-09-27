@@ -48,7 +48,7 @@ impl OpenIdProvider<Id> {
     pub async fn find_by_name(pool: &PgPool, name: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             OpenIdProvider,
-            "SELECT id \"id: _\", name, base_url, client_id, client_secret FROM openidprovider WHERE name = $1",
+            "SELECT id, name, base_url, client_id, client_secret FROM openidprovider WHERE name = $1",
             name
         )
         .fetch_optional(pool)
@@ -58,7 +58,7 @@ impl OpenIdProvider<Id> {
     pub async fn get_current(pool: &PgPool) -> Result<Option<Self>, SqlxError> {
         query_as!(
             OpenIdProvider,
-            "SELECT id \"id: _\", name, base_url, client_id, client_secret FROM openidprovider"
+            "SELECT id, name, base_url, client_id, client_secret FROM openidprovider"
         )
         .fetch_optional(pool)
         .await

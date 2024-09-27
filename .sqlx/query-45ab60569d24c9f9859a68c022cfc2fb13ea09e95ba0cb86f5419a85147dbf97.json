@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"device_id\",\"collected_at\",\"network\",\"endpoint\",\"upload\",\"download\",\"latest_handshake\",\"allowed_ips\" FROM \"wireguard_peer_stats\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "collected_at",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "network",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "endpoint",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "upload",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "download",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "latest_handshake",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "allowed_ips",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "45ab60569d24c9f9859a68c022cfc2fb13ea09e95ba0cb86f5419a85147dbf97"
+}

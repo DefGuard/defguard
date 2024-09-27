@@ -54,7 +54,7 @@ impl WebAuthn<Id> {
     pub async fn all_for_user(pool: &PgPool, user_id: Id) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id: _\", user_id, name, passkey FROM webauthn WHERE user_id = $1",
+            "SELECT id, user_id, name, passkey FROM webauthn WHERE user_id = $1",
             user_id
         )
         .fetch_all(pool)

@@ -21,27 +21,6 @@ impl Group {
             name: name.into(),
         }
     }
-
-    // pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
-    // where
-    //     E: PgExecutor<'e>,
-    // {
-    //     Ok(Vec::new())
-    // }
-
-    // pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User>, SqlxError>
-    // where
-    //     E: PgExecutor<'e>,
-    // {
-    //     Ok(Vec::new())
-    // }
-
-    // pub async fn allowed_vpn_locations<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
-    // where
-    //     E: PgExecutor<'e>,
-    // {
-    //     Ok(Vec::new())
-    // }
 }
 
 impl Group<Id> {
@@ -49,13 +28,9 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Self,
-            "SELECT id \"id: _\", name FROM \"group\" WHERE name = $1",
-            name
-        )
-        .fetch_optional(executor)
-        .await
+        query_as!(Self, "SELECT id, name FROM \"group\" WHERE name = $1", name)
+            .fetch_optional(executor)
+            .await
     }
 
     pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
@@ -77,7 +52,7 @@ impl Group<Id> {
     {
         query_as!(
             User,
-            "SELECT \"user\".id \"id: _\", username, password_hash, last_name, first_name, email, \
+            "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" \

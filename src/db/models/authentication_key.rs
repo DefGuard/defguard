@@ -56,7 +56,7 @@ impl AuthenticationKey<Id> {
             Some(key_type) => {
                 query_as!(
                     Self,
-                    "SELECT id \"id: _\", user_id, yubikey_id \"yubikey_id?\", key, \
+                    "SELECT id, user_id, yubikey_id \"yubikey_id?\", key, \
                     name, key_type \"key_type: AuthenticationKeyType\" \
                     FROM authentication_key WHERE user_id = $1 AND key_type = $2",
                     user_id,
@@ -68,7 +68,7 @@ impl AuthenticationKey<Id> {
             None => {
                 query_as!(
                     Self,
-                    "SELECT id \"id: _\", user_id, yubikey_id \"yubikey_id?\", key, \
+                    "SELECT id, user_id, yubikey_id \"yubikey_id?\", key, \
                     name, key_type \"key_type: AuthenticationKeyType\" \
                     FROM authentication_key WHERE user_id = $1",
                     user_id

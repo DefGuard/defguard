@@ -49,7 +49,7 @@ pub async fn run_periodic_peer_disconnect(
         let locations = query_as!(
             WireguardNetwork::<Id>,
             "SELECT \
-                id \"id: _\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE mfa_enabled = true",
         )
@@ -67,7 +67,7 @@ pub async fn run_periodic_peer_disconnect(
                     WHERE network = $1 \
                     ORDER BY device_id, collected_at DESC \
                 ) \
-            SELECT d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \

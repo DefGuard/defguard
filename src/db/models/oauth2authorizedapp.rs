@@ -29,7 +29,7 @@ impl OAuth2AuthorizedApp<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id: _\", user_id, oauth2client_id \
+            "SELECT id, user_id, oauth2client_id \
             FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = $2",
             user_id,
             oauth2client_id

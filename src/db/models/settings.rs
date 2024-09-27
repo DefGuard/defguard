@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-// use model_derive::Model;
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 
@@ -31,10 +30,8 @@ pub struct Settings {
     // SMTP
     pub smtp_server: Option<String>,
     pub smtp_port: Option<i32>,
-    // #[model(enum)]
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
-    // #[model(secret)]
     pub smtp_password: Option<SecretString>,
     pub smtp_sender: Option<String>,
     // Enrollment
@@ -49,7 +46,6 @@ pub struct Settings {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
-    // #[model(secret)]
     pub ldap_bind_password: Option<SecretString>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,

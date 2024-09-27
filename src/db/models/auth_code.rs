@@ -51,7 +51,7 @@ impl AuthCode<Id> {
     pub async fn find_code(pool: &PgPool, code: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id: _\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce, \
+            "SELECT id, user_id, client_id, code, redirect_uri, scope, auth_time, nonce, \
             code_challenge FROM authorization_code WHERE code = $1",
             code
         )
@@ -59,7 +59,7 @@ impl AuthCode<Id> {
         .await
     }
 
-    // Remove an used authorization_code
+    // Remove a used authorization_code
     pub async fn consume(self, pool: &PgPool) -> Result<(), SqlxError> {
         self.delete(pool).await
     }

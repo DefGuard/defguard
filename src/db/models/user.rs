@@ -489,7 +489,7 @@ impl User<Id> {
     ) -> Result<Vec<User<Id>>, SqlxError> {
         let users = query_as!(
             Self,
-            "SELECT \"user\".id \"id: _\", username, password_hash, last_name, first_name, email, \
+            "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
@@ -619,7 +619,7 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", username, password_hash, last_name, first_name, email, \
+            "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE username = $1",
@@ -635,7 +635,7 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", username, password_hash, last_name, first_name, email, \
+            "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE email = $1",
@@ -651,7 +651,7 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id \"id: _\", username, password_hash, last_name, first_name, email, \
+            "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE openid_sub = $1",
@@ -680,7 +680,7 @@ impl User<Id> {
     {
         query_as!(
             Group,
-            "SELECT id \"id: _\", name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT id, name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -711,7 +711,7 @@ impl User<Id> {
     {
         query_as!(
             Device,
-            "SELECT device.id \"id: _\", name, wireguard_pubkey, user_id, created \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created \
             FROM device WHERE user_id = $1",
             self.id
         )
@@ -867,7 +867,7 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT u.id \"id: _\", u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
             FROM \"user\" u \

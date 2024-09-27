@@ -177,7 +177,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT \
-                id \"id: _\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
@@ -315,14 +315,11 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let devices = match self
-            .get_allowed_groups(&mut *transaction)
-            .await? {
+        let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
-            Some(allowed_groups) => {
-                query_as!(
-                    Device,
-                    "SELECT DISTINCT ON (d.id) d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+            Some(allowed_groups) => query_as!(
+                Device,
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     JOIN group_user gu ON u.id = gu.user_id \
@@ -330,21 +327,22 @@ impl WireguardNetwork<Id> {
                     WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))
                     AND u.is_active = true
                     ORDER BY d.id ASC",
-                    &allowed_groups
-                )
-                .fetch_all(&mut *transaction)
-                .await?
-            },
+                &allowed_groups
+            )
+            .fetch_all(&mut *transaction)
+            .await?,
             // all devices of enabled users are allowed
             None => {
                 query_as!(
                     Device,
-                    "SELECT d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
                     ORDER BY d.id ASC"
-                ).fetch_all(&mut *transaction).await?
+                )
+                .fetch_all(&mut *transaction)
+                .await?
             }
         };
 
@@ -653,7 +651,7 @@ impl WireguardNetwork<Id> {
     ) -> Result<Option<WireguardPeerStats<Id>>, SqlxError> {
         let stats = query_as!(
             WireguardPeerStats,
-            "SELECT id \"id: _\", device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
+            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
                 endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
             FROM wireguard_peer_stats \
             WHERE device_id = $1 AND network = $2 \
@@ -789,7 +787,7 @@ impl WireguardNetwork<Id> {
                 ORDER BY device_id, latest_handshake DESC \
             ) \
             SELECT \
-                d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2",

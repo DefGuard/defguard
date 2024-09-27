@@ -61,7 +61,7 @@ pub(crate) async fn bulk_assign_to_groups(
     debug!("Assigning groups to users.");
     let users = query_as!(
         User,
-        "SELECT id \"id: _\", username, password_hash, last_name, first_name, email, \
+        "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE id = ANY($1)",

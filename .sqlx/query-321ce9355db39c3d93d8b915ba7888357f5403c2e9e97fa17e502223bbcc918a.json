@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_id, client_id, code, redirect_uri, scope, auth_time, nonce, code_challenge FROM authorization_code WHERE code = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "client_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "redirect_uri",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "scope",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "auth_time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "nonce",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "code_challenge",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "321ce9355db39c3d93d8b915ba7888357f5403c2e9e97fa17e502223bbcc918a"
+}
