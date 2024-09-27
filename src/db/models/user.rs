@@ -493,9 +493,9 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\"
-            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id
-            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id
+            FROM \"user\" \
+            INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
+            INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
             WHERE \"group\".name = $1",
             group_name
         )

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, token, device_id, created_at\n            FROM pollingtoken WHERE token = $1",
+  "query": "SELECT id, token, device_id, created_at FROM pollingtoken WHERE token = $1",
   "describe": {
     "columns": [
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "750c3343a64d8f02d6952ab115318f79cc32d8013a8255a87c745f73ef08a2df"
+  "hash": "5df51ef040adc83fbfbe3c243dc4574b1ab955c7a9f8064996aae94f8752daec"
 }

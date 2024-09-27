@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created\n          FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND brand = $4 AND model = $5 AND browser = $6",
+  "query": "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND brand = $4 AND model = $5 AND browser = $6",
   "describe": {
     "columns": [
       {
@@ -77,5 +77,5 @@
       false
     ]
   },
-  "hash": "5b203a39a7c7cf7506ef7401b274c8384c29aafd59f5132824d055645233b161"
+  "hash": "3d0439898529e2e68c87a1939ca331d564ed406f733c079b526f2a53031b859d"
 }

@@ -32,7 +32,7 @@ impl PollingToken<Id> {
     pub async fn find(pool: &PgPool, token: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id, token, device_id, created_at
+            "SELECT id, token, device_id, created_at \
             FROM pollingtoken WHERE token = $1",
             token
         )

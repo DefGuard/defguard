@@ -78,7 +78,7 @@ impl DeviceLoginEvent {
     ) -> Result<Option<DeviceLoginEvent<Id>>, SqlxError> {
         query_as!(
             DeviceLoginEvent::<Id>,
-            "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created
+            "SELECT id, user_id, ip_address, model, family, brand, os_family, browser, event_type, created \
             FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND \
             brand = $4 AND model = $5 AND browser = $6",
             self.user_id, self.event_type, self.family, self.brand, self.model, self.browser
