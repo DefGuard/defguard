@@ -1,4 +1,5 @@
 use ipnetwork::IpNetwork;
+use sqlx::PgPool;
 use tonic::Status;
 
 use super::{
@@ -11,13 +12,13 @@ use crate::{
             device::WireguardNetworkDevice, polling_token::PollingToken,
             wireguard::WireguardNetwork,
         },
-        DbPool, Device, Settings, User,
+        Device, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
 };
 
 pub(crate) async fn build_device_config_response(
-    pool: &DbPool,
+    pool: &PgPool,
     pubkey: &str,
     // Whether to make a new polling token for the device
     new_token: bool,
@@ -61,15 +62,12 @@ pub(crate) async fn build_device_config_response(
             Status::internal("unexpected error")
         })?;
     for network in networks {
-        let (Some(device_id), Some(network_id)) = (device.id, network.id) else {
-            continue;
-        };
-        let wireguard_network_device = WireguardNetworkDevice::find(pool, device_id, network_id)
+        let wireguard_network_device = WireguardNetworkDevice::find(pool, device.id, network.id)
             .await
             .map_err(|err| {
                 error!(
                     "Failed to fetch wireguard network device for device {} and network {}: {err}",
-                    device_id, network_id
+                    device.id, network.id
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
@@ -82,7 +80,7 @@ pub(crate) async fn build_device_config_response(
                 .join(",");
             let config = ProtoDeviceConfig {
                 config: device.create_config(&network, &wireguard_network_device),
-                network_id,
+                network_id: network.id,
                 network_name: network.name,
                 assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
                 endpoint: format!("{}:{}", network.endpoint, network.port),
@@ -108,32 +106,19 @@ pub(crate) async fn build_device_config_response(
 
         // 1. Delete existing polling token for the device, if it exists
         // 2. Create a new polling token for the device
-        PollingToken::delete_for_device_id(
-            &mut *transaction,
-            device.id.ok_or_else(|| {
-                error!(
-                    "Device {} has no id, can't delete polling token",
-                    device.wireguard_pubkey
-                );
-                Status::internal("unexpected error")
-            })?,
-        )
-        .await
-        .map_err(|err| {
-            error!("Failed to delete polling token: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
-        let mut new_token = PollingToken::new(device.id.ok_or_else(|| {
-            error!(
-                "Device {} has no id, can't create a polling token",
-                device.wireguard_pubkey
-            );
-            Status::internal("unexpected error")
-        })?);
-        new_token.save(&mut *transaction).await.map_err(|err| {
-            error!("Failed to save new polling token: {err}");
-            Status::internal(format!("unexpected error: {err}"))
-        })?;
+        PollingToken::delete_for_device_id(&mut *transaction, device.id)
+            .await
+            .map_err(|err| {
+                error!("Failed to delete polling token: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
+        let new_token = PollingToken::new(device.id)
+            .save(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to save new polling token: {err}");
+                Status::internal(format!("unexpected error: {err}"))
+            })?;
 
         transaction.commit().await.map_err(|err| {
             error!("Failed to commit transaction while making a new polling token: {err}");

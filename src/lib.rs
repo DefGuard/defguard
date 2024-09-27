@@ -27,6 +27,7 @@ use handlers::{
 };
 use ipnetwork::IpNetwork;
 use secrecy::ExposeSecret;
+use sqlx::PgPool;
 use tokio::{
     net::TcpListener,
     sync::{
@@ -72,7 +73,7 @@ use self::{
     db::{
         init_db,
         models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        AppEvent, DbPool, Device, GatewayEvent, User, WireguardNetwork,
+        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
     },
     handlers::{
         auth::{
@@ -281,7 +282,7 @@ pub fn build_webapp(
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    pool: DbPool,
+    pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
@@ -520,7 +521,7 @@ pub async fn run_web_server(
     webhook_rx: UnboundedReceiver<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    pool: DbPool,
+    pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
@@ -600,8 +601,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         network
             .save(&mut *transaction)
             .await
-            .expect("Could not save network");
-        network
+            .expect("Could not save network")
     };
 
     if Device::find_by_pubkey(
@@ -615,15 +615,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Test device exists already, skipping creation...");
     } else {
         info!("Creating test device");
-        let mut device = Device::new(
+        let device = Device::new(
             "TestDevice".to_string(),
             "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
             1,
-        );
-        device
-            .save(&mut *transaction)
-            .await
-            .expect("Could not save device");
+        )
+        .save(&mut *transaction)
+        .await
+        .expect("Could not save device");
         device
             .assign_network_ip(&mut transaction, &network, None)
             .await
@@ -632,14 +631,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
     #[cfg(feature = "openid")]
     for app_id in 1..=3 {
-        let mut app = OAuth2Client::new(
+        OAuth2Client::new(
             vec![format!("https://app-{app_id}.com")],
             vec!["openid".into(), "profile".into(), "email".into()],
             format!("app-{app_id}"),
-        );
-        app.save(&mut *transaction)
-            .await
-            .expect("Could not save oauth2client");
+        )
+        .save(&mut *transaction)
+        .await
+        .expect("Could not save oauth2client");
     }
     transaction
         .commit()
@@ -653,7 +652,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 /// Meant to be used to automate setting up a new defguard instance.
 /// Does not handle assigning device IPs, since no device should exist at this point.
 pub async fn init_vpn_location(
-    pool: &DbPool,
+    pool: &PgPool,
     args: &InitVpnLocationArgs,
 ) -> Result<String, anyhow::Error> {
     // check if a VPN location exists already
@@ -665,7 +664,7 @@ pub async fn init_vpn_location(
     };
 
     // create a new network
-    let mut network = WireguardNetwork::new(
+    let network = WireguardNetwork::new(
         args.name.clone(),
         args.address,
         args.port,
@@ -675,15 +674,15 @@ pub async fn init_vpn_location(
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
-    )?;
-    network.save(pool).await?;
-    let network_id = network.get_id()?;
+    )?
+    .save(pool)
+    .await?;
 
     // generate gateway token
     let token = Claims::new(
         ClaimsType::Gateway,
-        format!("DEFGUARD-NETWORK-{network_id}"),
-        network_id.to_string(),
+        format!("DEFGUARD-NETWORK-{}", network.id),
+        network.id.to_string(),
         u32::MAX.into(),
     )
     .to_jwt()?;

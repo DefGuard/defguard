@@ -41,7 +41,6 @@ async fn test_only_enterprise_can_modify() {
 
     // try to patch enterprise settings
     let settings = EnterpriseSettings {
-        id: None,
         admin_device_management: true,
         disable_all_traffic: false,
         only_client_activation: false,
@@ -86,7 +85,6 @@ async fn test_admin_devices_management_is_enforced() {
 
     // setup admin devices management
     let settings = EnterpriseSettings {
-        id: None,
         admin_device_management: true,
         disable_all_traffic: false,
         only_client_activation: false,
@@ -164,7 +162,6 @@ async fn test_regular_user_device_management() {
 
     // setup admin devices management
     let settings = EnterpriseSettings {
-        id: None,
         admin_device_management: false,
         disable_all_traffic: false,
         only_client_activation: false,

@@ -18,12 +18,13 @@ use openidconnect::{
     IssuerUrl, Nonce, ProviderMetadata, RedirectUrl, Scope,
 };
 use serde_json::json;
+use sqlx::PgPool;
 use time::Duration;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{DbPool, MFAInfo, Session, SessionState, Settings, User, UserInfo},
+    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo},
     enterprise::db::models::openid_provider::OpenIdProvider,
     error::WebError,
     handlers::{
@@ -69,7 +70,7 @@ async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
     Ok(provider_metadata)
 }
 
-async fn make_oidc_client(pool: &DbPool) -> Result<CoreClient, WebError> {
+async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
             "OpenID provider not set".to_string(),
@@ -318,8 +319,7 @@ pub async fn auth_callback(
                         phone.map(|v| v.to_string()),
                     );
                     user.openid_sub = Some(sub);
-                    user.save(&appstate.pool).await?;
-                    user
+                    user.save(&appstate.pool).await?
                 } else {
                     warn!(
                         "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. They should perform an enrollment first.",
@@ -346,7 +346,7 @@ pub async fn auth_callback(
     let device_info = agent.clone().map(|v| get_user_agent_device(&v));
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
-        user.id.unwrap(),
+        user.id,
         SessionState::PasswordVerified,
         ip_address.clone(),
         device_info,

@@ -326,15 +326,16 @@ pub async fn add_user(
     };
 
     // create new user
-    let mut user = User::new(
+    let user = User::new(
         user_data.username,
         password,
         user_data.last_name,
         user_data.first_name,
         user_data.email,
         user_data.phone,
-    );
-    user.save(&appstate.pool).await?;
+    )
+    .save(&appstate.pool)
+    .await?;
 
     if let Some(password) = user_data.password {
         let _result = ldap_add_user(&appstate.pool, &user, &password).await;
@@ -922,16 +923,12 @@ pub async fn reset_password(
     if let Some(user) = user {
         let mut transaction = appstate.pool.begin().await?;
 
-        Token::delete_unused_user_password_reset_tokens(
-            &mut transaction,
-            user.id.expect("Missing user ID"),
-        )
-        .await?;
+        Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
 
         let config = server_config();
         let enrollment = Token::new(
-            user.id.expect("Missing user ID"),
-            Some(session.user.id.expect("Missing admin ID")),
+            user.id,
+            Some(session.user.id),
             Some(user.email.clone()),
             config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
@@ -1030,8 +1027,7 @@ pub async fn wallet_challenge(
 
     // check if address already exists
     let wallet = if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &wallet_info.address)
-            .await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id, &wallet_info.address).await?
     {
         if wallet.validation_timestamp.is_some() {
             error!(
@@ -1042,31 +1038,31 @@ pub async fn wallet_challenge(
         }
         wallet
     } else {
-        let challenge_message =
-            if let Some(settings) = Settings::find_by_id(&appstate.pool, 1).await? {
-                Wallet::format_challenge(&wallet_info.address, &settings.challenge_template)
-            } else {
-                error!("Cannot retrieve settings");
-                return Err(WebError::DbError("cannot retrieve settings".into()));
-            };
-        let mut wallet = Wallet::new_for_user(
-            user.id.unwrap(),
+        let challenge_message = if let Some(settings) = Settings::get(&appstate.pool).await? {
+            Wallet::format_challenge(&wallet_info.address, &settings.challenge_template)
+        } else {
+            error!("Cannot retrieve settings");
+            return Err(WebError::DbError("cannot retrieve settings".into()));
+        };
+        Wallet::new_for_user(
+            user.id,
             wallet_info.address,
             wallet_info.name,
             wallet_info.chain_id,
             challenge_message,
-        );
-        wallet.save(&appstate.pool).await?;
-        wallet
+        )
+        .save(&appstate.pool)
+        .await?
     };
 
     info!(
         "User {} generated wallet challenge for user {username}",
         session.user.username
     );
+
     Ok(ApiResponse {
         json: json!(WalletChallenge {
-            id: wallet.id.unwrap(),
+            id: wallet.id,
             message: wallet.challenge_message
         }),
         status: StatusCode::OK,
@@ -1105,8 +1101,7 @@ pub async fn set_wallet(
     );
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &wallet_info.address)
-            .await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id, &wallet_info.address).await?
     {
         if wallet.validate_signature(&wallet_info.signature).is_ok() {
             wallet
@@ -1168,9 +1163,9 @@ pub async fn update_wallet(
     );
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &address).await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id, &address).await?
     {
-        if Some(wallet.user_id) == user.id {
+        if wallet.user_id == user.id {
             let mfa_change = wallet.use_for_mfa != data.use_for_mfa;
             wallet.use_for_mfa = data.use_for_mfa;
             wallet.save(&appstate.pool).await?;
@@ -1209,7 +1204,7 @@ pub async fn update_wallet(
             Ok(ApiResponse::default())
         } else {
             error!(
-                "User {} failed to update wallet {address} for user {username} (id: {:?}), the owner id is {}",
+                "User {} failed to update wallet {address} for user {username} (id: {}), the owner id is {}",
                 session.user.username, user.id, wallet.user_id
             );
             Err(WebError::ObjectNotFound("wrong wallet".into()))
@@ -1255,9 +1250,9 @@ pub async fn delete_wallet(
     );
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id.unwrap(), &address).await?
+        Wallet::find_by_user_and_address(&appstate.pool, user.id, &address).await?
     {
-        if Some(wallet.user_id) == user.id {
+        if wallet.user_id == user.id {
             wallet.delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
@@ -1313,7 +1308,7 @@ pub async fn delete_security_key(
     );
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(webauthn) = WebAuthn::find_by_id(&appstate.pool, id).await? {
-        if Some(webauthn.user_id) == user.id {
+        if webauthn.user_id == user.id {
             webauthn.delete(&appstate.pool).await?;
             user.verify_mfa_state(&appstate.pool).await?;
             info!(
@@ -1412,12 +1407,12 @@ pub async fn delete_authorized_app(
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(app) = OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
         &appstate.pool,
-        user.id.unwrap(),
+        user.id,
         oauth2client_id,
     )
     .await?
     {
-        if Some(app.user_id) == user.id {
+        if app.user_id == user.id {
             app.delete(&appstate.pool).await?;
             info!(
                 "User {} deleted OAuth2 client {oauth2client_id} for user {username}",

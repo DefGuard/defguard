@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id \"id: _\", \"url\",\"description\",\"token\",\"enabled\",\"on_user_created\",\"on_user_deleted\",\"on_user_modified\",\"on_hwkey_provision\" FROM \"webhook\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: _",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "token",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "on_user_created",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "on_user_deleted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "on_user_modified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "on_hwkey_provision",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "06a2fd837f65404e7ec62b07ce89fc9116d89aa9107cf001c31f13ec34bc9a9f"
+}

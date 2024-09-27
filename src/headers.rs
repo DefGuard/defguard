@@ -1,10 +1,11 @@
 use std::{borrow::Borrow, sync::Arc};
 
+use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{models::device_login::DeviceLoginEvent, DbPool, Session, User},
+    db::{models::device_login::DeviceLoginEvent, Id, Session, User},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,
@@ -70,7 +71,7 @@ pub(crate) fn get_user_agent_device(user_agent_client: &Client) -> String {
 
 #[must_use]
 pub(crate) fn get_device_login_event(
-    user_id: i64,
+    user_id: Id,
     ip_address: String,
     event_type: String,
     user_agent_client: Option<Client>,
@@ -80,7 +81,7 @@ pub(crate) fn get_device_login_event(
 }
 
 pub(crate) fn get_user_agent_device_login_data(
-    user_id: i64,
+    user_id: Id,
     ip_address: String,
     event_type: String,
     user_agent_client: &Client,
@@ -107,30 +108,31 @@ pub(crate) fn get_user_agent_device_login_data(
 }
 
 pub(crate) async fn check_new_device_login(
-    pool: &DbPool,
+    pool: &PgPool,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
-    user: &User,
+    user: &User<Id>,
     ip_address: String,
     event_type: String,
     agent: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
-    if let Some(user_id) = user.id {
-        if let Some(device_login_event) =
-            get_device_login_event(user_id, ip_address, event_type, agent)
+    if let Some(device_login_event) = get_device_login_event(user.id, ip_address, event_type, agent)
+    {
+        // TODO: double-check save() here and get rid of unwrap()
+        if let Ok(Some(created_device_login_event)) = device_login_event
+            .save(pool)
+            .await
+            .unwrap()
+            .check_if_device_already_logged_in(pool)
+            .await
         {
-            if let Ok(Some(created_device_login_event)) = device_login_event
-                .check_if_device_already_logged_in(pool)
-                .await
-            {
-                send_new_device_login_email(
-                    &user.email,
-                    mail_tx,
-                    session,
-                    created_device_login_event.created,
-                )
-                .await?;
-            }
+            send_new_device_login_email(
+                &user.email,
+                mail_tx,
+                session,
+                created_device_login_event.created,
+            )
+            .await?;
         }
     }
 

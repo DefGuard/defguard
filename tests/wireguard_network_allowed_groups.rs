@@ -2,37 +2,38 @@ mod common;
 
 use claims::assert_err;
 use defguard::{
-    db::{DbPool, Device, GatewayEvent, Group, User, WireguardNetwork},
+    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
+use sqlx::PgPool;
 
 use self::common::{fetch_user_details, make_test_client};
 
 // setup user groups, test users and devices
-async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
+async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
     let mut users = Vec::new();
     let mut devices = Vec::new();
     // create user groups
-    let mut allowed_group = Group::new("allowed group");
-    allowed_group.save(pool).await.unwrap();
+    let allowed_group = Group::new("allowed group").save(pool).await.unwrap();
 
-    let mut not_allowed_group = Group::new("not allowed group");
-    not_allowed_group.save(pool).await.unwrap();
+    let not_allowed_group = Group::new("not allowed group").save(pool).await.unwrap();
 
     // admin user
     let admin_user = User::find_by_username(pool, "admin")
         .await
         .unwrap()
         .unwrap();
-    let mut admin_device = Device::new(
+    let admin_device = Device::new(
         "admin device".into(),
         "nst4lmZz9kPTq6OdeQq2G2th3n+QneHKmG1wJJ3Jrq0=".into(),
-        admin_user.id.unwrap(),
-    );
-    admin_device.save(pool).await.unwrap();
+        admin_user.id,
+    )
+    .save(pool)
+    .await
+    .unwrap();
     users.push(admin_user);
     devices.push(admin_device);
 
@@ -42,54 +43,64 @@ async fn setup_test_users(pool: &DbPool) -> (Vec<User>, Vec<Device>) {
         .unwrap()
         .unwrap();
     test_user.add_to_group(pool, &allowed_group).await.unwrap();
-    let mut test_device = Device::new(
+    let test_device = Device::new(
         "test device".into(),
         "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=".into(),
-        test_user.id.unwrap(),
-    );
-    test_device.save(pool).await.unwrap();
+        test_user.id,
+    )
+    .save(pool)
+    .await
+    .unwrap();
     users.push(test_user);
     devices.push(test_device);
 
     // standard user in other, non-allowed group
-    let mut other_user = User::new(
+    let other_user = User::new(
         "ssnape",
         Some("pass123"),
         "Snape",
         "Severus",
         "s.snape@hogwart.edu.uk",
         None,
-    );
-    other_user.save(pool).await.unwrap();
+    )
+    .save(pool)
+    .await
+    .unwrap();
     other_user
         .add_to_group(pool, &not_allowed_group)
         .await
         .unwrap();
-    let mut other_device = Device::new(
+    let other_device = Device::new(
         "other device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
-        other_user.id.unwrap(),
-    );
-    other_device.save(pool).await.unwrap();
+        other_user.id,
+    )
+    .save(pool)
+    .await
+    .unwrap();
     users.push(other_user);
     devices.push(other_device);
 
     // standard user in no groups
-    let mut non_group_user = User::new(
+    let non_group_user = User::new(
         "dobby",
         Some("pass123"),
         "Elf",
         "Dobby",
         "dobby@hogwart.edu.uk",
         None,
-    );
-    non_group_user.save(pool).await.unwrap();
-    let mut non_group_device = Device::new(
+    )
+    .save(pool)
+    .await
+    .unwrap();
+    let non_group_device = Device::new(
         "non group device".into(),
         "6xmL/jRuxmzQ3J2/kVZnKnh+6dwODcEEczmmkIKU4sM=".into(),
-        non_group_user.id.unwrap(),
-    );
-    non_group_device.save(pool).await.unwrap();
+        non_group_user.id,
+    )
+    .save(pool)
+    .await
+    .unwrap();
     users.push(non_group_user);
     devices.push(non_group_device);
 
@@ -125,7 +136,7 @@ async fn test_create_new_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.json().await;
+    let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
@@ -167,7 +178,7 @@ async fn test_modify_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.json().await;
+    let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
@@ -353,7 +364,7 @@ async fn test_import_network_existing_devices() {
     let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
-    assert_eq!(device_info.device.id.unwrap(), devices[1].id.unwrap());
+    assert_eq!(device_info.device.id, devices[1].id);
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
@@ -364,7 +375,7 @@ async fn test_import_network_existing_devices() {
     let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
-    assert_eq!(device_info.device.id.unwrap(), devices[0].id.unwrap());
+    assert_eq!(device_info.device.id, devices[0].id);
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
@@ -431,13 +442,13 @@ PersistentKeepalive = 300
     }
 
     // assign devices to users
-    mapped_devices[0].user_id = users[0].id;
-    mapped_devices[1].user_id = users[1].id;
-    mapped_devices[2].user_id = users[2].id;
-    mapped_devices[3].user_id = users[3].id;
+    mapped_devices[0].user_id = Some(users[0].id);
+    mapped_devices[1].user_id = Some(users[1].id);
+    mapped_devices[2].user_id = Some(users[2].id);
+    mapped_devices[3].user_id = Some(users[3].id);
 
     let response = client
-        .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
+        .post(format!("/api/v1/network/{}/devices", network.id))
         .json(&json!({"devices": mapped_devices.clone()}))
         .send()
         .await;
@@ -512,7 +523,7 @@ async fn test_modify_user() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.json().await;
+    let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));
@@ -607,7 +618,7 @@ async fn test_delete_only_allowed_group() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let network: WireguardNetwork = response.json().await;
+    let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkCreated(..));

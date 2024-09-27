@@ -6,7 +6,7 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, AppEvent, DbPool, GatewayEvent, User, UserDetails},
+    db::{init_db, AppEvent, GatewayEvent, Id, User, UserDetails},
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,
@@ -15,7 +15,7 @@ use defguard::{
 };
 use reqwest::{header::HeaderName, StatusCode};
 use secrecy::ExposeSecret;
-use sqlx::{postgres::PgConnectOptions, query, types::Uuid};
+use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::{unbounded_channel, UnboundedReceiver},
@@ -30,7 +30,7 @@ pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for
 #[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
-pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
+pub async fn init_test_db() -> (PgPool, DefGuardConfig) {
     let config = DefGuardConfig::new_test_config();
     let _ = SERVER_CONFIG.set(config.clone());
     let opts = PgConnectOptions::new()
@@ -39,7 +39,7 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
         .username(&config.database_user)
         .password(config.database_password.expose_secret())
         .database(&config.database_name);
-    let pool = DbPool::connect_with(opts)
+    let pool = PgPool::connect_with(opts)
         .await
         .expect("Failed to connect to Postgres");
     let db_name = Uuid::new_v4().to_string();
@@ -61,40 +61,42 @@ pub async fn init_test_db() -> (DbPool, DefGuardConfig) {
     (pool, config)
 }
 
-async fn initialize_users(pool: &DbPool, config: &DefGuardConfig) {
+async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
     User::init_admin_user(pool, config.default_admin_password.expose_secret())
         .await
         .unwrap();
 
-    let mut test_user = User::new(
+    User::new(
         "hpotter",
         Some("pass123"),
         "Potter",
         "Harry",
         "h.potter@hogwart.edu.uk",
         None,
-    );
-    test_user.save(pool).await.unwrap();
+    )
+    .save(pool)
+    .await
+    .unwrap();
 }
 
 pub struct ClientState {
-    pub pool: DbPool,
+    pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
     pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
-    pub test_user: User,
+    pub test_user: User<Id>,
     pub config: DefGuardConfig,
 }
 
 impl ClientState {
     pub fn new(
-        pool: DbPool,
+        pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
         wireguard_rx: Receiver<GatewayEvent>,
         mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
-        test_user: User,
+        test_user: User<Id>,
         config: DefGuardConfig,
     ) -> Self {
         Self {
@@ -109,7 +111,7 @@ impl ClientState {
     }
 }
 
-pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClient, ClientState) {
+pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -166,6 +168,7 @@ pub async fn make_base_client(pool: DbPool, config: DefGuardConfig) -> (TestClie
         user_agent_parser,
         failed_logins,
     );
+
     (TestClient::new(webapp).await, client_state)
 }
 

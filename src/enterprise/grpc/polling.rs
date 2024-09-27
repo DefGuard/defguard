@@ -1,7 +1,8 @@
+use sqlx::PgPool;
 use tonic::Status;
 
 use crate::{
-    db::{models::polling_token::PollingToken, DbPool, Device, User},
+    db::{models::polling_token::PollingToken, Device, Id, User},
     enterprise::license::{get_cached_license, validate_license},
     grpc::{
         proto::{InstanceInfoRequest, InstanceInfoResponse},
@@ -10,17 +11,17 @@ use crate::{
 };
 
 pub struct PollingServer {
-    pool: DbPool,
+    pool: PgPool,
 }
 
 impl PollingServer {
     #[must_use]
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     /// Checks validity of polling session
-    async fn validate_session(&self, token: &str) -> Result<PollingToken, Status> {
+    async fn validate_session(&self, token: &str) -> Result<PollingToken<Id>, Status> {
         debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
@@ -41,6 +42,7 @@ impl PollingServer {
 
         // Polling tokens are valid indefinitely
         info!("Token validation successful {token:?}.");
+
         Ok(token)
     }
 
@@ -61,15 +63,14 @@ impl PollingServer {
         debug!("Polling info for device: {}", device.wireguard_pubkey);
 
         // Ensure user is active
-        let device_id = device.id.expect("missing device id");
-        let Some(user) = User::find_by_device_id(&self.pool, device_id)
+        let Some(user) = User::find_by_device_id(&self.pool, device.id)
             .await
             .map_err(|err| {
-                error!("Failed to retrieve user for device id {device_id}: {err}");
+                error!("Failed to retrieve user for device id {}: {err}", device.id);
                 Status::internal("failed to retrieve user")
             })?
         else {
-            error!("User for device id {device_id} not found");
+            error!("User for device id {} not found", device.id);
             return Err(Status::internal("user not found"));
         };
         if !user.is_active {
@@ -83,6 +84,7 @@ impl PollingServer {
         // Build & return polling info
         let device_config =
             build_device_config_response(&self.pool, &device.wireguard_pubkey, false).await?;
+
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),
         })

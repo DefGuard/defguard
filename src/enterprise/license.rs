@@ -9,14 +9,11 @@ use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
-use sqlx::error::Error as SqlxError;
+use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::{
-    db::{DbPool, Settings},
-    VERSION,
-};
+use crate::{db::Settings, VERSION};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
@@ -315,7 +312,7 @@ impl License {
     }
 
     /// Get the key from the database
-    async fn get_key(pool: &DbPool) -> Result<Option<String>, LicenseError> {
+    async fn get_key(pool: &PgPool) -> Result<Option<String>, LicenseError> {
         let settings = Settings::get_settings(pool).await?;
         match settings.license {
             Some(key) => {
@@ -331,7 +328,7 @@ impl License {
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub async fn load(pool: &DbPool) -> Result<Option<License>, LicenseError> {
+    pub async fn load(pool: &PgPool) -> Result<Option<License>, LicenseError> {
         if let Some(key) = Self::get_key(pool).await? {
             Ok(Some(Self::from_base64(&key)?))
         } else {
@@ -342,7 +339,7 @@ impl License {
 
     /// Try to load the license from the database, if the license requires a renewal, try to renew it.
     /// If the renewal fails, it will return the old license for the renewal service to renew it later.
-    pub async fn load_or_renew(pool: &DbPool) -> Result<Option<License>, LicenseError> {
+    pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
         match Self::load(pool).await? {
             Some(license) => {
                 if license.requires_renewal() {
@@ -436,7 +433,7 @@ impl License {
 /// Exchange the currently stored key for a new one from the license server.
 ///
 /// Doesn't update the cached license, nor does it save the new key in the database.
-async fn renew_license(db_pool: &DbPool) -> Result<String, LicenseError> {
+async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
     debug!("Exchanging license for a new one...");
     let Some(old_license_key) = Settings::get_settings(db_pool).await?.license else {
         return Err(LicenseError::LicenseNotFound);
@@ -503,12 +500,14 @@ pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
 }
 
 /// Helper function to save the license key string in the database
-async fn save_license_key(pool: &DbPool, key: &str) -> Result<(), LicenseError> {
+async fn save_license_key(pool: &PgPool, key: &str) -> Result<(), LicenseError> {
     debug!("Saving the license key to the database...");
     let mut settings = Settings::get_settings(pool).await?;
     settings.license = Some(key.to_string());
-    settings.save(pool).await?;
-    info!("Successfully saved the license key to the database.");
+    settings.save_license(pool).await?;
+
+    info!("Successfully saved license key to the database.");
+
     Ok(())
 }
 
@@ -528,7 +527,9 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
         None
     };
     set_cached_license(license);
+
     info!("Successfully updated the cached license information.");
+
     Ok(())
 }
 
@@ -547,7 +548,7 @@ const CHECK_PERIOD_NO_LICENSE: Duration = Duration::from_secs(24 * 60 * 60);
 /// Periodic license check task for the case when the license is about to expire
 const CHECK_PERIOD_RENEWAL_WINDOW: Duration = Duration::from_secs(60 * 60);
 
-pub async fn run_periodic_license_check(pool: DbPool) -> Result<(), LicenseError> {
+pub async fn run_periodic_license_check(pool: PgPool) -> Result<(), LicenseError> {
     let mut check_period: Duration = CHECK_PERIOD;
     info!(
         "Starting periodic license renewal check every {}",

@@ -1,20 +1,28 @@
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, PgPool};
 
 use super::{error::LdapError, LDAPConnection};
-use crate::db::{DbPool, Group, User};
+use crate::db::{Group, Id, User};
 
 pub async fn user_from_ldap(
-    pool: &DbPool,
+    pool: &PgPool,
     username: &str,
     password: &str,
-) -> Result<User, LdapError> {
+) -> Result<User<Id>, LdapError> {
     let mut ldap_connection = LDAPConnection::create(pool).await?;
-    let mut user = ldap_connection.get_user(username, password).await?;
-    let _result = user.save(pool).await; // FIXME: do not ignore errors
-    Ok(user)
+    // FIXME: do not ignore errors
+    ldap_connection
+        .get_user(username, password)
+        .await?
+        .save(pool)
+        .await
+        .map_err(|_| LdapError::Database)
 }
 
-pub async fn ldap_add_user<'e, E>(executor: E, user: &User, password: &str) -> Result<(), LdapError>
+pub async fn ldap_add_user<'e, E>(
+    executor: E,
+    user: &User<Id>,
+    password: &str,
+) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -29,7 +37,7 @@ where
 pub async fn ldap_modify_user<'e, E>(
     executor: E,
     username: &str,
-    user: &User,
+    user: &User<Id>,
 ) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,

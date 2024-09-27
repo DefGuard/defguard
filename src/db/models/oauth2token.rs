@@ -1,11 +1,10 @@
 use chrono::{Duration, Utc};
-use sqlx::{query, query_as, Error as SqlxError};
+use sqlx::{query, query_as, Error as SqlxError, PgPool};
 
-use super::DbPool;
-use crate::{random::gen_alphanumeric, server_config};
+use crate::{db::Id, random::gen_alphanumeric, server_config};
 
 pub struct OAuth2Token {
-    pub oauth2authorizedapp_id: i64,
+    pub oauth2authorizedapp_id: Id,
     pub access_token: String,
     pub refresh_token: String,
     pub redirect_uri: String,
@@ -15,7 +14,7 @@ pub struct OAuth2Token {
 
 impl OAuth2Token {
     #[must_use]
-    pub fn new(oauth2authorizedapp_id: i64, redirect_uri: String, scope: String) -> Self {
+    pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
         let timeout = server_config().session_timeout;
         let expiration = Utc::now() + Duration::seconds(timeout.as_secs() as i64);
         Self {
@@ -29,7 +28,7 @@ impl OAuth2Token {
     }
 
     /// Generate new access token, scratching the old one. Changes are reflected in the database.
-    pub async fn refresh_and_save(&mut self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn refresh_and_save(&mut self, pool: &PgPool) -> Result<(), SqlxError> {
         let timeout = server_config().session_timeout;
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
@@ -56,7 +55,7 @@ impl OAuth2Token {
     }
 
     /// Store data in the database.
-    pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn save(&self, pool: &PgPool) -> Result<(), SqlxError> {
         query!(
             "INSERT INTO oauth2token (oauth2authorizedapp_id, access_token, refresh_token, redirect_uri, scope, expires_in) \
             VALUES ($1, $2, $3, $4, $5, $6)",
@@ -72,7 +71,7 @@ impl OAuth2Token {
     }
 
     /// Delete token from the database.
-    pub async fn delete(self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn delete(self, pool: &PgPool) -> Result<(), SqlxError> {
         query!(
             "DELETE FROM oauth2token WHERE access_token = $1 AND refresh_token = $2",
             self.access_token,
@@ -85,7 +84,7 @@ impl OAuth2Token {
 
     /// Find by access token.
     pub async fn find_access_token(
-        pool: &DbPool,
+        pool: &PgPool,
         access_token: &str,
     ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
@@ -112,7 +111,7 @@ impl OAuth2Token {
 
     /// Find by refresh token.
     pub async fn find_refresh_token(
-        pool: &DbPool,
+        pool: &PgPool,
         refresh_token: &str,
     ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
@@ -138,8 +137,8 @@ impl OAuth2Token {
     }
     // Find by authorized app id
     pub async fn find_by_authorized_app_id(
-        pool: &DbPool,
-        oauth2authorizedapp_id: i64,
+        pool: &PgPool,
+        oauth2authorizedapp_id: Id,
     ) -> Result<Option<Self>, SqlxError> {
         match query_as!(
             Self,

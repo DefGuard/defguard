@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::{sync::broadcast::Sender, time::sleep};
 
@@ -16,7 +16,7 @@ use crate::db::{
         error::ModelError,
         wireguard::WireguardNetworkError,
     },
-    DbPool, Device, GatewayEvent, WireguardNetwork,
+    Device, GatewayEvent, Id, WireguardNetwork,
 };
 
 // How long to sleep between loop iterations
@@ -38,7 +38,7 @@ pub enum PeerDisconnectError {
 ///
 /// Run with a specified frequency and disconnect all inactive peers in MFA-protected locations.
 pub async fn run_periodic_peer_disconnect(
-    pool: DbPool,
+    pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
@@ -47,9 +47,9 @@ pub async fn run_periodic_peer_disconnect(
 
         // get all MFA-protected locations
         let locations = query_as!(
-            WireguardNetwork,
+            WireguardNetwork::<Id>,
             "SELECT \
-                id as \"id?\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id \"id: _\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE mfa_enabled = true",
         )
@@ -59,7 +59,6 @@ pub async fn run_periodic_peer_disconnect(
         // loop over all locations
         for location in locations {
             debug!("Fetching inactive devices for location {location}");
-            let location_id = location.get_id()?;
             let devices = query_as!(
             Device,
             "WITH stats AS ( \
@@ -68,14 +67,14 @@ pub async fn run_periodic_peer_disconnect(
                     WHERE network = $1 \
                     ORDER BY device_id, collected_at DESC \
                 ) \
-            SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+            SELECT d.id \"id: _\", d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
             WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND \
             (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND \
             (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
-            location_id,
+            location.id,
                 f64::from(location.peer_disconnect_threshold)
         )
                 .fetch_all(&pool)
@@ -83,14 +82,13 @@ pub async fn run_periodic_peer_disconnect(
 
             for device in devices {
                 debug!("Processing inactive device {device}");
-                let device_id = device.get_id()?;
 
                 // start transaction
                 let mut transaction = pool.begin().await?;
 
                 // get network config for device
                 if let Some(mut device_network_config) =
-                    WireguardNetworkDevice::find(&mut *transaction, device_id, location_id).await?
+                    WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await?
                 {
                     info!("Marking device {device} as not authorized to connect to location {location}");
                     // change `is_authorized` value for device
@@ -103,7 +101,7 @@ pub async fn run_periodic_peer_disconnect(
                     let device_info = DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
-                            network_id: location_id,
+                            network_id: location.id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,

@@ -1,16 +1,16 @@
-use std::fmt::{self, Display, Formatter};
+use std::fmt;
 
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgPool};
 
-use crate::db::DbPool;
+use crate::db::{Id, NoId};
 
 #[derive(Clone, Deserialize, Model, Serialize, Debug)]
 #[table(device_login_event)]
-pub struct DeviceLoginEvent {
-    id: Option<i64>,
-    pub user_id: i64,
+pub struct DeviceLoginEvent<I = NoId> {
+    id: I,
+    pub user_id: Id,
     pub ip_address: String,
     pub model: Option<String>,
     pub family: String,
@@ -21,19 +21,22 @@ pub struct DeviceLoginEvent {
     pub created: NaiveDateTime,
 }
 
-impl Display for DeviceLoginEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.id {
-            Some(device_id) => write!(f, "[ID {}] {}", device_id, self.family),
-            None => write!(f, "{}", self.family),
-        }
+impl fmt::Display for DeviceLoginEvent<NoId> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.family)
+    }
+}
+
+impl fmt::Display for DeviceLoginEvent<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ID {}] {}", self.id, self.family)
     }
 }
 
 impl DeviceLoginEvent {
     #[must_use]
     pub fn new(
-        user_id: i64,
+        user_id: Id,
         ip_address: String,
         model: Option<String>,
         family: String,
@@ -43,7 +46,7 @@ impl DeviceLoginEvent {
         event_type: String,
     ) -> Self {
         Self {
-            id: None,
+            id: NoId,
             user_id,
             ip_address,
             model,
@@ -55,11 +58,13 @@ impl DeviceLoginEvent {
             created: Utc::now().naive_utc(),
         }
     }
+}
 
-    pub async fn find_device_login_event(&self, pool: &DbPool) -> Result<Option<Self>, SqlxError> {
+impl DeviceLoginEvent<Id> {
+    pub async fn find_device_login_event(&self, pool: &PgPool) -> Result<Option<Self>, SqlxError> {
         query_as!(
           Self,
-          "SELECT id \"id?\", user_id, ip_address, model, family, brand, os_family, browser, event_type, created
+          "SELECT id \"id: _\", user_id, ip_address, model, family, brand, os_family, browser, event_type, created
           FROM device_login_event WHERE user_id = $1 AND event_type = $2 AND family = $3 AND \
           brand = $4 AND model = $5 AND browser = $6",
           self.user_id, self.event_type, self.family, self.brand, self.model, self.browser
@@ -70,7 +75,7 @@ impl DeviceLoginEvent {
 
     pub async fn check_if_device_already_logged_in(
         mut self,
-        pool: &DbPool,
+        pool: &PgPool,
     ) -> Result<Option<Self>, anyhow::Error> {
         let existing_login_event = self.find_device_login_event(pool).await?;
 

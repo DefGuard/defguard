@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ipnetwork::IpNetwork;
-use sqlx::Transaction;
+use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 use uaparser::UserAgentParser;
@@ -21,7 +21,7 @@ use crate::{
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
             polling_token::PollingToken,
         },
-        DbPool, Device, GatewayEvent, Settings, User,
+        Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
     grpc::utils::build_device_config_response,
@@ -34,7 +34,7 @@ use crate::{
 };
 
 pub(super) struct EnrollmentServer {
-    pool: DbPool,
+    pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
@@ -44,7 +44,7 @@ pub(super) struct EnrollmentServer {
 impl EnrollmentServer {
     #[must_use]
     pub fn new(
-        pool: DbPool,
+        pool: PgPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
@@ -452,7 +452,11 @@ impl EnrollmentServer {
             request.pubkey, user.username, user.id
         );
 
-        let mut device = Device::new(request.name, request.pubkey, enrollment.user_id);
+        let device = Device::new(
+            request.name.clone(),
+            request.pubkey.clone(),
+            enrollment.user_id,
+        );
         debug!(
             "Creating new device for user {}({:?}) {device:?}.",
             user.username, user.id,
@@ -462,13 +466,26 @@ impl EnrollmentServer {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
-        device.save(&mut *transaction).await.map_err(|err| {
-            error!(
-                "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
-                device.name, device.wireguard_pubkey, user.username, user.id,
-            );
-            Status::internal("unexpected error")
-        })?;
+        let device = match device.save(&mut *transaction).await {
+            Ok(device) => device,
+            Err(err) => {
+                error!(
+                    "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+                    request.name, request.pubkey, user.username, user.id,
+                );
+                return Err(Status::internal("unexpected error"));
+            }
+        };
+        // let device = device.save(&mut *transaction).await.map_err(|err| {
+        //     error!(
+        //         "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+        //         &device.name,
+        //         device.wireguard_pubkey.as_str(),
+        //         user.username,
+        //         user.id,
+        //     );
+        //     Status::internal("unexpected error")
+        // })?;
         info!("New device created: {device:?}.");
 
         debug!(
@@ -539,17 +556,16 @@ impl EnrollmentServer {
             "Creating polling token for further client communication for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        let mut token = PollingToken::new(device.id.ok_or_else(|| {
-            error!("No device id");
-            Status::internal("unexpected error")
-        })?);
-        token.save(&mut *transaction).await.map_err(|err| {
-            error!(
-                "Failed to save PollingToken for device {}, user {}({:?}): {err}",
-                device.wireguard_pubkey, user.username, user.id
-            );
-            Status::internal("failed to save polling token")
-        })?;
+        let token = PollingToken::new(device.id)
+            .save(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to save PollingToken for device {}, user {}({:?}): {err}",
+                    device.wireguard_pubkey, user.username, user.id
+                );
+                Status::internal("failed to save polling token")
+            })?;
         info!(
             "Created polling token for further client communication for device: {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
@@ -616,8 +632,8 @@ impl EnrollmentServer {
     }
 }
 
-impl From<User> for AdminInfo {
-    fn from(admin: User) -> Self {
+impl From<User<Id>> for AdminInfo {
+    fn from(admin: User<Id>) -> Self {
         Self {
             name: format!("{} {}", admin.first_name, admin.last_name),
             phone_number: admin.phone,
@@ -627,7 +643,7 @@ impl From<User> for AdminInfo {
 }
 
 impl InitialUserInfo {
-    async fn from_user(pool: &DbPool, user: User) -> Result<Self, sqlx::Error> {
+    async fn from_user(pool: &PgPool, user: User<Id>) -> Result<Self, sqlx::Error> {
         let enrolled = user.is_enrolled();
         let devices = user.user_devices(pool).await?;
         let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
@@ -667,10 +683,10 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
     }
 }
 
-impl From<Device> for ProtoDevice {
-    fn from(device: Device) -> Self {
+impl From<Device<Id>> for ProtoDevice {
+    fn from(device: Device<Id>) -> Self {
         Self {
-            id: device.get_id().expect("Failed to get device ID"),
+            id: device.id,
             name: device.name,
             pubkey: device.wireguard_pubkey,
             user_id: device.user_id,
@@ -685,7 +701,7 @@ impl Token {
         &self,
         transaction: &mut Transaction<'_, sqlx::Postgres>,
         mail_tx: &UnboundedSender<Mail>,
-        user: &User,
+        user: &User<Id>,
         settings: &Settings,
         ip_address: &str,
         device_info: Option<&str>,
@@ -715,8 +731,8 @@ impl Token {
     // Notify admin that a user has completed enrollment
     fn send_admin_notification(
         mail_tx: &UnboundedSender<Mail>,
-        admin: &User,
-        user: &User,
+        admin: &User<Id>,
+        user: &User<Id>,
         ip_address: &str,
         device_info: Option<&str>,
     ) -> Result<(), TokenError> {

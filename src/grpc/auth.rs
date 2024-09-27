@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use jsonwebtoken::errors::Error as JWTError;
+use sqlx::PgPool;
 use tonic::{Request, Response, Status};
 
 use crate::{
@@ -8,20 +9,20 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
         Claims, ClaimsType,
     },
-    db::{DbPool, User},
+    db::User,
     server_config,
 };
 
 tonic::include_proto!("auth");
 
 pub struct AuthServer {
-    pool: DbPool,
+    pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 }
 
 impl AuthServer {
     #[must_use]
-    pub fn new(pool: DbPool, failed_logins: Arc<Mutex<FailedLoginMap>>) -> Self {
+    pub fn new(pool: PgPool, failed_logins: Arc<Mutex<FailedLoginMap>>) -> Self {
         Self {
             pool,
             failed_logins,

@@ -1,15 +1,17 @@
 use chrono::Utc;
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgPool};
 
-use super::DbPool;
-use crate::random::gen_alphanumeric;
+use crate::{
+    db::{Id, NoId},
+    random::gen_alphanumeric,
+};
 
 #[derive(Model, Clone)]
 #[table(authorization_code)]
-pub struct AuthCode {
-    id: Option<i64>,
-    pub user_id: i64,
+pub struct AuthCode<I = NoId> {
+    id: I,
+    pub user_id: Id,
     pub client_id: String,
     pub code: String,
     pub redirect_uri: String,
@@ -22,7 +24,7 @@ pub struct AuthCode {
 impl AuthCode {
     #[must_use]
     pub fn new(
-        user_id: i64,
+        user_id: Id,
         client_id: String,
         redirect_uri: String,
         scope: String,
@@ -31,7 +33,7 @@ impl AuthCode {
     ) -> Self {
         let code = gen_alphanumeric(24);
         Self {
-            id: None,
+            id: NoId,
             user_id,
             client_id,
             code,
@@ -42,12 +44,14 @@ impl AuthCode {
             code_challenge,
         }
     }
+}
 
+impl AuthCode<Id> {
     /// Find by code.
-    pub async fn find_code(pool: &DbPool, code: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_code(pool: &PgPool, code: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce, \
+            "SELECT id \"id: _\", user_id, client_id, code, redirect_uri, scope, auth_time, nonce, \
             code_challenge FROM authorization_code WHERE code = $1",
             code
         )
@@ -55,8 +59,8 @@ impl AuthCode {
         .await
     }
 
-    // Remove a used authorization_code
-    pub async fn consume(self, pool: &DbPool) -> Result<(), SqlxError> {
+    // Remove an used authorization_code
+    pub async fn consume(self, pool: &PgPool) -> Result<(), SqlxError> {
         self.delete(pool).await
     }
 }

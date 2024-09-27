@@ -8,16 +8,17 @@ use defguard::{
             oauth2client::{OAuth2Client, OAuth2ClientSafe},
             NewOpenIDClient,
         },
-        DbPool, OAuth2AuthorizedApp,
+        Id, OAuth2AuthorizedApp,
     },
     handlers::Auth,
 };
 use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
 use serde_json::json;
+use sqlx::PgPool;
 
 use self::common::{client::TestClient, make_test_client};
 
-async fn make_client() -> (TestClient, DbPool) {
+async fn make_client() -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client().await;
     (client, client_state.pool)
 }
@@ -43,11 +44,13 @@ async fn test_authorize() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let oauth_client: OAuth2Client = response.json().await;
+    let oauth_client: OAuth2Client<Id> = response.json().await;
 
     // authorize client for test user
-    let mut app = OAuth2AuthorizedApp::new(1, oauth_client.id.unwrap());
-    app.save(&pool).await.unwrap();
+    OAuth2AuthorizedApp::new(1, oauth_client.id)
+        .save(&pool)
+        .await
+        .unwrap();
 
     // wrong response type
     let response = client
@@ -186,7 +189,7 @@ async fn test_openid_app_management_access() {
     // list apps
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.json().await;
+    let apps: Vec<OAuth2Client<Id>> = response.json().await;
     assert_eq!(apps.len(), 1);
     let test_app = &apps[0];
     assert_eq!(test_app.name, oauth2client.name);
@@ -197,7 +200,7 @@ async fn test_openid_app_management_access() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let app: OAuth2Client = response.json().await;
+    let app: OAuth2Client<Id> = response.json().await;
     assert_eq!(app.name, oauth2client.name);
 
     // edit app
@@ -231,7 +234,7 @@ async fn test_openid_app_management_access() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let app: OAuth2Client = response.json().await;
+    let app: OAuth2Client<Id> = response.json().await;
     assert_eq!(app.name, oauth2client.name);
     assert!(!app.enabled);
 
@@ -245,7 +248,7 @@ async fn test_openid_app_management_access() {
     // list apps
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.json().await;
+    let apps: Vec<OAuth2Client<Id>> = response.json().await;
     assert_eq!(apps.len(), 0);
 
     // add another app for further testing
@@ -263,7 +266,7 @@ async fn test_openid_app_management_access() {
     assert_eq!(response.status(), StatusCode::CREATED);
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let apps: Vec<OAuth2Client> = response.json().await;
+    let apps: Vec<OAuth2Client<Id>> = response.json().await;
     let test_app = &apps[0];
 
     // // login as standard user

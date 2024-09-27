@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde_json::{json, Value};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
@@ -11,7 +12,7 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 use crate::db::Device;
 use crate::{
     auth::SessionInfo,
-    db::{DbPool, User, UserInfo},
+    db::{Id, NoId, User, UserInfo, WebHook},
     enterprise::license::LicenseError,
     error::WebError,
     VERSION,
@@ -267,7 +268,7 @@ pub struct WalletSignature {
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WalletChallenge {
-    pub id: i64,
+    pub id: Id,
     pub message: String,
 }
 
@@ -304,6 +305,34 @@ impl RecoveryCodes {
     }
 }
 
+#[derive(Deserialize)]
+pub struct WebHookData {
+    pub url: String,
+    pub description: String,
+    pub token: String,
+    pub enabled: bool,
+    pub on_user_created: bool,
+    pub on_user_deleted: bool,
+    pub on_user_modified: bool,
+    pub on_hwkey_provision: bool,
+}
+
+impl From<WebHookData> for WebHook {
+    fn from(data: WebHookData) -> Self {
+        Self {
+            id: NoId,
+            url: data.url,
+            description: data.description,
+            token: data.token,
+            enabled: data.enabled,
+            on_user_created: data.on_user_created,
+            on_user_deleted: data.on_user_deleted,
+            on_user_modified: data.on_user_modified,
+            on_hwkey_provision: data.on_hwkey_provision,
+        }
+    }
+}
+
 /// Return type needed to know if user came from openid flow
 /// with optional url to redirect him later if yes
 #[derive(Serialize, Deserialize)]
@@ -315,10 +344,10 @@ pub struct AuthResponse {
 /// Try to fetch [`User`] if the username is of the currently logged in user, or
 /// the logged in user is an admin.
 pub async fn user_for_admin_or_self(
-    pool: &DbPool,
+    pool: &PgPool,
     session: &SessionInfo,
     username: &str,
-) -> Result<User, WebError> {
+) -> Result<User<Id>, WebError> {
     if session.user.username == username || session.is_admin {
         debug!("The user meets one or both of these conditions: 1) the user from the current session has admin privileges, 2) the user performs this operation on themself.");
         if let Some(user) = User::find_by_username(pool, username).await? {
@@ -342,10 +371,10 @@ pub async fn user_for_admin_or_self(
 /// the logged in user is an admin.
 #[cfg(feature = "wireguard")]
 pub async fn device_for_admin_or_self(
-    pool: &DbPool,
+    pool: &PgPool,
     session: &SessionInfo,
-    id: i64,
-) -> Result<Device, WebError> {
+    id: Id,
+) -> Result<Device<Id>, WebError> {
     let fetch = if session.is_admin {
         Device::find_by_id(pool, id).await
     } else {

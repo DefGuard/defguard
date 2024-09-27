@@ -45,7 +45,7 @@ async fn test_config_import() {
     let pool = client_state.pool;
 
     // setup initial network
-    let mut initial_network = WireguardNetwork::new(
+    let initial_network = WireguardNetwork::new(
         "initial".into(),
         "10.1.9.0/24".parse().unwrap(),
         51515,
@@ -62,23 +62,27 @@ async fn test_config_import() {
     // add existing devices
     let mut transaction = pool.begin().await.unwrap();
 
-    let mut device_1 = Device::new(
+    let device_1 = Device::new(
         "test device".into(),
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
         1,
-    );
-    device_1.save(&mut *transaction).await.unwrap();
+    )
+    .save(&mut *transaction)
+    .await
+    .unwrap();
     device_1
         .add_to_all_networks(&mut transaction)
         .await
         .unwrap();
 
-    let mut device_2 = Device::new(
+    let device_2 = Device::new(
         "another test device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         1,
-    );
-    device_2.save(&mut *transaction).await.unwrap();
+    )
+    .save(&mut *transaction)
+    .await
+    .unwrap();
     device_2
         .add_to_all_networks(&mut transaction)
         .await
@@ -103,7 +107,7 @@ async fn test_config_import() {
 
     // network assertions
     let network = response.network;
-    assert_eq!(network.id, Some(2));
+    assert_eq!(network.id, 2);
     assert_eq!(network.name, "network");
     assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
     assert_eq!(network.port, 55055);
@@ -166,7 +170,7 @@ async fn test_config_import() {
 
     // post modified devices
     let response = client
-        .post(format!("/api/v1/network/{}/devices", network.id.unwrap()))
+        .post(format!("/api/v1/network/{}/devices", network.id))
         .json(&json!({"devices": [device1, device2]}))
         .send()
         .await;

@@ -6,7 +6,7 @@ use defguard::{
         models::wireguard::{
             WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
         },
-        Device, WireguardPeerStats,
+        Device, Id, NoId, WireguardPeerStats,
     },
     handlers::Auth,
 };
@@ -73,7 +73,7 @@ async fn test_stats() {
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // get devices
-    let mut devices = Vec::<Device>::new();
+    let mut devices = Vec::<Device<Id>>::new();
     let response = client.get("/api/v1/device/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     devices.push(response.json().await);
@@ -100,9 +100,9 @@ async fn test_stats() {
     let samples = 60 * 11; // 11 hours of samples
     for i in 0..samples {
         for (d, device) in devices.iter().enumerate().take(2) {
-            let mut wps = WireguardPeerStats {
-                id: None,
-                device_id: device.id.unwrap(),
+            WireguardPeerStats {
+                id: NoId,
+                device_id: device.id,
                 collected_at: now - Duration::minutes(i),
                 network: 1,
                 endpoint: Some("11.22.33.44".into()),
@@ -110,8 +110,10 @@ async fn test_stats() {
                 download: (samples - i) * 20 * (d as i64 + 1),
                 latest_handshake: now - Duration::minutes(i * 10),
                 allowed_ips: Some("10.1.1.0/24".into()),
-            };
-            wps.save(&pool).await.unwrap();
+            }
+            .save(&pool)
+            .await
+            .unwrap();
         }
     }
 

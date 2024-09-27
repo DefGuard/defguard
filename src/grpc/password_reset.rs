@@ -1,3 +1,4 @@
+use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
@@ -8,7 +9,7 @@ use super::proto::{
 use crate::{
     db::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-        DbPool, User,
+        User,
     },
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
@@ -20,14 +21,14 @@ use crate::{
 };
 
 pub(super) struct PasswordResetServer {
-    pool: DbPool,
+    pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     // ldap_feature_active: bool,
 }
 
 impl PasswordResetServer {
     #[must_use]
-    pub fn new(pool: DbPool, mail_tx: UnboundedSender<Mail>) -> Self {
+    pub fn new(pool: PgPool, mail_tx: UnboundedSender<Mail>) -> Self {
         // FIXME: check if LDAP feature is enabled
         // let ldap_feature_active = true;
         Self {
@@ -114,14 +115,10 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        Token::delete_unused_user_password_reset_tokens(
-            &mut transaction,
-            user.id.expect("Missing user ID"),
-        )
-        .await?;
+        Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
 
         let enrollment = Token::new(
-            user.id.expect("Missing user ID"),
+            user.id,
             None,
             Some(email.clone()),
             config.password_reset_token_timeout.as_secs(),
