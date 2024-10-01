@@ -85,7 +85,7 @@ tokio = { version = "1", features = [
     "time",
 ] }
 tokio-stream = "0.1"
-tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
+tonic = { version = "0.12", features = ["gzip", "tls", "tls-roots"] }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
