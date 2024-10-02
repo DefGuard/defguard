@@ -3,7 +3,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
 use super::proto::{
-    PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
+    DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,
 };
 use crate::{
@@ -71,7 +71,7 @@ impl PasswordResetServer {
     pub async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         let config = server_config();
         debug!("Starting password reset request");
@@ -208,7 +208,7 @@ impl PasswordResetServer {
     pub async fn reset_password(
         &self,
         request: PasswordResetRequest,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Starting password reset: {request:?}");
         let enrollment = self.validate_session(&request.token).await?;
