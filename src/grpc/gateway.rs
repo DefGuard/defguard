@@ -447,7 +447,7 @@ impl GatewayUpdatesStream {
     pub fn new(
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
-        network_id: i64,
+        network_id: Id,
         gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
         pool: PgPool,
