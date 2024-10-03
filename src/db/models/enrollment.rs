@@ -1,13 +1,14 @@
 use chrono::{Duration, NaiveDateTime, Utc};
 use reqwest::Url;
-use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor};
+use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool};
 use tera::{Context, Tera};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Code, Status};
 
-use super::{settings::Settings, DbPool, User};
+use super::{settings::Settings, User};
 use crate::{
+    db::Id,
     mail::Mail,
     random::gen_alphanumeric,
     server_config,
@@ -80,7 +81,7 @@ impl From<TokenError> for Status {
 #[derive(Clone, Debug)]
 pub struct Token {
     pub id: String,
-    pub user_id: i64,
+    pub user_id: Id,
     pub admin_id: Option<i64>,
     pub email: Option<String>,
     pub created_at: NaiveDateTime,
@@ -92,8 +93,8 @@ pub struct Token {
 impl Token {
     #[must_use]
     pub fn new(
-        user_id: i64,
-        admin_id: Option<i64>,
+        user_id: Id,
+        admin_id: Option<Id>,
         email: Option<String>,
         token_timeout_seconds: u64,
         token_type: Option<String>,
@@ -191,7 +192,7 @@ impl Token {
         }
     }
 
-    pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Self, TokenError> {
+    pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
         if let Some(enrollment) = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
@@ -209,7 +210,7 @@ impl Token {
         }
     }
 
-    pub async fn fetch_all(pool: &DbPool) -> Result<Vec<Self>, TokenError> {
+    pub async fn fetch_all(pool: &PgPool) -> Result<Vec<Self>, TokenError> {
         let tokens = query_as!(
             Self,
             "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
@@ -220,7 +221,7 @@ impl Token {
         Ok(tokens)
     }
 
-    pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User, TokenError>
+    pub async fn fetch_user<'e, E>(&self, executor: E) -> Result<User<Id>, TokenError>
     where
         E: PgExecutor<'e>,
     {
@@ -230,10 +231,11 @@ impl Token {
             return Err(TokenError::UserNotFound);
         };
         debug!("Fetched user {user:?}.");
+
         Ok(user)
     }
 
-    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User>, TokenError>
+    pub async fn fetch_admin<'e, E>(&self, executor: E) -> Result<Option<User<Id>>, TokenError>
     where
         E: PgExecutor<'e>,
     {
@@ -247,12 +249,13 @@ impl Token {
         debug!("Trying to find admin using id {admin_id}");
         let user = User::find_by_id(executor, admin_id).await?;
         debug!("Fetched admin {user:?}.");
+
         Ok(user)
     }
 
     pub async fn delete_unused_user_tokens(
         transaction: &mut PgConnection,
-        user_id: i64,
+        user_id: Id,
     ) -> Result<(), TokenError> {
         debug!("Deleting unused tokens for the user.");
         let result = query!(
@@ -273,7 +276,7 @@ impl Token {
 
     pub async fn delete_unused_user_password_reset_tokens(
         transaction: &mut PgConnection,
-        user_id: i64,
+        user_id: Id,
     ) -> Result<(), TokenError> {
         debug!("Deleting unused password reset tokens for user {user_id}");
         let result = query!(
@@ -374,14 +377,14 @@ impl Token {
     }
 }
 
-impl User {
+impl User<Id> {
     /// Start user enrollment process
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends enrollment email notification to user
     pub async fn start_enrollment(
         &self,
         transaction: &mut PgConnection,
-        admin: &User,
+        admin: &User<Id>,
         email: Option<String>,
         token_timeout_seconds: u64,
         enrollment_service_url: Url,
@@ -414,16 +417,13 @@ impl User {
             return Err(TokenError::UserDisabled);
         }
 
-        let user_id = self.id.expect("User without ID");
-        let admin_id = admin.id.expect("Admin user without ID");
-
         self.clear_unused_enrollment_tokens(&mut *transaction)
             .await?;
 
         debug!("Create a new enrollment token for user {}.", self.username);
         let enrollment = Token::new(
-            user_id,
-            Some(admin_id),
+            self.id,
+            Some(admin.id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
@@ -484,13 +484,14 @@ impl User {
 
         Ok(enrollment.id)
     }
+
     /// Start user remote desktop configuration process
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends email notification to user
     pub async fn start_remote_desktop_configuration(
         &self,
         transaction: &mut PgConnection,
-        admin: &User,
+        admin: &User<Id>,
         email: Option<String>,
         token_timeout_seconds: u64,
         enrollment_service_url: Url,
@@ -505,9 +506,6 @@ impl User {
             "Notify {} by mail about the enrollment process: {}",
             self.username, send_user_notification
         );
-
-        let user_id = self.id.expect("User without ID");
-        let admin_id = admin.id.expect("Admin user without ID");
 
         debug!("Verify that {} is an active user.", self.username);
         if !self.is_active {
@@ -527,8 +525,8 @@ impl User {
             self.username
         );
         let desktop_configuration = Token::new(
-            user_id,
-            Some(admin_id),
+            self.id,
+            Some(admin.id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
@@ -595,21 +593,8 @@ impl User {
         transaction: &mut PgConnection,
     ) -> Result<(), TokenError> {
         info!("Removing unused tokens for user {}.", self.username);
-        Token::delete_unused_user_tokens(transaction, self.id.expect("Missing user ID")).await
+        Token::delete_unused_user_tokens(transaction, self.id).await
     }
-
-    // pub async fn request_password_reset(
-    //     &self,
-    //     transaction: &mut PgConnection,
-    //     admin: &User,
-    //     // email: Option<String>,
-    //     token_timeout_seconds: u64,
-    //     // enrollment_service_url: Url,
-    //     // send_user_notification: bool,
-    //     mail_tx: UnboundedSender<Mail>,
-    // ) -> Result<String, EnrollmentError> {
-
-    // }
 }
 
 impl Settings {

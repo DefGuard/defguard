@@ -7,9 +7,7 @@ use claims::assert_err;
 use common::fetch_user_details;
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{
-        models::wallet::keccak256, DbPool, MFAInfo, MFAMethod, Settings, User, UserDetails, Wallet,
-    },
+    db::{models::wallet::keccak256, MFAInfo, MFAMethod, Settings, User, UserDetails, Wallet},
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
     hex::to_lower_hex,
     secret::SecretString,
@@ -19,7 +17,7 @@ use reqwest::{header::USER_AGENT, StatusCode};
 use secp256k1::{rand::rngs::OsRng, All, Message, Secp256k1, SecretKey};
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::query;
+use sqlx::{query, PgPool};
 use totp_lite::{totp_custom, Sha1};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
@@ -36,29 +34,33 @@ pub struct RecoveryCodes {
 async fn make_client() -> TestClient {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
+    Wallet::new_for_user(
+        client_state.test_user.id,
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
         "test",
         5,
         "",
-    );
-    wallet.save(&client_state.pool).await.unwrap();
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
 
     client
 }
 
-async fn make_client_with_db() -> (TestClient, DbPool) {
+async fn make_client_with_db() -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
+    Wallet::new_for_user(
+        client_state.test_user.id,
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
         "test",
         5,
         "",
-    );
-    wallet.save(&client_state.pool).await.unwrap();
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
 
     (client, client_state.pool)
 }
@@ -66,14 +68,16 @@ async fn make_client_with_db() -> (TestClient, DbPool) {
 async fn make_client_with_state() -> (TestClient, ClientState) {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
+    Wallet::new_for_user(
+        client_state.test_user.id,
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
         "test",
         5,
         "",
-    );
-    wallet.save(&client_state.pool).await.unwrap();
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
 
     (client, client_state)
 }
@@ -81,9 +85,10 @@ async fn make_client_with_state() -> (TestClient, ClientState) {
 async fn make_client_with_wallet(address: &str) -> TestClient {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet =
-        Wallet::new_for_user(client_state.test_user.id.unwrap(), address, "test", 5, "");
-    wallet.save(&client_state.pool).await.unwrap();
+    Wallet::new_for_user(client_state.test_user.id, address, "test", 5, "")
+        .save(&client_state.pool)
+        .await
+        .unwrap();
 
     client
 }

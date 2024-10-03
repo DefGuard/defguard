@@ -57,7 +57,7 @@ pub async fn authenticate(
     // check if user can proceed with login
     check_username(&appstate.failed_logins, &username)?;
 
-    let user: User = match User::find_by_username(&appstate.pool, &username).await {
+    let user = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(()) => {
                 if user.is_active {
@@ -129,7 +129,7 @@ pub async fn authenticate(
 
     debug!("Creating new session for user {username}");
     let session = Session::new(
-        user.id.unwrap(),
+        user.id,
         SessionState::PasswordVerified,
         ip_address.clone(),
         device_info,
@@ -283,8 +283,7 @@ pub async fn webauthn_init(
         user.username
     );
     // passkeys to exclude
-    let passkeys =
-        WebAuthn::passkeys_for_user(&appstate.pool, user.id.expect("User ID missing")).await?;
+    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, user.id).await?;
     match appstate.webauthn.start_passkey_registration(
         Uuid::new_v4(),
         &user.username,
@@ -355,7 +354,7 @@ pub async fn webauthn_finish(
         .await?
         .ok_or(WebError::WebauthnRegistration("User not found".into()))?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-    let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
+    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
     webauthn.save(&appstate.pool).await?;
     if user.mfa_method == MFAMethod::None {
         send_mfa_configured_email(
@@ -700,7 +699,7 @@ pub async fn web3auth_start(
     Json(data): Json<WalletAddress>,
 ) -> ApiResult {
     debug!("Starting web3 authentication for wallet {}", data.address);
-    match Settings::find_by_id(&appstate.pool, 1).await? {
+    match Settings::get(&appstate.pool).await? {
         Some(settings) => {
             let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
             session

@@ -17,7 +17,9 @@ impl User {
             get_value(entry, "mobile"),
         )
     }
+}
 
+impl<I> User<I> {
     #[must_use]
     pub fn as_ldap_mod(&self, config: &LDAPConfig) -> Vec<Mod<&str>> {
         let mut changes = vec![

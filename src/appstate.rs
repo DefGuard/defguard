@@ -5,6 +5,7 @@ use axum_extra::extract::cookie::Key;
 use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde_json::json;
+use sqlx::PgPool;
 use tokio::{
     sync::{
         broadcast::Sender,
@@ -17,14 +18,14 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, DbPool, GatewayEvent, WebHook},
+    db::{AppEvent, GatewayEvent, WebHook},
     mail::Mail,
     server_config,
 };
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: DbPool,
+    pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
     wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
@@ -44,7 +45,7 @@ impl AppState {
     }
 
     /// Handle webhook events
-    async fn handle_triggers(pool: DbPool, mut rx: UnboundedReceiver<AppEvent>) {
+    async fn handle_triggers(pool: PgPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {
             debug!("WebHook triggered");
@@ -97,7 +98,7 @@ impl AppState {
 
     /// Create application state
     pub fn new(
-        pool: DbPool,
+        pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,

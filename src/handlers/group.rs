@@ -61,7 +61,7 @@ pub(crate) async fn bulk_assign_to_groups(
     debug!("Assigning groups to users.");
     let users = query_as!(
         User,
-        "SELECT id \"id?\", username, password_hash, last_name, first_name, email, \
+        "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE id = ANY($1)",
@@ -99,6 +99,7 @@ pub(crate) async fn bulk_assign_to_groups(
     transaction.commit().await?;
     WireguardNetwork::sync_all_networks(&appstate).await?;
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
+
     Ok(ApiResponse {
         json: json!({}),
         status: StatusCode::OK,
@@ -137,9 +138,9 @@ pub(crate) async fn list_groups_info(
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
-        "SELECT g.name as name, \
-        COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') as \"members!\", \
-        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') as \"vpn_locations!\" \
+        "SELECT g.name name, \
+        COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
+        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\" \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
@@ -262,9 +263,8 @@ pub(crate) async fn create_group(
     // FIXME: LDAP operations are not reverted.
     let mut transaction = appstate.pool.begin().await?;
 
-    let mut group = Group::new(&group_info.name);
     // FIXME: conflicts must not return internal server error (500).
-    group.save(&appstate.pool).await?;
+    let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     // TODO: create group in LDAP
 
     for username in &group_info.members {
@@ -282,6 +282,7 @@ pub(crate) async fn create_group(
     WireguardNetwork::sync_all_networks(&appstate).await?;
 
     info!("Created group {}", group_info.name);
+
     Ok(ApiResponse {
         json: json!(group_info),
         status: StatusCode::CREATED,

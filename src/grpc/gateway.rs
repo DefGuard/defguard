@@ -5,7 +5,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use sqlx::{query, Error as SqlxError, PgExecutor};
+use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
@@ -20,7 +20,7 @@ use super::GatewayMap;
 use crate::{
     db::{
         models::wireguard::{WireguardNetwork, WireguardPeerStats},
-        DbPool, Device, GatewayEvent,
+        Device, GatewayEvent, Id, NoId,
     },
     mail::Mail,
 };
@@ -28,13 +28,13 @@ use crate::{
 tonic::include_proto!("gateway");
 
 pub struct GatewayServer {
-    pool: DbPool,
+    pool: PgPool,
     state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
 }
 
-impl WireguardNetwork {
+impl WireguardNetwork<Id> {
     /// Get a list of all allowed peers
     ///
     /// Each device is marked as allowed or not allowed in a given network,
@@ -43,10 +43,10 @@ impl WireguardNetwork {
     where
         E: PgExecutor<'e>,
     {
-        debug!("Fetching all peers for network {}", self.id.unwrap());
+        debug!("Fetching all peers for network {}", self.id);
         let rows = query!(
-            "SELECT d.wireguard_pubkey as pubkey, preshared_key, \
-                array[host(wnd.wireguard_ip)] as \"allowed_ips!: Vec<String>\" \
+            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
@@ -79,7 +79,7 @@ impl GatewayServer {
     /// Create new gateway server instance
     #[must_use]
     pub fn new(
-        pool: DbPool,
+        pool: PgPool,
         state: Arc<Mutex<GatewayMap>>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -134,7 +134,7 @@ impl GatewayServer {
     }
 }
 
-fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
+fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration {
     Configuration {
         name: network.name.clone(),
         port: network.port as u32,
@@ -145,13 +145,13 @@ fn gen_config(network: &WireguardNetwork, peers: Vec<Peer>) -> Configuration {
 }
 
 impl WireguardPeerStats {
-    fn from_peer_stats(stats: PeerStats, network_id: i64) -> Self {
+    fn from_peer_stats(stats: PeerStats, network_id: Id) -> Self {
         let endpoint = match stats.endpoint {
             endpoint if endpoint.is_empty() => None,
             _ => Some(stats.endpoint),
         };
         Self {
-            id: None,
+            id: NoId,
             network: network_id,
             endpoint,
             device_id: -1,
@@ -168,8 +168,8 @@ impl WireguardPeerStats {
 
 /// Helper struct for handling gateway events
 struct GatewayUpdatesHandler {
-    network_id: i64,
-    network: WireguardNetwork,
+    network_id: Id,
+    network: WireguardNetwork<Id>,
     gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
     tx: mpsc::Sender<Result<Update, Status>>,
@@ -177,8 +177,8 @@ struct GatewayUpdatesHandler {
 
 impl GatewayUpdatesHandler {
     pub fn new(
-        network_id: i64,
-        network: WireguardNetwork,
+        network_id: Id,
+        network: WireguardNetwork<Id>,
         gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
@@ -313,7 +313,7 @@ impl GatewayUpdatesHandler {
     /// Sends updated network configuration
     async fn send_network_update(
         &self,
-        network: &WireguardNetwork,
+        network: &WireguardNetwork<Id>,
         peers: Vec<Peer>,
         update_type: i32,
     ) -> Result<(), Status> {
@@ -436,10 +436,10 @@ impl GatewayUpdatesHandler {
 pub struct GatewayUpdatesStream {
     task_handle: JoinHandle<()>,
     rx: Receiver<Result<Update, Status>>,
-    network_id: i64,
+    network_id: Id,
     gateway_hostname: String,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    pool: DbPool,
+    pool: PgPool,
 }
 
 impl GatewayUpdatesStream {
@@ -447,10 +447,10 @@ impl GatewayUpdatesStream {
     pub fn new(
         task_handle: JoinHandle<()>,
         rx: Receiver<Result<Update, Status>>,
-        network_id: i64,
+        network_id: Id,
         gateway_hostname: String,
         gateway_state: Arc<Mutex<GatewayMap>>,
-        pool: DbPool,
+        pool: PgPool,
     ) -> Self {
         Self {
             task_handle,
@@ -507,15 +507,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // Get device by public key and fill in stats.device_id
             // FIXME: keep an in-memory device map to avoid repeated DB requests
             stats.device_id = match Device::find_by_pubkey(&self.pool, &public_key).await {
-                Ok(Some(device)) => device.id.ok_or_else(|| {
-                    Status::new(
-                        Code::Internal,
-                        format!(
-                            "Device {} (public key: {public_key}) has no ID",
-                            device.name
-                        ),
-                    )
-                })?,
+                Ok(Some(device)) => device.id,
                 Ok(None) => {
                     error!("Device with public key {public_key} not found");
                     return Err(Status::new(
@@ -532,16 +524,20 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 }
             };
             // Save stats to db
-            if let Err(err) = stats.save(&self.pool).await {
-                error!("Saving WireGuard peer stats to db failed: {err}");
-                return Err(Status::new(
-                    Code::Internal,
-                    format!("Saving WireGuard peer stats to db failed: {err}"),
-                ));
-            }
+            let stats = match stats.save(&self.pool).await {
+                Ok(stats) => stats,
+                Err(err) => {
+                    error!("Saving WireGuard peer stats to db failed: {err}");
+                    return Err(Status::new(
+                        Code::Internal,
+                        format!("Saving WireGuard peer stats to db failed: {err}"),
+                    ));
+                }
+            };
             info!("Saved WireGuard peer stats to db.");
             debug!("WireGuard peer stats: {stats:?}");
         }
+
         Ok(Response::new(()))
     }
 

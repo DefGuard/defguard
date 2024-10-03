@@ -4,7 +4,7 @@ use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 use sqlx::PgExecutor;
 
 use self::error::LdapError;
-use crate::db::{self, Settings, User};
+use crate::db::{self, Id, Settings, User};
 
 pub mod error;
 pub mod hash;
@@ -117,6 +117,7 @@ impl LDAPConnection {
         ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
             .await?
             .success()?;
+
         Ok(Self { config, ldap })
     }
 
@@ -133,6 +134,7 @@ impl LDAPConnection {
             .await?
             .success()?;
         info!("Performed LDAP user search with filter = {filter}");
+
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
@@ -160,6 +162,7 @@ impl LDAPConnection {
         debug!("Adding object {dn}");
         self.ldap.add(dn, attrs).await?.success()?;
         info!("Added object {dn}");
+
         Ok(())
     }
 
@@ -178,6 +181,7 @@ impl LDAPConnection {
             }
         }
         info!("Modified LDAP object {old_dn}");
+
         Ok(())
     }
 
@@ -186,6 +190,7 @@ impl LDAPConnection {
         debug!("Deleting LDAP object {dn}");
         self.ldap.delete(dn).await?;
         info!("Deleted LDAP object {dn}");
+
         Ok(())
     }
 
@@ -224,7 +229,7 @@ impl LDAPConnection {
     }
 
     /// Adds user to LDAP.
-    pub async fn add_user(&mut self, user: &User, password: &str) -> Result<(), LdapError> {
+    pub async fn add_user(&mut self, user: &User<Id>, password: &str) -> Result<(), LdapError> {
         debug!("Adding LDAP user {}", user.username);
         let dn = self.config.user_dn(&user.username);
         let ssha_password = hash::salted_sha1_hash(password);
@@ -232,17 +237,19 @@ impl LDAPConnection {
         self.add(&dn, user.as_ldap_attrs(&ssha_password, &ht_password))
             .await?;
         info!("Added LDAP user {}", user.username);
+
         Ok(())
     }
 
     /// Modifies LDAP user.
-    pub async fn modify_user(&mut self, username: &str, user: &User) -> Result<(), LdapError> {
+    pub async fn modify_user(&mut self, username: &str, user: &User<Id>) -> Result<(), LdapError> {
         debug!("Modifying user {username}");
         let old_dn = self.config.user_dn(username);
         let new_dn = self.config.user_dn(&user.username);
         self.modify(&old_dn, &new_dn, user.as_ldap_mod(&self.config))
             .await?;
         info!("Modified user {username}");
+
         Ok(())
     }
 
@@ -252,6 +259,7 @@ impl LDAPConnection {
         let dn = self.config.user_dn(username);
         self.delete(&dn).await?;
         info!("Deleted user {username}");
+
         Ok(())
     }
 
@@ -271,6 +279,7 @@ impl LDAPConnection {
         )
         .await?;
         info!("Password set for user {username}");
+
         Ok(())
     }
 
@@ -309,6 +318,7 @@ impl LDAPConnection {
         )
         .await?;
         info!("Modified LDAP group {groupname}");
+
         Ok(())
     }
 
@@ -346,6 +356,7 @@ impl LDAPConnection {
             )],
         )
         .await?;
+
         Ok(())
     }
 
@@ -366,6 +377,7 @@ impl LDAPConnection {
             )],
         )
         .await?;
+
         Ok(())
     }
 }

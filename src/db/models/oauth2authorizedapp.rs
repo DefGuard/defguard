@@ -1,32 +1,35 @@
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgPool};
 
-use super::DbPool;
+use crate::db::{Id, NoId};
 
 #[derive(Model)]
-pub struct OAuth2AuthorizedApp {
-    pub id: Option<i64>,
-    pub user_id: i64,
-    pub oauth2client_id: i64,
+pub struct OAuth2AuthorizedApp<I = NoId> {
+    pub id: I,
+    pub user_id: Id,
+    pub oauth2client_id: Id,
 }
 
 impl OAuth2AuthorizedApp {
     #[must_use]
-    pub fn new(user_id: i64, oauth2client_id: i64) -> Self {
+    pub fn new(user_id: Id, oauth2client_id: Id) -> Self {
         Self {
-            id: None,
+            id: NoId,
             user_id,
             oauth2client_id,
         }
     }
+}
+
+impl OAuth2AuthorizedApp<Id> {
     pub async fn find_by_user_and_oauth2client_id(
-        pool: &DbPool,
-        user_id: i64,
-        oauth2client_id: i64,
+        pool: &PgPool,
+        user_id: Id,
+        oauth2client_id: Id,
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", user_id, oauth2client_id \
+            "SELECT id, user_id, oauth2client_id \
             FROM oauth2authorizedapp WHERE user_id = $1 AND oauth2client_id = $2",
             user_id,
             oauth2client_id

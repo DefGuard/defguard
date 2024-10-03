@@ -1,8 +1,8 @@
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, FromRow};
+use sqlx::{query_as, Error as SqlxError, FromRow, PgPool};
 
 use super::UserInfo;
-use crate::DbPool;
+use crate::db::{Id, NoId};
 
 /// App events which triggers webhook action
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub enum AppEvent {
     HWKeyProvision(HWKeyUserData),
 }
 /// User data send on HWKeyProvision AppEvent
-#[derive(Serialize, Debug)]
+#[derive(Debug, Serialize)]
 pub struct HWKeyUserData {
     pub username: String,
     pub email: String,
@@ -46,10 +46,9 @@ impl AppEvent {
     }
 }
 
-#[derive(Deserialize, Model, Serialize, FromRow, Debug)]
-pub struct WebHook {
-    #[serde(default)]
-    pub id: Option<i64>,
+#[derive(Debug, Deserialize, FromRow, Model, Serialize)]
+pub struct WebHook<I = NoId> {
+    pub id: I,
     pub url: String,
     pub description: String,
     pub token: String,
@@ -60,9 +59,9 @@ pub struct WebHook {
     pub on_hwkey_provision: bool,
 }
 
-impl WebHook {
+impl WebHook<Id> {
     /// Fetch all enabled webhooks.
-    pub async fn all_enabled(pool: &DbPool, trigger: &AppEvent) -> Result<Vec<Self>, SqlxError> {
+    pub async fn all_enabled(pool: &PgPool, trigger: &AppEvent) -> Result<Vec<Self>, SqlxError> {
         let column_name = trigger.column_name();
         let query = format!(
             "SELECT id, url, description, token, enabled, on_user_created, \
@@ -73,10 +72,10 @@ impl WebHook {
     }
 
     /// Find [`WebHook`] by URL.
-    pub async fn find_by_url(pool: &DbPool, url: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_url(pool: &PgPool, url: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", url, description, token, enabled, on_user_created, \
+            "SELECT id, url, description, token, enabled, on_user_created, \
             on_user_deleted, on_user_modified, on_hwkey_provision FROM webhook WHERE url = $1",
             url
         )

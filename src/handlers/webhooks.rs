@@ -4,7 +4,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult};
+use super::{ApiResponse, ApiResult, WebHookData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -15,15 +15,17 @@ pub async fn add_webhook(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-    Json(mut webhook): Json<WebHook>,
+    Json(webhookdata): Json<WebHookData>,
 ) -> ApiResult {
-    let url = webhook.url.clone();
+    let url = webhookdata.url.clone();
     debug!("User {} adding webhook {url}", session.user.username);
+    let webhook: WebHook = webhookdata.into();
     let status = match webhook.save(&appstate.pool).await {
-        Ok(()) => StatusCode::CREATED,
+        Ok(_) => StatusCode::CREATED,
         Err(_) => StatusCode::BAD_REQUEST,
     };
     info!("User {} added webhook {url}", session.user.username);
+
     Ok(ApiResponse {
         json: json!({}),
         status,
@@ -33,6 +35,7 @@ pub async fn add_webhook(
 // TODO: paginate
 pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let webhooks = WebHook::all(&appstate.pool).await?;
+
     Ok(ApiResponse {
         json: json!(webhooks),
         status: StatusCode::OK,
@@ -54,18 +57,6 @@ pub async fn get_webhook(
             status: StatusCode::NOT_FOUND,
         }),
     }
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct WebHookData {
-    pub url: String,
-    pub description: String,
-    pub token: String,
-    pub enabled: bool,
-    pub on_user_created: bool,
-    pub on_user_deleted: bool,
-    pub on_user_modified: bool,
-    pub on_hwkey_provision: bool,
 }
 
 pub async fn change_webhook(
@@ -92,6 +83,7 @@ pub async fn change_webhook(
         None => StatusCode::NOT_FOUND,
     };
     info!("User {} updated webhook {id}", session.user.username);
+
     Ok(ApiResponse {
         json: json!({}),
         status,

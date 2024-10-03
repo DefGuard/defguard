@@ -1,34 +1,38 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgExecutor};
+use sqlx::{query_as, Error as SqlxError, PgExecutor, PgPool};
 
-use super::DbPool;
-use crate::random::gen_alphanumeric;
+use crate::{
+    db::{Id, NoId},
+    random::gen_alphanumeric,
+};
 
 // Token used for polling requests.
 #[derive(Clone, Debug, Model)]
-pub struct PollingToken {
-    pub id: Option<i64>,
+pub struct PollingToken<I = NoId> {
+    pub id: I,
     pub token: String,
-    pub device_id: i64,
+    pub device_id: Id,
     pub created_at: NaiveDateTime,
 }
 
 impl PollingToken {
     #[must_use]
-    pub fn new(device_id: i64) -> Self {
+    pub fn new(device_id: Id) -> Self {
         Self {
-            id: None,
+            id: NoId,
             device_id,
             token: gen_alphanumeric(32),
             created_at: Utc::now().naive_utc(),
         }
     }
+}
 
-    pub async fn find(pool: &DbPool, token: &str) -> Result<Option<Self>, SqlxError> {
+impl PollingToken<Id> {
+    pub async fn find(pool: &PgPool, token: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id, token, device_id, created_at
+            "SELECT id, token, device_id, created_at \
             FROM pollingtoken WHERE token = $1",
             token
         )
@@ -36,7 +40,7 @@ impl PollingToken {
         .await
     }
 
-    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: i64) -> Result<(), SqlxError>
+    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {

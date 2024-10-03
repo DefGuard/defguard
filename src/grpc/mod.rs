@@ -12,6 +12,8 @@ use std::{
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use reqwest::Url;
 use serde::Serialize;
+#[cfg(feature = "worker")]
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -44,7 +46,7 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, Settings},
+    db::{AppEvent, Id, Settings},
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
@@ -55,10 +57,7 @@ use crate::{
     server_config,
 };
 #[cfg(feature = "worker")]
-use crate::{
-    auth::ClaimsType,
-    db::{DbPool, GatewayEvent},
-};
+use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
 mod desktop_client_mfa;
@@ -80,10 +79,9 @@ use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
-type NetworkId = i64;
 type GatewayHostname = String;
 #[derive(Debug)]
-pub struct GatewayMap(HashMap<NetworkId, HashMap<GatewayHostname, GatewayState>>);
+pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
 pub enum GatewayMapError {
@@ -110,7 +108,7 @@ impl GatewayMap {
     // as a sort of "registration"
     pub fn add_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         network_name: &str,
         hostname: String,
         name: Option<String>,
@@ -130,7 +128,7 @@ impl GatewayMap {
     }
 
     // remove gateway from map
-    pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
+    pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
@@ -165,7 +163,7 @@ impl GatewayMap {
     // we assume that the gateway is already present in hashmap
     pub fn connect_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         hostname: &str,
     ) -> Result<(), GatewayMapError> {
         debug!("Connecting gateway {hostname} in network {network_id}");
@@ -194,9 +192,9 @@ impl GatewayMap {
     // change gateway status to disconnected
     pub fn disconnect_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         hostname: String,
-        pool: &DbPool,
+        pool: &PgPool,
     ) -> Result<(), GatewayMapError> {
         debug!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
@@ -216,7 +214,7 @@ impl GatewayMap {
 
     // return `true` if at least one gateway in a given network is connected
     #[must_use]
-    pub fn connected(&self, network_id: i64) -> bool {
+    pub fn connected(&self, network_id: Id) -> bool {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map
                 .values()
@@ -227,7 +225,7 @@ impl GatewayMap {
 
     // return a list af aff statuses af all gateways in a given network
     #[must_use]
-    pub fn get_network_gateway_status(&self, network_id: i64) -> Vec<GatewayState> {
+    pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
             None => Vec::new(),
@@ -236,7 +234,7 @@ impl GatewayMap {
 
     // return gateway name
     #[must_use]
-    pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
+    pub fn get_network_gateway_name(&self, network_id: Id, hostname: &str) -> Option<String> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => {
                 if let Some(state) = network_gateway_map.get(hostname) {
@@ -260,7 +258,7 @@ impl Default for GatewayMap {
 pub struct GatewayState {
     pub uid: Uuid,
     pub connected: bool,
-    pub network_id: i64,
+    pub network_id: Id,
     pub network_name: String,
     pub name: Option<String>,
     pub hostname: String,
@@ -275,7 +273,7 @@ pub struct GatewayState {
 impl GatewayState {
     #[must_use]
     pub fn new<S: Into<String>>(
-        network_id: i64,
+        network_id: Id,
         network_name: S,
         hostname: S,
         name: Option<String>,
@@ -297,7 +295,7 @@ impl GatewayState {
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &DbPool) {
+    fn send_disconnect_notification(&mut self, pool: &PgPool) {
         debug!("Sending gateway disconnect email notification");
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
@@ -350,7 +348,7 @@ impl From<Status> for CoreError {
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
-    pool: DbPool,
+    pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
@@ -555,7 +553,7 @@ pub async fn run_grpc_bidi_stream(
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    pool: DbPool,
+    pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -676,7 +674,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for crate::grpc::proto::InstanceInfo {
+impl From<InstanceInfo> for proto::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,

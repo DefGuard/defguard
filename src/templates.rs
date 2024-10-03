@@ -4,7 +4,7 @@ use tera::{Context, Tera};
 use thiserror::Error;
 
 use crate::{
-    db::{MFAMethod, Session, User},
+    db::{Id, MFAMethod, Session, User},
     server_config, VERSION,
 };
 
@@ -145,9 +145,9 @@ pub fn enrollment_welcome_mail(
 }
 
 // notification sent to admin after user completes enrollment
-pub fn enrollment_admin_notification(
-    user: &User,
-    admin: &User,
+pub fn enrollment_admin_notification<I>(
+    user: &User<I>,
+    admin: &User<I>,
     ip_address: &str,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
@@ -162,6 +162,7 @@ pub fn enrollment_admin_notification(
     context.insert("last_name", &user.last_name);
     context.insert("admin_first_name", &admin.first_name);
     context.insert("admin_last_name", &admin.last_name);
+
     Ok(tera.render("mail_enrollment_admin_notification", &context)?)
 }
 
@@ -252,7 +253,7 @@ pub fn gateway_disconnected_mail(
 }
 
 pub fn email_mfa_activation_mail(
-    user: &User,
+    user: &User<Id>,
     code: &str,
     session: &Session,
 ) -> Result<String, TemplateError> {
@@ -268,7 +269,7 @@ pub fn email_mfa_activation_mail(
 }
 
 pub fn email_mfa_code_mail(
-    user: &User,
+    user: &User<Id>,
     code: &str,
     session: Option<&Session>,
 ) -> Result<String, TemplateError> {

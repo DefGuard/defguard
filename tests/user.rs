@@ -3,7 +3,7 @@ mod common;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
-        AddDevice, UserInfo,
+        AddDevice, Id, UserInfo,
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
@@ -528,7 +528,7 @@ async fn test_user_unregister_authorized_app() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let openid_client: OAuth2Client = response.json().await;
+    let openid_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(openid_client.name, "Test");
     let response = client
         .post(format!(

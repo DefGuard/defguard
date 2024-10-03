@@ -32,6 +32,7 @@ use serde::{
     ser::{Serialize, Serializer},
 };
 use serde_json::json;
+use sqlx::PgPool;
 use time::Duration;
 
 use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
@@ -40,7 +41,7 @@ use crate::{
     auth::{AccessUserInfo, SessionInfo},
     db::{
         models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        DbPool, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
@@ -48,8 +49,8 @@ use crate::{
 };
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
-impl From<&User> for StandardClaims<CoreGenderClaim> {
-    fn from(user: &User) -> StandardClaims<CoreGenderClaim> {
+impl From<&User<Id>> for StandardClaims<CoreGenderClaim> {
+    fn from(user: &User<Id>) -> StandardClaims<CoreGenderClaim> {
         let mut name = LocalizedClaim::new();
         name.insert(None, EndUserName::new(user.name()));
         let mut given_name = LocalizedClaim::new();
@@ -96,7 +97,7 @@ pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, Co
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
 #[async_trait]
-impl<S> FromRequestParts<S> for OAuth2Client
+impl<S> FromRequestParts<S> for OAuth2Client<Id>
 where
     S: Send + Sync,
     AppState: FromRef<S>,
@@ -225,7 +226,7 @@ pub struct AuthenticationRequest {
 impl AuthenticationRequest {
     fn validate_for_client(
         &self,
-        oauth2client: &OAuth2Client,
+        oauth2client: &OAuth2Client<Id>,
     ) -> Result<(), CoreAuthErrorResponseType> {
         // check scope: it is valid if any requested scope exists in the `oauth2client`
         if self
@@ -285,6 +286,7 @@ impl AuthenticationRequest {
         }
 
         info!("Validation succeeded for client {}", oauth2client.name);
+
         Ok(())
     }
 }
@@ -293,19 +295,20 @@ impl AuthenticationRequest {
 async fn generate_auth_code_redirect(
     appstate: AppState,
     data: AuthenticationRequest,
-    user_id: Option<i64>,
+    user_id: Id,
 ) -> Result<String, WebError> {
     let mut url =
         Url::parse(&data.redirect_uri).map_err(|_| WebError::Http(StatusCode::BAD_REQUEST))?;
-    let mut auth_code = AuthCode::new(
-        user_id.unwrap(),
+    let auth_code = AuthCode::new(
+        user_id,
         data.client_id,
         data.redirect_uri,
         data.scope,
         data.nonce,
         data.code_challenge,
-    );
-    auth_code.save(&appstate.pool).await?;
+    )
+    .save(&appstate.pool)
+    .await?;
 
     {
         let mut query_pairs = url.query_pairs_mut();
@@ -424,7 +427,7 @@ pub async fn authorization(
                                         OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                             &appstate.pool,
                                             session.user_id,
-                                            oauth2client.id.unwrap(),
+                                            oauth2client.id,
                                         )
                                         .await?
                                     {
@@ -437,7 +440,7 @@ pub async fn authorization(
                                         let location = generate_auth_code_redirect(
                                             appstate,
                                             data,
-                                            Some(session.user_id),
+                                            session.user_id,
                                         )
                                         .await?;
                                         Ok(redirect_to(location, private_cookies))
@@ -445,7 +448,7 @@ pub async fn authorization(
                                         // If authorized app not found redirect to consent form
                                         info!(
                                             "OAuth client id {} not yet authorized by user id {}, redirecting to consent form",
-                                            oauth2client.id.unwrap(), session.user_id
+                                            oauth2client.id, session.user_id
                                         );
                                         Ok(redirect_to(
                                             format!(
@@ -508,7 +511,7 @@ pub struct GroupClaims {
 
 impl AdditionalClaims for GroupClaims {}
 
-pub async fn get_group_claims(pool: &DbPool, user: &User) -> Result<GroupClaims, WebError> {
+pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupClaims, WebError> {
     let groups = user.member_of_names(pool).await?;
     Ok(GroupClaims {
         groups: Some(groups),
@@ -533,16 +536,13 @@ pub async fn secure_authorization(
                 Ok(()) => {
                     if OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                         &appstate.pool,
-                        session_info.user.id.unwrap(),
-                        oauth2client.id.unwrap(),
+                        session_info.user.id,
+                        oauth2client.id,
                     )
                     .await?
                     .is_none()
                     {
-                        let mut app = OAuth2AuthorizedApp::new(
-                            session_info.user.id.unwrap(),
-                            oauth2client.id.unwrap(),
-                        );
+                        let app = OAuth2AuthorizedApp::new(session_info.user.id, oauth2client.id);
                         app.save(&appstate.pool).await?;
 
                         send_new_device_ocid_login_email(
@@ -636,7 +636,7 @@ impl TokenRequest {
 
     fn authorization_code_flow<T>(
         &self,
-        auth_code: &AuthCode,
+        auth_code: &AuthCode<Id>,
         token: &OAuth2Token,
         claims: StandardClaims<CoreGenderClaim>,
         base_url: &Url,
@@ -738,7 +738,7 @@ impl TokenRequest {
         token_response
     }
 
-    async fn oauth2client(&self, pool: &DbPool) -> Option<OAuth2Client> {
+    async fn oauth2client(&self, pool: &PgPool) -> Option<OAuth2Client<Id>> {
         if let (Some(client_id), Some(client_secret)) =
             (self.client_id.as_ref(), self.client_secret.as_ref())
         {
@@ -757,7 +757,7 @@ impl TokenRequest {
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
 pub async fn token(
     State(appstate): State<AppState>,
-    oauth2client: Option<OAuth2Client>,
+    oauth2client: Option<OAuth2Client<Id>>,
     Form(form): Form<TokenRequest>,
 ) -> ApiResult {
     // TODO: cleanup branches
@@ -788,8 +788,8 @@ pub async fn token(
                             if let Some(authorized_app) =
                                 OAuth2AuthorizedApp::find_by_user_and_oauth2client_id(
                                     &appstate.pool,
-                                    user.id.unwrap(),
-                                    client.id.unwrap(),
+                                    user.id,
+                                    client.id,
                                 )
                                 .await?
                             {
@@ -800,14 +800,14 @@ pub async fn token(
                                 // Remove existing token in case same client asks for new token
                                 if let Some(token) = OAuth2Token::find_by_authorized_app_id(
                                     &appstate.pool,
-                                    authorized_app.id.unwrap(),
+                                    authorized_app.id,
                                 )
                                 .await?
                                 {
                                     token.delete(&appstate.pool).await?;
                                 }
                                 let token = OAuth2Token::new(
-                                    authorized_app.id.unwrap(),
+                                    authorized_app.id,
                                     auth_code.redirect_uri.clone(),
                                     auth_code.scope.clone(),
                                 );

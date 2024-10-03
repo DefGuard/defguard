@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    fmt::{Debug, Display, Formatter},
+    fmt,
     net::{IpAddr, Ipv4Addr},
     str::FromStr,
 };
@@ -10,7 +10,7 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
+use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool};
 use thiserror::Error;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -18,10 +18,11 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
-    DbPool, User, UserInfo,
+    User, UserInfo,
 };
 use crate::{
     appstate::AppState,
+    db::{Id, NoId},
     grpc::{gateway::Peer, GatewayState},
     wg_config::ImportedDevice,
 };
@@ -30,9 +31,9 @@ pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
 
 // Used in process of importing network from wireguard config
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
-    pub user_id: i64,
+    pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
     pub wireguard_ip: IpAddr,
@@ -59,19 +60,19 @@ impl DateTimeAggregation {
 
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
-    NetworkCreated(i64, WireguardNetwork),
-    NetworkModified(i64, WireguardNetwork, Vec<Peer>),
-    NetworkDeleted(i64, String),
+    NetworkCreated(Id, WireguardNetwork<Id>),
+    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
+    NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Model, Deserialize, Serialize, PartialEq, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
-pub struct WireguardNetwork {
-    pub id: Option<i64>,
+pub struct WireguardNetwork<I = NoId> {
+    pub id: I,
     pub name: String,
     #[model(enum)]
     pub address: IpNetwork,
@@ -94,12 +95,15 @@ pub struct WireguardKey {
     pub public: String,
 }
 
-impl Display for WireguardNetwork {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.id {
-            Some(network_id) => write!(f, "[ID {}] {}", network_id, self.name),
-            None => write!(f, "{}", self.name),
-        }
+impl fmt::Display for WireguardNetwork<NoId> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl fmt::Display for WireguardNetwork<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[ID {}] {}", self.id, self.name)
     }
 }
 
@@ -138,7 +142,7 @@ impl WireguardNetwork {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
         Ok(Self {
-            id: None,
+            id: NoId,
             name,
             address,
             port,
@@ -154,11 +158,15 @@ impl WireguardNetwork {
         })
     }
 
-    pub fn get_id(&self) -> Result<i64, WireguardNetworkError> {
-        let id = self.id.ok_or(ModelError::IdNotSet)?;
-        Ok(id)
+    /// Try to set `address` from `&str`.
+    pub fn try_set_address(&mut self, address: &str) -> Result<IpNetwork, IpNetworkError> {
+        IpNetwork::from_str(address).inspect(|&network| {
+            self.address = network;
+        })
     }
+}
 
+impl WireguardNetwork<Id> {
     pub async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
@@ -169,7 +177,7 @@ impl WireguardNetwork {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT \
-                id as \"id?\", name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
@@ -205,6 +213,7 @@ impl WireguardNetwork {
         let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
             .fetch_one(transaction)
             .await?;
+
         Ok(count)
     }
 
@@ -223,7 +232,8 @@ impl WireguardNetwork {
                     return Err(WireguardNetworkError::NetworkTooSmall);
                 }
             }
-        };
+        }
+
         Ok(())
     }
 
@@ -238,13 +248,6 @@ impl WireguardNetwork {
         }
     }
 
-    /// Try to set `address` from `&str`.
-    pub fn try_set_address(&mut self, address: &str) -> Result<IpNetwork, IpNetworkError> {
-        IpNetwork::from_str(address).inspect(|&network| {
-            self.address = network;
-        })
-    }
-
     /// Try to change network address, changing device addresses if necessary.
     pub async fn change_address(
         &mut self,
@@ -255,7 +258,6 @@ impl WireguardNetwork {
             "Changing network address for {self} from {} to {new_address}",
             self.address
         );
-        let network_id = self.get_id()?;
         let old_address = self.address;
 
         // check if new network size will fit all existing devices
@@ -292,11 +294,8 @@ impl WireguardNetwork {
                 }
                 match devices_iter.next() {
                     Some(device) => {
-                        let Some(device_id) = device.id else {
-                            return Err(WireguardNetworkError::from(ModelError::CannotModify));
-                        };
                         let wireguard_network_device =
-                            WireguardNetworkDevice::new(network_id, device_id, ip);
+                            WireguardNetworkDevice::new(self.id, device.id, ip);
                         wireguard_network_device.update(&mut *transaction).await?;
                     }
                     None => break,
@@ -305,6 +304,7 @@ impl WireguardNetwork {
         }
 
         self.address = new_address;
+
         Ok(())
     }
 
@@ -313,38 +313,38 @@ impl WireguardNetwork {
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<Vec<Device>, ModelError> {
+    ) -> Result<Vec<Device<Id>>, ModelError> {
         debug!("Fetching all allowed devices for network {}", self);
-        let devices = match self
-            .get_allowed_groups(&mut *transaction)
-            .await? {
+        let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
                 query_as!(
-                    Device,
-                    "SELECT DISTINCT ON (d.id) d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
-                    FROM device d \
-                    JOIN \"user\" u ON d.user_id = u.id \
-                    JOIN group_user gu ON u.id = gu.user_id \
-                    JOIN \"group\" g ON gu.group_id = g.id \
-                    WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[]))
-                    AND u.is_active = true
-                    ORDER BY d.id ASC",
-                    &allowed_groups
-                )
+                Device,
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
+                FROM device d \
+                JOIN \"user\" u ON d.user_id = u.id \
+                JOIN group_user gu ON u.id = gu.user_id \
+                JOIN \"group\" g ON gu.group_id = g.id \
+                WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) \
+                AND u.is_active = true \
+                ORDER BY d.id ASC",
+                &allowed_groups
+            )
                 .fetch_all(&mut *transaction)
                 .await?
-            },
+            }
             // all devices of enabled users are allowed
             None => {
                 query_as!(
                     Device,
-                    "SELECT d.id as \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
                     ORDER BY d.id ASC"
-                ).fetch_all(&mut *transaction).await?
+                )
+                .fetch_all(&mut *transaction)
+                .await?
             }
         };
 
@@ -374,14 +374,13 @@ impl WireguardNetwork {
     pub async fn add_device_to_network(
         &self,
         transaction: &mut PgConnection,
-        device: &Device,
+        device: &Device<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!("Assigning IP in network {self} for {device}");
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
-        let allowed_device_ids: Vec<i64> =
-            allowed_devices.iter().filter_map(|dev| dev.id).collect();
-        if allowed_device_ids.contains(&device.get_id()?) {
+        let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
+        if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
                 .assign_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
@@ -404,9 +403,9 @@ impl WireguardNetwork {
         // list all allowed devices
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
-        let mut allowed_devices: HashMap<i64, Device> = allowed_devices
+        let mut allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
-            .filter_map(|dev| dev.id.map(|id| (id, dev)))
+            .map(|dev| (dev.id, dev))
             .collect();
 
         // check if all devices can fit within network
@@ -416,11 +415,10 @@ impl WireguardNetwork {
 
         // list all assigned IPs
         let assigned_ips =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.get_id()?).await?;
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
 
         // loop through assigned IPs; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
         // initial list should now contain only devices to be added
-        let network_id = self.get_id()?;
         let mut events = Vec::new();
         for device_network_config in assigned_ips {
             // device is allowed and an IP was already assigned
@@ -433,7 +431,7 @@ impl WireguardNetwork {
                     events.push(GatewayEvent::DeviceModified(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
-                            network_id,
+                            network_id: self.id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
@@ -453,7 +451,7 @@ impl WireguardNetwork {
                     events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
-                            network_id,
+                            network_id: self.id,
                             device_wireguard_ip: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,
@@ -475,7 +473,7 @@ impl WireguardNetwork {
             events.push(GatewayEvent::DeviceCreated(DeviceInfo {
                 device,
                 network_info: vec![DeviceNetworkInfo {
-                    network_id,
+                    network_id: self.id,
                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                     preshared_key: wireguard_network_device.preshared_key,
                     is_authorized: wireguard_network_device.is_authorized,
@@ -495,12 +493,11 @@ impl WireguardNetwork {
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
     ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
-        let network_id = self.get_id()?;
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
-        let allowed_devices: HashMap<i64, Device> = allowed_devices
+        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
-            .filter_map(|dev| dev.id.map(|id| (id, dev)))
+            .map(|dev| (dev.id, dev))
             .collect();
 
         let mut devices_to_map = Vec::new();
@@ -513,16 +510,15 @@ impl WireguardNetwork {
             {
                 Some(existing_device) => {
                     // check if device is allowed in network
-                    let device_id = existing_device.get_id()?;
-                    match allowed_devices.get(&device_id) {
+                    match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
                         "Device with pubkey {} exists already, assigning IP {} for new network: {self}",
                         existing_device.wireguard_pubkey, imported_device.wireguard_ip
                     );
                             let wireguard_network_device = WireguardNetworkDevice::new(
-                                network_id,
-                                existing_device.id.expect("Device ID is missing"),
+                                self.id,
+                                existing_device.id,
                                 imported_device.wireguard_ip,
                             );
                             wireguard_network_device.insert(&mut *transaction).await?;
@@ -532,7 +528,7 @@ impl WireguardNetwork {
                             events.push(GatewayEvent::DeviceModified(DeviceInfo {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
-                                    network_id,
+                                    network_id: self.id,
                                     device_wireguard_ip: wireguard_network_device.wireguard_ip,
                                     preshared_key: wireguard_network_device.preshared_key,
                                     is_authorized: wireguard_network_device.is_authorized,
@@ -550,6 +546,7 @@ impl WireguardNetwork {
                 None => devices_to_map.push(imported_device),
             }
         }
+
         Ok((devices_to_map, events))
     }
 
@@ -560,7 +557,6 @@ impl WireguardNetwork {
         mapped_devices: Vec<MappedDevice>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
-        let network_id = self.get_id()?;
         // get allowed groups for network
         let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
 
@@ -574,12 +570,13 @@ impl WireguardNetwork {
                 WireguardNetworkError::InvalidDevicePubkey(mapped_device.wireguard_pubkey.clone())
             })?;
             // save a new device
-            let mut device = Device::new(
+            let device = Device::new(
                 mapped_device.name.clone(),
                 mapped_device.wireguard_pubkey.clone(),
                 mapped_device.user_id,
-            );
-            device.save(&mut *transaction).await?;
+            )
+            .save(&mut *transaction)
+            .await?;
             debug!("Saved new device {device}");
 
             // get a list of groups user is assigned to
@@ -601,14 +598,11 @@ impl WireguardNetwork {
             let mut network_info = Vec::new();
             match &allowed_groups {
                 None => {
-                    let wireguard_network_device = WireguardNetworkDevice::new(
-                        network_id,
-                        device.id.expect("Device ID is missing"),
-                        mapped_device.wireguard_ip,
-                    );
+                    let wireguard_network_device =
+                        WireguardNetworkDevice::new(self.id, device.id, mapped_device.wireguard_ip);
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
-                        network_id,
+                        network_id: self.id,
                         device_wireguard_ip: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
                         is_authorized: wireguard_network_device.is_authorized,
@@ -619,13 +613,13 @@ impl WireguardNetwork {
                     if allowed.iter().any(|group| groups.contains(group)) {
                         // assign specified IP in imported network
                         let wireguard_network_device = WireguardNetworkDevice::new(
-                            network_id,
-                            device.id.expect("Device ID is missing"),
+                            self.id,
+                            device.id,
                             mapped_device.wireguard_ip,
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {
-                            network_id,
+                            network_id: self.id,
                             device_wireguard_ip: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
@@ -648,17 +642,18 @@ impl WireguardNetwork {
                 }));
             }
         }
+
         Ok(events)
     }
 
     async fn fetch_latest_stats(
         &self,
-        conn: &DbPool,
-        device_id: i64,
-    ) -> Result<Option<WireguardPeerStats>, SqlxError> {
+        conn: &PgPool,
+        device_id: Id,
+    ) -> Result<Option<WireguardPeerStats<Id>>, SqlxError> {
         let stats = query_as!(
             WireguardPeerStats,
-            "SELECT id \"id?\", device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
+            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
                 endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
             FROM wireguard_peer_stats \
             WHERE device_id = $1 AND network = $2 \
@@ -669,11 +664,12 @@ impl WireguardNetwork {
         )
         .fetch_optional(conn)
         .await?;
+
         Ok(stats)
     }
 
     /// Parse WireGuard IP address
-    fn parse_wireguard_ip(stats: &WireguardPeerStats) -> Option<String> {
+    fn parse_wireguard_ip(stats: &WireguardPeerStats<Id>) -> Option<String> {
         stats
             .allowed_ips
             .as_ref()
@@ -681,7 +677,7 @@ impl WireguardNetwork {
     }
 
     /// Parse public IP address
-    fn parse_public_ip(stats: &WireguardPeerStats) -> Option<String> {
+    fn parse_public_ip(stats: &WireguardPeerStats<Id>) -> Option<String> {
         stats
             .endpoint
             .as_ref()
@@ -691,8 +687,8 @@ impl WireguardNetwork {
     /// Finds when the device connected based on handshake timestamps
     async fn connected_at(
         &self,
-        conn: &DbPool,
-        device_id: i64,
+        conn: &PgPool,
+        device_id: Id,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
         let connected_at = query_scalar!(
             "SELECT \
@@ -710,14 +706,15 @@ impl WireguardNetwork {
         )
         .fetch_optional(conn)
         .await?;
+
         Ok(connected_at.flatten())
     }
 
     /// Retrieves stats for specified devices
     async fn device_stats(
         &self,
-        conn: &DbPool,
-        devices: &[Device],
+        conn: &PgPool,
+        devices: &[Device<Id>],
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
@@ -730,15 +727,15 @@ impl WireguardNetwork {
         // https://github.com/launchbadge/sqlx/issues/656
         let device_ids = devices
             .iter()
-            .filter_map(|d| d.id.map(|id| id.to_string()))
+            .map(|d| d.id.to_string())
             .collect::<Vec<String>>()
             .join(",");
         let query = format!(
             "SELECT \
                 device_id, \
-                date_trunc($1, collected_at) as collected_at, \
-                cast(sum(download) as bigint) as download, \
-                cast(sum(upload) as bigint) as upload \
+                date_trunc($1, collected_at) collected_at, \
+                cast(sum(download) as bigint) download, \
+                cast(sum(upload) as bigint) upload \
             FROM wireguard_peer_stats_view \
             WHERE device_id IN ({device_ids}) \
             AND collected_at >= $2 \
@@ -754,19 +751,18 @@ impl WireguardNetwork {
             .await?;
         let mut result = Vec::new();
         for device in devices {
-            let Some(device_id) = device.id else { continue };
-            let latest_stats = self.fetch_latest_stats(conn, device_id).await?;
+            let latest_stats = self.fetch_latest_stats(conn, device.id).await?;
             result.push(WireguardDeviceStatsRow {
-                id: device_id,
+                id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
                 wireguard_ip: latest_stats.as_ref().and_then(Self::parse_wireguard_ip),
                 public_ip: latest_stats.as_ref().and_then(Self::parse_public_ip),
-                connected_at: self.connected_at(conn, device_id).await?,
+                connected_at: self.connected_at(conn, device.id).await?,
                 // Filter stats for this device
                 stats: stats
                     .iter()
-                    .filter(|s| Some(s.device_id) == device.id)
+                    .filter(|s| s.device_id == device.id)
                     .cloned()
                     .collect(),
             });
@@ -777,11 +773,11 @@ impl WireguardNetwork {
     /// Retrieves network stats grouped by currently active users since `from` timestamp
     pub async fn user_stats(
         &self,
-        conn: &DbPool,
+        conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
-        let mut user_map: HashMap<i64, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+        let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         let oldest_handshake =
             (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         // Retrieve connected devices from database
@@ -793,7 +789,7 @@ impl WireguardNetwork {
                 ORDER BY device_id, latest_handshake DESC \
             ) \
             SELECT \
-                d.id \"id?\", d.name, d.wireguard_pubkey, d.user_id, d.created \
+                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2",
@@ -818,20 +814,21 @@ impl WireguardNetwork {
                 devices: u.1.clone(),
             });
         }
+
         Ok(stats)
     }
 
     /// Retrieves total active users/devices since `from` timestamp
     async fn total_activity(
         &self,
-        conn: &DbPool,
+        conn: &PgPool,
         from: &NaiveDateTime,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\", \
-                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\" \
+                COALESCE(COUNT(DISTINCT(u.id)), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT(s.device_id)), 0) \"active_devices!\" \
             FROM \"user\" u \
                 JOIN device d ON d.user_id = u.id \
                 JOIN wireguard_peer_stats s ON s.device_id = d.id \
@@ -841,20 +838,21 @@ impl WireguardNetwork {
         )
         .fetch_one(conn)
         .await?;
+
         Ok(activity_stats)
     }
 
     /// Retrieves currently connected users
     async fn current_activity(
         &self,
-        conn: &DbPool,
+        conn: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
         let from = (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
-                COALESCE(COUNT(DISTINCT(u.id)), 0) as \"active_users!\", \
-                COALESCE(COUNT(DISTINCT(s.device_id)), 0) as \"active_devices!\" \
+                COALESCE(COUNT(DISTINCT(u.id)), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT(s.device_id)), 0) \"active_devices!\" \
             FROM \"user\" u \
                 JOIN device d ON d.user_id = u.id \
                 JOIN wireguard_peer_stats s ON s.device_id = d.id \
@@ -864,6 +862,7 @@ impl WireguardNetwork {
         )
         .fetch_one(conn)
         .await?;
+
         Ok(activity_stats)
     }
 
@@ -871,7 +870,7 @@ impl WireguardNetwork {
     /// using `aggregation` (hour/minute) aggregation level
     async fn transfer_series(
         &self,
-        conn: &DbPool,
+        conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardStatsRow>, SqlxError> {
@@ -892,13 +891,14 @@ impl WireguardNetwork {
         )
         .fetch_all(conn)
         .await?;
+
         Ok(stats)
     }
 
     /// Retrieves network stats
     pub async fn network_stats(
         &self,
-        conn: &DbPool,
+        conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
     ) -> Result<WireguardNetworkStats, SqlxError> {
@@ -921,7 +921,7 @@ impl WireguardNetwork {
 impl Default for WireguardNetwork {
     fn default() -> Self {
         Self {
-            id: Option::default(),
+            id: NoId,
             name: String::default(),
             address: IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
             port: i32::default(),
@@ -941,7 +941,7 @@ impl Default for WireguardNetwork {
 #[derive(Serialize, Clone, Debug)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
-    pub network: WireguardNetwork,
+    pub network: WireguardNetwork<Id>,
     pub connected: bool,
     pub gateways: Vec<GatewayState>,
     pub allowed_groups: Vec<String>,
@@ -956,34 +956,34 @@ pub struct WireguardStatsRow {
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct WireguardDeviceTransferRow {
-    pub device_id: i64,
+    pub device_id: Id,
     pub collected_at: Option<NaiveDateTime>,
     pub upload: i64,
     pub download: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Clone, Default, Deserialize, Serialize)]
 pub struct WireguardDeviceStatsRow {
-    pub id: i64,
+    pub id: Id,
     pub stats: Vec<WireguardDeviceTransferRow>,
-    pub user_id: i64,
+    pub user_id: Id,
     pub name: String,
     pub wireguard_ip: Option<String>,
     pub public_ip: Option<String>,
     pub connected_at: Option<NaiveDateTime>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct WireguardUserStatsRow {
     pub user: UserInfo,
     pub devices: Vec<WireguardDeviceStatsRow>,
 }
 
-#[derive(Model, Serialize, Deserialize, Debug)]
+#[derive(Debug, Deserialize, Model, Serialize)]
 #[table(wireguard_peer_stats)]
-pub struct WireguardPeerStats {
-    pub id: Option<i64>,
-    pub device_id: i64,
+pub struct WireguardPeerStats<I = NoId> {
+    pub id: I,
+    pub device_id: Id,
     pub collected_at: NaiveDateTime,
     pub network: i64,
     pub endpoint: Option<String>,
@@ -1004,7 +1004,7 @@ pub struct WireguardNetworkTransferStats {
     pub download: i64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct WireguardNetworkStats {
     pub current_active_users: i64,
     pub current_active_devices: i64,
@@ -1022,34 +1022,30 @@ mod test {
     use super::*;
     use crate::db::models::device::WireguardNetworkDevice;
 
-    async fn add_devices(pool: &DbPool, network: &WireguardNetwork, count: usize) {
-        let mut user = User::new(
+    async fn add_devices(pool: &PgPool, network: &WireguardNetwork<Id>, count: usize) {
+        let user = User::new(
             "testuser",
             Some("hunter2"),
             "Tester",
             "Test",
             "test@test.com",
             None,
-        );
-        user.save(pool).await.unwrap();
+        )
+        .save(pool)
+        .await
+        .unwrap();
         for i in 0..count {
-            Device::new_with_ip(
-                pool,
-                user.id.unwrap(),
-                format!("dev{i}"),
-                format!("key{i}"),
-                network,
-            )
-            .await
-            .unwrap();
+            Device::new_with_ip(pool, user.id, format!("dev{i}"), format!("key{i}"), network)
+                .await
+                .unwrap();
         }
     }
 
     #[sqlx::test]
-    async fn test_change_address(pool: DbPool) {
+    async fn test_change_address(pool: PgPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/24").unwrap();
-        network.save(&pool).await.unwrap();
+        let mut network = network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
@@ -1068,7 +1064,7 @@ mod test {
                 .unwrap()
                 .unwrap();
             let wireguard_network_device =
-                WireguardNetworkDevice::find(&pool, device.id.unwrap(), network.id.unwrap())
+                WireguardNetworkDevice::find(&pool, device.id, network.id)
                     .await
                     .unwrap()
                     .unwrap();
@@ -1080,10 +1076,10 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_change_address_wont_fit(pool: DbPool) {
+    async fn test_change_address_wont_fit(pool: PgPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
-        network.save(&pool).await.unwrap();
+        let mut network = network.save(&pool).await.unwrap();
 
         add_devices(&pool, &network, 3).await;
 
@@ -1099,22 +1095,26 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_connected_at_reconnection(pool: DbPool) {
+    async fn test_connected_at_reconnection(pool: PgPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
-        network.save(&pool).await.unwrap();
+        let network = network.save(&pool).await.unwrap();
 
-        let mut user = User::new(
+        let user = User::new(
             "testuser",
             Some("hunter2"),
             "Tester",
             "Test",
             "test@test.com",
             None,
-        );
-        user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
-        device.save(&pool).await.unwrap();
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let device = Device::new(String::new(), String::new(), user.id)
+            .save(&pool)
+            .await
+            .unwrap();
 
         // insert stats
         let samples = 60; // 1 hour of samples
@@ -1122,22 +1122,24 @@ mod test {
         for i in 0..=samples {
             // simulate connection 30 minutes ago
             let handshake_minutes = i * if i < 31 { 1 } else { 10 };
-            let mut wps = WireguardPeerStats {
-                id: None,
-                device_id: device.id.unwrap(),
+            WireguardPeerStats {
+                id: NoId,
+                device_id: device.id,
                 collected_at: now - Duration::minutes(i),
-                network: network.id.unwrap(),
+                network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
                 latest_handshake: now - Duration::minutes(handshake_minutes),
                 allowed_ips: Some("10.1.1.0/24".into()),
-            };
-            wps.save(&pool).await.unwrap();
+            }
+            .save(&pool)
+            .await
+            .unwrap();
         }
 
         let connected_at = network
-            .connected_at(&pool, device.id.unwrap())
+            .connected_at(&pool, device.id)
             .await
             .unwrap()
             .unwrap();
@@ -1149,43 +1151,49 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_connected_at_always_connected(pool: DbPool) {
+    async fn test_connected_at_always_connected(pool: PgPool) {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
-        network.save(&pool).await.unwrap();
+        let network = network.save(&pool).await.unwrap();
 
-        let mut user = User::new(
+        let user = User::new(
             "testuser",
             Some("hunter2"),
             "Tester",
             "Test",
             "test@test.com",
             None,
-        );
-        user.save(&pool).await.unwrap();
-        let mut device = Device::new(String::new(), String::new(), user.id.unwrap());
-        device.save(&pool).await.unwrap();
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let device = Device::new(String::new(), String::new(), user.id)
+            .save(&pool)
+            .await
+            .unwrap();
 
         // insert stats
         let samples = 60; // 1 hour of samples
         let now = Utc::now().naive_utc();
         for i in 0..=samples {
-            let mut wps = WireguardPeerStats {
-                id: None,
-                device_id: device.id.unwrap(),
+            WireguardPeerStats {
+                id: NoId,
+                device_id: device.id,
                 collected_at: now - Duration::minutes(i),
-                network: network.id.unwrap(),
+                network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
                 latest_handshake: now - Duration::minutes(i), // handshake every minute
                 allowed_ips: Some("10.1.1.0/24".into()),
-            };
-            wps.save(&pool).await.unwrap();
+            }
+            .save(&pool)
+            .await
+            .unwrap();
         }
 
         let connected_at = network
-            .connected_at(&pool, device.id.unwrap())
+            .connected_at(&pool, device.id)
             .await
             .unwrap()
             .unwrap();

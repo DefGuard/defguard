@@ -45,22 +45,24 @@ pub async fn add_openid_provider(
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
-    let mut new_provider = OpenIdProvider::new(
+    // Currently, we only support one OpenID provider at a time
+    let new_provider = OpenIdProvider::new(
         provider_data.name,
         provider_data.base_url,
         provider_data.client_id,
         provider_data.client_secret,
-    );
+    )
+    .upsert(&appstate.pool)
+    .await?;
     debug!(
         "User {} adding OpenID provider {}",
         session.user.username, new_provider.name
     );
-    // Currently, we only support one OpenID provider at a time
-    new_provider.upsert(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, new_provider.name
     );
+
     Ok(ApiResponse {
         json: json!({}),
         status: StatusCode::CREATED,

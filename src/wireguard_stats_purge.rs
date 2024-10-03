@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
 use humantime::format_duration;
-use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor};
+use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor, PgPool};
 use tokio::time::sleep;
 
-use crate::db::{DbPool, WireguardPeerStats};
+use crate::db::WireguardPeerStats;
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes
@@ -16,7 +16,7 @@ impl WireguardPeerStats {
     /// At least one record is retained for each device & network combination,
     /// even when older than set threshold.
     pub async fn purge_old_stats(
-        pool: &DbPool,
+        pool: &PgPool,
         stats_purge_threshold: Duration,
     ) -> Result<(), SqlxError> {
         let start = Utc::now();
@@ -94,7 +94,7 @@ impl WireguardPeerStats {
 }
 
 pub async fn run_periodic_stats_purge(
-    pool: DbPool,
+    pool: PgPool,
     stats_purge_frequency: Duration,
     stats_purge_threshold: Duration,
 ) -> Result<(), SqlxError> {

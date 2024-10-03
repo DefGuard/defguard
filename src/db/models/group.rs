@@ -3,13 +3,13 @@ use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgEx
 use utoipa::ToSchema;
 
 use crate::{
-    db::{models::error::ModelError, User, WireguardNetwork},
+    db::{models::error::ModelError, Id, NoId, User, WireguardNetwork},
     server_config,
 };
 
-#[derive(Model, Debug, ToSchema)]
-pub struct Group {
-    pub(crate) id: Option<i64>,
+#[derive(Debug, Model, ToSchema)]
+pub struct Group<I = NoId> {
+    pub(crate) id: I,
     pub name: String,
 }
 
@@ -17,61 +17,51 @@ impl Group {
     #[must_use]
     pub fn new<S: Into<String>>(name: S) -> Self {
         Self {
-            id: None,
+            id: NoId,
             name: name.into(),
         }
     }
+}
 
+impl Group<Id> {
     pub async fn find_by_name<'e, E>(executor: E, name: &str) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Self,
-            "SELECT id \"id?\", name FROM \"group\" WHERE name = $1",
-            name
-        )
-        .fetch_optional(executor)
-        .await
+        query_as!(Self, "SELECT id, name FROM \"group\" WHERE name = $1", name)
+            .fetch_optional(executor)
+            .await
     }
 
     pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
-        if let Some(id) = self.id {
-            query_scalar!(
-                "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id \
-                WHERE group_user.group_id = $1",
-                id
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            Ok(Vec::new())
-        }
+        query_scalar!(
+            "SELECT \"user\".username FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id \
+            WHERE group_user.group_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
     }
 
-    pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User>, SqlxError>
+    pub async fn members<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
-        if let Some(id) = self.id {
-            query_as!(
-                User,
-                "SELECT \"user\".id \"id?\", username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-                FROM \"user\" \
-                JOIN group_user ON \"user\".id = group_user.user_id \
-                WHERE group_user.group_id = $1",
-                id
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            Ok(Vec::new())
-        }
+        query_as!(
+            User,
+            "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
+            phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" \
+            JOIN group_user ON \"user\".id = group_user.user_id \
+            WHERE group_user.group_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Fetches a list of VPN locations where a given group is explicitly allowed.
@@ -81,21 +71,17 @@ impl Group {
     where
         E: PgExecutor<'e>,
     {
-        if let Some(id) = self.id {
-            query_scalar!(
-                "SELECT wn.name FROM wireguard_network wn JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
-                WHERE wnag.group_id = $1",
-                id
-            )
-                .fetch_all(executor)
-                .await
-        } else {
-            Ok(Vec::new())
-        }
+        query_scalar!(
+            "SELECT wn.name FROM wireguard_network wn JOIN wireguard_network_allowed_group wnag ON wn.id = wnag.network_id \
+            WHERE wnag.group_id = $1",
+            self.id
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 
-impl WireguardNetwork {
+impl WireguardNetwork<Id> {
     /// Fetch a list of all allowed groups for a given network from DB
     pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
     where
@@ -109,6 +95,7 @@ impl WireguardNetwork {
         )
         .fetch_all(executor)
         .await?;
+
         Ok(groups)
     }
 
@@ -231,12 +218,11 @@ impl WireguardNetwork {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::db::{DbPool, User};
+    use crate::db::{PgPool, User};
 
     #[sqlx::test]
-    async fn test_group(pool: DbPool) {
-        let mut group = Group::new("worker");
-        group.save(&pool).await.unwrap();
+    async fn test_group(pool: PgPool) {
+        let group = Group::new("worker").save(&pool).await.unwrap();
 
         let fetched_group = Group::find_by_name(&pool, "worker").await.unwrap();
         assert!(fetched_group.is_some());
@@ -252,19 +238,19 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_group_members(pool: DbPool) {
-        let mut group = Group::new("worker");
-        group.save(&pool).await.unwrap();
-
-        let mut user = User::new(
+    async fn test_group_members(pool: PgPool) {
+        let group = Group::new("worker").save(&pool).await.unwrap();
+        let user = User::new(
             "hpotter",
             Some("pass123"),
             "Potter",
             "Harry",
             "h.potter@hogwart.edu.uk",
             None,
-        );
-        user.save(&pool).await.unwrap();
+        )
+        .save(&pool)
+        .await
+        .unwrap();
         user.add_to_group(&pool, &group).await.unwrap();
 
         let members = group.member_usernames(&pool).await.unwrap();

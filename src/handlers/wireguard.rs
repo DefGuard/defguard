@@ -12,6 +12,7 @@ use axum::{
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -26,7 +27,7 @@ use crate::{
             },
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
         },
-        AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
+        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::handlers::CanManageDevices,
     grpc::GatewayMap,
@@ -76,7 +77,7 @@ pub struct ImportNetworkData {
 
 #[derive(Serialize, Deserialize)]
 pub struct ImportedNetworkData {
-    pub network: WireguardNetwork,
+    pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
 }
 
@@ -103,7 +104,7 @@ pub async fn create_network(
         session.user.username
     );
     let allowed_ips = data.parse_allowed_ips();
-    let mut network = WireguardNetwork::new(
+    let network = WireguardNetwork::new(
         data.name,
         data.address,
         data.port,
@@ -117,7 +118,7 @@ pub async fn create_network(
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
     let mut transaction = appstate.pool.begin().await?;
-    network.save(&mut *transaction).await?;
+    let network = network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
@@ -126,19 +127,7 @@ pub async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    match &network.id {
-        Some(network_id) => {
-            appstate
-                .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
-        }
-        None => {
-            error!("Network {} ID was not created during network creation, gateway event was not sent!", network.name);
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::INTERNAL_SERVER_ERROR,
-            });
-        }
-    }
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
     transaction.commit().await?;
 
@@ -146,13 +135,14 @@ pub async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+
     Ok(ApiResponse {
         json: json!(network),
         status: StatusCode::CREATED,
     })
 }
 
-async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, WebError> {
+async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, WebError> {
     WireguardNetwork::find_by_id(pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
@@ -190,22 +180,12 @@ pub async fn modify_network(
         .await?;
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
-    match &network.id {
-        Some(network_id) => {
-            let peers = network.get_peers(&mut *transaction).await?;
-            appstate.send_wireguard_event(GatewayEvent::NetworkModified(
-                *network_id,
-                network.clone(),
-                peers,
-            ));
-        }
-        &None => {
-            error!(
-                "Network {} id not found, gateway update not sent!",
-                network.name
-            );
-        }
-    }
+    let peers = network.get_peers(&mut *transaction).await?;
+    appstate.send_wireguard_event(GatewayEvent::NetworkModified(
+        network.id,
+        network.clone(),
+        peers,
+    ));
 
     // commit DB transaction
     transaction.commit().await?;
@@ -238,6 +218,7 @@ pub async fn delete_network(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+
     Ok(ApiResponse::default())
 }
 
@@ -251,7 +232,7 @@ pub async fn list_networks(
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     for network in networks {
-        let network_id = network.id.expect("Network does not have an ID");
+        let network_id = network.id;
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
         {
             let gateway_state = gateway_state
@@ -364,21 +345,13 @@ pub async fn import_network(
     network.endpoint = data.endpoint;
 
     let mut transaction = appstate.pool.begin().await?;
-    network.save(&mut *transaction).await?;
+    let network = network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
 
     info!("New network {network} created");
-    match network.id {
-        Some(network_id) => {
-            appstate
-                .send_wireguard_event(GatewayEvent::NetworkCreated(network_id, network.clone()));
-        }
-        None => {
-            error!("Network {network} id not found, gateway event not sent!");
-        }
-    }
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
@@ -463,7 +436,7 @@ pub async fn add_user_devices(
 #[derive(Serialize, ToSchema)]
 pub struct AddDeviceResult {
     configs: Vec<DeviceConfig>,
-    device: Device,
+    device: Device<Id>,
 }
 
 /// Add device
@@ -566,17 +539,10 @@ pub async fn add_device(
     }
 
     // save device
-    let Some(user_id) = user.id else {
-        error!(
-            "Failed to add device {device_name}, user {} has no id",
-            user.username
-        );
-        return Err(WebError::ModelError("User has no id".to_string()));
-    };
-    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
-
     let mut transaction = appstate.pool.begin().await?;
-    device.save(&mut *transaction).await?;
+    let device = Device::new(add_device.name, add_device.wireguard_pubkey, user.id)
+        .save(&mut *transaction)
+        .await?;
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
@@ -701,20 +667,16 @@ pub async fn modify_device(
     // send update to gateway's
     let mut network_info = Vec::new();
     for network in &networks {
-        if let Some(network_id) = network.id {
-            if let Some(device_id) = device.id {
-                let wireguard_network_device =
-                    WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-                if let Some(wireguard_network_device) = wireguard_network_device {
-                    let device_network_info = DeviceNetworkInfo {
-                        network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                        preshared_key: wireguard_network_device.preshared_key,
-                        is_authorized: wireguard_network_device.is_authorized,
-                    };
-                    network_info.push(device_network_info);
-                }
-            }
+        let wireguard_network_device =
+            WireguardNetworkDevice::find(&appstate.pool, device.id, network.id).await?;
+        if let Some(wireguard_network_device) = wireguard_network_device {
+            let device_network_info = DeviceNetworkInfo {
+                network_id: network.id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                preshared_key: wireguard_network_device.preshared_key,
+                is_authorized: wireguard_network_device.is_authorized,
+            };
+            network_info.push(device_network_info);
         }
     }
     appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
@@ -898,18 +860,13 @@ pub async fn download_config(
         info!("Created config for device {}({device_id})", device.name);
         Ok(device.create_config(&network, &wireguard_network_device))
     } else {
-        let device_id = if let Some(id) = device.id {
-            id.to_string()
-        } else {
-            String::new()
-        };
         error!(
-            "Failed to create config, no IP address found for device: {}({device_id})",
-            device.name
+            "Failed to create config, no IP address found for device: {}({})",
+            device.name, device.id
         );
         Err(WebError::ObjectNotFound(format!(
-            "No IP address found for device: {}({device_id})",
-            device.name
+            "No IP address found for device: {}({})",
+            device.name, device.id
         )))
     }
 }

@@ -6,15 +6,15 @@ use lettre::{
     transport::smtp::{authentication::Credentials, response::Response},
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use sqlx::{Pool, Postgres};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::db::{models::settings::SmtpEncryption, Settings};
 
-static SMTP_TIMEOUT_SECONDS: u64 = 15;
+const SMTP_TIMEOUT_SECONDS: u64 = 15;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum MailError {
     #[error(transparent)]
     LettreError(#[from] lettre::error::Error),
@@ -49,12 +49,12 @@ struct SmtpSettings {
 }
 
 impl SmtpSettings {
-    /// Retrieves Settings object from database and builds SmtpSettings
-    pub async fn get(db: &Pool<Postgres>) -> Result<Self, MailError> {
+    /// Retrieves `Settings` from database and builds `SmtpSettings`.
+    pub async fn get(db: &PgPool) -> Result<Self, MailError> {
         Self::from_settings(Self::get_settings(db).await?)
     }
 
-    /// Constructs SmtpSettings object from Settings. Returns error if SMTP settings are incomplete.
+    /// Constructs `SmtpSettings` from `Settings`. Returns error if `SmtpSettings` are incomplete.
     pub fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
         if let (Some(server), Some(port), encryption, Some(user), Some(password), Some(sender)) = (
             settings.smtp_server,
@@ -79,10 +79,8 @@ impl SmtpSettings {
     }
 
     /// Retrieves Settings object from database
-    async fn get_settings(db: &Pool<Postgres>) -> Result<Settings, MailError> {
-        Settings::find_by_id(db, 1)
-            .await?
-            .ok_or(MailError::EmptySettings)
+    async fn get_settings(db: &PgPool) -> Result<Settings, MailError> {
+        Settings::get(db).await?.ok_or(MailError::EmptySettings)
     }
 }
 
@@ -143,11 +141,11 @@ impl Mail {
 
 struct MailHandler {
     rx: UnboundedReceiver<Mail>,
-    db: Pool<Postgres>,
+    db: PgPool,
 }
 
 impl MailHandler {
-    pub fn new(rx: UnboundedReceiver<Mail>, db: Pool<Postgres>) -> Self {
+    pub fn new(rx: UnboundedReceiver<Mail>, db: PgPool) -> Self {
         Self { rx, db }
     }
 
@@ -236,6 +234,6 @@ impl MailHandler {
 }
 
 /// Builds MailHandler and runs it.
-pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>, db: Pool<Postgres>) {
+pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>, db: PgPool) {
     MailHandler::new(rx, db).run().await;
 }

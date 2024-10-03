@@ -75,7 +75,8 @@ impl From<LdapError> for WebError {
         match error {
             LdapError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
             LdapError::Ldap(msg) => Self::Ldap(msg),
-            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".to_string()),
+            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".into()),
+            LdapError::Database => Self::Ldap("Database problem".into()),
         }
     }
 }

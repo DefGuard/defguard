@@ -6,14 +6,14 @@ use std::{
     time::Instant,
 };
 
-use sqlx::query;
+use sqlx::{query, PgPool};
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
 use crate::db::{
     models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    AppEvent, DbPool, HWKeyUserData, User, YubiKey,
+    AppEvent, HWKeyUserData, User, YubiKey,
 };
 
 tonic::include_proto!("worker");
@@ -179,13 +179,13 @@ impl WorkerState {
 }
 
 pub struct WorkerServer {
-    pool: DbPool,
+    pool: PgPool,
     state: Arc<Mutex<WorkerState>>,
 }
 
 impl WorkerServer {
     #[must_use]
-    pub fn new(pool: DbPool, state: Arc<Mutex<WorkerState>>) -> Self {
+    pub fn new(pool: PgPool, state: Arc<Mutex<WorkerState>>) -> Self {
         Self { pool, state }
     }
 }
@@ -260,54 +260,46 @@ impl worker_service_server::WorkerService for WorkerServer {
                     Ok(Some(user)) => {
                         // create yubikey
                         // FIXME: pass name from user input this is temporary solution
-                        if let Some(user_id) = user.id {
-                            let yubi_count_res = query!(
-                                "SELECT COUNT(*) FROM \"yubikey\" WHERE user_id = $1",
-                                user.id
-                            )
-                            .fetch_one(&self.pool)
-                            .await
-                            .map_err(|_| Status::internal("Failed to count keys"))?;
-                            // FIXME: names may collide
-                            let name = match yubi_count_res.count {
-                                Some(count) => {
-                                    let name = format!("YubiKey {}", count + 1);
-                                    name
-                                }
-                                None => "YubiKey".to_string(),
-                            };
-                            let mut new_yubi = YubiKey::new(name, message.yubikey_serial, user_id);
-                            new_yubi
-                                .save(&self.pool)
-                                .await
-                                .map_err(|_| Status::internal("Failed to save yubikey"))?;
-                            if let Some(key_id) = new_yubi.id {
-                                let mut ssh = AuthenticationKey::new(
-                                    user_id,
-                                    message.ssh_key,
-                                    None,
-                                    AuthenticationKeyType::Ssh,
-                                    Some(key_id),
-                                );
-                                let mut gpg = AuthenticationKey::new(
-                                    user_id,
-                                    message.public_key,
-                                    None,
-                                    AuthenticationKeyType::Gpg,
-                                    Some(key_id),
-                                );
-                                ssh.save(&self.pool)
-                                    .await
-                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
-                                gpg.save(&self.pool)
-                                    .await
-                                    .map_err(|_| Status::internal("Failed to save auth key"))?;
-                            } else {
-                                return Err(Status::internal("Yubikey did not get an id"));
+                        let yubi_count_res = query!(
+                            "SELECT COUNT(*) FROM \"yubikey\" WHERE user_id = $1",
+                            user.id
+                        )
+                        .fetch_one(&self.pool)
+                        .await
+                        .map_err(|_| Status::internal("Failed to count keys"))?;
+                        // FIXME: names may collide
+                        let name = match yubi_count_res.count {
+                            Some(count) => {
+                                let name = format!("YubiKey {}", count + 1);
+                                name
                             }
-                        } else {
-                            return Err(Status::internal("User has no ID"));
-                        }
+                            None => "YubiKey".to_string(),
+                        };
+                        let new_yubi = YubiKey::new(name, message.yubikey_serial, user.id)
+                            .save(&self.pool)
+                            .await
+                            .map_err(|_| Status::internal("Failed to save YubiKey"))?;
+                        let key_id = new_yubi.id;
+                        let ssh = AuthenticationKey::new(
+                            user.id,
+                            message.ssh_key,
+                            None,
+                            AuthenticationKeyType::Ssh,
+                            Some(key_id),
+                        );
+                        let gpg = AuthenticationKey::new(
+                            user.id,
+                            message.public_key,
+                            None,
+                            AuthenticationKeyType::Gpg,
+                            Some(key_id),
+                        );
+                        ssh.save(&self.pool)
+                            .await
+                            .map_err(|_| Status::internal("Failed to save auth key"))?;
+                        gpg.save(&self.pool)
+                            .await
+                            .map_err(|_| Status::internal("Failed to save auth key"))?;
                     }
                     Ok(None) => info!("User {username} not found"),
                     Err(err) => error!("Error {err}"),

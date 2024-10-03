@@ -1,7 +1,6 @@
 use chrono::{Duration, Utc};
 use defguard::{
     config::DefGuardConfig,
-    db::DbPool,
     enterprise::{
         handlers::openid_providers::AddProviderData,
         license::{set_cached_license, License},
@@ -10,6 +9,7 @@ use defguard::{
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
+use sqlx::PgPool;
 
 mod common;
 use self::common::{client::TestClient, make_base_client, make_test_client};
@@ -20,7 +20,7 @@ async fn make_client() -> TestClient {
 }
 
 #[allow(dead_code)]
-async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> TestClient {
+async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let (client, _) = make_base_client(pool, config).await;
     client
 }
