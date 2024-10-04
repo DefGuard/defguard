@@ -1244,7 +1244,7 @@ const en: BaseTranslation = {
         manualConfig: {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
-            "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup.",
+            "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
         },
       },
     },
