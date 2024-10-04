@@ -2928,7 +2928,7 @@ type RootTranslation = {
 			fields: {
 				deviceManagement: {
 					/**
-					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​a​g​e​ ​t​h​e​i​r​ ​d​e​v​i​c​e​s
 					 */
 					label: string
 					/**
@@ -2948,11 +2948,11 @@ type RootTranslation = {
 				}
 				manualConfig: {
 					/**
-					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​ ​a​b​i​l​i​t​y​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
+					 * D​i​s​a​b​l​e​ ​u​s​e​r​s​'​ ​a​b​i​l​i​t​y​ ​t​o​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t
 					 */
 					label: string
 					/**
-					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​p​r​e​s​e​n​t​e​d​ ​w​i​t​h​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​m​a​n​u​a​l​ ​c​l​i​e​n​t​ ​s​e​t​u​p
+					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.
 					 */
 					helper: string
 				}
@@ -7178,7 +7178,7 @@ export type TranslationFunctions = {
 			fields: {
 				deviceManagement: {
 					/**
-					 * Disable users ability to manage their devices
+					 * Disable users' ability to manage their devices
 					 */
 					label: () => LocalizedString
 					/**
@@ -7198,11 +7198,11 @@ export type TranslationFunctions = {
 				}
 				manualConfig: {
 					/**
-					 * Disable users ability to download manual WireGuard configuration
+					 * Disable users' ability to manually configure WireGuard client
 					 */
 					label: () => LocalizedString
 					/**
-					 * When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup
+					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup.
 					 */
 					helper: () => LocalizedString
 				}
