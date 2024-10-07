@@ -85,7 +85,6 @@ export const AddDeviceTokenStep = () => {
       <MessageBox
         type={MessageBoxType.WARNING}
         message={parse(LL.addDevicePage.helpers.client())}
-        dismissId="add-device-page-method-opt-message"
       />
       <Card id="add-device-token-step" shaded>
         <h2>{localLL.title()}</h2>

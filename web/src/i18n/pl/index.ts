@@ -1229,9 +1229,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli przekierować całego ruchu przez VPN za pomocą klienta Defguard.',
         },
         manualConfig: {
-          label: 'Wyłącz wyświetlanie konfiguracji WireGuard',
+          label: 'Wyłącz manualną konfigurację WireGuard',
           helper:
-            'Kiedy ta opcja jest włączona, konfiguracja WireGuard nie będzie wyświetlana użytkownikom podczas konfiguracji urządzenia.',
+            'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli pobrać ani wyświetlić danych do manualnej konfiguracji WireGuard. Możliwe będzie wyłącznie skonfigurowanie klienta Defguard.',
         },
       },
     },

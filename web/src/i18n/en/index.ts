@@ -1232,7 +1232,7 @@ const en: BaseTranslation = {
       helper: '<p>Here you can change enterprise settings.</p>',
       fields: {
         deviceManagement: {
-          label: 'Disable users ability to manage their devices',
+          label: "Disable users' ability to manage their devices",
           helper:
             "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
         },
@@ -1242,9 +1242,9 @@ const en: BaseTranslation = {
             'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
         },
         manualConfig: {
-          label: 'Disable users ability to download manual WireGuard configuration',
+          label: "Disable users' ability to manually configure WireGuard client",
           helper:
-            "When this option is enabled, users won't be presented with a WireGuard configuration for manual client setup",
+            "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
         },
       },
     },
