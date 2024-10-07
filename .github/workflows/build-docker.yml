@@ -54,7 +54,7 @@ jobs:
           platforms: linux/${{ matrix.cpu }}
           provenance: false
           push: true
-          tags: ${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}
+          tags: "${{ env.GHCR_REPO }}:${{ github.sha }}-${{ matrix.tag }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
