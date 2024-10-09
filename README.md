@@ -10,11 +10,11 @@
 </div>
 
 - Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
-- Integrated SSO based on OpenID Connect:
+- Integrated SSO based on OpenID Connect: 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Already using Google/Microsoft or other OpenID Provider? - integrated external OpenID provider support
-- Yubico YubiKey Hardware security key management and provisioning
+- Already using Google/Microsoft or other OpenID Provider? - integrated external OpenID provider support 
+- Yubico YubiKey Hardware security key management and provisioning 
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Build on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
@@ -28,7 +28,7 @@ Baring in mind we are no youtubers - just engineers - here is a video introducti
 
 <div align="center">
  <p align="center">
-
+  
 [![Introduction to defguard](https://img.youtube.com/vi/4PF7edMGBwk/hqdefault.jpg)](https://www.youtube.com/watch?v=4PF7edMGBwk)
 
 </p>
@@ -74,7 +74,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGua
 Here is a step-by-step video about this process:
 <div align="center">
  <p align="center">
-
+  
 [![Quickly deploy defguard](https://img.youtube.com/vi/MqlE6ZTn0bg/hqdefault.jpg)](https://www.youtube.com/watch?v=MqlE6ZTn0bg)
 
 </p>
@@ -127,7 +127,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
    - Email based TOTP
-* Extenal SSO: [External OpenID Providers support](https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom
+* Extenal SSO: [External OpenID Providers support](https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
 * SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://defguard.gitbook.io/defguard/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding

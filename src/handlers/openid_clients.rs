@@ -77,7 +77,7 @@ pub async fn change_openid_client(
     Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
     debug!(
-        "User {} updating OpenID client {client_id}",
+        "User {} updating OpenID client {client_id}...",
         session.user.username
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
