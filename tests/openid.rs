@@ -6,7 +6,7 @@ use defguard::{
     config::DefGuardConfig,
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
-        DbPool,
+        Id,
     },
     handlers::Auth,
 };
@@ -25,6 +25,7 @@ use reqwest::{
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
+use sqlx::PgPool;
 
 mod common;
 use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
@@ -34,7 +35,7 @@ async fn make_client() -> TestClient {
     client
 }
 
-async fn make_client_v2(pool: DbPool, config: DefGuardConfig) -> TestClient {
+async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let (client, _) = make_base_client(pool, config).await;
     client
 }
@@ -69,7 +70,7 @@ async fn test_openid_client() {
 
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let openid_clients: Vec<OAuth2Client> = response.json().await;
+    let openid_clients: Vec<OAuth2Client<Id>> = response.json().await;
     assert_eq!(openid_clients.len(), 1);
 
     openid_client.name = "Test changed".into();
@@ -85,7 +86,7 @@ async fn test_openid_client() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let fetched_client: OAuth2Client = response.json().await;
+    let fetched_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(fetched_client.name, openid_client.name);
 
     // OpenID flow tests
@@ -100,7 +101,7 @@ async fn test_openid_client() {
     let response = client.get("/api/v1/oauth").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    let openid_clients: Vec<OAuth2Client> = response.json().await;
+    let openid_clients: Vec<OAuth2Client<Id>> = response.json().await;
     assert!(openid_clients.is_empty());
 }
 
@@ -123,7 +124,7 @@ async fn test_openid_flow() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let openid_client: OAuth2Client = response.json().await;
+    let openid_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(openid_client.name, "Test");
 
     // all clients
@@ -360,7 +361,7 @@ async fn test_openid_flow() {
 /// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.
 async fn http_client(
     request: HttpRequest,
-    pool: DbPool,
+    pool: PgPool,
     config: DefGuardConfig,
 ) -> Result<HttpResponse, ToStrError> {
     let client = make_client_v2(pool, config).await;
@@ -429,7 +430,7 @@ async fn test_openid_authorization_code() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let oauth2client: OAuth2Client = response.json().await;
+    let oauth2client: OAuth2Client<Id> = response.json().await;
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
     assert_eq!(oauth2client.client_id.len(), 16);
@@ -534,7 +535,7 @@ async fn test_openid_authorization_code_with_pkce() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let oauth2client: OAuth2Client = response.json().await;
+    let oauth2client: OAuth2Client<Id> = response.json().await;
     assert_eq!(oauth2client.name, "My test client");
     assert_eq!(oauth2client.scope[0], "openid");
 
@@ -643,7 +644,7 @@ async fn test_openid_flow_new_login_mail() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let openid_client: OAuth2Client = response.json().await;
+    let openid_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(openid_client.name, "Test");
 
     // all clients

@@ -1,0 +1,46 @@
+#license-settings {
+  & > .card {
+    display: flex;
+    flex-flow: column;
+    row-gap: 16px;
+
+    @include media-breakpoint-up(lg) {
+      padding: 16px 15px;
+    }
+  }
+}
+
+.controls > .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+#license-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+
+  & > div {
+    display: flex;
+    flex-flow: column;
+    row-gap: 8px;
+    align-items: center;
+
+    & > .with-helper {
+      display: flex;
+      gap: 5px;
+    }
+  }
+
+  .license-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+#no-license {
+  text-align: center;
+}

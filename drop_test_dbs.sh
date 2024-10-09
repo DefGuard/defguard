@@ -4,14 +4,13 @@
 
 set -eo pipefail
 
-if [ -f .env ]
-then
-  export $(cat .env | sed 's/#.*//g'| xargs)
+if [ -f .env ]; then
+    export $(sed -e 's/#.*//g' .env | xargs)
 fi
 
 if ! [ -x "$(command -v psql)" ]; then
-  echo >&2 "Error: psql is not installed."
-  exit 1
+    echo >&2 "Error: psql is not installed."
+    exit 1
 fi
 
 if [ -z "${DATABASE_URL}" ]; then
@@ -19,7 +18,7 @@ if [ -z "${DATABASE_URL}" ]; then
     exit 1
 fi
 
-PATTERN="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+PATTERN='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 echo "Dropping test databases"
 

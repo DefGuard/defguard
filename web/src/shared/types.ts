@@ -166,6 +166,11 @@ export interface LoginData {
   password: string;
 }
 
+export interface CallbackData {
+  id_token: string;
+  state: string;
+}
+
 export type LoginSubjectData = {
   user?: User;
   // URL of an already authorized application
@@ -307,6 +312,10 @@ export interface LoginResponse {
   mfa?: MFALoginResponse;
 }
 
+export interface OpenIdInfoResponse {
+  url: string;
+}
+
 export interface DeleteWebAuthNKeyRequest {
   username: User['username'];
   keyId: SecurityKey['id'];
@@ -374,7 +383,7 @@ export type ChangePasswordSelfRequest = {
 };
 
 export type AuthCodeRequest = {
-  code: number;
+  code: string;
 };
 
 export type AuthenticationKeyInfo = {
@@ -427,6 +436,7 @@ export type AuthenticationKey = {
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
+  getEnterpriseStatus: () => Promise<EnterpriseStatus>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -500,6 +510,10 @@ export interface ApiHook {
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
     logout: () => EmptyApiResponse;
+    openid: {
+      getOpenIdInfo: () => Promise<OpenIdInfoResponse>;
+      callback: (data: CallbackData) => Promise<LoginResponse>;
+    };
     mfa: {
       disable: () => EmptyApiResponse;
       enable: () => EmptyApiResponse;
@@ -568,7 +582,13 @@ export interface ApiHook {
     setDefaultBranding: (id: string) => Promise<Settings>;
     patchSettings: (data: Partial<Settings>) => EmptyApiResponse;
     getEssentialSettings: () => Promise<SettingsEssentials>;
+    getEnterpriseSettings: () => Promise<SettingsEnterprise>;
+    patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) => EmptyApiResponse;
     testLdapSettings: () => Promise<EmptyApiResponse>;
+    fetchOpenIdProviders: () => Promise<OpenIdProvider>;
+    addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
+    editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -786,7 +806,9 @@ export type Settings = SettingsModules &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
-  SettingsLDAP;
+  SettingsLDAP &
+  SettingsOpenID &
+  SettingsLicense;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -839,6 +861,31 @@ export type SettingsWeb3 = {
   challenge_template: string;
 };
 
+export type SettingsOpenID = {
+  openid_create_account: boolean;
+};
+
+export type SettingsLicense = {
+  license: string;
+};
+
+export type SettingsEnterprise = {
+  admin_device_management: boolean;
+  disable_all_traffic: boolean;
+  only_client_activation: boolean;
+};
+
+export type LicenseInfo = {
+  valid_until?: string;
+  subscription: boolean;
+};
+
+export type EnterpriseStatus = {
+  enabled: boolean;
+  // If there is no license, there is no license info
+  license_info?: LicenseInfo;
+};
+
 export interface Webhook {
   id: string;
   url: string;
@@ -859,6 +906,14 @@ export interface OpenidClient {
   redirect_uri: string[];
   scope: string[];
   enabled: boolean;
+}
+
+export interface OpenIdProvider {
+  id: number;
+  name: string;
+  base_url: string;
+  client_id: string;
+  client_secret: string;
 }
 
 export interface EditOpenidClientRequest {
@@ -967,7 +1022,7 @@ export interface Web3StartRequest {
 }
 
 export interface TOTPRequest {
-  code: number;
+  code: string;
 }
 
 export interface WebAuthnRegistrationRequest {

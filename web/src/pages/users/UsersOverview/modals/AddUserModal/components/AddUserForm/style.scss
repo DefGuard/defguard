@@ -11,9 +11,16 @@
     width: 1100px;
   }
 
-  & > .form-checkbox {
+  .checkbox-space {
+    display: flex;
     margin-bottom: 25px;
+    gap: 5px;
+
+    a {
+      @include typography(input-label);
+    }
   }
+
   & > .row {
     display: flex;
     flex-flow: column;

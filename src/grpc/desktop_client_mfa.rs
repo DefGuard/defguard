@@ -1,3 +1,10 @@
+use std::collections::HashMap;
+
+use chrono::Utc;
+use sqlx::PgPool;
+use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tonic::Status;
+
 use super::proto::{
     ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
     MfaMethod,
@@ -6,27 +13,23 @@ use crate::{
     auth::{Claims, ClaimsType},
     db::{
         models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-        DbPool, Device, GatewayEvent, User, UserInfo, WireguardNetwork,
+        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
     },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
 };
-use chrono::Utc;
-use std::collections::HashMap;
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
-use tonic::Status;
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes
 
 struct ClientLoginSession {
     method: MfaMethod,
-    location: WireguardNetwork,
-    device: Device,
-    user: User,
+    location: WireguardNetwork<Id>,
+    device: Device<Id>,
+    user: User<Id>,
 }
 
 pub(super) struct ClientMfaServer {
-    pool: DbPool,
+    pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
     wireguard_tx: Sender<GatewayEvent>,
     sessions: HashMap<String, ClientLoginSession>,
@@ -35,7 +38,7 @@ pub(super) struct ClientMfaServer {
 impl ClientMfaServer {
     #[must_use]
     pub fn new(
-        pool: DbPool,
+        pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
         wireguard_tx: Sender<GatewayEvent>,
     ) -> Self {
@@ -202,13 +205,13 @@ impl ClientMfaServer {
         // validate code
         match method {
             MfaMethod::Totp => {
-                if !user.verify_totp_code(request.code) {
+                if !user.verify_totp_code(&request.code.to_string()) {
                     error!("Provided TOTP code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
             MfaMethod::Email => {
-                if !user.verify_email_mfa_code(request.code) {
+                if !user.verify_email_mfa_code(&request.code.to_string()) {
                     error!("Provided email code is not valid");
                     return Err(Status::unauthenticated("unauthorized"));
                 }
@@ -222,12 +225,8 @@ impl ClientMfaServer {
         })?;
 
         // fetch device config for the location
-        let Ok(Some(mut network_device)) = WireguardNetworkDevice::find(
-            &mut *transaction,
-            device.id.expect("Missing device ID"),
-            location.id.expect("Missing location ID"),
-        )
-        .await
+        let Ok(Some(mut network_device)) =
+            WireguardNetworkDevice::find(&mut *transaction, device.id, location.id).await
         else {
             error!("Failed to fetch network config for device {device} and location {location}");
             return Err(Status::internal("unexpected error"));
@@ -255,7 +254,7 @@ impl ClientMfaServer {
         let device_info = DeviceInfo {
             device: device.clone(),
             network_info: vec![DeviceNetworkInfo {
-                network_id: location.id.expect("Missing location ID"),
+                network_id: location.id,
                 device_wireguard_ip: network_device.wireguard_ip,
                 preshared_key: network_device.preshared_key,
                 is_authorized: network_device.is_authorized,

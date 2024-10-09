@@ -17,13 +17,13 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::enrollment::TokenError, MFAMethod, Session, User},
+    db::{models::enrollment::TokenError, Id, MFAMethod, Session, User},
     error::WebError,
     mail::{Attachment, Mail},
     server_config,
     support::dump_config,
     templates::{self, support_data_mail, TemplateError, TemplateLocation},
-    DbPool,
+    PgPool,
 };
 
 static TEST_MAIL_SUBJECT: &str = "Defguard email test";
@@ -213,7 +213,7 @@ pub async fn send_gateway_disconnected_email(
     network_name: String,
     gateway_adress: &str,
     mail_tx: &UnboundedSender<Mail>,
-    pool: &DbPool,
+    pool: &PgPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
     let admin_users = User::find_by_group_name(pool, &server_config().admin_groupname).await?;
@@ -310,7 +310,7 @@ pub async fn send_new_device_ocid_login_email(
 
 pub fn send_mfa_configured_email(
     session: Option<&Session>,
-    user: &User,
+    user: &User<Id>,
     mfa_method: &MFAMethod,
     mail_tx: &UnboundedSender<Mail>,
 ) -> Result<(), TemplateError> {
@@ -341,7 +341,7 @@ pub fn send_mfa_configured_email(
 }
 
 pub fn send_email_mfa_activation_email(
-    user: &User,
+    user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
 ) -> Result<(), TemplateError> {
@@ -356,7 +356,7 @@ pub fn send_email_mfa_activation_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_activation_mail(code, session)?,
+        content: templates::email_mfa_activation_mail(user, &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -376,7 +376,7 @@ pub fn send_email_mfa_activation_email(
 }
 
 pub fn send_email_mfa_code_email(
-    user: &User,
+    user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     session: Option<&Session>,
 ) -> Result<(), TemplateError> {
@@ -391,7 +391,7 @@ pub fn send_email_mfa_code_email(
     let mail = Mail {
         to: user.email.clone(),
         subject: EMAIL_MFA_CODE_EMAIL_SUBJECT.into(),
-        content: templates::email_mfa_code_mail(code, session)?,
+        content: templates::email_mfa_code_mail(user, &code, session)?,
         attachments: Vec::new(),
         result_tx: None,
     };
@@ -411,7 +411,7 @@ pub fn send_email_mfa_code_email(
 }
 
 pub fn send_password_reset_email(
-    user: &User,
+    user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     service_url: Url,
     token: &str,
@@ -443,7 +443,7 @@ pub fn send_password_reset_email(
 }
 
 pub fn send_password_reset_success_email(
-    user: &User,
+    user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     ip_address: Option<&str>,
     device_info: Option<&str>,

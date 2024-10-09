@@ -10,7 +10,10 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use reqwest::Url;
 use serde::Serialize;
+#[cfg(feature = "worker")]
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -42,14 +45,19 @@ use self::{
     worker::{worker_service_server::WorkerServiceServer, WorkerServer},
 };
 use crate::{
-    auth::failed_login::FailedLoginMap, db::AppEvent,
-    handlers::mail::send_gateway_disconnected_email, mail::Mail, server_config,
+    auth::failed_login::FailedLoginMap,
+    db::{AppEvent, Id, Settings},
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        grpc::polling::PollingServer,
+        license::{get_cached_license, validate_license},
+    },
+    handlers::mail::send_gateway_disconnected_email,
+    mail::Mail,
+    server_config,
 };
 #[cfg(feature = "worker")]
-use crate::{
-    auth::ClaimsType,
-    db::{DbPool, GatewayEvent},
-};
+use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
 mod desktop_client_mfa;
@@ -59,6 +67,7 @@ pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
 pub mod password_reset;
+pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 
@@ -70,10 +79,9 @@ use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
-type NetworkId = i64;
 type GatewayHostname = String;
 #[derive(Debug)]
-pub struct GatewayMap(HashMap<NetworkId, HashMap<GatewayHostname, GatewayState>>);
+pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
 pub enum GatewayMapError {
@@ -100,7 +108,7 @@ impl GatewayMap {
     // as a sort of "registration"
     pub fn add_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         network_name: &str,
         hostname: String,
         name: Option<String>,
@@ -120,7 +128,7 @@ impl GatewayMap {
     }
 
     // remove gateway from map
-    pub fn remove_gateway(&mut self, network_id: i64, uid: Uuid) -> Result<(), GatewayMapError> {
+    pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
@@ -155,7 +163,7 @@ impl GatewayMap {
     // we assume that the gateway is already present in hashmap
     pub fn connect_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         hostname: &str,
     ) -> Result<(), GatewayMapError> {
         debug!("Connecting gateway {hostname} in network {network_id}");
@@ -184,9 +192,9 @@ impl GatewayMap {
     // change gateway status to disconnected
     pub fn disconnect_gateway(
         &mut self,
-        network_id: i64,
+        network_id: Id,
         hostname: String,
-        pool: &DbPool,
+        pool: &PgPool,
     ) -> Result<(), GatewayMapError> {
         debug!("Disconnecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
@@ -206,7 +214,7 @@ impl GatewayMap {
 
     // return `true` if at least one gateway in a given network is connected
     #[must_use]
-    pub fn connected(&self, network_id: i64) -> bool {
+    pub fn connected(&self, network_id: Id) -> bool {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map
                 .values()
@@ -217,7 +225,7 @@ impl GatewayMap {
 
     // return a list af aff statuses af all gateways in a given network
     #[must_use]
-    pub fn get_network_gateway_status(&self, network_id: i64) -> Vec<GatewayState> {
+    pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
             None => Vec::new(),
@@ -226,7 +234,7 @@ impl GatewayMap {
 
     // return gateway name
     #[must_use]
-    pub fn get_network_gateway_name(&self, network_id: i64, hostname: &str) -> Option<String> {
+    pub fn get_network_gateway_name(&self, network_id: Id, hostname: &str) -> Option<String> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => {
                 if let Some(state) = network_gateway_map.get(hostname) {
@@ -250,7 +258,7 @@ impl Default for GatewayMap {
 pub struct GatewayState {
     pub uid: Uuid,
     pub connected: bool,
-    pub network_id: i64,
+    pub network_id: Id,
     pub network_name: String,
     pub name: Option<String>,
     pub hostname: String,
@@ -265,7 +273,7 @@ pub struct GatewayState {
 impl GatewayState {
     #[must_use]
     pub fn new<S: Into<String>>(
-        network_id: i64,
+        network_id: Id,
         network_name: S,
         hostname: S,
         name: Option<String>,
@@ -287,7 +295,7 @@ impl GatewayState {
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &DbPool) {
+    fn send_disconnect_notification(&mut self, pool: &PgPool) {
         debug!("Sending gateway disconnect email notification");
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
@@ -340,7 +348,7 @@ impl From<Status> for CoreError {
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
-    pool: DbPool,
+    pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
@@ -355,7 +363,8 @@ pub async fn run_grpc_bidi_stream(
         user_agent_parser,
     );
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(pool, mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let polling_server = PollingServer::new(pool);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint
@@ -375,7 +384,10 @@ pub async fn run_grpc_bidi_stream(
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!("Failed to connect to proxy, retrying in 10s");
+            error!(
+                "Failed to connect to proxy @ {}, retrying in 10s",
+                endpoint.uri()
+            );
             sleep(TEN_SECS).await;
             continue;
         };
@@ -388,7 +400,8 @@ pub async fn run_grpc_bidi_stream(
                     break 'message;
                 }
                 Ok(Some(received)) => {
-                    info!("Received message from proxy");
+                    info!("Received message from proxy.");
+                    debug!("Received the following message from proxy: {received:?}");
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
@@ -504,6 +517,18 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
+                        // rpc LocationInfo (LocationInfoRequest) returns (LocationInfoResponse)
+                        Some(core_request::Payload::InstanceInfo(request)) => {
+                            match polling_server.info(request).await {
+                                Ok(response_payload) => {
+                                    Some(core_response::Payload::InstanceInfo(response_payload))
+                                }
+                                Err(err) => {
+                                    error!("Instance info error {err}");
+                                    Some(core_response::Payload::CoreError(err.into()))
+                                }
+                            }
+                        }
                         // Reply without payload.
                         None => None,
                     };
@@ -514,6 +539,7 @@ pub async fn run_grpc_bidi_stream(
                     tx.send(req).unwrap();
                 }
                 Err(err) => {
+                    error!("Disconnected from proxy at {}", endpoint.uri());
                     error!("stream error: {err}");
                     debug!("waiting 10s to re-establish the connection");
                     sleep(TEN_SECS).await;
@@ -527,7 +553,7 @@ pub async fn run_grpc_bidi_stream(
 /// Runs gRPC server with core services.
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    pool: DbPool,
+    pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -547,6 +573,12 @@ pub async fn run_grpc_server(
         GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
+
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<AuthServiceServer<AuthServer>>()
+        .await;
+
     // Run gRPC server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().grpc_port);
     debug!("Starting gRPC services");
@@ -559,6 +591,7 @@ pub async fn run_grpc_server(
     let router = builder
         .http2_keepalive_interval(Some(TEN_SECS))
         .tcp_keepalive(Some(TEN_SECS))
+        .add_service(health_service)
         .add_service(auth_service);
     #[cfg(feature = "wireguard")]
     let router = router.add_service(gateway_service);
@@ -609,4 +642,48 @@ pub struct WorkerDetail {
     id: String,
     ip: IpAddr,
     connected: bool,
+}
+
+#[derive(Debug)]
+pub struct InstanceInfo {
+    id: uuid::Uuid,
+    name: String,
+    url: Url,
+    proxy_url: Url,
+    username: String,
+    disable_all_traffic: bool,
+    enterprise_enabled: bool,
+}
+
+impl InstanceInfo {
+    pub fn new<S: Into<String>>(
+        settings: Settings,
+        username: S,
+        enterprise_settings: &EnterpriseSettings,
+    ) -> Self {
+        let config = server_config();
+        InstanceInfo {
+            id: settings.uuid,
+            name: settings.instance_name,
+            url: config.url.clone(),
+            proxy_url: config.enrollment_url.clone(),
+            username: username.into(),
+            disable_all_traffic: enterprise_settings.disable_all_traffic,
+            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
+        }
+    }
+}
+
+impl From<InstanceInfo> for proto::InstanceInfo {
+    fn from(instance: InstanceInfo) -> Self {
+        Self {
+            name: instance.name,
+            id: instance.id.to_string(),
+            url: instance.url.to_string(),
+            proxy_url: instance.proxy_url.to_string(),
+            username: instance.username,
+            disable_all_traffic: instance.disable_all_traffic,
+            enterprise_enabled: instance.enterprise_enabled,
+        }
+    }
 }

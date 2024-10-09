@@ -1,9 +1,8 @@
 use chrono::{Duration, NaiveDateTime, Utc};
-use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
+use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
-use super::DbPool;
-use crate::{random::gen_alphanumeric, server_config};
+use crate::{db::Id, random::gen_alphanumeric, server_config};
 
 #[derive(Clone, PartialEq, Type)]
 #[repr(i16)]
@@ -18,7 +17,7 @@ pub enum SessionState {
 #[derive(Clone)]
 pub struct Session {
     pub id: String,
-    pub user_id: i64,
+    pub user_id: Id,
     pub state: SessionState,
     pub created: NaiveDateTime,
     pub expires: NaiveDateTime,
@@ -31,7 +30,7 @@ pub struct Session {
 impl Session {
     #[must_use]
     pub fn new(
-        user_id: i64,
+        user_id: Id,
         state: SessionState,
         ip_address: String,
         device_info: Option<String>,
@@ -56,7 +55,7 @@ impl Session {
         self.expires < Utc::now().naive_utc()
     }
 
-    pub async fn find_by_id(pool: &DbPool, id: &str) -> Result<Option<Self>, SqlxError> {
+    pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
             "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, \
@@ -67,7 +66,7 @@ impl Session {
         .await
     }
 
-    pub async fn save(&self, pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn save(&self, pool: &PgPool) -> Result<(), SqlxError> {
         query!(
             "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge, ip_address, device_info) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
@@ -83,10 +82,11 @@ impl Session {
         )
         .execute(pool)
         .await?;
+
         Ok(())
     }
 
-    pub async fn set_state(&mut self, pool: &DbPool, state: SessionState) -> Result<(), SqlxError> {
+    pub async fn set_state(&mut self, pool: &PgPool, state: SessionState) -> Result<(), SqlxError> {
         query!(
             "UPDATE session SET state = $1 WHERE id = $2",
             state.clone() as i16,
@@ -95,6 +95,7 @@ impl Session {
         .execute(pool)
         .await?;
         self.state = state;
+
         Ok(())
     }
 
@@ -130,6 +131,7 @@ impl Session {
             .await?;
             self.webauthn_challenge = Some(webauthn_challenge);
         }
+
         Ok(())
     }
 
@@ -151,6 +153,7 @@ impl Session {
             .await?;
             self.webauthn_challenge = Some(webauthn_challenge);
         }
+
         Ok(())
     }
 
@@ -170,6 +173,7 @@ impl Session {
         .execute(executor)
         .await?;
         self.web3_challenge = Some(web3_challenge);
+
         Ok(())
     }
 
@@ -180,6 +184,7 @@ impl Session {
         query!("DELETE FROM session WHERE id = $1", self.id)
             .execute(executor)
             .await?;
+
         Ok(())
     }
 
@@ -190,6 +195,7 @@ impl Session {
         query!("DELETE FROM session WHERE expires < now()",)
             .execute(executor)
             .await?;
+
         Ok(())
     }
 
@@ -200,6 +206,7 @@ impl Session {
         query!("DELETE FROM session WHERE user_id = $1", user_id)
             .execute(executor)
             .await?;
+
         Ok(())
     }
 }

@@ -8,7 +8,7 @@ COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1.77 as chef
+FROM rust:1.80 as chef
 
 WORKDIR /build
 
@@ -35,6 +35,8 @@ COPY web/src/shared/images/svg ./web/src/shared/images/svg
 COPY user_agent_header_regexes.yaml /build/user_agent_header_regexes.yaml
 RUN apt-get update && apt-get -y install protobuf-compiler libprotobuf-dev
 COPY Cargo.toml Cargo.lock build.rs ./
+# for vergen
+COPY .git .git
 COPY .sqlx .sqlx
 COPY src src
 COPY templates templates

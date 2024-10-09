@@ -3,7 +3,7 @@ mod common;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
-        AddDevice, UserInfo,
+        AddDevice, Id, UserInfo,
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,
@@ -434,12 +434,12 @@ async fn test_check_username() {
     let invalid_usernames = ["ADumble dore", ".1user"];
     let valid_usernames = ["user1", "use2r3", "not_wrong"];
 
-    for username in invalid_usernames {
+    for (i, username) in invalid_usernames.into_iter().enumerate() {
         let new_user = AddUserData {
             username: username.into(),
             last_name: "Dumbledore".into(),
             first_name: "Albus".into(),
-            email: "a.dumbledore@hogwart.edu.uk".into(),
+            email: format!("a.dumbledore{i}@hogwart.edu.uk"),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
@@ -447,12 +447,12 @@ async fn test_check_username() {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
-    for username in valid_usernames {
+    for (i, username) in valid_usernames.into_iter().enumerate() {
         let new_user = AddUserData {
             username: username.into(),
             last_name: "Dumbledore".into(),
             first_name: "Albus".into(),
-            email: "a.dumbledore@hogwart.edu.uk".into(),
+            email: format!("a.dumbledore{i}@hogwart.edu.uk"),
             phone: Some("1234".into()),
             password: Some("Alohomora!12".into()),
         };
@@ -528,7 +528,7 @@ async fn test_user_unregister_authorized_app() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let openid_client: OAuth2Client = response.json().await;
+    let openid_client: OAuth2Client<Id> = response.json().await;
     assert_eq!(openid_client.name, "Test");
     let response = client
         .post(format!(
@@ -762,4 +762,37 @@ async fn test_disable() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_unique_email() {
+    let client = make_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // create user
+    let new_user = AddUserData {
+        username: "adumbledore".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // create user with same email
+    let new_user = AddUserData {
+        username: "adumbledore2".into(),
+        last_name: "Dumbledore".into(),
+        first_name: "Albus".into(),
+        email: "a.dumbledore@hogwart.edu.uk".into(),
+        phone: Some("1234".into()),
+        password: Some("Password1234543$!".into()),
+    };
+    let response = client.post("/api/v1/user").json(&new_user).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

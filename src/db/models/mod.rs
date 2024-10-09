@@ -12,6 +12,7 @@ pub mod oauth2authorizedapp;
 pub mod oauth2client;
 #[cfg(feature = "openid")]
 pub mod oauth2token;
+pub mod polling_token;
 pub mod session;
 pub mod settings;
 pub mod user;
@@ -21,13 +22,14 @@ pub mod webhook;
 pub mod wireguard;
 pub mod yubikey;
 
-use sqlx::{query_as, Error as SqlxError, PgConnection};
+use sqlx::{query_as, Error as SqlxError, PgConnection, PgPool};
+use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
     user::{MFAMethod, User},
 };
-use super::{DbPool, Group};
+use super::{Group, Id};
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -38,32 +40,32 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WalletInfo {
     pub address: String,
     pub name: String,
-    pub chain_id: i64,
+    pub chain_id: Id,
     pub use_for_mfa: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct OAuth2AuthorizedAppInfo {
-    pub oauth2client_id: i64,
-    pub user_id: i64,
+    pub oauth2client_id: Id,
+    pub user_id: Id,
     pub oauth2client_name: String,
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SecurityKey {
-    pub id: i64,
+    pub id: Id,
     pub name: String,
 }
 
 // Basic user info used in user list, etc.
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct UserInfo {
-    pub id: Option<i64>,
+    pub id: Id,
     pub username: String,
     pub last_name: String,
     pub first_name: String,
@@ -80,7 +82,7 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
 
@@ -98,7 +100,7 @@ impl UserInfo {
             mfa_method: user.mfa_method.clone(),
             authorized_apps,
             is_active: user.is_active,
-            enrolled: user.has_password(),
+            enrolled: user.is_enrolled(),
         })
     }
 
@@ -109,7 +111,7 @@ impl UserInfo {
     pub(crate) async fn handle_status_change(
         &self,
         transaction: &mut PgConnection,
-        user: &mut User,
+        user: &mut User<Id>,
     ) -> Result<bool, SqlxError> {
         if self.is_active == user.is_active {
             Ok(false)
@@ -129,7 +131,7 @@ impl UserInfo {
     pub(crate) async fn handle_user_groups(
         &mut self,
         transaction: &mut PgConnection,
-        user: &mut User,
+        user: &mut User<Id>,
     ) -> Result<bool, SqlxError> {
         // initialize return value
         let mut groups_changed = false;
@@ -165,14 +167,15 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub fn into_user_safe_fields(self, user: &mut User) -> Result<(), SqlxError> {
+    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.mfa_method = self.mfa_method;
+
         Ok(())
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub fn into_user_all_fields(self, user: &mut User) -> Result<(), SqlxError> {
+    pub fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.username = self.username;
         user.last_name = self.last_name;
@@ -184,7 +187,7 @@ impl UserInfo {
 }
 
 // Full user info with related objects
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct UserDetails {
     pub user: UserInfo,
     #[serde(default)]
@@ -196,8 +199,8 @@ pub struct UserDetails {
 }
 
 impl UserDetails {
-    pub async fn from_user(pool: &DbPool, user: &User) -> Result<Self, SqlxError> {
-        let devices = user.devices(pool).await?;
+    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+        let devices = user.user_devices(pool).await?;
         let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 
@@ -220,19 +223,15 @@ pub struct MFAInfo {
 }
 
 impl MFAInfo {
-    pub async fn for_user(pool: &DbPool, user: &User) -> Result<Option<Self>, SqlxError> {
-        if let Some(id) = user.id {
-            query_as!(
-                Self,
-                "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
-                (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
-                (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
-                FROM \"user\" WHERE \"user\".id = $1",
-                id
-            ).fetch_optional(pool).await
-        } else {
-            Ok(None)
-        }
+    pub async fn for_user(pool: &PgPool, user: &User<Id>) -> Result<Option<Self>, SqlxError> {
+        query_as!(
+            Self,
+            "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
+            (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
+            (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
+            FROM \"user\" WHERE \"user\".id = $1",
+            user.id
+        ).fetch_optional(pool).await
     }
 
     #[must_use]
@@ -276,25 +275,23 @@ mod test {
     use super::*;
 
     #[sqlx::test]
-    async fn test_user_info(pool: DbPool) {
-        let mut user = User::new(
+    async fn test_user_info(pool: PgPool) {
+        let user = User::new(
             "hpotter",
             Some("pass123"),
             "Potter",
             "Harry",
             "h.potter@hogwart.edu.uk",
             None,
-        );
-        user.save(&pool).await.unwrap();
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
-        let mut group1 = Group::new("Gryffindor");
-        group1.save(&pool).await.unwrap();
-        let mut group2 = Group::new("Hufflepuff");
-        group2.save(&pool).await.unwrap();
-        let mut group3 = Group::new("Ravenclaw");
-        group3.save(&pool).await.unwrap();
-        let mut group4 = Group::new("Slytherin");
-        group4.save(&pool).await.unwrap();
+        let group1 = Group::new("Gryffindor").save(&pool).await.unwrap();
+        let group2 = Group::new("Hufflepuff").save(&pool).await.unwrap();
+        let group3 = Group::new("Ravenclaw").save(&pool).await.unwrap();
+        let group4 = Group::new("Slytherin").save(&pool).await.unwrap();
 
         user.add_to_group(&pool, &group1).await.unwrap();
         user.add_to_group(&pool, &group2).await.unwrap();

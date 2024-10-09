@@ -20,12 +20,11 @@ pub async fn add_openid_client(
     State(appstate): State<AppState>,
     Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
-    let mut client = OAuth2Client::from_new(data);
+    let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
     debug!(
         "User {} adding OpenID client {}",
         session.user.username, client.name
     );
-    client.save(&appstate.pool).await?;
     info!(
         "User {} added OpenID client {}",
         session.user.username, client.name
@@ -78,7 +77,7 @@ pub async fn change_openid_client(
     Json(data): Json<NewOpenIDClient>,
 ) -> ApiResult {
     debug!(
-        "User {} updating OpenID client {client_id}",
+        "User {} updating OpenID client {client_id}...",
         session.user.username
     );
     let status = match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {

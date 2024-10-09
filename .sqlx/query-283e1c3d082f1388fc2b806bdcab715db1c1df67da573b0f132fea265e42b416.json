@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT admin_device_management, disable_all_traffic, only_client_activation FROM \"enterprisesettings\" WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "admin_device_management",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 1,
+        "name": "disable_all_traffic",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "only_client_activation",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "283e1c3d082f1388fc2b806bdcab715db1c1df67da573b0f132fea265e42b416"
+}

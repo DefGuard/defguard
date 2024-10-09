@@ -96,7 +96,7 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 [A detailed product roadmap and development status can be found here](https://github.com/orgs/DefGuard/projects/5/views/1)
 
-### ⛑️ Want to help? ⛑️ 
+### ⛑️ Want to help? ⛑️
 
 Here is a [dedicated view for **good first bugs**](https://github.com/orgs/DefGuard/projects/5/views/5)
 
@@ -148,6 +148,13 @@ See the [documentation](https://defguard.gitbook.io) for more information.
 ## Community and Support
 
 Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite.com)
+
+## License
+
+The code in this repository is available under a dual licensing model:
+
+1. Open Source License: The code, except for the contents of the "src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
+2. Enterprise License: All code in this repository (including within the "src/enterprise" directory) is licensed under a separate Enterprise License (see file src/enterprise/LICENSE.md).
 
 ## Contribution
 

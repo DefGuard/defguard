@@ -23,6 +23,7 @@ import {
   NetworkToken,
   NetworkUserStats,
   OpenidClient,
+  OpenIdProvider,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -151,6 +152,9 @@ const useApi = (props?: HookProps): ApiHook => {
     });
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
+
+  const getOpenidInfo: ApiHook['auth']['openid']['getOpenIdInfo'] = () =>
+    client.get(`/openid/auth_info`).then(unpackRequest);
 
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
@@ -356,6 +360,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const editSettings = async (settings: Settings) =>
     client.put('/settings', settings).then(unpackRequest);
 
+  const getEnterpriseStatus = () => client.get('/enterprise_status').then(unpackRequest);
+
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
   const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
@@ -364,7 +370,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
   const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
-    client.get(`/settings/${id}`).then(unpackRequest);
+    client.put(`/settings/${id}`).then(unpackRequest);
 
   const downloadSupportData: ApiHook['support']['downloadSupportData'] = async () =>
     client.get<unknown>(`/support/configuration`).then((res) => res.data);
@@ -423,6 +429,13 @@ const useApi = (props?: HookProps): ApiHook => {
   const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
     client.get('/settings_essentials').then(unpackRequest);
 
+  const getEnterpriseSettings: ApiHook['settings']['getEnterpriseSettings'] = () =>
+    client.get('/settings_enterprise').then(unpackRequest);
+
+  const patchEnterpriseSettings: ApiHook['settings']['patchEnterpriseSettings'] = (
+    data,
+  ) => client.patch('/settings_enterprise', data).then(unpackRequest);
+
   const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
 
@@ -434,6 +447,32 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
     client.post('/groups-assign', data).then(unpackRequest);
+
+  const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
+    client.get<OpenIdProvider>(`/openid/provider`).then((res) => res.data);
+
+  const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
+    client.post(`/openid/provider`, data).then(unpackRequest);
+
+  const deleteOpenIdProvider: ApiHook['settings']['deleteOpenIdProvider'] = async (
+    name,
+  ) => client.delete(`/openid/provider/${name}`).then(unpackRequest);
+
+  const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = async (data) =>
+    client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
+
+  const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
+    client.post('/openid/callback', data).then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      }
+      if (response.status === 201) {
+        return {
+          mfa: response.data as MFALoginResponse,
+        };
+      }
+      return {};
+    });
 
   useEffect(() => {
     client.interceptors.response.use(
@@ -464,6 +503,7 @@ const useApi = (props?: HookProps): ApiHook => {
   return {
     getAppInfo,
     changePasswordSelf,
+    getEnterpriseStatus,
     oAuth: {
       consent: oAuthConsent,
     },
@@ -525,6 +565,10 @@ const useApi = (props?: HookProps): ApiHook => {
     auth: {
       login,
       logout,
+      openid: {
+        getOpenIdInfo: getOpenidInfo,
+        callback: openIdCallback,
+      },
       mfa: {
         disable: mfaDisable,
         enable: mfaEnable,
@@ -591,7 +635,13 @@ const useApi = (props?: HookProps): ApiHook => {
       setDefaultBranding: setDefaultBranding,
       patchSettings,
       getEssentialSettings,
+      getEnterpriseSettings,
+      patchEnterpriseSettings,
       testLdapSettings,
+      fetchOpenIdProviders: fetchOpenIdProvider,
+      addOpenIdProvider,
+      deleteOpenIdProvider,
+      editOpenIdProvider,
     },
     support: {
       downloadSupportData,

@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "0.11.0"
+version = "1.0.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://defguard.net/"
@@ -19,6 +19,7 @@ axum-extra = { version = "0.9", features = [
     "cookie-private",
     "typed-header",
 ] }
+base32 = "0.5"
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
@@ -37,8 +38,10 @@ lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
 md4 = "0.10"
 mime_guess = "2.0"
 model_derive = { path = "model-derive" }
-openidconnect = { version = "3.5", default-features = false, optional = true }
-otpauth = "0.4"
+openidconnect = { version = "3.5", default-features = false, optional = true, features = [
+    "reqwest",
+] }
+pgp = "0.13"
 prost = "0.12"
 pulldown-cmark = "0.11"
 rand = "0.8"
@@ -48,7 +51,7 @@ rand_core = { version = "0.6", default-features = false, features = [
 # TODO: update reqwest when openidconnect also depends on http >= 1.0.
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
-rust-embed = { version = "8.4", features = ["include-exclude"] }
+rust-embed = { version = "8.5", features = ["include-exclude"] }
 rust-ini = "0.20"
 secp256k1 = { version = "0.29", features = [
     "recovery",
@@ -62,7 +65,7 @@ serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 sha-1 = "0.10"
-sqlx = { version = "0.7", features = [
+sqlx = { version = "0.8", features = [
     "chrono",
     "ipnetwork",
     "runtime-tokio-native-tls",
@@ -70,7 +73,7 @@ sqlx = { version = "0.7", features = [
     "uuid",
 ] }
 ssh-key = "0.6"
-struct-patch = "0.4"
+struct-patch = "0.8"
 tera = "1.20"
 thiserror = "1.0"
 # match axum-extra -> cookies
@@ -86,10 +89,15 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
+tonic-health = "0.11"
+totp-lite = { version = "2.0" }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uaparser = "0.6"
+# openapi
+utoipa = { version = "4", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [
@@ -116,15 +124,13 @@ webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 [build-dependencies]
 prost-build = "0.12"
 tonic-build = "0.11"
+vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]
 default = ["openid", "wireguard", "worker"]
 openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
-
-[profile.dev]
-strip = "debuginfo"
 
 [profile.release]
 lto = "thin"

@@ -1,10 +1,11 @@
 use std::{borrow::Borrow, sync::Arc};
 
+use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{models::device_login::DeviceLoginEvent, DbPool, Session, User},
+    db::{models::device_login::DeviceLoginEvent, Id, Session, User},
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,
@@ -13,15 +14,11 @@ use crate::{
 #[must_use]
 pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");
-    Arc::new(
-        UserAgentParser::builder()
-            .build_from_bytes(regexes)
-            .expect("Parser creation failed"),
-    )
+    Arc::new(UserAgentParser::from_bytes(regexes).expect("Parser creation failed"))
 }
 
 #[must_use]
-pub fn parse_user_agent<'a>(
+pub(crate) fn parse_user_agent<'a>(
     user_parser: &UserAgentParser,
     user_agent: &'a str,
 ) -> Option<Client<'a>> {
@@ -33,23 +30,15 @@ pub fn parse_user_agent<'a>(
 }
 
 #[must_use]
-pub fn get_device_info(user_agent_parser: &UserAgentParser, user_agent: &str) -> Option<String> {
-    let agent = parse_user_agent(user_agent_parser, user_agent);
-
-    agent.map(|v| get_user_agent_device(&v))
+pub(crate) fn get_device_info(
+    user_agent_parser: &UserAgentParser,
+    user_agent: &str,
+) -> Option<String> {
+    parse_user_agent(user_agent_parser, user_agent).map(|v| get_user_agent_device(&v))
 }
 
 #[must_use]
-pub fn get_device_type(user_agent_client: Option<Client>) -> String {
-    if let Some(client) = user_agent_client {
-        get_user_agent_device(&client)
-    } else {
-        String::new()
-    }
-}
-
-#[must_use]
-pub fn get_user_agent_device(user_agent_client: &Client) -> String {
+pub(crate) fn get_user_agent_device(user_agent_client: &Client) -> String {
     let device_type = user_agent_client
         .device
         .model
@@ -81,8 +70,8 @@ pub fn get_user_agent_device(user_agent_client: &Client) -> String {
 }
 
 #[must_use]
-pub fn get_device_login_event(
-    user_id: i64,
+pub(crate) fn get_device_login_event(
+    user_id: Id,
     ip_address: String,
     event_type: String,
     user_agent_client: Option<Client>,
@@ -91,8 +80,8 @@ pub fn get_device_login_event(
         .map(|client| get_user_agent_device_login_data(user_id, ip_address, event_type, &client))
 }
 
-pub fn get_user_agent_device_login_data(
-    user_id: i64,
+pub(crate) fn get_user_agent_device_login_data(
+    user_id: Id,
     ip_address: String,
     event_type: String,
     user_agent_client: &Client,
@@ -118,31 +107,29 @@ pub fn get_user_agent_device_login_data(
     )
 }
 
-pub async fn check_new_device_login(
-    pool: &DbPool,
+pub(crate) async fn check_new_device_login(
+    pool: &PgPool,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
-    user: &User,
+    user: &User<Id>,
     ip_address: String,
     event_type: String,
     agent: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
-    if let Some(user_id) = user.id {
-        if let Some(device_login_event) =
-            get_device_login_event(user_id, ip_address, event_type, agent.clone())
+    eprintln!("ARSE");
+    if let Some(device_login_event) = get_device_login_event(user.id, ip_address, event_type, agent)
+    {
+        if let Ok(Some(created_device_login_event)) = device_login_event
+            .check_if_device_already_logged_in(pool)
+            .await
         {
-            if let Ok(Some(created_device_login_event)) = device_login_event
-                .check_if_device_already_logged_in(pool)
-                .await
-            {
-                send_new_device_login_email(
-                    &user.email,
-                    mail_tx,
-                    session,
-                    created_device_login_event.created,
-                )
-                .await?;
-            }
+            send_new_device_login_email(
+                &user.email,
+                mail_tx,
+                session,
+                created_device_login_event.created,
+            )
+            .await?;
         }
     }
 

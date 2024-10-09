@@ -8,14 +8,16 @@ use self::common::{client::TestClient, make_test_client, X_FORWARDED_HOST, X_FOR
 async fn make_client() -> TestClient {
     let (client, client_state) = make_test_client().await;
 
-    let mut wallet = Wallet::new_for_user(
-        client_state.test_user.id.unwrap(),
+    Wallet::new_for_user(
+        client_state.test_user.id,
         "0x4aF8803CBAD86BA65ED347a3fbB3fb50e96eDD3e",
         "test",
         5,
         "",
-    );
-    wallet.save(&client_state.pool).await.unwrap();
+    )
+    .save(&client_state.pool)
+    .await
+    .unwrap();
 
     client
 }

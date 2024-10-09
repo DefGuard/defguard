@@ -12,6 +12,8 @@ use axum::{
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
+use sqlx::PgPool;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
@@ -25,8 +27,9 @@ use crate::{
             },
             wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
         },
-        AddDevice, DbPool, Device, GatewayEvent, WireguardNetwork,
+        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
+    enterprise::handlers::CanManageDevices,
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -34,7 +37,7 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
     pub address: IpNetwork,
@@ -74,10 +77,21 @@ pub struct ImportNetworkData {
 
 #[derive(Serialize, Deserialize)]
 pub struct ImportedNetworkData {
-    pub network: WireguardNetwork,
+    pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
 }
 
+// #[utoipa::path(
+//     get,
+//     path = "/api/v1/network",
+//     request_body = WireguardNetworkData,
+//     responses(
+//         (status = 201, description = "Successfully created network.", body = WireguardNetwork),
+//         (status = 401, description = "Unauthorized to create network.", body = Json, example = json!({"msg": "Session is required"})),
+//         (status = 403, description = "You don't have permission to return details about user.", body = Json, body = Json, example = json!({"msg": "access denied"})),
+//         (status = 500, description = "Unable to create network.", body = Json, example = json!({"msg": "Invalid network address"}))
+//     )
+// )]
 pub async fn create_network(
     _role: VpnRole,
     State(appstate): State<AppState>,
@@ -90,7 +104,7 @@ pub async fn create_network(
         session.user.username
     );
     let allowed_ips = data.parse_allowed_ips();
-    let mut network = WireguardNetwork::new(
+    let network = WireguardNetwork::new(
         data.name,
         data.address,
         data.port,
@@ -104,7 +118,7 @@ pub async fn create_network(
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
     let mut transaction = appstate.pool.begin().await?;
-    network.save(&mut *transaction).await?;
+    let network = network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
@@ -113,19 +127,7 @@ pub async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    match &network.id {
-        Some(network_id) => {
-            appstate
-                .send_wireguard_event(GatewayEvent::NetworkCreated(*network_id, network.clone()));
-        }
-        None => {
-            error!("Network {} ID was not created during network creation, gateway event was not sent!", network.name);
-            return Ok(ApiResponse {
-                json: json!({}),
-                status: StatusCode::INTERNAL_SERVER_ERROR,
-            });
-        }
-    }
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
     transaction.commit().await?;
 
@@ -133,13 +135,14 @@ pub async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+
     Ok(ApiResponse {
         json: json!(network),
         status: StatusCode::CREATED,
     })
 }
 
-async fn find_network(id: i64, pool: &DbPool) -> Result<WireguardNetwork, WebError> {
+async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, WebError> {
     WireguardNetwork::find_by_id(pool, id)
         .await?
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
@@ -177,22 +180,12 @@ pub async fn modify_network(
         .await?;
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
-    match &network.id {
-        Some(network_id) => {
-            let peers = network.get_peers(&mut *transaction).await?;
-            appstate.send_wireguard_event(GatewayEvent::NetworkModified(
-                *network_id,
-                network.clone(),
-                peers,
-            ));
-        }
-        &None => {
-            error!(
-                "Network {} id not found, gateway update not sent!",
-                network.name
-            );
-        }
-    }
+    let peers = network.get_peers(&mut *transaction).await?;
+    appstate.send_wireguard_event(GatewayEvent::NetworkModified(
+        network.id,
+        network.clone(),
+        peers,
+    ));
 
     // commit DB transaction
     transaction.commit().await?;
@@ -225,6 +218,7 @@ pub async fn delete_network(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+
     Ok(ApiResponse::default())
 }
 
@@ -238,7 +232,7 @@ pub async fn list_networks(
     let networks = WireguardNetwork::all(&appstate.pool).await?;
 
     for network in networks {
-        let network_id = network.id.expect("Network does not have an ID");
+        let network_id = network.id;
         let allowed_groups = network.fetch_allowed_groups(&appstate.pool).await?;
         {
             let gateway_state = gateway_state
@@ -351,21 +345,13 @@ pub async fn import_network(
     network.endpoint = data.endpoint;
 
     let mut transaction = appstate.pool.begin().await?;
-    network.save(&mut *transaction).await?;
+    let network = network.save(&mut *transaction).await?;
     network
         .set_allowed_groups(&mut transaction, data.allowed_groups)
         .await?;
 
     info!("New network {network} created");
-    match network.id {
-        Some(network_id) => {
-            appstate
-                .send_wireguard_event(GatewayEvent::NetworkCreated(network_id, network.clone()));
-        }
-        None => {
-            error!("Network {network} id not found, gateway event not sent!");
-        }
-    }
+    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
@@ -446,7 +432,66 @@ pub async fn add_user_devices(
     }
 }
 
+// assign IPs and generate configs for each network
+#[derive(Serialize, ToSchema)]
+pub struct AddDeviceResult {
+    configs: Vec<DeviceConfig>,
+    device: Device<Id>,
+}
+
+/// Add device
+///
+/// Add a new device for a user by sending `AddDevice` object.
+/// Notice that `wireguard_pubkey` must be unique to successfully add the device.
+/// You can't add devices for `disabled` users, unless you are an admin.
+///
+/// Device will be added to all networks in your company infrastructure.
+///
+/// User will receive all new device details on email.
+///
+/// # Returns
+/// Returns `AddDeviceResult` object or `WebError` object if error occurs.
+#[utoipa::path(
+    post,
+    path = "/api/v1/device/{device_id}",
+    params(
+        ("device_id" = String, description = "Name of a user.")
+    ),
+    request_body = AddDevice,
+    responses(
+        (status = 201, description = "Successfully added a new device for a user.", body = AddDeviceResult, example = json!(
+            {
+                "configs": [
+                    {
+                        "network_id": 0,
+                        "network_name": "network_name",
+                        "config": "config",
+                        "address": "0.0.0.0:8000",
+                        "endpoint": "endpoint",
+                        "allowed_ips": ["0.0.0.0:8000"],
+                        "pubkey": "pubkey",
+                        "dns": "8.8.8.8",
+                        "mfa_enabled": false,
+                        "keepalive_interval": 5
+                    }
+                ],
+                "device": {
+                    "id": 0,
+                    "name": "name",
+                    "wireguard_pubkey": "wireguard_pubkey",
+                    "user_id": 0,
+                    "created": "2024-07-10T10:25:43.231Z"
+                }
+            }
+        )),
+        (status = 400, description = "Bad request, no networks found or device with pubkey that you want to send with already exists.", body = ApiResponse, example = json!({})),
+        (status = 401, description = "Unauthorized to add a new device for a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to add a new device for a user. You can't add a new device for a disabled user.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+        (status = 500, description = "Cannot add a new device for a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn add_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
@@ -494,24 +539,10 @@ pub async fn add_device(
     }
 
     // save device
-    let Some(user_id) = user.id else {
-        error!(
-            "Failed to add device {device_name}, user {} has no id",
-            user.username
-        );
-        return Err(WebError::ModelError("User has no id".to_string()));
-    };
-    let mut device = Device::new(add_device.name, add_device.wireguard_pubkey, user_id);
-
     let mut transaction = appstate.pool.begin().await?;
-    device.save(&mut *transaction).await?;
-
-    // assign IPs and generate configs for each network
-    #[derive(Serialize)]
-    struct AddDeviceResult {
-        configs: Vec<DeviceConfig>,
-        device: Device,
-    }
+    let device = Device::new(add_device.name, add_device.wireguard_pubkey, user.id)
+        .save(&mut *transaction)
+        .await?;
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
@@ -567,7 +598,40 @@ pub async fn add_device(
     })
 }
 
+/// Modify device
+///
+/// Update a device for a user by sending `ModifyDevice` object.
+/// Notice that `wireguard_pubkey` must be diffrent from server's pubkey.
+///
+/// Endpoint will trigger new update in gateway server.
+///
+/// # Returns
+/// Returns `Device` object or `WebError` object if error occurs.
+#[utoipa::path(
+    put,
+    path = "/api/v1/device/{device_id}",
+    params(
+        ("device_id" = i64, description = "Id of device to update details.")
+    ),
+    request_body = ModifyDevice,
+    responses(
+        (status = 200, description = "Successfully updated a device.", body = Device, example = json!(
+            {
+                "id": 0,
+                "name": "name",
+                "wireguard_pubkey": "wireguard_pubkey",
+                "user_id": 0,
+                "created": "2024-07-10T10:25:43.231Z"
+            }
+        )),
+        (status = 400, description = "Bad request, no networks found or device with pubkey that you want to send with is a server's pubkey.", body = ApiResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
+        (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"})),
+        (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn modify_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -603,20 +667,16 @@ pub async fn modify_device(
     // send update to gateway's
     let mut network_info = Vec::new();
     for network in &networks {
-        if let Some(network_id) = network.id {
-            if let Some(device_id) = device.id {
-                let wireguard_network_device =
-                    WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
-                if let Some(wireguard_network_device) = wireguard_network_device {
-                    let device_network_info = DeviceNetworkInfo {
-                        network_id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                        preshared_key: wireguard_network_device.preshared_key,
-                        is_authorized: wireguard_network_device.is_authorized,
-                    };
-                    network_info.push(device_network_info);
-                }
-            }
+        let wireguard_network_device =
+            WireguardNetworkDevice::find(&appstate.pool, device.id, network.id).await?;
+        if let Some(wireguard_network_device) = wireguard_network_device {
+            let device_network_info = DeviceNetworkInfo {
+                network_id: network.id,
+                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                preshared_key: wireguard_network_device.preshared_key,
+                is_authorized: wireguard_network_device.is_authorized,
+            };
+            network_info.push(device_network_info);
         }
     }
     appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
@@ -631,6 +691,31 @@ pub async fn modify_device(
     })
 }
 
+/// Get device
+///
+/// # Returns
+/// Returns `Device` object or `WebError` object if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/device/{device_id}",
+    params(
+        ("device_id" = i64, description = "Id of device to update details.")
+    ),
+    responses(
+        (status = 200, description = "Successfully updated a device.", body = Device, example = json!(
+            {
+                "id": 0,
+                "name": "name",
+                "wireguard_pubkey": "wireguard_pubkey",
+                "user_id": 0,
+                "created": "2024-07-10T10:25:43.231Z"
+            }
+        )),
+        (status = 400, description = "Bad request, no networks found or device with pubkey that you want to send with is a server's pubkey.", body = ApiResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
+        (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"}))
+    )
+)]
 pub async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -645,7 +730,27 @@ pub async fn get_device(
     })
 }
 
+/// Delete device
+///
+/// Delete user device and trigger new update in gateway server.
+///
+/// # Returns
+/// If error occurs it returns `WebError` object.
+#[utoipa::path(
+    delete,
+    path = "/api/v1/device/{device_id}",
+    params(
+        ("device_id" = i64, description = "Id of device to update details.")
+    ),
+    responses(
+        (status = 200, description = "Successfully deleted device."),
+        (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"})),
+        (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    )
+)]
 pub async fn delete_device(
+    _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -660,6 +765,27 @@ pub async fn delete_device(
     Ok(ApiResponse::default())
 }
 
+/// List all devices
+///
+/// # Returns
+/// Returns a list `Device` objects or `WebError` object if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/device",
+    responses(
+        (status = 200, description = "List all devices.", body = [Device], example = json!([
+            {
+                "id": 0,
+                "name": "name",
+                "wireguard_pubkey": "wireguard_pubkey",
+                "user_id": 0,
+                "created": "2024-07-10T10:25:43.231Z"
+            }
+        ])),
+        (status = 401, description = "Unauthorized to list all devices.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list all devices.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+    )
+)]
 pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
@@ -671,6 +797,32 @@ pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> A
     })
 }
 
+/// List user devices
+///
+/// This endpoint requires `admin` role.
+///
+/// # Returns
+/// Returns a list of `Device` object or `WebError` object if error occurs.
+#[utoipa::path(
+    get,
+    path = "/api/v1/device/user/{username}",
+    params(
+        ("username" = String, description = "Name of a user.")
+    ),
+    responses(
+        (status = 200, description = "List user devices.", body = [Device], example = json!([
+            {
+                "id": 0,
+                "name": "name",
+                "wireguard_pubkey": "wireguard_pubkey",
+                "user_id": 0,
+                "created": "2024-07-10T10:25:43.231Z"
+            }
+        ])),
+        (status = 401, description = "Unauthorized to list user devices.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list user devices.", body = ApiResponse, example = json!({"msg": "Admin access required"})),
+    )
+)]
 pub async fn list_user_devices(
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -708,18 +860,13 @@ pub async fn download_config(
         info!("Created config for device {}({device_id})", device.name);
         Ok(device.create_config(&network, &wireguard_network_device))
     } else {
-        let device_id = if let Some(id) = device.id {
-            id.to_string()
-        } else {
-            String::new()
-        };
         error!(
-            "Failed to create config, no IP address found for device: {}({device_id})",
-            device.name
+            "Failed to create config, no IP address found for device: {}({})",
+            device.name, device.id
         );
         Err(WebError::ObjectNotFound(format!(
-            "No IP address found for device: {}({device_id})",
-            device.name
+            "No IP address found for device: {}({})",
+            device.name, device.id
         )))
     }
 }

@@ -33,6 +33,7 @@ const en: BaseTranslation = {
     success: 'Operation succeeded',
     errorVersion: 'Failed to get application version.',
     insecureContext: 'Context is not secure.',
+    details: 'Details:',
     clipboard: {
       error: 'Clipboard is not accessible.',
       success: 'Content copied to clipboard.',
@@ -374,7 +375,8 @@ const en: BaseTranslation = {
             label: 'Phone',
           },
           enableEnrollment: {
-            label: 'Use enrollment process',
+            label: 'Use user self-enrollment process',
+            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>',
           },
         },
       },
@@ -441,6 +443,7 @@ const en: BaseTranslation = {
     title: 'Add device',
     helpers: {
       setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
+      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
     },
     messages: {
       deviceAdded: 'Device added',
@@ -539,6 +542,17 @@ const en: BaseTranslation = {
       header: 'Profile Details',
       messages: {
         deleteApp: 'App and all tokens deleted.',
+      },
+      warningModals: {
+        title: 'Warning',
+        content: {
+          usernameChange: `Changing the username has a significant impact on services the user has logged into using Defguard. After changing it, the user may lose access to applications (since they will not recognize them). Are you sure you want to proceed?`,
+          emailChange: `If you are using external OpenID Connect (OIDC) providers to authenticate users, changing a user's email address may have a significant impact on their ability to log in to Defguard. Are you sure you want to proceed?`,
+        },
+        buttons: {
+          proceed: 'Proceed',
+          cancel: 'Cancel',
+        },
       },
       fields: {
         username: {
@@ -807,10 +821,10 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
     },
-    copyright: 'Copyright \u00A9 2023 ',
+    copyright: 'Copyright ©2023-2024',
     version: {
       open: 'Application version: {version: string}',
-      closed: 'v {version: string}',
+      closed: 'v{version: string}',
     },
   },
   form: {
@@ -850,6 +864,7 @@ const en: BaseTranslation = {
       number: 'Expected a valid number.',
       minimumValue: `Minimum value of {value: number} not reached.`,
       maximumValue: 'Maximum value of {value: number} exceeded.',
+      tooManyBadLoginAttempts: `Too many bad login attempts. Please try again in a few minutes.`,
     },
     floatingErrors: {
       title: 'Please correct the following:',
@@ -889,10 +904,18 @@ const en: BaseTranslation = {
       smtp: 'SMTP',
       global: 'Global settings',
       ldap: 'LDAP',
+      openid: 'OpenID',
+      enterprise: 'Enterprise features',
     },
     messages: {
       editSuccess: 'Settings updated',
       challengeSuccess: 'Challenge message changed',
+    },
+    enterpriseOnly: {
+      title: 'This feature is available only in Defguard Enterprise.',
+      currentExpired: 'Your current license has expired.',
+      subtitle: 'To learn more, visit our ',
+      website: 'website',
     },
     ldapSettings: {
       title: 'LDAP Settings',
@@ -910,6 +933,7 @@ const en: BaseTranslation = {
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
         },
+        delete: 'Delete configuration',
       },
       test: {
         title: 'Test LDAP Connection',
@@ -917,6 +941,46 @@ const en: BaseTranslation = {
         messages: {
           success: 'LDAP connected successfully',
           error: 'LDAP connection rejected',
+        },
+      },
+    },
+    openIdSettings: {
+      general: {
+        title: 'External OpenID Settings',
+        helper: 'Here you can change general OpenID behavior in your Defguard instance.',
+        createAccount: {
+          label:
+            'Automatically create user account when logging in for the first time through external OpenID.',
+          helper:
+            'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
+        },
+      },
+      form: {
+        title: 'External OpenID Client Settings',
+        helper:
+          'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
+        custom: 'Custom',
+        documentation: 'Documentation',
+        delete: 'Delete provider',
+        labels: {
+          provider: {
+            label: 'Provider',
+            helper:
+              'Select your OpenID provider. You can use custom provider and fill in the base URL by yourself.',
+          },
+          client_id: {
+            label: 'Client ID',
+            helper: 'Client ID provided by your OpenID provider.',
+          },
+          client_secret: {
+            label: 'Client Secret',
+            helper: 'Client Secret provided by your OpenID provider.',
+          },
+          base_url: {
+            label: 'Base URL',
+            helper:
+              'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
+          },
         },
       },
     },
@@ -1000,6 +1064,58 @@ const en: BaseTranslation = {
           </a>
 			`,
     },
+    license: {
+      header: 'Enterprise',
+      helpers: {
+        enterpriseHeader: {
+          text: 'Here you can manage your Defguard Enterprise version license.',
+          link: 'To learn more about Defguard Enterprise, visit our webiste.',
+        },
+        licenseKey: {
+          text: 'Enter your Defguard Enterprise license key below. You should receive it via email after purchasing the license.',
+          link: 'You can purchase the license here.',
+        },
+      },
+      form: {
+        title: 'License',
+        fields: {
+          key: {
+            label: 'License key',
+            placeholder: 'Your Defguard license key',
+          },
+        },
+      },
+      licenseInfo: {
+        title: 'License information',
+        noLicense: 'No license',
+        types: {
+          subscription: {
+            label: 'Subscription',
+            helper: 'A license that automatically renews at regular intervals',
+          },
+          offline: {
+            label: 'Offline',
+            helper:
+              'The license is valid until the expiry date and does not automatically renew',
+          },
+        },
+        fields: {
+          status: {
+            label: 'Status',
+            active: 'Active',
+            expired: 'Expired',
+            subscriptionHelper:
+              'A subscription license is considered valid for some time after the expiration date to account for possible automatic payment delays.',
+          },
+          type: {
+            label: 'Type',
+          },
+          validUntil: {
+            label: 'Valid until',
+          },
+        },
+      },
+    },
     smtp: {
       form: {
         title: 'SMTP configuration',
@@ -1038,6 +1154,7 @@ const en: BaseTranslation = {
           submit: 'Save changes',
         },
       },
+      delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
         fields: {
@@ -1107,6 +1224,27 @@ const en: BaseTranslation = {
         },
         useMessageAsEmail: {
           label: 'Same as welcome message',
+        },
+      },
+    },
+    enterprise: {
+      header: 'Enterprise Features',
+      helper: '<p>Here you can change enterprise settings.</p>',
+      fields: {
+        deviceManagement: {
+          label: "Disable users' ability to manage their devices",
+          helper:
+            "When this option is enabled, only users in the Admin group can manage devices in user profile (it's disabled for all other users)",
+        },
+        disableAllTraffic: {
+          label: 'Disable the option to route all traffic through VPN',
+          helper:
+            'When this option is enabled, users will not be able to route all traffic through the VPN using the defguard client.',
+        },
+        manualConfig: {
+          label: "Disable users' ability to manually configure WireGuard client",
+          helper:
+            "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
         },
       },
     },
@@ -1424,32 +1562,47 @@ const en: BaseTranslation = {
     },
   },
   gatewaySetup: {
-    header: 'Gateway server setup',
+    header: {
+      main: 'Gateway server setup',
+      dockerBasedGatewaySetup: `Docker Based Gateway Setup`,
+      fromPackage: `From Package`,
+      oneLineInstall: `One Line Install`,
+    },
     card: {
       title: 'Docker based gateway setup',
+      authToken: `Authentication Token`,
+    },
+    button: {
+      availablePackages: `Available Packages`,
     },
     controls: {
       status: 'Check connection status',
     },
     messages: {
-      runCommand: `
-          <p>
-            Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
-            More details can be found in the <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
+      runCommand: `Defguard requires to deploy a gateway node to control wireguard VPN on the vpn server.
+            More details can be found in the [documentation]({setupGatewayDocs:string}).
             There are several ways to deploy the gateway server,
-            below is a Docker based example, for other examples please visit <a href="{setupGatewayDocs:string}" target="_blank">documentation</a>.
-          </p>`,
-      createNetwork: `
-          <p>
-            Please create the network before running the gateway process.
-          </p>`,
-      noConnection: `<p>No connection established, please run provided command.</p>`,
-      connected: `<p>Gateway connected.</p>`,
+            below is a Docker based example, for other examples please visit [documentation]({setupGatewayDocs:string}).`,
+      createNetwork: `Please create the network before running the gateway process.`,
+      noConnection: `No connection established, please run provided command.`,
+      connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
+      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
+          you don't need to do anything.`,
+      fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\`
+          according to the [documentation]({setupGatewayDocs:string}).`,
+      authToken: `Token below is required to authenticate and configure the gateway node. Ensure you keep this token secure and follow the deployment instructions
+          provided in the [documentation]({setupGatewayDocs:string}) to successfully set up the gateway server.
+          For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
+      dockerBasedGatewaySetup: `Below is a Docker based example. For more details and exact steps, please refer to the [documentation]({setupGatewayDocs:string}).`,
     },
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
+    callback: {
+      return: 'Go back to login',
+      error: 'An error occurred during external OpenID login',
+    },
     mfa: {
       title: 'Two-factor authentication',
       controls: {
@@ -1604,7 +1757,7 @@ const en: BaseTranslation = {
       },
     },
     messageBox:
-      'Enrollment is process by which the new employee will be able to confirm their new account, create a password and configurate VPN device. In this panel you can custom messages for it.',
+      'Enrollment is a process by which a new employee will be able to activate their new account, create a password and configure a VPN device. You can customize it here.',
     settings: {
       welcomeMessage: {
         title: 'Welcome message',

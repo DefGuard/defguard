@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -14,12 +14,17 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../shared/defguard-ui/components/Layout/Button/types';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
+import { QueryKeys } from '../../../shared/queries';
 import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
+import { OpenIdLoginButton } from './components/OidcButtons';
 
 type Inputs = {
   username: string;
@@ -28,6 +33,23 @@ type Inputs = {
 
 export const Login = () => {
   const { LL } = useI18nContext();
+  const {
+    auth: {
+      login,
+      openid: { getOpenIdInfo: getOpenidInfo },
+    },
+  } = useApi();
+  const toaster = useToaster();
+
+  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
+    enabled: enterpriseEnabled,
+    queryKey: [QueryKeys.FETCH_OPENID_INFO],
+    queryFn: getOpenidInfo,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
 
   const zodSchema = useMemo(
     () =>
@@ -46,10 +68,6 @@ export const Login = () => {
     [LL.form.error],
   );
 
-  const {
-    auth: { login },
-  } = useApi();
-
   const { handleSubmit, control, setError } = useForm<Inputs>({
     resolver: zodResolver(zodSchema),
     mode: 'all',
@@ -65,16 +83,30 @@ export const Login = () => {
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
-      if (error.response && error.response.status === 401) {
-        setError(
-          'password',
-          {
-            message: 'username or password is incorrect',
-          },
-          { shouldFocus: true },
-        );
+      if (error.response) {
+        switch (error.response.status) {
+          case 401: {
+            setError(
+              'password',
+              {
+                message: 'username or password is incorrect',
+              },
+              { shouldFocus: true },
+            );
+            break;
+          }
+          case 429: {
+            toaster.error(LL.form.error.tooManyBadLoginAttempts());
+            break;
+          }
+          default: {
+            console.error(error);
+            toaster.error(LL.messages.error());
+          }
+        }
       } else {
         console.error(error);
+        toaster.error(LL.messages.error());
       }
     },
   });
@@ -87,32 +119,41 @@ export const Login = () => {
 
   return (
     <section id="login-container">
-      <h1>{LL.loginPage.pageTitle()}</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <FormInput
-          controller={{ control, name: 'username' }}
-          placeholder={LL.form.placeholders.username()}
-          autoComplete="username"
-          data-testid="login-form-username"
-          required
-        />
-        <FormInput
-          controller={{ control, name: 'password' }}
-          placeholder={LL.form.placeholders.password()}
-          type="password"
-          autoComplete="password"
-          data-testid="login-form-password"
-          required
-        />
-        <Button
-          type="submit"
-          loading={loginMutation.isLoading}
-          size={ButtonSize.LARGE}
-          styleVariant={ButtonStyleVariant.PRIMARY}
-          text={LL.form.login()}
-          data-testid="login-form-submit"
-        />
-      </form>
+      {!enterpriseEnabled || !openIdLoading ? (
+        <>
+          <h1>{LL.loginPage.pageTitle()}</h1>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <FormInput
+              controller={{ control, name: 'username' }}
+              placeholder={LL.form.placeholders.username()}
+              autoComplete="username"
+              data-testid="login-form-username"
+              required
+            />
+            <FormInput
+              controller={{ control, name: 'password' }}
+              placeholder={LL.form.placeholders.password()}
+              type="password"
+              autoComplete="password"
+              data-testid="login-form-password"
+              required
+            />
+            <Button
+              type="submit"
+              loading={loginMutation.isLoading}
+              size={ButtonSize.LARGE}
+              styleVariant={ButtonStyleVariant.PRIMARY}
+              text={LL.form.login()}
+              data-testid="login-form-submit"
+            />
+            {enterpriseEnabled && openIdInfo && (
+              <OpenIdLoginButton url={openIdInfo.url} />
+            )}
+          </form>
+        </>
+      ) : (
+        <LoaderSpinner size={80} />
+      )}
     </section>
   );
 };

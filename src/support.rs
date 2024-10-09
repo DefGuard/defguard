@@ -2,9 +2,10 @@ use std::{collections::HashMap, fmt::Display};
 
 use serde::Serialize;
 use serde_json::{json, value::to_value, Value};
+use sqlx::PgPool;
 
 use crate::{
-    db::{models::device::WireguardNetworkDevice, DbPool, Settings, User, WireguardNetwork},
+    db::{models::device::WireguardNetworkDevice, Id, Settings, User, WireguardNetwork},
     server_config, VERSION,
 };
 
@@ -17,9 +18,9 @@ fn unwrap_json<S: Serialize, D: Display>(result: Result<S, D>) -> Value {
 }
 
 /// Dumps all data that could be used for debugging.
-pub async fn dump_config(db: &DbPool) -> Value {
+pub async fn dump_config(db: &PgPool) -> Value {
     // App settings DB records
-    let settings = match Settings::find_by_id(db, 1).await {
+    let settings = match Settings::get(db).await {
         Ok(Some(mut settings)) => {
             settings.smtp_password = None;
             json!(settings)
@@ -31,14 +32,11 @@ pub async fn dump_config(db: &DbPool) -> Value {
     let (networks, devices) = match WireguardNetwork::all(db).await {
         Ok(networks) => {
             // Devices for each network
-            let mut devices = HashMap::<i64, Value>::new();
+            let mut devices = HashMap::<Id, Value>::new();
             for network in &networks {
-                let Some(network_id) = network.id else {
-                    continue;
-                };
                 devices.insert(
-                    network_id,
-                    unwrap_json(WireguardNetworkDevice::all_for_network(db, network_id).await),
+                    network.id,
+                    unwrap_json(WireguardNetworkDevice::all_for_network(db, network.id).await),
                 );
             }
             (

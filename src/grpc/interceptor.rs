@@ -1,8 +1,9 @@
-use crate::auth::{Claims, ClaimsType};
 use tonic::{service::Interceptor, Status};
 
-/// Auth interceptor used by GRPC services. Verifies JWT token sent
-/// in GRPC metadata under "authorization" key.
+use crate::auth::{Claims, ClaimsType};
+
+/// Auth interceptor used by gRPC services. Verifies JWT token sent
+/// in gRPC metadata under "authorization" key.
 #[derive(Clone)]
 pub struct JwtInterceptor {
     claims_type: ClaimsType,

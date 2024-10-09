@@ -1,11 +1,15 @@
-use super::{DbPool, NewOpenIDClient};
-use crate::random::gen_alphanumeric;
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError};
+use sqlx::{query_as, Error as SqlxError, PgPool};
+
+use super::NewOpenIDClient;
+use crate::{
+    db::{Id, NoId},
+    random::gen_alphanumeric,
+};
 
 #[derive(Deserialize, Model, Serialize)]
-pub struct OAuth2Client {
-    pub id: Option<i64>,
+pub struct OAuth2Client<I = NoId> {
+    pub id: I,
     pub client_id: String, // unique
     pub client_secret: String,
     #[model(ref)]
@@ -23,7 +27,7 @@ impl OAuth2Client {
         let client_id = gen_alphanumeric(16);
         let client_secret = gen_alphanumeric(32);
         Self {
-            id: None,
+            id: NoId,
             client_id,
             client_secret,
             redirect_uri,
@@ -38,7 +42,7 @@ impl OAuth2Client {
         let client_id = gen_alphanumeric(16);
         let client_secret = gen_alphanumeric(32);
         Self {
-            id: None,
+            id: NoId,
             client_id,
             client_secret,
             redirect_uri: new.redirect_uri,
@@ -47,15 +51,17 @@ impl OAuth2Client {
             enabled: new.enabled,
         }
     }
+}
 
+impl OAuth2Client<Id> {
     /// Find client by 'client_id`.
     pub async fn find_by_client_id(
-        pool: &DbPool,
+        pool: &PgPool,
         client_id: &str,
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", client_id, client_secret, redirect_uri, scope, name, enabled \
+            "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
             FROM oauth2client WHERE client_id = $1",
             client_id
         )
@@ -65,13 +71,13 @@ impl OAuth2Client {
 
     /// Find using `client_id` and `client_secret`; must be `enabled`.
     pub async fn find_by_auth(
-        pool: &DbPool,
+        pool: &PgPool,
         client_id: &str,
         client_secret: &str,
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", client_id, client_secret, redirect_uri, scope, name, enabled \
+            "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
             FROM oauth2client WHERE client_id = $1 AND client_secret = $2 AND enabled",
             client_id,
             client_secret
@@ -82,12 +88,12 @@ impl OAuth2Client {
 
     /// Find enabled client by `client_id`.
     pub async fn find_enabled_for_client_id(
-        pool: &DbPool,
+        pool: &PgPool,
         client_id: &str,
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT id \"id?\", client_id, client_secret, redirect_uri, scope, name, enabled \
+            "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
             FROM oauth2client WHERE client_id = $1 AND enabled",
             client_id
         )
@@ -104,8 +110,8 @@ pub struct OAuth2ClientSafe {
     pub scope: Vec<String>,
 }
 
-impl From<OAuth2Client> for OAuth2ClientSafe {
-    fn from(client: OAuth2Client) -> Self {
+impl From<OAuth2Client<Id>> for OAuth2ClientSafe {
+    fn from(client: OAuth2Client<Id>) -> Self {
         OAuth2ClientSafe {
             client_id: client.client_id,
             name: client.name,

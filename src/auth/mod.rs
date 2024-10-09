@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     appstate::AppState,
-    db::{Group, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    db::{Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
     server_config,
@@ -29,6 +29,8 @@ pub static AUTH_SECRET_ENV: &str = "DEFGUARD_AUTH_SECRET";
 pub static GATEWAY_SECRET_ENV: &str = "DEFGUARD_GATEWAY_SECRET";
 pub static YUBIBRIDGE_SECRET_ENV: &str = "DEFGUARD_YUBIBRIDGE_SECRET";
 pub const TOTP_CODE_VALIDITY_PERIOD: u64 = 30;
+pub const EMAIL_CODE_DIGITS: u32 = 6;
+pub const TOTP_CODE_DIGITS: u32 = 6;
 
 #[derive(Clone, Copy, Default)]
 pub enum ClaimsType {
@@ -150,14 +152,14 @@ where
 // This represents a session for a user who completed the login process (including MFA, if enabled).
 pub struct SessionInfo {
     pub session: Session,
-    pub user: User,
+    pub user: User<Id>,
     pub is_admin: bool,
-    groups: Vec<Group>,
+    groups: Vec<Group<Id>>,
 }
 
 impl SessionInfo {
     #[must_use]
-    pub fn new(session: Session, user: User, is_admin: bool) -> Self {
+    pub fn new(session: Session, user: User<Id>, is_admin: bool) -> Self {
         Self {
             session,
             user,
@@ -238,7 +240,7 @@ role!(UserAdminRole, admin_groupname useradmin_groupname);
 role!(VpnRole, admin_groupname vpn_groupname);
 
 // User authenticated by a valid access token
-pub struct AccessUserInfo(pub(crate) User);
+pub struct AccessUserInfo(pub(crate) User<Id>);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AccessUserInfo

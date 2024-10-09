@@ -5,16 +5,19 @@ pub enum LdapError {
     Ldap(String),
     ObjectNotFound(String),
     MissingSettings,
+    // TODO: include the error
+    Database,
 }
 
 impl fmt::Display for LdapError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LdapError::Ldap(msg) => write!(f, "LDAP error: {msg}"),
-            LdapError::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
-            LdapError::MissingSettings => {
-                write!(f, "LDAP settings are missing.")
+            Self::Ldap(msg) => write!(f, "LDAP error: {msg}"),
+            Self::ObjectNotFound(msg) => write!(f, "Object not found: {msg}"),
+            Self::MissingSettings => {
+                write!(f, "LDAP settings are missing")
             }
+            Self::Database => write!(f, "Database error"),
         }
     }
 }

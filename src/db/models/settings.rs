@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
-use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, PgExecutor, Type};
+use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 
-use super::DbPool;
 use crate::secret::SecretString;
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
@@ -15,11 +13,9 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
-#[derive(Debug, Clone, Model, Serialize, Deserialize, PartialEq, Patch)]
-#[patch_derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize)]
+#[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
-    #[serde(skip)]
-    pub id: Option<i64>,
     // Modules
     pub openid_enabled: bool,
     pub wireguard_enabled: bool,
@@ -34,10 +30,8 @@ pub struct Settings {
     // SMTP
     pub smtp_server: Option<String>,
     pub smtp_port: Option<i32>,
-    #[model(enum)]
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
-    #[model(secret)]
     pub smtp_password: Option<SecretString>,
     pub smtp_sender: Option<String>,
     // Enrollment
@@ -52,7 +46,6 @@ pub struct Settings {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
-    #[model(secret)]
     pub ldap_bind_password: Option<SecretString>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
@@ -62,14 +55,135 @@ pub struct Settings {
     pub ldap_groupname_attr: Option<String>,
     pub ldap_group_member_attr: Option<String>,
     pub ldap_member_attr: Option<String>,
+    // Whether to create a new account when users try to log in with external OpenID
+    pub openid_create_account: bool,
+    pub license: Option<String>,
 }
 
 impl Settings {
-    pub async fn get_settings<'e, E>(executor: E) -> Result<Settings, SqlxError>
+    pub async fn get<'e, E>(executor: E) -> Result<Option<Self>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
-        let settings = Settings::find_by_id(executor, 1).await?;
+        query_as!(
+            Self,
+            "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, \
+            worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, \
+            smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
+            smtp_password \"smtp_password?: SecretString\", smtp_sender, \
+            enrollment_vpn_step_optional, enrollment_welcome_message, \
+            enrollment_welcome_email, enrollment_welcome_email_subject, \
+            enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, \
+            ldap_bind_password \"ldap_bind_password?: SecretString\", \
+            ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
+            ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
+            ldap_group_member_attr, ldap_member_attr, openid_create_account, \
+            license \
+            FROM \"settings\" WHERE id = 1",
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE \"settings\" SET \
+            openid_enabled = $1, \
+            wireguard_enabled = $2, \
+            webhooks_enabled = $3, \
+            worker_enabled = $4, \
+            challenge_template = $5, \
+            instance_name = $6, \
+            main_logo_url = $7, \
+            nav_logo_url = $8, \
+            smtp_server = $9, \
+            smtp_port = $10, \
+            smtp_encryption = $11, \
+            smtp_user = $12, \
+            smtp_password = $13, \
+            smtp_sender = $14, \
+            enrollment_vpn_step_optional = $15, \
+            enrollment_welcome_message = $16, \
+            enrollment_welcome_email = $17, \
+            enrollment_welcome_email_subject = $18, \
+            enrollment_use_welcome_message_as_email = $19, \
+            uuid = $20, \
+            ldap_url = $21, \
+            ldap_bind_username = $22, \
+            ldap_bind_password  = $23, \
+            ldap_group_search_base = $24, \
+            ldap_user_search_base = $25, \
+            ldap_user_obj_class = $26, \
+            ldap_group_obj_class = $27, \
+            ldap_username_attr = $28, \
+            ldap_groupname_attr = $29, \
+            ldap_group_member_attr = $30, \
+            ldap_member_attr = $31, \
+            openid_create_account = $32, \
+            license = $33 \
+            WHERE id = 1",
+            self.openid_enabled,
+            self.wireguard_enabled,
+            self.webhooks_enabled,
+            self.worker_enabled,
+            self.challenge_template,
+            self.instance_name,
+            self.main_logo_url,
+            self.nav_logo_url,
+            self.smtp_server,
+            self.smtp_port,
+            &self.smtp_encryption as &SmtpEncryption,
+            self.smtp_user,
+            &self.smtp_password as &Option<SecretString>,
+            self.smtp_sender,
+            self.enrollment_vpn_step_optional,
+            self.enrollment_welcome_message,
+            self.enrollment_welcome_email,
+            self.enrollment_welcome_email_subject,
+            self.enrollment_use_welcome_message_as_email,
+            self.uuid,
+            self.ldap_url,
+            self.ldap_bind_username,
+            &self.ldap_bind_password as &Option<SecretString>,
+            self.ldap_group_search_base,
+            self.ldap_user_search_base,
+            self.ldap_user_obj_class,
+            self.ldap_group_obj_class,
+            self.ldap_username_attr,
+            self.ldap_groupname_attr,
+            self.ldap_group_member_attr,
+            self.ldap_member_attr,
+            self.openid_create_account,
+            self.license
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
+    pub(crate) async fn save_license<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "UPDATE \"settings\" SET license = $1 WHERE id = 1",
+            self.license,
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_settings<'e, E>(executor: E) -> Result<Self, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let settings = Settings::get(executor).await?;
 
         Ok(settings.expect("Settings not found"))
     }
@@ -77,7 +191,7 @@ impl Settings {
     // Set default values for settings if not set yet.
     // This is only relevant to a subset of settings which are nullable
     // and we want to initialize their values.
-    pub async fn init_defaults(pool: &DbPool) -> Result<(), SqlxError> {
+    pub async fn init_defaults(pool: &PgPool) -> Result<(), sqlx::Error> {
         info!("Initializing default settings");
 
         let default_settings = HashMap::from([
@@ -122,7 +236,7 @@ pub struct SettingsEssentials {
 }
 
 impl SettingsEssentials {
-    pub(crate) async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, SqlxError>
+    pub(crate) async fn get_settings_essentials<'e, E>(executor: E) -> Result<Self, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {

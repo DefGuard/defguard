@@ -4,7 +4,7 @@ use tera::{Context, Tera};
 use thiserror::Error;
 
 use crate::{
-    db::{MFAMethod, Session, User},
+    db::{Id, MFAMethod, Session, User},
     server_config, VERSION,
 };
 
@@ -32,9 +32,6 @@ static MAIL_PASSWORD_RESET_START: &str =
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 
-#[allow(dead_code)]
-static MAIL_DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
-
 #[derive(Error, Debug)]
 pub enum TemplateError {
     #[error("Failed to generate email MFA code")]
@@ -56,7 +53,7 @@ pub fn get_base_tera(
     // supply context required by base
     context.insert("application_version", &VERSION);
     let now = Utc::now();
-    let current_year = format!("{:04}", &now.year());
+    let current_year = format!("{:04}", now.year());
     context.insert("current_year", &current_year);
     context.insert("date_now", &now.format("%A, %B %d, %Y at %r").to_string());
 
@@ -90,6 +87,7 @@ pub fn enrollment_start_mail(
     mut enrollment_service_url: Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    debug!("Render an enrollment start mail template for the user.");
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     // add required context
@@ -114,6 +112,7 @@ pub fn desktop_start_mail(
     enrollment_service_url: &Url,
     enrollment_token: &str,
 ) -> Result<String, TemplateError> {
+    debug!("Render a mail template for desktop activation.");
     let (mut tera, mut context) = get_base_tera(Some(context), None, None, None)?;
 
     tera.add_raw_template("mail_desktop_start", MAIL_DESKTOP_START)?;
@@ -131,6 +130,7 @@ pub fn enrollment_welcome_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render a welcome mail template for user enrollment.");
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     tera.add_raw_template("mail_enrollment_welcome", MAIL_ENROLLMENT_WELCOME)?;
 
@@ -145,12 +145,13 @@ pub fn enrollment_welcome_mail(
 }
 
 // notification sent to admin after user completes enrollment
-pub fn enrollment_admin_notification(
-    user: &User,
-    admin: &User,
+pub fn enrollment_admin_notification<I>(
+    user: &User<I>,
+    admin: &User<I>,
     ip_address: &str,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render an admin notification mail template.");
     let (mut tera, mut context) = get_base_tera(None, None, Some(ip_address), device_info)?;
 
     tera.add_raw_template(
@@ -161,6 +162,7 @@ pub fn enrollment_admin_notification(
     context.insert("last_name", &user.last_name);
     context.insert("admin_first_name", &admin.first_name);
     context.insert("admin_last_name", &admin.last_name);
+
     Ok(tera.render("mail_enrollment_admin_notification", &context)?)
 }
 
@@ -184,6 +186,7 @@ pub fn new_device_added_mail(
     ip_address: Option<&str>,
     device_info: Option<&str>,
 ) -> Result<String, TemplateError> {
+    debug!("Render a new device added mail template for the user.");
     let (mut tera, mut context) = get_base_tera(None, None, ip_address, device_info)?;
     context.insert("device_name", device_name);
     context.insert("public_key", public_key);
@@ -249,23 +252,33 @@ pub fn gateway_disconnected_mail(
     Ok(tera.render("mail_gateway_disconnected", &context)?)
 }
 
-pub fn email_mfa_activation_mail(code: u32, session: &Session) -> Result<String, TemplateError> {
+pub fn email_mfa_activation_mail(
+    user: &User<Id>,
+    code: &str,
+    session: &Session,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, Some(session), None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
+    context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_activation", MAIL_EMAIL_MFA_ACTIVATION)?;
 
     Ok(tera.render("mail_email_mfa_activation", &context)?)
 }
 
-pub fn email_mfa_code_mail(code: u32, session: Option<&Session>) -> Result<String, TemplateError> {
+pub fn email_mfa_code_mail(
+    user: &User<Id>,
+    code: &str,
+    session: Option<&Session>,
+) -> Result<String, TemplateError> {
     let (mut tera, mut context) = get_base_tera(None, session, None, None)?;
     let timeout = server_config().mfa_code_timeout;
     // zero-pad code to make sure it's always 6 digits long
     context.insert("code", &format!("{code:0>6}"));
     context.insert("timeout", &timeout.to_string());
+    context.insert("name", &user.first_name);
     tera.add_raw_template("mail_email_mfa_code", MAIL_EMAIL_MFA_CODE)?;
 
     Ok(tera.render("mail_email_mfa_code", &context)?)
@@ -308,10 +321,10 @@ pub fn email_password_reset_success_mail(
 
 #[cfg(test)]
 mod test {
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
     use claims::assert_ok;
 
     use super::*;
+    use crate::{config::DefGuardConfig, SERVER_CONFIG};
 
     fn get_welcome_context() -> Context {
         let mut context = Context::new();
@@ -351,7 +364,7 @@ mod test {
 
     #[test]
     fn test_enrollment_start_mail() {
-        SERVER_CONFIG.set(DefGuardConfig::default()).unwrap();
+        let _ = SERVER_CONFIG.set(DefGuardConfig::default());
         assert_ok!(enrollment_start_mail(
             Context::new(),
             Url::parse("http://localhost:8080").unwrap(),

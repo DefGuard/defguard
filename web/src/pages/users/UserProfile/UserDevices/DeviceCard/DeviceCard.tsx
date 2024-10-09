@@ -20,6 +20,7 @@ import { EditButtonOption } from '../../../../../shared/defguard-ui/components/L
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
@@ -37,9 +38,10 @@ const formatDate = (date: string): string => {
 
 interface Props {
   device: Device;
+  modifiable: boolean;
 }
 
-export const DeviceCard = ({ device }: Props) => {
+export const DeviceCard = ({ device, modifiable }: Props) => {
   const [hovered, setHovered] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { LL } = useI18nContext();
@@ -47,6 +49,7 @@ export const DeviceCard = ({ device }: Props) => {
   const setDeleteDeviceModal = useDeleteDeviceModal((state) => state.setState);
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
   const openDeviceConfigModal = useDeviceConfigModal((state) => state.open);
+  const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
 
   const cn = useMemo(
     () =>
@@ -144,6 +147,7 @@ export const DeviceCard = ({ device }: Props) => {
         <EditButton visible={true}>
           <EditButtonOption
             text={LL.userPage.devices.card.edit.edit()}
+            disabled={!modifiable}
             onClick={() => {
               setEditDeviceModal({
                 visible: true,
@@ -151,26 +155,29 @@ export const DeviceCard = ({ device }: Props) => {
               });
             }}
           />
-          <EditButtonOption
-            styleVariant={EditButtonOptionStyleVariant.STANDARD}
-            text={LL.userPage.devices.card.edit.showConfigurations()}
-            disabled={!device.networks?.length}
-            onClick={() => {
-              openDeviceConfigModal({
-                deviceName: device.name,
-                publicKey: device.wireguard_pubkey,
-                deviceId: device.id,
-                userId: user.user.id,
-                networks: device.networks.map((n) => ({
-                  networkId: n.network_id,
-                  networkName: n.network_name,
-                })),
-              });
-            }}
-          />
+          {!enterpriseSettings?.only_client_activation && (
+            <EditButtonOption
+              styleVariant={EditButtonOptionStyleVariant.STANDARD}
+              text={LL.userPage.devices.card.edit.showConfigurations()}
+              disabled={!device.networks?.length}
+              onClick={() => {
+                openDeviceConfigModal({
+                  deviceName: device.name,
+                  publicKey: device.wireguard_pubkey,
+                  deviceId: device.id,
+                  userId: user.user.id,
+                  networks: device.networks.map((n) => ({
+                    networkId: n.network_id,
+                    networkName: n.network_name,
+                  })),
+                });
+              }}
+            />
+          )}
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}
             text={LL.userPage.devices.card.edit.delete()}
+            disabled={!modifiable}
             onClick={() =>
               setDeleteDeviceModal({
                 visible: true,

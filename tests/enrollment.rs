@@ -2,16 +2,17 @@ mod common;
 
 use common::fetch_user_details;
 use defguard::{
-    db::{models::enrollment::Token, DbPool},
+    db::models::enrollment::Token,
     handlers::{AddUserData, Auth},
 };
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
+use sqlx::PgPool;
 
 use self::common::{client::TestClient, make_test_client};
 
-async fn make_client() -> (TestClient, DbPool) {
+async fn make_client() -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client().await;
     (client, client_state.pool)
 }
@@ -57,7 +58,7 @@ async fn test_initialize_enrollment() {
         username: "adumbledore2".into(),
         last_name: "Dumbledore".into(),
         first_name: "Albus".into(),
-        email: "a.dumbledore@hogwart.edu.uk".into(),
+        email: "a.dumbledore2@hogwart.edu.uk".into(),
         phone: Some("1234".into()),
         password: None,
     };

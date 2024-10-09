@@ -25,6 +25,7 @@ import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { SettingsSMTP } from '../../../../../../shared/types';
 import { validateIpOrDomain } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
@@ -39,6 +40,7 @@ type FormFields = {
 
 export const SmtpSettingsForm = () => {
   const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.smtp;
 
   const settings = useSettingsPage((state) => state.settings);
 
@@ -133,7 +135,19 @@ export const SmtpSettingsForm = () => {
     return res;
   }, [settings, encryptionOptions]);
 
-  const { control, handleSubmit } = useForm<FormFields>({
+  const emptyValues: SettingsSMTP = useMemo(
+    () => ({
+      smtp_server: '',
+      smtp_port: 587,
+      smtp_password: '',
+      smtp_sender: '',
+      smtp_user: '',
+      smtp_encryption: encryptionOptions[1].value,
+    }),
+    [encryptionOptions],
+  );
+
+  const { control, reset, handleSubmit } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
@@ -143,62 +157,76 @@ export const SmtpSettingsForm = () => {
     mutate(data);
   };
 
+  const handleDeleteSubmit = useCallback(() => {
+    mutate(emptyValues);
+    reset(emptyValues);
+  }, [mutate, emptyValues, reset]);
+
   if (!settings) return null;
 
   return (
     <section id="smtp-settings">
       <header>
-        <h2>{LL.settingsPage.smtp.form.title()}</h2>
-        <Helper>{parse(LL.settingsPage.smtp.helper())}</Helper>
-        <Button
-          form="smtp-form"
-          text={LL.settingsPage.smtp.form.controls.submit()}
-          icon={<IconCheckmarkWhite />}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          loading={isLoading}
-          type="submit"
-        />
+        <h2>{localLL.form.title()}</h2>
+        <Helper>{parse(localLL.helper())}</Helper>
+        <div className="controls">
+          <Button
+            form="smtp-form"
+            text={localLL.form.controls.submit()}
+            icon={<IconCheckmarkWhite />}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            loading={isLoading}
+            type="submit"
+          />
+          <Button
+            text={localLL.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            onClick={() => {
+              handleDeleteSubmit();
+            }}
+          />
+        </div>
       </header>
       <form id="smtp-form" onSubmit={handleSubmit(onSubmit)}>
         <FormInput
-          label={LL.settingsPage.smtp.form.fields.server.label()}
+          label={localLL.form.fields.server.label()}
           controller={{ control, name: 'smtp_server' }}
-          placeholder={LL.settingsPage.smtp.form.fields.server.placeholder()}
+          placeholder={localLL.form.fields.server.placeholder()}
           required
         />
         <FormInput
-          label={LL.settingsPage.smtp.form.fields.port.label()}
+          label={localLL.form.fields.port.label()}
           controller={{ control, name: 'smtp_port' }}
-          placeholder={LL.settingsPage.smtp.form.fields.port.placeholder()}
+          placeholder={localLL.form.fields.port.placeholder()}
           type="number"
           required
         />
         <FormInput
-          label={LL.settingsPage.smtp.form.fields.user.label()}
+          label={localLL.form.fields.user.label()}
           controller={{ control, name: 'smtp_user' }}
-          placeholder={LL.settingsPage.smtp.form.fields.user.placeholder()}
+          placeholder={localLL.form.fields.user.placeholder()}
           required
         />
         <FormInput
-          label={LL.settingsPage.smtp.form.fields.password.label()}
+          label={localLL.form.fields.password.label()}
           controller={{ control, name: 'smtp_password' }}
-          placeholder={LL.settingsPage.smtp.form.fields.password.placeholder()}
+          placeholder={localLL.form.fields.password.placeholder()}
           type="password"
           required
         />
         <FormInput
-          labelExtras={
-            <Helper>{parse(LL.settingsPage.smtp.form.fields.sender.helper())}</Helper>
-          }
-          label={LL.settingsPage.smtp.form.fields.sender.label()}
+          labelExtras={<Helper>{parse(localLL.form.fields.sender.helper())}</Helper>}
+          label={localLL.form.fields.sender.label()}
           controller={{ control, name: 'smtp_sender' }}
-          placeholder={LL.settingsPage.smtp.form.fields.sender.placeholder()}
+          placeholder={localLL.form.fields.sender.placeholder()}
           required
         />
         <FormSelect
           data-testid="smtp-encryption-select"
-          label={LL.settingsPage.smtp.form.fields.encryption.label()}
+          label={localLL.form.fields.encryption.label()}
           renderSelected={renderSelectedEncryption}
           options={encryptionOptions}
           controller={{ control, name: 'smtp_encryption' }}

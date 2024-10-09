@@ -163,26 +163,46 @@ pub fn derive(input: TokenStream) -> TokenStream {
         None
     });
     let update_args = insert_args.clone();
+    // Struct fields without `id`. It is not possible to use `..self`: mismatched types.
+    let struct_fields = named.iter().filter_map(|field| {
+        if let Some(name) = &field.ident {
+            if name != "id" {
+                return Some(quote! { #name: self.#name });
+            }
+        }
+        None
+    });
 
     // queries
-    let all_query = format!("SELECT id \"id?\", {cs_aliased_fields} FROM \"{table_name}\"");
+    let all_query = format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\"");
     let find_by_id_query =
-        format!("SELECT id \"id?\", {cs_aliased_fields} FROM \"{table_name}\" WHERE id = $1");
+        format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\" WHERE id = $1");
     let delete_query = format!("DELETE FROM \"{table_name}\" WHERE id = $1");
     let insert_query =
         format!("INSERT INTO \"{table_name}\" ({cs_fields}) VALUES ({cs_values}) RETURNING id");
     let update_query = format!("UPDATE \"{table_name}\" SET {cs_setters} WHERE id = $1");
 
+    // TODO: add limit and offset for all().
     quote! {
-        impl #name {
-            pub async fn find_by_id<'e, E>(executor: E, id: i64) -> Result<Option<Self>, sqlx::Error>
+        impl #name<NoId> {
+            pub async fn save<'e, E>(self, executor: E) -> Result<#name<Id>, sqlx::Error>
+            where
+                E: sqlx::PgExecutor<'e>
+            {
+                let id = sqlx::query_scalar!(#insert_query, #(#insert_args,)*).fetch_one(executor).await?;
+
+                Ok(#name { id, #(#struct_fields,)* })
+            }
+        }
+
+        impl #name<Id> {
+            pub async fn find_by_id<'e, E>(executor: E, id: Id) -> Result<Option<Self>, sqlx::Error>
             where
                 E: sqlx::PgExecutor<'e>
             {
                 sqlx::query_as!(Self, #find_by_id_query, id).fetch_optional(executor).await
             }
 
-            // TODO: add limit and offset
             pub async fn all<'e, E>(executor: E) -> Result<Vec<Self>, sqlx::Error>
             where
                 E: sqlx::PgExecutor<'e>
@@ -194,9 +214,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
             where
                 E: sqlx::PgExecutor<'e>
             {
-                if let Some(id) = self.id {
-                    sqlx::query!(#delete_query, id).execute(executor).await?;
-                }
+                sqlx::query!(#delete_query, self.id).execute(executor).await?;
+
                 Ok(())
             }
 
@@ -204,15 +223,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
             where
                 E: sqlx::PgExecutor<'e>
             {
-                match self.id {
-                    None => {
-                        let id = sqlx::query_scalar!(#insert_query, #(#insert_args,)*).fetch_one(executor).await?;
-                        self.id = Some(id);
-                    }
-                    Some(id) => {
-                        sqlx::query!(#update_query, id, #(#update_args,)*).execute(executor).await?;
-                    }
-                }
+                sqlx::query!(#update_query, self.id, #(#update_args,)*).execute(executor).await?;
+
                 Ok(())
             }
         }

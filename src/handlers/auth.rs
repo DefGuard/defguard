@@ -74,14 +74,39 @@ pub async fn authenticate(
             }
         },
         Ok(None) => {
-            // create user from LDAP
-            debug!("User not found in DB, authenticating user {username} with LDAP");
-            if let Ok(user) = user_from_ldap(&appstate.pool, &username, &data.password).await {
-                user
-            } else {
-                info!("Failed to authenticate user {username} with LDAP");
-                log_failed_login_attempt(&appstate.failed_logins, &username);
-                return Err(WebError::Authorization("user not found".into()));
+            match User::find_by_email(&appstate.pool, &username).await {
+                Ok(Some(user)) => match user.verify_password(&data.password) {
+                    Ok(()) => {
+                        if user.is_active {
+                            user
+                        } else {
+                            info!("Failed to authenticate user {username}: user is disabled");
+                            return Err(WebError::Authorization("user not found".into()));
+                        }
+                    }
+                    Err(err) => {
+                        info!("Failed to authenticate user {username}: {err}");
+                        log_failed_login_attempt(&appstate.failed_logins, &username);
+                        return Err(WebError::Authorization(err.to_string()));
+                    }
+                },
+                Ok(None) => {
+                    // create user from LDAP
+                    debug!("User not found in DB, authenticating user {username} with LDAP");
+                    if let Ok(user) =
+                        user_from_ldap(&appstate.pool, &username, &data.password).await
+                    {
+                        user
+                    } else {
+                        info!("Failed to authenticate user {username} with LDAP");
+                        log_failed_login_attempt(&appstate.failed_logins, &username);
+                        return Err(WebError::Authorization("user not found".into()));
+                    }
+                }
+                Err(err) => {
+                    error!("DB error when authenticating user {username}: {err}");
+                    return Err(WebError::DbError(err.to_string()));
+                }
             }
         }
         Err(err) => {
@@ -104,7 +129,7 @@ pub async fn authenticate(
 
     debug!("Creating new session for user {username}");
     let session = Session::new(
-        user.id.unwrap(),
+        user.id,
         SessionState::PasswordVerified,
         ip_address.clone(),
         device_info,
@@ -258,8 +283,7 @@ pub async fn webauthn_init(
         user.username
     );
     // passkeys to exclude
-    let passkeys =
-        WebAuthn::passkeys_for_user(&appstate.pool, user.id.expect("User ID missing")).await?;
+    let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, user.id).await?;
     match appstate.webauthn.start_passkey_registration(
         Uuid::new_v4(),
         &user.username,
@@ -330,7 +354,7 @@ pub async fn webauthn_finish(
         .await?
         .ok_or(WebError::WebauthnRegistration("User not found".into()))?;
     let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
-    let mut webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
+    let webauthn = WebAuthn::new(session.session.user_id, webauth_reg.name, &passkey)?;
     webauthn.save(&appstate.pool).await?;
     if user.mfa_method == MFAMethod::None {
         send_mfa_configured_email(
@@ -449,7 +473,7 @@ pub async fn totp_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
-    if user.verify_totp_code(data.code) {
+    if user.verify_totp_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_totp(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -493,7 +517,7 @@ pub async fn totp_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying TOTP for user {}", username);
-        if user.totp_enabled && user.verify_totp_code(data.code) {
+        if user.totp_enabled && user.verify_totp_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -562,7 +586,7 @@ pub async fn email_mfa_enable(
 ) -> ApiResult {
     let mut user = session.user;
     debug!("Enabling email MFA for user {}", user.username);
-    if user.verify_email_mfa_code(data.code) {
+    if user.verify_email_mfa_code(&data.code) {
         let recovery_codes = RecoveryCodes::new(user.get_recovery_codes(&appstate.pool).await?);
         user.enable_email_mfa(&appstate.pool).await?;
         if user.mfa_method == MFAMethod::None {
@@ -628,7 +652,7 @@ pub async fn email_mfa_code(
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
         debug!("Verifying email MFA code for user {}", username);
-        if user.email_mfa_enabled && user.verify_email_mfa_code(data.code) {
+        if user.email_mfa_enabled && user.verify_email_mfa_code(&data.code) {
             session
                 .set_state(&appstate.pool, SessionState::MultiFactorVerified)
                 .await?;
@@ -675,7 +699,7 @@ pub async fn web3auth_start(
     Json(data): Json<WalletAddress>,
 ) -> ApiResult {
     debug!("Starting web3 authentication for wallet {}", data.address);
-    match Settings::find_by_id(&appstate.pool, 1).await? {
+    match Settings::get(&appstate.pool).await? {
         Some(settings) => {
             let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
             session

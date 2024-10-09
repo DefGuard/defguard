@@ -15,7 +15,7 @@ use crate::{
     KEY_LENGTH,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
@@ -143,6 +143,7 @@ pub fn parse_wireguard_config(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::db::NoId;
 
     #[test]
     fn test_parse_config() {
@@ -168,7 +169,7 @@ mod test {
             network.prvkey,
             "GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg="
         );
-        assert_eq!(network.id, None);
+        assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
         assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
         assert_eq!(network.port, 55055);
