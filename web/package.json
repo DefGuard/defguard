@@ -87,7 +87,7 @@
     "react-virtualized-auto-sizer": "^1.0.21",
     "react-window": "^1.8.10",
     "recharts": "^2.10.4",
-    "rollup": "^4.9.6",
+    "rollup": "^4.22.4",
     "rxjs": "^7.8.1",
     "terser": "^5.27.0",
     "typesafe-i18n": "^5.26.2",
