@@ -25,7 +25,7 @@ use tokio::{
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
-    Status,
+    Code, Status,
 };
 use uaparser::UserAgentParser;
 use uuid::Uuid;
@@ -524,8 +524,18 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    error!("Instance info error {err}");
-                                    Some(core_response::Payload::CoreError(err.into()))
+                                    match err.code() {
+                                        // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
+                                        // to avoid spamming the logs with misleading errors.
+                                        Code::FailedPrecondition => {
+                                            debug!("A client tried to fetch the instance config, but we are not enterprise.");
+                                            Some(core_response::Payload::CoreError(err.into()))
+                                        }
+                                        _ => {
+                                            error!("Instance info error {err}");
+                                            Some(core_response::Payload::CoreError(err.into()))
+                                        }
+                                    }
                                 }
                             }
                         }

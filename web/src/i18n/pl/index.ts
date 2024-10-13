@@ -1664,7 +1664,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
   },
   wizard: {
-    completed: 'Sieć skonfigurowa',
+    completed: 'Sieć skonfigurowana',
     configuration: {
       successMessage: 'Sieć utworzona',
     },
