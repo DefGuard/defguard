@@ -16,8 +16,8 @@ use crate::{
     VERSION,
 };
 
-pub static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
-pub static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
+pub(crate) static ENROLLMENT_TOKEN_TYPE: &str = "ENROLLMENT";
+pub(crate) static PASSWORD_RESET_TOKEN_TYPE: &str = "PASSWORD_RESET";
 
 static ENROLLMENT_START_MAIL_SUBJECT: &str = "Defguard user enrollment";
 static DESKTOP_START_MAIL_SUBJECT: &str = "Defguard desktop client configuration";
@@ -78,7 +78,7 @@ impl From<TokenError> for Status {
 }
 
 // Representation of a user enrollment session
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Token {
     pub id: String,
     pub user_id: Id,

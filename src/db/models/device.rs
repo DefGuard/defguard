@@ -127,7 +127,7 @@ impl UserDevice {
                 n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
                 wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
                 stats.latest_handshake \"latest_handshake?\", \
-                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\" \
+                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1m'), false) as \"is_active!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN stats on n.id = stats.network \

@@ -10,30 +10,37 @@ use super::{
     proto::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-        InitialUserInfo, NewDevice,
+        InitialUserInfo, NewDevice, PasswordResetInitializeRequest, PasswordResetRequest,
+        PasswordResetStartRequest, PasswordResetStartResponse,
     },
+    utils::build_device_config_response,
     InstanceInfo,
 };
 use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo},
-            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
+            enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE},
             polling_token::PollingToken,
         },
         Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
-    grpc::utils::build_device_config_response,
-    handlers::{mail::send_new_device_added_email, user::check_password_strength},
+    handlers::{
+        mail::{
+            send_new_device_added_email, send_password_reset_email,
+            send_password_reset_success_email,
+        },
+        user::check_password_strength,
+    },
     headers::get_device_info,
-    ldap::utils::ldap_add_user,
+    ldap::utils::{ldap_add_user, ldap_change_password},
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
 };
 
-pub(super) struct EnrollmentServer {
+pub(super) struct ProxyHandler {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -41,7 +48,7 @@ pub(super) struct EnrollmentServer {
     ldap_feature_active: bool,
 }
 
-impl EnrollmentServer {
+impl ProxyHandler {
     #[must_use]
     pub fn new(
         pool: PgPool,
@@ -61,30 +68,30 @@ impl EnrollmentServer {
     }
 
     /// Checks if token provided with request corresponds to a valid enrollment session
-    async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
+    async fn validate_enrollment_session(&self, token: &Option<String>) -> Result<Token, Status> {
         info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
             return Err(Status::unauthenticated("Missing authorization header"));
         };
-        let enrollment = Token::find_by_id(&self.pool, token).await?;
-        debug!("Found matching token, verifying validity: {enrollment:?}.");
-        if !enrollment
+        let token = Token::find_by_id(&self.pool, token).await?;
+        debug!("Found matching token, verifying validity: {token:?}.");
+        if !token
             .token_type
             .as_ref()
             .is_some_and(|token_type| token_type == ENROLLMENT_TOKEN_TYPE)
         {
             error!(
                 "Invalid token type used in enrollment process: {:?}",
-                enrollment.token_type
+                token.token_type
             );
             return Err(Status::permission_denied("invalid token"));
         }
-        if enrollment.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
-            info!("Enrollment session validated: {enrollment:?}");
-            Ok(enrollment)
+        if token.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+            info!("Enrollment session validated: {token:?}");
+            Ok(token)
         } else {
-            error!("Enrollment session expired: {enrollment:?}");
+            error!("Enrollment session expired: {token:?}");
             Err(Status::unauthenticated("Session expired"))
         }
     }
@@ -103,145 +110,140 @@ impl EnrollmentServer {
         debug!("Starting enrollment session, request: {request:?}");
         // fetch enrollment token
         debug!("Try to find an enrollment token {}.", request.token);
-        let mut enrollment = Token::find_by_id(&self.pool, &request.token).await?;
+        let mut token = Token::find_by_id(&self.pool, &request.token).await?;
 
-        if let Some(token_type) = &enrollment.token_type {
-            if token_type != ENROLLMENT_TOKEN_TYPE {
-                error!("Invalid token type used while trying to start enrollment: {token_type}");
-                return Err(Status::permission_denied("invalid token"));
-            }
-
-            // fetch related users
-            let user = enrollment.fetch_user(&self.pool).await?;
-            let admin = enrollment.fetch_admin(&self.pool).await?;
-
-            debug!(
-                "Checking if user {}({:?}) is active",
-                user.username, user.id
-            );
-            if !user.is_active {
-                warn!(
-                    "Can't start enrollment for disabled user {}.",
-                    user.username
-                );
-                return Err(Status::permission_denied("user is disabled"));
-            };
-            info!(
-                "User {}({:?}) is active, proceeding with enrollment",
-                user.username, user.id
-            );
-
-            let mut transaction = self.pool.begin().await.map_err(|err| {
-                error!("Failed to begin a transaction for enrollment: {err}");
-                Status::internal("unexpected error")
-            })?;
-
-            // validate token & start session
-            debug!(
-                "Validating enrollment token and starting session for user {}({:?})",
-                user.username, user.id,
-            );
-            let session_deadline = enrollment
-                .start_session(
-                    &mut transaction,
-                    server_config().enrollment_session_timeout.as_secs(),
-                )
-                .await?;
-            info!(
-                "Enrollment session started for user {}({:?})",
-                user.username, user.id
-            );
-
-            debug!(
-                "Retrieving settings for enrollment of user {}({:?}).",
-                user.username, user.id
-            );
-            let settings = Settings::get_settings(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!("Failed to get settings: {err}");
-                    Status::internal("unexpected error")
-                })?;
-            debug!("Settings: {settings:?}");
-
-            debug!(
-                "Retrieving enterprise settings for enrollment of user {}({:?}).",
-                user.username, user.id
-            );
-            let enterprise_settings =
-                EnterpriseSettings::get(&mut *transaction)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get enterprise settings: {err}");
-                        Status::internal("unexpected error")
-                    })?;
-            debug!("Enterprise settings: {enterprise_settings:?}");
-
-            let vpn_setup_optional = settings.enrollment_vpn_step_optional;
-            debug!(
-                "Retrieving instance info for user {}({:?}).",
-                user.username, user.id
-            );
-            let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
-            debug!("Instance info {instance_info:?}");
-
-            debug!(
-                "Preparing initial user info to send for user enrollment, user {}({:?}).",
-                user.username, user.id
-            );
-            let (username, user_id) = (user.username.clone(), user.id);
-            let user_info = InitialUserInfo::from_user(&self.pool, user)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to get user info for user {}({:?}): {err}",
-                        username, user_id,
-                    );
-                    Status::internal("unexpected error")
-                })?;
-            debug!("User info {user_info:?}");
-
-            debug!("Trying to get basic admin info...");
-            let admin_info = admin.map(AdminInfo::from);
-            debug!("Admin info {admin_info:?}");
-
-            debug!(
-                "Creating enrollment start response for user {}({:?}).",
-                username, user_id,
-            );
-            let enterprise_settings =
-                EnterpriseSettings::get(&mut *transaction)
-                    .await
-                    .map_err(|err| {
-                        error!("Failed to get enterprise settings: {err}");
-                        Status::internal("unexpected error")
-                    })?;
-            let enrollment_settings = super::proto::Settings {
-                vpn_setup_optional,
-                only_client_activation: enterprise_settings.only_client_activation,
-            };
-            let response = super::proto::EnrollmentStartResponse {
-                admin: admin_info,
-                user: Some(user_info),
-                deadline_timestamp: session_deadline.and_utc().timestamp(),
-                final_page_content: enrollment
-                    .get_welcome_page_content(&mut transaction)
-                    .await?,
-                instance: Some(instance_info.into()),
-                settings: Some(enrollment_settings),
-            };
-            debug!("Response {response:?}");
-
-            transaction.commit().await.map_err(|err| {
-                error!("Failed to commit transaction: {err}");
-                Status::internal("unexpected error")
-            })?;
-
-            Ok(response)
-        } else {
+        let Some(token_type) = &token.token_type else {
             debug!("Invalid enrollment token, the token does not have specified type.");
-            Err(Status::permission_denied("invalid token"))
+            return Err(Status::permission_denied("invalid token"));
+        };
+
+        if token_type != ENROLLMENT_TOKEN_TYPE {
+            error!("Invalid token type used while trying to start enrollment: {token_type}");
+            return Err(Status::permission_denied("invalid token"));
         }
+
+        // fetch related users
+        let user = token.fetch_user(&self.pool).await?;
+        let admin = token.fetch_admin(&self.pool).await?;
+
+        debug!("Checking if user {}({}) is active", user.username, user.id);
+        if !user.is_active {
+            warn!(
+                "Can't start enrollment for disabled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied("user is disabled"));
+        };
+        info!(
+            "User {}({}) is active, proceeding with enrollment",
+            user.username, user.id
+        );
+
+        let mut transaction = self.pool.begin().await.map_err(|err| {
+            error!("Failed to begin a transaction for enrollment: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        // validate token & start session
+        debug!(
+            "Validating enrollment token and starting session for user {}({})",
+            user.username, user.id,
+        );
+        let session_deadline = token
+            .start_session(
+                &mut transaction,
+                server_config().enrollment_session_timeout.as_secs(),
+            )
+            .await?;
+        info!(
+            "Enrollment session started for user {}({})",
+            user.username, user.id
+        );
+
+        debug!(
+            "Retrieving settings for enrollment of user {}({}).",
+            user.username, user.id
+        );
+        let settings = Settings::get_settings(&mut *transaction)
+            .await
+            .map_err(|err| {
+                error!("Failed to get settings: {err}");
+                Status::internal("unexpected error")
+            })?;
+        debug!("Settings: {settings:?}");
+
+        debug!(
+            "Retrieving enterprise settings for enrollment of user {}({}).",
+            user.username, user.id
+        );
+        let enterprise_settings =
+            EnterpriseSettings::get(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!("Failed to get enterprise settings: {err}");
+                    Status::internal("unexpected error")
+                })?;
+        debug!("Enterprise settings: {enterprise_settings:?}");
+
+        let vpn_setup_optional = settings.enrollment_vpn_step_optional;
+        debug!(
+            "Retrieving instance info for user {}({}).",
+            user.username, user.id
+        );
+        let instance_info = InstanceInfo::new(settings, &user.username, &enterprise_settings);
+        debug!("Instance info {instance_info:?}");
+
+        debug!(
+            "Preparing initial user info to send for user enrollment, user {}({}).",
+            user.username, user.id
+        );
+        let (username, user_id) = (user.username.clone(), user.id);
+        let user_info = InitialUserInfo::from_user(&self.pool, user)
+            .await
+            .map_err(|err| {
+                error!(
+                    "Failed to get user info for user {}({}): {err}",
+                    username, user_id,
+                );
+                Status::internal("unexpected error")
+            })?;
+        debug!("User info {user_info:?}");
+
+        debug!("Trying to get basic admin info...");
+        let admin_info = admin.map(AdminInfo::from);
+        debug!("Admin info {admin_info:?}");
+
+        debug!(
+            "Creating enrollment start response for user {}({}).",
+            username, user_id,
+        );
+        let enterprise_settings =
+            EnterpriseSettings::get(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!("Failed to get enterprise settings: {err}");
+                    Status::internal("unexpected error")
+                })?;
+        let enrollment_settings = super::proto::Settings {
+            vpn_setup_optional,
+            only_client_activation: enterprise_settings.only_client_activation,
+        };
+        let response = super::proto::EnrollmentStartResponse {
+            admin: admin_info,
+            user: Some(user_info),
+            deadline_timestamp: session_deadline.and_utc().timestamp(),
+            final_page_content: token.get_welcome_page_content(&mut transaction).await?,
+            instance: Some(instance_info.into()),
+            settings: Some(enrollment_settings),
+        };
+        debug!("Response {response:?}");
+
+        transaction.commit().await.map_err(|err| {
+            error!("Failed to commit transaction: {err}");
+            Status::internal("unexpected error")
+        })?;
+
+        Ok(response)
     }
 
     pub async fn activate_user(
@@ -250,7 +252,7 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_session(&request.token).await?;
+        let enrollment = self.validate_enrollment_session(&request.token).await?;
 
         let ip_address;
         let device_info;
@@ -262,7 +264,7 @@ impl EnrollmentServer {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         // check if password is strong enough
         debug!("Verifying password strength for user activation process.");
@@ -370,19 +372,16 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
-        let enrollment = self.validate_session(&request.token).await?;
+        let enrollment = self.validate_enrollment_session(&request.token).await?;
 
         // fetch related users
         let user = enrollment.fetch_user(&self.pool).await?;
 
         // add device
-        debug!(
-            "Verifying if user {}({:?}) is active",
-            user.username, user.id
-        );
+        debug!("Verifying if user {}({}) is active", user.username, user.id);
         if !user.is_active {
             error!(
-                "Can't create device for disabled user {}({:?})",
+                "Can't create device for disabled user {}({})",
                 user.username, user.id
             );
             return Err(Status::invalid_argument(
@@ -390,7 +389,7 @@ impl EnrollmentServer {
             ));
         }
         info!(
-            "User {}({:?}) is active, proceeding with device creation, pubkey: {}",
+            "User {}({}) is active, proceeding with device creation, pubkey: {}",
             user.username, user.id, request.pubkey
         );
 
@@ -404,27 +403,27 @@ impl EnrollmentServer {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         debug!(
-            "Validating pubkey {} for device creation process for user {}({:?})",
+            "Validating pubkey {} for device creation process for user {}({})",
             request.pubkey, user.username, user.id,
         );
         Device::validate_pubkey(&request.pubkey).map_err(|err| {
             error!(
-                "Invalid pubkey {}, device won't be created for user {}({:?}): {err}",
+                "Invalid pubkey {}, device won't be created for user {}({}): {err}",
                 request.pubkey, user.username, user.id
             );
             Status::invalid_argument("invalid pubkey")
         })?;
         info!(
-            "Pubkey {} is valid for device creation process for user {}({:?})",
+            "Pubkey {} is valid for device creation process for user {}({})",
             request.pubkey, user.username, user.id
         );
 
         // Make sure there is no device with the same pubkey, such state may lead to unexpected issues
         debug!(
-            "Checking pubkey {} uniqueness for device creation process for user {}({:?}).",
+            "Checking pubkey {} uniqueness for device creation process for user {}({}).",
             request.pubkey, user.username, user.id,
         );
         if let Some(device) = Device::find_by_pubkey(&self.pool, &request.pubkey)
@@ -438,7 +437,7 @@ impl EnrollmentServer {
             })?
         {
             warn!(
-                "User {}({:?}) failed to add device {}, identical pubkey ({}) already exists for device {}",
+                "User {}({}) failed to add device {}, identical pubkey ({}) already exists for device {}",
                 user.username,
                 user.id,
                 request.name,
@@ -448,7 +447,7 @@ impl EnrollmentServer {
             return Err(Status::invalid_argument("invalid key"));
         };
         info!(
-            "Pubkey {} is unique for device creation process for user {}({:?}).",
+            "Pubkey {} is unique for device creation process for user {}({}).",
             request.pubkey, user.username, user.id
         );
 
@@ -458,7 +457,7 @@ impl EnrollmentServer {
             enrollment.user_id,
         );
         debug!(
-            "Creating new device for user {}({:?}) {device:?}.",
+            "Creating new device for user {}({}) {device:?}.",
             user.username, user.id,
         );
 
@@ -468,7 +467,7 @@ impl EnrollmentServer {
         })?;
         let device = device.save(&mut *transaction).await.map_err(|err| {
             error!(
-                "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+                "Failed to save device {}, pubkey {} for user {}({}): {err}",
                 request.name, request.pubkey, user.username, user.id,
             );
             Status::internal("unexpected error")
@@ -476,7 +475,7 @@ impl EnrollmentServer {
         info!("New device created: {device:?}.");
 
         debug!(
-            "Adding device {} to all existing user networks for user {}({:?}).",
+            "Adding device {} to all existing user networks for user {}({}).",
             device.wireguard_pubkey, user.username, user.id,
         );
         let (network_info, configs) =
@@ -492,11 +491,11 @@ impl EnrollmentServer {
                 })?;
 
         info!(
-            "Added device {} to all existing user networks for user {}({:?})",
+            "Added device {} to all existing user networks for user {}({})",
             device.wireguard_pubkey, user.username, user.id
         );
         debug!(
-            "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
+            "Sending DeviceCreated event to gateway for device {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
         self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
@@ -504,19 +503,19 @@ impl EnrollmentServer {
             network_info,
         }));
         info!(
-            "Sent DeviceCreated event to gateway for device {}, user {}({:?})",
+            "Sent DeviceCreated event to gateway for device {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
 
         debug!(
-            "Fetching settings for device {} creation process for user {}({:?})",
+            "Fetching settings for device {} creation process for user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
         let settings = Settings::get_settings(&mut *transaction)
             .await
             .map_err(|err| {
                 error!(
-            "Failed to fetch settings for device {} creation process for user {}({:?}): {err}",
+            "Failed to fetch settings for device {} creation process for user {}({}): {err}",
             device.wireguard_pubkey, user.username, user.id,
 );
                 Status::internal("unexpected error")
@@ -524,14 +523,14 @@ impl EnrollmentServer {
         debug!("Settings: {settings:?}");
 
         debug!(
-            "Fetching enterprise settings for device {} creation process for user {}({:?})",
+            "Fetching enterprise settings for device {} creation process for user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
         let enterprise_settings = EnterpriseSettings::get(&mut *transaction)
             .await
             .map_err(|err| {
                 error!(
-            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): {err}",
+            "Failed to fetch enterprise settings for device {} creation process for user {}({}): {err}",
             device.wireguard_pubkey, user.username, user.id,
         );
                 Status::internal("unexpected error")
@@ -540,7 +539,7 @@ impl EnrollmentServer {
 
         // create polling token for further client communication
         debug!(
-            "Creating polling token for further client communication for device {}, user {}({:?})",
+            "Creating polling token for further client communication for device {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
         let token = PollingToken::new(device.id)
@@ -548,19 +547,19 @@ impl EnrollmentServer {
             .await
             .map_err(|err| {
                 error!(
-                    "Failed to save PollingToken for device {}, user {}({:?}): {err}",
+                    "Failed to save PollingToken for device {}, user {}({}): {err}",
                     device.wireguard_pubkey, user.username, user.id
                 );
                 Status::internal("failed to save polling token")
             })?;
         info!(
-            "Created polling token for further client communication for device: {}, user {}({:?})",
+            "Created polling token for further client communication for device: {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
 
         transaction.commit().await.map_err(|err| {
             error!(
-                "Failed to commit transaction, device {} won't be created for user {}({:?}): {err}",
+                "Failed to commit transaction, device {} won't be created for user {}({}): {err}",
                 device.wireguard_pubkey, user.username, user.id,
             );
             Status::internal("unexpected error")
@@ -575,7 +574,7 @@ impl EnrollmentServer {
             .collect();
 
         debug!(
-            "Sending device created mail for device {}, user {}({:?})",
+            "Sending device created mail for device {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id
         );
         send_new_device_added_email(
@@ -590,7 +589,7 @@ impl EnrollmentServer {
         .map_err(|_| Status::internal("error rendering email template"))?;
 
         info!(
-            "Device {} assigned to user {}({:?}) and added to all networks.",
+            "Device {} assigned to user {}({}) and added to all networks.",
             device.name, user.username, user.id,
         );
 
@@ -613,9 +612,247 @@ impl EnrollmentServer {
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let _token = self.validate_session(&request.token).await?;
+        let _token = self.validate_enrollment_session(&request.token).await?;
 
         build_device_config_response(&self.pool, &request.pubkey, true).await
+    }
+
+    /// Checks if token provided with request corresponds to a valid password reset session
+    async fn validate_password_reset_session(
+        &self,
+        token: &Option<String>,
+    ) -> Result<Token, Status> {
+        info!("Validating password reset session. Token: {token:?}");
+        let Some(token) = token else {
+            error!("Missing authorization header in request");
+            return Err(Status::unauthenticated("Missing authorization header"));
+        };
+        let token = Token::find_by_id(&self.pool, token).await?;
+        debug!("Found matching token, verifying validity: {token:?}.");
+        if !token
+            .token_type
+            .as_ref()
+            .is_some_and(|token_type| token_type == PASSWORD_RESET_TOKEN_TYPE)
+        {
+            error!(
+                "Invalid token type used in password reset process: {:?}",
+                token.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
+
+        if token.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
+            info!("Password reset session validated: {token:?}.",);
+            Ok(token)
+        } else {
+            error!("Password reset session expired: {token:?}");
+            Err(Status::unauthenticated("Session expired"))
+        }
+    }
+
+    pub async fn request_password_reset(
+        &self,
+        request: PasswordResetInitializeRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
+        let config = server_config();
+        debug!("Starting password reset request");
+
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
+
+        let email = request.email;
+
+        let user = User::find_by_email(&self.pool, email.to_string().as_str())
+            .await
+            .map_err(|_| {
+                error!("Failed to fetch user by email: {email}");
+                Status::internal("unexpected error")
+            })?;
+
+        let Some(user) = user else {
+            // Do not return information whether user exists
+            debug!("Password reset skipped for non-existing user {email}");
+            return Ok(());
+        };
+
+        // Do not allow password change if user is disabled or not enrolled
+        if !user.has_password() || !user.is_active {
+            debug!(
+                "Password reset skipped for disabled or not enrolled user {} ({email})",
+                user.username
+            );
+            return Ok(());
+        }
+
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        Token::delete_unused_user_password_reset_tokens(&mut transaction, user.id).await?;
+
+        let enrollment = Token::new(
+            user.id,
+            None,
+            Some(email.clone()),
+            config.password_reset_token_timeout.as_secs(),
+            Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
+        );
+        enrollment.save(&mut transaction).await?;
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        send_password_reset_email(
+            &user,
+            &self.mail_tx,
+            config.enrollment_url.clone(),
+            &enrollment.id,
+            Some(&ip_address),
+            Some(&user_agent),
+        )?;
+
+        info!(
+            "Finished processing password reset request for user {}.",
+            user.username
+        );
+
+        Ok(())
+    }
+
+    pub async fn start_password_reset(
+        &self,
+        request: PasswordResetStartRequest,
+    ) -> Result<PasswordResetStartResponse, Status> {
+        debug!("Starting password reset session: {request:?}");
+
+        let mut token = Token::find_by_id(&self.pool, &request.token).await?;
+
+        if !token
+            .token_type
+            .as_ref()
+            .is_some_and(|token_type| token_type == PASSWORD_RESET_TOKEN_TYPE)
+        {
+            error!(
+                "Invalid token type ({:?}) for password reset session",
+                token.token_type
+            );
+            return Err(Status::permission_denied("invalid token"));
+        }
+
+        let user = token.fetch_user(&self.pool).await?;
+
+        if !user.has_password() || !user.is_active {
+            error!(
+                "Can't start password reset for a disabled or not enrolled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied(
+                "user disabled or not yet enrolled",
+            ));
+        }
+
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        let session_deadline = token
+            .start_session(
+                &mut transaction,
+                server_config().password_reset_session_timeout.as_secs(),
+            )
+            .await?;
+
+        let response = PasswordResetStartResponse {
+            deadline_timestamp: session_deadline.and_utc().timestamp(),
+        };
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        info!(
+            "Finished processing password reset session for user {}.",
+            user.username
+        );
+
+        Ok(response)
+    }
+
+    pub async fn reset_password(
+        &self,
+        request: PasswordResetRequest,
+        req_device_info: Option<super::proto::DeviceInfo>,
+    ) -> Result<(), Status> {
+        debug!("Starting password reset: {request:?}");
+        let enrollment = self.validate_password_reset_session(&request.token).await?;
+
+        let ip_address;
+        let user_agent;
+        if let Some(info) = req_device_info {
+            ip_address = info.ip_address.unwrap_or_default();
+            user_agent = info.user_agent.unwrap_or_default();
+        } else {
+            ip_address = String::new();
+            user_agent = String::new();
+        }
+
+        if let Err(err) = check_password_strength(&request.password) {
+            error!("Password not strong enough: {err}");
+            return Err(Status::invalid_argument("password not strong enough"));
+        }
+
+        let mut user = enrollment.fetch_user(&self.pool).await?;
+
+        if !user.is_active {
+            error!(
+                "Can't reset password for a disabled user {}.",
+                user.username
+            );
+            return Err(Status::permission_denied("user disabled"));
+        }
+
+        let mut transaction = self.pool.begin().await.map_err(|_| {
+            error!("Failed to begin transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        // update user
+        user.set_password(&request.password);
+        user.save(&mut *transaction).await.map_err(|err| {
+            error!("Failed to update user {}: {err}", user.username);
+            Status::internal("unexpected error")
+        })?;
+
+        // if self.ldap_feature_active {
+        let _ = ldap_change_password(&self.pool, &user.username, &request.password).await;
+        // };
+
+        transaction.commit().await.map_err(|_| {
+            error!("Failed to commit transaction");
+            Status::internal("unexpected error")
+        })?;
+
+        send_password_reset_success_email(
+            &user,
+            &self.mail_tx,
+            Some(&ip_address),
+            Some(&user_agent),
+        )?;
+
+        Ok(())
     }
 }
 
