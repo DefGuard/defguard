@@ -16,7 +16,7 @@ use crate::db::{
         error::ModelError,
         wireguard::WireguardNetworkError,
     },
-    Device, GatewayEvent, Id, WireguardNetwork,
+    Device, GatewayEvent, WireguardNetwork,
 };
 
 // How long to sleep between loop iterations
@@ -45,15 +45,7 @@ pub async fn run_periodic_peer_disconnect(
     loop {
         debug!("Starting periodic inactive device disconnect");
 
-        // get all MFA-protected locations
-        let locations = query_as!(
-            WireguardNetwork::<Id>,
-            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
-            FROM wireguard_network WHERE mfa_enabled = true",
-        )
-        .fetch_all(&pool)
-        .await?;
+        let locations = WireguardNetwork::all_mfa_enabled(&pool).await?;
 
         // loop over all locations
         for location in locations {

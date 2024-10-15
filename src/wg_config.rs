@@ -94,7 +94,7 @@ pub fn parse_wireguard_config(
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
-    )?;
+    );
     network.pubkey = pubkey;
     network.prvkey = prvkey.to_string();
 

@@ -18,7 +18,7 @@
         "Bool",
         "Int4",
         "Int4",
-        "InetArray"
+        "TextArray"
       ]
     },
     "nullable": []
