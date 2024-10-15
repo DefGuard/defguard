@@ -62,7 +62,7 @@ impl WireguardNetworkData {
 }
 
 // Used in process of importing network from WireGuard config
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MappedDevices {
     pub devices: Vec<MappedDevice>,
 }
@@ -114,8 +114,7 @@ pub async fn create_network(
         data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
-    )
-    .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
+    );
 
     let mut transaction = appstate.pool.begin().await?;
     let network = network.save(&mut *transaction).await?;
@@ -388,7 +387,7 @@ pub async fn add_user_devices(
     Path(network_id): Path<i64>,
     Json(request_data): Json<MappedDevices>,
 ) -> ApiResult {
-    let mapped_devices = request_data.devices.clone();
+    let mapped_devices = request_data.devices;
     let user = session.user;
     let device_count = mapped_devices.len();
 
@@ -410,7 +409,7 @@ pub async fn add_user_devices(
         // wrap loop in transaction to abort if a device is invalid
         let mut transaction = appstate.pool.begin().await?;
         let events = network
-            .handle_mapped_devices(&mut transaction, mapped_devices)
+            .handle_mapped_devices(&mut transaction, mapped_devices.as_slice())
             .await?;
         appstate.send_multiple_wireguard_events(events);
         transaction.commit().await?;

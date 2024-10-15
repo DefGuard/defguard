@@ -374,20 +374,18 @@ pub async fn run_grpc_bidi_stream(
     } else {
         endpoint
     };
+    let uri = endpoint.uri();
 
     loop {
-        debug!("Connecting to proxy at {}", endpoint.uri());
+        debug!("Connecting to proxy at {uri}",);
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!(
-                "Failed to connect to proxy @ {}, retrying in 10s",
-                endpoint.uri()
-            );
+            error!("Failed to connect to proxy @ {uri}, retrying in 10s",);
             sleep(TEN_SECS).await;
             continue;
         };
-        info!("Connected to proxy at {}", endpoint.uri());
+        info!("Connected to proxy at {uri}");
         let mut resp_stream = response.into_inner();
         'message: loop {
             match resp_stream.message().await {
@@ -520,18 +518,14 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    match err.code() {
-                                        // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
-                                        // to avoid spamming the logs with misleading errors.
-                                        Code::FailedPrecondition => {
-                                            debug!("A client tried to fetch the instance config, but we are not enterprise.");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
-                                        _ => {
-                                            error!("Instance info error {err}");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
+                                    // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
+                                    // to avoid spamming the logs with misleading errors.
+                                    if err.code() == Code::FailedPrecondition {
+                                        debug!("A client tried to fetch the instance config, but we are not enterprise.");
+                                    } else {
+                                        error!("Instance info error {err}");
                                     }
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -545,7 +539,7 @@ pub async fn run_grpc_bidi_stream(
                     tx.send(req).unwrap();
                 }
                 Err(err) => {
-                    error!("Disconnected from proxy at {}", endpoint.uri());
+                    error!("Disconnected from proxy at {uri}");
                     error!("stream error: {err}");
                     debug!("waiting 10s to re-establish the connection");
                     sleep(TEN_SECS).await;

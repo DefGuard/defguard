@@ -55,8 +55,7 @@ async fn test_config_import() {
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
-    )
-    .unwrap();
+    );
     initial_network.save(&pool).await.unwrap();
 
     // add existing devices

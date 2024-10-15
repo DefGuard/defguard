@@ -30,8 +30,8 @@ use crate::{
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
 
-// Used in process of importing network from wireguard config
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// Used in process of importing network from WireGuard config
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
@@ -88,8 +88,9 @@ pub struct WireguardNetwork<I = NoId> {
     pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    // URLs pointing to all gateways serving gRPC
     #[model(ref)]
-    pub gateways: Vec<IpNetwork>,
+    pub gateways: Vec<String>,
 }
 
 pub struct WireguardKey {
@@ -130,6 +131,7 @@ pub enum WireguardNetworkError {
 }
 
 impl WireguardNetwork {
+    #[must_use]
     pub fn new(
         name: String,
         address: IpNetwork,
@@ -140,10 +142,10 @@ impl WireguardNetwork {
         mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
-    ) -> Result<Self, WireguardNetworkError> {
+    ) -> Self {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
-        Ok(Self {
+        Self {
             id: NoId,
             name,
             address,
@@ -158,7 +160,7 @@ impl WireguardNetwork {
             keepalive_interval,
             peer_disconnect_threshold,
             gateways: Vec::new(),
-        })
+        }
     }
 
     /// Try to set `address` from `&str`.
@@ -173,12 +175,12 @@ impl WireguardNetwork<Id> {
     pub async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
-    ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
+    ) -> Result<Option<Vec<Self>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         let networks = query_as!(
-            WireguardNetwork,
+            Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
             connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
             FROM wireguard_network WHERE name = $1",
@@ -192,6 +194,21 @@ impl WireguardNetwork<Id> {
         } else {
             Some(networks)
         })
+    }
+
+    /// Fetch all networks with MFA protection turned on.
+    pub(crate) async fn all_mfa_enabled<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
+            FROM wireguard_network WHERE mfa_enabled = true",
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Run `sync_allowed_devices()` on all WireGuard networks.
@@ -394,7 +411,7 @@ impl WireguardNetwork<Id> {
             Ok(wireguard_network_device)
         } else {
             info!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
+            Err(WireguardNetworkError::DeviceNotAllowed(device.to_string()))
         }
     }
 
@@ -561,7 +578,7 @@ impl WireguardNetwork<Id> {
     pub async fn handle_mapped_devices(
         &self,
         transaction: &mut PgConnection,
-        mapped_devices: Vec<MappedDevice>,
+        mapped_devices: &[MappedDevice],
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         // get allowed groups for network
@@ -570,7 +587,7 @@ impl WireguardNetwork<Id> {
         let mut events = Vec::new();
         // use a helper hashmap to avoid repeated queries
         let mut user_groups = HashMap::new();
-        for mapped_device in &mapped_devices {
+        for mapped_device in mapped_devices {
             debug!("Mapping device {}", mapped_device.name);
             // validate device pubkey
             Device::validate_pubkey(&mapped_device.wireguard_pubkey).map_err(|_| {
@@ -660,8 +677,9 @@ impl WireguardNetwork<Id> {
     ) -> Result<Option<WireguardPeerStats<Id>>, SqlxError> {
         let stats = query_as!(
             WireguardPeerStats,
-            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
-                endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
+            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", \
+            network \"network!\", endpoint, upload \"upload!\", download \"download!\", \
+            latest_handshake \"latest_handshake!\", allowed_ips \
             FROM wireguard_peer_stats \
             WHERE device_id = $1 AND network = $2 \
             ORDER BY collected_at DESC \

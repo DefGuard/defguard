@@ -71,7 +71,7 @@
       {
         "ordinal": 13,
         "name": "gateways",
-        "type_info": "InetArray"
+        "type_info": "TextArray"
       }
     ],
     "parameters": {
