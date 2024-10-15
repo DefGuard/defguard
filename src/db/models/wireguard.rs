@@ -88,6 +88,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    #[model(ref)]
+    pub gateways: Vec<IpNetwork>,
 }
 
 pub struct WireguardKey {
@@ -155,6 +157,7 @@ impl WireguardNetwork {
             mfa_enabled,
             keepalive_interval,
             peer_disconnect_threshold,
+            gateways: Vec::new(),
         })
     }
 
@@ -176,23 +179,22 @@ impl WireguardNetwork<Id> {
     {
         let networks = query_as!(
             WireguardNetwork,
-            "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
             FROM wireguard_network WHERE name = $1",
             name
         )
         .fetch_all(executor)
         .await?;
 
-        if networks.is_empty() {
-            return Ok(None);
-        }
-
-        Ok(Some(networks))
+        Ok(if networks.is_empty() {
+            None
+        } else {
+            Some(networks)
+        })
     }
 
-    // run sync_allowed_devices on all wireguard networks
+    /// Run `sync_allowed_devices()` on all WireGuard networks.
     pub async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
         let mut transaction = app.pool.begin().await?;
@@ -210,13 +212,18 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<i64, WireguardNetworkError> {
-        let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
-            .fetch_one(transaction)
-            .await?;
+        let count = query_scalar!(
+            "SELECT count(*) \"count!\" FROM wireguard_network_device \
+            WHERE wireguard_network_id = $1",
+            self.id
+        )
+        .fetch_one(transaction)
+        .await?;
 
         Ok(count)
     }
 
+    /// Check if given number of devices could fit the network.
     pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in network {self}");
         let network_size = self.address.size();
@@ -237,7 +244,7 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    /// Utility method to create WireGuard keypair
+    /// Utility method to create WireGuard keypair.
     #[must_use]
     pub fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
@@ -696,7 +703,7 @@ impl WireguardNetwork<Id> {
             FROM wireguard_peer_stats_view \
             WHERE device_id = $1 \
                 AND latest_handshake IS NOT NULL \
-                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) \
+                AND (latest_handshake_diff > $2 * interval '1m' OR latest_handshake_diff IS NULL) \
                 AND network = $3 \
             ORDER BY collected_at DESC \
             LIMIT 1",
@@ -934,6 +941,7 @@ impl Default for WireguardNetwork {
             mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+            gateways: Vec::default(),
         }
     }
 }

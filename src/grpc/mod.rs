@@ -35,9 +35,8 @@ use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer}
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     desktop_client_mfa::ClientMfaServer,
-    enrollment::EnrollmentServer,
-    password_reset::PasswordResetServer,
     proto::core_response,
+    proxy::ProxyHandler,
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -61,12 +60,11 @@ use crate::{auth::ClaimsType, db::GatewayEvent};
 
 mod auth;
 mod desktop_client_mfa;
-pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
-pub mod password_reset;
+mod proxy;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
@@ -355,14 +353,12 @@ pub async fn run_grpc_bidi_stream(
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
-    // TODO: merge the two
-    let enrollment_server = EnrollmentServer::new(
+    let proxy_handler = ProxyHandler::new(
         pool.clone(),
         wireguard_tx.clone(),
         mail_tx.clone(),
         user_agent_parser,
     );
-    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
     let polling_server = PollingServer::new(pool);
 
@@ -405,7 +401,7 @@ pub async fn run_grpc_bidi_stream(
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match enrollment_server.start_enrollment(request).await {
+                            match proxy_handler.start_enrollment(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::EnrollmentStart(response_payload))
                                 }
@@ -417,7 +413,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::ActivateUser(request)) => {
-                            match enrollment_server
+                            match proxy_handler
                                 .activate_user(request, received.device_info)
                                 .await
                             {
@@ -430,7 +426,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::NewDevice(request)) => {
-                            match enrollment_server
+                            match proxy_handler
                                 .create_device(request, received.device_info)
                                 .await
                             {
@@ -445,7 +441,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::ExistingDevice(request)) => {
-                            match enrollment_server.get_network_info(request).await {
+                            match proxy_handler.get_network_info(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::DeviceConfig(response_payload))
                                 }
@@ -457,7 +453,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordResetInit(request)) => {
-                            match password_reset_server
+                            match proxy_handler
                                 .request_password_reset(request, received.device_info)
                                 .await
                             {
@@ -470,7 +466,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match password_reset_server.start_password_reset(request).await {
+                            match proxy_handler.start_password_reset(request).await {
                                 Ok(response_payload) => Some(
                                     core_response::Payload::PasswordResetStart(response_payload),
                                 ),
@@ -482,7 +478,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordReset(request)) => {
-                            match password_reset_server
+                            match proxy_handler
                                 .reset_password(request, received.device_info)
                                 .await
                             {
@@ -578,11 +574,11 @@ pub async fn run_grpc_server(
         WorkerServer::new(pool.clone(), worker_state),
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
-    #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
-        JwtInterceptor::new(ClaimsType::Gateway),
-    );
+    // #[cfg(feature = "wireguard")]
+    // let gateway_service = GatewayServiceServer::with_interceptor(
+    //     GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
+    //     JwtInterceptor::new(ClaimsType::Gateway),
+    // );
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
@@ -603,11 +599,12 @@ pub async fn run_grpc_server(
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
         .add_service(auth_service);
-    #[cfg(feature = "wireguard")]
-    let router = router.add_service(gateway_service);
+    // #[cfg(feature = "wireguard")]
+    // let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
+
     info!("gRPC server started on {addr}");
     Ok(())
 }

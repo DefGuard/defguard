@@ -181,7 +181,7 @@ impl MailHandler {
 
             // Construct lettre Message
             let result_tx = mail.result_tx.clone();
-            let message: Message = match mail.into_message(&settings.sender) {
+            let message = match mail.into_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
                     error!("Failed to build message to: {to}, subject: {subject}, error: {err}");

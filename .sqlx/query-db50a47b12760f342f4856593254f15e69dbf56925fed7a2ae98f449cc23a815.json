@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\",\"connected_at\",\"mfa_enabled\",\"keepalive_interval\",\"peer_disconnect_threshold\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+  "query": "INSERT INTO \"wireguard_network\" (\"name\",\"address\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\",\"connected_at\",\"mfa_enabled\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"gateways\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -22,12 +22,13 @@
         "Timestamp",
         "Bool",
         "Int4",
-        "Int4"
+        "Int4",
+        "InetArray"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "f222309aff56e5182091655c0a6c34cddfee21a48f981c3ca22a6e064c18a769"
+  "hash": "db50a47b12760f342f4856593254f15e69dbf56925fed7a2ae98f449cc23a815"
 }

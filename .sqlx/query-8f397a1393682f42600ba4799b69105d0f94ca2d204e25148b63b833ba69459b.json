@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"mfa_enabled\",\"keepalive_interval\",\"peer_disconnect_threshold\" FROM \"wireguard_network\" WHERE id = $1",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways FROM wireguard_network WHERE mfa_enabled = true",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address: _",
+        "name": "address",
         "type_info": "Inet"
       },
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "allowed_ips: _",
+        "name": "allowed_ips",
         "type_info": "InetArray"
       },
       {
@@ -67,12 +67,15 @@
         "ordinal": 12,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "gateways",
+        "type_info": "InetArray"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -87,8 +90,9 @@
       true,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "f95b0887794cfac8c96bc32a99c3ea4a8e635965c409d72d678045abf28bd16f"
+  "hash": "8f397a1393682f42600ba4799b69105d0f94ca2d204e25148b63b833ba69459b"
 }

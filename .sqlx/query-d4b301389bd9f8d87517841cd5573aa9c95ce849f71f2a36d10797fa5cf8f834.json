@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"wireguard_network\" SET \"name\" = $2,\"address\" = $3,\"port\" = $4,\"pubkey\" = $5,\"prvkey\" = $6,\"endpoint\" = $7,\"dns\" = $8,\"allowed_ips\" = $9,\"connected_at\" = $10,\"mfa_enabled\" = $11,\"keepalive_interval\" = $12,\"peer_disconnect_threshold\" = $13,\"gateways\" = $14 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Inet",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "InetArray",
+        "Timestamp",
+        "Bool",
+        "Int4",
+        "Int4",
+        "InetArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d4b301389bd9f8d87517841cd5573aa9c95ce849f71f2a36d10797fa5cf8f834"
+}
