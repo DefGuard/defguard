@@ -305,8 +305,9 @@ pub async fn gateway_status(
     })
 }
 
+// TODO: gateway_id should be enough; remove network_id.
 pub async fn remove_gateway(
-    Path((network_id, gateway_id)): Path<(i64, String)>,
+    Path((network_id, gateway_id)): Path<(i64, i64)>,
     _role: VpnRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -315,11 +316,7 @@ pub async fn remove_gateway(
         .lock()
         .expect("Failed to acquire gateway state lock");
 
-    gateway_state.remove_gateway(
-        network_id,
-        Uuid::from_str(&gateway_id)
-            .map_err(|_| WebError::Http(StatusCode::INTERNAL_SERVER_ERROR))?,
-    )?;
+    gateway_state.remove_gateway(network_id, gateway_id)?;
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 

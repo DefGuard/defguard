@@ -88,9 +88,6 @@ pub struct WireguardNetwork<I = NoId> {
     pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
-    // URLs pointing to all gateways serving gRPC
-    #[model(ref)]
-    pub gateways: Vec<String>,
 }
 
 pub struct WireguardKey {
@@ -159,7 +156,6 @@ impl WireguardNetwork {
             mfa_enabled,
             keepalive_interval,
             peer_disconnect_threshold,
-            gateways: Vec::new(),
         }
     }
 
@@ -182,7 +178,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
         )
@@ -204,7 +200,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             Self,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE mfa_enabled = true",
         )
         .fetch_all(executor)
@@ -959,12 +955,11 @@ impl Default for WireguardNetwork {
             mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
-            gateways: Vec::default(),
         }
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Debug, Serialize)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
