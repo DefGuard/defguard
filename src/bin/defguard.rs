@@ -8,7 +8,9 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     enterprise::license::{run_periodic_license_check, set_cached_license, License},
-    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
+    grpc::{
+        run_grpc_bidi_stream, run_grpc_gateway_stream, run_grpc_server, GatewayMap, WorkerState,
+    },
     headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
@@ -114,6 +116,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
+        res = run_grpc_gateway_stream(pool.clone()) => error!("Gateway gRPC stream returned early: {res:#?}"),
         res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
         res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_map), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
         res = run_web_server(worker_state, gateway_map, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),

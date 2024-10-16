@@ -20,6 +20,7 @@ use tokio::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
     },
+    task::JoinSet,
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -28,10 +29,9 @@ use tonic::{
     Code, Status,
 };
 use uaparser::UserAgentParser;
-use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
-use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use self::gateway::GatewayHandler;
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     desktop_client_mfa::ClientMfaServer,
@@ -78,7 +78,6 @@ use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 // Helper struct used to handle gateway state
 // gateways are grouped by network
 type GatewayHostname = String;
-#[derive(Debug)]
 pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
@@ -88,9 +87,9 @@ pub enum GatewayMapError {
     #[error("Network {0} not found")]
     NetworkNotFound(i64),
     #[error("Gateway with UID {0} not found")]
-    UidNotFound(Uuid),
+    UidNotFound(Id),
     #[error("Cannot remove. Gateway with UID {0} is still active")]
-    RemoveActive(Uuid),
+    RemoveActive(Id),
     #[error("Config missing")]
     ConfigError,
 }
@@ -104,44 +103,44 @@ impl GatewayMap {
     // add a new gateway to map
     // this method is meant to be called when a gateway requests a config
     // as a sort of "registration"
-    pub fn add_gateway(
-        &mut self,
-        network_id: Id,
-        network_name: &str,
-        hostname: String,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-    ) {
-        info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
-        let gateway_state = GatewayState::new(network_id, network_name, &hostname, name, mail_tx);
+    // pub fn add_gateway(
+    //     &mut self,
+    //     network_id: Id,
+    //     network_name: &str,
+    //     hostname: String,
+    //     name: Option<String>,
+    //     mail_tx: UnboundedSender<Mail>,
+    // ) {
+    //     info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
+    //     let gateway_state = GatewayState::new(network_id, network_name, &hostname, name, mail_tx);
 
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            network_gateway_map.entry(hostname).or_insert(gateway_state);
-        } else {
-            // no map for a given network exists yet
-            let mut network_gateway_map = HashMap::new();
-            network_gateway_map.insert(hostname, gateway_state);
-            self.0.insert(network_id, network_gateway_map);
-        }
-    }
+    //     if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+    //         network_gateway_map.entry(hostname).or_insert(gateway_state);
+    //     } else {
+    //         // no map for a given network exists yet
+    //         let mut network_gateway_map = HashMap::new();
+    //         network_gateway_map.insert(hostname, gateway_state);
+    //         self.0.insert(network_id, network_gateway_map);
+    //     }
+    // }
 
     // remove gateway from map
-    pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
+    pub fn remove_gateway(&mut self, network_id: Id, id: Id) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
             let hostname = match network_gateway_map
                 .iter()
-                .find(|(_address, state)| state.uid == uid)
+                .find(|(_address, state)| state.id == id)
             {
                 None => {
-                    error!("Failed to find gateway with UID {uid}");
-                    return Err(GatewayMapError::UidNotFound(uid));
+                    error!("Failed to find gateway with ID {id}");
+                    return Err(GatewayMapError::UidNotFound(id));
                 }
                 Some((hostname, state)) => {
                     if state.connected {
-                        error!("Cannot remove. Gateway with UID {uid} is still active");
-                        return Err(GatewayMapError::RemoveActive(uid));
+                        error!("Cannot remove. Gateway with UID {id} is still active");
+                        return Err(GatewayMapError::RemoveActive(id));
                     }
                     hostname.clone()
                 }
@@ -153,7 +152,8 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
-        info!("Gateway with UID {uid} removed from network {network_id}");
+
+        info!("Gateway with UID {id} removed from network {network_id}");
         Ok(())
     }
 
@@ -183,6 +183,7 @@ impl GatewayMap {
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
+
         info!("Gateway {hostname} connected in network {network_id}");
         Ok(())
     }
@@ -252,9 +253,9 @@ impl Default for GatewayMap {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
-pub struct GatewayState {
-    pub uid: Uuid,
+#[derive(Clone, Debug, Serialize)]
+pub(crate) struct GatewayState {
+    pub id: Id,
     pub connected: bool,
     pub network_id: Id,
     pub network_name: String,
@@ -269,27 +270,27 @@ pub struct GatewayState {
 }
 
 impl GatewayState {
-    #[must_use]
-    pub fn new<S: Into<String>>(
-        network_id: Id,
-        network_name: S,
-        hostname: S,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-    ) -> Self {
-        Self {
-            uid: Uuid::new_v4(),
-            connected: false,
-            network_id,
-            network_name: network_name.into(),
-            name,
-            hostname: hostname.into(),
-            connected_at: None,
-            disconnected_at: None,
-            mail_tx,
-            last_email_notification: None,
-        }
-    }
+    // #[must_use]
+    // pub fn new<S: Into<String>>(
+    //     network_id: Id,
+    //     network_name: S,
+    //     hostname: S,
+    //     name: Option<String>,
+    //     mail_tx: UnboundedSender<Mail>,
+    // ) -> Self {
+    //     Self {
+    //         uid: Uuid::new_v4(),
+    //         connected: false,
+    //         network_id,
+    //         network_name: network_name.into(),
+    //         name,
+    //         hostname: hostname.into(),
+    //         connected_at: None,
+    //         disconnected_at: None,
+    //         mail_tx,
+    //         last_email_notification: None,
+    //     }
+    // }
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
@@ -315,11 +316,11 @@ impl GatewayState {
             // FIXME: Try to get rid of spawn and use something like block_on
             // To return result instead of logging
             tokio::spawn(async move {
-                if let Err(e) =
-                    send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
+                if let Err(err) =
+                    send_gateway_disconnected_email(name, &network_name, &hostname, &mail_tx, &pool)
                         .await
                 {
-                    error!("Failed to send gateway disconnect notification: {e}");
+                    error!("Failed to send gateway disconnect notification: {err}");
                 } else {
                     info!("Gateway {hostname} disconnected. Email notification sent",);
                 }
@@ -342,6 +343,28 @@ impl From<Status> for CoreError {
             message: status.message().into(),
         }
     }
+}
+
+/// Bi-directional gRPC stream for comminication with Defguard proxy.
+pub async fn run_grpc_gateway_stream(pool: PgPool) -> Result<(), anyhow::Error> {
+    // TODO: for each gateway...
+    let gateway_url = "http://localhost:50066";
+
+    let config = server_config();
+
+    let mut tasks = JoinSet::new();
+
+    tasks.spawn(async {
+        let gateway_client =
+            GatewayHandler::new(gateway_url, config.proxy_grpc_ca.as_deref()).unwrap();
+        gateway_client.handle_connection().await;
+    });
+
+    while let Some(Ok(_result)) = tasks.join_next().await {
+        debug!("Gateway gRPC task has ended");
+    }
+
+    Ok(())
 }
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
@@ -377,11 +400,11 @@ pub async fn run_grpc_bidi_stream(
     let uri = endpoint.uri();
 
     loop {
-        debug!("Connecting to proxy at {uri}",);
+        debug!("Connecting to proxy at {uri}");
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!("Failed to connect to proxy @ {uri}, retrying in 10s",);
+            error!("Failed to connect to proxy @ {uri}, retrying in 10s");
             sleep(TEN_SECS).await;
             continue;
         };

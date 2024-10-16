@@ -1,7 +1,9 @@
 use std::{
+    fs::read_to_string,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
+    time::Duration,
 };
 
 use chrono::{DateTime, Utc};
@@ -12,9 +14,14 @@ use tokio::{
         mpsc::{self, Receiver, UnboundedSender},
     },
     task::JoinHandle,
+    time::sleep,
 };
-use tokio_stream::Stream;
-use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
+use tokio_stream::{wrappers::UnboundedReceiverStream, Stream};
+use tonic::{
+    metadata::MetadataMap,
+    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server},
+    Code, Request, Response, Status,
+};
 
 use super::GatewayMap;
 use crate::{
@@ -162,6 +169,79 @@ impl WireguardPeerStats {
                 .unwrap_or_default()
                 .naive_utc(),
             allowed_ips: Some(stats.allowed_ips),
+        }
+    }
+}
+
+// TODO: merge with super.
+const TEN_SECS: Duration = Duration::from_secs(10);
+
+pub(super) struct GatewayHandler {
+    endpoint: Endpoint,
+}
+
+impl GatewayHandler {
+    pub(super) fn new(url: &str, ca_path: Option<&str>) -> Result<Self, tonic::transport::Error> {
+        let endpoint = Endpoint::from_shared(url.to_string())?;
+        let endpoint = endpoint
+            .http2_keep_alive_interval(TEN_SECS)
+            .tcp_keepalive(Some(TEN_SECS))
+            .keep_alive_while_idle(true);
+        let endpoint = if let Some(ca) = ca_path {
+            let ca = read_to_string(ca).unwrap(); // FIXME: use custom error
+            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+            endpoint.tls_config(tls)?
+        } else {
+            endpoint
+        };
+
+        Ok(Self { endpoint })
+    }
+
+    pub(super) async fn handle_connection(&self) -> ! {
+        let uri = self.endpoint.uri();
+        loop {
+            debug!("Connecting to gateway at {uri}");
+            let mut client = gateway_client::GatewayClient::new(self.endpoint.connect_lazy());
+            let (tx, rx) = mpsc::unbounded_channel();
+            let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
+                error!("Failed to connect to gateway @ {uri}, retrying in 10s",);
+                sleep(TEN_SECS).await;
+                continue;
+            };
+            info!("Connected to proxy at {uri}");
+            let mut resp_stream = response.into_inner();
+            'message: loop {
+                match resp_stream.message().await {
+                    Ok(None) => {
+                        info!("stream was closed by the sender");
+                        break 'message;
+                    }
+                    Ok(Some(received)) => {
+                        info!("Received message from gateway.");
+                        debug!("Received the following message from gateway: {received:?}");
+                        let payload: Option<i64> = match received.payload {
+                            Some(core_request::Payload::ConfigRequest(config_request)) => {
+                                info!("*** ConfigurationRequest {config_request:?}");
+                                None
+                            }
+                            Some(core_request::Payload::PeerStats(peer_stats)) => {
+                                info!("*** PeerStats {peer_stats:?}");
+                                None
+                            }
+                            // Reply without payload.
+                            None => None,
+                        };
+                    }
+                    Err(err) => {
+                        error!("Disconnected from gateway at {uri}");
+                        error!("stream error: {err}");
+                        debug!("waiting 10s to re-establish the connection");
+                        sleep(TEN_SECS).await;
+                        break 'message;
+                    }
+                }
+            }
         }
     }
 }

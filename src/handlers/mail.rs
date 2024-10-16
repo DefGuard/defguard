@@ -210,7 +210,7 @@ pub fn send_new_device_added_email(
 
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
-    network_name: String,
+    network_name: &str,
     gateway_adress: &str,
     mail_tx: &UnboundedSender<Mail>,
     pool: &PgPool,
@@ -225,7 +225,7 @@ pub async fn send_gateway_disconnected_email(
             content: templates::gateway_disconnected_mail(
                 &gateway_name,
                 gateway_adress,
-                &network_name,
+                network_name,
             )?,
             attachments: Vec::new(),
             result_tx: None,

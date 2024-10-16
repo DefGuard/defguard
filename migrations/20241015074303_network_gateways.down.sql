@@ -1,1 +1,1 @@
-ALTER TABLE wireguard_network DROP COLUMN gateways;
+DROP TABLE gateway;

@@ -1,1 +1,5 @@
-ALTER TABLE wireguard_network ADD COLUMN gateways text[] NOT NULL DEFAULT array[]::text[];
+CREATE TABLE gateway (
+  id bigserial PRIMARY KEY,
+  network_id bigint NOT NULL,
+  FOREIGN KEY(network_id) REFERENCES wireguard_network(id)
+);
