@@ -7,6 +7,10 @@ on:
         description: "List of tags as key-value pair attributes"
         required: false
         type: string
+      flavor:
+        description: "List of flavors as key-value pair attributes"
+        required: false
+        type: string
 
 env:
   GHCR_REPO: ghcr.io/defguard/defguard
@@ -68,6 +72,7 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_REPO }}
+          flavor: ${{ inputs.flavor }}
           tags: ${{ inputs.tags }}
       - name: Login to GitHub container registry
         uses: docker/login-action@v3
