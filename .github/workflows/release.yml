@@ -26,6 +26,8 @@ jobs:
       tags: |
         type=raw,test-image
         type=sha
+      flavor: |
+        latest=false
 
   build-docker-prerelease:
     # Only build tags with -, like v1.0.0-alpha
@@ -36,6 +38,8 @@ jobs:
       tags: |
         type=ref,event=tag
         type=sha
+      flavor: |
+        latest=false
 
   # create-release:
   #   name: create-release
