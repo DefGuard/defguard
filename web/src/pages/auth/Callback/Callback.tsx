@@ -14,6 +14,10 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { CallbackData } from '../../../shared/types';
 
+type ErrorResponse = {
+  msg: string;
+};
+
 export const OpenIDCallback = () => {
   const {
     auth: {
@@ -32,6 +36,12 @@ export const OpenIDCallback = () => {
     onError: (error: AxiosError) => {
       toaster.error(LL.messages.error());
       console.error(error);
+      const errorResponse = error.response?.data as ErrorResponse;
+      if (errorResponse.msg) {
+        setError(errorResponse.msg);
+      } else {
+        setError(String(error));
+      }
     },
     retry: false,
   });
@@ -67,10 +77,10 @@ export const OpenIDCallback = () => {
   // FIXME: make it a bit more user friendly
   return error ? (
     <div className="error-info">
-      <p>
-        {LL.loginPage.callback.error()}: {error}
-      </p>
+      <h3>{LL.loginPage.callback.error()}:</h3>
+      <p>{error}</p>
       <Button
+        id="back-to-login"
         text={LL.loginPage.callback.return()}
         onClick={() => {
           navigate('/auth/login');

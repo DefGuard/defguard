@@ -225,17 +225,20 @@ pub async fn auth_callback(
 
     // Only email and username is required for user lookup and login
     let email = token_claims.email().ok_or(WebError::BadRequest(
-        "Email not found in the information returned from provider.".to_string(),
+        "Email not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.".to_string(),
     ))?;
 
     // Try to get the username from the preferred_username claim, if it's not there, extract it from the email
     let username = if let Some(username) = token_claims.preferred_username() {
+        debug!("Preferred username {username:?} found in the claims, extracting username from it.");
         let mut username: String = username.to_string();
         username = prune_username(&username);
         // Check if the username is valid just in case, not everything can be handled by the pruning
         check_username(&username)?;
+        debug!("Username extracted from preferred_username: {}", username);
         username
     } else {
+        debug!("Preferred username not found in the claims, extracting from email address.");
         // Extract the username from the email address
         let username = email.split('@').next().ok_or(WebError::BadRequest(
             "Failed to extract username from email address".to_string(),
@@ -243,6 +246,7 @@ pub async fn auth_callback(
         let username = prune_username(username);
         // Check if the username is valid just in case, not everything can be handled by the pruning
         check_username(&username)?;
+        debug!("Username extracted from email ({:?}): {})", email, username);
         username
     };
 
@@ -294,7 +298,7 @@ pub async fn auth_callback(
 
                     // Extract all necessary information from the token needed to create an account
                     let given_name_error =
-                        "Given name not found in the information returned from provider.";
+                        "Given name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
                     let given_name = token_claims
                         .given_name()
                         .ok_or(WebError::BadRequest(given_name_error.to_string()))?
@@ -302,7 +306,7 @@ pub async fn auth_callback(
                         .get(None)
                         .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
                     let family_name_error =
-                        "Family name not found in the information returned from provider.";
+                        "Family name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
                     let family_name = token_claims
                         .family_name()
                         .ok_or(WebError::BadRequest(family_name_error.to_string()))?
