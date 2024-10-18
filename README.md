@@ -7,14 +7,23 @@
 
 [Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support-)
 
+## Alpha v1.0 with Enterprise features released 
+
+🛑 ALPHA#1 PRE-RELESE of the new **Open Source Open Core** & **Enterprise features** (like external OpenID (Google/Microsoft/Custom), real time client sync and more!) published! 🛑
+
+All currently available enterprise features are in [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about upcoming [enterprise license](https://docs.defguard.net/enterprise/license).
 </div>
 
-- Real [WireGuard® MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
-- Integrated SSO based on OpenID Connect: 
+### Uniqe value proposition
+
+- **Real [WireGuard® 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
+    - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+    - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
+- [Integrated SSO based on OpenID Connect](https://docs.defguard.net/admin-and-features/openid-connect): 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
-- Already using Google/Microsoft or other OpenID Provider? - integrated external OpenID provider support 
-- Yubico YubiKey Hardware security key management and provisioning 
+- Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+- Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Build on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
