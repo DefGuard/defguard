@@ -5,11 +5,11 @@
     <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
  </p>
 
-[Website](https://defguard.net) | [Getting Started](https://defguard.gitbook.io/defguard/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support-)
+[Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support-)
 
 </div>
 
-- Real [WireGuard® MFA](https://defguard.gitbook.io/defguard/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
+- Real [WireGuard® MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture) (not 2FA to "access application" like most solutions)
 - Integrated SSO based on OpenID Connect: 
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
@@ -64,7 +64,7 @@ Better quality video can [be found here to download](https://github.com/DefGuard
 
 ## Quick start
 
-The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
+The easiest way to run your own defguard instance is to use Docker and our [one-line install script](https://docs.defguard.net/features/setting-up-your-instance/one-line-install).
 Just run the command below in your shell and follow the prompts:
 
 ```bash
@@ -80,7 +80,7 @@ Here is a step-by-step video about this process:
 </p>
 </div>
 
-To learn more about the script and available options please see the [documentation](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/one-line-install).
+To learn more about the script and available options please see the [documentation](https://docs.defguard.net/features/setting-up-your-instance/one-line-install).
 
 ### Setup a VPN server under 5min!?
 
@@ -88,9 +88,9 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 ## Manual deployment examples
 
-* [Standalone system package based install](https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
-* Using [Docker Compose](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/docker-compose)
-* Using [Kubernetes](https://defguard.gitbook.io/defguard/features/setting-up-your-instance/kubernetes)
+* [Standalone system package based install](https://docs.defguard.net/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
+* Using [Docker Compose](https://docs.defguard.net/features/setting-up-your-instance/docker-compose)
+* Using [Kubernetes](https://docs.defguard.net/features/setting-up-your-instance/kubernetes)
 
 ## Roadmap & Development backlog
 
@@ -107,7 +107,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 ## Features
 
 * [WireGuard®](https://www.wireguard.com/) VPN server with:
-  - Real and unique [Multi-Factor Authentication](https://defguard.gitbook.io/defguard/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
+  - Real and unique [Multi-Factor Authentication](https://docs.defguard.net/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - **import your current WireGuard® server configuration (with a wizard!)**
@@ -117,21 +117,21 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * Integrated SSO: [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
-  - Secure remote (over the internet) [user enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment)
-  - User [onboarding after enrollment](https://defguard.gitbook.io/defguard/help/remote-user-enrollment/user-onboarding-after-enrollment)
+  - Secure remote (over the internet) [user enrollment](https://docs.defguard.net/help/remote-user-enrollment)
+  - User [onboarding after enrollment](https://docs.defguard.net/help/remote-user-enrollment/user-onboarding-after-enrollment)
   - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
-  - [forward auth](https://defguard.gitbook.io/defguard/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
+  - [forward auth](https://docs.defguard.net/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
   - nice UI to manage users
   - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard®, etc.)
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
    - Email based TOTP
-* Extenal SSO: [External OpenID Providers support](https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
-* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://defguard.gitbook.io/defguard/admin-and-features/ssh-authentication)
+* Extenal SSO: [External OpenID Providers support](https://docs.defguard.net/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
+* SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
-* [Email/SMTP support](https://defguard.gitbook.io/defguard/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
-* Easy support with [sending debug/support information](https://defguard.gitbook.io/defguard/help/sending-support-info)
+* [Email/SMTP support](https://docs.defguard.net/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
+* Easy support with [sending debug/support information](https://docs.defguard.net/help/sending-support-info)
 * Webhooks & REST API
 * Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
 * [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:
@@ -158,7 +158,7 @@ The code in this repository is available under a dual licensing model:
 
 ## Contribution
 
-Please review the [Contributing guide](https://defguard.gitbook.io/defguard/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://defguard.gitbook.io/defguard/for-developers/dev-env-setup) handy.
+Please review the [Contributing guide](https://docs.defguard.net/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://docs.defguard.net/for-developers/dev-env-setup) handy.
 
 # Built and sponsored by
 

@@ -35,6 +35,9 @@
       "ignoreMissing": [
         "react-native"
       ]
+    },
+    "overrides": {
+      "rollup": "npm:@rollup/wasm-node"
     }
   },
   "dependencies": {
