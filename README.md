@@ -123,6 +123,8 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - **import your current WireGuard® server configuration (with a wizard!)**
   - **most beautiful [Desktop Client!](https://github.com/defguard/client)** (in our opinion ;-))
   - automatic IP allocation
+  - [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+  - control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
   - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
@@ -137,7 +139,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
    - Email based TOTP
-* Extenal SSO: [External OpenID Providers support](https://docs.defguard.net/admin-and-features/external-openid-providers) - *in testing, [watch this issue](https://github.com/DefGuard/defguard/issues/602)* - Google, Microsoft or custom 
+* Extenal SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
 * SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://docs.defguard.net/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
