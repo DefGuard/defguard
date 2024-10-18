@@ -23,6 +23,7 @@ All currently available enterprise features are in [enterprise documentation sec
     - significant cost saving, simplifying deployment and maintenance
     - enabling features unavailable to VPN platforms relying upon 3rd party SSO integration
 - Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+- Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/help/enrollment)
 - Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
