@@ -116,7 +116,6 @@ pub(crate) async fn check_new_device_login(
     event_type: String,
     agent: Option<Client<'_>>,
 ) -> Result<(), TemplateError> {
-    eprintln!("ARSE");
     if let Some(device_login_event) = get_device_login_event(user.id, ip_address, event_type, agent)
     {
         if let Ok(Some(created_device_login_event)) = device_login_event
