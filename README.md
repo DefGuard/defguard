@@ -1,7 +1,7 @@
 <div align="center">
  <p align="center">
     <img src="docs/header.png" alt="defguard">
-    <h3>The only open-source solution with real WireGuard MFA/2FA & integrated OpenID Connect SSO</h3>
+    <h3>The only open-source solution with comprehensive WireGuard MFA/2FA & integrated OpenID Connect SSO</h3>
     <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
  </p>
 
@@ -14,9 +14,9 @@
 All currently available enterprise features are in [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about upcoming [enterprise license](https://docs.defguard.net/enterprise/license).
 </div>
 
-### Uniqe value proposition
+### Unique value proposition
 
-- **Real [WireGuard® 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
+- **Comprehensive [WireGuard® 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
     - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
     - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
 - [Integrated SSO based on OpenID Connect](https://docs.defguard.net/admin-and-features/openid-connect): 
@@ -27,14 +27,14 @@ All currently available enterprise features are in [enterprise documentation sec
 - Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
 - Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
-- Build on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
-- Build with Rust for speed and security
+- Built on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
+- Built with Rust for speed and security
 
 See below [full list of features](https://github.com/defguard/defguard#features)
 
 #### Video introduction
 
-Baring in mind we are no youtubers - just engineers - here is a video introduction to defguard:
+Bear in in mind we are no youtubers - just engineers - here is a video introduction to defguard:
 
 <div align="center">
  <p align="center">
@@ -92,7 +92,7 @@ Here is a step-by-step video about this process:
 
 To learn more about the script and available options please see the [documentation](https://docs.defguard.net/features/setting-up-your-instance/one-line-install).
 
-### Setup a VPN server under 5min!?
+### Setup a VPN server in under 5 minutes !?
 
 Just follow [this tutorial](http://bit.ly/defguard-setup)
 
@@ -117,7 +117,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 ## Features
 
 * [WireGuard®](https://www.wireguard.com/) VPN server with:
-  - Real and unique [Multi-Factor Authentication](https://docs.defguard.net/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
+  - [Multi-Factor Authentication](https://docs.defguard.net/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
   - **import your current WireGuard® server configuration (with a wizard!)**
@@ -145,7 +145,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 * [Email/SMTP support](https://docs.defguard.net/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
 * Easy support with [sending debug/support information](https://docs.defguard.net/help/sending-support-info)
 * Webhooks & REST API
-* Build with [Rust](https://www.rust-lang.org/) for portability, security, and speed
+* Built with [Rust](https://www.rust-lang.org/) for portability, security, and speed
 * [UI Library](https://github.com/defguard/ui) - our beautiful React/TypeScript UI is a collection of React components:
   - a set of custom and beautiful components for the layout
   - Responsive Web Design (supporting mobile phones, tablets, etc..)
@@ -168,14 +168,14 @@ The code in this repository is available under a dual licensing model:
 1. Open Source License: The code, except for the contents of the "src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
 2. Enterprise License: All code in this repository (including within the "src/enterprise" directory) is licensed under a separate Enterprise License (see file src/enterprise/LICENSE.md).
 
-## Contribution
+## Contributions
 
 Please review the [Contributing guide](https://docs.defguard.net/for-developers/contributing) for information on how to get started contributing to the project. You might also find our [environment setup guide](https://docs.defguard.net/for-developers/dev-env-setup) handy.
 
 # Built and sponsored by
 
 <p align="center">
-      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="build by teonite" /></a>
+      <a href="https://teonite.com/services/rust/" target="_blank"><img src="https://drive.google.com/uc?export=view&id=1z0fxSsZztoaeVWxHw2MbPbuOHMe3OsqN" alt="built by teonite" /></a>
 </p>
 
 # Legal
