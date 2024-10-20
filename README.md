@@ -50,7 +50,7 @@ Baring in mind we are no youtubers - just engineers - here is a video introducti
 
 ![](https://github.com/DefGuard/docs/blob/docs/screencasts/defguard.gif?raw=true)
 
-Better quality video can [be found here to download](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
+Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/docs/screencasts/defguard-screencast.mkv)
 
 ### Desktop Client with 2FA / MFA (Multi-Factor Authentication)
 
