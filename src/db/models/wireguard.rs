@@ -707,6 +707,45 @@ impl WireguardNetwork<Id> {
             .and_then(|ep| Some(ep.split(':').next()?.to_owned()))
     }
 
+    /// Get a list of all allowed peers
+    ///
+    /// Each device is marked as allowed or not allowed in a given network,
+    /// which enables enforcing peer disconnect in MFA-protected networks.
+    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Fetching all peers for network {}", self.id);
+        let rows = query!(
+            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] \"allowed_ips!: Vec<String>\" \
+            FROM wireguard_network_device wnd \
+            JOIN device d ON wnd.device_id = d.id \
+            JOIN \"user\" u ON d.user_id = u.id \
+            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
+            AND u.is_active = true \
+            ORDER BY d.id ASC",
+            self.id,
+            self.mfa_enabled
+        )
+        .fetch_all(executor)
+        .await?;
+
+        // keepalive has to be added manually because Postgres
+        // doesn't support unsigned integers
+        let result = rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: row.preshared_key,
+                keepalive_interval: Some(self.keepalive_interval as u32),
+            })
+            .collect();
+
+        Ok(result)
+    }
+
     /// Update `connected_at` to the current time and save it to the database.
     pub(crate) async fn touch_connected_at<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
     where
