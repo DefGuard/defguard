@@ -46,6 +46,10 @@ use utoipa::{
 use utoipa_swagger_ui::SwaggerUi;
 
 #[cfg(feature = "wireguard")]
+use self::handlers::gateway::{
+    add_gateway, delete_gateway, get_gateway, get_gateways, update_gateway,
+};
+#[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
     delete_network, download_config, gateway_status, get_device, import_network, list_devices,
@@ -471,6 +475,11 @@ pub fn build_webapp(
             .route("/network/:network_id/token", get(create_network_token))
             .route("/network/:network_id/stats/users", get(user_stats))
             .route("/network/:network_id/stats", get(network_stats))
+            .route("/network/:network_id/gateway", post(add_gateway))
+            .route("/gateway/:gateway_id", get(get_gateway))
+            .route("/gateway/:gateway_id", put(update_gateway))
+            .route("/gateway/:gateway_id", delete(delete_gateway))
+            .route("/network/:network_id/all_gateways", get(get_gateways))
             .layer(Extension(gateway_state)),
     );
 

@@ -37,6 +37,8 @@ pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
 pub(crate) mod yubikey;
+#[cfg(feature = "wireguard")]
+pub mod gateway;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
