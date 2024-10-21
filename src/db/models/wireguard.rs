@@ -41,8 +41,8 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
-pub static PEER_STATS_LIMIT: i64 = 6 * 60;
+pub(super) static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
+static PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
 pub enum DateTimeAggregation {
@@ -1017,8 +1017,8 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct WireguardNetworkInfo {
+#[derive(Serialize)]
+pub(crate) struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
     pub connected: bool,

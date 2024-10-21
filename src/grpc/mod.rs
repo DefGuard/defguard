@@ -224,7 +224,7 @@ impl GatewayMap {
 
     // return a list af aff statuses af all gateways in a given network
     #[must_use]
-    pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
+    pub(crate) fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
         match self.0.get(&network_id) {
             Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
             None => Vec::new(),
