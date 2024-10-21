@@ -10,7 +10,9 @@ use chrono::{Duration, NaiveDateTime, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool};
+use sqlx::{
+    query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -703,6 +705,23 @@ impl WireguardNetwork<Id> {
             .endpoint
             .as_ref()
             .and_then(|ep| Some(ep.split(':').next()?.to_owned()))
+    }
+
+    /// Update `connected_at` to the current time and save it to the database.
+    pub(crate) async fn touch_connected_at<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.connected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE wireguard_network SET connected_at = $2 WHERE name = $1",
+            self.name,
+            self.connected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
     }
 
     /// Finds when the device connected based on handshake timestamps

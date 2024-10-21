@@ -345,18 +345,24 @@ impl From<Status> for CoreError {
     }
 }
 
-/// Bi-directional gRPC stream for comminication with Defguard proxy.
+/// Bi-directional gRPC stream for comminication with Defguard gateway.
 pub async fn run_grpc_gateway_stream(pool: PgPool) -> Result<(), anyhow::Error> {
     // TODO: for each gateway...
     let gateway_url = "http://localhost:50066";
+    let network_id = 3;
 
     let config = server_config();
 
     let mut tasks = JoinSet::new();
 
-    tasks.spawn(async {
-        let gateway_client =
-            GatewayHandler::new(gateway_url, config.proxy_grpc_ca.as_deref()).unwrap();
+    tasks.spawn(async move {
+        let gateway_client = GatewayHandler::new(
+            gateway_url,
+            config.proxy_grpc_ca.as_deref(),
+            network_id,
+            pool.clone(),
+        )
+        .unwrap(); // FIXME
         gateway_client.handle_connection().await;
     });
 

@@ -1,7 +1,10 @@
 use std::{
     fs::read_to_string,
     pin::Pin,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
     task::{Context, Poll},
     time::Duration,
 };
@@ -178,10 +181,18 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 
 pub(super) struct GatewayHandler {
     endpoint: Endpoint,
+    message_id: AtomicU64,
+    network_id: Id,
+    pool: PgPool,
 }
 
 impl GatewayHandler {
-    pub(super) fn new(url: &str, ca_path: Option<&str>) -> Result<Self, tonic::transport::Error> {
+    pub(super) fn new(
+        url: &str,
+        ca_path: Option<&str>,
+        network_id: Id,
+        pool: PgPool,
+    ) -> Result<Self, tonic::transport::Error> {
         let endpoint = Endpoint::from_shared(url.to_string())?;
         let endpoint = endpoint
             .http2_keep_alive_interval(TEN_SECS)
@@ -195,7 +206,61 @@ impl GatewayHandler {
             endpoint
         };
 
-        Ok(Self { endpoint })
+        Ok(Self {
+            endpoint,
+            message_id: AtomicU64::new(0),
+            network_id,
+            pool,
+        })
+    }
+
+    async fn config(&self) -> Result<Configuration, Status> {
+        debug!("Sending configuration to gateway client.");
+        let network_id = self.network_id;
+        // let hostname = Self::get_gateway_hostname(request.metadata())?;
+
+        let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
+            .await
+            .map_err(|e| {
+                error!("Network {network_id} not found");
+                Status::new(Code::Internal, format!("Failed to retrieve network: {e}"))
+            })?
+            .ok_or_else(|| {
+                Status::new(
+                    Code::Internal,
+                    format!("Network with id {network_id} not found"),
+                )
+            })?;
+
+        debug!("Sending configuration to gateway client, network {network}.");
+
+        // store connected gateway in memory
+        // {
+        //     let mut state = self.state.lock().unwrap();
+        //     state.add_gateway(
+        //         network_id,
+        //         &network.name,
+        //         hostname,
+        //         request.into_inner().name,
+        //         self.mail_tx.clone(),
+        //     );
+        // }
+
+        if let Err(err) = network.touch_connected_at(&self.pool).await {
+            error!("Failed to update network {network_id} in the database, status: {err}");
+        }
+
+        let peers = network.get_peers(&self.pool).await.map_err(|error| {
+            error!("Failed to fetch peers from the database for network {network_id}: {error}",);
+            Status::new(
+                Code::Internal,
+                format!("Failed to retrieve peers from the database for network: {network_id}"),
+            )
+        })?;
+
+        info!("Configuration sent to gateway client, network {network}.");
+
+        Ok(gen_config(&network, peers))
     }
 
     pub(super) async fn handle_connection(&self) -> ! {
@@ -205,12 +270,26 @@ impl GatewayHandler {
             let mut client = gateway_client::GatewayClient::new(self.endpoint.connect_lazy());
             let (tx, rx) = mpsc::unbounded_channel();
             let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-                error!("Failed to connect to gateway @ {uri}, retrying in 10s",);
+                error!("Failed to connect to gateway at {uri}, retrying in 10s",);
                 sleep(TEN_SECS).await;
                 continue;
             };
-            info!("Connected to proxy at {uri}");
+            info!("Connected to gateway at {uri}");
             let mut resp_stream = response.into_inner();
+
+            debug!("Sending configuration to gateway at {uri}");
+            match self.config().await {
+                Ok(config) => {
+                    let payload = Some(core_response::Payload::Config(config));
+                    let id = self.message_id.fetch_add(1, Ordering::Relaxed);
+                    let req = CoreResponse { id, payload };
+                    tx.send(req).unwrap();
+                }
+                Err(err) => {
+                    error!("Failed to obtain configuration");
+                }
+            }
+
             'message: loop {
                 match resp_stream.message().await {
                     Ok(None) => {
@@ -623,59 +702,6 @@ impl Drop for GatewayUpdatesStream {
 //         }
 
 //         Ok(Response::new(()))
-//     }
-
-//     async fn config(
-//         &self,
-//         request: Request<ConfigurationRequest>,
-//     ) -> Result<Response<Configuration>, Status> {
-//         debug!("Sending configuration to gateway client.");
-//         let network_id = Self::get_network_id(request.metadata())?;
-//         let hostname = Self::get_gateway_hostname(request.metadata())?;
-
-//         let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
-//             .await
-//             .map_err(|e| {
-//                 error!("Network {network_id} not found");
-//                 Status::new(Code::Internal, format!("Failed to retrieve network: {e}"))
-//             })?
-//             .ok_or_else(|| {
-//                 Status::new(
-//                     Code::Internal,
-//                     format!("Network with id {network_id} not found"),
-//                 )
-//             })?;
-
-//         debug!("Sending configuration to gateway client, network {network}.");
-
-//         // store connected gateway in memory
-//         {
-//             let mut state = self.state.lock().unwrap();
-//             state.add_gateway(
-//                 network_id,
-//                 &network.name,
-//                 hostname,
-//                 request.into_inner().name,
-//                 self.mail_tx.clone(),
-//             );
-//         }
-
-//         network.connected_at = Some(Utc::now().naive_utc());
-//         if let Err(err) = network.save(&self.pool).await {
-//             error!("Failed to save updated network {network_id} in the database, status: {err}");
-//         }
-
-//         let peers = network.get_peers(&self.pool).await.map_err(|error| {
-//             error!("Failed to fetch peers from the database for network {network_id}: {error}",);
-//             Status::new(
-//                 Code::Internal,
-//                 format!("Failed to retrieve peers from the database for network: {network_id}"),
-//             )
-//         })?;
-
-//         info!("Configuration sent to gateway client, network {network}.");
-
-//         Ok(Response::new(gen_config(&network, peers)))
 //     }
 
 //     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
