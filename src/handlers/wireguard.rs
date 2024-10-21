@@ -14,7 +14,6 @@ use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{

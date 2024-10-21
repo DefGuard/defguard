@@ -22,7 +22,7 @@ use tokio::{
 use tokio_stream::{wrappers::UnboundedReceiverStream, Stream};
 use tonic::{
     metadata::MetadataMap,
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server},
+    transport::{Certificate, ClientTlsConfig, Endpoint},
     Code, Request, Response, Status,
 };
 
