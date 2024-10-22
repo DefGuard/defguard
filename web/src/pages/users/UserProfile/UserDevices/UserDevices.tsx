@@ -22,7 +22,7 @@ export const UserDevices = () => {
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
   const isAdmin = useAuthStore((state) => state.isAdmin);
-  const canManageDevices = userProfile && (!settings?.admin_device_management || isAdmin);
+  const canManageDevices = !!(userProfile && (!settings?.admin_device_management || isAdmin));
 
   return (
     <section id="user-devices">
@@ -44,7 +44,7 @@ export const UserDevices = () => {
                 <DeviceCard
                   key={device.id}
                   device={device}
-                  modifiable={canManageDevices ?? false}
+                  modifiable={canManageDevices}
                 />
               ))}
             </div>
