@@ -1,26 +1,26 @@
 import './style.scss';
 
-import { ReactNode, useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useAddGatewayModal } from './hooks/useAddGatewayModal';
-import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MutationKeys } from '../../../../shared/mutations';
+import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import useApi from '../../../../shared/hooks/useApi';
-import { QueryKeys } from '../../../../shared/queries';
 import { useToaster } from '../../../../shared/hooks/useToaster';
+import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useNetworkPageStore } from '../../hooks/useNetworkPageStore';
+import { useAddGatewayModal } from './hooks/useAddGatewayModal';
 
 interface Inputs {
   url: string;
@@ -118,7 +118,7 @@ export const AddGatewayModal = () => {
           controller={{ control, name: 'url' }}
           disabled={false}
           required
-          placeholder='e.g. http://192.168.0.1:50066/'
+          placeholder='e.g. http://127.0.0.1:50066/'
         />
         <div className="controls">
           <Button

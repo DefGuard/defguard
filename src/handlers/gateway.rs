@@ -183,12 +183,15 @@ pub async fn update_gateway(
         gateway_id, session.user.username, gateway.url
     );
 
-    gateway.save(&appstate.pool).await?;
-
-    info!(
+    let msg = format!(
         "User {} has updated gateway with id {} to have url {}",
         session.user.username, gateway_id, data.url
     );
+
+    gateway.url = data.url;
+    gateway.save(&appstate.pool).await?;
+
+    info!("{msg}");
 
     Ok(ApiResponse {
         json: json!({}),

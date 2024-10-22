@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 
+import parse from 'html-react-parser';
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -19,12 +19,12 @@ import useApi from '../../../shared/hooks/useApi';
 import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
-import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { AddComponentBox } from '../../users/shared/components/AddComponentBox/AddComponentBox';
-import { useAddGatewayModal } from './modals/hooks/useAddGatewayModal';
-import { AddGatewayModal } from './modals/AddGatewayModal';
+import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 import { GatewayCard } from './components/GatewayCard';
+import { AddGatewayModal } from './modals/AddGatewayModal';
 import { EditGatewayModal } from './modals/EditGatewayModal';
+import { useAddGatewayModal } from './modals/hooks/useAddGatewayModal';
 
 export const NetworkGatewaySetup = () => {
   const { writeToClipboard } = useClipboard();
@@ -100,7 +100,7 @@ export const NetworkGatewaySetup = () => {
   return (
     <section className="gateway">
       <AddGatewayModal />
-      {/* <EditGatewayModal /> */}
+      <EditGatewayModal />
       <section className="header-section">
         <h2>Gateways</h2>
       </section>
@@ -109,17 +109,11 @@ export const NetworkGatewaySetup = () => {
         <AddComponentBox
           data-testid="add-gateway"
           text={'Add gateway'}
-          // disabled={!appInfo?.network_present || !canManageDevices}
           callback={openAddGatewayModal}
         />
       </section>
       <section className="header-section">
         <h2>{LL.gatewaySetup.header.main()}</h2>
-        {/* {parse(
-          LL.gatewaySetup.messages.runCommand({
-            setupGatewayDocs: externalLink.gitbook.setup.gateway,
-          }),
-        )} */}
         <ReactMarkdown>
           {LL.gatewaySetup.messages.runCommand({
             setupGatewayDocs: externalLink.gitbook.setup.gateway,
@@ -187,6 +181,7 @@ export const NetworkGatewaySetup = () => {
       <MessageBox>
         <ReactMarkdown>{LL.gatewaySetup.messages.oneLineInstall()}</ReactMarkdown>
       </MessageBox>
+      {/* TODO: Reflect gateway status in the gateway list above */}
       {/* <GatewaysStatus networkId={selectedNetworkId} /> */}
     </section>
   );

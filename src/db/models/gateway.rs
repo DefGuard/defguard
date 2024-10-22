@@ -31,7 +31,7 @@ impl Gateway<Id> {
     {
         query_as!(
             Self,
-            "SELECT * FROM gateway WHERE network_id = $1",
+            "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
             network_id
         )
         .fetch_all(executor)
