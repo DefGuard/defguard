@@ -1,0 +1,146 @@
+import './style.scss';
+
+import { ReactNode, useMemo } from 'react';
+import { shallow } from 'zustand/shallow';
+import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useAddGatewayModal } from './hooks/useAddGatewayModal';
+import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
+import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../../shared/defguard-ui/components/Layout/Button/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MutationKeys } from '../../../../shared/mutations';
+import useApi from '../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../shared/queries';
+import { useToaster } from '../../../../shared/hooks/useToaster';
+import { useNetworkPageStore } from '../../hooks/useNetworkPageStore';
+import { useEditGatewayModal } from './hooks/useEditGatewayModal';
+import { Gateway } from '../../../../shared/types';
+
+interface Inputs {
+  url: string;
+}
+
+export const EditGatewayModal = () => {
+  const { LL } = useI18nContext();
+  const {
+    network: {
+      gateway: { editGateway },
+    },
+  } = useApi();
+  const [gateway, visible] = useEditGatewayModal(
+    (state) => [state.gateway, state.visible],
+    shallow,
+  );
+  const [set, close] = useEditGatewayModal(
+    (state) => [state.setState, state.close],
+    shallow,
+  );
+
+  const zodSchema = useMemo(
+    () =>
+      z.object({
+        url: z.string().url(),
+      }),
+    [],
+  );
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { isValid },
+  } = useForm<Inputs>({
+    resolver: zodResolver(zodSchema),
+    mode: 'all',
+    defaultValues: {
+      url: gateway?.url || '',
+    },
+  });
+
+  const onInvalidSubmit: SubmitErrorHandler<Inputs> = (values) => {
+    const invalidFields = Object.keys(values) as (keyof Partial<Inputs>)[];
+    const invalidFieldsValues = getValues(invalidFields);
+    invalidFields.forEach((key, index) => {
+      setValue(key, invalidFieldsValues[index], {
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+    });
+  };
+
+  const queryClient = useQueryClient();
+  const toaster = useToaster();
+
+  const { mutate, isLoading: addGatewayLoading } = useMutation(
+    [MutationKeys.ADD_GATEWAY],
+    editGateway,
+    {
+      onSuccess: (_data, variables) => {
+        queryClient.invalidateQueries([QueryKeys.FETCH_ALL_GATEWAYS]);
+        toaster.success('Gateway added successfully');
+        close();
+      },
+      onError: (err) => {
+        toaster.error(LL.messages.error());
+        console.error(err);
+      },
+    },
+  );
+
+  const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    values = trimObjectStrings(values);
+    mutate({
+      url: values.url,
+      gatewayId: gateway?.id,
+    });
+  };
+
+  return (
+    <ModalWithTitle
+      id="add-gateway-modal"
+      backdrop
+      title={'Edit Gateway'}
+      onClose={close}
+      afterClose={reset}
+      isOpen={visible}
+    >
+      <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
+        <FormInput
+          label={'Gateway URL'}
+          controller={{ control, name: 'url' }}
+          disabled={false}
+          required
+        />
+        <div className="controls">
+          <Button
+            className="big primary"
+            type="submit"
+            size={ButtonSize.LARGE}
+            styleVariant={ButtonStyleVariant.PRIMARY}
+            text={'Save'}
+            disabled={!isValid}
+            loading={addGatewayLoading}
+          />
+          <Button
+            size={ButtonSize.LARGE}
+            text={LL.form.cancel()}
+            className="cancel"
+            onClick={() => close()}
+            tabIndex={4}
+            type="button"
+            disabled={addGatewayLoading}
+          />
+        </div>
+      </form>
+    </ModalWithTitle>
+  );
+};

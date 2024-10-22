@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import {
+  AddGatewayRequest,
   AddOpenidClientRequest,
   AddUserRequest,
   AddWalletRequest,
@@ -474,6 +475,22 @@ const useApi = (props?: HookProps): ApiHook => {
       return {};
     });
 
+  const getAllGateways: ApiHook['network']['gateway']['getAllGateways'] = (networkId) =>
+    client
+      .get(`/network/${networkId}/all_gateways`)
+      .then(unpackRequest)
+      .then((data) => data?.gateways || []);
+
+  const addGateway: ApiHook['network']['gateway']['addGateway'] = (
+    data: AddGatewayRequest,
+  ) => client.post(`/network/${data.networkId}/gateway`, data).then(unpackRequest);
+
+  const deleteGateway2: ApiHook['network']['gateway']['deleteGateway2'] = (data) =>
+    client.delete(`/gateway/${data.gatewayId}`).then(unpackRequest);
+
+  const editGateway: ApiHook['network']['gateway']['editGateway'] = (data) =>
+    client.put(`/gateway/${data.gatewayId}`, data).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -561,6 +578,12 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworkStats,
       getGatewaysStatus,
       deleteGateway,
+      gateway: {
+        getAllGateways,
+        addGateway,
+        deleteGateway2,
+        editGateway,
+      },
     },
     auth: {
       login,

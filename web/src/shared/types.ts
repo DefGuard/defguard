@@ -117,6 +117,12 @@ export type GatewayStatus = {
   uid: string;
 };
 
+export type Gateway = {
+  id: number;
+  network_id: number;
+  url: string;
+};
+
 export interface Network {
   id: number;
   name: string;
@@ -377,6 +383,16 @@ export type DeleteGatewayRequest = {
   gatewayId: string;
 };
 
+export type AddGatewayRequest = {
+  networkId: number;
+  url: string;
+};
+
+export type EditGatewayRequest = {
+  gatewayId: number;
+  url: string;
+};
+
 export type ChangePasswordSelfRequest = {
   old_password: string;
   new_password: string;
@@ -506,6 +522,12 @@ export interface ApiHook {
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
     deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
+    gateway: {
+      deleteGateway2: (data: { gatewayId: number }) => Promise<void>;
+      getAllGateways: (networkId: number) => Promise<Gateway[]>;
+      addGateway: (data: AddGatewayRequest) => Promise<Gateway>;
+      editGateway: (data: EditGatewayRequest) => Promise<Gateway>;
+    };
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;

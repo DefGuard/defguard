@@ -20,13 +20,21 @@ import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import { AddComponentBox } from '../../users/shared/components/AddComponentBox/AddComponentBox';
+import { useAddGatewayModal } from './modals/hooks/useAddGatewayModal';
+import { AddGatewayModal } from './modals/AddGatewayModal';
+import { GatewayCard } from './components/GatewayCard';
+import { EditGatewayModal } from './modals/EditGatewayModal';
 
 export const NetworkGatewaySetup = () => {
   const { writeToClipboard } = useClipboard();
   const selectedNetworkId = useNetworkPageStore((state) => state.selectedNetworkId);
   const { LL } = useI18nContext();
   const {
-    network: { getNetworkToken },
+    network: {
+      getNetworkToken,
+      gateway: { getAllGateways },
+    },
   } = useApi();
 
   const { data: networkToken } = useQuery(
@@ -38,9 +46,18 @@ export const NetworkGatewaySetup = () => {
     },
   );
 
+  const { data: gateways } = useQuery(
+    [QueryKeys.FETCH_ALL_GATEWAYS, selectedNetworkId],
+    () => getAllGateways(selectedNetworkId),
+    {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    },
+  );
+
   const command = useCallback(() => {
     // eslint-disable-next-line max-len
-    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} -e DEFGUARD_GRPC_URL=${networkToken?.grpc_url} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
   const returnNetworkToken = useCallback(() => {
@@ -78,8 +95,24 @@ export const NetworkGatewaySetup = () => {
     window.location.href = 'https://github.com/DefGuard/gateway/releases';
   };
 
+  const openAddGatewayModal = useAddGatewayModal((state) => state.open);
+
   return (
     <section className="gateway">
+      <AddGatewayModal />
+      {/* <EditGatewayModal /> */}
+      <section className="header-section">
+        <h2>Gateways</h2>
+      </section>
+      <section className="gateway-list">
+        {gateways?.map((gateway) => <GatewayCard key={gateway.id} gateway={gateway} />)}
+        <AddComponentBox
+          data-testid="add-gateway"
+          text={'Add gateway'}
+          // disabled={!appInfo?.network_present || !canManageDevices}
+          callback={openAddGatewayModal}
+        />
+      </section>
       <section className="header-section">
         <h2>{LL.gatewaySetup.header.main()}</h2>
         {/* {parse(
@@ -97,8 +130,8 @@ export const NetworkGatewaySetup = () => {
         <ReactMarkdown>
           {networkToken
             ? LL.gatewaySetup.messages.authToken({
-                setupGatewayDocs: externalLink.gitbook.setup.gateway,
-              })
+              setupGatewayDocs: externalLink.gitbook.setup.gateway,
+            })
             : LL.gatewaySetup.messages.createNetwork()}
         </ReactMarkdown>
       </MessageBox>
@@ -119,8 +152,8 @@ export const NetworkGatewaySetup = () => {
         <ReactMarkdown>
           {networkToken
             ? LL.gatewaySetup.messages.dockerBasedGatewaySetup({
-                setupGatewayDocs: externalLink.gitbook.setup.gateway,
-              })
+              setupGatewayDocs: externalLink.gitbook.setup.gateway,
+            })
             : LL.gatewaySetup.messages.createNetwork()}
         </ReactMarkdown>
       </MessageBox>
@@ -154,7 +187,7 @@ export const NetworkGatewaySetup = () => {
       <MessageBox>
         <ReactMarkdown>{LL.gatewaySetup.messages.oneLineInstall()}</ReactMarkdown>
       </MessageBox>
-      <GatewaysStatus networkId={selectedNetworkId} />
+      {/* <GatewaysStatus networkId={selectedNetworkId} /> */}
     </section>
   );
 };

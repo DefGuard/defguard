@@ -1,0 +1,10 @@
+.gateway-card {
+  border-radius: 15px;
+  border: 1px solid var(--border-primary);
+  background-color: var(--surface-default-modal);
+  box-sizing: border-box;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
