@@ -1,1 +1,0 @@
-ALTER TABLE gateway DROP COLUMN url;
