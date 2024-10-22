@@ -4,8 +4,8 @@ import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { isUserAdmin } from '../../../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfileStore';
 import { useAddDevicePageStore } from '../../../addDevice/hooks/useAddDevicePageStore';
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
@@ -21,10 +21,8 @@ export const UserDevices = () => {
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const initAddDevice = useAddDevicePageStore((state) => state.init);
-  const canManageDevices = !!(
-    userProfile &&
-    (!settings?.admin_device_management || isUserAdmin(userProfile.user))
-  );
+  const isAdmin = useAuthStore((state) => state.isAdmin)
+  const canManageDevices = userProfile && (!settings?.admin_device_management || isAdmin);
 
   return (
     <section id="user-devices">
@@ -46,7 +44,7 @@ export const UserDevices = () => {
                 <DeviceCard
                   key={device.id}
                   device={device}
-                  modifiable={canManageDevices}
+                  modifiable={canManageDevices ?? false}
                 />
               ))}
             </div>
