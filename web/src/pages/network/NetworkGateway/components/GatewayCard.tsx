@@ -10,7 +10,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { useI18nContext } from '../../../../i18n/i18n-react';
-// import { useEditGatewayModal } from '../modals/hooks/useEditGatewayModal';
+import { useEditGatewayModal } from '../modals/hooks/useEditGatewayModal';
 
 interface Props {
   gateway: Gateway;
@@ -26,11 +26,11 @@ export const GatewayCard = ({ gateway }: Props) => {
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading: deleteGatewayLoading } = useMutation(
+  const { mutate } = useMutation(
     [MutationKeys.DELETE_GATEWAY],
     deleteGateway2,
     {
-      onSuccess: (_data, variables) => {
+      onSuccess: (_data, _variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_ALL_GATEWAYS]);
         toaster.success('Gateway removed successfully');
         close();
@@ -42,8 +42,7 @@ export const GatewayCard = ({ gateway }: Props) => {
     },
   );
 
-  // const openEditGatewayModal = useEditGatewayModal((state) => state.open);
-  // const setEditGatewayModal = useEditGatewayModal((state) => state.setState);
+  const setEditGatewayModal = useEditGatewayModal((state) => state.setState);
 
   return (
     <div className="gateway-card">
@@ -61,12 +60,12 @@ export const GatewayCard = ({ gateway }: Props) => {
         <EditButton>
           <EditButtonOption
             text={'Edit gateway'}
-            // onClick={() => {
-            //   setEditGatewayModal({
-            //     gateway,
-            //     visible: true,
-            //   });
-            // }}
+            onClick={() => {
+              setEditGatewayModal({
+                gateway,
+                visible: true,
+              });
+            }}
           />
           <EditButtonOption
             styleVariant={EditButtonOptionStyleVariant.WARNING}

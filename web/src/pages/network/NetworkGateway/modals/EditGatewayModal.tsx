@@ -1,28 +1,25 @@
 import './style.scss';
 
-import { ReactNode, useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
+import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useAddGatewayModal } from './hooks/useAddGatewayModal';
-import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
-import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MutationKeys } from '../../../../shared/mutations';
+import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import useApi from '../../../../shared/hooks/useApi';
-import { QueryKeys } from '../../../../shared/queries';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import { useNetworkPageStore } from '../../hooks/useNetworkPageStore';
+import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
+import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings';
 import { useEditGatewayModal } from './hooks/useEditGatewayModal';
-import { Gateway } from '../../../../shared/types';
 
 interface Inputs {
   url: string;
@@ -39,8 +36,9 @@ export const EditGatewayModal = () => {
     (state) => [state.gateway, state.visible],
     shallow,
   );
-  const [set, close] = useEditGatewayModal(
-    (state) => [state.setState, state.close],
+
+  const [close] = useEditGatewayModal(
+    (state) => [state.close],
     shallow,
   );
 
@@ -52,19 +50,28 @@ export const EditGatewayModal = () => {
     [],
   );
 
+  const defaultValues = useMemo(() => {
+    return {
+      url: gateway?.url,
+    };
+  }, [gateway]);
+
   const {
     control,
     handleSubmit,
     setValue,
     getValues,
+    reset,
     formState: { isValid },
   } = useForm<Inputs>({
     resolver: zodResolver(zodSchema),
     mode: 'all',
-    defaultValues: {
-      url: gateway?.url || '',
-    },
+    defaultValues: defaultValues,
   });
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [reset, defaultValues]);
 
   const onInvalidSubmit: SubmitErrorHandler<Inputs> = (values) => {
     const invalidFields = Object.keys(values) as (keyof Partial<Inputs>)[];
@@ -84,9 +91,9 @@ export const EditGatewayModal = () => {
     [MutationKeys.ADD_GATEWAY],
     editGateway,
     {
-      onSuccess: (_data, variables) => {
+      onSuccess: (_data, _variables) => {
         queryClient.invalidateQueries([QueryKeys.FETCH_ALL_GATEWAYS]);
-        toaster.success('Gateway added successfully');
+        toaster.success('Gateway changed successfully');
         close();
       },
       onError: (err) => {
@@ -97,10 +104,11 @@ export const EditGatewayModal = () => {
   );
 
   const onValidSubmit: SubmitHandler<Inputs> = (values) => {
+    if (!gateway) return;
     values = trimObjectStrings(values);
     mutate({
       url: values.url,
-      gatewayId: gateway?.id,
+      gatewayId: gateway.id,
     });
   };
 
@@ -110,7 +118,6 @@ export const EditGatewayModal = () => {
       backdrop
       title={'Edit Gateway'}
       onClose={close}
-      afterClose={reset}
       isOpen={visible}
     >
       <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>

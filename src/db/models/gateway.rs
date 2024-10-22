@@ -25,7 +25,7 @@ impl Gateway<Id> {
     pub async fn find_by_network_id(pool: &PgPool, network_id: Id) -> Result<Vec<Self>, SqlxError> {
         sqlx::query_as!(
             Self,
-            "SELECT * FROM gateway WHERE network_id = $1",
+            "SELECT * FROM gateway WHERE network_id = $1 ORDER BY id",
             network_id
         )
         .fetch_all(pool)
