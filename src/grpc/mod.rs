@@ -45,7 +45,10 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{models::gateway::Gateway, AppEvent, Id, Settings},
+    db::{
+        models::{gateway::Gateway, wireguard::WireguardNetwork},
+        AppEvent, Id, Settings,
+    },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
@@ -56,7 +59,7 @@ use crate::{
     server_config,
 };
 #[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::models::wireguard::GatewayEvent};
+use crate::{auth::ClaimsType, db::models::wireguard::ChangeEvent};
 
 mod auth;
 mod desktop_client_mfa;
@@ -170,10 +173,10 @@ impl GatewayMap {
                 state.connected = true;
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
-                debug!(
-                    "Gateway {hostname} found in gateway map, current state: {:#?}",
-                    state
-                );
+                // debug!(
+                //     "Gateway {hostname} found in gateway map, current state: {:#?}",
+                //     state
+                // );
             } else {
                 error!("Gateway {hostname} not found in gateway map for network {network_id}");
                 return Err(GatewayMapError::NotFound(network_id, hostname.into()));
@@ -201,7 +204,7 @@ impl GatewayMap {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
                 state.send_disconnect_notification(pool);
-                debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
+                // debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
             };
@@ -253,7 +256,7 @@ impl Default for GatewayMap {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 pub(crate) struct GatewayState {
     pub id: Id,
     pub connected: bool,
@@ -346,20 +349,32 @@ impl From<Status> for CoreError {
 }
 
 /// Bi-directional gRPC stream for comminication with Defguard gateway.
-pub async fn run_grpc_gateway_stream(pool: PgPool) -> Result<(), anyhow::Error> {
+pub async fn run_grpc_gateway_stream(
+    pool: PgPool,
+    events_tx: Sender<ChangeEvent>,
+) -> Result<(), anyhow::Error> {
     let config = server_config();
 
     let mut tasks = JoinSet::new();
     let gateways = Gateway::all(&pool).await?;
     for gateway in gateways.into_iter() {
+        let Ok(Some(network)) = WireguardNetwork::find_by_id(&pool, gateway.network_id).await
+        else {
+            error!(
+                "Failed to fetch network ID {} from the database",
+                gateway.network_id
+            );
+            continue;
+        };
         let gateway_client = GatewayHandler::new(
             &gateway.url,
             config.proxy_grpc_ca.as_deref(),
             gateway.network_id,
             pool.clone(),
+            events_tx.clone(),
         )?;
         tasks.spawn(async move {
-            gateway_client.handle_connection().await;
+            gateway_client.handle_connection(network).await;
         });
     }
 
@@ -375,7 +390,7 @@ pub async fn run_grpc_gateway_stream(pool: PgPool) -> Result<(), anyhow::Error> 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
@@ -383,11 +398,11 @@ pub async fn run_grpc_bidi_stream(
 
     let proxy_handler = ProxyHandler::new(
         pool.clone(),
-        wireguard_tx.clone(),
+        events_tx.clone(),
         mail_tx.clone(),
         user_agent_parser,
     );
-    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, events_tx);
     let polling_server = PollingServer::new(pool);
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
@@ -583,7 +598,6 @@ pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
@@ -598,7 +612,7 @@ pub async fn run_grpc_server(
     );
     // #[cfg(feature = "wireguard")]
     // let gateway_service = GatewayServiceServer::with_interceptor(
-    //     GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
+    //     GatewayServer::new(pool, gateway_state, events_tx, mail_tx),
     //     JwtInterceptor::new(ClaimsType::Gateway),
     // );
 

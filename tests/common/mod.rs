@@ -6,7 +6,7 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, models::wireguard::GatewayEvent, AppEvent, Id, User, UserDetails},
+    db::{init_db, models::wireguard::ChangeEvent, AppEvent, Id, User, UserDetails},
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,
@@ -82,7 +82,7 @@ async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
 pub struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub wireguard_rx: Receiver<GatewayEvent>,
+    pub wireguard_rx: Receiver<ChangeEvent>,
     pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User<Id>,
@@ -93,7 +93,7 @@ impl ClientState {
     pub fn new(
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        wireguard_rx: Receiver<GatewayEvent>,
+        wireguard_rx: Receiver<ChangeEvent>,
         mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User<Id>,
@@ -114,7 +114,7 @@ impl ClientState {
 pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (wg_tx, wg_rx) = broadcast::channel::<ChangeEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 

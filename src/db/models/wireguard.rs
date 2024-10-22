@@ -61,7 +61,7 @@ impl DateTimeAggregation {
 }
 
 #[derive(Clone, Debug)]
-pub enum GatewayEvent {
+pub enum ChangeEvent {
     NetworkCreated(Id, WireguardNetwork<Id>),
     NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
     NetworkDeleted(Id, String),
@@ -216,7 +216,7 @@ impl WireguardNetwork<Id> {
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            app.send_multiple_wireguard_events(gateway_events);
+            app.send_multiple_change_events(gateway_events);
         }
         transaction.commit().await?;
         Ok(())
@@ -420,7 +420,7 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
         reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+    ) -> Result<Vec<ChangeEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
@@ -450,7 +450,7 @@ impl WireguardNetwork<Id> {
                     let wireguard_network_device = device
                         .assign_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
-                    events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                    events.push(ChangeEvent::DeviceModified(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
@@ -470,7 +470,7 @@ impl WireguardNetwork<Id> {
                 if let Some(device) =
                     Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
                 {
-                    events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
+                    events.push(ChangeEvent::DeviceDeleted(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
@@ -492,7 +492,7 @@ impl WireguardNetwork<Id> {
             let wireguard_network_device = device
                 .assign_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
-            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+            events.push(ChangeEvent::DeviceCreated(DeviceInfo {
                 device,
                 network_info: vec![DeviceNetworkInfo {
                     network_id: self.id,
@@ -514,7 +514,7 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-    ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
+    ) -> Result<(Vec<ImportedDevice>, Vec<ChangeEvent>), WireguardNetworkError> {
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
@@ -547,7 +547,7 @@ impl WireguardNetwork<Id> {
                             // store ID of device with already generated config
                             assigned_device_ids.push(existing_device.id);
                             // send device to connected gateways
-                            events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                            events.push(ChangeEvent::DeviceModified(DeviceInfo {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id: self.id,
@@ -577,7 +577,7 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
         mapped_devices: &[MappedDevice],
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+    ) -> Result<Vec<ChangeEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         // get allowed groups for network
         let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
@@ -658,7 +658,7 @@ impl WireguardNetwork<Id> {
 
             // send device to connected gateways
             if !network_info.is_empty() {
-                events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+                events.push(ChangeEvent::DeviceCreated(DeviceInfo {
                     device,
                     network_info,
                 }));

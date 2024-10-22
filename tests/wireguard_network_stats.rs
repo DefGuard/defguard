@@ -4,9 +4,10 @@ use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
         models::wireguard::{
-            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
+            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardPeerStats,
+            WireguardUserStatsRow,
         },
-        Device, Id, NoId, WireguardPeerStats,
+        Device, Id, NoId,
     },
     handlers::Auth,
 };

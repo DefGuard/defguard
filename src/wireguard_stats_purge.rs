@@ -5,7 +5,7 @@ use humantime::format_duration;
 use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor, PgPool};
 use tokio::time::sleep;
 
-use crate::db::WireguardPeerStats;
+use crate::db::models::wireguard::WireguardPeerStats;
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes
@@ -87,8 +87,17 @@ impl WireguardPeerStats {
         E: PgExecutor<'e>,
     {
         debug!("Recording successful stats purge in DB");
-        query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",
-        start.naive_utc(), end.naive_utc(), removal_threshold, records_removed).execute(executor).await?;
+        query!(
+            "INSERT INTO wireguard_stats_purge \
+            (started_at, finished_at, removal_threshold, records_removed) \
+            VALUES ($1, $2, $3, $4)",
+            start.naive_utc(),
+            end.naive_utc(),
+            removal_threshold,
+            records_removed
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 }

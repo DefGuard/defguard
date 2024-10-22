@@ -5,7 +5,7 @@ use defguard::{
         models::{
             device::UserDevice,
             wireguard::{
-                GatewayEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
+                ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
                 DEFAULT_KEEPALIVE_INTERVAL,
             },
         },
@@ -123,11 +123,11 @@ async fn test_config_import() {
     assert_eq!(network.allowed_ips, vec!["10.0.0.0/24".parse().unwrap()]);
     assert_eq!(network.connected_at, None);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // existing devices assertion
     // imported config for an existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::DeviceModified(..));
     let user_device_1 = UserDevice::from_device(&pool, device_1)
         .await
         .unwrap()
@@ -135,7 +135,7 @@ async fn test_config_import() {
     assert_eq!(user_device_1.networks.len(), 2);
     assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
     // generated IP for other existing device
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
         .await
         .unwrap()
@@ -181,7 +181,7 @@ async fn test_config_import() {
     // assert events
     let event = wg_rx.try_recv().unwrap();
     match event {
-        GatewayEvent::DeviceCreated(device_info) => {
+        ChangeEvent::DeviceCreated(device_info) => {
             assert_eq!(device_info.device.name, "device_1");
         }
         _ => unreachable!("Invalid event type received"),
@@ -189,7 +189,7 @@ async fn test_config_import() {
 
     let event = wg_rx.try_recv().unwrap();
     match event {
-        GatewayEvent::DeviceCreated(device_info) => {
+        ChangeEvent::DeviceCreated(device_info) => {
             assert_eq!(device_info.device.name, "device_2");
         }
         _ => unreachable!("Invalid event type received"),

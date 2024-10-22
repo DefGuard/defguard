@@ -137,15 +137,12 @@ impl<I> User<I> {
     }
 
     pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        match &self.password_hash {
-            Some(hash) => {
-                let parsed_hash = PasswordHash::new(hash)?;
-                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
-            }
-            None => {
-                error!("Password not set for user {}", self.username);
-                Err(HashError::Password)
-            }
+        if let Some(hash) = &self.password_hash {
+            let parsed_hash = PasswordHash::new(hash)?;
+            Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        } else {
+            error!("Password not set for user {}", self.username);
+            Err(HashError::Password)
         }
     }
 

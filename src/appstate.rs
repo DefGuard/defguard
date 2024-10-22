@@ -18,7 +18,7 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{models::wireguard::GatewayEvent, AppEvent, WebHook},
+    db::{models::wireguard::ChangeEvent, AppEvent, WebHook},
     mail::Mail,
     server_config,
 };
@@ -27,7 +27,7 @@ use crate::{
 pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<ChangeEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
     pub user_agent_parser: Arc<UserAgentParser>,
@@ -48,8 +48,7 @@ impl AppState {
     async fn handle_triggers(pool: PgPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {
-            debug!("WebHook triggered");
-            debug!("Retrieving webhooks");
+            debug!("Webhook triggered. Retrieving webhooks.");
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
                 info!("Found webhooks: {webhooks:#?}");
                 let (payload, event) = match msg {
@@ -81,18 +80,18 @@ impl AppState {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub fn send_wireguard_event(&self, event: GatewayEvent) {
+    /// Sends given `ChangeEvent` to be handled by gateway (over gRPC).
+    pub fn send_change_event(&self, event: ChangeEvent) {
         if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending WireGuard event {err}");
+            error!("Error sending change event {err}");
         }
     }
 
-    /// Sends multiple events to be handled by gateway GRPC server
-    pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
-        debug!("Sending {} wireguard events", events.len());
+    /// Sends multiple events to be handled by gateway (over gRPC).
+    pub fn send_multiple_change_events(&self, events: Vec<ChangeEvent>) {
+        debug!("Sending {} change events", events.len());
         for event in events {
-            self.send_wireguard_event(event);
+            self.send_change_event(event);
         }
     }
 
@@ -101,7 +100,7 @@ impl AppState {
         pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: Sender<GatewayEvent>,
+        wireguard_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,

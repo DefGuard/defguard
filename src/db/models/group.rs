@@ -3,7 +3,10 @@ use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgEx
 use utoipa::ToSchema;
 
 use crate::{
-    db::{models::error::ModelError, Id, NoId, User, WireguardNetwork},
+    db::{
+        models::{error::ModelError, wireguard::WireguardNetwork},
+        Id, NoId, User,
+    },
     server_config,
 };
 

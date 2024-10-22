@@ -5,7 +5,10 @@ use serde_json::{json, value::to_value, Value};
 use sqlx::PgPool;
 
 use crate::{
-    db::{models::device::WireguardNetworkDevice, Id, Settings, User, WireguardNetwork},
+    db::{
+        models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
+        Id, Settings, User,
+    },
     server_config, VERSION,
 };
 

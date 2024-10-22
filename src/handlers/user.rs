@@ -18,10 +18,10 @@ use crate::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-            wireguard::GatewayEvent,
+            wireguard::{ChangeEvent, WireguardNetwork},
         },
         AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
-        WebAuthn, WireguardNetwork,
+        WebAuthn,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
@@ -658,7 +658,7 @@ pub async fn modify_user(
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
                 let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-                appstate.send_multiple_wireguard_events(gateway_events);
+                appstate.send_multiple_change_events(gateway_events);
             }
             info!("Allowed network devices of {username} synced");
         };
@@ -724,11 +724,11 @@ pub async fn delete_user(
         let devices = user.devices(&mut *transaction).await?;
         let mut events = Vec::new();
         for device in devices {
-            events.push(GatewayEvent::DeviceDeleted(
+            events.push(ChangeEvent::DeviceDeleted(
                 DeviceInfo::from_device(&mut *transaction, device).await?,
             ));
         }
-        appstate.send_multiple_wireguard_events(events);
+        appstate.send_multiple_change_events(events);
         debug!("Devices of user {username} purged from networks.");
 
         user.delete(&mut *transaction).await?;

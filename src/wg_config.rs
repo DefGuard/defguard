@@ -8,9 +8,10 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use crate::{
     db::{
         models::wireguard::{
-            WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+            WireguardNetwork, WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD,
+            DEFAULT_KEEPALIVE_INTERVAL,
         },
-        Device, WireguardNetwork,
+        Device,
     },
     KEY_LENGTH,
 };

@@ -5,7 +5,7 @@ use defguard::{
         models::{
             device::WireguardNetworkDevice,
             wireguard::{
-                GatewayEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
+                ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
                 DEFAULT_KEEPALIVE_INTERVAL,
             },
         },
@@ -54,7 +54,7 @@ async fn test_network() {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // check vpn locations for `admin` group
     let response = client.get("/api/v1/group/admin").send().await;
@@ -81,7 +81,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkModified(..));
+    assert_matches!(event, ChangeEvent::NetworkModified(..));
 
     // check vpn locations for `admin` group
     let response = client.get("/api/v1/group/admin").send().await;
@@ -113,7 +113,7 @@ async fn test_network() {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
+    assert_matches!(event, ChangeEvent::NetworkDeleted(..));
 }
 
 #[tokio::test]
@@ -134,7 +134,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").send().await;
@@ -153,7 +153,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    assert_matches!(event, ChangeEvent::DeviceCreated(..));
 
     // an IP was assigned for new device
     let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
@@ -172,7 +172,7 @@ async fn test_device() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkCreated(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::NetworkCreated(..));
 
     // an IP was assigned for an existing device
     let network_devices = WireguardNetworkDevice::find_by_device(&client_state.pool, 1)
@@ -218,7 +218,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceModified(..));
+    assert_matches!(event, ChangeEvent::DeviceModified(..));
 
     // device details
     let response = client
@@ -260,7 +260,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkDeleted(..));
+    assert_matches!(event, ChangeEvent::NetworkDeleted(..));
 
     // delete device
     let response = client
@@ -269,7 +269,7 @@ async fn test_device() {
         .await;
     assert_eq!(response.status(), StatusCode::OK);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
+    assert_matches!(event, ChangeEvent::DeviceDeleted(..));
 
     let response = client.get("/api/v1/device").json(&device).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -438,7 +438,7 @@ async fn test_device_pubkey() {
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // network details
     let response = client.get("/api/v1/network/1").send().await;

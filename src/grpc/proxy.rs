@@ -22,7 +22,7 @@ use crate::{
             device::{DeviceConfig, DeviceInfo},
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE},
             polling_token::PollingToken,
-            wireguard::GatewayEvent,
+            wireguard::ChangeEvent,
         },
         Device, Id, Settings, User,
     },
@@ -43,7 +43,7 @@ use crate::{
 
 pub(super) struct ProxyHandler {
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
     ldap_feature_active: bool,
@@ -53,7 +53,7 @@ impl ProxyHandler {
     #[must_use]
     pub fn new(
         pool: PgPool,
-        wireguard_tx: Sender<GatewayEvent>,
+        events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
     ) -> Self {
@@ -61,7 +61,7 @@ impl ProxyHandler {
         let ldap_feature_active = true;
         Self {
             pool,
-            wireguard_tx,
+            events_tx,
             mail_tx,
             user_agent_parser,
             ldap_feature_active,
@@ -97,9 +97,9 @@ impl ProxyHandler {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub fn send_wireguard_event(&self, event: GatewayEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
+    /// Sends given `ChangeEvent` to be handled by gateway GRPC server
+    pub fn send_wireguard_event(&self, event: ChangeEvent) {
+        if let Err(err) = self.events_tx.send(event) {
             error!("Error sending WireGuard event {err}");
         }
     }
@@ -499,7 +499,7 @@ impl ProxyHandler {
             "Sending DeviceCreated event to gateway for device {}, user {}({})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        self.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+        self.send_wireguard_event(ChangeEvent::DeviceCreated(DeviceInfo {
             device: device.clone(),
             network_info,
         }));

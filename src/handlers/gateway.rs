@@ -8,7 +8,10 @@ use super::{ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, VpnRole},
-    db::{models::gateway::Gateway, Id, WireguardNetwork},
+    db::{
+        models::{gateway::Gateway, wireguard::WireguardNetwork},
+        Id,
+    },
 };
 
 #[derive(Serialize, Deserialize)]

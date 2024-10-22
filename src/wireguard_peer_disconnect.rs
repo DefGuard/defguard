@@ -14,7 +14,7 @@ use crate::db::{
     models::{
         device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         error::ModelError,
-        wireguard::{GatewayEvent, WireguardNetwork, WireguardNetworkError},
+        wireguard::{ChangeEvent, WireguardNetwork, WireguardNetworkError},
     },
     Device,
 };
@@ -39,7 +39,7 @@ pub enum PeerDisconnectError {
 /// Run with a specified frequency and disconnect all inactive peers in MFA-protected locations.
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<ChangeEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
     loop {
@@ -98,7 +98,7 @@ pub async fn run_periodic_peer_disconnect(
                             is_authorized: device_network_config.is_authorized,
                         }],
                     };
-                    let event = GatewayEvent::DeviceDeleted(device_info);
+                    let event = ChangeEvent::DeviceDeleted(device_info);
                     wireguard_tx.send(event).map_err(|err| {
                         error!("Error sending WireGuard event: {err}");
                         PeerDisconnectError::EventError(err.to_string())

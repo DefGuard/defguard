@@ -77,8 +77,7 @@ use self::{
     db::{
         init_db,
         models::wireguard::{
-            GatewayEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
-            DEFAULT_KEEPALIVE_INTERVAL,
+            ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
         },
         AppEvent, Device, User,
     },
@@ -285,7 +284,7 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -531,7 +530,7 @@ pub async fn run_web_server(
     gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,

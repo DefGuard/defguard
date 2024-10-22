@@ -14,9 +14,9 @@ use crate::{
     db::{
         models::{
             device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-            wireguard::GatewayEvent,
+            wireguard::{ChangeEvent, WireguardNetwork},
         },
-        Device, Id, User, UserInfo, WireguardNetwork,
+        Device, Id, User, UserInfo,
     },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
@@ -34,7 +34,7 @@ struct ClientLoginSession {
 pub(super) struct ClientMfaServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
-    wireguard_tx: Sender<GatewayEvent>,
+    wireguard_tx: Sender<ChangeEvent>,
     sessions: HashMap<String, ClientLoginSession>,
 }
 
@@ -43,7 +43,7 @@ impl ClientMfaServer {
     pub fn new(
         pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
-        wireguard_tx: Sender<GatewayEvent>,
+        wireguard_tx: Sender<ChangeEvent>,
     ) -> Self {
         Self {
             pool,
@@ -263,7 +263,7 @@ impl ClientMfaServer {
                 is_authorized: network_device.is_authorized,
             }],
         };
-        let event = GatewayEvent::DeviceCreated(device_info);
+        let event = ChangeEvent::DeviceCreated(device_info);
         self.wireguard_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")

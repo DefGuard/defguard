@@ -24,9 +24,12 @@ use crate::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
             },
-            wireguard::{DateTimeAggregation, GatewayEvent, MappedDevice, WireguardNetworkInfo},
+            wireguard::{
+                ChangeEvent, DateTimeAggregation, MappedDevice, WireguardNetwork,
+                WireguardNetworkInfo,
+            },
         },
-        AddDevice, Device, Id, WireguardNetwork,
+        AddDevice, Device, Id,
     },
     enterprise::handlers::CanManageDevices,
     grpc::GatewayMap,
@@ -125,7 +128,7 @@ pub async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_change_event(ChangeEvent::NetworkCreated(network.id, network.clone()));
 
     transaction.commit().await?;
 
@@ -179,7 +182,7 @@ pub async fn modify_network(
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     let peers = network.get_peers(&mut *transaction).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkModified(
+    appstate.send_change_event(ChangeEvent::NetworkModified(
         network.id,
         network.clone(),
         peers,
@@ -211,7 +214,7 @@ pub async fn delete_network(
     let network = find_network(network_id, &appstate.pool).await?;
     let network_name = network.name.clone();
     network.delete(&appstate.pool).await?;
-    appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
+    appstate.send_change_event(ChangeEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
@@ -346,7 +349,7 @@ pub async fn import_network(
         .await?;
 
     info!("New network {network} created");
-    appstate.send_wireguard_event(GatewayEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_change_event(ChangeEvent::NetworkCreated(network.id, network.clone()));
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
@@ -355,14 +358,14 @@ pub async fn import_network(
     let (devices, gateway_events) = network
         .handle_imported_devices(&mut transaction, imported_devices)
         .await?;
-    appstate.send_multiple_wireguard_events(gateway_events);
+    appstate.send_multiple_change_events(gateway_events);
 
     // assign IPs for other existing devices
     debug!("Assigning IPs in imported network for remaining existing devices");
     let gateway_events = network
         .sync_allowed_devices(&mut transaction, Some(&reserved_ips))
         .await?;
-    appstate.send_multiple_wireguard_events(gateway_events);
+    appstate.send_multiple_change_events(gateway_events);
     debug!("Assigned IPs in imported network for remaining existing devices");
 
     transaction.commit().await?;
@@ -407,7 +410,7 @@ pub async fn add_user_devices(
         let events = network
             .handle_mapped_devices(&mut transaction, mapped_devices.as_slice())
             .await?;
-        appstate.send_multiple_wireguard_events(events);
+        appstate.send_multiple_change_events(events);
         transaction.commit().await?;
 
         info!(
@@ -546,7 +549,7 @@ pub async fn add_device(
         network_ips.push(network_info_item.device_wireguard_ip.to_string());
     }
 
-    appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+    appstate.send_change_event(ChangeEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: network_info.clone(),
     }));
@@ -674,7 +677,7 @@ pub async fn modify_device(
             network_info.push(device_network_info);
         }
     }
-    appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
+    appstate.send_change_event(ChangeEvent::DeviceModified(DeviceInfo {
         device: device.clone(),
         network_info,
     }));
@@ -752,7 +755,7 @@ pub async fn delete_device(
 ) -> ApiResult {
     debug!("User {} deleting device {device_id}", session.user.username);
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(
+    appstate.send_change_event(ChangeEvent::DeviceDeleted(
         DeviceInfo::from_device(&appstate.pool, device.clone()).await?,
     ));
     device.delete(&appstate.pool).await?;
