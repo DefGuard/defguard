@@ -6,7 +6,7 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, AppEvent, GatewayEvent, Id, User, UserDetails},
+    db::{init_db, models::wireguard::GatewayEvent, AppEvent, Id, User, UserDetails},
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     headers::create_user_agent_parser,

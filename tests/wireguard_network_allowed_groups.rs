@@ -2,7 +2,10 @@ mod common;
 
 use claims::assert_err;
 use defguard::{
-    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork},
+    db::{
+        models::wireguard::{GatewayEvent, WireguardNetwork},
+        Device, Group, Id, User,
+    },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;

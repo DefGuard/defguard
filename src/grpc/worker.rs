@@ -12,8 +12,11 @@ use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
 use crate::db::{
-    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    AppEvent, HWKeyUserData, User, YubiKey,
+    models::{
+        authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        yubikey::YubiKey,
+    },
+    AppEvent, HWKeyUserData, User,
 };
 
 tonic::include_proto!("worker");

@@ -18,9 +18,10 @@ use crate::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+            wireguard::GatewayEvent,
         },
-        AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
-        UserInfo, Wallet, WebAuthn, WireguardNetwork,
+        AppEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn, WireguardNetwork,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},

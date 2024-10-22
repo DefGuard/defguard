@@ -18,7 +18,7 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, WebHook},
+    db::{models::wireguard::GatewayEvent, AppEvent, WebHook},
     mail::Mail,
     server_config,
 };

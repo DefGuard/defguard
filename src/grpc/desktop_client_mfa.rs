@@ -12,8 +12,11 @@ use super::proto::{
 use crate::{
     auth::{Claims, ClaimsType},
     db::{
-        models::device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-        Device, GatewayEvent, Id, User, UserInfo, WireguardNetwork,
+        models::{
+            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            wireguard::GatewayEvent,
+        },
+        Device, Id, User, UserInfo, WireguardNetwork,
     },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,

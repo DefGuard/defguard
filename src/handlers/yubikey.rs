@@ -6,7 +6,7 @@ use axum::{
 use serde_json::json;
 
 use super::{user_for_admin_or_self, ApiResponse, ApiResult};
-use crate::{appstate::AppState, auth::SessionInfo, db::YubiKey, error::WebError};
+use crate::{appstate::AppState, auth::SessionInfo, db::models::yubikey::YubiKey, error::WebError};
 
 pub async fn delete_yubikey(
     State(appstate): State<AppState>,

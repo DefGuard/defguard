@@ -29,8 +29,8 @@ use tonic::{
 use super::GatewayMap;
 use crate::{
     db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
-        Device, GatewayEvent, Id, NoId,
+        models::wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
+        Device, Id, NoId,
     },
     mail::Mail,
 };
@@ -329,37 +329,62 @@ impl GatewayUpdatesHandler {
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
     /// so the handler must determine if an event is relevant for the network being services
-    pub async fn run(&mut self) {
+    pub async fn handle_events(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
             self.gateway_hostname, self.network
         );
-        while let Ok(update) = self.events_rx.recv().await {
-            debug!("Received networking state update: {update:?}");
-            let result = match update {
+        while let Ok(event) = self.events_rx.recv().await {
+            debug!("Received networking state update event: {event:?}");
+            let (update_type, update) = match event {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id != self.network_id {
                         continue;
                     }
-                    self.send_network_update(&network, Vec::new(), UpdateType::Create)
-                        .await
+                    // self.send_network_update(&network, Vec::new(), UpdateType::Create)
+                    //     .await
+                    (
+                        UpdateType::Create,
+                        update::Update::Network(Configuration {
+                            name: network.name.clone(),
+                            prvkey: network.prvkey.clone(),
+                            address: network.address.to_string(),
+                            port: network.port as u32,
+                            peers: Vec::new(),
+                        }),
+                    )
                 }
                 GatewayEvent::NetworkModified(network_id, network, peers) => {
                     if network_id != self.network_id {
                         continue;
                     }
-                    let result = self
-                        .send_network_update(&network, peers, UpdateType::Modify)
-                        .await;
                     // update stored network data
-                    self.network = network;
-                    result
+                    self.network = network.clone();
+                    (
+                        UpdateType::Modify,
+                        update::Update::Network(Configuration {
+                            name: network.name,
+                            prvkey: network.prvkey,
+                            address: network.address.to_string(),
+                            port: network.port as u32,
+                            peers,
+                        }),
+                    )
                 }
                 GatewayEvent::NetworkDeleted(network_id, network_name) => {
                     if network_id != self.network_id {
                         continue;
                     }
-                    self.send_network_delete(&network_name).await
+                    (
+                        UpdateType::Delete,
+                        update::Update::Network(Configuration {
+                            name: network_name.to_string(),
+                            prvkey: String::new(),
+                            address: String::new(),
+                            port: 0,
+                            peers: Vec::new(),
+                        }),
+                    )
                 }
                 GatewayEvent::DeviceCreated(device) => {
                     // check if a peer has to be added in the current network
@@ -381,9 +406,9 @@ impl GatewayUpdatesHandler {
                                 preshared_key: network_info.preshared_key.clone(),
                                 keepalive_interval: Some(self.network.keepalive_interval as u32),
                             };
-                            self.send_peer_update(peer, UpdateType::Create).await
+                            (UpdateType::Create, update::Update::Peer(peer))
                         }
-                        None => Ok(()),
+                        None => continue,
                     }
                 }
                 GatewayEvent::DeviceModified(device) => {
@@ -406,9 +431,9 @@ impl GatewayUpdatesHandler {
                                 preshared_key: network_info.preshared_key.clone(),
                                 keepalive_interval: Some(self.network.keepalive_interval as u32),
                             };
-                            self.send_peer_update(peer, UpdateType::Modify).await
+                            (UpdateType::Modify, update::Update::Peer(peer))
                         }
-                        None => Ok(()),
+                        None => continue,
                     }
                 }
                 GatewayEvent::DeviceDeleted(device) => {
@@ -418,133 +443,44 @@ impl GatewayUpdatesHandler {
                         .iter()
                         .find(|info| info.network_id == self.network_id)
                     {
-                        Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
-                        None => Ok(()),
+                        Some(_) => (
+                            UpdateType::Delete,
+                            update::Update::Peer(Peer {
+                                pubkey: device.device.wireguard_pubkey.into(),
+                                allowed_ips: Vec::new(),
+                                preshared_key: None,
+                                keepalive_interval: None,
+                            }),
+                        ),
+                        None => continue,
                     }
                 }
             };
-            if result.is_err() {
+            let req = CoreResponse {
+                id: 0,
+                payload: Some(core_response::Payload::Update(Update {
+                    update_type: update_type as i32,
+                    update: Some(update),
+                })),
+            };
+            if let Err(err) = self.tx.send(req) {
+                error!(
+                    "Failed to send network update, network {}, update type: {}, error: {err}",
+                    self.network,
+                    update_type.as_str_name()
+                );
                 error!(
                     "Closing update steam to gateway: {}, network {}",
                     self.gateway_hostname, self.network
                 );
                 break;
             }
-        }
-    }
-
-    /// Sends updated network configuration
-    async fn send_network_update(
-        &self,
-        network: &WireguardNetwork<Id>,
-        peers: Vec<Peer>,
-        update_type: UpdateType,
-    ) -> Result<(), Status> {
-        debug!("Sending network update for network {network}");
-        let update = Update {
-            update_type: update_type as i32,
-            update: Some(update::Update::Network(Configuration {
-                name: network.name.clone(),
-                prvkey: network.prvkey.clone(),
-                address: network.address.to_string(),
-                port: network.port as u32,
-                peers,
-            })),
-        };
-        let payload = Some(core_response::Payload::Update(update));
-        let req = CoreResponse { id: 0, payload };
-        if let Err(err) = self.tx.send(req) {
-            let msg = format!(
-                "Failed to send network update, network {network}, update type: {}, error: {err}",
-                update_type.as_str_name(),
-            );
-            error!(msg);
-            return Err(Status::new(Code::Internal, msg));
-        }
-
-        debug!("Network update sent for network {network}");
-        Ok(())
-    }
-
-    /// Sends delete network command to gateway
-    async fn send_network_delete(&self, network_name: &str) -> Result<(), Status> {
-        debug!(
-            "Sending network delete command for network {}",
-            self.network
-        );
-        let update = Update {
-            update_type: UpdateType::Delete as i32,
-            update: Some(update::Update::Network(Configuration {
-                name: network_name.to_string(),
-                prvkey: String::new(),
-                address: String::new(),
-                port: 0,
-                peers: Vec::new(),
-            })),
-        };
-        let payload = Some(core_response::Payload::Update(update));
-        let req = CoreResponse { id: 0, payload };
-        if let Err(err) = self.tx.send(req) {
-            let msg = format!(
-                "Failed to send network update, network {}, update type: DELETE, error: {err}",
+            debug!(
+                "Network update sent for network {}, update type: {}",
                 self.network,
+                update_type.as_str_name()
             );
-            error!(msg);
-            return Err(Status::new(Code::Internal, msg));
         }
-
-        debug!("Network delete command sent for network {}", self.network);
-        Ok(())
-    }
-
-    /// Send update peer command to gateway
-    async fn send_peer_update(&self, peer: Peer, update_type: UpdateType) -> Result<(), Status> {
-        debug!("Sending peer update for network {}", self.network);
-        let update = Update {
-            update_type: update_type as i32,
-            update: Some(update::Update::Peer(peer)),
-        };
-        let payload = Some(core_response::Payload::Update(update));
-        let req = CoreResponse { id: 0, payload };
-        if let Err(err) = self.tx.send(req) {
-            let msg = format!(
-                "Failed to send peer update for network {}, update type: {}, error: {err}",
-                self.network,
-                update_type.as_str_name(),
-            );
-            error!(msg);
-            return Err(Status::new(Code::Internal, msg));
-        }
-
-        debug!("Peer update sent for network {}", self.network);
-        Ok(())
-    }
-
-    /// Send delete peer command to gateway
-    async fn send_peer_delete(&self, peer_pubkey: &str) -> Result<(), Status> {
-        debug!("Sending peer delete for network {}", self.network);
-        let update = Update {
-            update_type: 2,
-            update: Some(update::Update::Peer(Peer {
-                pubkey: peer_pubkey.into(),
-                allowed_ips: Vec::new(),
-                preshared_key: None,
-                keepalive_interval: None,
-            })),
-        };
-        let payload = Some(core_response::Payload::Update(update));
-        let req = CoreResponse { id: 0, payload };
-        if let Err(err) = self.tx.send(req) {
-            let msg = format!(
-                "Failed to send peer update for network {}, peer {peer_pubkey}, update type: DELETE, error: {err}",
-                self.network,
-            );
-            error!(msg);
-            return Err(Status::new(Code::Internal, msg));
-        }
-
-        debug!("Peer delete command sent for network {}", self.network);
-        Ok(())
     }
 }
 

@@ -6,7 +6,7 @@ use std::{
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, Settings, User},
+    db::{init_db, models::wireguard::GatewayEvent, AppEvent, Settings, User},
     enterprise::license::{run_periodic_license_check, set_cached_license, License},
     grpc::{
         run_grpc_bidi_stream, run_grpc_gateway_stream, run_grpc_server, GatewayMap, WorkerState,

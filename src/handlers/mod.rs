@@ -21,6 +21,8 @@ use crate::{
 pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
+#[cfg(feature = "wireguard")]
+pub mod gateway;
 pub(crate) mod group;
 pub(crate) mod mail;
 #[cfg(feature = "openid")]
@@ -37,8 +39,6 @@ pub mod wireguard;
 #[cfg(feature = "worker")]
 pub mod worker;
 pub(crate) mod yubikey;
-#[cfg(feature = "wireguard")]
-pub mod gateway;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";

@@ -45,7 +45,7 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, Id, Settings},
+    db::{models::gateway::Gateway, AppEvent, Id, Settings},
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
@@ -56,7 +56,7 @@ use crate::{
     server_config,
 };
 #[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::GatewayEvent};
+use crate::{auth::ClaimsType, db::models::wireguard::GatewayEvent};
 
 mod auth;
 mod desktop_client_mfa;
@@ -347,24 +347,23 @@ impl From<Status> for CoreError {
 
 /// Bi-directional gRPC stream for comminication with Defguard gateway.
 pub async fn run_grpc_gateway_stream(pool: PgPool) -> Result<(), anyhow::Error> {
-    // TODO: for each gateway...
-    let gateway_url = "http://localhost:50066";
-    let network_id = 3;
-
     let config = server_config();
 
     let mut tasks = JoinSet::new();
-
-    tasks.spawn(async move {
+    let gateways = Gateway::all(&pool).await?;
+    for gateway in gateways.into_iter() {
         let gateway_client = GatewayHandler::new(
-            gateway_url,
+            &gateway.url,
             config.proxy_grpc_ca.as_deref(),
-            network_id,
+            gateway.network_id,
             pool.clone(),
-        )
-        .unwrap(); // FIXME
-        gateway_client.handle_connection().await;
-    });
+        )?;
+        tasks.spawn(async move {
+            gateway_client.handle_connection().await;
+        });
+    }
+
+    // TODO: observe `WireGuardNetwork` changes.
 
     while let Some(Ok(_result)) = tasks.join_next().await {
         debug!("Gateway gRPC task has ended");

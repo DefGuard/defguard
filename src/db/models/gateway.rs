@@ -1,5 +1,5 @@
 use model_derive::Model;
-use sqlx::{Error as SqlxError, PgPool};
+use sqlx::{query_as, PgExecutor};
 
 use crate::db::{Id, NoId};
 
@@ -22,13 +22,19 @@ impl Gateway {
 }
 
 impl Gateway<Id> {
-    pub async fn find_by_network_id(pool: &PgPool, network_id: Id) -> Result<Vec<Self>, SqlxError> {
-        sqlx::query_as!(
+    pub async fn find_by_network_id<'e, E>(
+        executor: E,
+        network_id: Id,
+    ) -> Result<Vec<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
             Self,
             "SELECT * FROM gateway WHERE network_id = $1",
             network_id
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await
     }
 }

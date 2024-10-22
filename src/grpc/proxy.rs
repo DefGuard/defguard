@@ -22,8 +22,9 @@ use crate::{
             device::{DeviceConfig, DeviceInfo},
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE},
             polling_token::PollingToken,
+            wireguard::GatewayEvent,
         },
-        Device, GatewayEvent, Id, Settings, User,
+        Device, Id, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
     handlers::{

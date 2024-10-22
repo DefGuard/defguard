@@ -24,9 +24,9 @@ use crate::{
             device::{
                 DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
             },
-            wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
+            wireguard::{DateTimeAggregation, GatewayEvent, MappedDevice, WireguardNetworkInfo},
         },
-        AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
+        AddDevice, Device, Id, WireguardNetwork,
     },
     enterprise::handlers::CanManageDevices,
     grpc::GatewayMap,

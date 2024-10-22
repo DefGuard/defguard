@@ -4,9 +4,12 @@ use defguard::{
     db::{
         models::{
             device::UserDevice,
-            wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+            wireguard::{
+                GatewayEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
+                DEFAULT_KEEPALIVE_INTERVAL,
+            },
         },
-        Device, GatewayEvent, WireguardNetwork,
+        Device,
     },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };

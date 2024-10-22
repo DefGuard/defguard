@@ -14,9 +14,9 @@ use crate::db::{
     models::{
         device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
         error::ModelError,
-        wireguard::WireguardNetworkError,
+        wireguard::{GatewayEvent, WireguardNetwork, WireguardNetworkError},
     },
-    Device, GatewayEvent, WireguardNetwork,
+    Device,
 };
 
 // How long to sleep between loop iterations
