@@ -1,7 +1,8 @@
 <div align="center">
  <p align="center">
     <img src="docs/header.png" alt="defguard">
-    <h3>The only open-source solution with comprehensive WireGuard MFA/2FA & integrated OpenID Connect SSO</h3>
+    <h2>The Only Open Source&On-Premise Comprehensive Access Management</h2>
+    <h3>Account Lifecycle (Onboarding), Secure Remote Access Management (WireGuard 2FA/MFA), Identity and Access Management (OpenID Connect SSO)</h3>
     <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
  </p>
 
