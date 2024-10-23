@@ -2,6 +2,7 @@ use chrono::{Datelike, NaiveDateTime, Utc};
 use reqwest::Url;
 use tera::{Context, Tera};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 use crate::{
     db::{Id, MFAMethod, Session, User},
@@ -32,11 +33,12 @@ static MAIL_PASSWORD_RESET_START: &str =
 static MAIL_PASSWORD_RESET_SUCCESS: &str =
     include_str!("../templates/mail_password_reset_success.tera");
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error, ToSchema)]
 pub enum TemplateError {
     #[error("Failed to generate email MFA code")]
     MfaError,
     #[error(transparent)]
+    #[schema(value_type = String)]
     TemplateError(#[from] tera::Error),
 }
 
@@ -173,7 +175,7 @@ pub fn support_data_mail() -> Result<String, TemplateError> {
     Ok(tera.render("mail_support_data", &context)?)
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Serialize)]
 pub struct TemplateLocation {
     pub name: String,
     pub assigned_ip: String,

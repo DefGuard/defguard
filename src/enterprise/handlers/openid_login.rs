@@ -98,7 +98,7 @@ async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebError> {
     )
 }
 
-pub async fn get_auth_info(
+pub(crate) async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
@@ -171,7 +171,7 @@ pub struct AuthenticationResponse {
     state: CsrfToken,
 }
 
-pub async fn auth_callback(
+pub(crate) async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,

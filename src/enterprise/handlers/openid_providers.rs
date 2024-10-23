@@ -10,7 +10,8 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::openid_provider::OpenIdProvider,
-    handlers::{ApiResponse, ApiResult},
+    error::WebError,
+    handlers::ApiResponse,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -38,13 +39,13 @@ impl AddProviderData {
     }
 }
 
-pub async fn add_openid_provider(
+pub(crate) async fn add_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
@@ -69,11 +70,11 @@ pub async fn add_openid_provider(
     })
 }
 
-pub async fn get_current_openid_provider(
+pub(crate) async fn get_current_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     match OpenIdProvider::get_current(&appstate.pool).await? {
         Some(provider) => Ok(ApiResponse {
             json: json!(provider),
@@ -86,13 +87,13 @@ pub async fn get_current_openid_provider(
     }
 }
 
-pub async fn delete_openid_provider(
+pub(crate) async fn delete_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(provider_data): Path<DeleteProviderData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} deleting OpenID provider {}",
         session.user.username, provider_data.name
@@ -120,13 +121,13 @@ pub async fn delete_openid_provider(
     }
 }
 
-pub async fn modify_openid_provider(
+pub(crate) async fn modify_openid_provider(
     _license: LicenseInfo,
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} modifying OpenID provider {}",
         session.user.username, provider_data.name
@@ -157,11 +158,11 @@ pub async fn modify_openid_provider(
     }
 }
 
-pub async fn list_openid_providers(
+pub(crate) async fn list_openid_providers(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let providers = OpenIdProvider::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(providers),

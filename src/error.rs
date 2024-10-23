@@ -45,6 +45,7 @@ pub enum WebError {
     #[error("Public key already exists {0}")]
     PubkeyExists(String),
     #[error("HTTP error: {0}")]
+    #[schema(value_type = u16)]
     Http(StatusCode),
     #[error(transparent)]
     TooManyLoginAttempts(#[from] FailedLoginError),

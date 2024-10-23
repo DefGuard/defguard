@@ -1,12 +1,13 @@
 use axum::{extract::State, http::StatusCode};
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult, VERSION};
+use super::{ApiResponse, VERSION};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{models::wireguard::WireguardNetwork, Settings},
     enterprise::license::{get_cached_license, validate_license},
+    error::WebError,
 };
 
 /// Additional information about core state.
@@ -22,7 +23,7 @@ pub struct AppInfo {
 pub(crate) async fn get_app_info(
     State(appstate): State<AppState>,
     _session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let settings = Settings::get_settings(&appstate.pool).await?;
     let license = get_cached_license();

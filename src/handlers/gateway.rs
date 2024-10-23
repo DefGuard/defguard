@@ -4,7 +4,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult, WebError};
+use super::{ApiResponse, WebError};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, VpnRole},
@@ -14,29 +14,28 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Deserialize)]
-pub struct AddGatewayData {
-    pub url: String,
+#[derive(Deserialize, Serialize)]
+pub(crate) struct GatewayData {
+    url: String,
 }
 
-pub async fn add_gateway(
+pub(crate) async fn add_gateway(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(network_id): Path<Id>,
-    Json(data): Json<AddGatewayData>,
-) -> ApiResult {
+    Json(data): Json<GatewayData>,
+) -> Result<ApiResponse, WebError> {
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
-                "Network with id {} not found while adding a new gateway, aborting",
-                network_id
+                "Network ID {network_id} not found while adding a gateway, aborting"
             ))
         })?;
 
     debug!(
-        "User {} is adding a new gateway with url {} to network {}",
+        "User {} is adding a gateway with URL {} to network {}",
         session.user.username, data.url, network.name
     );
 
@@ -45,25 +44,22 @@ pub async fn add_gateway(
     gateway.save(&appstate.pool).await?;
 
     info!(
-        "User {} has added a new gateway with url {} to network {}",
+        "User {} has added a gateway with URL {} to network {}",
         session.user.username, data.url, network.name
     );
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(json!({}), StatusCode::CREATED))
 }
 
-pub async fn delete_gateway(
+pub(crate) async fn delete_gateway(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(gateway_id): Path<i64>,
-) -> ApiResult {
+    Path(gateway_id): Path<Id>,
+) -> Result<ApiResponse, WebError> {
     debug!(
-        "User {} is removing gateway with id {}",
-        session.user.username, gateway_id
+        "User {} is removing gateway ID {gateway_id}",
+        session.user.username
     );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id)
         .await?
@@ -79,7 +75,7 @@ pub async fn delete_gateway(
     );
 
     let msg = format!(
-        "User {} has removed gateway with url {}",
+        "User {} has removed gateway with URL {}",
         session.user.username, gateway.url
     );
 
@@ -93,22 +89,22 @@ pub async fn delete_gateway(
     })
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GetGatewaysData {
-    pub network_id: Id,
+#[derive(Deserialize, Serialize)]
+struct GetGatewaysData {
+    network_id: Id,
 }
 
-pub async fn get_gateways(
+pub(crate) async fn get_gateways(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(network_id): Path<i64>,
-) -> ApiResult {
+    Path(network_id): Path<Id>,
+) -> Result<ApiResponse, WebError> {
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
-                "Network with id {} not found while getting gateways, aborting",
+                "Network ID {} not found while getting gateways, aborting",
                 network_id
             ))
         })?;
@@ -120,74 +116,65 @@ pub async fn get_gateways(
 
     let gateways = Gateway::find_by_network_id(&appstate.pool, network_id).await?;
 
-    Ok(ApiResponse {
-        json: json!({ "gateways": gateways }),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!({ "gateways": gateways }),
+        StatusCode::OK,
+    ))
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GetGatewayData {
-    pub gateway_id: Id,
+#[derive(Deserialize, Serialize)]
+struct GetGatewayData {
+    gateway_id: Id,
 }
 
-pub async fn get_gateway(
+pub(crate) async fn get_gateway(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(gateway_id): Path<i64>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
-        "User {} is getting gateway with id {}",
-        session.user.username, gateway_id
+        "User {} is getting gateway ID {gateway_id}",
+        session.user.username
     );
     let gateway = Gateway::find_by_id(&appstate.pool, gateway_id)
         .await?
         .ok_or_else(|| {
-            WebError::ObjectNotFound(format!(
-                "Gateway with id {} not found while getting gateway, aborting",
-                gateway_id
-            ))
+            WebError::ObjectNotFound(format!("Gateway ID {gateway_id} not found, aborting"))
         })?;
 
-    Ok(ApiResponse {
-        json: json!({ "gateway": gateway }),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!({ "gateway": gateway }),
+        StatusCode::OK,
+    ))
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct UpdateGatewayData {
-    pub url: String,
-}
-
-pub async fn update_gateway(
+pub(crate) async fn update_gateway(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Path(gateway_id): Path<i64>,
-    Json(data): Json<UpdateGatewayData>,
-) -> ApiResult {
+    Path(gateway_id): Path<Id>,
+    Json(data): Json<GatewayData>,
+) -> Result<ApiResponse, WebError> {
     debug!(
-        "User {} is updating gateway with id {}",
-        session.user.username, gateway_id
+        "User {} is updating gateway ID {gateway_id}",
+        session.user.username
     );
     let mut gateway = Gateway::find_by_id(&appstate.pool, gateway_id)
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
-                "Gateway with id {} not found while updating gateway, aborting",
-                gateway_id
+                "Gateway ID {gateway_id} not found while updating gateway, aborting"
             ))
         })?;
 
     debug!(
-        "The gateway with id {} which is being updated by user {} has url {}",
-        gateway_id, session.user.username, gateway.url
+        "Updating gateway ID {gateway_id} by user {} has URL {}",
+        session.user.username, gateway.url
     );
 
     let msg = format!(
-        "User {} has updated gateway with id {} to have url {}",
+        "User {} has updated gateway ID {} to have URL {}",
         session.user.username, gateway_id, data.url
     );
 
@@ -196,8 +183,5 @@ pub async fn update_gateway(
 
     info!("{msg}");
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!({}), StatusCode::OK))
 }

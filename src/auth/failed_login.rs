@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Mutex};
 
 use chrono::{DateTime, Duration, Local};
 use thiserror::Error;
+use utoipa::ToSchema;
 
 // Time window in seconds
 const FAILED_LOGIN_WINDOW: i64 = 60;
@@ -10,7 +11,7 @@ const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
 const FAILED_LOGIN_TIMEOUT: i64 = 5 * 60;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error, ToSchema)]
 #[error("Too many login attempts")]
 pub struct FailedLoginError;
 

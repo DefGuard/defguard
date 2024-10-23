@@ -44,8 +44,9 @@ pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default, ToSchema)]
-pub struct ApiResponse {
+pub(crate) struct ApiResponse {
     pub json: Value,
+    #[schema(value_type = u16)]
     pub status: StatusCode,
 }
 
@@ -160,8 +161,6 @@ impl IntoResponse for ApiResponse {
     }
 }
 
-pub type ApiResult = Result<ApiResponse, WebError>;
-
 #[derive(Deserialize, Serialize)]
 pub struct Auth {
     username: String,
@@ -234,7 +233,7 @@ pub struct Username {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddUserData {
     pub username: String,
     pub last_name: String,

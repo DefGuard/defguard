@@ -9,9 +9,10 @@ use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
-use sqlx::{error::Error as SqlxError, PgPool};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::time::sleep;
+use utoipa::ToSchema;
 
 use crate::{db::Settings, VERSION};
 
@@ -172,7 +173,7 @@ O/CQRZLP6BvYZvex7v3BoKUYkVAeWTGU6WCOPaGp1OxdkQYdryUg/A==
 -----END PGP PUBLIC KEY BLOCK-----
 ";
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum LicenseError {
     #[error("Provided license is invalid: {0}")]
     InvalidLicense(String),
@@ -181,7 +182,8 @@ pub enum LicenseError {
     #[error("Provided signature is invalid")]
     InvalidSignature,
     #[error("Database error")]
-    DbError(#[from] SqlxError),
+    #[schema(value_type = String)]
+    DbError(#[from] sqlx::Error),
     #[error("License decoding error: {0}")]
     DecodeError(String),
     #[error("License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net")]
@@ -197,7 +199,7 @@ struct RefreshRequestResponse {
     key: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct License {
     pub customer_id: String,
     pub subscription: bool,

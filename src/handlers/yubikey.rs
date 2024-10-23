@@ -5,14 +5,14 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{user_for_admin_or_self, ApiResponse, ApiResult};
+use super::{user_for_admin_or_self, ApiResponse};
 use crate::{appstate::AppState, auth::SessionInfo, db::models::yubikey::YubiKey, error::WebError};
 
 pub async fn delete_yubikey(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path((username, key_id)): Path<(String, i64)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("Deleting yubikey {key_id} by {:?}", &session.user.id);
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let Some(yubikey) = YubiKey::find_by_id(&appstate.pool, key_id).await? else {
@@ -44,7 +44,7 @@ pub async fn rename_yubikey(
     session: SessionInfo,
     Path((username, key_id)): Path<(String, i64)>,
     Json(data): Json<RenameRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("User {} attempts to rename yubikey {}", user.id, key_id);
     let Some(mut yubikey) = YubiKey::find_by_id(&appstate.pool, key_id).await? else {

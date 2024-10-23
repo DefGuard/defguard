@@ -77,6 +77,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(enum)]
+    #[schema(value_type = String)]
     pub address: IpNetwork,
     pub port: i32,
     pub pubkey: String,
@@ -85,6 +86,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub endpoint: String,
     pub dns: Option<String>,
     #[model(ref)]
+    #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,
@@ -210,7 +212,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Run `sync_allowed_devices()` on all WireGuard networks.
-    pub async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+    pub(crate) async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
         let mut transaction = app.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
@@ -223,6 +225,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Return number of devices that use this network.
+    #[cfg(test)]
     async fn device_count(
         &self,
         transaction: &mut PgConnection,
@@ -239,7 +242,10 @@ impl WireguardNetwork<Id> {
     }
 
     /// Check if given number of devices could fit the network.
-    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
+    pub(crate) fn validate_network_size(
+        &self,
+        device_count: usize,
+    ) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in network {self}");
         let network_size = self.address.size();
         // include address, network, and broadcast in the calculation
@@ -261,7 +267,7 @@ impl WireguardNetwork<Id> {
 
     /// Utility method to create WireGuard keypair.
     #[must_use]
-    pub fn genkey() -> WireguardKey {
+    pub(crate) fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
@@ -271,7 +277,8 @@ impl WireguardNetwork<Id> {
     }
 
     /// Try to change network address, changing device addresses if necessary.
-    pub async fn change_address(
+    #[cfg(test)]
+    pub(crate) async fn change_address(
         &mut self,
         transaction: &mut PgConnection,
         new_address: IpNetwork,
@@ -375,7 +382,7 @@ impl WireguardNetwork<Id> {
 
     /// Generate network IPs for all existing devices
     /// If `allowed_groups` is set, devices should be filtered accordingly
-    pub async fn add_all_allowed_devices(
+    pub(crate) async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), ModelError> {
@@ -393,7 +400,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generate network IPs for a device if it's allowed in network
-    pub async fn add_device_to_network(
+    pub(crate) async fn add_device_to_network(
         &self,
         transaction: &mut PgConnection,
         device: &Device<Id>,
@@ -416,7 +423,7 @@ impl WireguardNetwork<Id> {
     /// Refresh network IPs for all relevant devices
     /// If the list of allowed devices has changed add/remove devices accordingly
     /// If the network address has changed readdress existing devices
-    pub async fn sync_allowed_devices(
+    pub(crate) async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
         reserved_ips: Option<&[IpAddr]>,
@@ -510,7 +517,7 @@ impl WireguardNetwork<Id> {
     /// if they do assign a specified IP.
     /// Return a list of imported devices which need to be manually mapped to a user
     /// and a list of WireGuard events to be sent out.
-    pub async fn handle_imported_devices(
+    pub(crate) async fn handle_imported_devices(
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
@@ -573,7 +580,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Handle device -> user mapping in second step of network import wizard
-    pub async fn handle_mapped_devices(
+    pub(crate) async fn handle_mapped_devices(
         &self,
         transaction: &mut PgConnection,
         mapped_devices: &[MappedDevice],
@@ -850,7 +857,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp
-    pub async fn user_stats(
+    pub(crate) async fn user_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -975,7 +982,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats
-    pub async fn network_stats(
+    pub(crate) async fn network_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -1026,14 +1033,14 @@ pub(crate) struct WireguardNetworkInfo {
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,
     pub download: Option<i64>,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, PartialEq, Serialize)]
 pub struct WireguardDeviceTransferRow {
     pub device_id: Id,
     pub collected_at: Option<NaiveDateTime>,

@@ -13,7 +13,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedSender},
 };
 
-use super::{ApiResponse, ApiResult};
+use super::ApiResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -62,7 +62,7 @@ pub async fn test_mail(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<TestMail>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} sending test mail to {}",
         session.user.username, data.to
@@ -118,7 +118,7 @@ pub async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
         session.user.username

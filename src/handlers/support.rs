@@ -1,6 +1,6 @@
 use axum::{extract::State, http::StatusCode};
 
-use super::{ApiResponse, ApiResult};
+use super::ApiResponse;
 use crate::{
     auth::{AdminRole, SessionInfo},
     error::WebError,
@@ -13,7 +13,7 @@ pub async fn configuration(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} dumping app configuration", session.user.username);
     let config = dump_config(&appstate.pool).await;
     info!("User {} dumped app configuration", session.user.username);

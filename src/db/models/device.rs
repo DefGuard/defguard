@@ -17,13 +17,15 @@ use crate::{
     KEY_LENGTH,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    #[schema(value_type = String)]
     pub(crate) address: IpAddr,
     pub(crate) endpoint: String,
+    #[schema(value_type = Vec<String>)]
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
@@ -31,7 +33,7 @@ pub struct DeviceConfig {
     pub(crate) keepalive_interval: i32,
 }
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
 pub struct Device<I = NoId> {
     pub id: I,
     pub name: String,
@@ -101,7 +103,7 @@ pub struct UserDevice {
     pub networks: Vec<UserDeviceNetworkInfo>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct UserDeviceNetworkInfo {
     pub network_id: Id,
     pub network_name: String,

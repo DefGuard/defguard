@@ -5,7 +5,7 @@ use axum::{
 use serde_json::json;
 use struct_patch::Patch;
 
-use super::{ApiResponse, ApiResult};
+use super::ApiResponse;
 use crate::{
     auth::{AdminRole, SessionInfo},
     db::{
@@ -21,7 +21,7 @@ use crate::{
 static DEFAULT_NAV_LOGO_URL: &str = "/svg/defguard-nav-logo.svg";
 static DEFAULT_MAIN_LOGO_URL: &str = "/svg/logo-defguard-white.svg";
 
-pub async fn get_settings(State(appstate): State<AppState>) -> ApiResult {
+pub async fn get_settings(State(appstate): State<AppState>) -> Result<ApiResponse, WebError> {
     debug!("Retrieving settings");
     if let Some(mut settings) = Settings::get(&appstate.pool).await? {
         if settings.nav_logo_url.is_empty() {
@@ -47,7 +47,7 @@ pub async fn update_settings(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<Settings>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} updating settings", session.user.username);
 
     update_cached_license(data.license.as_deref())?;
@@ -58,7 +58,9 @@ pub async fn update_settings(
     Ok(ApiResponse::default())
 }
 
-pub async fn get_settings_essentials(State(appstate): State<AppState>) -> ApiResult {
+pub async fn get_settings_essentials(
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     debug!("Retrieving essential settings");
     let mut settings = SettingsEssentials::get_settings_essentials(&appstate.pool).await?;
     if settings.nav_logo_url.is_empty() {
@@ -81,7 +83,7 @@ pub async fn set_default_branding(
     State(appstate): State<AppState>,
     Path(_id): Path<i64>, // TODO: check with front-end and remove.
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} restoring default branding settings",
         session.user.username
@@ -111,7 +113,7 @@ pub async fn patch_settings(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<SettingsPatch>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("Admin {} patching settings.", session.user.username);
     let mut settings = Settings::get_settings(&appstate.pool).await?;
 
@@ -127,7 +129,10 @@ pub async fn patch_settings(
     Ok(ApiResponse::default())
 }
 
-pub async fn test_ldap_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn test_ldap_settings(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     debug!("Testing LDAP connection");
     if LDAPConnection::create(&appstate.pool).await.is_ok() {
         debug!("LDAP connected successfully");

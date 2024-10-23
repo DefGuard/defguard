@@ -4,11 +4,12 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult, WebHookData};
+use super::{ApiResponse, WebHookData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::WebHook,
+    error::WebError,
 };
 
 pub async fn add_webhook(
@@ -16,7 +17,7 @@ pub async fn add_webhook(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(webhookdata): Json<WebHookData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let url = webhookdata.url.clone();
     debug!("User {} adding webhook {url}", session.user.username);
     let webhook: WebHook = webhookdata.into();
@@ -33,7 +34,10 @@ pub async fn add_webhook(
 }
 
 // TODO: paginate
-pub async fn list_webhooks(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_webhooks(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let webhooks = WebHook::all(&appstate.pool).await?;
 
     Ok(ApiResponse {
@@ -46,7 +50,7 @@ pub async fn get_webhook(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => Ok(ApiResponse {
             json: json!(webhook),
@@ -65,7 +69,7 @@ pub async fn change_webhook(
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
     Json(data): Json<WebHookData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} updating webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(mut webhook) => {
@@ -95,7 +99,7 @@ pub async fn delete_webhook(
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} deleting webhook {id}", session.user.username);
     let status = match WebHook::find_by_id(&appstate.pool, id).await? {
         Some(webhook) => {
@@ -122,7 +126,7 @@ pub async fn change_enabled(
     State(appstate): State<AppState>,
     Path(id): Path<i64>,
     Json(data): Json<ChangeStateData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} changing webhook {id} enabled state to {}",
         session.user.username, data.enabled

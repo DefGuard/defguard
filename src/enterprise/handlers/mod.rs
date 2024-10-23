@@ -1,8 +1,4 @@
-use crate::{
-    auth::SessionInfo,
-    enterprise::license::validate_license,
-    handlers::{ApiResponse, ApiResult},
-};
+use crate::{auth::SessionInfo, enterprise::license::validate_license, handlers::ApiResponse};
 
 pub mod enterprise_settings;
 pub mod openid_login;
@@ -43,7 +39,7 @@ where
     }
 }
 
-pub async fn check_enterprise_status() -> ApiResult {
+pub(crate) async fn check_enterprise_status() -> Result<ApiResponse, WebError> {
     let license = get_cached_license();
     let valid = validate_license((license).as_ref()).is_ok();
     let license_info = license.as_ref().map(|license| {

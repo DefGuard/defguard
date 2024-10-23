@@ -41,7 +41,7 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct WalletInfo {
     pub address: String,
     pub name: String,
@@ -49,7 +49,7 @@ pub struct WalletInfo {
     pub use_for_mfa: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: Id,
     pub user_id: Id,
@@ -57,7 +57,7 @@ pub struct OAuth2AuthorizedAppInfo {
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,
@@ -168,7 +168,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.mfa_method = self.mfa_method;
 
@@ -176,7 +176,7 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
         user.phone = self.phone;
         user.username = self.username;
         user.last_name = self.last_name;

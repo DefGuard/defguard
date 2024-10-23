@@ -6,7 +6,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{ApiResponse, ApiResult};
+use super::ApiResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
@@ -31,12 +31,12 @@ struct JobResponseError {
     message: String,
 }
 
-pub async fn create_job(
+pub(crate) async fn create_job(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
     Json(job_data): Json<JobData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let (worker, username) = (job_data.worker.clone(), job_data.username.clone());
     debug!(
         "User {} creating a worker job for worker {worker} and user {username}",
@@ -80,7 +80,10 @@ pub async fn create_job(
     }
 }
 
-pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> ApiResult {
+pub(crate) async fn create_worker_token(
+    session: SessionInfo,
+    _admin: AdminRole,
+) -> Result<ApiResponse, WebError> {
     let username = session.user.username;
     let token = Claims::new(
         ClaimsType::YubiBridge,
@@ -96,10 +99,10 @@ pub async fn create_worker_token(session: SessionInfo, _admin: AdminRole) -> Api
     })
 }
 
-pub async fn list_workers(
+pub(crate) async fn list_workers(
     _admin: AdminRole,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("Listing workers");
     let state = worker_state.lock().unwrap();
     let workers = state.list_workers();
@@ -110,12 +113,12 @@ pub async fn list_workers(
     })
 }
 
-pub async fn remove_worker(
+pub(crate) async fn remove_worker(
     _admin: AdminRole,
     session: SessionInfo,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
     Path(id): Path<String>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} deleting worker {id}", session.user.username,);
     let mut state = worker_state.lock().unwrap();
     if state.remove_worker(&id) {
@@ -129,11 +132,11 @@ pub async fn remove_worker(
     }
 }
 
-pub async fn job_status(
+pub(crate) async fn job_status(
     session: SessionInfo,
     Extension(worker_state): Extension<Arc<Mutex<WorkerState>>>,
     Path(id): Path<u32>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} fetching job status for job {id}",
         session.user.username

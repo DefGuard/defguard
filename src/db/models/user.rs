@@ -11,6 +11,7 @@ use axum::http::StatusCode;
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool, Type};
 use totp_lite::{totp_custom, Sha1};
+use utoipa::ToSchema;
 
 use super::{
     device::{Device, UserDevice},
@@ -29,7 +30,7 @@ use crate::{
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Type)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,

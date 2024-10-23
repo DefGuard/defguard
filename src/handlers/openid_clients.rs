@@ -4,7 +4,7 @@ use axum::{
 };
 use serde_json::json;
 
-use super::{webhooks::ChangeStateData, ApiResponse, ApiResult};
+use super::{webhooks::ChangeStateData, ApiResponse};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -12,6 +12,7 @@ use crate::{
         oauth2client::{OAuth2Client, OAuth2ClientSafe},
         NewOpenIDClient,
     },
+    error::WebError,
 };
 
 pub async fn add_openid_client(
@@ -19,7 +20,7 @@ pub async fn add_openid_client(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<NewOpenIDClient>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let client = OAuth2Client::from_new(data).save(&appstate.pool).await?;
     debug!(
         "User {} adding OpenID client {}",
@@ -35,7 +36,10 @@ pub async fn add_openid_client(
     })
 }
 
-pub async fn list_openid_clients(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_openid_clients(
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let openid_clients = OAuth2Client::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(openid_clients),
@@ -47,7 +51,7 @@ pub async fn get_openid_client(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     match OAuth2Client::find_by_client_id(&appstate.pool, &client_id).await? {
         Some(openid_client) => {
             if session.is_admin {
@@ -75,7 +79,7 @@ pub async fn change_openid_client(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     Json(data): Json<NewOpenIDClient>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} updating OpenID client {client_id}...",
         session.user.username
@@ -107,7 +111,7 @@ pub async fn change_openid_client_state(
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
     Json(data): Json<ChangeStateData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} updating OpenID client {client_id} enabled state",
         session.user.username
@@ -135,7 +139,7 @@ pub async fn delete_openid_client(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(client_id): Path<String>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} deleting OpenID client {client_id}",
         session.user.username

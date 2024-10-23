@@ -35,7 +35,7 @@ use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
 
-use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
+use super::{ApiResponse, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo},
@@ -73,7 +73,7 @@ impl From<&User<Id>> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-pub async fn discovery_keys() -> ApiResult {
+pub(crate) async fn discovery_keys() -> Result<ApiResponse, WebError> {
     let mut keys = Vec::new();
     if let Some(openid_key) = server_config().openid_key() {
         keys.push(openid_key.as_verification_key());
@@ -755,11 +755,11 @@ impl TokenRequest {
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
-pub async fn token(
+pub(crate) async fn token(
     State(appstate): State<AppState>,
     oauth2client: Option<OAuth2Client<Id>>,
     Form(form): Form<TokenRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     // TODO: cleanup branches
     match form.grant_type.as_str() {
         "authorization_code" => {
@@ -894,7 +894,7 @@ pub async fn token(
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
-pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
+pub(crate) async fn userinfo(user_info: AccessUserInfo) -> Result<ApiResponse, WebError> {
     let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
     Ok(ApiResponse {
         json: json!(userclaims),
@@ -903,7 +903,7 @@ pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
 }
 
 // Must be served under /.well-known/openid-configuration
-pub async fn openid_configuration() -> ApiResult {
+pub(crate) async fn openid_configuration() -> Result<ApiResponse, WebError> {
     let config = server_config();
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(config.url.clone()),
