@@ -4,7 +4,10 @@ use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 use sqlx::PgExecutor;
 
 use self::error::LdapError;
-use crate::db::{self, Id, Settings, User};
+use crate::db::{
+    models::{group::Group, settings::Settings, user::User},
+    Id,
+};
 
 pub mod error;
 pub mod hash;
@@ -303,11 +306,7 @@ impl LDAPConnection {
     // }
 
     /// Modifies LDAP group.
-    pub async fn modify_group(
-        &mut self,
-        groupname: &str,
-        group: &db::Group,
-    ) -> Result<(), LdapError> {
+    pub async fn modify_group(&mut self, groupname: &str, group: &Group) -> Result<(), LdapError> {
         debug!("Modifying LDAP group {groupname}");
         let old_dn = self.config.group_dn(groupname);
         let new_dn = self.config.group_dn(&group.name);

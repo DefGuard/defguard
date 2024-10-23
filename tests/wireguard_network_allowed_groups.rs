@@ -3,8 +3,13 @@ mod common;
 use claims::assert_err;
 use defguard::{
     db::{
-        models::wireguard::{ChangeEvent, WireguardNetwork},
-        Device, Group, Id, User,
+        models::{
+            device::Device,
+            group::Group,
+            user::User,
+            wireguard::{ChangeEvent, WireguardNetwork},
+        },
+        Id,
     },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };

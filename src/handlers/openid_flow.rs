@@ -366,7 +366,7 @@ fn login_redirect(
 
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-pub async fn authorization(
+pub(crate) async fn authorization(
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
     cookies: CookieJar,
@@ -519,7 +519,7 @@ pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupCla
 }
 
 /// Login Authorization Endpoint redirect with authorization code
-pub async fn secure_authorization(
+pub(crate) async fn secure_authorization(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,

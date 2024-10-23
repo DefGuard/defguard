@@ -6,7 +6,10 @@ use std::{
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, models::wireguard::ChangeEvent, AppEvent, Settings, User},
+    db::{
+        init_db,
+        models::{settings::Settings, user::User, webhook::AppEvent, wireguard::ChangeEvent},
+    },
     enterprise::license::{run_periodic_license_check, set_cached_license, License},
     grpc::{
         run_grpc_bidi_stream, run_grpc_gateway_stream, run_grpc_server, GatewayMap, WorkerState,
@@ -118,7 +121,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::select! {
         res = run_grpc_gateway_stream(pool.clone(), events_tx.clone()) => error!("Gateway gRPC stream returned early: {res:#?}"),
         res = run_grpc_bidi_stream(pool.clone(), events_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_map), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
+        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
         res = run_web_server(worker_state, gateway_map, webhook_tx, webhook_rx, events_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
         res = run_periodic_peer_disconnect(pool.clone(), events_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),

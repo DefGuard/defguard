@@ -24,10 +24,7 @@ pub(crate) async fn get_enterprise_settings(
         "User {} retrieved enterprise settings",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: json!(settings),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(settings), StatusCode::OK))
 }
 
 pub(crate) async fn patch_enterprise_settings(

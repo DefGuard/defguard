@@ -14,7 +14,7 @@ use thiserror::Error;
 use tokio::time::sleep;
 use utoipa::ToSchema;
 
-use crate::{db::Settings, VERSION};
+use crate::{db::models::settings::Settings, VERSION};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 

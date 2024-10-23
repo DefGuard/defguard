@@ -76,10 +76,15 @@ use self::{
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
         init_db,
-        models::wireguard::{
-            ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
+        models::{
+            device::Device,
+            user::User,
+            webhook::AppEvent,
+            wireguard::{
+                ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
+                DEFAULT_KEEPALIVE_INTERVAL,
+            },
         },
-        AppEvent, Device, User,
     },
     handlers::{
         auth::{

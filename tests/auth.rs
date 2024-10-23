@@ -7,7 +7,14 @@ use claims::assert_err;
 use common::fetch_user_details;
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::wallet::keccak256, MFAInfo, MFAMethod, Settings, User, UserDetails, Wallet},
+    db::{
+        models::{
+            settings::Settings,
+            user::User,
+            wallet::{keccak256, Wallet},
+        },
+        MFAInfo, MFAMethod, UserDetails,
+    },
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp, WalletChallenge},
     hex::to_lower_hex,
     secret::SecretString,

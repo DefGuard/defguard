@@ -64,10 +64,7 @@ pub(crate) async fn add_openid_provider(
         session.user.username, new_provider.name
     );
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(json!({}), StatusCode::CREATED))
 }
 
 pub(crate) async fn get_current_openid_provider(
@@ -76,14 +73,8 @@ pub(crate) async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
     match OpenIdProvider::get_current(&appstate.pool).await? {
-        Some(provider) => Ok(ApiResponse {
-            json: json!(provider),
-            status: StatusCode::OK,
-        }),
-        None => Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        }),
+        Some(provider) => Ok(ApiResponse::new(json!(provider), StatusCode::OK)),
+        None => Ok(ApiResponse::new(json!({}), StatusCode::NOT_FOUND)),
     }
 }
 
@@ -105,67 +96,52 @@ pub(crate) async fn delete_openid_provider(
             "User {} deleted OpenID provider {}",
             session.user.username, provider_data.name
         );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
+        Ok(ApiResponse::new(json!({}), StatusCode::OK))
     } else {
         warn!(
             "User {} failed to delete OpenID provider {}. Such provider does not exist.",
             session.user.username, provider_data.name
         );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
+        Ok(ApiResponse::new(json!({}), StatusCode::NOT_FOUND))
     }
 }
 
-pub(crate) async fn modify_openid_provider(
-    _license: LicenseInfo,
-    _admin: AdminRole,
-    session: SessionInfo,
-    State(appstate): State<AppState>,
-    Json(provider_data): Json<AddProviderData>,
-) -> Result<ApiResponse, WebError> {
-    debug!(
-        "User {} modifying OpenID provider {}",
-        session.user.username, provider_data.name
-    );
-    let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
-    if let Some(mut provider) = provider {
-        provider.base_url = provider_data.base_url;
-        provider.client_id = provider_data.client_id;
-        provider.client_secret = provider_data.client_secret;
-        provider.save(&appstate.pool).await?;
-        info!(
-            "User {} modified OpenID client {}",
-            session.user.username, provider.name
-        );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
-    } else {
-        warn!(
-            "User {} failed to modify OpenID client {}. Such client does not exist.",
-            session.user.username, provider_data.name
-        );
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NOT_FOUND,
-        })
-    }
-}
+// pub(crate) async fn modify_openid_provider(
+//     _license: LicenseInfo,
+//     _admin: AdminRole,
+//     session: SessionInfo,
+//     State(appstate): State<AppState>,
+//     Json(provider_data): Json<AddProviderData>,
+// ) -> Result<ApiResponse, WebError> {
+//     debug!(
+//         "User {} modifying OpenID provider {}",
+//         session.user.username, provider_data.name
+//     );
+//     let provider = OpenIdProvider::find_by_name(&appstate.pool, &provider_data.name).await?;
+//     if let Some(mut provider) = provider {
+//         provider.base_url = provider_data.base_url;
+//         provider.client_id = provider_data.client_id;
+//         provider.client_secret = provider_data.client_secret;
+//         provider.save(&appstate.pool).await?;
+//         info!(
+//             "User {} modified OpenID client {}",
+//             session.user.username, provider.name
+//         );
+//         Ok(ApiResponse::new(json!({}), StatusCode::OK))
+//     } else {
+//         warn!(
+//             "User {} failed to modify OpenID client {}. Such client does not exist.",
+//             session.user.username, provider_data.name
+//         );
+//         Ok(ApiResponse::new(json!({}), StatusCode::NOT_FOUND))
+//     }
+// }
 
-pub(crate) async fn list_openid_providers(
-    _license: LicenseInfo,
-    _admin: AdminRole,
-    State(appstate): State<AppState>,
-) -> Result<ApiResponse, WebError> {
-    let providers = OpenIdProvider::all(&appstate.pool).await?;
-    Ok(ApiResponse {
-        json: json!(providers),
-        status: StatusCode::OK,
-    })
-}
+// pub(crate) async fn list_openid_providers(
+//     _license: LicenseInfo,
+//     _admin: AdminRole,
+//     State(appstate): State<AppState>,
+// ) -> Result<ApiResponse, WebError> {
+//     let providers = OpenIdProvider::all(&appstate.pool).await?;
+//     Ok(ApiResponse::new(json!(providers), StatusCode::OK))
+// }

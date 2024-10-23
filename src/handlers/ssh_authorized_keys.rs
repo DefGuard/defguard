@@ -12,8 +12,12 @@ use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-        Group, Id, User,
+        models::{
+            authentication_key::{AuthenticationKey, AuthenticationKeyType},
+            group::Group,
+            user::User,
+        },
+        Id,
     },
     error::WebError,
 };

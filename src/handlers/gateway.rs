@@ -65,8 +65,7 @@ pub(crate) async fn delete_gateway(
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
-                "Gateway with id {} not found while removing gateway, aborting",
-                gateway_id
+                "Gateway ID {gateway_id} not found while removing gateway, aborting"
             ))
         })?;
     debug!(
@@ -104,8 +103,7 @@ pub(crate) async fn get_gateways(
         .await?
         .ok_or_else(|| {
             WebError::ObjectNotFound(format!(
-                "Network ID {} not found while getting gateways, aborting",
-                network_id
+                "Network ID {network_id} not found while getting gateways, aborting"
             ))
         })?;
 

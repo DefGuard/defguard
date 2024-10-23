@@ -5,7 +5,7 @@ use super::{ApiResponse, VERSION};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::{models::wireguard::WireguardNetwork, Settings},
+    db::models::{settings::Settings, wireguard::WireguardNetwork},
     enterprise::license::{get_cached_license, validate_license},
     error::WebError,
 };

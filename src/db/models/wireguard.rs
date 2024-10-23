@@ -61,13 +61,17 @@ impl DateTimeAggregation {
 }
 
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum ChangeEvent {
-    NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
+    NetworkCreated(WireguardNetwork<Id>),
+    NetworkModified(WireguardNetwork<Id>, Vec<Peer>),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
+    GatewayCreated(Id),
+    GatewayModified(Id),
+    GatewayDeleted(Id),
 }
 
 /// Stores configuration required to setup a WireGuard network
@@ -94,9 +98,9 @@ pub struct WireguardNetwork<I = NoId> {
     pub peer_disconnect_threshold: i32,
 }
 
-pub struct WireguardKey {
-    pub private: String,
-    pub public: String,
+pub(crate) struct WireguardKey {
+    pub(crate) private: String,
+    pub(crate) public: String,
 }
 
 impl fmt::Display for WireguardNetwork<NoId> {

@@ -19,12 +19,14 @@ use super::{
 use crate::{
     db::{
         models::{
-            device::{DeviceConfig, DeviceInfo},
+            device::{Device, DeviceConfig, DeviceInfo},
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE, PASSWORD_RESET_TOKEN_TYPE},
             polling_token::PollingToken,
+            settings::Settings,
+            user::User,
             wireguard::ChangeEvent,
         },
-        Device, Id, Settings, User,
+        Id,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
     handlers::{
@@ -97,8 +99,8 @@ impl ProxyHandler {
         }
     }
 
-    /// Sends given `ChangeEvent` to be handled by gateway GRPC server
-    pub fn send_wireguard_event(&self, event: ChangeEvent) {
+    /// Sends given `ChangeEvent` to be handled by gateway over gRPC.
+    pub(crate) fn send_wireguard_event(&self, event: ChangeEvent) {
         if let Err(err) = self.events_tx.send(event) {
             error!("Error sending WireGuard event {err}");
         }

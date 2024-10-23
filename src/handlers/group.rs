@@ -10,7 +10,7 @@ use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
-    db::{models::wireguard::WireguardNetwork, Group, User},
+    db::models::{group::Group, user::User, wireguard::WireguardNetwork},
     error::WebError,
     server_config,
     // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},

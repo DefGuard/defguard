@@ -46,8 +46,10 @@ use self::{
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        models::{gateway::Gateway, wireguard::WireguardNetwork},
-        AppEvent, Id, Settings,
+        models::{
+            gateway::Gateway, settings::Settings, webhook::AppEvent, wireguard::WireguardNetwork,
+        },
+        Id,
     },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -152,11 +154,11 @@ impl GatewayMap {
             network_gateway_map.remove(&hostname)
         } else {
             // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
+            error!("Network ID {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
 
-        info!("Gateway with UID {id} removed from network {network_id}");
+        info!("Gateway with UID {id} removed from network ID {network_id}");
         Ok(())
     }
 
@@ -183,11 +185,11 @@ impl GatewayMap {
             }
         } else {
             // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
+            error!("Network ID {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
         };
 
-        info!("Gateway {hostname} connected in network {network_id}");
+        info!("Gateway {hostname} connected in network ID {network_id}");
         Ok(())
     }
 
@@ -597,8 +599,6 @@ pub async fn run_grpc_bidi_stream(
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -610,11 +610,6 @@ pub async fn run_grpc_server(
         WorkerServer::new(pool.clone(), worker_state),
         JwtInterceptor::new(ClaimsType::YubiBridge),
     );
-    // #[cfg(feature = "wireguard")]
-    // let gateway_service = GatewayServiceServer::with_interceptor(
-    //     GatewayServer::new(pool, gateway_state, events_tx, mail_tx),
-    //     JwtInterceptor::new(ClaimsType::Gateway),
-    // );
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
@@ -646,7 +641,7 @@ pub async fn run_grpc_server(
 }
 
 #[cfg(feature = "worker")]
-pub struct Job {
+pub(crate) struct Job {
     id: u32,
     first_name: String,
     last_name: String,

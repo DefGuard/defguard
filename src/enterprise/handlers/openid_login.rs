@@ -24,7 +24,10 @@ use time::Duration;
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo},
+    db::{
+        models::{settings::Settings, user::User},
+        MFAInfo, Session, SessionState, UserInfo,
+    },
     enterprise::db::models::openid_provider::OpenIdProvider,
     error::WebError,
     handlers::{
@@ -148,14 +151,7 @@ pub(crate) async fn get_auth_info(
 
     Ok((
         private_cookies,
-        ApiResponse {
-            json: json!(
-                {
-                    "url": authorize_url,
-                }
-            ),
-            status: StatusCode::OK,
-        },
+        ApiResponse::new(json!({"url": authorize_url}), StatusCode::OK),
     ))
 }
 
@@ -390,10 +386,7 @@ pub(crate) async fn auth_callback(
             Ok((
                 cookies,
                 private_cookies,
-                ApiResponse {
-                    json: json!(mfa_info),
-                    status: StatusCode::CREATED,
-                },
+                ApiResponse::new(json!(mfa_info), StatusCode::CREATED),
             ))
         } else {
             error!("Couldn't fetch MFA info for user {username} with MFA enabled");
@@ -420,26 +413,26 @@ pub(crate) async fn auth_callback(
             Ok((
                 cookies,
                 private_cookies.remove(openid_cookie),
-                ApiResponse {
-                    json: json!(AuthResponse {
+                ApiResponse::new(
+                    json!(AuthResponse {
                         user: user_info,
                         url: Some(redirect_url)
                     }),
-                    status: StatusCode::OK,
-                },
+                    StatusCode::OK,
+                ),
             ))
         } else {
             debug!("No OpenID session found, proceeding with login to defguard.");
             Ok((
                 cookies,
                 private_cookies,
-                ApiResponse {
-                    json: json!(AuthResponse {
+                ApiResponse::new(
+                    json!(AuthResponse {
                         user: user_info,
                         url: None,
                     }),
-                    status: StatusCode::OK,
-                },
+                    StatusCode::OK,
+                ),
             ))
         }
     }

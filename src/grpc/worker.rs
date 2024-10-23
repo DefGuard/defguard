@@ -14,9 +14,10 @@ use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
 use crate::db::{
     models::{
         authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        webhook::{AppEvent, HWKeyUserData},
         yubikey::YubiKey,
     },
-    AppEvent, HWKeyUserData, User,
+    User,
 };
 
 tonic::include_proto!("worker");
@@ -45,7 +46,7 @@ impl WorkerInfo {
 
     /// Return first availale Job.
     #[must_use]
-    pub fn get_job(&self) -> Option<&Job> {
+    pub(crate) fn get_job(&self) -> Option<&Job> {
         self.jobs.first()
     }
 
@@ -55,12 +56,12 @@ impl WorkerInfo {
     }
 
     /// Add Job.
-    pub fn add_job(&mut self, job: Job) {
+    pub(crate) fn add_job(&mut self, job: Job) {
         self.jobs.push(job);
     }
 
     /// Remove Job with given id.
-    pub fn remove_job_with_id(&mut self, job_id: u32) -> Option<Job> {
+    pub(crate) fn remove_job_with_id(&mut self, job_id: u32) -> Option<Job> {
         if let Some(index) = self.jobs.iter().position(|job| job.id == job_id) {
             Some(self.jobs.remove(index))
         } else {
@@ -124,7 +125,7 @@ impl WorkerState {
     }
 
     /// Remove a job for a given worker.
-    pub fn remove_job(&mut self, id: &str, job_id: u32) -> Option<Job> {
+    pub(crate) fn remove_job(&mut self, id: &str, job_id: u32) -> Option<Job> {
         if let Some(worker) = self.workers.get_mut(id) {
             worker.refresh_status();
             worker.remove_job_with_id(job_id)
@@ -134,7 +135,7 @@ impl WorkerState {
     }
 
     /// Return the first available job.
-    pub fn get_job(&mut self, id: &str, ip: IpAddr) -> Option<&Job> {
+    pub(crate) fn get_job(&mut self, id: &str, ip: IpAddr) -> Option<&Job> {
         if let Some(worker) = self.workers.get_mut(id) {
             worker.refresh_status();
             worker.set_ip(ip);

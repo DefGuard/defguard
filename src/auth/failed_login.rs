@@ -5,11 +5,11 @@ use thiserror::Error;
 use utoipa::ToSchema;
 
 // Time window in seconds
-const FAILED_LOGIN_WINDOW: i64 = 60;
+const FAILED_LOGIN_WINDOW: Duration = Duration::seconds(60);
 // Failed login count threshold
 const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
-const FAILED_LOGIN_TIMEOUT: i64 = 5 * 60;
+const FAILED_LOGIN_TIMEOUT: Duration = Duration::seconds(5 * 60);
 
 #[derive(Debug, Error, ToSchema)]
 #[error("Too many login attempts")]
@@ -58,16 +58,16 @@ impl FailedLogin {
     // Check if user login attempt should be stopped
     fn should_prevent_login(&self) -> bool {
         self.attempt_count >= FAILED_LOGIN_COUNT
-            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT)
+            && self.time_since_last_attempt() <= FAILED_LOGIN_TIMEOUT
     }
 
     // Check if attempt counter can be reset.
     // Counter can be reset after enough time has passed since the initial attempt.
     // If user was blocked we also check if enough time (timeout) has passed since last attempt.
     fn should_reset_counter(&self) -> bool {
-        self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
+        self.time_since_first_attempt() > FAILED_LOGIN_WINDOW
             && self.attempt_count < FAILED_LOGIN_COUNT
-            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT)
+            || self.time_since_last_attempt() > FAILED_LOGIN_TIMEOUT
     }
 }
 

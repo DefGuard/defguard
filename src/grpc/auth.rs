@@ -15,7 +15,7 @@ use crate::{
 
 tonic::include_proto!("auth");
 
-pub struct AuthServer {
+pub(crate) struct AuthServer {
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 }

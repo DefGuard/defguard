@@ -7,12 +7,12 @@ use super::{
     InstanceInfo,
 };
 use crate::{
-    db::{
-        models::{
-            device::WireguardNetworkDevice, polling_token::PollingToken,
-            wireguard::WireguardNetwork,
-        },
-        Device, Settings, User,
+    db::models::{
+        device::{Device, WireguardNetworkDevice},
+        polling_token::PollingToken,
+        settings::Settings,
+        user::User,
+        wireguard::WireguardNetwork,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
 };

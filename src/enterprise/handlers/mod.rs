@@ -9,6 +9,7 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
+use serde_json::json;
 
 use super::{db::models::enterprise_settings::EnterpriseSettings, license::get_cached_license};
 use crate::{appstate::AppState, error::WebError};
@@ -50,12 +51,12 @@ pub(crate) async fn check_enterprise_status() -> Result<ApiResponse, WebError> {
             }
         )
     });
-    Ok(ApiResponse {
-        json: serde_json::json!({ "enabled": valid,
+    Ok(ApiResponse::new(
+        json!({ "enabled": valid,
                "license_info": license_info
         }),
-        status: StatusCode::OK,
-    })
+        StatusCode::OK,
+    ))
 }
 
 #[async_trait]

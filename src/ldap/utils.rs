@@ -1,7 +1,10 @@
 use sqlx::{PgExecutor, PgPool};
 
 use super::{error::LdapError, LDAPConnection};
-use crate::db::{Group, Id, User};
+use crate::db::{
+    models::{group::Group, user::User},
+    Id,
+};
 
 pub async fn user_from_ldap(
     pool: &PgPool,

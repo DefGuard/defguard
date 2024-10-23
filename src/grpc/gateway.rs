@@ -26,8 +26,11 @@ use tonic::{
 use super::GatewayMap;
 use crate::{
     db::{
-        models::wireguard::{ChangeEvent, WireguardNetwork, WireguardPeerStats},
-        Device, Id, NoId,
+        models::{
+            device::Device,
+            wireguard::{ChangeEvent, WireguardNetwork, WireguardPeerStats},
+        },
+        Id, NoId,
     },
     mail::Mail,
 };
@@ -37,7 +40,7 @@ tonic::include_proto!("gateway");
 pub struct GatewayServer {
     pool: PgPool,
     state: Arc<Mutex<GatewayMap>>,
-    wireguard_tx: Sender<ChangeEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
 }
 
@@ -47,13 +50,13 @@ impl GatewayServer {
     pub fn new(
         pool: PgPool,
         state: Arc<Mutex<GatewayMap>>,
-        wireguard_tx: Sender<ChangeEvent>,
+        events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
     ) -> Self {
         Self {
             pool,
             state,
-            wireguard_tx,
+            events_tx,
             mail_tx,
         }
     }
@@ -317,8 +320,8 @@ async fn handle_events(
     while let Ok(event) = events_rx.recv().await {
         debug!("Received networking state update event: {event:?}");
         let (update_type, update) = match event {
-            ChangeEvent::NetworkCreated(network_id, network) => {
-                if network_id != current_network.id {
+            ChangeEvent::NetworkCreated(network) => {
+                if network.id != current_network.id {
                     continue;
                 }
                 (
@@ -332,8 +335,8 @@ async fn handle_events(
                     }),
                 )
             }
-            ChangeEvent::NetworkModified(network_id, network, peers) => {
-                if network_id != current_network.id {
+            ChangeEvent::NetworkModified(network, peers) => {
+                if network.id != current_network.id {
                     continue;
                 }
                 // update stored network data
@@ -433,7 +436,12 @@ async fn handle_events(
                     None => continue,
                 }
             }
+            _ => {
+                debug!("ChangeEvent ignored");
+                continue;
+            }
         };
+
         let req = CoreResponse {
             id: 0,
             payload: Some(core_response::Payload::Update(Update {

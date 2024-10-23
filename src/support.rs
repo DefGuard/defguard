@@ -6,8 +6,11 @@ use sqlx::PgPool;
 
 use crate::{
     db::{
-        models::{device::WireguardNetworkDevice, wireguard::WireguardNetwork},
-        Id, Settings, User,
+        models::{
+            device::WireguardNetworkDevice, settings::Settings, user::User,
+            wireguard::WireguardNetwork,
+        },
+        Id,
     },
     server_config, VERSION,
 };

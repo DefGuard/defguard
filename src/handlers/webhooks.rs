@@ -8,7 +8,7 @@ use super::{ApiResponse, WebHookData};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::WebHook,
+    db::models::webhook::WebHook,
     error::WebError,
 };
 

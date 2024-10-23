@@ -12,7 +12,10 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 use crate::db::Device;
 use crate::{
     auth::SessionInfo,
-    db::{Id, NoId, User, UserInfo, WebHook},
+    db::{
+        models::{user::User, webhook::WebHook, UserInfo},
+        Id, NoId,
+    },
     enterprise::license::LicenseError,
     error::WebError,
     VERSION,
@@ -45,9 +48,9 @@ pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default, ToSchema)]
 pub(crate) struct ApiResponse {
-    pub json: Value,
+    json: Value,
     #[schema(value_type = u16)]
-    pub status: StatusCode,
+    status: StatusCode,
 }
 
 impl ApiResponse {
@@ -295,7 +298,7 @@ pub struct WalletAddress {
 }
 
 #[derive(Serialize)]
-pub struct RecoveryCodes {
+pub(crate) struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
 
@@ -334,9 +337,9 @@ impl From<WebHookData> for WebHook {
     }
 }
 
-/// Return type needed to know if user came from openid flow
-/// with optional url to redirect him later if yes
-#[derive(Serialize, Deserialize)]
+/// Return type needed to know if user came from OpenID flow
+/// with optional URL to redirect him later if yes
+#[derive(Deserialize, Serialize)]
 pub struct AuthResponse {
     pub user: UserInfo,
     pub url: Option<String>,

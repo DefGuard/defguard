@@ -10,9 +10,9 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db::{models::settings::SmtpEncryption, Settings};
+use crate::db::models::settings::{Settings, SmtpEncryption};
 
-const SMTP_TIMEOUT_SECONDS: u64 = 15;
+const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -226,7 +226,7 @@ impl MailHandler {
             }
         }
         .port(settings.port)
-        .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
+        .timeout(Some(SMTP_TIMEOUT));
         Ok(builder
             .credentials(Credentials::new(settings.user, settings.password))
             .build())

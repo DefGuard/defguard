@@ -9,7 +9,7 @@ pub type Id = i64;
 
 /// Initializes and migrates postgres database. Returns DB pool object.
 pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> PgPool {
-    info!("Initializing DB pool");
+    info!("Initializing pool of database connections");
     let opts = PgConnectOptions::new()
         .host(host)
         .port(port)
@@ -28,14 +28,9 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 
 pub use models::{
     device::{AddDevice, Device},
-    group::Group,
     oauth2authorizedapp::OAuth2AuthorizedApp,
     oauth2token::OAuth2Token,
     session::{Session, SessionState},
-    settings::Settings,
     user::{MFAMethod, User},
-    wallet::Wallet,
-    webauthn::WebAuthn,
-    webhook::{AppEvent, HWKeyUserData, WebHook},
     MFAInfo, UserDetails, UserInfo,
 };

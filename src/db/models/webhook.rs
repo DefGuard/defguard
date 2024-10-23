@@ -12,7 +12,8 @@ pub enum AppEvent {
     UserDeleted(String),
     HWKeyProvision(HWKeyUserData),
 }
-/// User data send on HWKeyProvision AppEvent
+
+/// User data sent on HWKeyProvision AppEvent
 #[derive(Debug, Serialize)]
 pub struct HWKeyUserData {
     pub username: String,
@@ -27,16 +28,16 @@ impl AppEvent {
     #[must_use]
     pub fn name(&self) -> &str {
         match self {
-            Self::UserCreated(_) => "user created",
-            Self::UserModified(_) => "user modified",
-            Self::UserDeleted(_) => "user deleted",
-            Self::HWKeyProvision(_) => "hwkey provisioned",
+            Self::UserCreated(_) => "user_created",
+            Self::UserModified(_) => "user_modified",
+            Self::UserDeleted(_) => "user_deleted",
+            Self::HWKeyProvision(_) => "user_keys",
         }
     }
 
     /// Database column name.
     #[must_use]
-    pub fn column_name(&self) -> &str {
+    pub(crate) fn column_name(&self) -> &str {
         match self {
             Self::UserCreated(_) => "on_user_created",
             Self::UserModified(_) => "on_user_modified",

@@ -8,10 +8,7 @@ use struct_patch::Patch;
 use super::ApiResponse;
 use crate::{
     auth::{AdminRole, SessionInfo},
-    db::{
-        models::settings::{SettingsEssentials, SettingsPatch},
-        Settings,
-    },
+    db::models::settings::{Settings, SettingsEssentials, SettingsPatch},
     enterprise::license::update_cached_license,
     error::WebError,
     ldap::LDAPConnection,

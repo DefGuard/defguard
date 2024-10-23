@@ -71,14 +71,14 @@ pub struct MappedDevices {
 }
 
 #[derive(Deserialize)]
-pub struct ImportNetworkData {
+pub(crate) struct ImportNetworkData {
     pub name: String,
     pub endpoint: String,
     pub config: String,
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ImportedNetworkData {
     pub network: WireguardNetwork<Id>,
     pub devices: Vec<ImportedDevice>,
@@ -129,7 +129,7 @@ pub(crate) async fn create_network(
     network.add_all_allowed_devices(&mut transaction).await?;
     info!("Assigning IPs for existing devices in network {network}");
 
-    appstate.send_change_event(ChangeEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_change_event(ChangeEvent::NetworkCreated(network.clone()));
 
     transaction.commit().await?;
 
@@ -138,10 +138,7 @@ pub(crate) async fn create_network(
         session.user.username
     );
 
-    Ok(ApiResponse {
-        json: json!(network),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(json!(network), StatusCode::CREATED))
 }
 
 async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, WebError> {
@@ -183,11 +180,7 @@ pub(crate) async fn modify_network(
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     let peers = network.get_peers(&mut *transaction).await?;
-    appstate.send_change_event(ChangeEvent::NetworkModified(
-        network.id,
-        network.clone(),
-        peers,
-    ));
+    appstate.send_change_event(ChangeEvent::NetworkModified(network.clone(), peers));
 
     // commit DB transaction
     transaction.commit().await?;
@@ -196,10 +189,7 @@ pub(crate) async fn modify_network(
         "User {} updated WireGuard network {network_id}",
         session.user.username,
     );
-    Ok(ApiResponse {
-        json: json!(network),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(network), StatusCode::OK))
 }
 
 pub(crate) async fn delete_network(
@@ -250,10 +240,7 @@ pub(crate) async fn list_networks(
     }
     debug!("Listed WireGuard networks");
 
-    Ok(ApiResponse {
-        json: json!(network_info),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(network_info), StatusCode::OK))
 }
 
 pub(crate) async fn network_details(
@@ -276,15 +263,9 @@ pub(crate) async fn network_details(
                 gateways: gateway_state.get_network_gateway_status(network_id),
                 allowed_groups,
             };
-            ApiResponse {
-                json: json!(network_info),
-                status: StatusCode::OK,
-            }
+            ApiResponse::new(json!(network_info), StatusCode::OK)
         }
-        None => ApiResponse {
-            json: Value::Null,
-            status: StatusCode::NOT_FOUND,
-        },
+        None => ApiResponse::new(Value::Null, StatusCode::NOT_FOUND),
     };
     debug!("Displayed network details for network {network_id}");
 
@@ -302,10 +283,10 @@ pub(crate) async fn gateway_status(
         .expect("Failed to acquire gateway state lock");
     debug!("Displayed gateway status for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(gateway_state.get_network_gateway_status(network_id)),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!(gateway_state.get_network_gateway_status(network_id)),
+        StatusCode::OK,
+    ))
 }
 
 // TODO: gateway_id should be enough; remove network_id.
@@ -323,10 +304,7 @@ pub(crate) async fn remove_gateway(
 
     info!("Removed gateway {gateway_id} in network {network_id}");
 
-    Ok(ApiResponse {
-        json: Value::Null,
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(Value::Null, StatusCode::OK))
 }
 
 pub(crate) async fn import_network(
@@ -350,7 +328,7 @@ pub(crate) async fn import_network(
         .await?;
 
     info!("New network {network} created");
-    appstate.send_change_event(ChangeEvent::NetworkCreated(network.id, network.clone()));
+    appstate.send_change_event(ChangeEvent::NetworkCreated(network.clone()));
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
@@ -373,10 +351,10 @@ pub(crate) async fn import_network(
 
     info!("Imported network {network} with {} devices", devices.len());
 
-    Ok(ApiResponse {
-        json: json!(ImportedNetworkData { network, devices }),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(
+        json!(ImportedNetworkData { network, devices }),
+        StatusCode::CREATED,
+    ))
 }
 
 // This is used exclusively for the wizard to map imported devices to users.
@@ -399,10 +377,7 @@ pub(crate) async fn add_user_devices(
     // finish early if no devices were provided in request
     if mapped_devices.is_empty() {
         debug!("No devices provided in request, skipping mapping");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::NO_CONTENT,
-        });
+        return Ok(ApiResponse::new(json!({}), StatusCode::NO_CONTENT));
     }
 
     if let Some(network) = WireguardNetwork::find_by_id(&appstate.pool, network_id).await? {
@@ -419,10 +394,7 @@ pub(crate) async fn add_user_devices(
             user.username,
         );
 
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::CREATED,
-        })
+        Ok(ApiResponse::new(json!({}), StatusCode::CREATED))
     } else {
         error!("Failed to map devices, network {network_id} not found");
         Err(WebError::ObjectNotFound(format!(
@@ -591,10 +563,7 @@ pub(crate) async fn add_device(
 
     let result = AddDeviceResult { configs, device };
 
-    Ok(ApiResponse {
-        json: json!(result),
-        status: StatusCode::CREATED,
-    })
+    Ok(ApiResponse::new(json!(result), StatusCode::CREATED))
 }
 
 /// Modify device
@@ -642,20 +611,17 @@ pub(crate) async fn modify_device(
 
     if networks.is_empty() {
         error!("Failed to update device {device_id}, no networks found");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
+        return Ok(ApiResponse::new(json!({}), StatusCode::BAD_REQUEST));
     }
 
     // check pubkeys
     for network in &networks {
         if network.pubkey == data.wireguard_pubkey {
             error!("Failed to update device {device_id}, device's pubkey must be different from server's pubkey");
-            return Ok(ApiResponse {
-                json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
-                status: StatusCode::BAD_REQUEST,
-            });
+            return Ok(ApiResponse::new(
+                json!({"msg": "device's pubkey must be different from server's pubkey"}),
+                StatusCode::BAD_REQUEST,
+            ));
         }
     }
 
@@ -684,10 +650,7 @@ pub(crate) async fn modify_device(
     }));
 
     info!("User {} updated device {device_id}", session.user.username);
-    Ok(ApiResponse {
-        json: json!(device),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(device), StatusCode::OK))
 }
 
 /// Get device
@@ -723,10 +686,7 @@ pub(crate) async fn get_device(
     debug!("Retrieving device with id: {device_id}");
     let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
     debug!("Retrieved device with id: {device_id}");
-    Ok(ApiResponse {
-        json: json!(device),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(device), StatusCode::OK))
 }
 
 /// Delete device
@@ -793,10 +753,7 @@ pub(crate) async fn list_devices(
     let devices = Device::all(&appstate.pool).await?;
     info!("Listed {} devices", devices.len());
 
-    Ok(ApiResponse {
-        json: json!(devices),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(devices), StatusCode::OK))
 }
 
 /// List user devices
@@ -842,13 +799,10 @@ pub(crate) async fn list_user_devices(
     let devices = Device::all_for_username(&appstate.pool, &username).await?;
     info!("Listed {} devices for user: {username}", devices.len());
 
-    Ok(ApiResponse {
-        json: json!(devices),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(devices), StatusCode::OK))
 }
 
-pub async fn download_config(
+pub(crate) async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((network_id, device_id)): Path<(i64, i64)>,
@@ -895,10 +849,10 @@ pub(crate) async fn create_network_token(
         ))
     })?;
     info!("Generated a new token for network ID {network_id}");
-    Ok(ApiResponse {
-        json: json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(
+        json!({"token": token, "grpc_url": server_config().grpc_url.to_string()}),
+        StatusCode::OK,
+    ))
 }
 
 /// Returns appropriate aggregation level depending on the `from` date param
@@ -948,10 +902,7 @@ pub(crate) async fn user_stats(
         .await?;
     debug!("Displayed WireGuard user stats for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(stats),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(stats), StatusCode::OK))
 }
 
 pub(crate) async fn network_stats(
@@ -973,8 +924,5 @@ pub(crate) async fn network_stats(
         .await?;
     debug!("Displayed WireGuard network stats for network {network_id}");
 
-    Ok(ApiResponse {
-        json: json!(stats),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(stats), StatusCode::OK))
 }

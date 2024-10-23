@@ -28,9 +28,10 @@ use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
+    group::Group,
     user::{MFAMethod, User},
 };
-use super::{Group, Id};
+use super::Id;
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -83,7 +84,7 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+    pub(crate) async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
 
@@ -236,7 +237,7 @@ impl MFAInfo {
     }
 
     #[must_use]
-    pub fn mfa_available(&self) -> bool {
+    pub(crate) fn mfa_available(&self) -> bool {
         self.webauthn_available
             || self.totp_available
             || self.web3_available
@@ -249,7 +250,7 @@ impl MFAInfo {
     }
 
     #[must_use]
-    pub fn list_available_methods(&self) -> Option<Vec<MFAMethod>> {
+    pub(crate) fn list_available_methods(&self) -> Option<Vec<MFAMethod>> {
         if !self.mfa_available() {
             return None;
         }
