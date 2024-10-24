@@ -46,9 +46,7 @@ use self::{
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
-        models::{
-            gateway::Gateway, settings::Settings, webhook::AppEvent, wireguard::WireguardNetwork,
-        },
+        models::{gateway::Gateway, settings::Settings, webhook::AppEvent},
         Id,
     },
     enterprise::{
@@ -83,6 +81,7 @@ use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 // Helper struct used to handle gateway state
 // gateways are grouped by network
 type GatewayHostname = String;
+// TODO: save state to database
 pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
@@ -360,14 +359,6 @@ pub async fn run_grpc_gateway_stream(
     let mut tasks = JoinSet::new();
     let gateways = Gateway::all(&pool).await?;
     for gateway in gateways.into_iter() {
-        let Ok(Some(network)) = WireguardNetwork::find_by_id(&pool, gateway.network_id).await
-        else {
-            error!(
-                "Failed to fetch network ID {} from the database",
-                gateway.network_id
-            );
-            continue;
-        };
         let gateway_client = GatewayHandler::new(
             &gateway.url,
             config.proxy_grpc_ca.as_deref(),
@@ -376,11 +367,33 @@ pub async fn run_grpc_gateway_stream(
             events_tx.clone(),
         )?;
         tasks.spawn(async move {
-            gateway_client.handle_connection(network).await;
+            gateway_client.handle_connection().await;
         });
     }
 
-    // TODO: observe `WireGuardNetwork` changes.
+    // Observe gateway changes.
+    let mut events_rx = events_tx.subscribe();
+    debug!("Waiting for gateway change events");
+    while let Ok(event) = events_rx.recv().await {
+        debug!("Received gateway change event");
+        match event {
+            ChangeEvent::GatewayCreated(gateway) => {
+                let gateway_client = GatewayHandler::new(
+                    &gateway.url,
+                    config.proxy_grpc_ca.as_deref(),
+                    gateway.network_id,
+                    pool.clone(),
+                    events_tx.clone(),
+                )?;
+                tasks.spawn(async move {
+                    gateway_client.handle_connection().await;
+                });
+            }
+            ChangeEvent::GatewayModified(gateway) => (),
+            ChangeEvent::GatewayDeleted(gateway_id) => (),
+            _ => (), // ignored
+        }
+    }
 
     while let Some(Ok(_result)) = tasks.join_next().await {
         debug!("Gateway gRPC task has ended");

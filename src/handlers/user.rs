@@ -18,6 +18,7 @@ use crate::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+            oauth2authorizedapp::OAuth2AuthorizedApp,
             settings::Settings,
             user::User,
             wallet::Wallet,
@@ -25,7 +26,7 @@ use crate::{
             webhook::AppEvent,
             wireguard::{ChangeEvent, WireguardNetwork},
         },
-        MFAMethod, OAuth2AuthorizedApp, UserDetails, UserInfo,
+        MFAMethod, UserDetails, UserInfo,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},

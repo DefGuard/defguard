@@ -34,7 +34,7 @@ struct ClientLoginSession {
 pub(super) struct ClientMfaServer {
     pool: PgPool,
     mail_tx: UnboundedSender<Mail>,
-    wireguard_tx: Sender<ChangeEvent>,
+    events_tx: Sender<ChangeEvent>,
     sessions: HashMap<String, ClientLoginSession>,
 }
 
@@ -43,12 +43,12 @@ impl ClientMfaServer {
     pub fn new(
         pool: PgPool,
         mail_tx: UnboundedSender<Mail>,
-        wireguard_tx: Sender<ChangeEvent>,
+        events_tx: Sender<ChangeEvent>,
     ) -> Self {
         Self {
             pool,
             mail_tx,
-            wireguard_tx,
+            events_tx,
             sessions: HashMap::new(),
         }
     }
@@ -264,7 +264,7 @@ impl ClientMfaServer {
             }],
         };
         let event = ChangeEvent::DeviceCreated(device_info);
-        self.wireguard_tx.send(event).map_err(|err| {
+        self.events_tx.send(event).map_err(|err| {
             error!("Error sending WireGuard event: {err}");
             Status::internal("unexpected error")
         })?;

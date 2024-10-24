@@ -9,7 +9,10 @@ use crate::{
     appstate::AppState,
     auth::{SessionInfo, VpnRole},
     db::{
-        models::{gateway::Gateway, wireguard::WireguardNetwork},
+        models::{
+            gateway::Gateway,
+            wireguard::{ChangeEvent, WireguardNetwork},
+        },
         Id,
     },
 };
@@ -39,14 +42,16 @@ pub(crate) async fn add_gateway(
         session.user.username, data.url, network.name
     );
 
-    let gateway = Gateway::new(network_id, &data.url);
-
-    gateway.save(&appstate.pool).await?;
+    let gateway = Gateway::new(network_id, &data.url)
+        .save(&appstate.pool)
+        .await?;
 
     info!(
         "User {} has added a gateway with URL {} to network {}",
         session.user.username, data.url, network.name
     );
+
+    appstate.send_change_event(ChangeEvent::GatewayCreated(gateway));
 
     Ok(ApiResponse::new(json!({}), StatusCode::CREATED))
 }
@@ -74,13 +79,15 @@ pub(crate) async fn delete_gateway(
     );
 
     let msg = format!(
-        "User {} has removed gateway with URL {}",
+        "User {} has deleted gateway with URL {}",
         session.user.username, gateway.url
     );
 
     gateway.delete(&appstate.pool).await?;
 
     info!("{msg}");
+
+    appstate.send_change_event(ChangeEvent::GatewayDeleted(gateway_id));
 
     Ok(ApiResponse {
         json: json!({}),
@@ -171,15 +178,15 @@ pub(crate) async fn update_gateway(
         session.user.username, gateway.url
     );
 
-    let msg = format!(
-        "User {} has updated gateway ID {} to have URL {}",
-        session.user.username, gateway_id, data.url
-    );
-
     gateway.url = data.url;
     gateway.save(&appstate.pool).await?;
 
-    info!("{msg}");
+    info!(
+        "User {} has updated gateway ID {} to have URL {}",
+        session.user.username, gateway.id, gateway.url
+    );
+
+    appstate.send_change_event(ChangeEvent::GatewayModified(gateway));
 
     Ok(ApiResponse::new(json!({}), StatusCode::OK))
 }

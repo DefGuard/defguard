@@ -92,7 +92,7 @@ async fn test_config_import() {
 
     transaction.commit().await.unwrap();
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;

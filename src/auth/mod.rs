@@ -19,8 +19,11 @@ use serde::{Deserialize, Serialize};
 use crate::{
     appstate::AppState,
     db::{
-        models::{group::Group, user::User},
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState,
+        models::{
+            group::Group, oauth2authorizedapp::OAuth2AuthorizedApp, oauth2token::OAuth2Token,
+            user::User,
+        },
+        Id, Session, SessionState,
     },
     error::WebError,
     handlers::SESSION_COOKIE_NAME,

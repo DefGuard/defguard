@@ -40,8 +40,11 @@ use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo},
     db::{
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::{
+            auth_code::AuthCode, oauth2authorizedapp::OAuth2AuthorizedApp,
+            oauth2client::OAuth2Client, oauth2token::OAuth2Token, user::User,
+        },
+        Id, Session, SessionState,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},

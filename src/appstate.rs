@@ -30,7 +30,7 @@ use crate::{
 pub(crate) struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    wireguard_tx: Sender<ChangeEvent>,
+    events_tx: Sender<ChangeEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
     pub user_agent_parser: Arc<UserAgentParser>,
@@ -84,7 +84,7 @@ impl AppState {
 
     /// Sends given `ChangeEvent` to be handled by gateway (over gRPC).
     pub(crate) fn send_change_event(&self, event: ChangeEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
+        if let Err(err) = self.events_tx.send(event) {
             error!("Error sending change event {err}");
         }
     }
@@ -102,7 +102,7 @@ impl AppState {
         pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: Sender<ChangeEvent>,
+        events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -129,7 +129,7 @@ impl AppState {
         Self {
             pool,
             tx,
-            wireguard_tx,
+            events_tx,
             mail_tx,
             webauthn,
             user_agent_parser,

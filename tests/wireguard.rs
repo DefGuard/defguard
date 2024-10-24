@@ -38,7 +38,7 @@ fn make_network() -> Value {
 async fn test_network() {
     let (client, client_state) = make_test_client().await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -120,7 +120,7 @@ async fn test_network() {
 async fn test_device() {
     let (client, client_state) = make_test_client().await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -424,7 +424,7 @@ async fn test_device_permissions() {
 async fn test_device_pubkey() {
     let (client, client_state) = make_test_client().await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;

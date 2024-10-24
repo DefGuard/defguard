@@ -120,7 +120,7 @@ async fn test_create_new_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -162,7 +162,7 @@ async fn test_modify_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -311,7 +311,7 @@ async fn test_import_network_existing_devices() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -399,7 +399,7 @@ async fn test_import_mapping_devices() {
     let (client, client_state) = make_test_client().await;
     let (users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -507,7 +507,7 @@ async fn test_modify_user() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -602,7 +602,7 @@ async fn test_delete_only_allowed_group() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;

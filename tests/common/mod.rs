@@ -86,7 +86,7 @@ async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
 pub struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub wireguard_rx: Receiver<ChangeEvent>,
+    pub events_rx: Receiver<ChangeEvent>,
     pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User<Id>,
@@ -97,7 +97,7 @@ impl ClientState {
     pub fn new(
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        wireguard_rx: Receiver<ChangeEvent>,
+        events_rx: Receiver<ChangeEvent>,
         mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User<Id>,
@@ -106,7 +106,7 @@ impl ClientState {
         Self {
             pool,
             worker_state,
-            wireguard_rx,
+            events_rx,
             mail_rx,
             failed_logins,
             test_user,

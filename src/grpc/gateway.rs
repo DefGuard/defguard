@@ -230,7 +230,7 @@ impl GatewayHandler {
         Ok(())
     }
 
-    pub(super) async fn handle_connection(&self, network: WireguardNetwork<Id>) -> ! {
+    pub(super) async fn handle_connection(&self) -> ! {
         let uri = self.endpoint.uri();
         loop {
             info!("Connecting to gateway {uri}");
@@ -244,8 +244,16 @@ impl GatewayHandler {
             info!("Connected to gateway {uri}");
             let mut resp_stream = response.into_inner();
 
+            let Ok(Some(network)) = WireguardNetwork::find_by_id(&self.pool, self.network_id).await
+            else {
+                error!(
+                    "Failed to fetch network ID {} from the database",
+                    self.network_id
+                );
+                continue;
+            };
             tokio::spawn(handle_events(
-                network.clone(),
+                network,
                 tx.clone(),
                 self.events_tx.subscribe(),
             ));
@@ -436,8 +444,8 @@ async fn handle_events(
                     None => continue,
                 }
             }
-            _ => {
-                debug!("ChangeEvent ignored");
+            event => {
+                debug!("ChangeEvent {event:?} ignored");
                 continue;
             }
         };

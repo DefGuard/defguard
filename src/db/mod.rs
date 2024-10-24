@@ -7,7 +7,8 @@ use utoipa::ToSchema;
 pub struct NoId;
 pub type Id = i64;
 
-/// Initializes and migrates postgres database. Returns DB pool object.
+/// Initializes PostgreSQL database and runs the migrations.
+/// Returns database pool object.
 pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> PgPool {
     info!("Initializing pool of database connections");
     let opts = PgConnectOptions::new()
@@ -28,8 +29,6 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
 
 pub use models::{
     device::{AddDevice, Device},
-    oauth2authorizedapp::OAuth2AuthorizedApp,
-    oauth2token::OAuth2Token,
     session::{Session, SessionState},
     user::{MFAMethod, User},
     MFAInfo, UserDetails, UserInfo,

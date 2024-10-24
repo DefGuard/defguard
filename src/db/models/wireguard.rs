@@ -20,7 +20,9 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
-    User, UserInfo,
+    gateway::Gateway,
+    user::User,
+    UserInfo,
 };
 use crate::{
     appstate::AppState,
@@ -69,8 +71,8 @@ pub enum ChangeEvent {
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
-    GatewayCreated(Id),
-    GatewayModified(Id),
+    GatewayCreated(Gateway<Id>),
+    GatewayModified(Gateway<Id>),
     GatewayDeleted(Id),
 }
 

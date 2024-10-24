@@ -39,7 +39,7 @@ pub enum PeerDisconnectError {
 /// Run with a specified frequency and disconnect all inactive peers in MFA-protected locations.
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
-    wireguard_tx: Sender<ChangeEvent>,
+    events_tx: Sender<ChangeEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
     loop {
@@ -99,7 +99,7 @@ pub async fn run_periodic_peer_disconnect(
                         }],
                     };
                     let event = ChangeEvent::DeviceDeleted(device_info);
-                    wireguard_tx.send(event).map_err(|err| {
+                    events_tx.send(event).map_err(|err| {
                         error!("Error sending WireGuard event: {err}");
                         PeerDisconnectError::EventError(err.to_string())
                     })?;
