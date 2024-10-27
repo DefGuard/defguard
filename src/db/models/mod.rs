@@ -169,22 +169,18 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub(crate) fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_safe_fields(self, user: &mut User<Id>) {
         user.phone = self.phone;
         user.mfa_method = self.mfa_method;
-
-        Ok(())
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub(crate) fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_all_fields(self, user: &mut User<Id>) {
         user.phone = self.phone;
         user.username = self.username;
         user.last_name = self.last_name;
         user.first_name = self.first_name;
         user.email = self.email;
-
-        Ok(())
     }
 }
 
@@ -312,7 +308,7 @@ mod test {
             .handle_user_groups(&mut transaction, &mut user)
             .await
             .unwrap();
-        user_info.into_user_all_fields(&mut user).unwrap();
+        user_info.into_user_all_fields(&mut user);
         transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);

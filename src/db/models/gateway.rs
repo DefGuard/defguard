@@ -1,11 +1,13 @@
+use std::fmt;
+
 use chrono::NaiveDateTime;
 use model_derive::Model;
 use sqlx::{query_as, PgExecutor};
 
 use crate::db::{Id, NoId};
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize)]
-pub struct Gateway<I = NoId> {
+#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize)]
+pub(crate) struct Gateway<I = NoId> {
     pub id: I,
     pub network_id: Id,
     pub url: String,
@@ -45,5 +47,11 @@ impl Gateway<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+}
+
+impl fmt::Display for Gateway<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Gateway(#{} to {})", self.id, self.url)
     }
 }

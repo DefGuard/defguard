@@ -668,9 +668,9 @@ pub async fn modify_user(
             }
             info!("Allowed network devices of {username} synced");
         };
-        user_info.into_user_all_fields(&mut user)?;
+        user_info.into_user_all_fields(&mut user);
     } else {
-        user_info.into_user_safe_fields(&mut user)?;
+        user_info.into_user_safe_fields(&mut user);
     }
     user.save(&mut *transaction).await?;
 

@@ -56,8 +56,9 @@ impl AppState {
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
                 info!("Found webhooks: {webhooks:#?}");
                 let payload = match msg {
-                    AppEvent::UserCreated(ref user) => json!(user),
-                    AppEvent::UserModified(ref user) => json!(user),
+                    AppEvent::UserCreated(ref user) | AppEvent::UserModified(ref user) => {
+                        json!(user)
+                    }
                     AppEvent::UserDeleted(ref username) => json!({ "username": username }),
                     AppEvent::HWKeyProvision(ref data) => json!(data),
                 };

@@ -435,7 +435,7 @@ async fn handle_events(
                     Some(_) => (
                         UpdateType::Delete,
                         update::Update::Peer(Peer {
-                            pubkey: device.device.wireguard_pubkey.into(),
+                            pubkey: device.device.wireguard_pubkey,
                             allowed_ips: Vec::new(),
                             preshared_key: None,
                             keepalive_interval: None,
@@ -443,10 +443,6 @@ async fn handle_events(
                     ),
                     None => continue,
                 }
-            }
-            event => {
-                debug!("ChangeEvent {event:?} ignored");
-                continue;
             }
         };
 

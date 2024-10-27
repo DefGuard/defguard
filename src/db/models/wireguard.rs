@@ -71,9 +71,6 @@ pub enum ChangeEvent {
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
-    GatewayCreated(Gateway<Id>),
-    GatewayModified(Gateway<Id>),
-    GatewayDeleted(Id),
 }
 
 /// Stores configuration required to setup a WireGuard network

@@ -12,6 +12,7 @@ use std::{
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use reqwest::Url;
 use serde::Serialize;
+use sqlx::postgres::PgListener;
 #[cfg(feature = "worker")]
 use sqlx::PgPool;
 use thiserror::Error;
@@ -20,7 +21,7 @@ use tokio::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
     },
-    task::JoinSet,
+    task::{AbortHandle, JoinSet},
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -349,6 +350,21 @@ impl From<Status> for CoreError {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+enum TriggerOperation {
+    Insert,
+    Update,
+    Delete,
+}
+
+#[derive(Deserialize)]
+struct ChangeNotification {
+    operation: TriggerOperation,
+    old: Option<Gateway<Id>>,
+    new: Option<Gateway<Id>>,
+}
+
 /// Bi-directional gRPC stream for comminication with Defguard gateway.
 pub async fn run_grpc_gateway_stream(
     pool: PgPool,
@@ -356,42 +372,76 @@ pub async fn run_grpc_gateway_stream(
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
+    let mut abort_handles = HashMap::new();
+
     let mut tasks = JoinSet::new();
+    // Helper closure to launch `GatewayHandler`.
+    let mut launch_gateway_handler =
+        |gateway: &Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
+            let gateway_client = GatewayHandler::new(
+                gateway.url.as_str(),
+                config.proxy_grpc_ca.as_deref(),
+                gateway.network_id,
+                pool.clone(),
+                events_tx.clone(),
+            )?;
+            let abort_handle = tasks.spawn(async move {
+                gateway_client.handle_connection().await;
+            });
+            Ok(abort_handle)
+        };
+
     let gateways = Gateway::all(&pool).await?;
-    for gateway in gateways.into_iter() {
-        let gateway_client = GatewayHandler::new(
-            &gateway.url,
-            config.proxy_grpc_ca.as_deref(),
-            gateway.network_id,
-            pool.clone(),
-            events_tx.clone(),
-        )?;
-        tasks.spawn(async move {
-            gateway_client.handle_connection().await;
-        });
+    for gateway in gateways {
+        let abort_handle = launch_gateway_handler(&gateway)?;
+        abort_handles.insert(gateway.id, abort_handle);
     }
 
-    // Observe gateway changes.
-    let mut events_rx = events_tx.subscribe();
-    debug!("Waiting for gateway change events");
-    while let Ok(event) = events_rx.recv().await {
-        debug!("Received gateway change event");
-        match event {
-            ChangeEvent::GatewayCreated(gateway) => {
-                let gateway_client = GatewayHandler::new(
-                    &gateway.url,
-                    config.proxy_grpc_ca.as_deref(),
-                    gateway.network_id,
-                    pool.clone(),
-                    events_tx.clone(),
-                )?;
-                tasks.spawn(async move {
-                    gateway_client.handle_connection().await;
-                });
+    // Observe gateway URL changes.
+    let mut listener = PgListener::connect_with(&pool).await?;
+    listener.listen("gateway_change").await?;
+    while let Ok(notification) = listener.recv().await {
+        let payload = notification.payload();
+        match serde_json::from_str::<ChangeNotification>(payload) {
+            Ok(gateway_notification) => {
+                match gateway_notification.operation {
+                    TriggerOperation::Insert => {
+                        if let Some(new) = gateway_notification.new {
+                            let abort_handle = launch_gateway_handler(&new)?;
+                            abort_handles.insert(new.id, abort_handle);
+                        }
+                    }
+                    TriggerOperation::Update => {
+                        if let (Some(old), Some(new)) =
+                            (gateway_notification.old, gateway_notification.new)
+                        {
+                            if old.url == new.url {
+                                debug!("Gateway URL didn't change. Keeping the running gateway handler");
+                            } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!(
+                                    "Aborting connection to {old}, it has changed in the database"
+                                );
+                                abort_handle.abort();
+                                let abort_handle = launch_gateway_handler(&new)?;
+                                abort_handles.insert(new.id, abort_handle);
+                            } else {
+                                warn!("Cannot find {old} on the list of connected gateways");
+                            }
+                        }
+                    }
+                    TriggerOperation::Delete => {
+                        if let Some(old) = gateway_notification.old {
+                            if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!("Aborting connection to {old}, it has disappeard from the database");
+                                abort_handle.abort();
+                            } else {
+                                warn!("Cannot find {old} on the list of connected gateways");
+                            }
+                        }
+                    }
+                }
             }
-            ChangeEvent::GatewayModified(gateway) => (),
-            ChangeEvent::GatewayDeleted(gateway_id) => (),
-            _ => (), // ignored
+            Err(err) => error!("Failed to de-serialize database notification object {err}"),
         }
     }
 

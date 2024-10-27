@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"mfa_enabled\",\"keepalive_interval\",\"peer_disconnect_threshold\",\"gateways\" \"gateways: _\" FROM \"wireguard_network\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"mfa_enabled\",\"keepalive_interval\",\"peer_disconnect_threshold\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -67,17 +67,10 @@
         "ordinal": 12,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
-      },
-      {
-        "ordinal": 13,
-        "name": "gateways: _",
-        "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -92,9 +85,8 @@
       true,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "f568188bc7c8b54ffccad38cee004730a4d22fd487a1dc6c13575c0f1aa394f4"
+  "hash": "8c772071e52ac1fb10931f9f698b7555093606011a31706e23dc891321d8836c"
 }

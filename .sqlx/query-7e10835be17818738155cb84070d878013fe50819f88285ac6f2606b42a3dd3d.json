@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, gateways FROM wireguard_network WHERE mfa_enabled = true",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold FROM wireguard_network WHERE name = $1",
   "describe": {
     "columns": [
       {
@@ -67,15 +67,12 @@
         "ordinal": 12,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
-      },
-      {
-        "ordinal": 13,
-        "name": "gateways",
-        "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -90,9 +87,8 @@
       true,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "8f397a1393682f42600ba4799b69105d0f94ca2d204e25148b63b833ba69459b"
+  "hash": "7e10835be17818738155cb84070d878013fe50819f88285ac6f2606b42a3dd3d"
 }
