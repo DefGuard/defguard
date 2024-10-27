@@ -9,12 +9,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use reqwest::Url;
 use serde::Serialize;
-use sqlx::postgres::PgListener;
-#[cfg(feature = "worker")]
-use sqlx::PgPool;
+use sqlx::{postgres::PgListener, PgPool};
 use thiserror::Error;
 use tokio::{
     sync::{
@@ -48,14 +46,13 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
         models::{gateway::Gateway, settings::Settings, webhook::AppEvent},
-        Id,
+        ChangeNotification, Id, TriggerOperation,
     },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
         license::{get_cached_license, validate_license},
     },
-    handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
     server_config,
 };
@@ -85,7 +82,7 @@ type GatewayHostname = String;
 // TODO: save state to database
 pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum GatewayMapError {
     #[error("Gateway {1} for network {0} not found")]
     NotFound(i64, GatewayHostname),
@@ -205,7 +202,7 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification(pool);
+                // state.send_disconnect_notification(pool);
                 // debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
@@ -274,71 +271,6 @@ pub(crate) struct GatewayState {
     pub last_email_notification: Option<NaiveDateTime>,
 }
 
-impl GatewayState {
-    // #[must_use]
-    // pub fn new<S: Into<String>>(
-    //     network_id: Id,
-    //     network_name: S,
-    //     hostname: S,
-    //     name: Option<String>,
-    //     mail_tx: UnboundedSender<Mail>,
-    // ) -> Self {
-    //     Self {
-    //         uid: Uuid::new_v4(),
-    //         connected: false,
-    //         network_id,
-    //         network_name: network_name.into(),
-    //         name,
-    //         hostname: hostname.into(),
-    //         connected_at: None,
-    //         disconnected_at: None,
-    //         mail_tx,
-    //         last_email_notification: None,
-    //     }
-    // }
-
-    /// Send gateway disconnected notification
-    /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Sending gateway disconnect email notification");
-        // Clone here because self doesn't live long enough
-        let name = self.name.clone();
-        let mail_tx = self.mail_tx.clone();
-        let pool = pool.clone();
-        let hostname = self.hostname.clone();
-        let network_name = self.network_name.clone();
-        let send_email = if let Some(last_notification_time) = self.last_email_notification {
-            Utc::now().naive_utc() - last_notification_time
-                > ChronoDuration::from_std(
-                    *server_config().gateway_disconnection_notification_timeout,
-                )
-                .expect("Failed to parse duration")
-        } else {
-            true
-        };
-        if send_email {
-            self.last_email_notification = Some(Utc::now().naive_utc());
-            // FIXME: Try to get rid of spawn and use something like block_on
-            // To return result instead of logging
-            tokio::spawn(async move {
-                if let Err(err) =
-                    send_gateway_disconnected_email(name, &network_name, &hostname, &mail_tx, &pool)
-                        .await
-                {
-                    error!("Failed to send gateway disconnect notification: {err}");
-                } else {
-                    info!("Gateway {hostname} disconnected. Email notification sent",);
-                }
-            });
-        } else {
-            info!(
-                "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
-                self.last_email_notification
-            );
-        };
-    }
-}
-
 const TEN_SECS: Duration = Duration::from_secs(10);
 
 impl From<Status> for CoreError {
@@ -350,25 +282,11 @@ impl From<Status> for CoreError {
     }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-enum TriggerOperation {
-    Insert,
-    Update,
-    Delete,
-}
-
-#[derive(Deserialize)]
-struct ChangeNotification {
-    operation: TriggerOperation,
-    old: Option<Gateway<Id>>,
-    new: Option<Gateway<Id>>,
-}
-
 /// Bi-directional gRPC stream for comminication with Defguard gateway.
 pub async fn run_grpc_gateway_stream(
     pool: PgPool,
     events_tx: Sender<ChangeEvent>,
+    mail_tx: UnboundedSender<Mail>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -377,13 +295,13 @@ pub async fn run_grpc_gateway_stream(
     let mut tasks = JoinSet::new();
     // Helper closure to launch `GatewayHandler`.
     let mut launch_gateway_handler =
-        |gateway: &Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
-            let gateway_client = GatewayHandler::new(
-                gateway.url.as_str(),
+        |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
+            let mut gateway_client = GatewayHandler::new(
+                gateway,
                 config.proxy_grpc_ca.as_deref(),
-                gateway.network_id,
                 pool.clone(),
                 events_tx.clone(),
+                mail_tx.clone(),
             )?;
             let abort_handle = tasks.spawn(async move {
                 gateway_client.handle_connection().await;
@@ -393,8 +311,9 @@ pub async fn run_grpc_gateway_stream(
 
     let gateways = Gateway::all(&pool).await?;
     for gateway in gateways {
-        let abort_handle = launch_gateway_handler(&gateway)?;
-        abort_handles.insert(gateway.id, abort_handle);
+        let id = gateway.id;
+        let abort_handle = launch_gateway_handler(gateway)?;
+        abort_handles.insert(id, abort_handle);
     }
 
     // Observe gateway URL changes.
@@ -402,13 +321,14 @@ pub async fn run_grpc_gateway_stream(
     listener.listen("gateway_change").await?;
     while let Ok(notification) = listener.recv().await {
         let payload = notification.payload();
-        match serde_json::from_str::<ChangeNotification>(payload) {
+        match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
             Ok(gateway_notification) => {
                 match gateway_notification.operation {
                     TriggerOperation::Insert => {
                         if let Some(new) = gateway_notification.new {
-                            let abort_handle = launch_gateway_handler(&new)?;
-                            abort_handles.insert(new.id, abort_handle);
+                            let id = new.id;
+                            let abort_handle = launch_gateway_handler(new)?;
+                            abort_handles.insert(id, abort_handle);
                         }
                     }
                     TriggerOperation::Update => {
@@ -422,8 +342,9 @@ pub async fn run_grpc_gateway_stream(
                                     "Aborting connection to {old}, it has changed in the database"
                                 );
                                 abort_handle.abort();
-                                let abort_handle = launch_gateway_handler(&new)?;
-                                abort_handles.insert(new.id, abort_handle);
+                                let id = new.id;
+                                let abort_handle = launch_gateway_handler(new)?;
+                                abort_handles.insert(id, abort_handle);
                             } else {
                                 warn!("Cannot find {old} on the list of connected gateways");
                             }
@@ -441,7 +362,7 @@ pub async fn run_grpc_gateway_stream(
                     }
                 }
             }
-            Err(err) => error!("Failed to de-serialize database notification object {err}"),
+            Err(err) => error!("Failed to de-serialize database notification object: {err}"),
         }
     }
 

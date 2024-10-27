@@ -211,7 +211,7 @@ pub fn send_new_device_added_email(
 pub async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
     network_name: &str,
-    gateway_adress: &str,
+    gateway_url: &str,
     mail_tx: &UnboundedSender<Mail>,
     pool: &PgPool,
 ) -> Result<(), WebError> {
@@ -224,7 +224,7 @@ pub async fn send_gateway_disconnected_email(
             subject: GATEWAY_DISCONNECTED.to_string(),
             content: templates::gateway_disconnected_mail(
                 &gateway_name,
-                gateway_adress,
+                gateway_url,
                 network_name,
             )?,
             attachments: Vec::new(),

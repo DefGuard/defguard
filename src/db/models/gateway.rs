@@ -1,8 +1,8 @@
 use std::fmt;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, PgExecutor};
+use sqlx::{query, query_as, PgExecutor};
 
 use crate::db::{Id, NoId};
 
@@ -48,10 +48,44 @@ impl Gateway<Id> {
         .fetch_all(executor)
         .await
     }
+
+    /// Update `connected_at` to the current time and save it to the database.
+    pub(crate) async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.connected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE gateway SET connected_at = $2 WHERE id = $1",
+            self.id,
+            self.connected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Update `disconnected_at` to the current time and save it to the database.
+    pub(crate) async fn touch_disconnected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.disconnected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE gateway SET disconnected_at = $2 WHERE id = $1",
+            self.id,
+            self.disconnected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
 }
 
 impl fmt::Display for Gateway<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Gateway(#{} to {})", self.id, self.url)
+        write!(f, "Gateway(ID {}; URL {})", self.id, self.url)
     }
 }

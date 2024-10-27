@@ -20,7 +20,6 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
-    gateway::Gateway,
     user::User,
     UserInfo,
 };
@@ -757,7 +756,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Update `connected_at` to the current time and save it to the database.
-    pub(crate) async fn touch_connected_at<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    pub(crate) async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {

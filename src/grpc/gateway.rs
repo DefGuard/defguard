@@ -28,16 +28,18 @@ use crate::{
     db::{
         models::{
             device::Device,
+            gateway::Gateway,
             wireguard::{ChangeEvent, WireguardNetwork, WireguardPeerStats},
         },
         Id, NoId,
     },
+    handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
 };
 
 tonic::include_proto!("gateway");
 
-pub struct GatewayServer {
+pub(crate) struct GatewayServer {
     pool: PgPool,
     state: Arc<Mutex<GatewayMap>>,
     events_tx: Sender<ChangeEvent>,
@@ -141,21 +143,22 @@ const TEN_SECS: Duration = Duration::from_secs(10);
 /// One instance per connected gateway.
 pub(super) struct GatewayHandler {
     endpoint: Endpoint,
+    gateway: Gateway<Id>,
     message_id: AtomicU64,
-    network_id: Id,
     pool: PgPool,
     events_tx: Sender<ChangeEvent>,
+    mail_tx: UnboundedSender<Mail>,
 }
 
 impl GatewayHandler {
     pub(super) fn new(
-        url: &str,
+        gateway: Gateway<Id>,
         ca_path: Option<&str>,
-        network_id: Id,
         pool: PgPool,
         events_tx: Sender<ChangeEvent>,
+        mail_tx: UnboundedSender<Mail>,
     ) -> Result<Self, tonic::transport::Error> {
-        let endpoint = Endpoint::from_shared(url.to_string())?;
+        let endpoint = Endpoint::from_shared(gateway.url.to_string())?;
         let endpoint = endpoint
             .http2_keep_alive_interval(TEN_SECS)
             .tcp_keepalive(Some(TEN_SECS))
@@ -170,16 +173,17 @@ impl GatewayHandler {
 
         Ok(Self {
             endpoint,
+            gateway,
             message_id: AtomicU64::new(0),
-            network_id,
             pool,
             events_tx,
+            mail_tx,
         })
     }
 
     async fn send_configuration(&self, tx: &UnboundedSender<CoreResponse>) -> Result<(), Status> {
         debug!("Sending configuration to gateway.");
-        let network_id = self.network_id;
+        let network_id = self.gateway.network_id;
         // let hostname = Self::get_gateway_hostname(request.metadata())?;
 
         let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
@@ -196,20 +200,7 @@ impl GatewayHandler {
             })?;
 
         debug!("Sending configuration to gateway, network {network}.");
-
-        // store connected gateway in memory
-        // {
-        //     let mut state = self.state.lock().unwrap();
-        //     state.add_gateway(
-        //         network_id,
-        //         &network.name,
-        //         hostname,
-        //         request.into_inner().name,
-        //         self.mail_tx.clone(),
-        //     );
-        // }
-
-        if let Err(err) = network.touch_connected_at(&self.pool).await {
+        if let Err(err) = network.touch_connected(&self.pool).await {
             error!("Failed to update connected at for network {network_id} in the database, status: {err}");
         }
 
@@ -230,7 +221,55 @@ impl GatewayHandler {
         Ok(())
     }
 
-    pub(super) async fn handle_connection(&self) -> ! {
+    /// Send gateway disconnected notification
+    /// Sends notification only if last notification time is bigger than specified in config
+    async fn send_disconnect_notification(&self) {
+        debug!("Sending gateway disconnect email notification");
+        let hostname = self.gateway.hostname.clone();
+        let mail_tx = self.mail_tx.clone();
+        let pool = self.pool.clone();
+        let url = self.gateway.url.clone();
+
+        let Ok(Some(network)) =
+            WireguardNetwork::find_by_id(&self.pool, self.gateway.network_id).await
+        else {
+            error!(
+                "Failed to fetch network ID {} from database",
+                self.gateway.network_id
+            );
+            return;
+        };
+
+        // Send email only if disconnection time is before the connection time.
+        let send_email = if let (Some(connected_at), Some(disconnected_at)) =
+            (self.gateway.connected_at, self.gateway.disconnected_at)
+        {
+            disconnected_at <= connected_at
+        } else {
+            true
+        };
+        if send_email {
+            // FIXME: Try to get rid of spawn and use something like block_on
+            // To return result instead of logging
+            tokio::spawn(async move {
+                if let Err(err) =
+                    send_gateway_disconnected_email(hostname, &network.name, &url, &mail_tx, &pool)
+                        .await
+                {
+                    error!("Failed to send gateway disconnect notification: {err}");
+                } else {
+                    info!("Email notification sent about gateway being disconnected");
+                }
+            });
+        } else {
+            info!(
+                "{} disconnected. Email notification not sent.",
+                self.gateway
+            );
+        };
+    }
+
+    pub(super) async fn handle_connection(&mut self) -> ! {
         let uri = self.endpoint.uri();
         loop {
             info!("Connecting to gateway {uri}");
@@ -244,11 +283,12 @@ impl GatewayHandler {
             info!("Connected to gateway {uri}");
             let mut resp_stream = response.into_inner();
 
-            let Ok(Some(network)) = WireguardNetwork::find_by_id(&self.pool, self.network_id).await
+            let Ok(Some(network)) =
+                WireguardNetwork::find_by_id(&self.pool, self.gateway.network_id).await
             else {
                 error!(
                     "Failed to fetch network ID {} from the database",
-                    self.network_id
+                    self.gateway.network_id
                 );
                 continue;
             };
@@ -260,6 +300,7 @@ impl GatewayHandler {
 
             // TODO: probably fail on error
             let _ = self.send_configuration(&tx).await;
+            let _ = self.gateway.touch_connected(&self.pool).await;
 
             'message: loop {
                 match resp_stream.message().await {
@@ -280,7 +321,7 @@ impl GatewayHandler {
                                 let public_key = peer_stats.public_key.clone();
                                 let mut stats = WireguardPeerStats::from_peer_stats(
                                     peer_stats,
-                                    self.network_id,
+                                    self.gateway.network_id,
                                 );
                                 // Get device by public key and fill in stats.device_id
                                 // FIXME: keep an in-memory device map to avoid repeated DB requests
@@ -305,6 +346,9 @@ impl GatewayHandler {
                     }
                     Err(err) => {
                         error!("Disconnected from gateway at {uri}, error: {err}");
+                        // Important: call this funtion before setting disconnection time.
+                        self.send_disconnect_notification().await;
+                        let _ = self.gateway.touch_disconnected(&self.pool).await;
                         debug!("Waiting 10s to re-establish the connection");
                         sleep(TEN_SECS).await;
                         break 'message;
