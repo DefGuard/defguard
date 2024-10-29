@@ -1,15 +1,16 @@
 import './style.scss';
 
-import { Gateway } from '../../../../shared/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { EditButton } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../shared/defguard-ui/components/Layout/EditButton/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MutationKeys } from '../../../../shared/mutations';
 import useApi from '../../../../shared/hooks/useApi';
-import { QueryKeys } from '../../../../shared/queries';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import { useI18nContext } from '../../../../i18n/i18n-react';
+import { MutationKeys } from '../../../../shared/mutations';
+import { QueryKeys } from '../../../../shared/queries';
+import { Gateway } from '../../../../shared/types';
 import { useEditGatewayModal } from '../modals/hooks/useEditGatewayModal';
 
 interface Props {
@@ -19,28 +20,24 @@ interface Props {
 export const GatewayCard = ({ gateway }: Props) => {
   const {
     network: {
-      gateway: { deleteGateway2 },
+      gateway: { deleteGateway },
     },
   } = useApi();
   const queryClient = useQueryClient();
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
-  const { mutate } = useMutation(
-    [MutationKeys.DELETE_GATEWAY],
-    deleteGateway2,
-    {
-      onSuccess: (_data, _variables) => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_ALL_GATEWAYS]);
-        toaster.success('Gateway removed successfully');
-        close();
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate } = useMutation([MutationKeys.DELETE_GATEWAY], deleteGateway, {
+    onSuccess: (_data, _variables) => {
+      queryClient.invalidateQueries([QueryKeys.FETCH_ALL_GATEWAYS]);
+      toaster.success('Gateway removed successfully');
+      close();
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   const setEditGatewayModal = useEditGatewayModal((state) => state.setState);
 

@@ -1,13 +1,8 @@
-use std::{
-    net::IpAddr,
-    str::FromStr,
-    sync::{Arc, Mutex},
-};
+use std::{net::IpAddr, str::FromStr};
 
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
-    Extension,
 };
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
@@ -34,7 +29,7 @@ use crate::{
         Id,
     },
     enterprise::handlers::CanManageDevices,
-    grpc::{GatewayMap, GatewayState},
+    grpc::GatewayState,
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
@@ -297,24 +292,6 @@ pub(crate) async fn gateway_status(
     debug!("Displayed gateway status for network {network_id}");
 
     Ok(ApiResponse::new(json!(gateways), StatusCode::OK))
-}
-
-// TODO: gateway_id should be enough; remove network_id.
-pub(crate) async fn remove_gateway(
-    Path((network_id, gateway_id)): Path<(Id, Id)>,
-    _role: VpnRole,
-    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
-) -> Result<ApiResponse, WebError> {
-    debug!("Removing gateway {gateway_id} in network {network_id}");
-    let mut gateway_state = gateway_state
-        .lock()
-        .expect("Failed to acquire gateway state lock");
-
-    gateway_state.remove_gateway(network_id, gateway_id)?;
-
-    info!("Removed gateway {gateway_id} in network {network_id}");
-
-    Ok(ApiResponse::new(Value::Null, StatusCode::OK))
 }
 
 pub(crate) async fn import_network(

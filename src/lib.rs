@@ -54,7 +54,7 @@ use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
     delete_network, download_config, gateway_status, get_device, import_network, list_devices,
     list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway, user_stats,
+    network_stats, user_stats,
 };
 #[cfg(feature = "worker")]
 use self::handlers::worker::{
@@ -119,9 +119,7 @@ use self::{
 };
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
-    auth::failed_login::FailedLoginMap,
-    db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
+    auth::failed_login::FailedLoginMap, db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::app_info::get_app_info,
 };
 
@@ -292,7 +290,6 @@ pub fn build_webapp(
     events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -469,10 +466,6 @@ pub fn build_webapp(
             .route("/network", get(list_networks))
             .route("/network/:network_id", get(network_details))
             .route("/network/:network_id/gateways", get(gateway_status))
-            .route(
-                "/network/:network_id/gateways/:gateway_id",
-                delete(remove_gateway),
-            )
             .route("/network/import", post(import_network))
             .route("/network/:network_id/devices", post(add_user_devices))
             .route(
@@ -486,8 +479,7 @@ pub fn build_webapp(
             .route("/gateway/:gateway_id", get(get_gateway))
             .route("/gateway/:gateway_id", put(update_gateway))
             .route("/gateway/:gateway_id", delete(delete_gateway))
-            .route("/network/:network_id/all_gateways", get(get_gateways))
-            .layer(Extension(gateway_state)),
+            .route("/network/:network_id/all_gateways", get(get_gateways)),
     );
 
     #[cfg(feature = "worker")]
@@ -532,7 +524,6 @@ pub fn build_webapp(
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
     events_tx: Sender<ChangeEvent>,
@@ -547,7 +538,6 @@ pub async fn run_web_server(
         events_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         user_agent_parser,
         failed_logins,

@@ -1,4 +1,5 @@
 import { createWithEqualityFn } from 'zustand/traditional';
+
 import { Gateway } from '../../../../../shared/types';
 
 const defaultValues: StoreValues = {

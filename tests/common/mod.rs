@@ -12,7 +12,7 @@ use defguard::{
         Id,
     },
     enterprise::license::{set_cached_license, License},
-    grpc::{GatewayMap, WorkerState},
+    grpc::WorkerState,
     headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
@@ -120,7 +120,6 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<ChangeEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -167,7 +166,6 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
         wg_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         user_agent_parser,
         failed_logins,

@@ -10,7 +10,6 @@ use crate::{
         wireguard::WireguardNetworkError,
     },
     enterprise::license::LicenseError,
-    grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
 };
@@ -101,18 +100,6 @@ impl From<DeviceError> for WebError {
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
             DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
-        }
-    }
-}
-
-impl From<GatewayMapError> for WebError {
-    fn from(error: GatewayMapError) -> Self {
-        match error {
-            GatewayMapError::NotFound(_, _)
-            | GatewayMapError::NetworkNotFound(_)
-            | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
-            GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
-            GatewayMapError::ConfigError => Self::ServerConfigMissing,
         }
     }
 }

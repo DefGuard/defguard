@@ -6,6 +6,7 @@ import { useEffect, useMemo } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
+
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -37,10 +38,7 @@ export const EditGatewayModal = () => {
     shallow,
   );
 
-  const [close] = useEditGatewayModal(
-    (state) => [state.close],
-    shallow,
-  );
+  const [close] = useEditGatewayModal((state) => [state.close], shallow);
 
   const zodSchema = useMemo(
     () =>

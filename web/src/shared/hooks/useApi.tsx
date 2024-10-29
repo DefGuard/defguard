@@ -382,9 +382,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
     client.get(`/network/${networkId}/gateways`).then(unpackRequest);
 
-  const deleteGateway: ApiHook['network']['deleteGateway'] = (data) =>
-    client.delete(`/network/${data.networkId}/gateways/${data.gatewayId}`);
-
   const changePasswordSelf: ApiHook['changePasswordSelf'] = (data) =>
     client.put('/user/change_password', data).then(unpackRequest);
 
@@ -485,7 +482,7 @@ const useApi = (props?: HookProps): ApiHook => {
     data: AddGatewayRequest,
   ) => client.post(`/network/${data.networkId}/gateway`, data).then(unpackRequest);
 
-  const deleteGateway2: ApiHook['network']['gateway']['deleteGateway2'] = (data) =>
+  const deleteGateway: ApiHook['network']['gateway']['deleteGateway'] = (data) =>
     client.delete(`/gateway/${data.gatewayId}`).then(unpackRequest);
 
   const editGateway: ApiHook['network']['gateway']['editGateway'] = (data) =>
@@ -577,11 +574,10 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworkToken,
       getNetworkStats,
       getGatewaysStatus,
-      deleteGateway,
       gateway: {
         getAllGateways,
         addGateway,
-        deleteGateway2,
+        deleteGateway,
         editGateway,
       },
     },

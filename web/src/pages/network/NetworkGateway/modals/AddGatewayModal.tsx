@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
+
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -33,10 +34,7 @@ export const AddGatewayModal = () => {
       gateway: { addGateway },
     },
   } = useApi();
-  const [visible] = useAddGatewayModal(
-    (state) => [state.visible],
-    shallow,
-  );
+  const [visible] = useAddGatewayModal((state) => [state.visible], shallow);
   const [reset, close] = useAddGatewayModal(
     (state) => [state.reset, state.close],
     shallow,
@@ -118,7 +116,7 @@ export const AddGatewayModal = () => {
           controller={{ control, name: 'url' }}
           disabled={false}
           required
-          placeholder='e.g. http://127.0.0.1:50066/'
+          placeholder="e.g. http://127.0.0.1:50066/"
         />
         <div className="controls">
           <Button

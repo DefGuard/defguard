@@ -521,9 +521,8 @@ export interface ApiHook {
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
-    deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
     gateway: {
-      deleteGateway2: (data: { gatewayId: number }) => Promise<void>;
+      deleteGateway: (data: { gatewayId: number }) => Promise<void>;
       getAllGateways: (networkId: number) => Promise<Gateway[]>;
       addGateway: (data: AddGatewayRequest) => Promise<Gateway>;
       editGateway: (data: EditGatewayRequest) => Promise<Gateway>;
