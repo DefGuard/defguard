@@ -5,7 +5,10 @@ use tokio::sync::mpsc::UnboundedSender;
 use uaparser::{Client, Parser, UserAgentParser};
 
 use crate::{
-    db::{models::device_login::DeviceLoginEvent, Id, Session, User},
+    db::{
+        models::{device_login::DeviceLoginEvent, session::Session, user::User},
+        Id,
+    },
     handlers::mail::send_new_device_login_email,
     mail::Mail,
     templates::TemplateError,

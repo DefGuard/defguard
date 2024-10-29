@@ -27,9 +27,13 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{
-        models::{settings::Settings, user::User, wallet::Wallet, webauthn::WebAuthn},
-        MFAInfo, MFAMethod, Session, SessionState, UserInfo,
+    db::models::{
+        session::{Session, SessionState},
+        settings::Settings,
+        user::{MFAMethod, User},
+        wallet::Wallet,
+        webauthn::WebAuthn,
+        MFAInfo, UserInfo,
     },
     error::WebError,
     handlers::{

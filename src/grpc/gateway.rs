@@ -1,10 +1,6 @@
 use std::{
-    fs::read_to_string,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex,
-    },
-    time::Duration,
+    str::FromStr,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use chrono::{DateTime, Utc};
@@ -18,13 +14,13 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    metadata::MetadataMap,
-    transport::{Certificate, ClientTlsConfig, Endpoint},
+    transport::{ClientTlsConfig, Endpoint},
     Code, Status,
 };
 
-use super::GatewayMap;
+use super::TEN_SECS;
 use crate::{
+    auth::{Claims, ClaimsType},
     db::{
         models::{
             device::Device,
@@ -38,72 +34,6 @@ use crate::{
 };
 
 tonic::include_proto!("gateway");
-
-pub(crate) struct GatewayServer {
-    pool: PgPool,
-    state: Arc<Mutex<GatewayMap>>,
-    events_tx: Sender<ChangeEvent>,
-    mail_tx: UnboundedSender<Mail>,
-}
-
-impl GatewayServer {
-    /// Create new gateway server instance
-    #[must_use]
-    pub fn new(
-        pool: PgPool,
-        state: Arc<Mutex<GatewayMap>>,
-        events_tx: Sender<ChangeEvent>,
-        mail_tx: UnboundedSender<Mail>,
-    ) -> Self {
-        Self {
-            pool,
-            state,
-            events_tx,
-            mail_tx,
-        }
-    }
-
-    fn get_network_id(metadata: &MetadataMap) -> Result<i64, Status> {
-        match Self::get_network_id_from_metadata(metadata) {
-            Some(m) => Ok(m),
-            None => Err(Status::new(
-                Code::Internal,
-                "Network ID was not found in metadata",
-            )),
-        }
-    }
-
-    // parse network id from gateway request metadata from intercepted information from JWT token
-    fn get_network_id_from_metadata(metadata: &MetadataMap) -> Option<i64> {
-        if let Some(ascii_value) = metadata.get("gateway_network_id") {
-            if let Ok(slice) = ascii_value.clone().to_str() {
-                if let Ok(id) = slice.parse::<i64>() {
-                    return Some(id);
-                }
-            }
-        }
-        None
-    }
-
-    // extract gateway hostname from request headers
-    fn get_gateway_hostname(metadata: &MetadataMap) -> Result<String, Status> {
-        match metadata.get("hostname") {
-            Some(ascii_value) => {
-                let hostname = ascii_value.to_str().map_err(|_| {
-                    Status::new(
-                        Code::Internal,
-                        "Failed to parse gateway hostname from request metadata",
-                    )
-                })?;
-                Ok(hostname.into())
-            }
-            None => Err(Status::new(
-                Code::Internal,
-                "Gateway hostname not found in request metadata",
-            )),
-        }
-    }
-}
 
 fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration {
     Configuration {
@@ -137,9 +67,6 @@ impl WireguardPeerStats {
     }
 }
 
-// TODO: merge with super.
-const TEN_SECS: Duration = Duration::from_secs(10);
-
 /// One instance per connected gateway.
 pub(super) struct GatewayHandler {
     endpoint: Endpoint,
@@ -153,7 +80,7 @@ pub(super) struct GatewayHandler {
 impl GatewayHandler {
     pub(super) fn new(
         gateway: Gateway<Id>,
-        ca_path: Option<&str>,
+        tls_config: Option<ClientTlsConfig>,
         pool: PgPool,
         events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -163,9 +90,7 @@ impl GatewayHandler {
             .http2_keep_alive_interval(TEN_SECS)
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
-        let endpoint = if let Some(ca) = ca_path {
-            let ca = read_to_string(ca).unwrap(); // FIXME: use custom error
-            let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+        let endpoint = if let Some(tls) = tls_config {
             endpoint.tls_config(tls)?
         } else {
             endpoint
@@ -181,16 +106,17 @@ impl GatewayHandler {
         })
     }
 
+    /// Send network and VPN configuration to gateway.
     async fn send_configuration(&self, tx: &UnboundedSender<CoreResponse>) -> Result<(), Status> {
-        debug!("Sending configuration to gateway.");
+        debug!("Sending configuration to gateway");
         let network_id = self.gateway.network_id;
         // let hostname = Self::get_gateway_hostname(request.metadata())?;
 
         let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
             .await
-            .map_err(|e| {
+            .map_err(|err| {
                 error!("Network {network_id} not found");
-                Status::new(Code::Internal, format!("Failed to retrieve network: {e}"))
+                Status::new(Code::Internal, format!("Failed to retrieve network: {err}"))
             })?
             .ok_or_else(|| {
                 Status::new(
@@ -199,7 +125,10 @@ impl GatewayHandler {
                 )
             })?;
 
-        debug!("Sending configuration to gateway, network {network}.");
+        debug!(
+            "Sending configuration to {}, network {network}",
+            self.gateway
+        );
         if let Err(err) = network.touch_connected(&self.pool).await {
             error!("Failed to update connected at for network {network_id} in the database, status: {err}");
         }
@@ -215,14 +144,23 @@ impl GatewayHandler {
         let payload = Some(core_response::Payload::Config(gen_config(&network, peers)));
         let id = self.message_id.fetch_add(1, Ordering::Relaxed);
         let req = CoreResponse { id, payload };
-        tx.send(req).unwrap();
-        info!("Configuration sent to gateway client, network {network}.");
-
-        Ok(())
+        match tx.send(req) {
+            Ok(()) => {
+                info!("Configuration sent to {}, network {network}", self.gateway);
+                Ok(())
+            }
+            Err(err) => {
+                error!("Failed to send configuration sent to {}", self.gateway);
+                Err(Status::new(
+                    Code::Internal,
+                    format!("Configuration not sent to {}, error {err}", self.gateway),
+                ))
+            }
+        }
     }
 
-    /// Send gateway disconnected notification
-    /// Sends notification only if last notification time is bigger than specified in config
+    /// Send gateway disconnected notification.
+    /// Sends notification only if last notification time is bigger than specified in config.
     async fn send_disconnect_notification(&self) {
         debug!("Sending gateway disconnect email notification");
         let hostname = self.gateway.hostname.clone();
@@ -275,32 +213,18 @@ impl GatewayHandler {
             info!("Connecting to gateway {uri}");
             let mut client = gateway_client::GatewayClient::new(self.endpoint.connect_lazy());
             let (tx, rx) = mpsc::unbounded_channel();
-            let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-                error!("Failed to connect to gateway {uri}, retrying in 10s",);
-                sleep(TEN_SECS).await;
-                continue;
+            let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
+                Ok(response) => response,
+                Err(err) => {
+                    error!("Failed to connect to gateway {uri}, retrying: {err}");
+                    sleep(TEN_SECS).await;
+                    continue;
+                }
             };
+
             info!("Connected to gateway {uri}");
             let mut resp_stream = response.into_inner();
-
-            let Ok(Some(network)) =
-                WireguardNetwork::find_by_id(&self.pool, self.gateway.network_id).await
-            else {
-                error!(
-                    "Failed to fetch network ID {} from the database",
-                    self.gateway.network_id
-                );
-                continue;
-            };
-            tokio::spawn(handle_events(
-                network,
-                tx.clone(),
-                self.events_tx.subscribe(),
-            ));
-
-            // TODO: probably fail on error
-            let _ = self.send_configuration(&tx).await;
-            let _ = self.gateway.touch_connected(&self.pool).await;
+            let mut config_sent = false;
 
             'message: loop {
                 match resp_stream.message().await {
@@ -313,10 +237,79 @@ impl GatewayHandler {
                         debug!("Message from gateway {uri}: {received:?}");
                         match received.payload {
                             Some(core_request::Payload::ConfigRequest(config_request)) => {
-                                info!("*** ConfigurationRequest {config_request:?}");
+                                if config_sent {
+                                    warn!(
+                                        "Ignoring repeated configuration request from {}",
+                                        self.gateway
+                                    );
+                                    continue;
+                                }
+                                // Validate authorization token.
+                                if let Ok(claims) = Claims::from_jwt(
+                                    ClaimsType::Gateway,
+                                    &config_request.auth_token,
+                                ) {
+                                    if let Ok(client_id) = Id::from_str(&claims.client_id) {
+                                        if client_id == self.gateway.network_id {
+                                            debug!(
+                                                "Authorization token is correct for {}",
+                                                self.gateway
+                                            );
+                                        } else {
+                                            warn!("Authorization token received from {uri} has `client_id` for a different network");
+                                            continue;
+                                        }
+                                    } else {
+                                        warn!("Authorization token received from {uri} has incorrect `client_id`");
+                                        continue;
+                                    }
+                                } else {
+                                    warn!("Invalid authorization token received from {uri}");
+                                    continue;
+                                }
+
+                                // Send network configuration to gateway.
+                                match self.send_configuration(&tx).await {
+                                    Ok(()) => {
+                                        info!("Sent configuration to {}", self.gateway);
+                                        config_sent = true;
+                                        let _ = self
+                                            .gateway
+                                            .touch_connected(&self.pool, config_request.hostname)
+                                            .await;
+                                    }
+                                    Err(err) => {
+                                        error!(
+                                            "Failed to send configuration to {}: {err}",
+                                            self.gateway
+                                        );
+                                    }
+                                }
+
+                                // Start observing configuration changes.
+                                let Ok(Some(network)) = WireguardNetwork::find_by_id(
+                                    &self.pool,
+                                    self.gateway.network_id,
+                                )
+                                .await
+                                else {
+                                    error!(
+                                        "Failed to fetch network ID {} from the database",
+                                        self.gateway.network_id
+                                    );
+                                    continue;
+                                };
+                                tokio::spawn(handle_events(
+                                    network,
+                                    tx.clone(),
+                                    self.events_tx.subscribe(),
+                                ));
                             }
                             Some(core_request::Payload::PeerStats(peer_stats)) => {
-                                info!("*** PeerStats {peer_stats:?}");
+                                if !config_sent {
+                                    warn!("Ignoring peer statistics from {} because it didn't authorize itself", self.gateway);
+                                    continue;
+                                }
 
                                 let public_key = peer_stats.public_key.clone();
                                 let mut stats = WireguardPeerStats::from_peer_stats(
@@ -362,7 +355,7 @@ impl GatewayHandler {
 /// Process incoming gateway events
 ///
 /// Main gRPC server uses a shared channel for broadcasting all gateway events
-/// so the handler must determine if an event is relevant for the network being services
+/// so the handler must determine if an event is relevant for the network being serviced.
 async fn handle_events(
     mut current_network: WireguardNetwork<Id>,
     tx: UnboundedSender<CoreResponse>,
@@ -503,10 +496,6 @@ async fn handle_events(
                 current_network,
                 update_type.as_str_name()
             );
-            // error!(
-            //     "Closing update steam to gateway: {}, network {}",
-            //     self.gateway_hostname, current_network
-            // );
             break;
         }
         debug!(

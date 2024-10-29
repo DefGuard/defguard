@@ -41,10 +41,3 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
         .expect("Cannot run database migrations.");
     pool
 }
-
-pub use models::{
-    device::{AddDevice, Device},
-    session::{Session, SessionState},
-    user::{MFAMethod, User},
-    MFAInfo, UserDetails, UserInfo,
-};

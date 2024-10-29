@@ -3,13 +3,13 @@ mod common;
 use defguard::{
     db::{
         models::{
-            device::WireguardNetworkDevice,
+            device::{Device, WireguardNetworkDevice},
             wireguard::{
                 ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
                 DEFAULT_KEEPALIVE_INTERVAL,
             },
         },
-        Device, Id,
+        Id,
     },
     handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
 };

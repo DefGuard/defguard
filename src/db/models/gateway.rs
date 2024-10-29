@@ -11,7 +11,6 @@ pub(crate) struct Gateway<I = NoId> {
     pub id: I,
     pub network_id: Id,
     pub url: String,
-    pub connected: bool,
     pub hostname: Option<String>,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
@@ -24,7 +23,6 @@ impl Gateway {
             id: NoId,
             network_id,
             url: url.into(),
-            connected: false,
             hostname: None,
             connected_at: None,
             disconnected_at: None,
@@ -49,15 +47,21 @@ impl Gateway<Id> {
         .await
     }
 
-    /// Update `connected_at` to the current time and save it to the database.
-    pub(crate) async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
+    /// Update `hostname` and set `connected_at` to the current time and save it to the database.
+    pub(crate) async fn touch_connected<'e, E>(
+        &mut self,
+        executor: E,
+        hostname: String,
+    ) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
+        self.hostname = Some(hostname);
         self.connected_at = Some(Utc::now().naive_utc());
         query!(
-            "UPDATE gateway SET connected_at = $2 WHERE id = $1",
+            "UPDATE gateway SET hostname = $2, connected_at = $3 WHERE id = $1",
             self.id,
+            self.hostname,
             self.connected_at
         )
         .execute(executor)
@@ -66,7 +70,7 @@ impl Gateway<Id> {
         Ok(())
     }
 
-    /// Update `disconnected_at` to the current time and save it to the database.
+    /// Set `disconnected_at` to the current time and save it to the database.
     pub(crate) async fn touch_disconnected<'e, E>(&mut self, executor: E) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
@@ -81,6 +85,16 @@ impl Gateway<Id> {
         .await?;
 
         Ok(())
+    }
+
+    pub(crate) fn is_connected(&self) -> bool {
+        if let (Some(connected_at), Some(disconnected_at)) =
+            (self.connected_at, self.disconnected_at)
+        {
+            disconnected_at <= connected_at
+        } else {
+            self.connected_at.is_some()
+        }
     }
 }
 

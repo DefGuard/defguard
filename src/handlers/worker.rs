@@ -10,7 +10,7 @@ use super::ApiResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
-    db::User,
+    db::models::user::User,
     error::WebError,
     grpc::WorkerState,
 };

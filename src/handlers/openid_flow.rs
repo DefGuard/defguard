@@ -1,6 +1,7 @@
 use std::{
     fmt,
     ops::{Deref, DerefMut},
+    time::Duration,
 };
 
 use axum::{
@@ -33,7 +34,6 @@ use serde::{
 };
 use serde_json::json;
 use sqlx::PgPool;
-use time::Duration;
 
 use super::{ApiResponse, SESSION_COOKIE_NAME};
 use crate::{
@@ -41,10 +41,14 @@ use crate::{
     auth::{AccessUserInfo, SessionInfo},
     db::{
         models::{
-            auth_code::AuthCode, oauth2authorizedapp::OAuth2AuthorizedApp,
-            oauth2client::OAuth2Client, oauth2token::OAuth2Token, user::User,
+            auth_code::AuthCode,
+            oauth2authorizedapp::OAuth2AuthorizedApp,
+            oauth2client::OAuth2Client,
+            oauth2token::OAuth2Token,
+            session::{Session, SessionState},
+            user::User,
         },
-        Id, Session, SessionState,
+        Id,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
@@ -363,7 +367,7 @@ fn login_redirect(
     .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
-    .max_age(Duration::minutes(10));
+    .max_age(time::Duration::minutes(10));
     redirect_to("/login", private_cookies.add(cookie))
 }
 
@@ -675,8 +679,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let timeout = server_config().session_timeout;
-                let expiration = issue_time + chrono::Duration::seconds(timeout.as_secs() as i64);
+                let timeout: Duration = server_config().session_timeout.into();
+                let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],

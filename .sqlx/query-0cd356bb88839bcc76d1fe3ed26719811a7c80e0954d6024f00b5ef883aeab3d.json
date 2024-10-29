@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"network_id\",\"url\",\"connected\",\"hostname\",\"connected_at\",\"disconnected_at\" FROM \"gateway\" WHERE id = $1",
+  "query": "SELECT id, \"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\" FROM \"gateway\"",
   "describe": {
     "columns": [
       {
@@ -20,32 +20,24 @@
       },
       {
         "ordinal": 3,
-        "name": "connected",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 4,
         "name": "hostname",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "connected_at",
         "type_info": "Timestamp"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "disconnected_at",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
-      false,
       false,
       false,
       false,
@@ -54,5 +46,5 @@
       true
     ]
   },
-  "hash": "26099709b65d6c751e495d998326c75588a57088711b8a508325e103b519500e"
+  "hash": "0cd356bb88839bcc76d1fe3ed26719811a7c80e0954d6024f00b5ef883aeab3d"
 }

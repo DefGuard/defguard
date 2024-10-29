@@ -1,15 +1,15 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Local, TimeDelta};
 use thiserror::Error;
 use utoipa::ToSchema;
 
 // Time window in seconds
-const FAILED_LOGIN_WINDOW: Duration = Duration::seconds(60);
+const FAILED_LOGIN_WINDOW: TimeDelta = TimeDelta::seconds(60);
 // Failed login count threshold
 const FAILED_LOGIN_COUNT: u32 = 5;
 // How long (in seconds) to lock users out after crossing the threshold
-const FAILED_LOGIN_TIMEOUT: Duration = Duration::seconds(5 * 60);
+const FAILED_LOGIN_TIMEOUT: TimeDelta = TimeDelta::seconds(5 * 60);
 
 #[derive(Debug, Error, ToSchema)]
 #[error("Too many login attempts")]
@@ -35,12 +35,12 @@ impl Default for FailedLogin {
 
 impl FailedLogin {
     // How much time has elapsed since first failed login attempt
-    fn time_since_first_attempt(&self) -> Duration {
+    fn time_since_first_attempt(&self) -> TimeDelta {
         Local::now().signed_duration_since(self.first_attempt)
     }
 
     // How much time has elapsed since last failed login attempt
-    fn time_since_last_attempt(&self) -> Duration {
+    fn time_since_last_attempt(&self) -> TimeDelta {
         Local::now().signed_duration_since(self.last_attempt)
     }
 

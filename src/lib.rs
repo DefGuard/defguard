@@ -165,9 +165,9 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
-    use db::{
-        models::device::{ModifyDevice, UserDevice},
-        AddDevice, UserDetails, UserInfo,
+    use db::models::{
+        device::{AddDevice, ModifyDevice, UserDevice},
+        UserDetails, UserInfo,
     };
     use error::WebError;
     use handlers::{

@@ -9,7 +9,7 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
         Claims, ClaimsType,
     },
-    db::User,
+    db::models::user::User,
     server_config,
 };
 

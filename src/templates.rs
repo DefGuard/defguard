@@ -5,7 +5,13 @@ use thiserror::Error;
 use utoipa::ToSchema;
 
 use crate::{
-    db::{Id, MFAMethod, Session, User},
+    db::{
+        models::{
+            session::Session,
+            user::{MFAMethod, User},
+        },
+        Id,
+    },
     server_config, VERSION,
 };
 

@@ -1,6 +1,5 @@
 use std::{
     collections::hash_map::HashMap,
-    fs::read_to_string,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -9,7 +8,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use reqwest::Url;
 use serde::Serialize;
 use sqlx::{postgres::PgListener, PgPool};
@@ -24,7 +23,7 @@ use tokio::{
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    transport::{Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
 use uaparser::UserAgentParser;
@@ -127,7 +126,7 @@ impl GatewayMap {
     // }
 
     // remove gateway from map
-    pub fn remove_gateway(&mut self, network_id: Id, id: Id) -> Result<(), GatewayMapError> {
+    pub(crate) fn remove_gateway(&mut self, network_id: Id, id: Id) -> Result<(), GatewayMapError> {
         debug!("Removing gateway from network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             // find gateway by uuid
@@ -161,92 +160,96 @@ impl GatewayMap {
 
     // change gateway status to connected
     // we assume that the gateway is already present in hashmap
-    pub fn connect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: &str,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Connecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(hostname) {
-                state.connected = true;
-                state.disconnected_at = None;
-                state.connected_at = Some(Utc::now().naive_utc());
-                // debug!(
-                //     "Gateway {hostname} found in gateway map, current state: {:#?}",
-                //     state
-                // );
-            } else {
-                error!("Gateway {hostname} not found in gateway map for network {network_id}");
-                return Err(GatewayMapError::NotFound(network_id, hostname.into()));
-            }
-        } else {
-            // no map for a given network exists yet
-            error!("Network ID {network_id} not found in gateway map");
-            return Err(GatewayMapError::NetworkNotFound(network_id));
-        };
+    // pub(crate) fn connect_gateway(
+    //     &mut self,
+    //     network_id: Id,
+    //     hostname: &str,
+    // ) -> Result<(), GatewayMapError> {
+    //     debug!("Connecting gateway {hostname} in network {network_id}");
+    //     if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+    //         if let Some(state) = network_gateway_map.get_mut(hostname) {
+    //             state.connected = true;
+    //             state.disconnected_at = None;
+    //             state.connected_at = Some(Utc::now().naive_utc());
+    //             // debug!(
+    //             //     "Gateway {hostname} found in gateway map, current state: {:#?}",
+    //             //     state
+    //             // );
+    //         } else {
+    //             error!("Gateway {hostname} not found in gateway map for network {network_id}");
+    //             return Err(GatewayMapError::NotFound(network_id, hostname.into()));
+    //         }
+    //     } else {
+    //         // no map for a given network exists yet
+    //         error!("Network ID {network_id} not found in gateway map");
+    //         return Err(GatewayMapError::NetworkNotFound(network_id));
+    //     };
 
-        info!("Gateway {hostname} connected in network ID {network_id}");
-        Ok(())
-    }
+    //     info!("Gateway {hostname} connected in network ID {network_id}");
+    //     Ok(())
+    // }
 
     // change gateway status to disconnected
-    pub fn disconnect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: String,
-        pool: &PgPool,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Disconnecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(&hostname) {
-                state.connected = false;
-                state.disconnected_at = Some(Utc::now().naive_utc());
-                // state.send_disconnect_notification(pool);
-                // debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
-                info!("Gateway {hostname} disconnected in network {network_id}");
-                return Ok(());
-            };
-        };
-        let err = GatewayMapError::NotFound(network_id, hostname);
-        error!("Gateway disconnect failed: {err}");
-        Err(err)
-    }
+    // pub(crate) fn disconnect_gateway(
+    //     &mut self,
+    //     network_id: Id,
+    //     hostname: String,
+    //     pool: &PgPool,
+    // ) -> Result<(), GatewayMapError> {
+    //     debug!("Disconnecting gateway {hostname} in network {network_id}");
+    //     if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
+    //         if let Some(state) = network_gateway_map.get_mut(&hostname) {
+    //             state.connected = false;
+    //             state.disconnected_at = Some(Utc::now().naive_utc());
+    //             // state.send_disconnect_notification(pool);
+    //             // debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
+    //             info!("Gateway {hostname} disconnected in network {network_id}");
+    //             return Ok(());
+    //         };
+    //     };
+    //     let err = GatewayMapError::NotFound(network_id, hostname);
+    //     error!("Gateway disconnect failed: {err}");
+    //     Err(err)
+    // }
 
     // return `true` if at least one gateway in a given network is connected
-    #[must_use]
-    pub fn connected(&self, network_id: Id) -> bool {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map
-                .values()
-                .any(|gateway| gateway.connected),
-            None => false,
-        }
-    }
+    // #[must_use]
+    // pub(crate) fn connected(&self, network_id: Id) -> bool {
+    //     match self.0.get(&network_id) {
+    //         Some(network_gateway_map) => network_gateway_map
+    //             .values()
+    //             .any(|gateway| gateway.connected),
+    //         None => false,
+    //     }
+    // }
 
     // return a list af aff statuses af all gateways in a given network
-    #[must_use]
-    pub(crate) fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
-            None => Vec::new(),
-        }
-    }
+    // #[must_use]
+    // pub(crate) fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
+    //     match self.0.get(&network_id) {
+    //         Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
+    //         None => Vec::new(),
+    //     }
+    // }
 
     // return gateway name
-    #[must_use]
-    pub fn get_network_gateway_name(&self, network_id: Id, hostname: &str) -> Option<String> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => {
-                if let Some(state) = network_gateway_map.get(hostname) {
-                    state.name.clone()
-                } else {
-                    None
-                }
-            }
-            None => None,
-        }
-    }
+    // #[must_use]
+    // pub(crate) fn get_network_gateway_name(
+    //     &self,
+    //     network_id: Id,
+    //     hostname: &str,
+    // ) -> Option<String> {
+    //     match self.0.get(&network_id) {
+    //         Some(network_gateway_map) => {
+    //             if let Some(state) = network_gateway_map.get(hostname) {
+    //                 state.name.clone()
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //         None => None,
+    //     }
+    // }
 }
 
 impl Default for GatewayMap {
@@ -261,14 +264,25 @@ pub(crate) struct GatewayState {
     pub connected: bool,
     pub network_id: Id,
     pub network_name: String,
-    pub name: Option<String>,
+    pub name: Option<String>, // TODO: remove
     pub hostname: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-    #[serde(skip)]
-    pub mail_tx: UnboundedSender<Mail>,
-    #[serde(skip)]
-    pub last_email_notification: Option<NaiveDateTime>,
+}
+
+impl GatewayState {
+    pub(crate) fn from_gateway(gateway: &Gateway<Id>, network_name: &str) -> Self {
+        Self {
+            id: gateway.id,
+            connected: gateway.is_connected(),
+            network_id: gateway.network_id,
+            network_name: network_name.to_owned(),
+            name: None, // TODO: remove
+            hostname: gateway.hostname.clone().unwrap_or_default(),
+            connected_at: gateway.connected_at,
+            disconnected_at: gateway.disconnected_at,
+        }
+    }
 }
 
 const TEN_SECS: Duration = Duration::from_secs(10);
@@ -289,6 +303,7 @@ pub async fn run_grpc_gateway_stream(
     mail_tx: UnboundedSender<Mail>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
+    let tls_config = config.grpc_client_tls_config()?;
 
     let mut abort_handles = HashMap::new();
 
@@ -298,7 +313,7 @@ pub async fn run_grpc_gateway_stream(
         |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
             let mut gateway_client = GatewayHandler::new(
                 gateway,
-                config.proxy_grpc_ca.as_deref(),
+                tls_config.clone(),
                 pool.clone(),
                 events_tx.clone(),
                 mail_tx.clone(),
@@ -381,6 +396,7 @@ pub async fn run_grpc_bidi_stream(
     user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
+    let tls_config = config.grpc_client_tls_config()?;
 
     let proxy_handler = ProxyHandler::new(
         pool.clone(),
@@ -396,9 +412,7 @@ pub async fn run_grpc_bidi_stream(
         .http2_keep_alive_interval(TEN_SECS)
         .tcp_keepalive(Some(TEN_SECS))
         .keep_alive_while_idle(true);
-    let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
-        let ca = read_to_string(ca)?;
-        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+    let endpoint = if let Some(tls) = tls_config {
         endpoint.tls_config(tls)?
     } else {
         endpoint

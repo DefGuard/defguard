@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
@@ -70,31 +70,33 @@ impl ProxyHandler {
         }
     }
 
-    /// Checks if token provided with request corresponds to a valid enrollment session
-    async fn validate_enrollment_session(&self, token: &Option<String>) -> Result<Token, Status> {
-        info!("Validating enrollment session. Token: {token:?}");
+    /// Checks if token provided with request corresponds to a valid session.
+    async fn validate_session(
+        &self,
+        token: &Option<String>,
+        desired_token_type: &str,
+        session_timeout: Duration,
+    ) -> Result<Token, Status> {
+        debug!("Validating gRPC proxy session; token: {token:?}");
         let Some(token) = token else {
-            error!("Missing authorization header in request");
-            return Err(Status::unauthenticated("Missing authorization header"));
+            error!("Missing authorization token in request");
+            return Err(Status::unauthenticated("Missing authorization token"));
         };
         let token = Token::find_by_id(&self.pool, token).await?;
         debug!("Found matching token, verifying validity: {token:?}.");
         if !token
             .token_type
             .as_ref()
-            .is_some_and(|token_type| token_type == ENROLLMENT_TOKEN_TYPE)
+            .is_some_and(|token_type| token_type == desired_token_type)
         {
-            error!(
-                "Invalid token type used in enrollment process: {:?}",
-                token.token_type
-            );
+            error!("Invalid token type: {:?}", token.token_type);
             return Err(Status::permission_denied("invalid token"));
         }
-        if token.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
-            info!("Enrollment session validated: {token:?}");
+        if token.is_session_valid(session_timeout) {
+            info!("Proxy session validated: {token:?}");
             Ok(token)
         } else {
-            error!("Enrollment session expired: {token:?}");
+            error!("Proxy session expired: {token:?}");
             Err(Status::unauthenticated("Session expired"))
         }
     }
@@ -106,7 +108,7 @@ impl ProxyHandler {
         }
     }
 
-    pub async fn start_enrollment(
+    pub(crate) async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
     ) -> Result<EnrollmentStartResponse, Status> {
@@ -155,7 +157,7 @@ impl ProxyHandler {
         let session_deadline = token
             .start_session(
                 &mut transaction,
-                server_config().enrollment_session_timeout.as_secs(),
+                server_config().enrollment_session_timeout.into(),
             )
             .await?;
         info!(
@@ -249,13 +251,19 @@ impl ProxyHandler {
         Ok(response)
     }
 
-    pub async fn activate_user(
+    pub(crate) async fn activate_user(
         &self,
         request: ActivateUserRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_enrollment_session(&request.token).await?;
+        let enrollment = self
+            .validate_session(
+                &request.token,
+                ENROLLMENT_TOKEN_TYPE,
+                server_config().enrollment_session_timeout.into(),
+            )
+            .await?;
 
         let ip_address;
         let device_info;
@@ -369,13 +377,19 @@ impl ProxyHandler {
         Ok(())
     }
 
-    pub async fn create_device(
+    pub(crate) async fn create_device(
         &self,
         request: NewDevice,
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
-        let enrollment = self.validate_enrollment_session(&request.token).await?;
+        let enrollment = self
+            .validate_session(
+                &request.token,
+                ENROLLMENT_TOKEN_TYPE,
+                server_config().enrollment_session_timeout.into(),
+            )
+            .await?;
 
         // fetch related users
         let user = enrollment.fetch_user(&self.pool).await?;
@@ -610,50 +624,23 @@ impl ProxyHandler {
     }
 
     /// Get all information needed to update instance information for desktop client
-    pub async fn get_network_info(
+    pub(crate) async fn get_network_info(
         &self,
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let _token = self.validate_enrollment_session(&request.token).await?;
+        let _token = self
+            .validate_session(
+                &request.token,
+                PASSWORD_RESET_TOKEN_TYPE,
+                server_config().password_reset_session_timeout.into(),
+            )
+            .await?;
 
         build_device_config_response(&self.pool, &request.pubkey, true).await
     }
 
-    /// Checks if token provided with request corresponds to a valid password reset session
-    async fn validate_password_reset_session(
-        &self,
-        token: &Option<String>,
-    ) -> Result<Token, Status> {
-        info!("Validating password reset session. Token: {token:?}");
-        let Some(token) = token else {
-            error!("Missing authorization header in request");
-            return Err(Status::unauthenticated("Missing authorization header"));
-        };
-        let token = Token::find_by_id(&self.pool, token).await?;
-        debug!("Found matching token, verifying validity: {token:?}.");
-        if !token
-            .token_type
-            .as_ref()
-            .is_some_and(|token_type| token_type == PASSWORD_RESET_TOKEN_TYPE)
-        {
-            error!(
-                "Invalid token type used in password reset process: {:?}",
-                token.token_type
-            );
-            return Err(Status::permission_denied("invalid token"));
-        }
-
-        if token.is_session_valid(server_config().enrollment_session_timeout.as_secs()) {
-            info!("Password reset session validated: {token:?}.",);
-            Ok(token)
-        } else {
-            error!("Password reset session expired: {token:?}");
-            Err(Status::unauthenticated("Session expired"))
-        }
-    }
-
-    pub async fn request_password_reset(
+    pub(crate) async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
@@ -733,7 +720,7 @@ impl ProxyHandler {
         Ok(())
     }
 
-    pub async fn start_password_reset(
+    pub(crate) async fn start_password_reset(
         &self,
         request: PasswordResetStartRequest,
     ) -> Result<PasswordResetStartResponse, Status> {
@@ -773,7 +760,7 @@ impl ProxyHandler {
         let session_deadline = token
             .start_session(
                 &mut transaction,
-                server_config().password_reset_session_timeout.as_secs(),
+                server_config().password_reset_session_timeout.into(),
             )
             .await?;
 
@@ -794,13 +781,19 @@ impl ProxyHandler {
         Ok(response)
     }
 
-    pub async fn reset_password(
+    pub(crate) async fn reset_password(
         &self,
         request: PasswordResetRequest,
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Starting password reset: {request:?}");
-        let enrollment = self.validate_password_reset_session(&request.token).await?;
+        let enrollment = self
+            .validate_session(
+                &request.token,
+                PASSWORD_RESET_TOKEN_TYPE,
+                server_config().password_reset_session_timeout.into(),
+            )
+            .await?;
 
         let ip_address;
         let user_agent;

@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Utc};
 use model_derive::Model;
-use sqlx::{query_as, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{query_as, PgExecutor};
 
 use crate::{
     db::{Id, NoId},
@@ -29,18 +29,24 @@ impl PollingToken {
 }
 
 impl PollingToken<Id> {
-    pub async fn find(pool: &PgPool, token: &str) -> Result<Option<Self>, SqlxError> {
+    pub(crate) async fn find<'e, E>(executor: E, token: &str) -> Result<Option<Self>, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
         query_as!(
             Self,
             "SELECT id, token, device_id, created_at \
             FROM pollingtoken WHERE token = $1",
             token
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
-    pub async fn delete_for_device_id<'e, E>(executor: E, device_id: Id) -> Result<(), SqlxError>
+    pub(crate) async fn delete_for_device_id<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> Result<(), sqlx::Error>
     where
         E: PgExecutor<'e>,
     {

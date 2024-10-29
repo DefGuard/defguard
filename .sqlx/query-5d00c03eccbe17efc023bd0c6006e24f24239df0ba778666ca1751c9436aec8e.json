@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"gateway\" (\"network_id\",\"url\",\"connected\",\"hostname\",\"connected_at\",\"disconnected_at\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
+  "query": "INSERT INTO \"gateway\" (\"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -13,7 +13,6 @@
       "Left": [
         "Int8",
         "Text",
-        "Bool",
         "Text",
         "Timestamp",
         "Timestamp"
@@ -23,5 +22,5 @@
       false
     ]
   },
-  "hash": "7ebb7d51ffb9ffc1b27f239902a5c7ace2f5d943777a1345950d0e517123b10b"
+  "hash": "5d00c03eccbe17efc023bd0c6006e24f24239df0ba778666ca1751c9436aec8e"
 }

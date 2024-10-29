@@ -20,10 +20,13 @@ use crate::{
     appstate::AppState,
     db::{
         models::{
-            group::Group, oauth2authorizedapp::OAuth2AuthorizedApp, oauth2token::OAuth2Token,
+            group::Group,
+            oauth2authorizedapp::OAuth2AuthorizedApp,
+            oauth2token::OAuth2Token,
+            session::{Session, SessionState},
             user::User,
         },
-        Id, Session, SessionState,
+        Id,
     },
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
@@ -50,7 +53,7 @@ pub enum ClaimsType {
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
-    #[serde(skip_serializing, skip_deserializing)]
+    #[serde(skip)]
     secret: String,
     // issuer
     pub iss: String,

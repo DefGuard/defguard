@@ -6,7 +6,7 @@ use std::{
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
@@ -97,7 +97,7 @@ pub struct WireguardNetwork<I = NoId> {
 }
 
 pub(crate) struct WireguardKey {
-    pub(crate) private: String,
+    pub(crate) _private: String,
     pub(crate) public: String,
 }
 
@@ -173,8 +173,21 @@ impl WireguardNetwork {
     }
 }
 
+impl WireguardNetwork {
+    /// Helper to fetch a name for a given network ID.
+    pub(crate) async fn name_for_id<'e, E>(executor: E, id: Id) -> Result<String, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!("SELECT name FROM wireguard_network WHERE id = $1", id)
+            .fetch_one(executor)
+            .await
+    }
+}
+
 impl WireguardNetwork<Id> {
-    pub async fn find_by_name<'e, E>(
+    /// Find all networks with a given name.
+    pub(crate) async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
     ) -> Result<Option<Vec<Self>>, SqlxError>
@@ -273,7 +286,7 @@ impl WireguardNetwork<Id> {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
-            private: BASE64_STANDARD.encode(private.to_bytes()),
+            _private: BASE64_STANDARD.encode(private.to_bytes()),
             public: BASE64_STANDARD.encode(public.to_bytes()),
         }
     }
@@ -867,7 +880,7 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         let oldest_handshake =
-            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+            (Utc::now() - TimeDelta::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
@@ -935,7 +948,7 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+        let from = (Utc::now() - TimeDelta::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -1105,7 +1118,7 @@ pub struct WireguardNetworkStats {
 
 #[cfg(test)]
 mod test {
-    use chrono::{Duration, SubsecRound};
+    use chrono::{SubsecRound, TimeDelta};
 
     use super::*;
     use crate::db::models::device::WireguardNetworkDevice;
@@ -1213,12 +1226,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(handshake_minutes),
+                latest_handshake: now - TimeDelta::minutes(handshake_minutes),
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1234,7 +1247,7 @@ mod test {
         assert_eq!(
             connected_at,
             // Postgres stores 6 sub-second digits while chrono stores 9
-            (now - Duration::minutes(30)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(30)).trunc_subsecs(6),
         );
     }
 
@@ -1267,12 +1280,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(i), // handshake every minute
+                latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1288,7 +1301,7 @@ mod test {
         assert_eq!(
             connected_at,
             // Postgres stores 6 sub-second digits while chrono stores 9
-            (now - Duration::minutes(samples)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
         );
     }
 }

@@ -24,9 +24,11 @@ use time::Duration;
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{
-        models::{settings::Settings, user::User},
-        MFAInfo, Session, SessionState, UserInfo,
+    db::models::{
+        session::{Session, SessionState},
+        settings::Settings,
+        user::User,
+        MFAInfo, UserInfo,
     },
     enterprise::db::models::openid_provider::OpenIdProvider,
     error::WebError,

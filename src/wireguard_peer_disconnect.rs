@@ -10,13 +10,10 @@ use sqlx::{query_as, Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::{sync::broadcast::Sender, time::sleep};
 
-use crate::db::{
-    models::{
-        device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-        error::ModelError,
-        wireguard::{ChangeEvent, WireguardNetwork, WireguardNetworkError},
-    },
-    Device,
+use crate::db::models::{
+    device::{Device, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+    error::ModelError,
+    wireguard::{ChangeEvent, WireguardNetwork, WireguardNetworkError},
 };
 
 // How long to sleep between loop iterations

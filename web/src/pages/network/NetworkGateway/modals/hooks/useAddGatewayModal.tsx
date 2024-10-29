@@ -6,7 +6,7 @@ const defaultValues: StoreValues = {
 };
 
 export const useAddGatewayModal = createWithEqualityFn<Store>(
-  (set, get) => ({
+  (set, _get) => ({
     ...defaultValues,
     open: () => set({ ...defaultValues, visible: true }),
     close: () => set({ visible: false }),

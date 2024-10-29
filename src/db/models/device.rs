@@ -607,7 +607,7 @@ mod test {
     use claims::{assert_err, assert_ok};
 
     use super::*;
-    use crate::db::User;
+    use crate::db::models::user::User;
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

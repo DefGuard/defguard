@@ -6,12 +6,12 @@ use thiserror::Error;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::{
-    db::{
-        models::wireguard::{
+    db::models::{
+        device::Device,
+        wireguard::{
             WireguardNetwork, WireguardNetworkError, DEFAULT_DISCONNECT_THRESHOLD,
             DEFAULT_KEEPALIVE_INTERVAL,
         },
-        Device,
     },
     KEY_LENGTH,
 };

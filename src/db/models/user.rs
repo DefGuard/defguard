@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{Id, NoId, Session},
+    db::{models::session::Session, Id, NoId},
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,

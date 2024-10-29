@@ -2,8 +2,11 @@ mod common;
 
 use defguard::{
     db::{
-        models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
-        AddDevice, Id, UserInfo,
+        models::{
+            device::AddDevice, oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient,
+            UserInfo,
+        },
+        Id,
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
     hex::to_lower_hex,

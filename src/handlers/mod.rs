@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 #[cfg(feature = "wireguard")]
-use crate::db::Device;
+use crate::db::models::device::Device;
 use crate::{
     auth::SessionInfo,
     db::{

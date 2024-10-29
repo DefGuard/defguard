@@ -11,13 +11,11 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-use crate::db::{
-    models::{
-        authentication_key::{AuthenticationKey, AuthenticationKeyType},
-        webhook::{AppEvent, HWKeyUserData},
-        yubikey::YubiKey,
-    },
-    User,
+use crate::db::models::{
+    authentication_key::{AuthenticationKey, AuthenticationKeyType},
+    user::User,
+    webhook::{AppEvent, HWKeyUserData},
+    yubikey::YubiKey,
 };
 
 tonic::include_proto!("worker");

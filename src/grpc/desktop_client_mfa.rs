@@ -13,10 +13,12 @@ use crate::{
     auth::{Claims, ClaimsType},
     db::{
         models::{
-            device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            device::{Device, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+            user::User,
             wireguard::{ChangeEvent, WireguardNetwork},
+            UserInfo,
         },
-        Device, Id, User, UserInfo,
+        Id,
     },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,

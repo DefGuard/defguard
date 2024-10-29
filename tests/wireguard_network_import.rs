@@ -1,15 +1,11 @@
 mod common;
 
 use defguard::{
-    db::{
-        models::{
-            device::UserDevice,
-            wireguard::{
-                ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
-                DEFAULT_KEEPALIVE_INTERVAL,
-            },
+    db::models::{
+        device::{Device, UserDevice},
+        wireguard::{
+            ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL,
         },
-        Device,
     },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };

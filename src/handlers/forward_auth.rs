@@ -8,7 +8,7 @@ use axum_extra::extract::cookie::CookieJar;
 use reqwest::Url;
 
 use super::SESSION_COOKIE_NAME;
-use crate::{appstate::AppState, db::Session, error::WebError, server_config};
+use crate::{appstate::AppState, db::models::session::Session, error::WebError, server_config};
 
 // Header names
 static FORWARDED_HOST: &str = "x-forwarded-host";

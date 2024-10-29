@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-import parse from 'html-react-parser';
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
@@ -124,8 +123,8 @@ export const NetworkGatewaySetup = () => {
         <ReactMarkdown>
           {networkToken
             ? LL.gatewaySetup.messages.authToken({
-              setupGatewayDocs: externalLink.gitbook.setup.gateway,
-            })
+                setupGatewayDocs: externalLink.gitbook.setup.gateway,
+              })
             : LL.gatewaySetup.messages.createNetwork()}
         </ReactMarkdown>
       </MessageBox>
@@ -146,8 +145,8 @@ export const NetworkGatewaySetup = () => {
         <ReactMarkdown>
           {networkToken
             ? LL.gatewaySetup.messages.dockerBasedGatewaySetup({
-              setupGatewayDocs: externalLink.gitbook.setup.gateway,
-            })
+                setupGatewayDocs: externalLink.gitbook.setup.gateway,
+              })
             : LL.gatewaySetup.messages.createNetwork()}
         </ReactMarkdown>
       </MessageBox>

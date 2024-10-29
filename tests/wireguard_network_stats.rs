@@ -1,13 +1,16 @@
 mod common;
 
-use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
+use chrono::{Datelike, NaiveDate, SubsecRound, TimeDelta, Timelike, Utc};
 use defguard::{
     db::{
-        models::wireguard::{
-            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardPeerStats,
-            WireguardUserStatsRow,
+        models::{
+            device::Device,
+            wireguard::{
+                WireguardDeviceTransferRow, WireguardNetworkStats, WireguardPeerStats,
+                WireguardUserStatsRow,
+            },
         },
-        Device, Id, NoId,
+        Id, NoId,
     },
     handlers::Auth,
 };
@@ -85,7 +88,7 @@ async fn test_stats() {
 
     // empty stats
     let now = Utc::now().naive_utc();
-    let hour_ago = now - Duration::hours(1);
+    let hour_ago = now - TimeDelta::hours(1);
     let response = client
         .get(format!(
             "/api/v1/network/1/stats/users?from={}",
@@ -104,12 +107,12 @@ async fn test_stats() {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: 1,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10 * (d as i64 + 1),
                 download: (samples - i) * 20 * (d as i64 + 1),
-                latest_handshake: now - Duration::minutes(i * 10),
+                latest_handshake: now - TimeDelta::minutes(i * 10),
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -221,7 +224,7 @@ async fn test_stats() {
     );
 
     // hourly aggregation
-    let ten_hours_ago = now - Duration::hours(10);
+    let ten_hours_ago = now - TimeDelta::hours(10);
     let ten_hours_samples = 10 * 60 + 1;
     let response = client
         .get(format!(

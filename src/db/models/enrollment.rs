@@ -1,4 +1,6 @@
-use chrono::{Duration, NaiveDateTime, Utc};
+use std::time::Duration;
+
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool};
 use tera::{Context, Tera};
@@ -106,7 +108,7 @@ impl Token {
             admin_id,
             email,
             created_at: now.naive_utc(),
-            expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
+            expires_at: (now + TimeDelta::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
             token_type,
         }
@@ -145,10 +147,10 @@ impl Token {
     // check if enrollment session is still valid
     // after using the token user has 10 minutes to complete enrollment
     #[must_use]
-    pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
+    pub fn is_session_valid(&self, session_timeout: Duration) -> bool {
         if let Some(used_at) = self.used_at {
             let now = Utc::now();
-            return now.naive_utc() < (used_at + Duration::seconds(session_timeout_seconds as i64));
+            return now.naive_utc() < (used_at + session_timeout);
         }
         false
     }
@@ -159,7 +161,7 @@ impl Token {
     pub async fn start_session(
         &mut self,
         transaction: &mut PgConnection,
-        session_timeout_seconds: u64,
+        session_timeout: Duration,
     ) -> Result<NaiveDateTime, TokenError> {
         // check if token can be used
         debug!("Creating a new session.");
@@ -169,9 +171,9 @@ impl Token {
         }
         match self.used_at {
             // session started but still valid
-            Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
+            Some(used_at) if self.is_session_valid(session_timeout) => {
                 debug!("Session already exists yet it is still valid.");
-                Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
+                Ok(used_at + session_timeout)
             }
             // session expired
             Some(_) => {
@@ -187,7 +189,7 @@ impl Token {
                 self.used_at = Some(now);
 
                 debug!("Generate a new session successfully.");
-                Ok(now + Duration::seconds(session_timeout_seconds as i64))
+                Ok(now + session_timeout)
             }
         }
     }
@@ -381,7 +383,7 @@ impl User<Id> {
     /// Start user enrollment process
     /// This creates a new enrollment token valid for 24h
     /// and optionally sends enrollment email notification to user
-    pub async fn start_enrollment(
+    pub(crate) async fn start_enrollment(
         &self,
         transaction: &mut PgConnection,
         admin: &User<Id>,
@@ -454,9 +456,8 @@ impl User<Id> {
                     )
                     .map_err(|err| {
                         debug!(
-                            "Cannot send an email to the user {} due to the error {}.",
+                            "Cannot send an email to the user {} due to the error {err}",
                             self.username,
-                            err.to_string()
                         );
                         TokenError::NotificationError(err.to_string())
                     })?,
@@ -598,14 +599,14 @@ impl User<Id> {
 }
 
 impl Settings {
-    pub fn enrollment_welcome_message(&self) -> Result<String, TokenError> {
+    pub(crate) fn enrollment_welcome_message(&self) -> Result<String, TokenError> {
         self.enrollment_welcome_message.clone().ok_or_else(|| {
             error!("Enrollment welcome message not configured");
             TokenError::WelcomeMsgNotConfigured
         })
     }
 
-    pub fn enrollment_welcome_email(&self) -> Result<String, TokenError> {
+    pub(crate) fn enrollment_welcome_email(&self) -> Result<String, TokenError> {
         if self.enrollment_use_welcome_message_as_email {
             return self.enrollment_welcome_message();
         }

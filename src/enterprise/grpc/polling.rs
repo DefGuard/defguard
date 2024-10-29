@@ -2,7 +2,10 @@ use sqlx::PgPool;
 use tonic::Status;
 
 use crate::{
-    db::{models::polling_token::PollingToken, Device, Id, User},
+    db::{
+        models::{device::Device, polling_token::PollingToken, user::User},
+        Id,
+    },
     enterprise::license::{get_cached_license, validate_license},
     grpc::{
         proto::{InstanceInfoRequest, InstanceInfoResponse},

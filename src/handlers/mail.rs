@@ -17,7 +17,14 @@ use super::ApiResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::enrollment::TokenError, Id, MFAMethod, Session, User},
+    db::{
+        models::{
+            enrollment::TokenError,
+            session::Session,
+            user::{MFAMethod, User},
+        },
+        Id,
+    },
     error::WebError,
     mail::{Attachment, Mail},
     server_config,
