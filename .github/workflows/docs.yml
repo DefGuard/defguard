@@ -19,7 +19,7 @@ jobs:
     container: rust:1-slim
     steps:
       - name: Install packages
-        run: apt-get update && apt install -y git protobuf-compiler
+        run: apt-get update && apt install -y git protobuf-compiler libssl-dev
 
       - name: Checkout
         uses: actions/checkout@v4
