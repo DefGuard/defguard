@@ -18,13 +18,13 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     container: rust:1-slim
     steps:
+      - name: Install packages
+        run: apt-get update && apt install -y git protobuf-compiler
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Install protoc
-        run: apt-get update && apt-get -y install protobuf-compiler
 
       - name: Build Docs
         env:
