@@ -42,7 +42,7 @@ use crate::{
 /// - starts with non-special character
 /// - special characters: . - _
 /// - no whitespaces
-pub fn check_username(username: &str) -> Result<(), WebError> {
+pub(crate) fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
     if !(3..64).contains(&length) {
@@ -82,7 +82,7 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
 /// - starts with non-special character
 /// - only special characters allowed: . - _
 /// - no whitespaces
-pub fn prune_username(username: &str) -> String {
+pub(crate) fn prune_username(username: &str) -> String {
     let mut result = username.to_string();
 
     if result.len() > 64 {
@@ -161,7 +161,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
     )
 )]
-pub async fn list_users(
+pub(crate) async fn list_users(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
@@ -239,7 +239,7 @@ pub async fn list_users(
         (status = 500, description = "Unable to return user details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn get_user(
+pub(crate) async fn get_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -289,7 +289,7 @@ pub async fn get_user(
         (status = INTERNAL_SERVER_ERROR, description = "Unable to create a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn add_user(
+pub(crate) async fn add_user(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -384,7 +384,7 @@ pub async fn add_user(
         (status = 500, description = "Unable to start enrollment.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
-pub async fn start_enrollment(
+pub(crate) async fn start_enrollment(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -477,7 +477,7 @@ pub async fn start_enrollment(
         (status = 500, description = "Unable to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
-pub async fn start_remote_desktop_configuration(
+pub(crate) async fn start_remote_desktop_configuration(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -558,7 +558,7 @@ pub async fn start_remote_desktop_configuration(
         (status = 500, description = "Unable to check is username available.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn username_available(
+pub(crate) async fn username_available(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
@@ -603,7 +603,7 @@ pub async fn username_available(
         (status = 500, description = "Unable to modify user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn modify_user(
+pub(crate) async fn modify_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -704,7 +704,7 @@ pub async fn modify_user(
         (status = 500, description = "Unable to delete user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_user(
+pub(crate) async fn delete_user(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -766,7 +766,7 @@ pub async fn delete_user(
         (status = 500, description = "Unable to change your password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn change_self_password(
+pub(crate) async fn change_self_password(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<PasswordChangeSelf>,
@@ -824,7 +824,7 @@ pub async fn change_self_password(
         (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn change_password(
+pub(crate) async fn change_password(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -902,7 +902,7 @@ pub async fn change_password(
         (status = 500, description = "Unable to send reset password to email", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn reset_password(
+pub(crate) async fn reset_password(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -1016,7 +1016,7 @@ pub struct WalletInfoShort {
         (status = 500, description = "Cannot retrive settings.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn wallet_challenge(
+pub(crate) async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -1092,7 +1092,7 @@ pub async fn wallet_challenge(
         (status = 500, description = "Cannot set a new wallet signature", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn set_wallet(
+pub(crate) async fn set_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -1153,7 +1153,7 @@ pub async fn set_wallet(
         (status = 500, description = "Cannot udpate user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn update_wallet(
+pub(crate) async fn update_wallet(
     session: SessionInfo,
     Path((username, address)): Path<(String, String)>,
     State(appstate): State<AppState>,
@@ -1241,7 +1241,7 @@ pub async fn update_wallet(
         (status = 500, description = "Cannot delete user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_wallet(
+pub(crate) async fn delete_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, address)): Path<(String, String)>,
@@ -1299,7 +1299,7 @@ pub async fn delete_wallet(
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_security_key(
+pub(crate) async fn delete_security_key(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, id)): Path<(String, i64)>,
@@ -1368,7 +1368,7 @@ pub async fn delete_security_key(
         (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn me(
+pub(crate) async fn me(
     session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
@@ -1400,7 +1400,7 @@ pub async fn me(
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_authorized_app(
+pub(crate) async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, oauth2client_id)): Path<(String, i64)>,

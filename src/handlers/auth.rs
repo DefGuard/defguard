@@ -50,7 +50,7 @@ use crate::{
 /// For successful login, return:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
-pub async fn authenticate(
+pub(crate) async fn authenticate(
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,
@@ -100,14 +100,13 @@ pub async fn authenticate(
                 Ok(None) => {
                     // create user from LDAP
                     debug!("User not found in DB, authenticating user {username} with LDAP");
-                    if let Ok(user) =
-                        user_from_ldap(&appstate.pool, &username, &data.password).await
-                    {
-                        user
-                    } else {
-                        info!("Failed to authenticate user {username} with LDAP");
-                        log_failed_login_attempt(&appstate.failed_logins, &username);
-                        return Err(WebError::Authorization("user not found".into()));
+                    match user_from_ldap(&appstate.pool, &username, &data.password).await {
+                        Ok(user) => user,
+                        Err(err) => {
+                            warn!("Failed to authenticate user {username} with LDAP: {err}");
+                            log_failed_login_attempt(&appstate.failed_logins, &username);
+                            return Err(WebError::Authorization("user not found".into()));
+                        }
                     }
                 }
                 Err(err) => {

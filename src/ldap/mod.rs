@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use ldap3::{adapters::EntriesOnly, drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 use sqlx::PgExecutor;
 
 use self::error::LdapError;
@@ -126,7 +126,7 @@ impl LDAPConnection {
 
     /// Searches LDAP for users.
     async fn search_users(&mut self, filter: &str) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, _res) = self
+        let (entries, _result) = self
             .ldap
             .search(
                 &self.config.ldap_user_search_base,
@@ -138,7 +138,7 @@ impl LDAPConnection {
             .success()?;
         info!("Performed LDAP user search with filter = {filter}");
 
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        Ok(entries.into_iter().map(SearchEntry::construct).collect())
     }
 
     /// Searches LDAP for groups.
@@ -205,6 +205,7 @@ impl LDAPConnection {
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await;
+        // TODO: use streaming, as in `get_user()`
         match users {
             Ok(users) => users.is_empty(),
             _ => true,
@@ -212,23 +213,41 @@ impl LDAPConnection {
     }
 
     /// Retrieves user with given username from LDAP.
-    /// TODO: Password must agree with the password stored in LDAP.
     pub async fn get_user(&mut self, username: &str, password: &str) -> Result<User, LdapError> {
         debug!("Performing LDAP user search: {username}");
-        let mut entries = self
-            .search_users(&format!(
-                "(&({}={username})(objectClass={}))",
-                self.config.ldap_username_attr, self.config.ldap_user_obj_class
-            ))
+        let filter = format!(
+            "(&({}={username})(objectClass={}))",
+            self.config.ldap_username_attr, self.config.ldap_user_obj_class
+        );
+        let mut stream = self
+            .ldap
+            .streaming_search_with(
+                EntriesOnly::new(),
+                &self.config.ldap_user_search_base,
+                Scope::Subtree,
+                &filter,
+                vec!["*", &self.config.ldap_member_attr],
+            )
             .await?;
-        if let Some(entry) = entries.pop() {
-            info!("Performed LDAP user search: {username}");
-            Ok(User::from_searchentry(&entry, username, password))
-        } else {
-            Err(LdapError::ObjectNotFound(format!(
-                "User {username} not found",
-            )))
+        while let Some(result) = stream.next().await? {
+            let entry = SearchEntry::construct(result);
+            // Check password by binding to LDAP.
+            error!("Trying to bind as {}", entry.dn);
+            match self.ldap.simple_bind(&entry.dn, password).await?.success() {
+                Ok(_) => {
+                    info!("Performed LDAP user search: {username}");
+                    return Ok(User::from_searchentry(&entry, username, password));
+                }
+                Err(err) => {
+                    warn!("User {username} didn't authenticate in LDAP");
+                    return Err(err.into());
+                }
+            }
         }
+
+        Err(LdapError::ObjectNotFound(format!(
+            "User {username} not found",
+        )))
     }
 
     /// Adds user to LDAP.

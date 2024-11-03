@@ -1,12 +1,9 @@
 use sqlx::{PgExecutor, PgPool};
 
 use super::{error::LdapError, LDAPConnection};
-use crate::db::{
-    models::{group::Group, user::User},
-    Id,
-};
+use crate::db::{models::user::User, Id};
 
-pub async fn user_from_ldap(
+pub(crate) async fn user_from_ldap(
     pool: &PgPool,
     username: &str,
     password: &str,
@@ -21,7 +18,7 @@ pub async fn user_from_ldap(
         .map_err(|_| LdapError::Database)
 }
 
-pub async fn ldap_add_user<'e, E>(
+pub(crate) async fn ldap_add_user<'e, E>(
     executor: E,
     user: &User<Id>,
     password: &str,
@@ -37,7 +34,7 @@ where
     }
 }
 
-pub async fn ldap_modify_user<'e, E>(
+pub(crate) async fn ldap_modify_user<'e, E>(
     executor: E,
     username: &str,
     user: &User<Id>,
@@ -49,7 +46,7 @@ where
     ldap_connection.modify_user(username, user).await
 }
 
-pub async fn ldap_delete_user<'e, E>(executor: E, username: &str) -> Result<(), LdapError>
+pub(crate) async fn ldap_delete_user<'e, E>(executor: E, username: &str) -> Result<(), LdapError>
 where
     E: PgExecutor<'e>,
 {
@@ -57,33 +54,33 @@ where
     ldap_connection.delete_user(username).await
 }
 
-pub async fn ldap_add_user_to_group<'e, E>(
-    executor: E,
-    username: &str,
-    groupname: &str,
-) -> Result<(), LdapError>
-where
-    E: PgExecutor<'e>,
-{
-    let mut ldap_connection = LDAPConnection::create(executor).await?;
-    ldap_connection.add_user_to_group(username, groupname).await
-}
+// pub(crate) async fn ldap_add_user_to_group<'e, E>(
+//     executor: E,
+//     username: &str,
+//     groupname: &str,
+// ) -> Result<(), LdapError>
+// where
+//     E: PgExecutor<'e>,
+// {
+//     let mut ldap_connection = LDAPConnection::create(executor).await?;
+//     ldap_connection.add_user_to_group(username, groupname).await
+// }
 
-pub async fn ldap_remove_user_from_group<'e, E>(
-    executor: E,
-    username: &str,
-    groupname: &str,
-) -> Result<(), LdapError>
-where
-    E: PgExecutor<'e>,
-{
-    let mut ldap_connection = LDAPConnection::create(executor).await?;
-    ldap_connection
-        .remove_user_from_group(username, groupname)
-        .await
-}
+// pub(crate) async fn ldap_remove_user_from_group<'e, E>(
+//     executor: E,
+//     username: &str,
+//     groupname: &str,
+// ) -> Result<(), LdapError>
+// where
+//     E: PgExecutor<'e>,
+// {
+//     let mut ldap_connection = LDAPConnection::create(executor).await?;
+//     ldap_connection
+//         .remove_user_from_group(username, groupname)
+//         .await
+// }
 
-pub async fn ldap_change_password<'e, E>(
+pub(crate) async fn ldap_change_password<'e, E>(
     executor: E,
     username: &str,
     password: &str,
@@ -95,14 +92,14 @@ where
     ldap_connection.set_password(username, password).await
 }
 
-pub async fn ldap_modify_group<'e, E>(
-    executor: E,
-    groupname: &str,
-    group: &Group,
-) -> Result<(), LdapError>
-where
-    E: PgExecutor<'e>,
-{
-    let mut ldap_connection = LDAPConnection::create(executor).await?;
-    ldap_connection.modify_group(groupname, group).await
-}
+// pub(crate) async fn ldap_modify_group<'e, E>(
+//     executor: E,
+//     groupname: &str,
+//     group: &Group,
+// ) -> Result<(), LdapError>
+// where
+//     E: PgExecutor<'e>,
+// {
+//     let mut ldap_connection = LDAPConnection::create(executor).await?;
+//     ldap_connection.modify_group(groupname, group).await
+// }
