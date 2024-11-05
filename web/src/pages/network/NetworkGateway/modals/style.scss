@@ -1,0 +1,15 @@
+@use '@scssutils' as *;
+
+#add-user-modal {
+  overflow-x: hidden;
+
+  &.step-0 {
+    @media (max-width: 635px) {
+      width: 100%;
+    }
+
+    @media (min-width: 635px) {
+      width: auto;
+    }
+  }
+}

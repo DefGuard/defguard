@@ -7,20 +7,24 @@ use utoipa::ToSchema;
 
 use super::{
     mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
-    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
-    WalletChange, WalletSignature,
+    user_for_admin_or_self, AddUserData, ApiResponse, PasswordChange, PasswordChangeSelf,
+    RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge, WalletChange,
+    WalletSignature,
 };
 use crate::{
     appstate::AppState,
     auth::{SessionInfo, UserAdminRole},
-    db::{
-        models::{
-            device::DeviceInfo,
-            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-        },
-        AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
-        UserInfo, Wallet, WebAuthn, WireguardNetwork,
+    db::models::{
+        device::DeviceInfo,
+        enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        oauth2authorizedapp::OAuth2AuthorizedApp,
+        settings::Settings,
+        user::{MFAMethod, User},
+        wallet::Wallet,
+        webauthn::WebAuthn,
+        webhook::AppEvent,
+        wireguard::{ChangeEvent, WireguardNetwork},
+        UserDetails, UserInfo,
     },
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
@@ -38,7 +42,7 @@ use crate::{
 /// - starts with non-special character
 /// - special characters: . - _
 /// - no whitespaces
-pub fn check_username(username: &str) -> Result<(), WebError> {
+pub(crate) fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
     if !(3..64).contains(&length) {
@@ -78,7 +82,7 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
 /// - starts with non-special character
 /// - only special characters allowed: . - _
 /// - no whitespaces
-pub fn prune_username(username: &str) -> String {
+pub(crate) fn prune_username(username: &str) -> String {
     let mut result = username.to_string();
 
     if result.len() > 64 {
@@ -157,7 +161,10 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
     )
 )]
-pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub(crate) async fn list_users(
+    _role: UserAdminRole,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -232,11 +239,11 @@ pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) 
         (status = 500, description = "Unable to return user details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn get_user(
+pub(crate) async fn get_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let user_details = UserDetails::from_user(&appstate.pool, &user).await?;
     Ok(ApiResponse {
@@ -256,7 +263,7 @@ pub async fn get_user(
     path = "/api/v1/user",
     request_body = AddUserData,
     responses(
-        (status = 201, description = "Add a new user.", body = UserInfo, example = json!(
+        (status = CREATED, description = "Add a new user.", body = UserInfo, example = json!(
             {
                 "authorized_apps": [],
                 "email": "name@email.com",
@@ -276,18 +283,18 @@ pub async fn get_user(
                 "username": "username"
             }
         )),
-        (status = 400, description = "Bad request, invalid user data.", body = ApiResponse, example = json!({})),
-        (status = 401, description = "Unauthorized to create a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to create a user.", body = ApiResponse, example = json!({"msg": "access denied"})),
-        (status = 500, description = "Unable to create a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+        (status = BAD_REQUEST, description = "Bad request, invalid user data.", body = ApiResponse, example = json!({})),
+        (status = UNAUTHORIZED, description = "Unauthorized to create a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = FORBIDDEN, description = "You don't have permission to create a user.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = INTERNAL_SERVER_ERROR, description = "Unable to create a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn add_user(
+pub(crate) async fn add_user(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let username = user_data.username.clone();
     debug!("User {} adding user {username}", session.user.username);
 
@@ -369,21 +376,21 @@ pub async fn add_user(
     path = "/api/v1/user/{username}/start_enrollment",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = CREATED, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
         (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
         (status = 401, description = "Unauthorized to start enrollment.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to start enrollment.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start enrollment.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 403, description = "You don't have permission to start enrollment.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start enrollment.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
-pub async fn start_enrollment(
+pub(crate) async fn start_enrollment(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} has started a new enrollment request.",
         session.user.username
@@ -463,19 +470,19 @@ pub async fn start_enrollment(
     path = "/api/v1/user/{username}/start_desktop",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
-        (status = 400, description = "Bad request, invalid enrollment request.", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
-        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = Json, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start remote desktop configuration.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
-pub async fn start_remote_desktop_configuration(
+pub(crate) async fn start_remote_desktop_configuration(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<StartEnrollmentRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} has started a new desktop activation for {username}.",
         session.user.username
@@ -543,7 +550,6 @@ pub async fn start_remote_desktop_configuration(
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
-    request_body = Json<Username>,
     responses(
         (status = 200, description = "Provided username is available to use.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided username is not available or username is invalid.", body = ApiResponse, example = json!({})),
@@ -552,11 +558,11 @@ pub async fn start_remote_desktop_configuration(
         (status = 500, description = "Unable to check is username available.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn username_available(
+pub(crate) async fn username_available(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     if let Err(err) = check_username(&data.username) {
         debug!("Username {} rejected: {err}", data.username);
         return Ok(ApiResponse {
@@ -590,7 +596,6 @@ pub async fn username_available(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<UserInfo>,
     responses(
         (status = 200, description = "User has been updated."),
         (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = ApiResponse, example = json!({})),
@@ -598,12 +603,12 @@ pub async fn username_available(
         (status = 500, description = "Unable to modify user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn modify_user(
+pub(crate) async fn modify_user(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(mut user_info): Json<UserInfo>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Err(err) = check_username(&user_info.username) {
@@ -657,13 +662,13 @@ pub async fn modify_user(
             let networks = WireguardNetwork::all(&mut *transaction).await?;
             for network in networks {
                 let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-                appstate.send_multiple_wireguard_events(gateway_events);
+                appstate.send_multiple_change_events(gateway_events);
             }
             info!("Allowed network devices of {username} synced");
         };
-        user_info.into_user_all_fields(&mut user)?;
+        user_info.into_user_all_fields(&mut user);
     } else {
-        user_info.into_user_safe_fields(&mut user)?;
+        user_info.into_user_safe_fields(&mut user);
     }
     user.save(&mut *transaction).await?;
 
@@ -683,7 +688,7 @@ pub async fn modify_user(
 /// Endpoint helps you delete a user, but `you can't delete yourself as a administrator`.
 ///
 /// # Returns
-/// If erorr occurs, endpoint will return `WebError` object.
+/// If error occurs, endpoint will return `WebError` object.
 #[utoipa::path(
     delete,
     path = "/api/v1/user/{username}",
@@ -691,7 +696,7 @@ pub async fn modify_user(
         ("username" = String, description = "name of a user"),
     ),
     responses(
-        (status = 200, description = "User has been deleted."),
+        (status = OK, description = "User has been deleted."),
         (status = 400, description = "Bad request, unable to delete user.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to delete user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to delete user.", body = ApiResponse, example = json!({"msg": "access denied"})),
@@ -699,12 +704,12 @@ pub async fn modify_user(
         (status = 500, description = "Unable to delete user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_user(
+pub(crate) async fn delete_user(
     _role: UserAdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} deleting user {username}", session.user.username);
     if session.user.username == username {
         debug!("User {username} attempted to delete himself");
@@ -723,11 +728,11 @@ pub async fn delete_user(
         let devices = user.devices(&mut *transaction).await?;
         let mut events = Vec::new();
         for device in devices {
-            events.push(GatewayEvent::DeviceDeleted(
+            events.push(ChangeEvent::DeviceDeleted(
                 DeviceInfo::from_device(&mut *transaction, device).await?,
             ));
         }
-        appstate.send_multiple_wireguard_events(events);
+        appstate.send_multiple_change_events(events);
         debug!("Devices of user {username} purged from networks.");
 
         user.delete(&mut *transaction).await?;
@@ -754,19 +759,18 @@ pub async fn delete_user(
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
-    request_body = Json<PasswordChangeSelf>,
     responses(
-        (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
+        (status = OK, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to change your password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn change_self_password(
+pub(crate) async fn change_self_password(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<PasswordChangeSelf>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("User {} is changing his password.", session.user.username);
     let mut user = session.user;
     if user.verify_password(&data.old_password).is_err() {
@@ -811,23 +815,22 @@ pub async fn change_self_password(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<PasswordChange>,
     responses(
-        (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
+        (status = OK, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = ApiResponse, example = json!({})),
-        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Cannot change user password that does not exist.", body = ApiResponse, example = json!({})),
         (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn change_password(
+pub(crate) async fn change_password(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(data): Json<PasswordChange>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "Admin {} changing password for user {username}",
         session.user.username,
@@ -899,12 +902,12 @@ pub async fn change_password(
         (status = 500, description = "Unable to send reset password to email", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn reset_password(
+pub(crate) async fn reset_password(
     _role: UserAdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "Admin {} resetting password for user {username}",
         session.user.username,
@@ -1013,12 +1016,12 @@ pub struct WalletInfoShort {
         (status = 500, description = "Cannot retrive settings.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn wallet_challenge(
+pub(crate) async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Query(wallet_info): Query<WalletInfoShort>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} generating wallet challenge for user {username}",
         session.user.username,
@@ -1083,18 +1086,18 @@ pub async fn wallet_challenge(
     ),
     responses(
         (status = 200, description = "Successfully set wallet signature."),
-        (status = 401, description = "Unauthorized to set a new signature.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to set new signature to wallet.", body = Json, example = json!({"msg": "requires privileged access"})),
+        (status = 401, description = "Unauthorized to set a new signature.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to set new signature to wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Incorrect wallet signature or address, can't set new signature for user.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot set a new wallet signature", body = Json, example = json!({"msg": "Internal server error"}))
+        (status = 500, description = "Cannot set a new wallet signature", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn set_wallet(
+pub(crate) async fn set_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(wallet_info): Json<WalletSignature>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} setting wallet signature for user {username}",
         session.user.username
@@ -1142,21 +1145,20 @@ pub async fn set_wallet(
         ("username" = String, description = "name of a user"),
         ("address" = String, description = "address of a user portfel")
     ),
-    request_body = Json<WalletChange>,
     responses(
-        (status = 200, description = "Successfully updated user's wallet.", body = RecoveryCodes, example = json!({"codes": "[]"})),
+        (status = OK, description = "Successfully updated user's wallet.", body = ApiResponse, example = json!({"codes": "[]"})),
         (status = 401, description = "Unauthorized to udpate user wallet.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to update user wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Incorrect wallet, can't update user wallet.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
         (status = 500, description = "Cannot udpate user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn update_wallet(
+pub(crate) async fn update_wallet(
     session: SessionInfo,
     Path((username, address)): Path<(String, String)>,
     State(appstate): State<AppState>,
     Json(data): Json<WalletChange>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} updating wallet {address} for user {username}",
         session.user.username,
@@ -1239,11 +1241,11 @@ pub async fn update_wallet(
         (status = 500, description = "Cannot delete user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_wallet(
+pub(crate) async fn delete_wallet(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, address)): Path<(String, String)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} deleting wallet {address} for user {username}",
         session.user.username,
@@ -1297,11 +1299,11 @@ pub async fn delete_wallet(
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_security_key(
+pub(crate) async fn delete_security_key(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, id)): Path<(String, i64)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} deleting security key {id} for user {username}",
         session.user.username,
@@ -1366,7 +1368,10 @@ pub async fn delete_security_key(
         (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub(crate) async fn me(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let user_info = UserInfo::from_user(&appstate.pool, &session.user).await?;
     Ok(ApiResponse {
         json: json!(user_info),
@@ -1395,11 +1400,11 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_authorized_app(
+pub(crate) async fn delete_authorized_app(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((username, oauth2client_id)): Path<(String, i64)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} deleting OAuth2 client {oauth2client_id} for user {username}",
         session.user.username,

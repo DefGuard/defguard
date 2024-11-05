@@ -1,6 +1,7 @@
 use std::{
     fmt,
     ops::{Deref, DerefMut},
+    time::Duration,
 };
 
 use axum::{
@@ -33,15 +34,21 @@ use serde::{
 };
 use serde_json::json;
 use sqlx::PgPool;
-use time::Duration;
 
-use super::{ApiResponse, ApiResult, SESSION_COOKIE_NAME};
+use super::{ApiResponse, SESSION_COOKIE_NAME};
 use crate::{
     appstate::AppState,
     auth::{AccessUserInfo, SessionInfo},
     db::{
-        models::{auth_code::AuthCode, oauth2client::OAuth2Client},
-        Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User,
+        models::{
+            auth_code::AuthCode,
+            oauth2authorizedapp::OAuth2AuthorizedApp,
+            oauth2client::OAuth2Client,
+            oauth2token::OAuth2Token,
+            session::{Session, SessionState},
+            user::User,
+        },
+        Id,
     },
     error::WebError,
     handlers::{mail::send_new_device_ocid_login_email, SIGN_IN_COOKIE_NAME},
@@ -73,7 +80,7 @@ impl From<&User<Id>> for StandardClaims<CoreGenderClaim> {
     }
 }
 
-pub async fn discovery_keys() -> ApiResult {
+pub(crate) async fn discovery_keys() -> Result<ApiResponse, WebError> {
     let mut keys = Vec::new();
     if let Some(openid_key) = server_config().openid_key() {
         keys.push(openid_key.as_verification_key());
@@ -360,13 +367,13 @@ fn login_redirect(
     .secure(!config.cookie_insecure)
     .same_site(SameSite::Lax)
     .http_only(true)
-    .max_age(Duration::minutes(10));
+    .max_age(time::Duration::minutes(10));
     redirect_to("/login", private_cookies.add(cookie))
 }
 
 /// Authorization Endpoint
 /// See https://openid.net/specs/openid-connect-core-1_0.html#AuthorizationEndpoint
-pub async fn authorization(
+pub(crate) async fn authorization(
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
     cookies: CookieJar,
@@ -519,7 +526,7 @@ pub async fn get_group_claims(pool: &PgPool, user: &User<Id>) -> Result<GroupCla
 }
 
 /// Login Authorization Endpoint redirect with authorization code
-pub async fn secure_authorization(
+pub(crate) async fn secure_authorization(
     session_info: SessionInfo,
     State(appstate): State<AppState>,
     Query(data): Query<AuthenticationRequest>,
@@ -672,8 +679,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let timeout = server_config().session_timeout;
-                let expiration = issue_time + chrono::Duration::seconds(timeout.as_secs() as i64);
+                let timeout: Duration = server_config().session_timeout.into();
+                let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],
@@ -755,11 +762,11 @@ impl TokenRequest {
 /// Token Endpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#TokenEndpoint
 /// https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens
-pub async fn token(
+pub(crate) async fn token(
     State(appstate): State<AppState>,
     oauth2client: Option<OAuth2Client<Id>>,
     Form(form): Form<TokenRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     // TODO: cleanup branches
     match form.grant_type.as_str() {
         "authorization_code" => {
@@ -894,7 +901,7 @@ pub async fn token(
 }
 
 /// https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
-pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
+pub(crate) async fn userinfo(user_info: AccessUserInfo) -> Result<ApiResponse, WebError> {
     let userclaims = StandardClaims::<CoreGenderClaim>::from(&user_info.0);
     Ok(ApiResponse {
         json: json!(userclaims),
@@ -903,7 +910,7 @@ pub async fn userinfo(user_info: AccessUserInfo) -> ApiResult {
 }
 
 // Must be served under /.well-known/openid-configuration
-pub async fn openid_configuration() -> ApiResult {
+pub(crate) async fn openid_configuration() -> Result<ApiResponse, WebError> {
     let config = server_config();
     let provider_metadata = CoreProviderMetadata::new(
         IssuerUrl::from_url(config.url.clone()),

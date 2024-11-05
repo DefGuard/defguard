@@ -3,7 +3,10 @@ use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgEx
 use utoipa::ToSchema;
 
 use crate::{
-    db::{models::error::ModelError, Id, NoId, User, WireguardNetwork},
+    db::{
+        models::{error::ModelError, user::User, wireguard::WireguardNetwork},
+        Id, NoId,
+    },
     server_config,
 };
 
@@ -83,7 +86,7 @@ impl Group<Id> {
 
 impl WireguardNetwork<Id> {
     /// Fetch a list of all allowed groups for a given network from DB
-    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, ModelError>
+    pub async fn fetch_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<String>, sqlx::Error>
     where
         E: PgExecutor<'e>,
     {
@@ -108,7 +111,7 @@ impl WireguardNetwork<Id> {
     pub async fn get_allowed_groups(
         &self,
         transaction: &mut PgConnection,
-    ) -> Result<Option<Vec<String>>, ModelError> {
+    ) -> Result<Option<Vec<String>>, sqlx::Error> {
         debug!("Returning a list of allowed groups for network {self}");
         let admin_group_name = &server_config().admin_groupname;
         // get allowed groups from DB
@@ -218,7 +221,7 @@ impl WireguardNetwork<Id> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::db::{PgPool, User};
+    use crate::db::{models::user::User, PgPool};
 
     #[sqlx::test]
     async fn test_group(pool: PgPool) {

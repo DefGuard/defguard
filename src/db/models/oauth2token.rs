@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{TimeDelta, Utc};
 use sqlx::{query, query_as, Error as SqlxError, PgPool};
 
 use crate::{db::Id, random::gen_alphanumeric, server_config};
@@ -16,7 +16,7 @@ impl OAuth2Token {
     #[must_use]
     pub fn new(oauth2authorizedapp_id: Id, redirect_uri: String, scope: String) -> Self {
         let timeout = server_config().session_timeout;
-        let expiration = Utc::now() + Duration::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
         Self {
             oauth2authorizedapp_id,
             access_token: gen_alphanumeric(24),
@@ -32,7 +32,7 @@ impl OAuth2Token {
         let timeout = server_config().session_timeout;
         let new_access_token = gen_alphanumeric(24);
         let new_refresh_token = gen_alphanumeric(24);
-        let expiration = Utc::now() + Duration::seconds(timeout.as_secs() as i64);
+        let expiration = Utc::now() + TimeDelta::seconds(timeout.as_secs() as i64);
         self.expires_in = expiration.timestamp();
 
         query!(

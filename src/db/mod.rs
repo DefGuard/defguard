@@ -1,14 +1,31 @@
 pub mod models;
 
 use sqlx::postgres::{PgConnectOptions, PgPool};
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema)]
 pub struct NoId;
 pub type Id = i64;
 
-/// Initializes and migrates postgres database. Returns DB pool object.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub(crate) enum TriggerOperation {
+    Insert,
+    Update,
+    Delete,
+}
+
+#[derive(Deserialize)]
+pub(crate) struct ChangeNotification<T> {
+    pub operation: TriggerOperation,
+    pub old: Option<T>,
+    pub new: Option<T>,
+}
+
+/// Initializes PostgreSQL database and runs the migrations.
+/// Returns database pool object.
 pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &str) -> PgPool {
-    info!("Initializing DB pool");
+    info!("Initializing pool of database connections");
     let opts = PgConnectOptions::new()
         .host(host)
         .port(port)
@@ -24,19 +41,3 @@ pub async fn init_db(host: &str, port: u16, name: &str, user: &str, password: &s
         .expect("Cannot run database migrations.");
     pool
 }
-
-pub use models::{
-    device::{AddDevice, Device},
-    group::Group,
-    oauth2authorizedapp::OAuth2AuthorizedApp,
-    oauth2token::OAuth2Token,
-    session::{Session, SessionState},
-    settings::Settings,
-    user::{MFAMethod, User},
-    wallet::Wallet,
-    webauthn::WebAuthn,
-    webhook::{AppEvent, HWKeyUserData, WebHook},
-    wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
-    yubikey::YubiKey,
-    MFAInfo, UserDetails, UserInfo,
-};

@@ -2,7 +2,15 @@ mod common;
 
 use claims::assert_err;
 use defguard::{
-    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork},
+    db::{
+        models::{
+            device::Device,
+            group::Group,
+            user::User,
+            wireguard::{ChangeEvent, WireguardNetwork},
+        },
+        Id,
+    },
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -112,7 +120,7 @@ async fn test_create_new_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -139,7 +147,7 @@ async fn test_create_new_network() {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
@@ -154,7 +162,7 @@ async fn test_modify_network() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -181,7 +189,7 @@ async fn test_modify_network() {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // network configuration was created for all devices
     let peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -209,7 +217,7 @@ async fn test_modify_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -234,7 +242,7 @@ async fn test_modify_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 3);
@@ -260,7 +268,7 @@ async fn test_modify_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 2);
@@ -285,7 +293,7 @@ async fn test_modify_network() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::NetworkModified(..));
+    assert_matches!(wg_rx.try_recv().unwrap(), ChangeEvent::NetworkModified(..));
 
     let new_peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(new_peers.len(), 4);
@@ -303,7 +311,7 @@ async fn test_import_network_existing_devices() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -358,10 +366,10 @@ async fn test_import_network_existing_devices() {
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     // network config was only created for one of the existing devices and the admin device
-    let GatewayEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
+    let ChangeEvent::DeviceModified(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(device_info.device.id, devices[1].id);
@@ -372,7 +380,7 @@ async fn test_import_network_existing_devices() {
         peers[1].allowed_ips[0]
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let ChangeEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(device_info.device.id, devices[0].id);
@@ -391,7 +399,7 @@ async fn test_import_mapping_devices() {
     let (client, client_state) = make_test_client().await;
     let (users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -462,7 +470,7 @@ PersistentKeepalive = 300
     assert_eq!(peers[3].pubkey, mapped_devices[1].wireguard_pubkey);
 
     // assert events
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let ChangeEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(
@@ -476,7 +484,7 @@ PersistentKeepalive = 300
         mapped_devices[0].wireguard_ip
     );
 
-    let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
+    let ChangeEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
         panic!()
     };
     assert_eq!(
@@ -499,7 +507,7 @@ async fn test_modify_user() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -526,7 +534,7 @@ async fn test_modify_user() {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
     assert_err!(wg_rx.try_recv());
 
     // network configuration was created only for admin and allowed user
@@ -546,7 +554,7 @@ async fn test_modify_user() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceDeleted(..));
+    assert_matches!(event, ChangeEvent::DeviceDeleted(..));
     assert_err!(wg_rx.try_recv());
 
     let peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -580,7 +588,7 @@ async fn test_modify_user() {
     assert_eq!(response.status(), StatusCode::OK);
 
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::DeviceCreated(..));
+    assert_matches!(event, ChangeEvent::DeviceCreated(..));
     assert_err!(wg_rx.try_recv());
 
     let peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -594,7 +602,7 @@ async fn test_delete_only_allowed_group() {
     let (client, client_state) = make_test_client().await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
-    let mut wg_rx = client_state.wireguard_rx;
+    let mut wg_rx = client_state.events_rx;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -621,7 +629,7 @@ async fn test_delete_only_allowed_group() {
     let network: WireguardNetwork<Id> = response.json().await;
     assert_eq!(network.name, "network");
     let event = wg_rx.try_recv().unwrap();
-    assert_matches!(event, GatewayEvent::NetworkCreated(..));
+    assert_matches!(event, ChangeEvent::NetworkCreated(..));
 
     let peers = network.get_peers(&client_state.pool).await.unwrap();
     assert_eq!(peers.len(), 2);

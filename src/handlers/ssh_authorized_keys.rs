@@ -7,13 +7,17 @@ use serde_json::json;
 use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
 use ssh_key::PublicKey;
 
-use super::{user_for_admin_or_self, ApiResponse, ApiResult};
+use super::{user_for_admin_or_self, ApiResponse};
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{
-        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-        Group, Id, User,
+        models::{
+            authentication_key::{AuthenticationKey, AuthenticationKeyType},
+            group::Group,
+            user::User,
+        },
+        Id,
     },
     error::WebError,
 };
@@ -97,52 +101,44 @@ pub async fn get_authorized_keys(
     let mut ssh_keys: Vec<String> = Vec::new();
 
     // check if group filter was specified
-    match &params.group {
-        Some(group_name) => {
-            // fetch group
-            if let Some(group) = Group::find_by_name(&appstate.pool, group_name).await? {
-                // check if user filter was specified
-                match &params.username {
-                    Some(username) => {
-                        debug!("Fetching SSH keys for user {username} in group {group_name}");
-                        // fetch user
-                        if let Some(user) = User::find_by_username(&appstate.pool, username).await?
-                        {
-                            // check if user belongs to specified group
-                            let members = group.member_usernames(&appstate.pool).await?;
-                            if members.contains(&user.username) {
-                                add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys)
-                                    .await;
-                            } else {
-                                debug!("User {username} is not a member of group {group_name}",);
-                            }
-                        } else {
-                            debug!("Specified user does not exist");
-                        }
-                    }
-                    None => {
-                        debug!("Fetching SSH keys for all users in group {group_name}");
-                        // fetch all users in group
-                        let users = group.members(&appstate.pool).await?;
-                        for user in users {
-                            add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
-                        }
-                    }
-                }
-            } else {
-                debug!("Specified group does not exist");
-            }
-        }
-        None => {
+    if let Some(group_name) = &params.group {
+        // fetch group
+        if let Some(group) = Group::find_by_name(&appstate.pool, group_name).await? {
             // check if user filter was specified
             if let Some(username) = &params.username {
-                debug!("Fetching SSH keys for user {username}");
+                debug!("Fetching SSH keys for user {username} in group {group_name}");
                 // fetch user
                 if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
-                    add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
+                    // check if user belongs to specified group
+                    let members = group.member_usernames(&appstate.pool).await?;
+                    if members.contains(&user.username) {
+                        add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
+                    } else {
+                        debug!("User {username} is not a member of group {group_name}",);
+                    }
                 } else {
                     debug!("Specified user does not exist");
                 }
+            } else {
+                debug!("Fetching SSH keys for all users in group {group_name}");
+                // fetch all users in group
+                let users = group.members(&appstate.pool).await?;
+                for user in users {
+                    add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
+                }
+            }
+        } else {
+            debug!("Specified group does not exist");
+        }
+    } else {
+        // check if user filter was specified
+        if let Some(username) = &params.username {
+            debug!("Fetching SSH keys for user {username}");
+            // fetch user
+            if let Some(user) = User::find_by_username(&appstate.pool, username).await? {
+                add_user_ssh_keys_to_list(&appstate.pool, &user, &mut ssh_keys).await;
+            } else {
+                debug!("Specified user does not exist");
             }
         }
     }
@@ -163,7 +159,7 @@ pub async fn add_authentication_key(
     session: SessionInfo,
     Path(username): Path<String>,
     Json(data): Json<AddAuthenticationKeyData>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "Adding authentication key of type {:?} for user {username}",
         data.key_type,
@@ -226,7 +222,7 @@ pub async fn fetch_authentication_keys(
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     let keys_info = AuthenticationKeyInfo::find_by_user_id(&appstate.pool, user.id).await?;
 
@@ -240,7 +236,7 @@ pub async fn delete_authentication_key(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path((username, key_id)): Path<(String, i64)>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if !session.is_admin && user.id != key.user_id {
@@ -268,7 +264,7 @@ pub async fn rename_authentication_key(
     session: SessionInfo,
     Path((username, key_id)): Path<(String, i64)>,
     Json(data): Json<RenameRequest>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     if let Some(mut key) = AuthenticationKey::find_by_id(&appstate.pool, key_id).await? {
         if key.yubikey_id.is_some() {

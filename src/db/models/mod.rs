@@ -5,6 +5,7 @@ pub mod device;
 pub mod device_login;
 pub mod enrollment;
 pub mod error;
+pub mod gateway;
 pub mod group;
 #[cfg(feature = "openid")]
 pub mod oauth2authorizedapp;
@@ -27,9 +28,10 @@ use utoipa::ToSchema;
 
 use self::{
     device::UserDevice,
+    group::Group,
     user::{MFAMethod, User},
 };
-use super::{Group, Id};
+use super::Id;
 
 #[cfg(feature = "openid")]
 #[derive(Deserialize, Serialize)]
@@ -40,7 +42,7 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct WalletInfo {
     pub address: String,
     pub name: String,
@@ -48,7 +50,7 @@ pub struct WalletInfo {
     pub use_for_mfa: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: Id,
     pub user_id: Id,
@@ -56,7 +58,7 @@ pub struct OAuth2AuthorizedAppInfo {
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,
@@ -82,7 +84,7 @@ pub struct UserInfo {
 }
 
 impl UserInfo {
-    pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
+    pub(crate) async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let groups = user.member_of_names(pool).await?;
         let authorized_apps = user.oauth2authorizedapps(pool).await?;
 
@@ -167,22 +169,18 @@ impl UserInfo {
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
-    pub fn into_user_safe_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_safe_fields(self, user: &mut User<Id>) {
         user.phone = self.phone;
         user.mfa_method = self.mfa_method;
-
-        Ok(())
     }
 
     /// Copy fields to [`User`]. This function should be used by administrators.
-    pub fn into_user_all_fields(self, user: &mut User<Id>) -> Result<(), SqlxError> {
+    pub(crate) fn into_user_all_fields(self, user: &mut User<Id>) {
         user.phone = self.phone;
         user.username = self.username;
         user.last_name = self.last_name;
         user.first_name = self.first_name;
         user.email = self.email;
-
-        Ok(())
     }
 }
 
@@ -235,7 +233,7 @@ impl MFAInfo {
     }
 
     #[must_use]
-    pub fn mfa_available(&self) -> bool {
+    pub(crate) fn mfa_available(&self) -> bool {
         self.webauthn_available
             || self.totp_available
             || self.web3_available
@@ -248,7 +246,7 @@ impl MFAInfo {
     }
 
     #[must_use]
-    pub fn list_available_methods(&self) -> Option<Vec<MFAMethod>> {
+    pub(crate) fn list_available_methods(&self) -> Option<Vec<MFAMethod>> {
         if !self.mfa_available() {
             return None;
         }
@@ -310,7 +308,7 @@ mod test {
             .handle_user_groups(&mut transaction, &mut user)
             .await
             .unwrap();
-        user_info.into_user_all_fields(&mut user).unwrap();
+        user_info.into_user_all_fields(&mut user);
         transaction.commit().await.unwrap();
 
         assert_eq!(group1.member_usernames(&pool).await.unwrap(), ["hpotter"]);

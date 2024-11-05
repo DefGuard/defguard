@@ -1,3 +1,5 @@
+use std::{fs::read_to_string, io};
+
 use clap::{Args, Parser, Subcommand};
 use humantime::Duration;
 use ipnetwork::IpNetwork;
@@ -10,6 +12,7 @@ use rsa::{
     RsaPrivateKey,
 };
 use secrecy::{ExposeSecret, Secret};
+use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
@@ -51,9 +54,11 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_PORT", default_value_t = 50055)]
     pub grpc_port: u16,
 
+    // Certificate authority (CA), certificate, and key for gRPC communication over HTTPS.
+    #[arg(long, env = "DEFGUARD_GRPC_CA")]
+    pub grpc_ca: Option<String>,
     #[arg(long, env = "DEFGUARD_GRPC_CERT")]
     pub grpc_cert: Option<String>,
-
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
@@ -150,10 +155,6 @@ pub struct DefGuardConfig {
     // TODO: allow multiple values
     #[arg(long, env = "DEFGUARD_PROXY_URL")]
     pub proxy_url: Option<String>,
-
-    // path to certificate `.pem` file used if connecting to proxy over HTTPS
-    #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
-    pub proxy_grpc_ca: Option<String>,
 
     #[arg(
         long,
@@ -265,7 +266,7 @@ impl DefGuardConfig {
     }
 
     #[must_use]
-    pub fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
+    pub(crate) fn openid_key(&self) -> Option<CoreRsaPrivateSigningKey> {
         let key = self.openid_signing_key.as_ref()?;
         if let Ok(pem) = key.to_pkcs1_pem(LineEnding::default()) {
             let key_id = JsonWebKeyId::new(key.n().to_str_radix(36));
@@ -273,6 +274,25 @@ impl DefGuardConfig {
         } else {
             None
         }
+    }
+
+    /// Provide [`ClientTlsConfig`] from paths to cerfiticate, key, and cerfiticate authority (CA).
+    pub(crate) fn grpc_client_tls_config(&self) -> Result<Option<ClientTlsConfig>, io::Error> {
+        if self.grpc_ca.is_none() && (self.grpc_cert.is_none() || self.grpc_key.is_none()) {
+            return Ok(None);
+        }
+        let mut tls = ClientTlsConfig::new();
+        if let (Some(cert_path), Some(key_path)) = (&self.grpc_cert, &self.grpc_key) {
+            let cert = read_to_string(cert_path)?;
+            let key = read_to_string(key_path)?;
+            tls = tls.identity(Identity::from_pem(cert, key));
+        }
+        if let Some(ca_path) = &self.grpc_ca {
+            let ca = read_to_string(ca_path)?;
+            tls = tls.ca_certificate(Certificate::from_pem(ca));
+        }
+
+        Ok(Some(tls))
     }
 }
 

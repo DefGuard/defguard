@@ -1,7 +1,7 @@
 mod common;
 
 use defguard::{
-    db::{Id, NoId, WebHook},
+    db::{models::webhook::WebHook, Id, NoId},
     handlers::Auth,
 };
 use reqwest::StatusCode;

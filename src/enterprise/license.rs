@@ -9,11 +9,12 @@ use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
-use sqlx::{error::Error as SqlxError, PgPool};
+use sqlx::PgPool;
 use thiserror::Error;
 use tokio::time::sleep;
+use utoipa::ToSchema;
 
-use crate::{db::Settings, VERSION};
+use crate::{db::models::settings::Settings, VERSION};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
@@ -172,7 +173,7 @@ O/CQRZLP6BvYZvex7v3BoKUYkVAeWTGU6WCOPaGp1OxdkQYdryUg/A==
 -----END PGP PUBLIC KEY BLOCK-----
 ";
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, ToSchema)]
 pub enum LicenseError {
     #[error("Provided license is invalid: {0}")]
     InvalidLicense(String),
@@ -181,7 +182,8 @@ pub enum LicenseError {
     #[error("Provided signature is invalid")]
     InvalidSignature,
     #[error("Database error")]
-    DbError(#[from] SqlxError),
+    #[schema(value_type = String)]
+    DbError(#[from] sqlx::Error),
     #[error("License decoding error: {0}")]
     DecodeError(String),
     #[error("License is expired and has reached its maximum overdue time, please contact sales<at>defguard.net")]
@@ -197,7 +199,7 @@ struct RefreshRequestResponse {
     key: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct License {
     pub customer_id: String,
     pub subscription: bool,
@@ -421,11 +423,11 @@ impl License {
     /// Checks if the license has reached its maximum overdue time.
     #[must_use]
     pub fn is_max_overdue(&self) -> bool {
-        if !self.subscription {
+        if self.subscription {
+            self.time_overdue() > MAX_OVERDUE_TIME
+        } else {
             // Non-subscription licenses are considered expired immediately, no grace period is required
             self.is_expired()
-        } else {
-            self.time_overdue() > MAX_OVERDUE_TIME
         }
     }
 }
@@ -572,36 +574,31 @@ pub async fn run_periodic_license_check(pool: PgPool) -> Result<(), LicenseError
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
 
-            match &*license {
-                Some(license) => {
-                    if license.requires_renewal() {
-                        // check if we are pass the maximum expiration date, after which we don't
-                        // want to try to renew the license anymore
-                        if license.is_max_overdue() {
-                            check_period = CHECK_PERIOD;
-                            warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {}", format_duration(check_period));
-                            false
-                        } else {
-                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
-                            true
-                        }
-                    } else {
-                        // This if is only for logging purposes, to provide more detailed information
-                        if license.subscription {
-                            debug!(
-                                "License doesn't need to be renewed yet, skipping renewal check"
-                            );
-                        } else {
-                            debug!("License is not a subscription, skipping renewal check");
-                        }
+            if let Some(license) = &*license {
+                if license.requires_renewal() {
+                    // check if we are pass the maximum expiration date, after which we don't
+                    // want to try to renew the license anymore
+                    if license.is_max_overdue() {
+                        check_period = CHECK_PERIOD;
+                        warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
+                        debug!("Changing check period to {}", format_duration(check_period));
                         false
+                    } else {
+                        debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
+                        true
                     }
-                }
-                None => {
-                    debug!("No license found, skipping license check");
+                } else {
+                    // This if is only for logging purposes, to provide more detailed information
+                    if license.subscription {
+                        debug!("License doesn't need to be renewed yet, skipping renewal check");
+                    } else {
+                        debug!("License is not a subscription, skipping renewal check");
+                    }
                     false
                 }
+            } else {
+                debug!("No license found, skipping license check");
+                false
             }
         };
 

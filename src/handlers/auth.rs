@@ -18,7 +18,7 @@ use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
-    ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
+    ApiResponse, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
     WalletAddress, WalletSignature, WebAuthnRegistration, SESSION_COOKIE_NAME,
 };
 use crate::{
@@ -27,7 +27,14 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::models::{
+        session::{Session, SessionState},
+        settings::Settings,
+        user::{MFAMethod, User},
+        wallet::Wallet,
+        webauthn::WebAuthn,
+        MFAInfo, UserInfo,
+    },
     error::WebError,
     handlers::{
         mail::{
@@ -43,7 +50,7 @@ use crate::{
 /// For successful login, return:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
-pub async fn authenticate(
+pub(crate) async fn authenticate(
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,
@@ -93,14 +100,13 @@ pub async fn authenticate(
                 Ok(None) => {
                     // create user from LDAP
                     debug!("User not found in DB, authenticating user {username} with LDAP");
-                    if let Ok(user) =
-                        user_from_ldap(&appstate.pool, &username, &data.password).await
-                    {
-                        user
-                    } else {
-                        info!("Failed to authenticate user {username} with LDAP");
-                        log_failed_login_attempt(&appstate.failed_logins, &username);
-                        return Err(WebError::Authorization("user not found".into()));
+                    match user_from_ldap(&appstate.pool, &username, &data.password).await {
+                        Ok(user) => user,
+                        Err(err) => {
+                            warn!("Failed to authenticate user {username} with LDAP: {err}");
+                            log_failed_login_attempt(&appstate.failed_logins, &username);
+                            return Err(WebError::Authorization("user not found".into()));
+                        }
                     }
                 }
                 Err(err) => {
@@ -264,7 +270,10 @@ pub async fn mfa_enable(
 }
 
 /// Disable MFA
-pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn mfa_disable(
+    session_info: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
@@ -276,7 +285,7 @@ pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppSt
 pub async fn webauthn_init(
     mut session_info: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let user = session_info.user;
     info!(
         "Initializing WebAuthn registration for user {}",
@@ -313,7 +322,7 @@ pub async fn webauthn_finish(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(webauth_reg): Json<WebAuthnRegistration>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     info!(
         "Finishing WebAuthn registration for user {}",
         session.user.username
@@ -376,7 +385,10 @@ pub async fn webauthn_finish(
 }
 
 /// Start WebAuthn authentication
-pub async fn webauthn_start(mut session: Session, State(appstate): State<AppState>) -> ApiResult {
+pub async fn webauthn_start(
+    mut session: Session,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let passkeys = WebAuthn::passkeys_for_user(&appstate.pool, session.user_id).await?;
 
     match appstate.webauthn.start_passkey_authentication(&passkeys) {
@@ -453,7 +465,10 @@ pub async fn webauthn_end(
 }
 
 /// Generate new TOTP secret
-pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn totp_secret(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let mut user = session.user;
     debug!("Generating new TOTP secret for user {}", user.username);
 
@@ -470,7 +485,7 @@ pub async fn totp_enable(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let mut user = session.user;
     debug!("Enabling TOTP for user {}", user.username);
     if user.verify_totp_code(&data.code) {
@@ -498,7 +513,10 @@ pub async fn totp_enable(
 }
 
 /// Disable TOTP
-pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn totp_disable(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     let mut user = session.user;
     debug!("Disabling TOTP for user {}", user.username);
     user.disable_totp(&appstate.pool).await?;
@@ -558,7 +576,10 @@ pub async fn totp_code(
 }
 
 /// Initialize email MFA setup
-pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn email_mfa_init(
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> Result<ApiResponse, WebError> {
     // check if SMTP is configured
     let settings = Settings::get_settings(&appstate.pool).await?;
     if !settings.smtp_configured() {
@@ -583,7 +604,7 @@ pub async fn email_mfa_enable(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let mut user = session.user;
     debug!("Enabling email MFA for user {}", user.username);
     if user.verify_email_mfa_code(&data.code) {
@@ -614,7 +635,7 @@ pub async fn email_mfa_enable(
 pub async fn email_mfa_disable(
     session: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     let mut user = session.user;
     debug!("Disabling email MFA for user {}", user.username);
     user.disable_email_mfa(&appstate.pool).await?;
@@ -627,7 +648,7 @@ pub async fn email_mfa_disable(
 pub async fn request_email_mfa_code(
     session: Session,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     if let Some(user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         debug!("Sending email MFA code for user {}", user.username);
         if user.email_mfa_enabled {
@@ -697,7 +718,7 @@ pub async fn web3auth_start(
     mut session: Session,
     State(appstate): State<AppState>,
     Json(data): Json<WalletAddress>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!("Starting web3 authentication for wallet {}", data.address);
     match Settings::get(&appstate.pool).await? {
         Some(settings) => {

@@ -46,11 +46,15 @@ use utoipa::{
 use utoipa_swagger_ui::SwaggerUi;
 
 #[cfg(feature = "wireguard")]
+use self::handlers::gateway::{
+    add_gateway, delete_gateway, get_gateway, get_gateways, update_gateway,
+};
+#[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
     delete_network, download_config, gateway_status, get_device, import_network, list_devices,
     list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway, user_stats,
+    network_stats, user_stats,
 };
 #[cfg(feature = "worker")]
 use self::handlers::worker::{
@@ -72,8 +76,15 @@ use self::{
     config::{DefGuardConfig, InitVpnLocationArgs},
     db::{
         init_db,
-        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
-        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
+        models::{
+            device::Device,
+            user::User,
+            webhook::AppEvent,
+            wireguard::{
+                ChangeEvent, WireguardNetwork, DEFAULT_DISCONNECT_THRESHOLD,
+                DEFAULT_KEEPALIVE_INTERVAL,
+            },
+        },
     },
     handlers::{
         auth::{
@@ -108,9 +119,7 @@ use self::{
 };
 #[cfg(any(feature = "openid", feature = "worker"))]
 use self::{
-    auth::failed_login::FailedLoginMap,
-    db::models::oauth2client::OAuth2Client,
-    grpc::{GatewayMap, WorkerState},
+    auth::failed_login::FailedLoginMap, db::models::oauth2client::OAuth2Client, grpc::WorkerState,
     handlers::app_info::get_app_info,
 };
 
@@ -154,9 +163,9 @@ pub(crate) fn server_config() -> &'static DefGuardConfig {
 pub(crate) const KEY_LENGTH: usize = 32;
 
 mod openapi {
-    use db::{
-        models::device::{ModifyDevice, UserDevice},
-        AddDevice, UserDetails, UserInfo,
+    use db::models::{
+        device::{AddDevice, ModifyDevice, UserDevice},
+        UserDetails, UserInfo,
     };
     use error::WebError;
     use handlers::{
@@ -278,10 +287,9 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
 pub fn build_webapp(
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -458,10 +466,6 @@ pub fn build_webapp(
             .route("/network", get(list_networks))
             .route("/network/:network_id", get(network_details))
             .route("/network/:network_id/gateways", get(gateway_status))
-            .route(
-                "/network/:network_id/gateways/:gateway_id",
-                delete(remove_gateway),
-            )
             .route("/network/import", post(import_network))
             .route("/network/:network_id/devices", post(add_user_devices))
             .route(
@@ -471,7 +475,11 @@ pub fn build_webapp(
             .route("/network/:network_id/token", get(create_network_token))
             .route("/network/:network_id/stats/users", get(user_stats))
             .route("/network/:network_id/stats", get(network_stats))
-            .layer(Extension(gateway_state)),
+            .route("/network/:network_id/gateway", post(add_gateway))
+            .route("/gateway/:gateway_id", get(get_gateway))
+            .route("/gateway/:gateway_id", put(update_gateway))
+            .route("/gateway/:gateway_id", delete(delete_gateway))
+            .route("/network/:network_id/all_gateways", get(get_gateways)),
     );
 
     #[cfg(feature = "worker")]
@@ -494,7 +502,7 @@ pub fn build_webapp(
             pool,
             webhook_tx,
             webhook_rx,
-            wireguard_tx,
+            events_tx,
             mail_tx,
             user_agent_parser,
             failed_logins,
@@ -516,10 +524,9 @@ pub fn build_webapp(
 /// Runs core web server exposing REST API.
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
-    gateway_state: Arc<Mutex<GatewayMap>>,
     webhook_tx: UnboundedSender<AppEvent>,
     webhook_rx: UnboundedReceiver<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     user_agent_parser: Arc<UserAgentParser>,
@@ -528,10 +535,9 @@ pub async fn run_web_server(
     let webapp = build_webapp(
         webhook_tx,
         webhook_rx,
-        wireguard_tx,
+        events_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         user_agent_parser,
         failed_logins,
@@ -594,8 +600,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
-        )
-        .expect("Could not create network");
+        );
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
         network.prvkey = "MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=".to_string();
         network
@@ -674,7 +679,7 @@ pub async fn init_vpn_location(
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
-    )?
+    )
     .save(pool)
     .await?;
 

@@ -10,13 +10,10 @@ use sqlx::{query_as, Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::{sync::broadcast::Sender, time::sleep};
 
-use crate::db::{
-    models::{
-        device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
-        error::ModelError,
-        wireguard::WireguardNetworkError,
-    },
-    Device, GatewayEvent, Id, WireguardNetwork,
+use crate::db::models::{
+    device::{Device, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+    error::ModelError,
+    wireguard::{ChangeEvent, WireguardNetwork, WireguardNetworkError},
 };
 
 // How long to sleep between loop iterations
@@ -39,22 +36,13 @@ pub enum PeerDisconnectError {
 /// Run with a specified frequency and disconnect all inactive peers in MFA-protected locations.
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
 ) -> Result<(), PeerDisconnectError> {
     info!("Starting periodic disconnect of inactive devices in MFA-protected locations");
     loop {
         debug!("Starting periodic inactive device disconnect");
 
-        // get all MFA-protected locations
-        let locations = query_as!(
-            WireguardNetwork::<Id>,
-            "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
-            FROM wireguard_network WHERE mfa_enabled = true",
-        )
-        .fetch_all(&pool)
-        .await?;
+        let locations = WireguardNetwork::all_mfa_enabled(&pool).await?;
 
         // loop over all locations
         for location in locations {
@@ -62,20 +50,20 @@ pub async fn run_periodic_peer_disconnect(
             let devices = query_as!(
             Device,
             "WITH stats AS ( \
-                    SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake \
-                    FROM wireguard_peer_stats \
-                    WHERE network = $1 \
-                    ORDER BY device_id, collected_at DESC \
-                ) \
+                SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake \
+                FROM wireguard_peer_stats \
+                WHERE network = $1 \
+                ORDER BY device_id, collected_at DESC \
+            ) \
             SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
             WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND \
-            (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND \
-            (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
+            (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1s') AND \
+            (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1s')",
             location.id,
-                f64::from(location.peer_disconnect_threshold)
+            f64::from(location.peer_disconnect_threshold)
         )
                 .fetch_all(&pool)
                 .await?;
@@ -107,8 +95,8 @@ pub async fn run_periodic_peer_disconnect(
                             is_authorized: device_network_config.is_authorized,
                         }],
                     };
-                    let event = GatewayEvent::DeviceDeleted(device_info);
-                    wireguard_tx.send(event).map_err(|err| {
+                    let event = ChangeEvent::DeviceDeleted(device_info);
+                    events_tx.send(event).map_err(|err| {
                         error!("Error sending WireGuard event: {err}");
                         PeerDisconnectError::EventError(err.to_string())
                     })?;

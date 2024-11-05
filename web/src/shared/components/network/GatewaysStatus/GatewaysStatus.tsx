@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { autoUpdate, offset, useFloating } from '@floating-ui/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { AnimatePresence, motion, TargetAndTransition } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
@@ -32,10 +32,9 @@ const REFETCH_INTERVAL = 5 * 1000;
 export const GatewaysStatus = ({ networkId }: Props) => {
   const toaster = useToaster();
   const {
-    network: { getGatewaysStatus, deleteGateway },
+    network: { getGatewaysStatus },
   } = useApi();
   const { LL } = useI18nContext();
-  const queryClient = useQueryClient();
   const [floatingOpen, setFloatingOpen] = useState(false);
   const { x, y, strategy, refs } = useFloating({
     placement: 'bottom',
@@ -62,17 +61,6 @@ export const GatewaysStatus = ({ networkId }: Props) => {
       enabled: !isUndefined(networkId),
     },
   );
-
-  const { mutate: deleteGatewayMutation } = useMutation({
-    mutationFn: deleteGateway,
-    onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_GATEWAYS_STATUS]);
-    },
-    onError: (err) => {
-      toaster.error(LL.components.gatewaysStatus.messages.deleteError());
-      console.error(err);
-    },
-  });
 
   const isLoading = (queryLoading && !data) || !data;
 
@@ -188,18 +176,7 @@ export const GatewaysStatus = ({ networkId }: Props) => {
                 duration: 0.2,
               }}
             >
-              {data?.map((g) => (
-                <GatewayStatusRow
-                  key={g.hostname}
-                  status={g}
-                  onDismiss={() =>
-                    deleteGatewayMutation({
-                      networkId,
-                      gatewayId: g.uid,
-                    })
-                  }
-                />
-              ))}
+              {data?.map((g) => <GatewayStatusRow key={g.hostname} status={g} />)}
             </motion.div>
           </ClickAwayListener>
         )}
@@ -210,10 +187,9 @@ export const GatewaysStatus = ({ networkId }: Props) => {
 
 type GatewayStatusRowProps = {
   status: GatewayStatus;
-  onDismiss: () => void;
 };
 
-const GatewayStatusRow = ({ status, onDismiss }: GatewayStatusRowProps) => {
+const GatewayStatusRow = ({ status }: GatewayStatusRowProps) => {
   const [loading, setLoading] = useState(false);
   const cn = () =>
     classNames('gateway-status-row', {
@@ -234,7 +210,6 @@ const GatewayStatusRow = ({ status, onDismiss }: GatewayStatusRowProps) => {
           className="gateway-dismiss"
           onClick={() => {
             setLoading(true);
-            onDismiss();
           }}
           disabled={loading}
         >

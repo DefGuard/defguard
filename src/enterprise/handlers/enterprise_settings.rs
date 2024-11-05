@@ -7,13 +7,14 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::enterprise_settings::{EnterpriseSettings, EnterpriseSettingsPatch},
-    handlers::{ApiResponse, ApiResult},
+    error::WebError,
+    handlers::ApiResponse,
 };
 
-pub async fn get_enterprise_settings(
+pub(crate) async fn get_enterprise_settings(
     session: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} retrieving enterprise settings",
         session.user.username
@@ -23,19 +24,16 @@ pub async fn get_enterprise_settings(
         "User {} retrieved enterprise settings",
         session.user.username
     );
-    Ok(ApiResponse {
-        json: json!(settings),
-        status: StatusCode::OK,
-    })
+    Ok(ApiResponse::new(json!(settings), StatusCode::OK))
 }
 
-pub async fn patch_enterprise_settings(
+pub(crate) async fn patch_enterprise_settings(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<EnterpriseSettingsPatch>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "Admin {} patching enterprise settings.",
         session.user.username,

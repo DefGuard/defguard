@@ -13,11 +13,18 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedSender},
 };
 
-use super::{ApiResponse, ApiResult};
+use super::ApiResponse;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::enrollment::TokenError, Id, MFAMethod, Session, User},
+    db::{
+        models::{
+            enrollment::TokenError,
+            session::Session,
+            user::{MFAMethod, User},
+        },
+        Id,
+    },
     error::WebError,
     mail::{Attachment, Mail},
     server_config,
@@ -57,12 +64,12 @@ fn internal_error(to: &str, subject: &str, error: &impl Display) -> ApiResponse 
     }
 }
 
-pub async fn test_mail(
+pub(crate) async fn test_mail(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(data): Json<TestMail>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} sending test mail to {}",
         session.user.username, data.to
@@ -114,11 +121,11 @@ async fn read_logs() -> String {
     }
 }
 
-pub async fn send_support_data(
+pub(crate) async fn send_support_data(
     _admin: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
-) -> ApiResult {
+) -> Result<ApiResponse, WebError> {
     debug!(
         "User {} sending support mail to {SUPPORT_EMAIL_ADDRESS}",
         session.user.username
@@ -169,7 +176,7 @@ pub async fn send_support_data(
     }
 }
 
-pub fn send_new_device_added_email(
+pub(crate) fn send_new_device_added_email(
     device_name: &str,
     public_key: &str,
     template_locations: &[TemplateLocation],
@@ -208,10 +215,10 @@ pub fn send_new_device_added_email(
     }
 }
 
-pub async fn send_gateway_disconnected_email(
+pub(crate) async fn send_gateway_disconnected_email(
     gateway_name: Option<String>,
-    network_name: String,
-    gateway_adress: &str,
+    network_name: &str,
+    gateway_url: &str,
     mail_tx: &UnboundedSender<Mail>,
     pool: &PgPool,
 ) -> Result<(), WebError> {
@@ -224,8 +231,8 @@ pub async fn send_gateway_disconnected_email(
             subject: GATEWAY_DISCONNECTED.to_string(),
             content: templates::gateway_disconnected_mail(
                 &gateway_name,
-                gateway_adress,
-                &network_name,
+                gateway_url,
+                network_name,
             )?,
             attachments: Vec::new(),
             result_tx: None,
@@ -246,7 +253,7 @@ pub async fn send_gateway_disconnected_email(
     Ok(())
 }
 
-pub async fn send_new_device_login_email(
+pub(crate) async fn send_new_device_login_email(
     user_email: &str,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
@@ -276,7 +283,7 @@ pub async fn send_new_device_login_email(
     Ok(())
 }
 
-pub async fn send_new_device_ocid_login_email(
+pub(crate) async fn send_new_device_ocid_login_email(
     user_email: &str,
     oauth2client_name: String,
     mail_tx: &UnboundedSender<Mail>,
@@ -308,7 +315,7 @@ pub async fn send_new_device_ocid_login_email(
     Ok(())
 }
 
-pub fn send_mfa_configured_email(
+pub(crate) fn send_mfa_configured_email(
     session: Option<&Session>,
     user: &User<Id>,
     mfa_method: &MFAMethod,
@@ -340,7 +347,7 @@ pub fn send_mfa_configured_email(
     }
 }
 
-pub fn send_email_mfa_activation_email(
+pub(crate) fn send_email_mfa_activation_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     session: &Session,
@@ -375,7 +382,7 @@ pub fn send_email_mfa_activation_email(
     }
 }
 
-pub fn send_email_mfa_code_email(
+pub(crate) fn send_email_mfa_code_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     session: Option<&Session>,
@@ -410,7 +417,7 @@ pub fn send_email_mfa_code_email(
     }
 }
 
-pub fn send_password_reset_email(
+pub(crate) fn send_password_reset_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     service_url: Url,
@@ -442,7 +449,7 @@ pub fn send_password_reset_email(
     }
 }
 
-pub fn send_password_reset_success_email(
+pub(crate) fn send_password_reset_success_email(
     user: &User<Id>,
     mail_tx: &UnboundedSender<Mail>,
     ip_address: Option<&str>,

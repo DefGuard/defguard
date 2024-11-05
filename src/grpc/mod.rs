@@ -1,6 +1,5 @@
 use std::{
     collections::hash_map::HashMap,
-    fs::read_to_string,
     time::{Duration, Instant},
 };
 #[cfg(any(feature = "wireguard", feature = "worker"))]
@@ -9,35 +8,32 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use reqwest::Url;
 use serde::Serialize;
-#[cfg(feature = "worker")]
-use sqlx::PgPool;
-use thiserror::Error;
+use sqlx::{postgres::PgListener, PgPool};
 use tokio::{
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
     },
+    task::{AbortHandle, JoinSet},
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tonic::{
-    transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
+    transport::{Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
 use uaparser::UserAgentParser;
-use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
-use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
+use self::gateway::GatewayHandler;
 use self::{
     auth::{auth_service_server::AuthServiceServer, AuthServer},
     desktop_client_mfa::ClientMfaServer,
-    enrollment::EnrollmentServer,
-    password_reset::PasswordResetServer,
     proto::core_response,
+    proxy::ProxyHandler,
 };
 #[cfg(feature = "worker")]
 use self::{
@@ -46,27 +42,28 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, Id, Settings},
+    db::{
+        models::{gateway::Gateway, settings::Settings, webhook::AppEvent},
+        ChangeNotification, Id, TriggerOperation,
+    },
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
         license::{get_cached_license, validate_license},
     },
-    handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
     server_config,
 };
 #[cfg(feature = "worker")]
-use crate::{auth::ClaimsType, db::GatewayEvent};
+use crate::{auth::ClaimsType, db::models::wireguard::ChangeEvent};
 
 mod auth;
 mod desktop_client_mfa;
-pub mod enrollment;
 #[cfg(feature = "wireguard")]
 pub(crate) mod gateway;
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 mod interceptor;
-pub mod password_reset;
+mod proxy;
 pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
@@ -77,261 +74,30 @@ pub(crate) mod proto {
 
 use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
 
-// Helper struct used to handle gateway state
-// gateways are grouped by network
-type GatewayHostname = String;
-#[derive(Debug)]
-pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
-
-#[derive(Error, Debug)]
-pub enum GatewayMapError {
-    #[error("Gateway {1} for network {0} not found")]
-    NotFound(i64, GatewayHostname),
-    #[error("Network {0} not found")]
-    NetworkNotFound(i64),
-    #[error("Gateway with UID {0} not found")]
-    UidNotFound(Uuid),
-    #[error("Cannot remove. Gateway with UID {0} is still active")]
-    RemoveActive(Uuid),
-    #[error("Config missing")]
-    ConfigError,
-}
-
-impl GatewayMap {
-    #[must_use]
-    pub fn new() -> Self {
-        Self(HashMap::new())
-    }
-
-    // add a new gateway to map
-    // this method is meant to be called when a gateway requests a config
-    // as a sort of "registration"
-    pub fn add_gateway(
-        &mut self,
-        network_id: Id,
-        network_name: &str,
-        hostname: String,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-    ) {
-        info!("Adding gateway {hostname} with to gateway map for network {network_id}",);
-        let gateway_state = GatewayState::new(network_id, network_name, &hostname, name, mail_tx);
-
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            network_gateway_map.entry(hostname).or_insert(gateway_state);
-        } else {
-            // no map for a given network exists yet
-            let mut network_gateway_map = HashMap::new();
-            network_gateway_map.insert(hostname, gateway_state);
-            self.0.insert(network_id, network_gateway_map);
-        }
-    }
-
-    // remove gateway from map
-    pub fn remove_gateway(&mut self, network_id: Id, uid: Uuid) -> Result<(), GatewayMapError> {
-        debug!("Removing gateway from network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            // find gateway by uuid
-            let hostname = match network_gateway_map
-                .iter()
-                .find(|(_address, state)| state.uid == uid)
-            {
-                None => {
-                    error!("Failed to find gateway with UID {uid}");
-                    return Err(GatewayMapError::UidNotFound(uid));
-                }
-                Some((hostname, state)) => {
-                    if state.connected {
-                        error!("Cannot remove. Gateway with UID {uid} is still active");
-                        return Err(GatewayMapError::RemoveActive(uid));
-                    }
-                    hostname.clone()
-                }
-            };
-            // remove matching gateway
-            network_gateway_map.remove(&hostname)
-        } else {
-            // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
-            return Err(GatewayMapError::NetworkNotFound(network_id));
-        };
-        info!("Gateway with UID {uid} removed from network {network_id}");
-        Ok(())
-    }
-
-    // change gateway status to connected
-    // we assume that the gateway is already present in hashmap
-    pub fn connect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: &str,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Connecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(hostname) {
-                state.connected = true;
-                state.disconnected_at = None;
-                state.connected_at = Some(Utc::now().naive_utc());
-                debug!(
-                    "Gateway {hostname} found in gateway map, current state: {:#?}",
-                    state
-                );
-            } else {
-                error!("Gateway {hostname} not found in gateway map for network {network_id}");
-                return Err(GatewayMapError::NotFound(network_id, hostname.into()));
-            }
-        } else {
-            // no map for a given network exists yet
-            error!("Network {network_id} not found in gateway map");
-            return Err(GatewayMapError::NetworkNotFound(network_id));
-        };
-        info!("Gateway {hostname} connected in network {network_id}");
-        Ok(())
-    }
-
-    // change gateway status to disconnected
-    pub fn disconnect_gateway(
-        &mut self,
-        network_id: Id,
-        hostname: String,
-        pool: &PgPool,
-    ) -> Result<(), GatewayMapError> {
-        debug!("Disconnecting gateway {hostname} in network {network_id}");
-        if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
-            if let Some(state) = network_gateway_map.get_mut(&hostname) {
-                state.connected = false;
-                state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification(pool);
-                debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
-                info!("Gateway {hostname} disconnected in network {network_id}");
-                return Ok(());
-            };
-        };
-        let err = GatewayMapError::NotFound(network_id, hostname);
-        error!("Gateway disconnect failed: {err}");
-        Err(err)
-    }
-
-    // return `true` if at least one gateway in a given network is connected
-    #[must_use]
-    pub fn connected(&self, network_id: Id) -> bool {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map
-                .values()
-                .any(|gateway| gateway.connected),
-            None => false,
-        }
-    }
-
-    // return a list af aff statuses af all gateways in a given network
-    #[must_use]
-    pub fn get_network_gateway_status(&self, network_id: Id) -> Vec<GatewayState> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => network_gateway_map.clone().into_values().collect(),
-            None => Vec::new(),
-        }
-    }
-
-    // return gateway name
-    #[must_use]
-    pub fn get_network_gateway_name(&self, network_id: Id, hostname: &str) -> Option<String> {
-        match self.0.get(&network_id) {
-            Some(network_gateway_map) => {
-                if let Some(state) = network_gateway_map.get(hostname) {
-                    state.name.clone()
-                } else {
-                    None
-                }
-            }
-            None => None,
-        }
-    }
-}
-
-impl Default for GatewayMap {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct GatewayState {
-    pub uid: Uuid,
+#[derive(Clone, Serialize)]
+pub(crate) struct GatewayState {
+    pub id: Id,
     pub connected: bool,
     pub network_id: Id,
     pub network_name: String,
-    pub name: Option<String>,
+    pub name: Option<String>, // TODO: remove
     pub hostname: String,
     pub connected_at: Option<NaiveDateTime>,
     pub disconnected_at: Option<NaiveDateTime>,
-    #[serde(skip)]
-    pub mail_tx: UnboundedSender<Mail>,
-    #[serde(skip)]
-    pub last_email_notification: Option<NaiveDateTime>,
 }
 
 impl GatewayState {
-    #[must_use]
-    pub fn new<S: Into<String>>(
-        network_id: Id,
-        network_name: S,
-        hostname: S,
-        name: Option<String>,
-        mail_tx: UnboundedSender<Mail>,
-    ) -> Self {
+    pub(crate) fn from_gateway(gateway: &Gateway<Id>, network_name: &str) -> Self {
         Self {
-            uid: Uuid::new_v4(),
-            connected: false,
-            network_id,
-            network_name: network_name.into(),
-            name,
-            hostname: hostname.into(),
-            connected_at: None,
-            disconnected_at: None,
-            mail_tx,
-            last_email_notification: None,
+            id: gateway.id,
+            connected: gateway.is_connected(),
+            network_id: gateway.network_id,
+            network_name: network_name.to_owned(),
+            name: None, // TODO: remove
+            hostname: gateway.hostname.clone().unwrap_or_default(),
+            connected_at: gateway.connected_at,
+            disconnected_at: gateway.disconnected_at,
         }
-    }
-
-    /// Send gateway disconnected notification
-    /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Sending gateway disconnect email notification");
-        // Clone here because self doesn't live long enough
-        let name = self.name.clone();
-        let mail_tx = self.mail_tx.clone();
-        let pool = pool.clone();
-        let hostname = self.hostname.clone();
-        let network_name = self.network_name.clone();
-        let send_email = if let Some(last_notification_time) = self.last_email_notification {
-            Utc::now().naive_utc() - last_notification_time
-                > ChronoDuration::from_std(
-                    *server_config().gateway_disconnection_notification_timeout,
-                )
-                .expect("Failed to parse duration")
-        } else {
-            true
-        };
-        if send_email {
-            self.last_email_notification = Some(Utc::now().naive_utc());
-            // FIXME: Try to get rid of spawn and use something like block_on
-            // To return result instead of logging
-            tokio::spawn(async move {
-                if let Err(e) =
-                    send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
-                        .await
-                {
-                    error!("Failed to send gateway disconnect notification: {e}");
-                } else {
-                    info!("Gateway {hostname} disconnected. Email notification sent",);
-                }
-            });
-        } else {
-            info!(
-                "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
-                self.last_email_notification
-            );
-        };
     }
 }
 
@@ -346,52 +112,138 @@ impl From<Status> for CoreError {
     }
 }
 
+/// Bi-directional gRPC stream for comminication with Defguard gateway.
+pub async fn run_grpc_gateway_stream(
+    pool: PgPool,
+    events_tx: Sender<ChangeEvent>,
+    mail_tx: UnboundedSender<Mail>,
+) -> Result<(), anyhow::Error> {
+    let config = server_config();
+    let tls_config = config.grpc_client_tls_config()?;
+
+    let mut abort_handles = HashMap::new();
+
+    let mut tasks = JoinSet::new();
+    // Helper closure to launch `GatewayHandler`.
+    let mut launch_gateway_handler =
+        |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
+            let mut gateway_handler = GatewayHandler::new(
+                gateway,
+                tls_config.clone(),
+                pool.clone(),
+                events_tx.clone(),
+                mail_tx.clone(),
+            )?;
+            let abort_handle = tasks.spawn(async move {
+                gateway_handler.handle_connection().await;
+            });
+            Ok(abort_handle)
+        };
+
+    let gateways = Gateway::all(&pool).await?;
+    for gateway in gateways {
+        let id = gateway.id;
+        let abort_handle = launch_gateway_handler(gateway)?;
+        abort_handles.insert(id, abort_handle);
+    }
+
+    // Observe gateway URL changes.
+    let mut listener = PgListener::connect_with(&pool).await?;
+    listener.listen("gateway_change").await?;
+    while let Ok(notification) = listener.recv().await {
+        let payload = notification.payload();
+        match serde_json::from_str::<ChangeNotification<Gateway<Id>>>(payload) {
+            Ok(gateway_notification) => {
+                match gateway_notification.operation {
+                    TriggerOperation::Insert => {
+                        if let Some(new) = gateway_notification.new {
+                            let id = new.id;
+                            let abort_handle = launch_gateway_handler(new)?;
+                            abort_handles.insert(id, abort_handle);
+                        }
+                    }
+                    TriggerOperation::Update => {
+                        if let (Some(old), Some(new)) =
+                            (gateway_notification.old, gateway_notification.new)
+                        {
+                            if old.url == new.url {
+                                debug!("Gateway URL didn't change. Keeping the running gateway handler");
+                            } else if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!(
+                                    "Aborting connection to {old}, it has changed in the database"
+                                );
+                                abort_handle.abort();
+                                let id = new.id;
+                                let abort_handle = launch_gateway_handler(new)?;
+                                abort_handles.insert(id, abort_handle);
+                            } else {
+                                warn!("Cannot find {old} on the list of connected gateways");
+                            }
+                        }
+                    }
+                    TriggerOperation::Delete => {
+                        if let Some(old) = gateway_notification.old {
+                            if let Some(abort_handle) = abort_handles.remove(&old.id) {
+                                info!("Aborting connection to {old}, it has disappeard from the database");
+                                abort_handle.abort();
+                            } else {
+                                warn!("Cannot find {old} on the list of connected gateways");
+                            }
+                        }
+                    }
+                }
+            }
+            Err(err) => error!("Failed to de-serialize database notification object: {err}"),
+        }
+    }
+
+    while let Some(Ok(_result)) = tasks.join_next().await {
+        debug!("Gateway gRPC task has ended");
+    }
+
+    Ok(())
+}
+
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     mail_tx: UnboundedSender<Mail>,
     user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
+    let tls_config = config.grpc_client_tls_config()?;
 
-    // TODO: merge the two
-    let enrollment_server = EnrollmentServer::new(
+    let proxy_handler = ProxyHandler::new(
         pool.clone(),
-        wireguard_tx.clone(),
+        events_tx.clone(),
         mail_tx.clone(),
         user_agent_parser,
     );
-    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, events_tx);
     let polling_server = PollingServer::new(pool);
 
-    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
-    let endpoint = endpoint
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?
         .http2_keep_alive_interval(TEN_SECS)
         .tcp_keepalive(Some(TEN_SECS))
         .keep_alive_while_idle(true);
-    let endpoint = if let Some(ca) = &config.proxy_grpc_ca {
-        let ca = read_to_string(ca)?;
-        let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
+    let endpoint = if let Some(tls) = tls_config {
         endpoint.tls_config(tls)?
     } else {
         endpoint
     };
+    let uri = endpoint.uri();
 
     loop {
-        debug!("Connecting to proxy at {}", endpoint.uri());
+        debug!("Connecting to proxy at {uri}");
         let mut client = ProxyClient::new(endpoint.connect_lazy());
         let (tx, rx) = mpsc::unbounded_channel();
         let Ok(response) = client.bidi(UnboundedReceiverStream::new(rx)).await else {
-            error!(
-                "Failed to connect to proxy @ {}, retrying in 10s",
-                endpoint.uri()
-            );
+            error!("Failed to connect to proxy @ {uri}, retrying in 10s");
             sleep(TEN_SECS).await;
             continue;
         };
-        info!("Connected to proxy at {}", endpoint.uri());
+        info!("Connected to proxy at {uri}");
         let mut resp_stream = response.into_inner();
         'message: loop {
             match resp_stream.message().await {
@@ -401,11 +253,11 @@ pub async fn run_grpc_bidi_stream(
                 }
                 Ok(Some(received)) => {
                     info!("Received message from proxy.");
-                    debug!("Received the following message from proxy: {received:?}");
+                    debug!("Message from proxy: {received:?}");
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {
-                            match enrollment_server.start_enrollment(request).await {
+                            match proxy_handler.start_enrollment(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::EnrollmentStart(response_payload))
                                 }
@@ -417,7 +269,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ActivateUser (ActivateUserRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::ActivateUser(request)) => {
-                            match enrollment_server
+                            match proxy_handler
                                 .activate_user(request, received.device_info)
                                 .await
                             {
@@ -430,7 +282,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc CreateDevice (NewDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::NewDevice(request)) => {
-                            match enrollment_server
+                            match proxy_handler
                                 .create_device(request, received.device_info)
                                 .await
                             {
@@ -445,7 +297,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc GetNetworkInfo (ExistingDevice) returns (DeviceConfigResponse)
                         Some(core_request::Payload::ExistingDevice(request)) => {
-                            match enrollment_server.get_network_info(request).await {
+                            match proxy_handler.get_network_info(request).await {
                                 Ok(response_payload) => {
                                     Some(core_response::Payload::DeviceConfig(response_payload))
                                 }
@@ -457,7 +309,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc RequestPasswordReset (PasswordResetInitializeRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordResetInit(request)) => {
-                            match password_reset_server
+                            match proxy_handler
                                 .request_password_reset(request, received.device_info)
                                 .await
                             {
@@ -470,7 +322,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc StartPasswordReset (PasswordResetStartRequest) returns (PasswordResetStartResponse)
                         Some(core_request::Payload::PasswordResetStart(request)) => {
-                            match password_reset_server.start_password_reset(request).await {
+                            match proxy_handler.start_password_reset(request).await {
                                 Ok(response_payload) => Some(
                                     core_response::Payload::PasswordResetStart(response_payload),
                                 ),
@@ -482,7 +334,7 @@ pub async fn run_grpc_bidi_stream(
                         }
                         // rpc ResetPassword (PasswordResetRequest) returns (google.protobuf.Empty)
                         Some(core_request::Payload::PasswordReset(request)) => {
-                            match password_reset_server
+                            match proxy_handler
                                 .reset_password(request, received.device_info)
                                 .await
                             {
@@ -524,18 +376,14 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    match err.code() {
-                                        // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
-                                        // to avoid spamming the logs with misleading errors.
-                                        Code::FailedPrecondition => {
-                                            debug!("A client tried to fetch the instance config, but we are not enterprise.");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
-                                        _ => {
-                                            error!("Instance info error {err}");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
+                                    // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
+                                    // to avoid spamming the logs with misleading errors.
+                                    if err.code() == Code::FailedPrecondition {
+                                        debug!("A client tried to fetch the instance config, but we are not enterprise.");
+                                    } else {
+                                        error!("Instance info error {err}");
                                     }
+                                    Some(core_response::Payload::CoreError(err.into()))
                                 }
                             }
                         }
@@ -549,7 +397,7 @@ pub async fn run_grpc_bidi_stream(
                     tx.send(req).unwrap();
                 }
                 Err(err) => {
-                    error!("Disconnected from proxy at {}", endpoint.uri());
+                    error!("Disconnected from proxy at {uri}");
                     error!("stream error: {err}");
                     debug!("waiting 10s to re-establish the connection");
                     sleep(TEN_SECS).await;
@@ -564,9 +412,6 @@ pub async fn run_grpc_bidi_stream(
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
-    gateway_state: Arc<Mutex<GatewayMap>>,
-    wireguard_tx: Sender<GatewayEvent>,
-    mail_tx: UnboundedSender<Mail>,
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -577,11 +422,6 @@ pub async fn run_grpc_server(
     let worker_service = WorkerServiceServer::with_interceptor(
         WorkerServer::new(pool.clone(), worker_state),
         JwtInterceptor::new(ClaimsType::YubiBridge),
-    );
-    #[cfg(feature = "wireguard")]
-    let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
-        JwtInterceptor::new(ClaimsType::Gateway),
     );
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
@@ -603,17 +443,18 @@ pub async fn run_grpc_server(
         .tcp_keepalive(Some(TEN_SECS))
         .add_service(health_service)
         .add_service(auth_service);
-    #[cfg(feature = "wireguard")]
-    let router = router.add_service(gateway_service);
+    // #[cfg(feature = "wireguard")]
+    // let router = router.add_service(gateway_service);
     #[cfg(feature = "worker")]
     let router = router.add_service(worker_service);
     router.serve(addr).await?;
+
     info!("gRPC server started on {addr}");
     Ok(())
 }
 
 #[cfg(feature = "worker")]
-pub struct Job {
+pub(crate) struct Job {
     id: u32,
     first_name: String,
     last_name: String,

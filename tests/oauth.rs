@@ -5,10 +5,11 @@ use std::borrow::Cow;
 use defguard::{
     db::{
         models::{
+            oauth2authorizedapp::OAuth2AuthorizedApp,
             oauth2client::{OAuth2Client, OAuth2ClientSafe},
             NewOpenIDClient,
         },
-        Id, OAuth2AuthorizedApp,
+        Id,
     },
     handlers::Auth,
 };

@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{TimeDelta, Utc};
 use defguard::{
     config::DefGuardConfig,
     enterprise::{
@@ -78,7 +78,7 @@ async fn test_openid_providers() {
     let new_license = License {
         customer_id: "test".to_string(),
         subscription: false,
-        valid_until: Some(Utc::now() - Duration::days(1)),
+        valid_until: Some(Utc::now() - TimeDelta::days(1)),
     };
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;

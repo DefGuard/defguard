@@ -4,6 +4,16 @@
     flex-direction: column;
     row-gap: 20px;
 
+    & > section.gateway-list {
+      display: flex;
+      flex-direction: column;
+      row-gap: 20px;
+
+      .add-component {
+        height: 80px;
+      }
+    }
+
     & > section.header-section {
       h2,
       p {

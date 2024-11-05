@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use chrono::{DateTime, Duration as ChronoDuration, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use sqlx::{query, query_scalar, Error as SqlxError, PgExecutor, PgPool};
 use tokio::time::sleep;
 
-use crate::db::WireguardPeerStats;
+use crate::db::models::wireguard::WireguardPeerStats;
 
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP_SECONDS: u64 = 300; // 5 minutes
@@ -26,7 +26,7 @@ impl WireguardPeerStats {
         );
 
         let threshold = (Utc::now()
-            - ChronoDuration::from_std(stats_purge_threshold).expect("Failed to parse duration"))
+            - TimeDelta::from_std(stats_purge_threshold).expect("Failed to parse duration"))
         .naive_utc();
         let result = query!(
             "DELETE FROM wireguard_peer_stats \
@@ -87,8 +87,17 @@ impl WireguardPeerStats {
         E: PgExecutor<'e>,
     {
         debug!("Recording successful stats purge in DB");
-        query!("INSERT INTO wireguard_stats_purge (started_at, finished_at, removal_threshold, records_removed) VALUES ($1, $2, $3, $4)",
-        start.naive_utc(), end.naive_utc(), removal_threshold, records_removed).execute(executor).await?;
+        query!(
+            "INSERT INTO wireguard_stats_purge \
+            (started_at, finished_at, removal_threshold, records_removed) \
+            VALUES ($1, $2, $3, $4)",
+            start.naive_utc(),
+            end.naive_utc(),
+            removal_threshold,
+            records_removed
+        )
+        .execute(executor)
+        .await?;
         Ok(())
     }
 }
@@ -117,7 +126,7 @@ pub async fn run_periodic_stats_purge(
             match WireguardPeerStats::purge_old_stats(&pool, stats_purge_threshold).await {
                 Ok(()) => {
                     let next_purge_timestamp = (Utc::now()
-                        + ChronoDuration::from_std(stats_purge_frequency)
+                        + TimeDelta::from_std(stats_purge_frequency)
                             .expect("Failed to parse duration"))
                     .naive_utc();
                     info!(

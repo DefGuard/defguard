@@ -1,6 +1,6 @@
 mod common;
 
-use defguard::{db::Wallet, handlers::Auth, SERVER_CONFIG};
+use defguard::{db::models::wallet::Wallet, handlers::Auth, SERVER_CONFIG};
 use reqwest::StatusCode;
 
 use self::common::{client::TestClient, make_test_client, X_FORWARDED_HOST, X_FORWARDED_URI};

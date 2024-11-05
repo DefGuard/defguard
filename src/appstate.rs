@@ -18,20 +18,24 @@ use webauthn_rs::prelude::*;
 
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, GatewayEvent, WebHook},
+    db::models::{
+        webhook::{AppEvent, WebHook},
+        wireguard::ChangeEvent,
+    },
     mail::Mail,
     server_config,
 };
 
 #[derive(Clone)]
-pub struct AppState {
+pub(crate) struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    events_tx: Sender<ChangeEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
     pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
+    // A key for secret cookies.
     key: Key,
 }
 
@@ -44,27 +48,25 @@ impl AppState {
         }
     }
 
-    /// Handle webhook events
+    /// Handle webhook events. This is ran on a separate asynchronous task.
     async fn handle_triggers(pool: PgPool, mut rx: UnboundedReceiver<AppEvent>) {
         let reqwest_client = Client::builder().user_agent("reqwest").build().unwrap();
         while let Some(msg) = rx.recv().await {
-            debug!("WebHook triggered");
-            debug!("Retrieving webhooks");
+            debug!("Webhook triggered. Retrieving webhooks.");
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
                 info!("Found webhooks: {webhooks:#?}");
-                let (payload, event) = match msg {
-                    AppEvent::UserCreated(user) => (json!(user), "user_created"),
-                    AppEvent::UserModified(user) => (json!(user), "user_modified"),
-                    AppEvent::UserDeleted(username) => {
-                        (json!({ "username": username }), "user_deleted")
+                let payload = match msg {
+                    AppEvent::UserCreated(ref user) | AppEvent::UserModified(ref user) => {
+                        json!(user)
                     }
-                    AppEvent::HWKeyProvision(data) => (json!(data), "user_keys"),
+                    AppEvent::UserDeleted(ref username) => json!({ "username": username }),
+                    AppEvent::HWKeyProvision(ref data) => json!(data),
                 };
                 for webhook in webhooks {
                     match reqwest_client
                         .post(&webhook.url)
                         .bearer_auth(&webhook.token)
-                        .header("x-defguard-event", event)
+                        .header("x-defguard-event", msg.name())
                         .json(&payload)
                         .send()
                         .await
@@ -81,18 +83,18 @@ impl AppState {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
-    pub fn send_wireguard_event(&self, event: GatewayEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending WireGuard event {err}");
+    /// Sends given `ChangeEvent` to be handled by gateway (over gRPC).
+    pub(crate) fn send_change_event(&self, event: ChangeEvent) {
+        if let Err(err) = self.events_tx.send(event) {
+            error!("Error sending change event {err}");
         }
     }
 
-    /// Sends multiple events to be handled by gateway GRPC server
-    pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
-        debug!("Sending {} wireguard events", events.len());
+    /// Sends multiple events to be handled by gateway (over gRPC).
+    pub(crate) fn send_multiple_change_events(&self, events: Vec<ChangeEvent>) {
+        debug!("Sending {} change events", events.len());
         for event in events {
-            self.send_wireguard_event(event);
+            self.send_change_event(event);
         }
     }
 
@@ -101,7 +103,7 @@ impl AppState {
         pool: PgPool,
         tx: UnboundedSender<AppEvent>,
         rx: UnboundedReceiver<AppEvent>,
-        wireguard_tx: Sender<GatewayEvent>,
+        events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
         user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -128,7 +130,7 @@ impl AppState {
         Self {
             pool,
             tx,
-            wireguard_tx,
+            events_tx,
             mail_tx,
             webauthn,
             user_agent_parser,

@@ -1,8 +1,4 @@
-use crate::{
-    auth::SessionInfo,
-    enterprise::license::validate_license,
-    handlers::{ApiResponse, ApiResult},
-};
+use crate::{auth::SessionInfo, enterprise::license::validate_license, handlers::ApiResponse};
 
 pub mod enterprise_settings;
 pub mod openid_login;
@@ -13,6 +9,7 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
+use serde_json::json;
 
 use super::{db::models::enterprise_settings::EnterpriseSettings, license::get_cached_license};
 use crate::{appstate::AppState, error::WebError};
@@ -43,7 +40,7 @@ where
     }
 }
 
-pub async fn check_enterprise_status() -> ApiResult {
+pub(crate) async fn check_enterprise_status() -> Result<ApiResponse, WebError> {
     let license = get_cached_license();
     let valid = validate_license((license).as_ref()).is_ok();
     let license_info = license.as_ref().map(|license| {
@@ -54,12 +51,12 @@ pub async fn check_enterprise_status() -> ApiResult {
             }
         )
     });
-    Ok(ApiResponse {
-        json: serde_json::json!({ "enabled": valid,
+    Ok(ApiResponse::new(
+        json!({ "enabled": valid,
                "license_info": license_info
         }),
-        status: StatusCode::OK,
-    })
+        StatusCode::OK,
+    ))
 }
 
 #[async_trait]

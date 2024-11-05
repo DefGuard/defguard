@@ -5,7 +5,6 @@ import { useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -19,14 +18,22 @@ import useApi from '../../../shared/hooks/useApi';
 import { useClipboard } from '../../../shared/hooks/useClipboard';
 import { externalLink } from '../../../shared/links';
 import { QueryKeys } from '../../../shared/queries';
+import { AddComponentBox } from '../../users/shared/components/AddComponentBox/AddComponentBox';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
+import { GatewayCard } from './components/GatewayCard';
+import { AddGatewayModal } from './modals/AddGatewayModal';
+import { EditGatewayModal } from './modals/EditGatewayModal';
+import { useAddGatewayModal } from './modals/hooks/useAddGatewayModal';
 
 export const NetworkGatewaySetup = () => {
   const { writeToClipboard } = useClipboard();
   const selectedNetworkId = useNetworkPageStore((state) => state.selectedNetworkId);
   const { LL } = useI18nContext();
   const {
-    network: { getNetworkToken },
+    network: {
+      getNetworkToken,
+      gateway: { getAllGateways },
+    },
   } = useApi();
 
   const { data: networkToken } = useQuery(
@@ -38,9 +45,18 @@ export const NetworkGatewaySetup = () => {
     },
   );
 
+  const { data: gateways } = useQuery(
+    [QueryKeys.FETCH_ALL_GATEWAYS, selectedNetworkId],
+    () => getAllGateways(selectedNetworkId),
+    {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    },
+  );
+
   const command = useCallback(() => {
     // eslint-disable-next-line max-len
-    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} -e DEFGUARD_GRPC_URL=${networkToken?.grpc_url} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
+    return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
   const returnNetworkToken = useCallback(() => {
@@ -78,15 +94,25 @@ export const NetworkGatewaySetup = () => {
     window.location.href = 'https://github.com/DefGuard/gateway/releases';
   };
 
+  const openAddGatewayModal = useAddGatewayModal((state) => state.open);
+
   return (
     <section className="gateway">
+      <AddGatewayModal />
+      <EditGatewayModal />
+      <section className="header-section">
+        <h2>Gateways</h2>
+      </section>
+      <section className="gateway-list">
+        {gateways?.map((gateway) => <GatewayCard key={gateway.id} gateway={gateway} />)}
+        <AddComponentBox
+          data-testid="add-gateway"
+          text={'Add gateway'}
+          callback={openAddGatewayModal}
+        />
+      </section>
       <section className="header-section">
         <h2>{LL.gatewaySetup.header.main()}</h2>
-        {/* {parse(
-          LL.gatewaySetup.messages.runCommand({
-            setupGatewayDocs: externalLink.gitbook.setup.gateway,
-          }),
-        )} */}
         <ReactMarkdown>
           {LL.gatewaySetup.messages.runCommand({
             setupGatewayDocs: externalLink.gitbook.setup.gateway,
@@ -154,7 +180,8 @@ export const NetworkGatewaySetup = () => {
       <MessageBox>
         <ReactMarkdown>{LL.gatewaySetup.messages.oneLineInstall()}</ReactMarkdown>
       </MessageBox>
-      <GatewaysStatus networkId={selectedNetworkId} />
+      {/* TODO: Reflect gateway status in the gateway list above */}
+      {/* <GatewaysStatus networkId={selectedNetworkId} /> */}
     </section>
   );
 };

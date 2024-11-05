@@ -6,9 +6,12 @@ use std::{
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, Settings, User},
+    db::{
+        init_db,
+        models::{settings::Settings, user::User, webhook::AppEvent, wireguard::ChangeEvent},
+    },
     enterprise::license::{run_periodic_license_check, set_cached_license, License},
-    grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
+    grpc::{run_grpc_bidi_stream, run_grpc_gateway_stream, run_grpc_server, WorkerState},
     headers::create_user_agent_parser,
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
@@ -75,10 +78,9 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
-    let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
+    let (events_tx, _events_rx) = broadcast::channel::<ChangeEvent>(256);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(webhook_tx.clone())));
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
     let user_agent_parser = create_user_agent_parser();
 
     // initialize admin user
@@ -114,13 +116,15 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // run services
     tokio::select! {
-        res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
-        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
-        res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
+        res = run_grpc_gateway_stream(pool.clone(), events_tx.clone(), mail_tx.clone()) => error!("Gateway gRPC stream returned early: {res:#?}"),
+        res = run_grpc_bidi_stream(pool.clone(), events_tx.clone(), mail_tx.clone(), user_agent_parser.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:#?}"),
+        res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:#?}"),
+        res = run_web_server(worker_state, webhook_tx, webhook_rx, events_tx.clone(), mail_tx, pool.clone(), user_agent_parser, failed_logins) => error!("Web server returned early: {res:#?}"),
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
-        res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
+        res = run_periodic_peer_disconnect(pool.clone(), events_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
         res = run_periodic_license_check(pool) => error!("Periodic license check task returned early: {res:#?}"),
     }
+
     Ok(())
 }

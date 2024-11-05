@@ -10,9 +10,9 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db::{models::settings::SmtpEncryption, Settings};
+use crate::db::models::settings::{Settings, SmtpEncryption};
 
-const SMTP_TIMEOUT_SECONDS: u64 = 15;
+const SMTP_TIMEOUT: Duration = Duration::from_secs(15);
 
 #[derive(Debug, Error)]
 pub enum MailError {
@@ -40,12 +40,12 @@ pub enum MailError {
 
 /// Subset of Settings object representing SMTP configuration
 struct SmtpSettings {
-    pub server: String,
-    pub port: u16,
-    pub encryption: SmtpEncryption,
-    pub user: String,
-    pub password: String,
-    pub sender: String,
+    server: String,
+    port: u16,
+    encryption: SmtpEncryption,
+    user: String,
+    password: String,
+    sender: String,
 }
 
 impl SmtpSettings {
@@ -181,7 +181,7 @@ impl MailHandler {
 
             // Construct lettre Message
             let result_tx = mail.result_tx.clone();
-            let message: Message = match mail.into_message(&settings.sender) {
+            let message = match mail.into_message(&settings.sender) {
                 Ok(message) => message,
                 Err(err) => {
                     error!("Failed to build message to: {to}, subject: {subject}, error: {err}");
@@ -226,7 +226,7 @@ impl MailHandler {
             }
         }
         .port(settings.port)
-        .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
+        .timeout(Some(SMTP_TIMEOUT));
         Ok(builder
             .credentials(Credentials::new(settings.user, settings.password))
             .build())

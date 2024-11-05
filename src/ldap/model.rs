@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use ldap3::{Mod, SearchEntry};
 
 use super::LDAPConfig;
-use crate::{db::User, hashset};
+use crate::{db::models::user::User, hashset};
 
 impl User {
     #[must_use]

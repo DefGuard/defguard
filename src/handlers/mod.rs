@@ -9,10 +9,13 @@ use utoipa::ToSchema;
 use webauthn_rs::prelude::RegisterPublicKeyCredential;
 
 #[cfg(feature = "wireguard")]
-use crate::db::Device;
+use crate::db::models::device::Device;
 use crate::{
     auth::SessionInfo,
-    db::{Id, NoId, User, UserInfo, WebHook},
+    db::{
+        models::{user::User, webhook::WebHook, UserInfo},
+        Id, NoId,
+    },
     enterprise::license::LicenseError,
     error::WebError,
     VERSION,
@@ -21,6 +24,8 @@ use crate::{
 pub(crate) mod app_info;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
+#[cfg(feature = "wireguard")]
+pub mod gateway;
 pub(crate) mod group;
 pub(crate) mod mail;
 #[cfg(feature = "openid")]
@@ -42,9 +47,10 @@ pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 
 #[derive(Default, ToSchema)]
-pub struct ApiResponse {
-    pub json: Value,
-    pub status: StatusCode,
+pub(crate) struct ApiResponse {
+    json: Value,
+    #[schema(value_type = u16)]
+    status: StatusCode,
 }
 
 impl ApiResponse {
@@ -158,8 +164,6 @@ impl IntoResponse for ApiResponse {
     }
 }
 
-pub type ApiResult = Result<ApiResponse, WebError>;
-
 #[derive(Deserialize, Serialize)]
 pub struct Auth {
     username: String,
@@ -232,7 +236,7 @@ pub struct Username {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddUserData {
     pub username: String,
     pub last_name: String,
@@ -294,7 +298,7 @@ pub struct WalletAddress {
 }
 
 #[derive(Serialize)]
-pub struct RecoveryCodes {
+pub(crate) struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
 
@@ -333,9 +337,9 @@ impl From<WebHookData> for WebHook {
     }
 }
 
-/// Return type needed to know if user came from openid flow
-/// with optional url to redirect him later if yes
-#[derive(Serialize, Deserialize)]
+/// Return type needed to know if user came from OpenID flow
+/// with optional URL to redirect him later if yes
+#[derive(Deserialize, Serialize)]
 pub struct AuthResponse {
     pub user: UserInfo,
     pub url: Option<String>,

@@ -6,9 +6,13 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, AppEvent, GatewayEvent, Id, User, UserDetails},
+    db::{
+        init_db,
+        models::{user::User, webhook::AppEvent, wireguard::ChangeEvent, UserDetails},
+        Id,
+    },
     enterprise::license::{set_cached_license, License},
-    grpc::{GatewayMap, WorkerState},
+    grpc::WorkerState,
     headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
@@ -82,7 +86,7 @@ async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
 pub struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
-    pub wireguard_rx: Receiver<GatewayEvent>,
+    pub events_rx: Receiver<ChangeEvent>,
     pub mail_rx: UnboundedReceiver<Mail>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User<Id>,
@@ -93,7 +97,7 @@ impl ClientState {
     pub fn new(
         pool: PgPool,
         worker_state: Arc<Mutex<WorkerState>>,
-        wireguard_rx: Receiver<GatewayEvent>,
+        events_rx: Receiver<ChangeEvent>,
         mail_rx: UnboundedReceiver<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User<Id>,
@@ -102,7 +106,7 @@ impl ClientState {
         Self {
             pool,
             worker_state,
-            wireguard_rx,
+            events_rx,
             mail_rx,
             failed_logins,
             test_user,
@@ -114,9 +118,8 @@ impl ClientState {
 pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
-    let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
+    let (wg_tx, wg_rx) = broadcast::channel::<ChangeEvent>(16);
     let (mail_tx, mail_rx) = unbounded_channel::<Mail>();
-    let gateway_state = Arc::new(Mutex::new(GatewayMap::new()));
 
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
@@ -163,7 +166,6 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
         wg_tx,
         mail_tx,
         worker_state,
-        gateway_state,
         pool,
         user_agent_parser,
         failed_logins,

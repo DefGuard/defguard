@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"gateway\" (\"network_id\",\"url\",\"hostname\",\"connected_at\",\"disconnected_at\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5d00c03eccbe17efc023bd0c6006e24f24239df0ba778666ca1751c9436aec8e"
+}

@@ -17,13 +17,15 @@ use crate::{
     KEY_LENGTH,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DeviceConfig {
     pub(crate) network_id: Id,
     pub(crate) network_name: String,
     pub(crate) config: String,
+    #[schema(value_type = String)]
     pub(crate) address: IpAddr,
     pub(crate) endpoint: String,
+    #[schema(value_type = Vec<String>)]
     pub(crate) allowed_ips: Vec<IpNetwork>,
     pub(crate) pubkey: String,
     pub(crate) dns: Option<String>,
@@ -31,7 +33,7 @@ pub struct DeviceConfig {
     pub(crate) keepalive_interval: i32,
 }
 
-#[derive(Clone, Deserialize, Model, Serialize, Debug, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Model, Serialize, ToSchema)]
 pub struct Device<I = NoId> {
     pub id: I,
     pub name: String,
@@ -101,7 +103,7 @@ pub struct UserDevice {
     pub networks: Vec<UserDeviceNetworkInfo>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct UserDeviceNetworkInfo {
     pub network_id: Id,
     pub network_name: String,
@@ -127,7 +129,7 @@ impl UserDevice {
                 n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
                 wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
                 stats.latest_handshake \"latest_handshake?\", \
-                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\" \
+                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1m'), false) as \"is_active!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN stats on n.id = stats.network \
@@ -605,7 +607,7 @@ mod test {
     use claims::{assert_err, assert_ok};
 
     use super::*;
-    use crate::db::User;
+    use crate::db::models::user::User;
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network

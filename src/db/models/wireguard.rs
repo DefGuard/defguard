@@ -6,11 +6,13 @@ use std::{
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool};
+use sqlx::{
+    query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -18,7 +20,8 @@ use x25519_dalek::{PublicKey, StaticSecret};
 use super::{
     device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
     error::ModelError,
-    User, UserInfo,
+    user::User,
+    UserInfo,
 };
 use crate::{
     appstate::AppState,
@@ -30,8 +33,8 @@ use crate::{
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;
 
-// Used in process of importing network from wireguard config
-#[derive(Clone, Debug, Deserialize, Serialize)]
+// Used in process of importing network from WireGuard config
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
@@ -39,8 +42,8 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
-pub static PEER_STATS_LIMIT: i64 = 6 * 60;
+pub(super) static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
+static PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
 pub enum DateTimeAggregation {
@@ -59,9 +62,10 @@ impl DateTimeAggregation {
 }
 
 #[derive(Clone, Debug)]
-pub enum GatewayEvent {
-    NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
+#[non_exhaustive]
+pub enum ChangeEvent {
+    NetworkCreated(WireguardNetwork<Id>),
+    NetworkModified(WireguardNetwork<Id>, Vec<Peer>),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
@@ -75,6 +79,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(enum)]
+    #[schema(value_type = String)]
     pub address: IpNetwork,
     pub port: i32,
     pub pubkey: String,
@@ -83,6 +88,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub endpoint: String,
     pub dns: Option<String>,
     #[model(ref)]
+    #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,
@@ -90,9 +96,9 @@ pub struct WireguardNetwork<I = NoId> {
     pub peer_disconnect_threshold: i32,
 }
 
-pub struct WireguardKey {
-    pub private: String,
-    pub public: String,
+pub(crate) struct WireguardKey {
+    pub(crate) _private: String,
+    pub(crate) public: String,
 }
 
 impl fmt::Display for WireguardNetwork<NoId> {
@@ -128,6 +134,7 @@ pub enum WireguardNetworkError {
 }
 
 impl WireguardNetwork {
+    #[must_use]
     pub fn new(
         name: String,
         address: IpNetwork,
@@ -138,10 +145,10 @@ impl WireguardNetwork {
         mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
-    ) -> Result<Self, WireguardNetworkError> {
+    ) -> Self {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
-        Ok(Self {
+        Self {
             id: NoId,
             name,
             address,
@@ -155,7 +162,7 @@ impl WireguardNetwork {
             mfa_enabled,
             keepalive_interval,
             peer_disconnect_threshold,
-        })
+        }
     }
 
     /// Try to set `address` from `&str`.
@@ -166,58 +173,94 @@ impl WireguardNetwork {
     }
 }
 
+impl WireguardNetwork {
+    /// Helper to fetch a name for a given network ID.
+    pub(crate) async fn name_for_id<'e, E>(executor: E, id: Id) -> Result<String, sqlx::Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!("SELECT name FROM wireguard_network WHERE id = $1", id)
+            .fetch_one(executor)
+            .await
+    }
+}
+
 impl WireguardNetwork<Id> {
-    pub async fn find_by_name<'e, E>(
+    /// Find all networks with a given name.
+    pub(crate) async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
-    ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
+    ) -> Result<Option<Vec<Self>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         let networks = query_as!(
-            WireguardNetwork,
-            "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
         )
         .fetch_all(executor)
         .await?;
 
-        if networks.is_empty() {
-            return Ok(None);
-        }
-
-        Ok(Some(networks))
+        Ok(if networks.is_empty() {
+            None
+        } else {
+            Some(networks)
+        })
     }
 
-    // run sync_allowed_devices on all wireguard networks
-    pub async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+    /// Fetch all networks with MFA protection turned on.
+    pub(crate) async fn all_mfa_enabled<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            FROM wireguard_network WHERE mfa_enabled = true",
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Run `sync_allowed_devices()` on all WireGuard networks.
+    pub(crate) async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
         let mut transaction = app.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            app.send_multiple_wireguard_events(gateway_events);
+            app.send_multiple_change_events(gateway_events);
         }
         transaction.commit().await?;
         Ok(())
     }
 
     /// Return number of devices that use this network.
+    #[cfg(test)]
     async fn device_count(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<i64, WireguardNetworkError> {
-        let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
-            .fetch_one(transaction)
-            .await?;
+        let count = query_scalar!(
+            "SELECT count(*) \"count!\" FROM wireguard_network_device \
+            WHERE wireguard_network_id = $1",
+            self.id
+        )
+        .fetch_one(transaction)
+        .await?;
 
         Ok(count)
     }
 
-    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
+    /// Check if given number of devices could fit the network.
+    pub(crate) fn validate_network_size(
+        &self,
+        device_count: usize,
+    ) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in network {self}");
         let network_size = self.address.size();
         // include address, network, and broadcast in the calculation
@@ -237,19 +280,20 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    /// Utility method to create WireGuard keypair
+    /// Utility method to create WireGuard keypair.
     #[must_use]
-    pub fn genkey() -> WireguardKey {
+    pub(crate) fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
-            private: BASE64_STANDARD.encode(private.to_bytes()),
+            _private: BASE64_STANDARD.encode(private.to_bytes()),
             public: BASE64_STANDARD.encode(public.to_bytes()),
         }
     }
 
     /// Try to change network address, changing device addresses if necessary.
-    pub async fn change_address(
+    #[cfg(test)]
+    pub(crate) async fn change_address(
         &mut self,
         transaction: &mut PgConnection,
         new_address: IpNetwork,
@@ -353,7 +397,7 @@ impl WireguardNetwork<Id> {
 
     /// Generate network IPs for all existing devices
     /// If `allowed_groups` is set, devices should be filtered accordingly
-    pub async fn add_all_allowed_devices(
+    pub(crate) async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), ModelError> {
@@ -371,7 +415,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generate network IPs for a device if it's allowed in network
-    pub async fn add_device_to_network(
+    pub(crate) async fn add_device_to_network(
         &self,
         transaction: &mut PgConnection,
         device: &Device<Id>,
@@ -387,18 +431,18 @@ impl WireguardNetwork<Id> {
             Ok(wireguard_network_device)
         } else {
             info!("Device {device} not allowed in network {self}");
-            Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
+            Err(WireguardNetworkError::DeviceNotAllowed(device.to_string()))
         }
     }
 
     /// Refresh network IPs for all relevant devices
     /// If the list of allowed devices has changed add/remove devices accordingly
     /// If the network address has changed readdress existing devices
-    pub async fn sync_allowed_devices(
+    pub(crate) async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
         reserved_ips: Option<&[IpAddr]>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+    ) -> Result<Vec<ChangeEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
@@ -428,7 +472,7 @@ impl WireguardNetwork<Id> {
                     let wireguard_network_device = device
                         .assign_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
-                    events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                    events.push(ChangeEvent::DeviceModified(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
@@ -448,7 +492,7 @@ impl WireguardNetwork<Id> {
                 if let Some(device) =
                     Device::find_by_id(&mut *transaction, device_network_config.device_id).await?
                 {
-                    events.push(GatewayEvent::DeviceDeleted(DeviceInfo {
+                    events.push(ChangeEvent::DeviceDeleted(DeviceInfo {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
@@ -470,7 +514,7 @@ impl WireguardNetwork<Id> {
             let wireguard_network_device = device
                 .assign_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
-            events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+            events.push(ChangeEvent::DeviceCreated(DeviceInfo {
                 device,
                 network_info: vec![DeviceNetworkInfo {
                     network_id: self.id,
@@ -488,11 +532,11 @@ impl WireguardNetwork<Id> {
     /// if they do assign a specified IP.
     /// Return a list of imported devices which need to be manually mapped to a user
     /// and a list of WireGuard events to be sent out.
-    pub async fn handle_imported_devices(
+    pub(crate) async fn handle_imported_devices(
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
-    ) -> Result<(Vec<ImportedDevice>, Vec<GatewayEvent>), WireguardNetworkError> {
+    ) -> Result<(Vec<ImportedDevice>, Vec<ChangeEvent>), WireguardNetworkError> {
         let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
         // convert to a map for easier processing
         let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
@@ -525,7 +569,7 @@ impl WireguardNetwork<Id> {
                             // store ID of device with already generated config
                             assigned_device_ids.push(existing_device.id);
                             // send device to connected gateways
-                            events.push(GatewayEvent::DeviceModified(DeviceInfo {
+                            events.push(ChangeEvent::DeviceModified(DeviceInfo {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id: self.id,
@@ -551,11 +595,11 @@ impl WireguardNetwork<Id> {
     }
 
     /// Handle device -> user mapping in second step of network import wizard
-    pub async fn handle_mapped_devices(
+    pub(crate) async fn handle_mapped_devices(
         &self,
         transaction: &mut PgConnection,
-        mapped_devices: Vec<MappedDevice>,
-    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+        mapped_devices: &[MappedDevice],
+    ) -> Result<Vec<ChangeEvent>, WireguardNetworkError> {
         info!("Mapping user devices for network {}", self);
         // get allowed groups for network
         let allowed_groups = self.get_allowed_groups(&mut *transaction).await?;
@@ -563,7 +607,7 @@ impl WireguardNetwork<Id> {
         let mut events = Vec::new();
         // use a helper hashmap to avoid repeated queries
         let mut user_groups = HashMap::new();
-        for mapped_device in &mapped_devices {
+        for mapped_device in mapped_devices {
             debug!("Mapping device {}", mapped_device.name);
             // validate device pubkey
             Device::validate_pubkey(&mapped_device.wireguard_pubkey).map_err(|_| {
@@ -636,7 +680,7 @@ impl WireguardNetwork<Id> {
 
             // send device to connected gateways
             if !network_info.is_empty() {
-                events.push(GatewayEvent::DeviceCreated(DeviceInfo {
+                events.push(ChangeEvent::DeviceCreated(DeviceInfo {
                     device,
                     network_info,
                 }));
@@ -653,8 +697,9 @@ impl WireguardNetwork<Id> {
     ) -> Result<Option<WireguardPeerStats<Id>>, SqlxError> {
         let stats = query_as!(
             WireguardPeerStats,
-            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
-                endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
+            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", \
+            network \"network!\", endpoint, upload \"upload!\", download \"download!\", \
+            latest_handshake \"latest_handshake!\", allowed_ips \
             FROM wireguard_peer_stats \
             WHERE device_id = $1 AND network = $2 \
             ORDER BY collected_at DESC \
@@ -684,6 +729,62 @@ impl WireguardNetwork<Id> {
             .and_then(|ep| Some(ep.split(':').next()?.to_owned()))
     }
 
+    /// Get a list of all allowed peers
+    ///
+    /// Each device is marked as allowed or not allowed in a given network,
+    /// which enables enforcing peer disconnect in MFA-protected networks.
+    pub async fn get_peers<'e, E>(&self, executor: E) -> Result<Vec<Peer>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        debug!("Fetching all peers for network {}", self.id);
+        let rows = query!(
+            "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+                array[host(wnd.wireguard_ip)] \"allowed_ips!: Vec<String>\" \
+            FROM wireguard_network_device wnd \
+            JOIN device d ON wnd.device_id = d.id \
+            JOIN \"user\" u ON d.user_id = u.id \
+            WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
+            AND u.is_active = true \
+            ORDER BY d.id ASC",
+            self.id,
+            self.mfa_enabled
+        )
+        .fetch_all(executor)
+        .await?;
+
+        // keepalive has to be added manually because Postgres
+        // doesn't support unsigned integers
+        let result = rows
+            .into_iter()
+            .map(|row| Peer {
+                pubkey: row.pubkey,
+                allowed_ips: row.allowed_ips,
+                preshared_key: row.preshared_key,
+                keepalive_interval: Some(self.keepalive_interval as u32),
+            })
+            .collect();
+
+        Ok(result)
+    }
+
+    /// Update `connected_at` to the current time and save it to the database.
+    pub(crate) async fn touch_connected<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.connected_at = Some(Utc::now().naive_utc());
+        query!(
+            "UPDATE wireguard_network SET connected_at = $2 WHERE name = $1",
+            self.name,
+            self.connected_at
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+
     /// Finds when the device connected based on handshake timestamps
     async fn connected_at(
         &self,
@@ -696,7 +797,7 @@ impl WireguardNetwork<Id> {
             FROM wireguard_peer_stats_view \
             WHERE device_id = $1 \
                 AND latest_handshake IS NOT NULL \
-                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) \
+                AND (latest_handshake_diff > $2 * interval '1m' OR latest_handshake_diff IS NULL) \
                 AND network = $3 \
             ORDER BY collected_at DESC \
             LIMIT 1",
@@ -771,7 +872,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp
-    pub async fn user_stats(
+    pub(crate) async fn user_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -779,7 +880,7 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
         let oldest_handshake =
-            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+            (Utc::now() - TimeDelta::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
@@ -847,7 +948,7 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+        let from = (Utc::now() - TimeDelta::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -896,7 +997,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats
-    pub async fn network_stats(
+    pub(crate) async fn network_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -938,8 +1039,8 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
-pub struct WireguardNetworkInfo {
+#[derive(Serialize)]
+pub(crate) struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,
     pub connected: bool,
@@ -947,14 +1048,14 @@ pub struct WireguardNetworkInfo {
     pub allowed_groups: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WireguardStatsRow {
     pub collected_at: Option<NaiveDateTime>,
     pub upload: Option<i64>,
     pub download: Option<i64>,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, PartialEq, Serialize)]
 pub struct WireguardDeviceTransferRow {
     pub device_id: Id,
     pub collected_at: Option<NaiveDateTime>,
@@ -1017,7 +1118,7 @@ pub struct WireguardNetworkStats {
 
 #[cfg(test)]
 mod test {
-    use chrono::{Duration, SubsecRound};
+    use chrono::{SubsecRound, TimeDelta};
 
     use super::*;
     use crate::db::models::device::WireguardNetworkDevice;
@@ -1125,12 +1226,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(handshake_minutes),
+                latest_handshake: now - TimeDelta::minutes(handshake_minutes),
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1146,7 +1247,7 @@ mod test {
         assert_eq!(
             connected_at,
             // Postgres stores 6 sub-second digits while chrono stores 9
-            (now - Duration::minutes(30)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(30)).trunc_subsecs(6),
         );
     }
 
@@ -1179,12 +1280,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(i), // handshake every minute
+                latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1200,7 +1301,7 @@ mod test {
         assert_eq!(
             connected_at,
             // Postgres stores 6 sub-second digits while chrono stores 9
-            (now - Duration::minutes(samples)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
         );
     }
 }

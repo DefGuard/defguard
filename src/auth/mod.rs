@@ -18,7 +18,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     appstate::AppState,
-    db::{Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    db::{
+        models::{
+            group::Group,
+            oauth2authorizedapp::OAuth2AuthorizedApp,
+            oauth2token::OAuth2Token,
+            session::{Session, SessionState},
+            user::User,
+        },
+        Id,
+    },
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
     server_config,
@@ -44,7 +53,7 @@ pub enum ClaimsType {
 /// Standard claims: https://www.iana.org/assignments/jwt/jwt.xhtml
 #[derive(Deserialize, Serialize)]
 pub struct Claims {
-    #[serde(skip_serializing, skip_deserializing)]
+    #[serde(skip)]
     secret: String,
     // issuer
     pub iss: String,
@@ -126,23 +135,22 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Ok(cookies) = CookieJar::from_request_parts(parts, state).await {
-            if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
-                return {
-                    match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
-                        Ok(Some(session)) => {
-                            if session.expired() {
-                                let _result = session.delete(&appstate.pool).await;
-                                Err(WebError::Authorization("Session expired".into()))
-                            } else {
-                                Ok(session)
-                            }
+        let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;
+        if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
+            return {
+                match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
+                    Ok(Some(session)) => {
+                        if session.expired() {
+                            let _result = session.delete(&appstate.pool).await;
+                            Err(WebError::Authorization("Session expired".into()))
+                        } else {
+                            Ok(session)
                         }
-                        Ok(None) => Err(WebError::Authorization("Session not found".into())),
-                        Err(err) => Err(err.into()),
                     }
-                };
-            }
+                    Ok(None) => Err(WebError::Authorization("Session not found".into())),
+                    Err(err) => Err(err.into()),
+                }
+            };
         }
         Err(WebError::Authorization("Session is required".into()))
     }

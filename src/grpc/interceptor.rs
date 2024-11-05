@@ -1,4 +1,4 @@
-use tonic::{service::Interceptor, Status};
+use tonic::{service::Interceptor, Request, Status};
 
 use crate::auth::{Claims, ClaimsType};
 
@@ -11,13 +11,13 @@ pub struct JwtInterceptor {
 
 impl JwtInterceptor {
     #[must_use]
-    pub fn new(claims_type: ClaimsType) -> Self {
+    pub(crate) fn new(claims_type: ClaimsType) -> Self {
         Self { claims_type }
     }
 }
 
 impl Interceptor for JwtInterceptor {
-    fn call(&mut self, mut req: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
+    fn call(&mut self, mut req: Request<()>) -> Result<Request<()>, Status> {
         let token = match req.metadata().get("authorization") {
             Some(token) => token
                 .to_str()
@@ -28,23 +28,18 @@ impl Interceptor for JwtInterceptor {
             let request_metadata = req.metadata_mut();
 
             if let ClaimsType::Gateway = self.claims_type {
+                // This type of claim should not end up here.
+            } else {
+                // FIXME: can we push whole Claims object into metadata?
                 request_metadata.insert(
-                    "gateway_network_id",
+                    "username",
                     claims
-                        .client_id
+                        .sub
                         .parse()
-                        .map_err(|_| Status::unknown("Network ID parsing error"))?,
+                        .map_err(|_| Status::unknown("Username parsing error"))?,
                 );
             }
 
-            // FIXME: can we push whole Claims object into metadata?
-            request_metadata.insert(
-                "username",
-                claims
-                    .sub
-                    .parse()
-                    .map_err(|_| Status::unknown("Username parsing error"))?,
-            );
             debug!("Authorization successful for user {}", claims.sub);
             Ok(req)
         } else {
