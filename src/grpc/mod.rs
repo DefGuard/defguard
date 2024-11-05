@@ -127,7 +127,7 @@ pub async fn run_grpc_gateway_stream(
     // Helper closure to launch `GatewayHandler`.
     let mut launch_gateway_handler =
         |gateway: Gateway<Id>| -> Result<AbortHandle, tonic::transport::Error> {
-            let mut gateway_client = GatewayHandler::new(
+            let mut gateway_handler = GatewayHandler::new(
                 gateway,
                 tls_config.clone(),
                 pool.clone(),
@@ -135,7 +135,7 @@ pub async fn run_grpc_gateway_stream(
                 mail_tx.clone(),
             )?;
             let abort_handle = tasks.spawn(async move {
-                gateway_client.handle_connection().await;
+                gateway_handler.handle_connection().await;
             });
             Ok(abort_handle)
         };
@@ -223,8 +223,7 @@ pub async fn run_grpc_bidi_stream(
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, events_tx);
     let polling_server = PollingServer::new(pool);
 
-    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
-    let endpoint = endpoint
+    let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?
         .http2_keep_alive_interval(TEN_SECS)
         .tcp_keepalive(Some(TEN_SECS))
         .keep_alive_while_idle(true);
@@ -254,7 +253,7 @@ pub async fn run_grpc_bidi_stream(
                 }
                 Ok(Some(received)) => {
                     info!("Received message from proxy.");
-                    debug!("Received the following message from proxy: {received:?}");
+                    debug!("Message from proxy: {received:?}");
                     let payload = match received.payload {
                         // rpc StartEnrollment (EnrollmentStartRequest) returns (EnrollmentStartResponse)
                         Some(core_request::Payload::EnrollmentStart(request)) => {

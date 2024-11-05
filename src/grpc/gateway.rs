@@ -33,6 +33,9 @@ use crate::{
     mail::Mail,
 };
 
+#[cfg(test)]
+mod tests;
+
 tonic::include_proto!("gateway");
 
 fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration {
@@ -85,8 +88,7 @@ impl GatewayHandler {
         events_tx: Sender<ChangeEvent>,
         mail_tx: UnboundedSender<Mail>,
     ) -> Result<Self, tonic::transport::Error> {
-        let endpoint = Endpoint::from_shared(gateway.url.to_string())?;
-        let endpoint = endpoint
+        let endpoint = Endpoint::from_shared(gateway.url.to_string())?
             .http2_keep_alive_interval(TEN_SECS)
             .tcp_keepalive(Some(TEN_SECS))
             .keep_alive_while_idle(true);
@@ -207,11 +209,23 @@ impl GatewayHandler {
         };
     }
 
+    /// Connect to Gateway and handle its messages through gRPC.
     pub(super) async fn handle_connection(&mut self) -> ! {
         let uri = self.endpoint.uri();
         loop {
-            info!("Connecting to gateway {uri}");
-            let mut client = gateway_client::GatewayClient::new(self.endpoint.connect_lazy());
+            #[cfg(not(test))]
+            let channel = self.endpoint.connect_lazy();
+            #[cfg(test)]
+            let channel = self.endpoint.connect_with_connector_lazy(tower::service_fn(
+                |_: tonic::transport::Uri| async {
+                    Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                        tokio::net::UnixStream::connect(tests::TONIC_SOCKET).await?,
+                    ))
+                },
+            ));
+
+            debug!("Connecting to gateway {uri}");
+            let mut client = gateway_client::GatewayClient::new(channel);
             let (tx, rx) = mpsc::unbounded_channel();
             let response = match client.bidi(UnboundedReceiverStream::new(rx)).await {
                 Ok(response) => response,
@@ -317,7 +331,6 @@ impl GatewayHandler {
                                     self.gateway.network_id,
                                 );
                                 // Get device by public key and fill in stats.device_id
-                                // FIXME: keep an in-memory device map to avoid repeated DB requests
                                 match Device::find_by_pubkey(&self.pool, &public_key).await {
                                     Ok(Some(device)) => {
                                         stats.device_id = device.id;

@@ -107,19 +107,21 @@ webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
-bytes = "1.6"
+bytes = "1.8"
 claims = "0.7"
+hyper-util = "0.1"
 matches = "0.1"
-regex = "1.10"
+regex = "1.11"
 reqwest = { version = "0.11", features = [
-    "json",
     "cookies",
-    "stream",
+    "json",
     "multipart",
     "rustls-tls",
+    "stream",
 ], default-features = false }
 serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
+tower = { version = "0.5", features = ["util"] }
 
 [build-dependencies]
 prost-build = "0.13"

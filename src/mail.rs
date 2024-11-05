@@ -40,12 +40,12 @@ pub enum MailError {
 
 /// Subset of Settings object representing SMTP configuration
 struct SmtpSettings {
-    pub server: String,
-    pub port: u16,
-    pub encryption: SmtpEncryption,
-    pub user: String,
-    pub password: String,
-    pub sender: String,
+    server: String,
+    port: u16,
+    encryption: SmtpEncryption,
+    user: String,
+    password: String,
+    sender: String,
 }
 
 impl SmtpSettings {
