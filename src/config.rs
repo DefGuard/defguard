@@ -166,6 +166,18 @@ pub struct DefGuardConfig {
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
+
+    #[arg(long, env = "DEFGUARD_CHECK_PERIOD", default_value = "12h")]
+    #[serde(skip_serializing)]
+    pub check_period: Duration,
+
+    #[arg(long, env = "DEFGUARD_CHECK_PERIOD_NO_LICENSE", default_value = "24h")]
+    #[serde(skip_serializing)]
+    pub check_period_no_license: Duration,
+
+    #[arg(long, env = "DEFGUARD_CHECK_RENEWAL_WINDOW", default_value = "1h")]
+    #[serde(skip_serializing)]
+    pub check_period_renewal_window: Duration,
 }
 
 #[derive(Clone, Debug, Subcommand)]
