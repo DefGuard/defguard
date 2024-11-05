@@ -8,11 +8,11 @@
 
 [Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support-)
 
-## Alpha v1.0 with Enterprise features released 
+## Enterprise features are here!
 
-🛑 ALPHA#1 PRE-RELESE of the new **Open Source Open Core** & **Enterprise features** (like external OpenID (Google/Microsoft/Custom), real time client sync and more!) published! 🛑
+🛑 We encourge to test the [pre-release](https://docs.defguard.net/admin-and-features/setting-up-your-instance/pre-production-and-development-releases) of the new **Open Source Open Core** & **Enterprise features** (like external OpenID (Google/Microsoft/Custom), real time client sync and more!) published! 🛑
 
-All currently available enterprise features are in [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about upcoming [enterprise license](https://docs.defguard.net/enterprise/license).
+All currently available enterprise features are in [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about [enterprise license](https://docs.defguard.net/enterprise/license).
 </div>
 
 ### Unique value proposition
