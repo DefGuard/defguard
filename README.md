@@ -8,6 +8,8 @@
 
 [Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support)
 
+</div>
+
 ### Comprehensive Access Control
 
 - **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
