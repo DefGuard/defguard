@@ -800,7 +800,7 @@ impl User<Id> {
     pub async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
         executor: E,
-        app_client_ids: &[i64],
+        app_client_ids: &[Id],
     ) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,

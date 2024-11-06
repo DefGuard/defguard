@@ -1,11 +1,60 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    io,
+    net::{IpAddr, Ipv4Addr},
+};
 
 use ipnetwork::IpNetwork;
-use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tokio::{
+    net::UnixListener,
+    sync::{broadcast, mpsc::unbounded_channel},
+};
+use tokio_stream::wrappers::UnixListenerStream;
+use tonic::{transport::Server, Request, Response, Status, Streaming};
 
 use super::*;
 
 pub(super) static TONIC_SOCKET: &str = "tonic.sock";
+
+struct FakeGateway;
+
+#[tonic::async_trait]
+impl gateway_server::Gateway for FakeGateway {
+    type BidiStream = UnboundedReceiverStream<Result<CoreRequest, Status>>;
+
+    async fn bidi(
+        &self,
+        request: Request<Streaming<CoreResponse>>,
+    ) -> Result<Response<Self::BidiStream>, Status> {
+        let (_tx, rx) = mpsc::unbounded_channel();
+        let mut stream = request.into_inner();
+        tokio::spawn(async move {
+            loop {
+                match stream.message().await {
+                    Ok(Some(_response)) => (),
+                    Ok(None) => (),
+                    Err(_err) => (),
+                }
+            }
+        });
+
+        Ok(Response::new(UnboundedReceiverStream::new(rx)))
+    }
+}
+
+async fn fake_gateway() -> Result<(), io::Error> {
+    let gateway = FakeGateway {};
+
+    let uds = UnixListener::bind(TONIC_SOCKET)?;
+    let uds_stream = UnixListenerStream::new(uds);
+
+    Server::builder()
+        .add_service(gateway_server::GatewayServer::new(gateway))
+        .serve_with_incoming(uds_stream)
+        .await
+        .unwrap();
+
+    Ok(())
+}
 
 #[sqlx::test]
 async fn test_gateway(pool: PgPool) {
