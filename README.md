@@ -6,18 +6,11 @@
     <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
  </p>
 
-[Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support-)
+[Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support)
 
-## Enterprise features are here!
+### Comprehensive Access Control
 
-🛑 We encourge to test the [pre-release](https://docs.defguard.net/admin-and-features/setting-up-your-instance/pre-production-and-development-releases) of the new **Open Source Open Core** & **Enterprise features** (like external OpenID (Google/Microsoft/Custom), real time client sync and more!) published! 🛑
-
-All currently available enterprise features are in [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about [enterprise license](https://docs.defguard.net/enterprise/license).
-</div>
-
-### Unique value proposition
-
-- **Comprehensive [WireGuard® 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
+- **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
     - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
     - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
 - [Integrated SSO based on OpenID Connect](https://docs.defguard.net/admin-and-features/openid-connect): 
@@ -31,7 +24,11 @@ All currently available enterprise features are in [enterprise documentation sec
 - Built on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
 - Built with Rust for speed and security
 
-See below [full list of features](https://github.com/defguard/defguard#features)
+See:
+- [full list of features](https://github.com/defguard/defguard#features)
+n [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about [enterprise license](https://docs.defguard.net/enterprise/license).
+</div>
+
 
 #### Video introduction
 
@@ -65,6 +62,8 @@ Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/d
 
 [Desktop client](https://github.com/DefGuard/client):
 - **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
+- [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
+- Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
 - Defguard instances as well as **any WireGuard tunnel** - just import your tunnels - one client for all WireGuard connections
 - Secure and remote user enrollment - setting up password, automatically configuring the client for all VPN Locations/Networks
 - Onboarding - displaying custom onboarding messages, with templates, links ...
@@ -117,7 +116,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 ## Features
 
-* [WireGuard®](https://www.wireguard.com/) VPN server with:
+* Remote Access: [WireGuard® VPN](https://www.wireguard.com/) server with:
   - [Multi-Factor Authentication](https://docs.defguard.net/help/desktop-client/multi-factor-authentication-mfa-2fa) with TOTP/Email & Pre-Shared Session Keys
   - multiple VPN Locations (networks/sites) - with defined access (all users or only Admin group)
   - multiple [Gateways](https://github.com/DefGuard/gateway) for each VPN Location (**high availability/failover**) - supported on a cluster of routers/firewalls for Linux, FreeBSD/PFSense/OPNSense
@@ -129,18 +128,20 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - kernel (Linux, FreeBSD/OPNSense/PFSense) & userspace WireGuard® support with [our Rust library](https://github.com/defguard/wireguard-rs)
   - dashboard and statistics overview of connected users/devices for admins
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
-* Integrated SSO: [OpenID Connect provider](https://openid.net/developers/how-connect-works/) - with **unique features**:
-  - Secure remote (over the internet) [user enrollment](https://docs.defguard.net/help/remote-user-enrollment)
-  - User [onboarding after enrollment](https://docs.defguard.net/help/remote-user-enrollment/user-onboarding-after-enrollment)
-  - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
-  - [forward auth](https://docs.defguard.net/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
-  - nice UI to manage users
-  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard®, etc.)
+* Identity & Account Management:
+  - SSO based on OpenID Connect](https://openid.net/developers/how-connect-works/)
+  - Extenal SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
    - Email based TOTP
-* Extenal SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+  - LDAP (tested on [OpenLDAP](https://www.openldap.org/)) synchronization
+  - [forward auth](https://docs.defguard.net/features/forward-auth) for reverse proxies (tested with Traefik and Caddy)
+  - nice UI to manage users
+  - Users **self-service** (besides typical data management, users can revoke access to granted apps, MFA, WireGuard®, etc.)
+* Account Lifecycle Management:
+  - Secure remote (over the Internet) [user enrollment](https://docs.defguard.net/help/remote-user-enrollment) - on public web / Desktop Client
+  - User [onboarding after enrollment](https://docs.defguard.net/help/remote-user-enrollment/user-onboarding-after-enrollment)
 * SSH & GPG public key management in user profile - with [SSH keys authentication for servers](https://docs.defguard.net/admin-and-features/ssh-authentication)
 * [Yubikey hardware keys](https://www.yubico.com/) provisioning for users by *one click*
 * [Email/SMTP support](https://docs.defguard.net/help/setting-up-smtp-for-email-notifications) for notifications, remote enrollment and onboarding
