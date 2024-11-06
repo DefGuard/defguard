@@ -28,9 +28,7 @@
 
 See:
 - [full list of features](https://github.com/defguard/defguard#features)
-n [enterprise documentation section](https://docs.defguard.net/enterprise/all-enteprise-features) as well as information about [enterprise license](https://docs.defguard.net/enterprise/license).
-</div>
-
+- [enterprise only features](https://docs.defguard.net/enterprise/all-enteprise-features)
 
 #### Video introduction
 
