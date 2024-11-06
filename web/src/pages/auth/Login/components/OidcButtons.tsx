@@ -24,7 +24,7 @@ const GoogleButton = ({ url }: { url: string }) => {
     <button
       className="gsi-material-button"
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       type="button"
     >
@@ -80,7 +80,7 @@ const CustomButton = ({ url }: { url: string }) => {
       text="Login with OIDC"
       data-testid="login-oidc"
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       type="button"
     />
@@ -91,7 +91,7 @@ const MicrosoftButton = ({ url }: { url: string }) => {
   return (
     <button
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       className="ms-button"
       type="button"

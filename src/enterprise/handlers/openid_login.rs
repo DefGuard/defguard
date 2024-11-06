@@ -15,7 +15,7 @@ use openidconnect::{
     },
     reqwest::async_http_client,
     AuthenticationFlow, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, IdToken,
-    IssuerUrl, Nonce, ProviderMetadata, RedirectUrl, Scope,
+    IssuerUrl, Nonce, RedirectUrl, Scope,
 };
 use serde_json::json;
 use sqlx::PgPool;
@@ -35,25 +35,7 @@ use crate::{
     server_config,
 };
 
-type ProvMeta = ProviderMetadata<
-    openidconnect::EmptyAdditionalProviderMetadata,
-    openidconnect::core::CoreAuthDisplay,
-    openidconnect::core::CoreClientAuthMethod,
-    openidconnect::core::CoreClaimName,
-    openidconnect::core::CoreClaimType,
-    openidconnect::core::CoreGrantType,
-    openidconnect::core::CoreJweContentEncryptionAlgorithm,
-    openidconnect::core::CoreJweKeyManagementAlgorithm,
-    openidconnect::core::CoreJwsSigningAlgorithm,
-    openidconnect::core::CoreJsonWebKeyType,
-    openidconnect::core::CoreJsonWebKeyUse,
-    openidconnect::core::CoreJsonWebKey,
-    openidconnect::core::CoreResponseMode,
-    openidconnect::core::CoreResponseType,
-    openidconnect::core::CoreSubjectIdentifierType,
->;
-
-async fn get_provider_metadata(url: &str) -> Result<ProvMeta, WebError> {
+async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).unwrap();
 
     // Discover the provider metadata based on a known base issuer URL
@@ -117,13 +99,12 @@ pub async fn get_auth_info(
         .url();
 
     let config = server_config();
+    let cookie_domain = config
+        .cookie_domain
+        .as_ref()
+        .expect("Cookie domain not found");
     let nonce_cookie = Cookie::build(("nonce", nonce.secret().clone()))
-        .domain(
-            config
-                .cookie_domain
-                .clone()
-                .expect("Cookie domain not found"),
-        )
+        .domain(cookie_domain)
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
@@ -131,19 +112,13 @@ pub async fn get_auth_info(
         .max_age(Duration::days(1))
         .build();
     let csrf_cookie = Cookie::build(("csrf", csrf_state.secret().clone()))
-        .domain(
-            config
-                .cookie_domain
-                .clone()
-                .expect("Cookie domain not found"),
-        )
+        .domain(cookie_domain)
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
         .secure(true)
         .max_age(Duration::days(1))
         .build();
-
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
 
     Ok((
@@ -198,7 +173,7 @@ pub async fn auth_callback(
         .value_trimmed()
         .to_string();
 
-    // Verify the csrf token
+    // Verify the CSRF token
     if *payload.state.secret() != cookie_csrf {
         return Err(WebError::Authorization("CSRF token mismatch".to_string()));
     };
@@ -356,15 +331,14 @@ pub async fn auth_callback(
         device_info,
     );
     session.save(&appstate.pool).await?;
-    let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
+    let max_age = Duration::seconds(config.auth_cookie_timeout.as_secs() as i64);
+    let cookie_domain = config
+        .cookie_domain
+        .as_ref()
+        .expect("Cookie domain not found");
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
-        .domain(
-            config
-                .cookie_domain
-                .clone()
-                .expect("Cookie domain not found"),
-        )
+        .domain(cookie_domain)
         .path("/")
         .http_only(true)
         .secure(!config.cookie_insecure)
