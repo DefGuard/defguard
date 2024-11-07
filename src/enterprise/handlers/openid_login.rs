@@ -9,17 +9,17 @@ use axum_extra::{
     TypedHeader,
 };
 use openidconnect::{
-    core::{
-        CoreClient, CoreGenderClaim, CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm,
-        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType,
-    },
+    core::{CoreClient, CoreIdToken, CoreProviderMetadata, CoreResponseType},
     reqwest::async_http_client,
-    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, IdToken,
-    IssuerUrl, Nonce, RedirectUrl, Scope,
+    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
 };
 use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
+
+const COOKIE_MAX_AGE: Duration = Duration::days(1);
+static CSRF_COOKIE_NAME: &str = "csrf";
+static NONCE_COOKIE_NAME: &str = "nonce";
 
 use super::LicenseInfo;
 use crate::{
@@ -103,21 +103,21 @@ pub async fn get_auth_info(
         .cookie_domain
         .as_ref()
         .expect("Cookie domain not found");
-    let nonce_cookie = Cookie::build(("nonce", nonce.secret().clone()))
+    let nonce_cookie = Cookie::build((NONCE_COOKIE_NAME, nonce.secret().clone()))
         .domain(cookie_domain)
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
         .secure(true)
-        .max_age(Duration::days(1))
+        .max_age(COOKIE_MAX_AGE)
         .build();
-    let csrf_cookie = Cookie::build(("csrf", csrf_state.secret().clone()))
+    let csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
         .domain(cookie_domain)
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
         .secure(true)
-        .max_age(Duration::days(1))
+        .max_age(COOKIE_MAX_AGE)
         .build();
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);
 
@@ -134,15 +134,9 @@ pub async fn get_auth_info(
     ))
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize)]
 pub struct AuthenticationResponse {
-    id_token: IdToken<
-        EmptyAdditionalClaims,
-        CoreGenderClaim,
-        CoreJweContentEncryptionAlgorithm,
-        CoreJwsSigningAlgorithm,
-        CoreJsonWebKeyType,
-    >,
+    id_token: CoreIdToken,
     state: CsrfToken,
 }
 
@@ -161,14 +155,14 @@ pub async fn auth_callback(
     // Get the nonce and csrf cookies, we need them to verify the callback
     let mut private_cookies = private_cookies;
     let cookie_nonce = private_cookies
-        .get("nonce")
+        .get(NONCE_COOKIE_NAME)
         .ok_or(WebError::Authorization(
             "Nonce cookie not found".to_string(),
         ))?
         .value_trimmed()
         .to_string();
     let cookie_csrf = private_cookies
-        .get("csrf")
+        .get(CSRF_COOKIE_NAME)
         .ok_or(WebError::BadRequest("CSRF cookie not found".to_string()))?
         .value_trimmed()
         .to_string();
@@ -185,8 +179,8 @@ pub async fn auth_callback(
     let id_token = payload.id_token;
 
     private_cookies = private_cookies
-        .remove(Cookie::from("nonce"))
-        .remove(Cookie::from("csrf"));
+        .remove(Cookie::from(NONCE_COOKIE_NAME))
+        .remove(Cookie::from(CSRF_COOKIE_NAME));
 
     // claims = user attributes
     let token_claims = match id_token.claims(&token_verifier, &nonce) {

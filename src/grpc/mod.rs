@@ -539,6 +539,9 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
+                        Some(core_request::Payload::AuthInfo(())) => {
+                            Some(core_response::Payload::Empty(()))
+                        }
                         // Reply without payload.
                         None => None,
                     };
