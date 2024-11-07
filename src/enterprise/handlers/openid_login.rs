@@ -45,14 +45,14 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
         CoreProviderMetadata::discover_async(issuer_url, async_http_client).await
     else {
         return Err(WebError::Authorization(format!(
-            "Failed to discover provider metadata, make sure the providers' url is correct: {url}",
+            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}",
         )));
     };
 
     Ok(provider_metadata)
 }
 
-async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebError> {
+pub(crate) async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
             "OpenID provider not set".to_string(),
@@ -108,7 +108,7 @@ pub async fn get_auth_info(
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
-        .secure(true)
+        .secure(!config.cookie_insecure)
         .max_age(COOKIE_MAX_AGE)
         .build();
     let csrf_cookie = Cookie::build((CSRF_COOKIE_NAME, csrf_state.secret().clone()))
@@ -116,7 +116,7 @@ pub async fn get_auth_info(
         .path("/api/v1/openid/callback")
         .http_only(true)
         .same_site(SameSite::Strict)
-        .secure(true)
+        .secure(!config.cookie_insecure)
         .max_age(COOKIE_MAX_AGE)
         .build();
     let private_cookies = private_cookies.add(nonce_cookie).add(csrf_cookie);

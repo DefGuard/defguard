@@ -139,13 +139,12 @@ pub async fn authenticate(
 
     let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
+    let cookie_domain = config
+        .cookie_domain
+        .as_ref()
+        .expect("Cookie domain not found");
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
-        .domain(
-            config
-                .cookie_domain
-                .clone()
-                .expect("Cookie domain not found"),
-        )
+        .domain(cookie_domain)
         .path("/")
         .http_only(true)
         .secure(!config.cookie_insecure)
@@ -195,7 +194,7 @@ pub async fn authenticate(
         .await?;
 
         if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-            debug!("Found openid session cookie.");
+            debug!("Found OpenID session cookie.");
             let redirect_url = openid_cookie.value().to_string();
             Ok((
                 cookies,
