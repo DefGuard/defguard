@@ -127,8 +127,8 @@ pub(crate) async fn get_auth_info(
     ))
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct AuthenticationResponse {
+#[derive(Deserialize)]
+pub(crate) struct AuthenticationResponse {
     id_token: CoreIdToken,
     state: CsrfToken,
 }
@@ -136,7 +136,7 @@ pub struct AuthenticationResponse {
 pub(crate) async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
-    private_cookies: PrivateCookieJar,
+    mut private_cookies: PrivateCookieJar,
     user_agent: Option<TypedHeader<UserAgent>>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
@@ -145,24 +145,21 @@ pub(crate) async fn auth_callback(
 ) -> Result<(CookieJar, PrivateCookieJar, ApiResponse), WebError> {
     debug!("Auth callback received, logging in user...");
 
-    // Get the nonce and csrf cookies, we need them to verify the callback
-    let mut private_cookies = private_cookies;
+    // Get the nonce and CSRF cookies, we need them to verify the callback
     let cookie_nonce = private_cookies
         .get(NONCE_COOKIE_NAME)
-        .ok_or(WebError::Authorization(
-            "Nonce cookie not found".to_string(),
-        ))?
+        .ok_or(WebError::Authorization("Nonce cookie not found".into()))?
         .value_trimmed()
         .to_string();
     let cookie_csrf = private_cookies
         .get(CSRF_COOKIE_NAME)
-        .ok_or(WebError::BadRequest("CSRF cookie not found".to_string()))?
+        .ok_or(WebError::BadRequest("CSRF cookie not found".into()))?
         .value_trimmed()
         .to_string();
 
     // Verify the CSRF token
-    if *payload.state.secret() != cookie_csrf {
-        return Err(WebError::Authorization("CSRF token mismatch".to_string()));
+    if payload.state.secret() != &cookie_csrf {
+        return Err(WebError::Authorization("CSRF token mismatch".into()));
     };
 
     // Get the ID token and verify it against the nonce value received in the callback
@@ -227,7 +224,7 @@ pub(crate) async fn auth_callback(
             // Make sure the user is not disabled
             if !user.is_active {
                 debug!("User {} tried to log in, but is disabled", user.username);
-                return Err(WebError::Authorization("User is disabled".to_string()));
+                return Err(WebError::Authorization("User is disabled".into()));
             }
             user
         }
@@ -264,17 +261,15 @@ pub(crate) async fn auth_callback(
                         "Given name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
                     let given_name = token_claims
                         .given_name()
-                        .ok_or(WebError::BadRequest(given_name_error.to_string()))?
                         // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
-                        .get(None)
-                        .ok_or(WebError::BadRequest(given_name_error.to_string()))?;
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(given_name_error.into()))?;
                     let family_name_error =
                         "Family name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
                     let family_name = token_claims
                         .family_name()
-                        .ok_or(WebError::BadRequest(family_name_error.to_string()))?
-                        .get(None)
-                        .ok_or(WebError::BadRequest(family_name_error.to_string()))?;
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(family_name_error.into()))?;
                     let phone = token_claims.phone_number();
 
                     let mut user = User::new(
@@ -289,7 +284,7 @@ pub(crate) async fn auth_callback(
                     user.save(&appstate.pool).await?
                 } else {
                     warn!(
-                        "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. They should perform an enrollment first.",
+                        "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. An enrollment should performed.",
                         email.as_str()
                     );
                     return Err(WebError::Authorization(
@@ -376,33 +371,26 @@ pub(crate) async fn auth_callback(
         )
         .await?;
 
-        if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-            debug!("Found openid session cookie, returning the redirect URL stored in the cookie.");
-            let redirect_url = openid_cookie.value().to_string();
-            Ok((
-                cookies,
-                private_cookies.remove(openid_cookie),
-                ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(redirect_url)
-                    }),
-                    status: StatusCode::OK,
-                },
-            ))
+        let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
+            debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
+            let url = openid_cookie.value().to_string();
+            private_cookies = private_cookies.remove(openid_cookie);
+            Some(url)
         } else {
             debug!("No OpenID session found, proceeding with login to defguard.");
-            Ok((
-                cookies,
-                private_cookies,
-                ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: StatusCode::OK,
-                },
-            ))
-        }
+            None
+        };
+
+        Ok((
+            cookies,
+            private_cookies,
+            ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url
+                }),
+                status: StatusCode::OK,
+            },
+        ))
     }
 }

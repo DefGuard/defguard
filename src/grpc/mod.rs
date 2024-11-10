@@ -571,6 +571,7 @@ pub async fn run_grpc_bidi_stream(
                                 }))
                             }
                         }
+                        Some(core_request::Payload::AuthCallback(request)) => None,
                         // Reply without payload.
                         None => None,
                     };
