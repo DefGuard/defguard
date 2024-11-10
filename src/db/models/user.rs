@@ -136,7 +136,7 @@ impl<I> User<I> {
         self.password_hash = hash_password(password).ok();
     }
 
-    pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
+    pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
         match &self.password_hash {
             Some(hash) => {
                 let parsed_hash = PasswordHash::new(hash)?;
@@ -150,12 +150,12 @@ impl<I> User<I> {
     }
 
     #[must_use]
-    pub fn has_password(&self) -> bool {
+    pub(crate) fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
     #[must_use]
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
 
@@ -163,7 +163,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub fn is_enrolled(&self) -> bool {
+    pub(crate) fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some()
     }
 }

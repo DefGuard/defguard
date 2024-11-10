@@ -17,6 +17,7 @@ use reqwest::Url;
 use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
+use uaparser::Parser;
 
 const COOKIE_MAX_AGE: Duration = Duration::days(1);
 static CSRF_COOKIE_NAME: &str = "csrf";
@@ -32,7 +33,7 @@ use crate::{
         user::{check_username, prune_username},
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
+    headers::{check_new_device_login, get_user_agent_device},
     server_config,
 };
 
@@ -137,7 +138,7 @@ pub(crate) async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
-    user_agent: Option<TypedHeader<UserAgent>>,
+    user_agent: TypedHeader<UserAgent>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -288,7 +289,7 @@ pub(crate) async fn auth_callback(
                         email.as_str()
                     );
                     return Err(WebError::Authorization(
-                            "User not found. The user needs to be created first in order to login using OIDC.".to_string(),
+                            "User not found. The user needs to be created in order to login using OIDC.".into(),
                         ));
                 }
             }
@@ -300,18 +301,14 @@ pub(crate) async fn auth_callback(
 
     // Handle creating the session
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    let user_agent_string = match user_agent {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    };
-    let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
-    let device_info = agent.clone().map(|v| get_user_agent_device(&v));
+    let agent = appstate.user_agent_parser.parse(user_agent.as_str());
+    let device_info = get_user_agent_device(&agent);
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
         user.id,
         SessionState::PasswordVerified,
         ip_address.clone(),
-        device_info,
+        Some(device_info),
     );
     session.save(&appstate.pool).await?;
 
@@ -328,6 +325,7 @@ pub(crate) async fn auth_callback(
         .same_site(SameSite::Lax)
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
+
     let login_event_type = "AUTHENTICATION".to_string();
 
     info!("Authenticated user {username} with external OpenID provider.");
@@ -377,7 +375,7 @@ pub(crate) async fn auth_callback(
             private_cookies = private_cookies.remove(openid_cookie);
             Some(url)
         } else {
-            debug!("No OpenID session found, proceeding with login to defguard.");
+            debug!("No OpenID session found, proceeding with login to Defguard.");
             None
         };
 

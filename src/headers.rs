@@ -69,18 +69,7 @@ pub(crate) fn get_user_agent_device(user_agent_client: &Client) -> String {
     format!("{device_type}, OS: {device_os}")
 }
 
-#[must_use]
-pub(crate) fn get_device_login_event(
-    user_id: Id,
-    ip_address: String,
-    event_type: String,
-    user_agent_client: Option<Client>,
-) -> Option<DeviceLoginEvent> {
-    user_agent_client
-        .map(|client| get_user_agent_device_login_data(user_id, ip_address, event_type, &client))
-}
-
-pub(crate) fn get_user_agent_device_login_data(
+fn get_user_agent_device_login_data(
     user_id: Id,
     ip_address: String,
     event_type: String,
@@ -114,22 +103,22 @@ pub(crate) async fn check_new_device_login(
     user: &User<Id>,
     ip_address: String,
     event_type: String,
-    agent: Option<Client<'_>>,
+    agent: Client<'_>,
 ) -> Result<(), TemplateError> {
-    if let Some(device_login_event) = get_device_login_event(user.id, ip_address, event_type, agent)
+    let device_login_event =
+        get_user_agent_device_login_data(user.id, ip_address, event_type, &agent);
+
+    if let Ok(Some(created_device_login_event)) = device_login_event
+        .check_if_device_already_logged_in(pool)
+        .await
     {
-        if let Ok(Some(created_device_login_event)) = device_login_event
-            .check_if_device_already_logged_in(pool)
-            .await
-        {
-            send_new_device_login_email(
-                &user.email,
-                mail_tx,
-                session,
-                created_device_login_event.created,
-            )
-            .await?;
-        }
+        send_new_device_login_email(
+            &user.email,
+            mail_tx,
+            session,
+            created_device_login_event.created,
+        )
+        .await?;
     }
 
     Ok(())

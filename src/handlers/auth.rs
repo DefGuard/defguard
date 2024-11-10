@@ -14,6 +14,7 @@ use axum_extra::{
 use serde_json::json;
 use sqlx::types::Uuid;
 use time::Duration;
+use uaparser::Parser;
 use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
@@ -35,7 +36,7 @@ use crate::{
         },
         SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
+    headers::{check_new_device_login, get_user_agent_device},
     ldap::utils::user_from_ldap,
     server_config,
 };
@@ -43,10 +44,10 @@ use crate::{
 /// For successful login, return:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
-pub async fn authenticate(
+pub(crate) async fn authenticate(
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
-    user_agent: Option<TypedHeader<UserAgent>>,
+    user_agent: TypedHeader<UserAgent>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -116,12 +117,10 @@ pub async fn authenticate(
     };
 
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    let user_agent_string = match user_agent {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    };
-    let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
-    let device_info = agent.clone().map(|v| get_user_agent_device(&v));
+    error!("USER AGENT {}", user_agent.as_str());
+    let agent = appstate.user_agent_parser.parse(user_agent.as_str());
+    let device_info = get_user_agent_device(&agent);
+    error!("DEVICE INFO {}", user_agent.as_str());
 
     debug!("Cleaning up expired sessions...");
     Session::delete_expired(&appstate.pool).await?;
@@ -132,7 +131,7 @@ pub async fn authenticate(
         user.id,
         SessionState::PasswordVerified,
         ip_address.clone(),
-        device_info,
+        Some(device_info),
     );
     session.save(&appstate.pool).await?;
     debug!("New session created for user {username}");

@@ -4,7 +4,7 @@ use axum::{serve, Router};
 use bytes::Bytes;
 use reqwest::{
     cookie::{Cookie, Jar},
-    header::{HeaderMap, HeaderName},
+    header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
     Body, Client, StatusCode, Url,
 };
@@ -35,7 +35,11 @@ impl TestClient {
 
         let jar = Arc::new(Jar::default());
 
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+
         let client = Client::builder()
+            .default_headers(headers)
             .redirect(Policy::none())
             .cookie_provider(jar.clone())
             .build()

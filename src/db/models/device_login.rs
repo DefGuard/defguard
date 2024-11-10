@@ -72,7 +72,7 @@ impl DeviceLoginEvent {
         }
     }
 
-    pub async fn find_device_login_event(
+    pub(crate) async fn find_device_login_event(
         &self,
         pool: &PgPool,
     ) -> Result<Option<DeviceLoginEvent<Id>>, SqlxError> {
