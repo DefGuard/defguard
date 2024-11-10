@@ -541,24 +541,34 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
-                        Some(core_request::Payload::AuthInfo(())) => {
-                            if let Ok(client) = make_oidc_client(&pool).await {
-                                let (url, csrf_token, nonce) = client
-                                    .authorize_url(
-                                        AuthenticationFlow::<CoreResponseType>::Implicit(false),
-                                        CsrfToken::new_random,
-                                        Nonce::new_random,
-                                    )
-                                    .add_scope(Scope::new("email".to_string()))
-                                    .add_scope(Scope::new("profile".to_string()))
-                                    .url();
-                                Some(core_response::Payload::AuthInfo(AuthInfoResponse {
-                                    url: url.into(),
-                                    csrf_token: csrf_token.secret().to_owned(),
-                                    nonce: nonce.secret().to_owned(),
-                                }))
+                        Some(core_request::Payload::AuthInfo(request)) => {
+                            if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
+                                if let Ok(client) = make_oidc_client(&pool, redirect_url).await {
+                                    let (url, csrf_token, nonce) = client
+                                        .authorize_url(
+                                            AuthenticationFlow::<CoreResponseType>::Implicit(false),
+                                            CsrfToken::new_random,
+                                            Nonce::new_random,
+                                        )
+                                        .add_scope(Scope::new("email".to_string()))
+                                        .add_scope(Scope::new("profile".to_string()))
+                                        .url();
+                                    Some(core_response::Payload::AuthInfo(AuthInfoResponse {
+                                        url: url.into(),
+                                        csrf_token: csrf_token.secret().to_owned(),
+                                        nonce: nonce.secret().to_owned(),
+                                    }))
+                                } else {
+                                    Some(core_response::Payload::CoreError(CoreError {
+                                        status_code: Code::Internal as i32,
+                                        message: "failed to build OIDC client".into(),
+                                    }))
+                                }
                             } else {
-                                Some(core_response::Payload::Empty(()))
+                                Some(core_response::Payload::CoreError(CoreError {
+                                    status_code: Code::Internal as i32,
+                                    message: "invalid redirect URL".into(),
+                                }))
                             }
                         }
                         // Reply without payload.

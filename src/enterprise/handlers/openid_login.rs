@@ -13,6 +13,7 @@ use openidconnect::{
     reqwest::async_http_client,
     AuthenticationFlow, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
 };
+use reqwest::Url;
 use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
@@ -52,7 +53,10 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
     Ok(provider_metadata)
 }
 
-pub(crate) async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebError> {
+pub(crate) async fn make_oidc_client(
+    pool: &PgPool,
+    redirect_url: Url,
+) -> Result<CoreClient, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
             "OpenID provider not set".to_string(),
@@ -62,30 +66,20 @@ pub(crate) async fn make_oidc_client(pool: &PgPool) -> Result<CoreClient, WebErr
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id);
     let client_secret = ClientSecret::new(provider.client_secret);
-    let config = server_config();
-    let url = format!("{}auth/callback", config.url);
-    let redirect_url = match RedirectUrl::new(url) {
-        Ok(url) => url,
-        Err(err) => {
-            error!("Failed to create redirect URL: {err:?}");
-            return Err(WebError::Authorization(
-                "Failed to create redirect URL".to_string(),
-            ));
-        }
-    };
 
     Ok(
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(redirect_url),
+            .set_redirect_uri(RedirectUrl::from_url(redirect_url)),
     )
 }
 
-pub async fn get_auth_info(
+pub(crate) async fn get_auth_info(
     _license: LicenseInfo,
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
-    let client = make_oidc_client(&appstate.pool).await?;
+    let config = server_config();
+    let client = make_oidc_client(&appstate.pool, config.callback_url()).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
@@ -94,11 +88,10 @@ pub async fn get_auth_info(
             CsrfToken::new_random,
             Nonce::new_random,
         )
-        .add_scope(Scope::new("email".to_string()))
-        .add_scope(Scope::new("profile".to_string()))
+        .add_scope(Scope::new("email".into()))
+        .add_scope(Scope::new("profile".into()))
         .url();
 
-    let config = server_config();
     let cookie_domain = config
         .cookie_domain
         .as_ref()
@@ -140,7 +133,7 @@ pub struct AuthenticationResponse {
     state: CsrfToken,
 }
 
-pub async fn auth_callback(
+pub(crate) async fn auth_callback(
     _license: LicenseInfo,
     cookies: CookieJar,
     private_cookies: PrivateCookieJar,
@@ -173,7 +166,8 @@ pub async fn auth_callback(
     };
 
     // Get the ID token and verify it against the nonce value received in the callback
-    let client = make_oidc_client(&appstate.pool).await?;
+    let config = server_config();
+    let client = make_oidc_client(&appstate.pool, config.callback_url()).await?;
     let nonce = Nonce::new(cookie_nonce);
     let token_verifier = client.id_token_verifier();
     let id_token = payload.id_token;
@@ -325,7 +319,7 @@ pub async fn auth_callback(
         device_info,
     );
     session.save(&appstate.pool).await?;
-    let config = server_config();
+
     let max_age = Duration::seconds(config.auth_cookie_timeout.as_secs() as i64);
     let cookie_domain = config
         .cookie_domain
