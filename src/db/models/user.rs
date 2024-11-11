@@ -80,6 +80,7 @@ pub struct User<I = NoId> {
     pub is_active: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
+    // FIXME: must be unique
     pub openid_sub: Option<String>,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -635,9 +636,9 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE email = $1",
             email
         )
@@ -645,16 +646,17 @@ impl User<Id> {
         .await
     }
 
+    // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE openid_sub = $1",
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
         .fetch_optional(executor)

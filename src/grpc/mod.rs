@@ -6,11 +6,15 @@ use std::{
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use openidconnect::{core::CoreResponseType, AuthenticationFlow, CsrfToken, Nonce, Scope};
+use openidconnect::{
+    core::{CoreIdToken, CoreResponseType},
+    AuthenticationFlow, CsrfToken, Nonce, Scope,
+};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
@@ -50,7 +54,7 @@ use crate::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         grpc::polling::PollingServer,
-        handlers::openid_login::make_oidc_client,
+        handlers::openid_login::{make_oidc_client, user_from_claims},
         license::{get_cached_license, validate_license},
     },
     handlers::mail::send_gateway_disconnected_email,
@@ -76,7 +80,10 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use proto::{core_request, proxy_client::ProxyClient, AuthInfoResponse, CoreError, CoreResponse};
+use proto::{
+    core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
+    CoreResponse,
+};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -565,7 +572,21 @@ pub async fn run_grpc_bidi_stream(
                                 }))
                             }
                         }
-                        Some(core_request::Payload::AuthCallback(request)) => None,
+                        Some(core_request::Payload::AuthCallback(request)) => {
+                            let id_token = CoreIdToken::from_str(&request.id_token).unwrap();
+                            let callback_url = Url::parse(&request.callback_url).unwrap();
+                            let _user = user_from_claims(
+                                &pool,
+                                Nonce::new(request.nonce),
+                                id_token,
+                                callback_url,
+                            )
+                            .await?;
+                            // FIXME: bogus
+                            Some(core_response::Payload::AuthCallback(AuthCallbackResponse {
+                                mfa_info: String::new(),
+                            }))
+                        }
                         // Reply without payload.
                         None => None,
                     };

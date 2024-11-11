@@ -349,7 +349,11 @@ pub async fn user_for_admin_or_self(
     username: &str,
 ) -> Result<User<Id>, WebError> {
     if session.user.username == username || session.is_admin {
-        debug!("The user meets one or both of these conditions: 1) the user from the current session has admin privileges, 2) the user performs this operation on themself.");
+        debug!(
+            "The user meets one or both of these conditions: \
+            1) the user from the current session has admin privileges, \
+            2) the user performs this operation on themself."
+        );
         if let Some(user) = User::find_by_username(pool, username).await? {
             debug!("User {} has been found in database.", user.username);
             Ok(user)

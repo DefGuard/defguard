@@ -25,7 +25,7 @@ static NONCE_COOKIE_NAME: &str = "nonce";
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{Settings, User},
+    db::{Id, Settings, User},
     enterprise::db::models::openid_provider::OpenIdProvider,
     error::WebError,
     handlers::{
@@ -53,10 +53,9 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
     Ok(provider_metadata)
 }
 
-pub(crate) async fn make_oidc_client(
-    pool: &PgPool,
-    redirect_url: Url,
-) -> Result<CoreClient, WebError> {
+/// Build OpenID Connect client.
+/// `url`: redirect/callback URL
+pub(crate) async fn make_oidc_client(pool: &PgPool, url: Url) -> Result<CoreClient, WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
             "OpenID provider not set".to_string(),
@@ -69,8 +68,153 @@ pub(crate) async fn make_oidc_client(
 
     Ok(
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(RedirectUrl::from_url(redirect_url)),
+            .set_redirect_uri(RedirectUrl::from_url(url)),
     )
+}
+
+/// Get or create `User` from OpenID claims.
+pub(crate) async fn user_from_claims(
+    pool: &PgPool,
+    nonce: Nonce,
+    id_token: CoreIdToken,
+    callback_url: Url,
+) -> Result<User<Id>, WebError> {
+    // Verify ID token against the nonce value received in the callback.
+    let client = make_oidc_client(pool, callback_url).await?;
+    let token_verifier = client.id_token_verifier();
+
+    // claims = user attributes
+    let token_claims = match id_token.claims(&token_verifier, &nonce) {
+        Ok(claims) => claims,
+        Err(error) => {
+            return Err(WebError::Authorization(format!(
+                "Failed to verify ID token, error: {error:?}",
+            )));
+        }
+    };
+
+    // Only email and username is required for user lookup and login
+    let email = token_claims.email().ok_or(WebError::BadRequest(
+        "Email not found in the information returned from provider. Make sure your provider is \
+        configured correctly and that you have granted the necessary permissions to retrieve \
+        such information."
+            .to_string(),
+    ))?;
+
+    // Try to get the username from the preferred_username claim.
+    // If it's not there, extract it from email.
+    let username = if let Some(username) = token_claims.preferred_username() {
+        debug!("Preferred username {username:?} found in the claims, extracting username from it.");
+        username
+    } else {
+        debug!("Preferred username not found in the claims, extracting from email address.");
+        // Extract the username from the email address
+        let username = email.split('@').next().ok_or(WebError::BadRequest(
+            "Failed to extract username from email address".to_string(),
+        ))?;
+        debug!("Username extracted from email ({email:?}): {username})");
+        username
+    };
+    let username = prune_username(username);
+    // Check if the username is valid just in case, not everything can be handled by the pruning.
+    check_username(&username)?;
+
+    // Get the *sub* claim from the token.
+    let sub = token_claims.subject().to_string();
+
+    // Handle logging in or creating user.
+    let settings = Settings::get_settings(pool).await?;
+    let user = match User::find_by_sub(pool, &sub)
+        .await
+        .map_err(|err| WebError::Authorization(err.to_string()))?
+    {
+        Some(user) => {
+            debug!(
+                "User {} is trying to log in using an OpenID provider.",
+                user.username
+            );
+            // Make sure the user is not disabled
+            if !user.is_active {
+                debug!("User {} tried to log in, but is disabled", user.username);
+                return Err(WebError::Authorization("User is disabled".into()));
+            }
+            user
+        }
+        None => {
+            if let Some(mut user) = User::find_by_email(pool, email).await? {
+                // User with the same email already exists, merge the accounts
+                info!(
+                    "User with email address {} is logging in through OpenID Connect for the \
+                    first time and we've found an existing account with the same email \
+                    address. Merging accounts.",
+                    user.email
+                );
+                user.openid_sub = Some(sub);
+                user.save(pool).await?;
+                user
+            } else {
+                // Check if the user should be created if they don't exist (default: true)
+                if !settings.openid_create_account {
+                    warn!(
+                        "User with email address {} is trying to log in through OpenID Connect \
+                        for the first time, but the account creation is disabled. An enrollment \
+                        should performed.",
+                        email.as_str()
+                    );
+                    return Err(WebError::Authorization(
+                        "User not found, but needs to be created in order to login using OIDC."
+                            .into(),
+                    ));
+                }
+
+                info!(
+                    "User {username} is logging in through OpenID Connect for the first time and \
+                    there is no account with the same email address ({}). Creating a new account.",
+                    email.as_str()
+                );
+                // Check if user with the same username already exists (usernames are unique).
+                if User::find_by_username(pool, &username).await?.is_some() {
+                    return Err(WebError::Authorization(format!(
+                        "User with username {username} already exists"
+                    )));
+                }
+
+                // Extract all necessary information from the token needed to create an account
+                let given_name_error =
+                    "Given name not found in the information returned from provider. Make sure \
+                    your provider is configured correctly and that you have granted the \
+                    necessary permissions to retrieve such information.";
+                let given_name = token_claims
+                    .given_name()
+                    // 'None' gets you the default value from a localized claim.
+                    //  Otherwise you would need to pass a locale.
+                    .and_then(|claim| claim.get(None))
+                    .ok_or(WebError::BadRequest(given_name_error.into()))?;
+                let family_name_error =
+                    "Family name not found in the information returned from provider. Make sure \
+                    your provider is configured correctly and that you have granted the \
+                    necessary permissions to retrieve such information.";
+                let family_name = token_claims
+                    .family_name()
+                    .and_then(|claim| claim.get(None))
+                    .ok_or(WebError::BadRequest(family_name_error.into()))?;
+                let phone = token_claims.phone_number();
+
+                let mut user = User::new(
+                    username.to_string(),
+                    None,
+                    family_name.to_string(),
+                    given_name.to_string(),
+                    email.to_string(),
+                    phone.map(|v| v.to_string()),
+                );
+                user.openid_sub = Some(sub);
+                user.save(pool).await?
+            }
+        }
+    };
+
+    Ok(user)
 }
 
 pub(crate) async fn get_auth_info(
@@ -162,136 +306,18 @@ pub(crate) async fn auth_callback(
         return Err(WebError::Authorization("CSRF token mismatch".into()));
     };
 
-    // Get the ID token and verify it against the nonce value received in the callback
-    let config = server_config();
-    let client = make_oidc_client(&appstate.pool, config.callback_url()).await?;
-    let nonce = Nonce::new(cookie_nonce);
-    let token_verifier = client.id_token_verifier();
-    let id_token = payload.id_token;
-
     private_cookies = private_cookies
         .remove(Cookie::from(NONCE_COOKIE_NAME))
         .remove(Cookie::from(CSRF_COOKIE_NAME));
 
-    // claims = user attributes
-    let token_claims = match id_token.claims(&token_verifier, &nonce) {
-        Ok(claims) => claims,
-        Err(error) => {
-            return Err(WebError::Authorization(format!(
-                "Failed to verify ID token, error: {error:?}",
-            )));
-        }
-    };
-
-    // Only email and username is required for user lookup and login
-    let email = token_claims.email().ok_or(WebError::BadRequest(
-        "Email not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.".to_string(),
-    ))?;
-
-    // Try to get the username from the preferred_username claim, if it's not there, extract it from the email
-    let username = if let Some(username) = token_claims.preferred_username() {
-        debug!("Preferred username {username:?} found in the claims, extracting username from it.");
-        username
-    } else {
-        debug!("Preferred username not found in the claims, extracting from email address.");
-        // Extract the username from the email address
-        let username = email.split('@').next().ok_or(WebError::BadRequest(
-            "Failed to extract username from email address".to_string(),
-        ))?;
-        debug!("Username extracted from email ({email:?}): {username})");
-        username
-    };
-    let username = prune_username(username);
-    // Check if the username is valid just in case, not everything can be handled by the pruning
-    check_username(&username)?;
-
-    // Get the sub claim from the token
-    let sub = token_claims.subject().to_string();
-
-    // Handle logging in or creating the user
-    let settings = Settings::get_settings(&appstate.pool).await?;
-    let user = match User::find_by_sub(&appstate.pool, &sub).await {
-        Ok(Some(user)) => {
-            debug!(
-                "User {} is trying to log in using an OpenID provider.",
-                user.username
-            );
-            // Make sure the user is not disabled
-            if !user.is_active {
-                debug!("User {} tried to log in, but is disabled", user.username);
-                return Err(WebError::Authorization("User is disabled".into()));
-            }
-            user
-        }
-        Ok(None) => {
-            if let Some(mut user) = User::find_by_email(&appstate.pool, email).await? {
-                // User with the same email already exists, merge the accounts
-                info!(
-                        "User with email address {} is logging in through OpenID Connect for the first time and we've found an existing account with the same email address. Merging accounts.",
-                        user.email
-                    );
-                user.openid_sub = Some(sub);
-                user.save(&appstate.pool).await?;
-                user
-            } else {
-                // Check if the user should be created if they don't exist (default: true)
-                if !settings.openid_create_account {
-                    warn!(
-                        "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. An enrollment should performed.",
-                        email.as_str()
-                    );
-                    return Err(WebError::Authorization(
-                            "User not found. The user needs to be created in order to login using OIDC.".into(),
-                        ));
-                }
-
-                info!(
-                        "User {username} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
-                        email.as_str()
-                    );
-                // Check if user with the same username already exists
-                // Usernames are unique
-                if User::find_by_username(&appstate.pool, &username)
-                    .await?
-                    .is_some()
-                {
-                    return Err(WebError::Authorization(format!(
-                        "User with username {username} already exists"
-                    )));
-                }
-
-                // Extract all necessary information from the token needed to create an account
-                let given_name_error =
-                        "Given name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
-                let given_name = token_claims
-                    .given_name()
-                    // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
-                    .and_then(|claim| claim.get(None))
-                    .ok_or(WebError::BadRequest(given_name_error.into()))?;
-                let family_name_error =
-                        "Family name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
-                let family_name = token_claims
-                    .family_name()
-                    .and_then(|claim| claim.get(None))
-                    .ok_or(WebError::BadRequest(family_name_error.into()))?;
-                let phone = token_claims.phone_number();
-
-                let mut user = User::new(
-                    username.to_string(),
-                    None,
-                    family_name.to_string(),
-                    given_name.to_string(),
-                    email.to_string(),
-                    phone.map(|v| v.to_string()),
-                );
-                user.openid_sub = Some(sub);
-                user.save(&appstate.pool).await?
-            }
-        }
-        Err(e) => {
-            return Err(WebError::Authorization(e.to_string()));
-        }
-    };
+    let config = server_config();
+    let user = user_from_claims(
+        &appstate.pool,
+        Nonce::new(cookie_nonce),
+        payload.id_token,
+        config.callback_url(),
+    )
+    .await?;
 
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
     let (session, user_info, mfa_info) = create_session(
