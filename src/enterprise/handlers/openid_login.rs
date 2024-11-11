@@ -17,7 +17,6 @@ use reqwest::Url;
 use serde_json::json;
 use sqlx::PgPool;
 use time::Duration;
-use uaparser::Parser;
 
 const COOKIE_MAX_AGE: Duration = Duration::days(1);
 static CSRF_COOKIE_NAME: &str = "csrf";
@@ -26,14 +25,14 @@ static NONCE_COOKIE_NAME: &str = "nonce";
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{MFAInfo, Session, SessionState, Settings, User, UserInfo},
+    db::{Settings, User},
     enterprise::db::models::openid_provider::OpenIdProvider,
     error::WebError,
     handlers::{
+        auth::create_session,
         user::{check_username, prune_username},
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
     server_config,
 };
 
@@ -192,11 +191,6 @@ pub(crate) async fn auth_callback(
     // Try to get the username from the preferred_username claim, if it's not there, extract it from the email
     let username = if let Some(username) = token_claims.preferred_username() {
         debug!("Preferred username {username:?} found in the claims, extracting username from it.");
-        let mut username: String = username.to_string();
-        username = prune_username(&username);
-        // Check if the username is valid just in case, not everything can be handled by the pruning
-        check_username(&username)?;
-        debug!("Username extracted from preferred_username: {}", username);
         username
     } else {
         debug!("Preferred username not found in the claims, extracting from email address.");
@@ -204,12 +198,12 @@ pub(crate) async fn auth_callback(
         let username = email.split('@').next().ok_or(WebError::BadRequest(
             "Failed to extract username from email address".to_string(),
         ))?;
-        let username = prune_username(username);
-        // Check if the username is valid just in case, not everything can be handled by the pruning
-        check_username(&username)?;
-        debug!("Username extracted from email ({:?}): {})", email, username);
+        debug!("Username extracted from email ({email:?}): {username})");
         username
     };
+    let username = prune_username(username);
+    // Check if the username is valid just in case, not everything can be handled by the pruning
+    check_username(&username)?;
 
     // Get the sub claim from the token
     let sub = token_claims.subject().to_string();
@@ -241,49 +235,7 @@ pub(crate) async fn auth_callback(
                 user
             } else {
                 // Check if the user should be created if they don't exist (default: true)
-                if settings.openid_create_account {
-                    info!(
-                        "User {} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
-                        username, email.as_str()
-                    );
-                    // Check if user with the same username already exists
-                    // Usernames are unique
-                    if User::find_by_username(&appstate.pool, &username)
-                        .await?
-                        .is_some()
-                    {
-                        return Err(WebError::Authorization(format!(
-                            "User with username {username} already exists"
-                        )));
-                    }
-
-                    // Extract all necessary information from the token needed to create an account
-                    let given_name_error =
-                        "Given name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
-                    let given_name = token_claims
-                        .given_name()
-                        // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
-                        .and_then(|claim| claim.get(None))
-                        .ok_or(WebError::BadRequest(given_name_error.into()))?;
-                    let family_name_error =
-                        "Family name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
-                    let family_name = token_claims
-                        .family_name()
-                        .and_then(|claim| claim.get(None))
-                        .ok_or(WebError::BadRequest(family_name_error.into()))?;
-                    let phone = token_claims.phone_number();
-
-                    let mut user = User::new(
-                        username.to_string(),
-                        None,
-                        family_name.to_string(),
-                        given_name.to_string(),
-                        email.to_string(),
-                        phone.map(|v| v.to_string()),
-                    );
-                    user.openid_sub = Some(sub);
-                    user.save(&appstate.pool).await?
-                } else {
+                if !settings.openid_create_account {
                     warn!(
                         "User with email address {} is trying to log in through OpenID Connect for the first time, but the account creation is disabled. An enrollment should performed.",
                         email.as_str()
@@ -292,6 +244,48 @@ pub(crate) async fn auth_callback(
                             "User not found. The user needs to be created in order to login using OIDC.".into(),
                         ));
                 }
+
+                info!(
+                        "User {username} is logging in through OpenID Connect for the first time and there is no account with the same email address ({}). Creating a new account.",
+                        email.as_str()
+                    );
+                // Check if user with the same username already exists
+                // Usernames are unique
+                if User::find_by_username(&appstate.pool, &username)
+                    .await?
+                    .is_some()
+                {
+                    return Err(WebError::Authorization(format!(
+                        "User with username {username} already exists"
+                    )));
+                }
+
+                // Extract all necessary information from the token needed to create an account
+                let given_name_error =
+                        "Given name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
+                let given_name = token_claims
+                    .given_name()
+                    // 'None' gets you the default value from a localized claim. Otherwise you would need to pass a locale.
+                    .and_then(|claim| claim.get(None))
+                    .ok_or(WebError::BadRequest(given_name_error.into()))?;
+                let family_name_error =
+                        "Family name not found in the information returned from provider. Make sure your provider is configured correctly and that you have granted the necessary permissions to retrieve such information.";
+                let family_name = token_claims
+                    .family_name()
+                    .and_then(|claim| claim.get(None))
+                    .ok_or(WebError::BadRequest(family_name_error.into()))?;
+                let phone = token_claims.phone_number();
+
+                let mut user = User::new(
+                    username.to_string(),
+                    None,
+                    family_name.to_string(),
+                    given_name.to_string(),
+                    email.to_string(),
+                    phone.map(|v| v.to_string()),
+                );
+                user.openid_sub = Some(sub);
+                user.save(&appstate.pool).await?
             }
         }
         Err(e) => {
@@ -299,27 +293,22 @@ pub(crate) async fn auth_callback(
         }
     };
 
-    // Handle creating the session
-    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    let agent = USER_AGENT_PARSER.parse(user_agent.as_str());
-    let device_info = get_user_agent_device(&agent);
-    Session::delete_expired(&appstate.pool).await?;
-    let session = Session::new(
-        user.id,
-        SessionState::PasswordVerified,
-        ip_address.clone(),
-        Some(device_info),
-    );
-    session.save(&appstate.pool).await?;
-    // TODO: change to this:
-    // create_session(&appstate.pool, ip_address, user_agent.as_str(), &user)?;
+    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
+    let (session, user_info, mfa_info) = create_session(
+        &appstate.pool,
+        &appstate.mail_tx,
+        ip_address,
+        user_agent.as_str(),
+        &user,
+    )
+    .await?;
 
     let max_age = Duration::seconds(config.auth_cookie_timeout.as_secs() as i64);
     let cookie_domain = config
         .cookie_domain
         .as_ref()
         .expect("Cookie domain not found");
-    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
+    let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id))
         .domain(cookie_domain)
         .path("/")
         .http_only(true)
@@ -328,49 +317,18 @@ pub(crate) async fn auth_callback(
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
 
-    let login_event_type = "AUTHENTICATION".to_string();
+    if let Some(mfa_info) = mfa_info {
+        return Ok((
+            cookies,
+            private_cookies,
+            ApiResponse {
+                json: json!(mfa_info),
+                status: StatusCode::CREATED,
+            },
+        ));
+    }
 
-    info!("Authenticated user {username} with external OpenID provider.");
-    if user.mfa_enabled {
-        debug!("User {username} has MFA enabled, sending MFA info for further authentication.");
-        if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
-            check_new_device_login(
-                &appstate.pool,
-                &appstate.mail_tx,
-                &session,
-                &user,
-                ip_address,
-                login_event_type,
-                agent,
-            )
-            .await?;
-            Ok((
-                cookies,
-                private_cookies,
-                ApiResponse {
-                    json: json!(mfa_info),
-                    status: StatusCode::CREATED,
-                },
-            ))
-        } else {
-            error!("Couldn't fetch MFA info for user {username} with MFA enabled");
-            Err(WebError::DbError("MFA info read error".into()))
-        }
-    } else {
-        debug!("User {username} has MFA disabled, returning user info for login.");
-        let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-
-        check_new_device_login(
-            &appstate.pool,
-            &appstate.mail_tx,
-            &session,
-            &user,
-            ip_address,
-            login_event_type,
-            agent,
-        )
-        .await?;
-
+    if let Some(user_info) = user_info {
         let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
             let url = openid_cookie.value().to_string();
@@ -392,5 +350,7 @@ pub(crate) async fn auth_callback(
                 status: StatusCode::OK,
             },
         ))
+    } else {
+        unimplemented!("Impossible to get here");
     }
 }
