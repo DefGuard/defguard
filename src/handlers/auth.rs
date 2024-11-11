@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use axum::{
     extract::{Json, State},
     http::StatusCode,
@@ -12,7 +14,7 @@ use axum_extra::{
     TypedHeader,
 };
 use serde_json::json;
-use sqlx::types::Uuid;
+use sqlx::{types::Uuid, PgPool};
 use time::Duration;
 use uaparser::Parser;
 use webauthn_rs::prelude::PublicKeyCredential;
@@ -28,7 +30,9 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{
+        Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn,
+    },
     error::WebError,
     handlers::{
         mail::{
@@ -36,10 +40,31 @@ use crate::{
         },
         SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device},
+    headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
     ldap::utils::user_from_ldap,
     server_config,
 };
+
+/// Common functionality for `authenticate()` and `auth_callback()`.
+pub(crate) async fn create_session(
+    pool: &PgPool,
+    ip_address: IpAddr,
+    user_agent: &str,
+    user: &User<Id>,
+) -> Result<Session, WebError> {
+    let agent = USER_AGENT_PARSER.parse(user_agent);
+    let device_info = get_user_agent_device(&agent);
+    Session::delete_expired(pool).await?;
+    let session = Session::new(
+        user.id,
+        SessionState::PasswordVerified,
+        ip_address.to_string(),
+        Some(device_info),
+    );
+    session.save(pool).await?;
+
+    Ok(session)
+}
 
 /// For successful login, return:
 /// * 200 with MFA disabled
@@ -117,10 +142,8 @@ pub(crate) async fn authenticate(
     };
 
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    error!("USER AGENT {}", user_agent.as_str());
-    let agent = appstate.user_agent_parser.parse(user_agent.as_str());
+    let agent = USER_AGENT_PARSER.parse(user_agent.as_str());
     let device_info = get_user_agent_device(&agent);
-    error!("DEVICE INFO {}", user_agent.as_str());
 
     debug!("Cleaning up expired sessions...");
     Session::delete_expired(&appstate.pool).await?;

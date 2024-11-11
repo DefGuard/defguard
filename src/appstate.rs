@@ -13,7 +13,6 @@ use tokio::{
     },
     task::spawn,
 };
-use uaparser::UserAgentParser;
 use webauthn_rs::prelude::*;
 
 use crate::{
@@ -30,7 +29,6 @@ pub struct AppState {
     wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
-    pub user_agent_parser: Arc<UserAgentParser>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
 }
@@ -103,7 +101,6 @@ impl AppState {
         rx: UnboundedReceiver<AppEvent>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        user_agent_parser: Arc<UserAgentParser>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
@@ -131,7 +128,6 @@ impl AppState {
             wireguard_tx,
             mail_tx,
             webauthn,
-            user_agent_parser,
             failed_logins,
             key,
         }

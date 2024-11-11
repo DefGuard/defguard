@@ -333,8 +333,8 @@ impl From<WebHookData> for WebHook {
     }
 }
 
-/// Return type needed to know if user came from openid flow
-/// with optional url to redirect him later if yes
+/// Return type needed for knowing if a user came from OpenID flow.
+/// If so, fill in the optional URL field to redirect him later.
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
     pub user: UserInfo,

@@ -33,7 +33,7 @@ use crate::{
         user::{check_username, prune_username},
         ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device},
+    headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
     server_config,
 };
 
@@ -301,7 +301,7 @@ pub(crate) async fn auth_callback(
 
     // Handle creating the session
     let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    let agent = appstate.user_agent_parser.parse(user_agent.as_str());
+    let agent = USER_AGENT_PARSER.parse(user_agent.as_str());
     let device_info = get_user_agent_device(&agent);
     Session::delete_expired(&appstate.pool).await?;
     let session = Session::new(
@@ -311,6 +311,8 @@ pub(crate) async fn auth_callback(
         Some(device_info),
     );
     session.save(&appstate.pool).await?;
+    // TODO: change to this:
+    // create_session(&appstate.pool, ip_address, user_agent.as_str(), &user)?;
 
     let max_age = Duration::seconds(config.auth_cookie_timeout.as_secs() as i64);
     let cookie_domain = config

@@ -28,7 +28,6 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
-use uaparser::UserAgentParser;
 use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
@@ -353,17 +352,12 @@ pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
     // TODO: merge the two
-    let enrollment_server = EnrollmentServer::new(
-        pool.clone(),
-        wireguard_tx.clone(),
-        mail_tx.clone(),
-        user_agent_parser,
-    );
+    let enrollment_server =
+        EnrollmentServer::new(pool.clone(), wireguard_tx.clone(), mail_tx.clone());
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
     let polling_server = PollingServer::new(pool.clone());

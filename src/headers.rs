@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, sync::Arc};
+use std::{borrow::Borrow, sync::LazyLock};
 
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
@@ -11,30 +11,15 @@ use crate::{
     templates::TemplateError,
 };
 
-#[must_use]
-pub fn create_user_agent_parser() -> Arc<UserAgentParser> {
+pub(crate) static USER_AGENT_PARSER: LazyLock<UserAgentParser> = LazyLock::new(|| {
     let regexes = include_bytes!("../user_agent_header_regexes.yaml");
-    Arc::new(UserAgentParser::from_bytes(regexes).expect("Parser creation failed"))
-}
+    UserAgentParser::from_bytes(regexes).expect("Parser creation failed")
+});
 
 #[must_use]
-pub(crate) fn parse_user_agent<'a>(
-    user_parser: &UserAgentParser,
-    user_agent: &'a str,
-) -> Option<Client<'a>> {
-    if user_agent.is_empty() {
-        None
-    } else {
-        Some(user_parser.parse(user_agent))
-    }
-}
-
-#[must_use]
-pub(crate) fn get_device_info(
-    user_agent_parser: &UserAgentParser,
-    user_agent: &str,
-) -> Option<String> {
-    parse_user_agent(user_agent_parser, user_agent).map(|v| get_user_agent_device(&v))
+pub(crate) fn get_device_info(user_agent: &str) -> String {
+    let client = USER_AGENT_PARSER.parse(user_agent);
+    get_user_agent_device(&client)
 }
 
 #[must_use]

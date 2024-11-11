@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
 use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
-use uaparser::UserAgentParser;
 
 use super::{
     proto::{
@@ -37,7 +34,6 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
     ldap_feature_active: bool,
 }
 
@@ -47,7 +43,6 @@ impl EnrollmentServer {
         pool: PgPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        user_agent_parser: Arc<UserAgentParser>,
     ) -> Self {
         // FIXME: check if LDAP feature is enabled
         let ldap_feature_active = true;
@@ -55,7 +50,6 @@ impl EnrollmentServer {
             pool,
             wireguard_tx,
             mail_tx,
-            user_agent_parser,
             ldap_feature_active,
         }
     }
@@ -257,12 +251,12 @@ impl EnrollmentServer {
         if let Some(info) = req_device_info {
             ip_address = info.ip_address.unwrap_or_default();
             let user_agent = info.user_agent.unwrap_or_default();
-            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+            device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         // check if password is strong enough
         debug!("Verifying password strength for user activation process.");
@@ -399,12 +393,12 @@ impl EnrollmentServer {
         if let Some(info) = req_device_info {
             ip_address = info.ip_address.unwrap_or_default();
             let user_agent = info.user_agent.unwrap_or_default();
-            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+            device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         debug!(
             "Validating pubkey {} for device creation process for user {}({:?})",
