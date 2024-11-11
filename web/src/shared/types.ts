@@ -884,6 +884,7 @@ export type EnterpriseStatus = {
   enabled: boolean;
   // If there is no license, there is no license info
   license_info?: LicenseInfo;
+  requires_license: boolean;
 };
 
 export interface Webhook {
