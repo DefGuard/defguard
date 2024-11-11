@@ -152,7 +152,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - a set of custom and beautiful components for the layout
   - Responsive Web Design (supporting mobile phones, tablets, etc..)
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
-* **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
+* **Checked by professional security researchers** (see [comprehensive security report]([https://defguard.net/images/decap/isec-defguard.pdf](https://defguard.net/pdf/isec-defguard.pdf)))
 * End2End tests
 
 ## Documentation
