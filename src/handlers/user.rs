@@ -22,6 +22,7 @@ use crate::{
         AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
         UserInfo, Wallet, WebAuthn, WireguardNetwork,
     },
+    enterprise::limits::update_counts,
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     mail::Mail,
@@ -336,6 +337,7 @@ pub async fn add_user(
     )
     .save(&appstate.pool)
     .await?;
+    update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
         let _result = ldap_add_user(&appstate.pool, &user, &password).await;
@@ -734,6 +736,7 @@ pub async fn delete_user(
         let _result = ldap_delete_user(&mut *transaction, &username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
+        update_counts(&appstate.pool).await?;
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())

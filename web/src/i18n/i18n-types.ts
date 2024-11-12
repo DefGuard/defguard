@@ -2645,6 +2645,10 @@ type RootTranslation = {
 				 * N​o​ ​l​i​c​e​n​s​e
 				 */
 				noLicense: string
+				/**
+				 * T​h​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​n​o​t​ ​r​e​q​u​i​r​e​d​ ​f​o​r​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s​ ​t​o​ ​w​o​r​k​ ​a​s​ ​n​o​ ​l​i​m​i​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​e​x​c​e​e​d​e​d​.
+				 */
+				licenseNotRequired: string
 				types: {
 					subscription: {
 						/**
@@ -6895,6 +6899,10 @@ export type TranslationFunctions = {
 				 * No license
 				 */
 				noLicense: () => LocalizedString
+				/**
+				 * The license is not required for enterprise features to work as no limits have been exceeded.
+				 */
+				licenseNotRequired: () => LocalizedString
 				types: {
 					subscription: {
 						/**

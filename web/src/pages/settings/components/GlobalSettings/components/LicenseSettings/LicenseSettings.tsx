@@ -187,7 +187,14 @@ export const LicenseSettings = () => {
                 </div>
               </div>
             ) : (
-              <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
+              <>
+                <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
+                {!enterpriseStatus?.needs_license && (
+                  <p id="license-not-required">
+                    {LL.settingsPage.license.licenseInfo.licenseNotRequired()}
+                  </p>
+                )}
+              </>
             )}
           </ExpandableCard>
         </div>

@@ -1,6 +1,7 @@
 use sqlx::{error::Error as SqlxError, query, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
+#[derive(Debug)]
 struct Counts {
     user: i64,
     device: i64,
@@ -25,7 +26,10 @@ fn get_counts() -> RwLockReadGuard<'static, Counts> {
         .expect("Failed to acquire lock on the enterprise limit counts mutex.")
 }
 
+/// Update the counts of users, devices, and wireguard networks stored in the memory.
+// TODO: Use it with database triggers when they are implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
+    debug!("Updating device, user, and wireguard network counts.");
     let counts = query!(
         r#"
         select
@@ -37,11 +41,28 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     .fetch_one(pool)
     .await?;
 
+    let (user, device, wireguard_network) = if counts.user_count.is_none()
+        || counts.device_count.is_none()
+        || counts.wireguard_network_count.is_none()
+    {
+        return Err(SqlxError::RowNotFound);
+    } else {
+        (
+            counts.user_count.unwrap(),
+            counts.device_count.unwrap(),
+            counts.wireguard_network_count.unwrap(),
+        )
+    };
+
     set_counts(Counts {
-        user: counts.user_count.unwrap_or(0),
-        device: counts.device_count.unwrap_or(0),
-        wireguard_network: counts.wireguard_network_count.unwrap_or(0),
+        user,
+        device,
+        wireguard_network,
     });
+    debug!(
+        "Updated device, user, and wireguard network counts stored in memory, new counts: {:?}",
+        get_counts()
+    );
 
     Ok(())
 }

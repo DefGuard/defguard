@@ -1077,6 +1077,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       licenseInfo: {
         title: 'Informacje o licencji',
         noLicense: 'Brak licencji',
+        licenseNotRequired:
+          'Licencja nie jest wymagana do działania funkcji enterprise, ponieważ nie przekroczono żadnych limitów.',
         types: {
           subscription: {
             label: 'Subskrypcja',

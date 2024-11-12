@@ -1088,6 +1088,8 @@ const en: BaseTranslation = {
       licenseInfo: {
         title: 'License information',
         noLicense: 'No license',
+        licenseNotRequired:
+          'The license is not required for enterprise features to work as no limits have been exceeded.',
         types: {
           subscription: {
             label: 'Subscription',
