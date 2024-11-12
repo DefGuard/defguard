@@ -1,8 +1,7 @@
 <div align="center">
  <p align="center">
     <img src="docs/header.png" alt="defguard">
-    <h2>The Only Open Source&On-Premise Comprehensive Access Management</h2>
-    <h3>Account Lifecycle (Onboarding), Secure Remote Access Management (WireGuard 2FA/MFA), Identity and Access Management (OpenID Connect SSO)</h3>
+    <h2>Secure Remote Access Management (WireGuard 2FA/MFA), Identity and Access Management (OpenID Connect SSO), Account Lifecycle (Onboarding)</h2>
     <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
  </p>
 
@@ -152,7 +151,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - a set of custom and beautiful components for the layout
   - Responsive Web Design (supporting mobile phones, tablets, etc..)
   - [iOS Web App](https://www.macrumors.com/how-to/use-web-apps-iphone-ipad/)
-* **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/images/decap/isec-defguard.pdf))
+* **Checked by professional security researchers** (see [comprehensive security report](https://defguard.net/pdf/isec-defguard.pdf))
 * End2End tests
 
 ## Documentation
