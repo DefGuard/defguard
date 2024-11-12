@@ -20,7 +20,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import { validateIp, validateIpOrDomainList } from '../../../../shared/validators';
+import { validateIpOrDomainList, validateIPv4 } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 type FormInputs = ModifyNetworkRequest['network'];
@@ -91,7 +91,7 @@ export const WizardNetworkConfiguration = () => {
             if (!netmaskPresent) {
               return false;
             }
-            const ipValid = validateIp(value, true);
+            const ipValid = validateIPv4(value, true);
             if (ipValid) {
               const host = value.split('.')[3].split('/')[0];
               if (host === '0') return false;

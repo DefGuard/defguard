@@ -2102,6 +2102,10 @@ type RootTranslation = {
 			 */
 			address: string
 			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​ ​w​i​t​h​ ​a​ ​n​e​t​m​a​s​k​.
+			 */
+			addressNetmask: string
+			/**
 			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
 			 */
 			validPort: string
@@ -6356,6 +6360,10 @@ export type TranslationFunctions = {
 			 * Enter a valid address.
 			 */
 			address: () => LocalizedString
+			/**
+			 * Enter a valid address with a netmask.
+			 */
+			addressNetmask: () => LocalizedString
 			/**
 			 * Enter a valid port.
 			 */

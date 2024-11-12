@@ -71,6 +71,7 @@
     "get-text-width": "^1.0.3",
     "hex-rgb": "^5.0.0",
     "html-react-parser": "^5.1.1",
+    "ipaddr.js": "^2.2.0",
     "itertools": "^2.2.3",
     "lodash-es": "^4.17.21",
     "numbro": "^2.4.0",

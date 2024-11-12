@@ -856,6 +856,7 @@ const en: BaseTranslation = {
       portMax: 'Maximum port is 65535.',
       endpoint: 'Enter a valid endpoint.',
       address: 'Enter a valid address.',
+      addressNetmask: 'Enter a valid address with a netmask.',
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
