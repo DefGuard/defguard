@@ -129,7 +129,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
   - *defguard is not an official WireGuard® project, and WireGuard is a registered trademark of Jason A. Donenfeld.*
 * Identity & Account Management:
   - SSO based on OpenID Connect](https://openid.net/developers/how-connect-works/)
-  - Extenal SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
+  - External SSO: [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
   - [Multi-Factor/2FA](https://en.wikipedia.org/wiki/Multi-factor_authentication) Authentication:
    - [Time-based One-Time Password Algorithm](https://en.wikipedia.org/wiki/Time-based_one-time_password) (TOTP - e.g. Google Authenticator)
    - WebAuthn / FIDO2 - for hardware key authentication support (eg. YubiKey, FaceID, TouchID, ...)
