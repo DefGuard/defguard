@@ -2,7 +2,7 @@ use sqlx::{error::Error as SqlxError, query_as, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
 #[derive(Debug)]
-struct Counts {
+pub(crate) struct Counts {
     user: i64,
     device: i64,
     wireguard_network: i64,
@@ -17,13 +17,13 @@ static COUNTS: RwLock<Counts> = RwLock::new(Counts {
 fn set_counts(new_counts: Counts) {
     *COUNTS
         .write()
-        .expect("Failed to acquire lock on the enterprise limit counts mutex.") = new_counts;
+        .expect("Failed to acquire lock on the enterprise limit counts.") = new_counts;
 }
 
-fn get_counts() -> RwLockReadGuard<'static, Counts> {
+pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
     COUNTS
         .read()
-        .expect("Failed to acquire lock on the enterprise limit counts mutex.")
+        .expect("Failed to acquire lock on the enterprise limit counts.")
 }
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
@@ -32,10 +32,10 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let counts = query_as!(
         Counts,
-        "select \
-        (select count(*) from \"user\") as \"user!\", \
-        (select count(*) from device) as \"device!\", \
-        (select count(*) from wireguard_network) as \"wireguard_network!\"
+        "SELECT \
+        (SELECT count(*) FROM \"user\") \"user!\", \
+        (SELECT count(*) FROM device) \"device!\", \
+        (SELECT count(*) FROM wireguard_network) \"wireguard_network!\"
         "
     )
     .fetch_one(pool)
@@ -51,7 +51,7 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
 }
 
 impl Counts {
-    fn is_over_limit(&self) -> bool {
+    pub(crate) fn is_over_limit(&self) -> bool {
         self.user > 5 || self.device > 10 || self.wireguard_network > 1
     }
 }
