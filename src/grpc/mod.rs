@@ -80,10 +80,7 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use proto::{
-    core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
-    CoreResponse,
-};
+use proto::{core_request, proxy_client::ProxyClient, AuthInfoResponse, CoreError, CoreResponse};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -575,17 +572,24 @@ pub async fn run_grpc_bidi_stream(
                         Some(core_request::Payload::AuthCallback(request)) => {
                             let id_token = CoreIdToken::from_str(&request.id_token).unwrap();
                             let callback_url = Url::parse(&request.callback_url).unwrap();
-                            let _user = user_from_claims(
+                            match user_from_claims(
                                 &pool,
                                 Nonce::new(request.nonce),
                                 id_token,
                                 callback_url,
                             )
-                            .await?;
-                            // FIXME: bogus
-                            Some(core_response::Payload::AuthCallback(AuthCallbackResponse {
-                                mfa_info: String::new(),
-                            }))
+                            .await
+                            {
+                                Ok(_user) => Some(core_response::Payload::Empty(())),
+                                Err(err) => {
+                                    let message = format!("OpenID auth error {err}");
+                                    error!(message);
+                                    Some(core_response::Payload::CoreError(CoreError {
+                                        status_code: Code::Internal as i32,
+                                        message,
+                                    }))
+                                }
+                            }
                         }
                         // Reply without payload.
                         None => None,
