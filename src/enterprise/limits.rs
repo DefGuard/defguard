@@ -1,4 +1,4 @@
-use sqlx::{error::Error as SqlxError, query, PgPool};
+use sqlx::{error::Error as SqlxError, query_as, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
 #[derive(Debug)]
@@ -30,35 +30,18 @@ fn get_counts() -> RwLockReadGuard<'static, Counts> {
 // TODO: Use it with database triggers when they are implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
-    let counts = query!(
-        r#"
-        select
-            (select count(*) from "user") as user_count,
-            (select count(*) from device) as device_count,
-            (select count(*) from wireguard_network) as wireguard_network_count
-    "#
+    let counts = query_as!(
+        Counts,
+        "select \
+        (select count(*) from \"user\") as \"user!\", \
+        (select count(*) from device) as \"device!\", \
+        (select count(*) from wireguard_network) as \"wireguard_network!\"
+        "
     )
     .fetch_one(pool)
     .await?;
 
-    let (user, device, wireguard_network) = if counts.user_count.is_none()
-        || counts.device_count.is_none()
-        || counts.wireguard_network_count.is_none()
-    {
-        return Err(SqlxError::RowNotFound);
-    } else {
-        (
-            counts.user_count.unwrap(),
-            counts.device_count.unwrap(),
-            counts.wireguard_network_count.unwrap(),
-        )
-    };
-
-    set_counts(Counts {
-        user,
-        device,
-        wireguard_network,
-    });
+    set_counts(counts);
     debug!(
         "Updated device, user, and wireguard network counts stored in memory, new counts: {:?}",
         get_counts()
@@ -67,9 +50,10 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     Ok(())
 }
 
-pub(crate) fn is_over_limit() -> bool {
-    let counts = get_counts();
-    counts.user > 5 || counts.device > 10 || counts.wireguard_network > 1
+impl Counts {
+    fn is_over_limit(&self) -> bool {
+        self.user > 5 || self.device > 10 || self.wireguard_network > 1
+    }
 }
 
 #[cfg(test)]
@@ -102,7 +86,8 @@ mod test {
             wireguard_network: 1,
         };
         set_counts(counts);
-        assert!(is_over_limit());
+        let counts = get_counts();
+        assert!(counts.is_over_limit());
 
         // Device limit
         let counts = Counts {
@@ -111,7 +96,8 @@ mod test {
             wireguard_network: 1,
         };
         set_counts(counts);
-        assert!(is_over_limit());
+        let counts = get_counts();
+        assert!(counts.is_over_limit());
 
         // Wireguard network limit
         let counts = Counts {
@@ -120,7 +106,8 @@ mod test {
             wireguard_network: 2,
         };
         set_counts(counts);
-        assert!(is_over_limit());
+        let counts = get_counts();
+        assert!(counts.is_over_limit());
 
         // No limit
         let counts = Counts {
@@ -129,7 +116,8 @@ mod test {
             wireguard_network: 1,
         };
         set_counts(counts);
-        assert!(!is_over_limit());
+        let counts = get_counts();
+        assert!(!counts.is_over_limit());
 
         // All limits
         let counts = Counts {
@@ -138,6 +126,7 @@ mod test {
             wireguard_network: 2,
         };
         set_counts(counts);
-        assert!(is_over_limit());
+        let counts = get_counts();
+        assert!(counts.is_over_limit());
     }
 }
