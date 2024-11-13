@@ -1,5 +1,6 @@
 mod common;
 
+use common::exceed_enterprise_limits;
 use defguard::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -34,6 +35,8 @@ async fn test_only_enterprise_can_modify() {
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
 
     // unset the license
     let license = get_cached_license().clone();
@@ -74,6 +77,8 @@ async fn test_admin_devices_management_is_enforced() {
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
 
     // create network
     let response = client
@@ -151,6 +156,8 @@ async fn test_regular_user_device_management() {
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
 
     // create network
     let response = client

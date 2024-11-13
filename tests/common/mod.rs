@@ -9,12 +9,14 @@ use defguard::{
     db::{init_db, AppEvent, GatewayEvent, Id, User, UserDetails},
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
+    handlers::Auth,
     headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
 };
 use reqwest::{header::HeaderName, StatusCode};
 use secrecy::ExposeSecret;
+use serde_json::json;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
 use tokio::sync::{
     broadcast::{self, Receiver},
@@ -183,4 +185,42 @@ pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDeta
     let response = client.get(format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     response.json().await
+}
+
+pub async fn exceed_enterprise_limits(client: &TestClient) {
+    let auth = Auth::new("admin", "pass123");
+    client.post("/api/v1/auth").json(&auth).send().await;
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network1",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": [],
+            "mfa_enabled": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 180
+        }))
+        .send()
+        .await;
+
+    client
+        .post("/api/v1/network")
+        .json(&json!({
+            "name": "network2",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": [],
+            "mfa_enabled": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 180
+        }))
+        .send()
+        .await;
 }
