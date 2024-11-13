@@ -105,7 +105,6 @@
 
       & > .left,
       & > .right {
-        grid-row: 1;
         width: 100%;
         max-width: 750px;
         display: flex;
@@ -113,5 +112,10 @@
         row-gap: 48px;
       }
     }
+  }
+
+  .license-not-required-container {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }
