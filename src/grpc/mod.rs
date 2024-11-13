@@ -540,7 +540,13 @@ pub async fn run_grpc_bidi_stream(
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
+                            if validate_license(get_cached_license().as_ref()).is_err() {
+                                warn!("Enterprise license required");
+                                Some(core_response::Payload::CoreError(CoreError {
+                                    status_code: Code::FailedPrecondition as i32,
+                                    message: "no valid license".into(),
+                                }))
+                            } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
                                 if let Ok(client) = make_oidc_client(&pool, redirect_url).await {
                                     let (url, csrf_token, nonce) = client
                                         .authorize_url(
