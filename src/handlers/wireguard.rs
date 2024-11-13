@@ -29,7 +29,7 @@ use crate::{
         },
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
-    enterprise::handlers::CanManageDevices,
+    enterprise::{handlers::CanManageDevices, limits::update_counts},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -135,6 +135,7 @@ pub async fn create_network(
         "User {} created WireGuard network {network_name}",
         session.user.username
     );
+    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!(network),
@@ -218,6 +219,7 @@ pub async fn delete_network(
         "User {} deleted WireGuard network {network_id}",
         session.user.username,
     );
+    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse::default())
 }
@@ -374,6 +376,8 @@ pub async fn import_network(
 
     info!("Imported network {network} with {} devices", devices.len());
 
+    update_counts(&appstate.pool).await?;
+
     Ok(ApiResponse {
         json: json!(ImportedNetworkData { network, devices }),
         status: StatusCode::CREATED,
@@ -419,6 +423,7 @@ pub async fn add_user_devices(
             "User {} mapped {device_count} devices for {network_id} network",
             user.username,
         );
+        update_counts(&appstate.pool).await?;
 
         Ok(ApiResponse {
             json: json!({}),
@@ -592,6 +597,8 @@ pub async fn add_device(
 
     let result = AddDeviceResult { configs, device };
 
+    update_counts(&appstate.pool).await?;
+
     Ok(ApiResponse {
         json: json!(result),
         status: StatusCode::CREATED,
@@ -762,6 +769,7 @@ pub async fn delete_device(
     ));
     device.delete(&appstate.pool).await?;
     info!("User {} deleted device {device_id}", session.user.username);
+    update_counts(&appstate.pool).await?;
     Ok(ApiResponse::default())
 }
 

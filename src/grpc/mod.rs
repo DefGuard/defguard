@@ -48,9 +48,8 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, Id, Settings},
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
-        grpc::polling::PollingServer,
-        license::{get_cached_license, validate_license},
+        db::models::enterprise_settings::EnterpriseSettings, grpc::polling::PollingServer,
+        is_enterprise_enabled,
     },
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
@@ -679,7 +678,7 @@ impl InstanceInfo {
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
             disable_all_traffic: enterprise_settings.disable_all_traffic,
-            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
+            enterprise_enabled: is_enterprise_enabled(),
         }
     }
 }
