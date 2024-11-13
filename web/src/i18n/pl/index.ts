@@ -1078,7 +1078,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         title: 'Informacje o licencji',
         noLicense: 'Brak licencji',
         licenseNotRequired:
-          "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
+          "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
           subscription: {
             label: 'Subskrypcja',
