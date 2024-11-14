@@ -545,7 +545,9 @@ pub async fn run_grpc_bidi_stream(
                                     message: "no valid license".into(),
                                 }))
                             } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
-                                if let Ok(client) = make_oidc_client(&pool, redirect_url).await {
+                                if let Ok((_client_id, client)) =
+                                    make_oidc_client(&pool, redirect_url).await
+                                {
                                     let (url, csrf_token, nonce) = client
                                         .authorize_url(
                                             AuthenticationFlow::<CoreResponseType>::Implicit(false),

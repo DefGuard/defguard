@@ -55,7 +55,10 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
 
 /// Build OpenID Connect client.
 /// `url`: redirect/callback URL
-pub(crate) async fn make_oidc_client(pool: &PgPool, url: Url) -> Result<CoreClient, WebError> {
+pub(crate) async fn make_oidc_client(
+    pool: &PgPool,
+    url: Url,
+) -> Result<(ClientId, CoreClient), WebError> {
     let Some(provider) = OpenIdProvider::get_current(pool).await? else {
         return Err(WebError::ObjectNotFound(
             "OpenID provider not set".to_string(),
@@ -65,11 +68,14 @@ pub(crate) async fn make_oidc_client(pool: &PgPool, url: Url) -> Result<CoreClie
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id);
     let client_secret = ClientSecret::new(provider.client_secret);
-
-    Ok(
-        CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(RedirectUrl::from_url(url)),
+    let core_client = CoreClient::from_provider_metadata(
+        provider_metadata,
+        client_id.clone(),
+        Some(client_secret),
     )
+    .set_redirect_uri(RedirectUrl::from_url(url));
+
+    Ok((client_id, core_client))
 }
 
 /// Get or create `User` from OpenID claims.
@@ -79,9 +85,9 @@ pub(crate) async fn user_from_claims(
     code: AuthorizationCode,
     callback_url: Url,
 ) -> Result<User<Id>, WebError> {
-    let client = make_oidc_client(pool, callback_url).await?;
+    let (client_id, core_client) = make_oidc_client(pool, callback_url).await?;
     // Exchange code for ID token.
-    let token_response = match client
+    let token_response = match core_client
         .exchange_code(code)
         .request_async(async_http_client)
         .await
@@ -100,7 +106,9 @@ pub(crate) async fn user_from_claims(
     };
 
     // Verify ID token against the nonce value received in the callback.
-    let token_verifier = client.id_token_verifier();
+    let token_verifier = core_client
+        .id_token_verifier()
+        .require_audience_match(false);
     // claims = user attributes
     let token_claims = match id_token.claims(&token_verifier, &nonce) {
         Ok(claims) => claims,
@@ -110,6 +118,35 @@ pub(crate) async fn user_from_claims(
             )));
         }
     };
+    // Custom `aud` (audience) verfication. According to OpenID specification:
+    // "The Client MUST validate that the aud (audience) Claim contains its client_id value
+    // registered at the Issuer identified by the iss (issuer) Claim as an audience. The ID
+    // Token MUST be rejected if the ID Token does not list the Client as a valid audience,
+    // or if it contains additional audiences not trusted by the Client."
+    // But some providers, like Zitadel, send additional values in `aud`, so allow that.
+    let audiences = token_claims.audiences();
+    if !audiences.iter().any(|aud| **aud == *client_id) {
+        return Err(WebError::Authorization(format!(
+            "Invalid OpenID claims: 'aud' must contain '{}' (found audiences: {})",
+            client_id.as_str(),
+            audiences
+                .iter()
+                .map(|aud| aud.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )));
+    };
+    if audiences.len() > 1 {
+        warn!(
+            "OpenID claims: 'aud' should not contain these additional fields {}",
+            audiences
+                .iter()
+                .filter(|&aud| **aud != *client_id)
+                .map(|aud| aud.to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
 
     // Only email and username is required for user lookup and login
     let email = token_claims.email().ok_or(WebError::BadRequest(
@@ -245,7 +282,7 @@ pub(crate) async fn get_auth_info(
     State(appstate): State<AppState>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     let config = server_config();
-    let client = make_oidc_client(&appstate.pool, config.callback_url()).await?;
+    let (_client_id, client) = make_oidc_client(&appstate.pool, config.callback_url()).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
