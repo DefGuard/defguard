@@ -142,6 +142,10 @@ pub(crate) async fn user_from_claims(
         }
         None => {
             if let Some(mut user) = User::find_by_email(pool, email).await? {
+                if !user.is_active {
+                    debug!("User {} tried to log in, but is disabled", user.username);
+                    return Err(WebError::Authorization("User is disabled".into()));
+                }
                 // User with the same email already exists, merge the accounts
                 info!(
                     "User with email address {} is logging in through OpenID Connect for the \
