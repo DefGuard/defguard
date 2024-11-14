@@ -63,6 +63,13 @@ export const OpenIDCallback = () => {
       const id_token = params.get('id_token');
       const state = params.get('state');
 
+      if (!id_token || !state) {
+        setError(
+          "Missing id_token or state in the callback's URL. The provider might not be configured correctly.",
+        );
+        return;
+      }
+
       if (id_token && state) {
         const data: CallbackData = {
           id_token,
