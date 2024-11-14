@@ -147,7 +147,10 @@ export const Login = () => {
               data-testid="login-form-submit"
             />
             {enterpriseEnabled && openIdInfo && (
-              <OpenIdLoginButton url={openIdInfo.url} />
+              <OpenIdLoginButton
+                url={openIdInfo.url}
+                display_name={openIdInfo?.button_display_name}
+              />
             )}
           </form>
         </>

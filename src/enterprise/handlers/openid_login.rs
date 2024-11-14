@@ -56,18 +56,12 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
 /// Build OpenID Connect client.
 /// `url`: redirect/callback URL
 pub(crate) async fn make_oidc_client(
-    pool: &PgPool,
     url: Url,
+    provider: &OpenIdProvider<Id>,
 ) -> Result<(ClientId, CoreClient), WebError> {
-    let Some(provider) = OpenIdProvider::get_current(pool).await? else {
-        return Err(WebError::ObjectNotFound(
-            "OpenID provider not set".to_string(),
-        ));
-    };
-
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
-    let client_id = ClientId::new(provider.client_id);
-    let client_secret = ClientSecret::new(provider.client_secret);
+    let client_id = ClientId::new(provider.client_id.to_string());
+    let client_secret = ClientSecret::new(provider.client_secret.to_string());
     let core_client = CoreClient::from_provider_metadata(
         provider_metadata,
         client_id.clone(),
@@ -85,7 +79,12 @@ pub(crate) async fn user_from_claims(
     code: AuthorizationCode,
     callback_url: Url,
 ) -> Result<User<Id>, WebError> {
-    let (client_id, core_client) = make_oidc_client(pool, callback_url).await?;
+    let Some(provider) = OpenIdProvider::get_current(pool).await? else {
+        return Err(WebError::ObjectNotFound(
+            "OpenID provider not set".to_string(),
+        ));
+    };
+    let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
     // Exchange code for ID token.
     let token_response = match core_client
         .exchange_code(code)
@@ -281,8 +280,15 @@ pub(crate) async fn get_auth_info(
     private_cookies: PrivateCookieJar,
     State(appstate): State<AppState>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
+    let provider = OpenIdProvider::get_current(&appstate.pool).await?;
+    let Some(provider) = provider else {
+        return Err(WebError::ObjectNotFound(
+            "OpenID provider not set".to_string(),
+        ));
+    };
+
     let config = server_config();
-    let (_client_id, client) = make_oidc_client(&appstate.pool, config.callback_url()).await?;
+    let (_client_id, client) = make_oidc_client(config.callback_url(), &provider).await?;
 
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
@@ -323,6 +329,7 @@ pub(crate) async fn get_auth_info(
             json: json!(
                 {
                     "url": authorize_url,
+                    "button_display_name": provider.display_name
                 }
             ),
             status: StatusCode::OK,

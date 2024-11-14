@@ -19,6 +19,7 @@ pub struct AddProviderData {
     base_url: String,
     client_id: String,
     client_secret: String,
+    display_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,12 +29,19 @@ pub struct DeleteProviderData {
 
 impl AddProviderData {
     #[must_use]
-    pub fn new(name: &str, base_url: &str, client_id: &str, client_secret: &str) -> Self {
+    pub fn new(
+        name: &str,
+        base_url: &str,
+        client_id: &str,
+        client_secret: &str,
+        display_name: Option<&str>,
+    ) -> Self {
         Self {
             name: name.to_string(),
             base_url: base_url.to_string(),
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
+            display_name: display_name.map(|s| s.to_string()),
         }
     }
 }
@@ -51,6 +59,7 @@ pub async fn add_openid_provider(
         provider_data.base_url,
         provider_data.client_id,
         provider_data.client_secret,
+        provider_data.display_name,
     )
     .upsert(&appstate.pool)
     .await?;

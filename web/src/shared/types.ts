@@ -314,6 +314,7 @@ export interface LoginResponse {
 
 export interface OpenIdInfoResponse {
   url: string;
+  button_display_name?: string;
 }
 
 export interface DeleteWebAuthNKeyRequest {
@@ -914,6 +915,7 @@ export interface OpenIdProvider {
   base_url: string;
   client_id: string;
   client_secret: string;
+  display_name: string;
 }
 
 export interface EditOpenidClientRequest {

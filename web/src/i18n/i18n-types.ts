@@ -2427,6 +2427,16 @@ type RootTranslation = {
 						 */
 						helper: string
 					}
+					display_name: {
+						/**
+						 * D​i​s​p​l​a​y​ ​N​a​m​e
+						 */
+						label: string
+						/**
+						 * N​a​m​e​ ​o​f​ ​t​h​e​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​t​o​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​l​o​g​i​n​'​s​ ​p​a​g​e​ ​b​u​t​t​o​n​.​ ​I​f​ ​n​o​t​ ​p​r​o​v​i​d​e​d​,​ ​t​h​e​ ​b​u​t​t​o​n​ ​w​i​l​l​ ​d​i​s​p​l​a​y​ ​g​e​n​e​r​i​c​ ​'​L​o​g​i​n​ ​w​i​t​h​ ​O​I​D​C​'​ ​t​e​x​t​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -3806,6 +3816,10 @@ type RootTranslation = {
 		 * E​n​t​e​r​ ​y​o​u​r​ ​c​r​e​d​e​n​t​i​a​l​s
 		 */
 		pageTitle: string
+		/**
+		 * L​o​g​i​n​ ​w​i​t​h
+		 */
+		oidcLogin: string
 		callback: {
 			/**
 			 * G​o​ ​b​a​c​k​ ​t​o​ ​l​o​g​i​n
@@ -6680,6 +6694,16 @@ export type TranslationFunctions = {
 						 */
 						helper: () => LocalizedString
 					}
+					display_name: {
+						/**
+						 * Display Name
+						 */
+						label: () => LocalizedString
+						/**
+						 * Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.
+						 */
+						helper: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -8045,6 +8069,10 @@ export type TranslationFunctions = {
 		 * Enter your credentials
 		 */
 		pageTitle: () => LocalizedString
+		/**
+		 * Login with
+		 */
+		oidcLogin: () => LocalizedString
 		callback: {
 			/**
 			 * Go back to login

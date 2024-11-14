@@ -48,9 +48,12 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, Id, Settings},
+    db::{
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE},
+        AppEvent, Id, Settings,
+    },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         grpc::polling::PollingServer,
         handlers::openid_login::{make_oidc_client, user_from_claims},
         license::{get_cached_license, validate_license},
@@ -78,7 +81,10 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use proto::{core_request, proxy_client::ProxyClient, AuthInfoResponse, CoreError, CoreResponse};
+use proto::{
+    core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
+    CoreResponse,
+};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -545,27 +551,38 @@ pub async fn run_grpc_bidi_stream(
                                     message: "no valid license".into(),
                                 }))
                             } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
-                                if let Ok((_client_id, client)) =
-                                    make_oidc_client(&pool, redirect_url).await
-                                {
-                                    let (url, csrf_token, nonce) = client
-                                        .authorize_url(
-                                            AuthenticationFlow::<CoreResponseType>::Implicit(false),
-                                            CsrfToken::new_random,
-                                            Nonce::new_random,
-                                        )
-                                        .add_scope(Scope::new("email".to_string()))
-                                        .add_scope(Scope::new("profile".to_string()))
-                                        .url();
-                                    Some(core_response::Payload::AuthInfo(AuthInfoResponse {
-                                        url: url.into(),
-                                        csrf_token: csrf_token.secret().to_owned(),
-                                        nonce: nonce.secret().to_owned(),
-                                    }))
+                                if let Some(provider) = OpenIdProvider::get_current(&pool).await? {
+                                    if let Ok((_client_id, client)) =
+                                        make_oidc_client(redirect_url, &provider).await
+                                    {
+                                        let (url, csrf_token, nonce) = client
+                                            .authorize_url(
+                                                AuthenticationFlow::<CoreResponseType>::Implicit(
+                                                    false,
+                                                ),
+                                                CsrfToken::new_random,
+                                                Nonce::new_random,
+                                            )
+                                            .add_scope(Scope::new("email".to_string()))
+                                            .add_scope(Scope::new("profile".to_string()))
+                                            .url();
+                                        Some(core_response::Payload::AuthInfo(AuthInfoResponse {
+                                            url: url.into(),
+                                            csrf_token: csrf_token.secret().to_owned(),
+                                            nonce: nonce.secret().to_owned(),
+                                            button_display_name: provider.display_name,
+                                        }))
+                                    } else {
+                                        Some(core_response::Payload::CoreError(CoreError {
+                                            status_code: Code::Internal as i32,
+                                            message: "failed to build OIDC client".into(),
+                                        }))
+                                    }
                                 } else {
+                                    error!("Failed to get current OpenID provider");
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,
-                                        message: "failed to build OIDC client".into(),
+                                        message: "failed to get current OpenID provider".into(),
                                     }))
                                 }
                             } else {
@@ -586,7 +603,32 @@ pub async fn run_grpc_bidi_stream(
                             )
                             .await
                             {
-                                Ok(_user) => Some(core_response::Payload::Empty(())),
+                                Ok(user) => {
+                                    user.clear_unused_enrollment_tokens(&pool).await?;
+                                    debug!("Cleared unused tokens for {}.", user.username);
+                                    debug!(
+                                        "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
+                                        user.username
+                                    );
+                                    let config = server_config();
+                                    let desktop_configuration = Token::new(
+                                        user.id,
+                                        Some(user.id),
+                                        Some(user.email),
+                                        config.enrollment_token_timeout.as_secs(),
+                                        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+                                    );
+                                    debug!("Saving a new desktop configuration token...");
+                                    desktop_configuration.save(&pool).await?;
+                                    debug!("Saved desktop configuration token. Responding to proxy with the token.");
+
+                                    Some(core_response::Payload::AuthCallback(
+                                        AuthCallbackResponse {
+                                            url: config.enrollment_url.clone().into(),
+                                            token: desktop_configuration.id,
+                                        },
+                                    ))
+                                }
                                 Err(err) => {
                                     let message = format!("OpenID auth error {err}");
                                     error!(message);

@@ -970,6 +970,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             helper:
               'Podstawowy adres URL twojego dostawcy OpenID, np. https://accounts.google.com. Sprawdź naszą dokumentację, aby uzyskać więcej informacji i zobaczyć przykłady.',
           },
+          display_name: {
+            label: 'Wyświetlana nazwa',
+            helper:
+              'Nazwa dostawcy OpenID, która będzie wyświetlana na przycisku logowania. Jeśli zostawisz to pole puste, przycisk będzie miał tekst "Zaloguj przez OIDC".',
+          },
         },
       },
     },
@@ -1592,6 +1597,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       return: 'Powrót do logowania',
       error: 'Wystąpił błąd podczas logowania przez zewnętrznego dostawcę OpenID',
     },
+    oidcLogin: 'Zaloguj się przez',
     mfa: {
       title: 'Autoryzacja dwuetapowa.',
       controls: {
