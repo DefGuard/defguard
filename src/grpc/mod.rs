@@ -6,14 +6,12 @@ use std::{
 #[cfg(any(feature = "wireguard", feature = "worker"))]
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use openidconnect::{
-    core::{CoreIdToken, CoreResponseType},
-    AuthenticationFlow, CsrfToken, Nonce, Scope,
+    core::CoreResponseType, AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope,
 };
 use reqwest::Url;
 use serde::Serialize;
@@ -576,12 +574,12 @@ pub async fn run_grpc_bidi_stream(
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
-                            let id_token = CoreIdToken::from_str(&request.id_token).unwrap();
                             let callback_url = Url::parse(&request.callback_url).unwrap();
+                            let code = AuthorizationCode::new(request.code);
                             match user_from_claims(
                                 &pool,
                                 Nonce::new(request.nonce),
-                                id_token,
+                                code,
                                 callback_url,
                             )
                             .await

@@ -47,9 +47,9 @@ export const OpenIDCallback = () => {
   });
 
   useEffect(() => {
-    if (window.location.hash && window.location.hash.length > 0) {
-      const hashFragment = window.location.hash.substring(1);
-      const params = new URLSearchParams(hashFragment);
+    if (window.location.search && window.location.search.length > 0) {
+      // const hashFragment = window.location.search.substring(1);
+      const params = new URLSearchParams(window.location.search);
 
       // check if error occured
       const error = params.get('error');
@@ -60,22 +60,19 @@ export const OpenIDCallback = () => {
         return;
       }
 
-      const id_token = params.get('id_token');
+      const code = params.get('code');
       const state = params.get('state');
 
-      if (!id_token || !state) {
-        setError(
-          "Missing id_token or state in the callback's URL. The provider might not be configured correctly.",
-        );
-        return;
-      }
-
-      if (id_token && state) {
+      if (code && state) {
         const data: CallbackData = {
-          id_token,
+          code,
           state,
         };
         callbackMutation.mutate(data);
+      } else {
+        setError('Expected data not returned by the OpenID provider');
+        toaster.error(LL.messages.error());
+        return;
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

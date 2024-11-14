@@ -9,9 +9,9 @@ use axum_extra::{
     TypedHeader,
 };
 use openidconnect::{
-    core::{CoreClient, CoreIdToken, CoreProviderMetadata, CoreResponseType},
+    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
     reqwest::async_http_client,
-    AuthenticationFlow, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
 };
 use reqwest::Url;
 use serde_json::json;
@@ -76,13 +76,31 @@ pub(crate) async fn make_oidc_client(pool: &PgPool, url: Url) -> Result<CoreClie
 pub(crate) async fn user_from_claims(
     pool: &PgPool,
     nonce: Nonce,
-    id_token: CoreIdToken,
+    code: AuthorizationCode,
     callback_url: Url,
 ) -> Result<User<Id>, WebError> {
-    // Verify ID token against the nonce value received in the callback.
     let client = make_oidc_client(pool, callback_url).await?;
-    let token_verifier = client.id_token_verifier();
+    // Exchange code for ID token.
+    let token_response = match client
+        .exchange_code(code)
+        .request_async(async_http_client)
+        .await
+    {
+        Ok(token) => token,
+        Err(err) => {
+            return Err(WebError::Authorization(format!(
+                "Failed to exchange code for ID token; OpenID provider error: {err}"
+            )))
+        }
+    };
+    let Some(id_token) = token_response.extra_fields().id_token() else {
+        return Err(WebError::Authorization(
+            "Server did not return an ID token".to_string(),
+        ));
+    };
 
+    // Verify ID token against the nonce value received in the callback.
+    let token_verifier = client.id_token_verifier();
     // claims = user attributes
     let token_claims = match id_token.claims(&token_verifier, &nonce) {
         Ok(claims) => claims,
@@ -232,7 +250,7 @@ pub(crate) async fn get_auth_info(
     // Generate the redirect URL and the values needed later for callback authenticity verification
     let (authorize_url, csrf_state, nonce) = client
         .authorize_url(
-            AuthenticationFlow::<CoreResponseType>::Implicit(false),
+            CoreAuthenticationFlow::AuthorizationCode,
             CsrfToken::new_random,
             Nonce::new_random,
         )
@@ -277,7 +295,7 @@ pub(crate) async fn get_auth_info(
 
 #[derive(Deserialize)]
 pub(crate) struct AuthenticationResponse {
-    id_token: CoreIdToken,
+    code: AuthorizationCode,
     state: CsrfToken,
 }
 
@@ -318,7 +336,7 @@ pub(crate) async fn auth_callback(
     let user = user_from_claims(
         &appstate.pool,
         Nonce::new(cookie_nonce),
-        payload.id_token,
+        payload.code,
         config.callback_url(),
     )
     .await?;

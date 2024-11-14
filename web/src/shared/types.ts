@@ -167,7 +167,7 @@ export interface LoginData {
 }
 
 export interface CallbackData {
-  id_token: string;
+  code: string;
   state: string;
 }
 
