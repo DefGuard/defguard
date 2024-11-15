@@ -3817,7 +3817,7 @@ type RootTranslation = {
 		 */
 		pageTitle: string
 		/**
-		 * L​o​g​i​n​ ​w​i​t​h
+		 * S​i​g​n​ ​i​n​ ​w​i​t​h
 		 */
 		oidcLogin: string
 		callback: {
@@ -8070,7 +8070,7 @@ export type TranslationFunctions = {
 		 */
 		pageTitle: () => LocalizedString
 		/**
-		 * Login with
+		 * Sign in with
 		 */
 		oidcLogin: () => LocalizedString
 		callback: {

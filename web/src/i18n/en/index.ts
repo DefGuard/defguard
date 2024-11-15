@@ -1604,7 +1604,7 @@ const en: BaseTranslation = {
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
-    oidcLogin: 'Login with',
+    oidcLogin: 'Sign in with',
     callback: {
       return: 'Go back to login',
       error: 'An error occurred during external OpenID login',

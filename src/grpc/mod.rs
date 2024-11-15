@@ -11,7 +11,8 @@ use std::{
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
 use openidconnect::{
-    core::CoreResponseType, AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope,
+    core::{CoreAuthenticationFlow, CoreResponseType},
+    AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope,
 };
 use reqwest::Url;
 use serde::Serialize;
@@ -557,9 +558,7 @@ pub async fn run_grpc_bidi_stream(
                                     {
                                         let (url, csrf_token, nonce) = client
                                             .authorize_url(
-                                                AuthenticationFlow::<CoreResponseType>::Implicit(
-                                                    false,
-                                                ),
+                                                CoreAuthenticationFlow::AuthorizationCode,
                                                 CsrfToken::new_random,
                                                 Nonce::new_random,
                                             )
