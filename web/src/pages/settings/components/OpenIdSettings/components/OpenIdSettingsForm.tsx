@@ -202,7 +202,7 @@ export const OpenIdSettingsForm = () => {
           getProviderDisplayName({ name: val }) ?? currentProvider?.display_name ?? '',
       });
     },
-    [currentProvider, getProviderUrl],
+    [currentProvider, getProviderUrl, getProviderDisplayName],
   );
 
   return (

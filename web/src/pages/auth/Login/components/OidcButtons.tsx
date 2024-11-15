@@ -1,12 +1,12 @@
 /* eslint-disable max-len */
 import './style.scss';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
 export const OpenIdLoginButton = ({
   url,
