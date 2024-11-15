@@ -2102,6 +2102,10 @@ type RootTranslation = {
 			 */
 			address: string
 			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​a​d​d​r​e​s​s​ ​w​i​t​h​ ​a​ ​n​e​t​m​a​s​k​.
+			 */
+			addressNetmask: string
+			/**
 			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​p​o​r​t​.
 			 */
 			validPort: string
@@ -2655,6 +2659,10 @@ type RootTranslation = {
 				 * N​o​ ​l​i​c​e​n​s​e
 				 */
 				noLicense: string
+				/**
+				 * <​p​>​Y​o​u​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​,​ ​a​s​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​e​x​c​e​e​d​e​d​ ​a​n​y​ ​o​f​ ​t​h​e​ ​u​s​a​g​e​ ​l​i​m​i​t​s​ ​y​e​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​'​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​'​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​.​<​/​p​>
+				 */
+				licenseNotRequired: string
 				types: {
 					subscription: {
 						/**
@@ -6371,6 +6379,10 @@ export type TranslationFunctions = {
 			 */
 			address: () => LocalizedString
 			/**
+			 * Enter a valid address with a netmask.
+			 */
+			addressNetmask: () => LocalizedString
+			/**
 			 * Enter a valid port.
 			 */
 			validPort: () => LocalizedString
@@ -6919,6 +6931,10 @@ export type TranslationFunctions = {
 				 * No license
 				 */
 				noLicense: () => LocalizedString
+				/**
+				 * <p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>
+				 */
+				licenseNotRequired: () => LocalizedString
 				types: {
 					subscription: {
 						/**

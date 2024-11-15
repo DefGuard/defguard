@@ -856,6 +856,7 @@ const en: BaseTranslation = {
       portMax: 'Maximum port is 65535.',
       endpoint: 'Enter a valid endpoint.',
       address: 'Enter a valid address.',
+      addressNetmask: 'Enter a valid address with a netmask.',
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
@@ -1093,6 +1094,8 @@ const en: BaseTranslation = {
       licenseInfo: {
         title: 'License information',
         noLicense: 'No license',
+        licenseNotRequired:
+          "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {
           subscription: {
             label: 'Subscription',

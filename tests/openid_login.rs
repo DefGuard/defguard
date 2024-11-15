@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use common::exceed_enterprise_limits;
 use defguard::{
     config::DefGuardConfig,
     enterprise::{
@@ -32,6 +33,8 @@ async fn test_openid_providers() {
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
 
     let provider_data = AddProviderData::new(
         "test",

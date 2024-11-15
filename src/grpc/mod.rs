@@ -57,7 +57,7 @@ use crate::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         grpc::polling::PollingServer,
         handlers::openid_login::{make_oidc_client, user_from_claims},
-        license::{get_cached_license, validate_license},
+        is_enterprise_enabled,
     },
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
@@ -778,7 +778,7 @@ impl InstanceInfo {
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
             disable_all_traffic: enterprise_settings.disable_all_traffic,
-            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
+            enterprise_enabled: is_enterprise_enabled(),
         }
     }
 }

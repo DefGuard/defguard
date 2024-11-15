@@ -841,8 +841,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       oneUppercase: 'Wymagana jedna duża litera.',
       oneLowercase: 'Wymagana jedna mała litera.',
       portMax: 'Maksymalny numer portu to 65535.',
-      endpoint: 'Wpisz prawidłowy punkt końcowy.',
+      endpoint: 'Wpisz poprawny adres.',
       address: 'Wprowadź poprawny adres.',
+      addressNetmask: 'Wprowadź poprawny adres IP oraz maskę sieci.',
       validPort: 'Wprowadź prawidłowy port.',
       validCode: 'Kod powinien mieć 6 cyfr.',
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
@@ -1082,6 +1083,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       licenseInfo: {
         title: 'Informacje o licencji',
         noLicense: 'Brak licencji',
+        licenseNotRequired:
+          "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
           subscription: {
             label: 'Subskrypcja',

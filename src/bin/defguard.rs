@@ -7,7 +7,10 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
-    enterprise::license::{run_periodic_license_check, set_cached_license, License},
+    enterprise::{
+        license::{run_periodic_license_check, set_cached_license, License},
+        limits::update_counts,
+    },
     grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
@@ -98,6 +101,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // initialize failed login attempt tracker
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
+
+    update_counts(&pool).await?;
 
     debug!("Checking enterprise license status");
     match License::load_or_renew(&pool).await {

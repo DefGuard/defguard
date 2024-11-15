@@ -1,6 +1,5 @@
 use crate::{
     auth::SessionInfo,
-    enterprise::license::validate_license,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -14,7 +13,10 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
-use super::{db::models::enterprise_settings::EnterpriseSettings, license::get_cached_license};
+use super::{
+    db::models::enterprise_settings::EnterpriseSettings, is_enterprise_enabled,
+    license::get_cached_license, needs_enterprise_license,
+};
 use crate::{appstate::AppState, error::WebError};
 
 pub struct LicenseInfo {
@@ -33,19 +35,20 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(_parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let license = get_cached_license();
-
-        match validate_license(license.as_ref()) {
-            // Useless struct, but may come in handy later
-            Ok(()) => Ok(LicenseInfo { valid: true }),
-            Err(e) => Err(WebError::Forbidden(e.to_string())),
+        if is_enterprise_enabled() {
+            Ok(LicenseInfo { valid: true })
+        } else {
+            Err(WebError::Forbidden(
+                "Enterprise features are disabled".into(),
+            ))
         }
     }
 }
 
 pub async fn check_enterprise_status() -> ApiResult {
+    let enterprise_enabled = is_enterprise_enabled();
+    let needs_license = needs_enterprise_license();
     let license = get_cached_license();
-    let valid = validate_license((license).as_ref()).is_ok();
     let license_info = license.as_ref().map(|license| {
         serde_json::json!(
             {
@@ -55,8 +58,10 @@ pub async fn check_enterprise_status() -> ApiResult {
         )
     });
     Ok(ApiResponse {
-        json: serde_json::json!({ "enabled": valid,
-               "license_info": license_info
+        json: serde_json::json!({
+            "enabled": enterprise_enabled,
+            "needs_license": needs_license,
+            "license_info": license_info
         }),
         status: StatusCode::OK,
     })
