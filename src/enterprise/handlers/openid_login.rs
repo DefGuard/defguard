@@ -38,19 +38,17 @@ use crate::{
 
 async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).unwrap();
-
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
-    let Ok(provider_metadata) =
-        CoreProviderMetadata::discover_async(issuer_url, async_http_client).await
-    else {
-        return Err(WebError::Authorization(format!(
-            "Failed to discover provider metadata, make sure the provider's URL is correct: {url}",
-        )));
-    };
-
-    Ok(provider_metadata)
+    match CoreProviderMetadata::discover_async(issuer_url, async_http_client).await {
+        Ok(provider_metadata) => Ok(provider_metadata),
+        Err(err) => {
+            Err(WebError::Authorization(format!(
+                "Failed to discover provider metadata, make sure the provider's URL is correct: {url}. Error details: {err:?}",
+            )))
+        }
+    }
 }
 
 /// Build OpenID Connect client.
