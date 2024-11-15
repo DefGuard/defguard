@@ -94,8 +94,8 @@ pub(crate) async fn user_from_claims(
         Ok(token) => token,
         Err(err) => {
             return Err(WebError::Authorization(format!(
-                "Failed to exchange code for ID token; OpenID provider error: {err}"
-            )))
+                "Failed to exchange code for ID token; OpenID provider error: {err:?}"
+            )));
         }
     };
     let Some(id_token) = token_response.extra_fields().id_token() else {
