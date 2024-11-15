@@ -936,7 +936,7 @@ pub async fn reset_password(
             config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut transaction).await?;
+        enrollment.save(&mut *transaction).await?;
 
         let mail = Mail {
             to: user.email.clone(),

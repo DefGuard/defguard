@@ -333,7 +333,7 @@ async fn test_openid_flow() {
     assert!(location.contains("value1="));
     assert!(location.contains("value2="));
 
-    // // test allow false
+    // test allow false
     let response = client
         .post(format!(
             "/api/v1/oauth/authorize?\
@@ -398,6 +398,8 @@ async fn http_client(
     })
 }
 
+static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
+
 #[tokio::test]
 async fn test_openid_authorization_code() {
     let (pool, config) = init_test_db().await;
@@ -420,7 +422,7 @@ async fn test_openid_authorization_code() {
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
-        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -441,7 +443,7 @@ async fn test_openid_authorization_code() {
     let client_secret = ClientSecret::new(oauth2client.client_secret);
     let core_client =
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(RedirectUrl::new("http://test.server.tnt:12345/".into()).unwrap());
+            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
     let (authorize_url, _csrf_state, nonce) = core_client
         .authorize_url(
             AuthenticationFlow::<CoreResponseType>::AuthorizationCode,
@@ -470,7 +472,7 @@ async fn test_openid_authorization_code() {
         .to_str()
         .unwrap();
     let (location, query) = location.split_once('?').unwrap();
-    assert_eq!(location, "http://test.server.tnt:12345/");
+    assert_eq!(location, FAKE_REDIRECT_URI);
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token
@@ -525,7 +527,7 @@ async fn test_openid_authorization_code_with_pkce() {
     assert_eq!(response.status(), StatusCode::OK);
     let oauth2client = NewOpenIDClient {
         name: "My test client".into(),
-        redirect_uri: vec!["http://test.server.tnt:12345/".into()],
+        redirect_uri: vec![FAKE_REDIRECT_URI.into()],
         scope: vec!["openid".into()],
         enabled: true,
     };
@@ -544,7 +546,7 @@ async fn test_openid_authorization_code_with_pkce() {
     let client_secret = ClientSecret::new(oauth2client.client_secret);
     let core_client =
         CoreClient::from_provider_metadata(provider_metadata, client_id, Some(client_secret))
-            .set_redirect_uri(RedirectUrl::new("http://test.server.tnt:12345/".into()).unwrap());
+            .set_redirect_uri(RedirectUrl::new(FAKE_REDIRECT_URI.into()).unwrap());
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
     let (authorize_url, _csrf_state, nonce) = core_client
         .authorize_url(
@@ -575,7 +577,7 @@ async fn test_openid_authorization_code_with_pkce() {
         .to_str()
         .unwrap();
     let (location, query) = location.split_once('?').unwrap();
-    assert_eq!(location, "http://test.server.tnt:12345/");
+    assert_eq!(location, FAKE_REDIRECT_URI);
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token

@@ -982,6 +982,11 @@ const en: BaseTranslation = {
             helper:
               'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
           },
+          display_name: {
+            label: 'Display Name',
+            helper:
+              "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
+          },
         },
       },
     },
@@ -1602,6 +1607,7 @@ const en: BaseTranslation = {
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
+    oidcLogin: 'Sign in with',
     callback: {
       return: 'Go back to login',
       error: 'An error occurred during external OpenID login',

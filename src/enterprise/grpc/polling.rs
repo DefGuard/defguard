@@ -41,7 +41,7 @@ impl PollingServer {
         };
 
         // Polling tokens are valid indefinitely
-        info!("Token validation successful {token:?}.");
+        debug!("Token validation successful {token:?}.");
 
         Ok(token)
     }

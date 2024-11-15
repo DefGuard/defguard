@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use axum::{
     extract::{Json, State},
     http::StatusCode,
@@ -12,8 +14,10 @@ use axum_extra::{
     TypedHeader,
 };
 use serde_json::json;
-use sqlx::types::Uuid;
+use sqlx::{types::Uuid, PgPool};
 use time::Duration;
+use tokio::sync::mpsc::UnboundedSender;
+use uaparser::Parser;
 use webauthn_rs::prelude::PublicKeyCredential;
 use webauthn_rs_proto::options::CollectedClientData;
 
@@ -27,7 +31,9 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn},
+    db::{
+        Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn,
+    },
     error::WebError,
     handlers::{
         mail::{
@@ -35,18 +41,93 @@ use crate::{
         },
         SIGN_IN_COOKIE_NAME,
     },
-    headers::{check_new_device_login, get_user_agent_device, parse_user_agent},
+    headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
     ldap::utils::user_from_ldap,
+    mail::Mail,
     server_config,
 };
+
+/// Common functionality for `authenticate()` and `auth_callback()`.
+/// Returns either `AuthResponse` or `MFAInfo`.
+pub(crate) async fn create_session(
+    pool: &PgPool,
+    mail_tx: &UnboundedSender<Mail>,
+    ip_address: IpAddr,
+    user_agent: &str,
+    user: &User<Id>,
+) -> Result<(Session, Option<UserInfo>, Option<MFAInfo>), WebError> {
+    let agent = USER_AGENT_PARSER.parse(user_agent);
+    let device_info = get_user_agent_device(&agent);
+    debug!("Cleaning up expired sessions...");
+    Session::delete_expired(pool).await?;
+    debug!("Expired sessions cleaned up");
+
+    debug!("Creating new session for user {}", user.username);
+    let session = Session::new(
+        user.id,
+        SessionState::PasswordVerified,
+        ip_address.to_string(),
+        Some(device_info),
+    );
+    session.save(pool).await?;
+    debug!("New session created for user {}", user.username);
+
+    let login_event_type = "AUTHENTICATION".to_string();
+
+    info!("Authenticated user {}", user.username);
+    if user.mfa_enabled {
+        debug!(
+            "User {} has MFA enabled, sending MFA info for further authentication.",
+            user.username
+        );
+        if let Some(mfa_info) = MFAInfo::for_user(pool, &user).await? {
+            check_new_device_login(
+                pool,
+                mail_tx,
+                &session,
+                &user,
+                ip_address.to_string(),
+                login_event_type,
+                agent,
+            )
+            .await?;
+            Ok((session, None, Some(mfa_info)))
+        } else {
+            error!(
+                "Couldn't fetch MFA info for user {} with MFA enabled",
+                user.username
+            );
+            Err(WebError::DbError("MFA info read error".into()))
+        }
+    } else {
+        debug!(
+            "User {} has MFA disabled, returning user info for login.",
+            user.username
+        );
+        let user_info = UserInfo::from_user(pool, &user).await?;
+
+        check_new_device_login(
+            pool,
+            mail_tx,
+            &session,
+            &user,
+            ip_address.to_string(),
+            login_event_type,
+            agent,
+        )
+        .await?;
+
+        Ok((session, Some(user_info), None))
+    }
+}
 
 /// For successful login, return:
 /// * 200 with MFA disabled
 /// * 201 with MFA enabled when additional authentication factor is required
-pub async fn authenticate(
+pub(crate) async fn authenticate(
     cookies: CookieJar,
-    private_cookies: PrivateCookieJar,
-    user_agent: Option<TypedHeader<UserAgent>>,
+    mut private_cookies: PrivateCookieJar,
+    user_agent: TypedHeader<UserAgent>,
     forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
@@ -115,37 +196,24 @@ pub async fn authenticate(
         }
     };
 
-    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0).to_string();
-    let user_agent_string = match user_agent {
-        Some(value) => value.to_string(),
-        None => String::new(),
-    };
-    let agent = parse_user_agent(&appstate.user_agent_parser, &user_agent_string);
-    let device_info = agent.clone().map(|v| get_user_agent_device(&v));
-
-    debug!("Cleaning up expired sessions...");
-    Session::delete_expired(&appstate.pool).await?;
-    debug!("Expired sessions cleaned up");
-
-    debug!("Creating new session for user {username}");
-    let session = Session::new(
-        user.id,
-        SessionState::PasswordVerified,
-        ip_address.clone(),
-        device_info,
-    );
-    session.save(&appstate.pool).await?;
-    debug!("New session created for user {username}");
+    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
+    let (session, user_info, mfa_info) = create_session(
+        &appstate.pool,
+        &appstate.mail_tx,
+        ip_address,
+        user_agent.as_str(),
+        &user,
+    )
+    .await?;
 
     let max_age = Duration::seconds(server_config().auth_cookie_timeout.as_secs() as i64);
     let config = server_config();
+    let cookie_domain = config
+        .cookie_domain
+        .as_ref()
+        .expect("Cookie domain not found");
     let auth_cookie = Cookie::build((SESSION_COOKIE_NAME, session.id.clone()))
-        .domain(
-            config
-                .cookie_domain
-                .clone()
-                .expect("Cookie domain not found"),
-        )
+        .domain(cookie_domain)
         .path("/")
         .http_only(true)
         .secure(!config.cookie_insecure)
@@ -153,75 +221,41 @@ pub async fn authenticate(
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
 
-    let login_event_type = "AUTHENTICATION".to_string();
+    if let Some(mfa_info) = mfa_info {
+        return Ok((
+            cookies,
+            private_cookies,
+            ApiResponse {
+                json: json!(mfa_info),
+                status: StatusCode::CREATED,
+            },
+        ));
+    }
 
-    info!("Authenticated user {username}");
-    if user.mfa_enabled {
-        if let Some(mfa_info) = MFAInfo::for_user(&appstate.pool, &user).await? {
-            check_new_device_login(
-                &appstate.pool,
-                &appstate.mail_tx,
-                &session,
-                &user,
-                ip_address,
-                login_event_type,
-                agent,
-            )
-            .await?;
-            Ok((
-                cookies,
-                private_cookies,
-                ApiResponse {
-                    json: json!(mfa_info),
-                    status: StatusCode::CREATED,
-                },
-            ))
+    if let Some(user_info) = user_info {
+        let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
+            debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
+            let url = openid_cookie.value().to_string();
+            private_cookies = private_cookies.remove(openid_cookie);
+            Some(url)
         } else {
-            error!("Couldn't fetch MFA info for user {username} with MFA enabled");
-            Err(WebError::DbError("MFA info read error".into()))
-        }
+            debug!("No OpenID session found, proceeding with login to Defguard.");
+            None
+        };
+
+        Ok((
+            cookies,
+            private_cookies,
+            ApiResponse {
+                json: json!(AuthResponse {
+                    user: user_info,
+                    url
+                }),
+                status: StatusCode::OK,
+            },
+        ))
     } else {
-        let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-
-        check_new_device_login(
-            &appstate.pool,
-            &appstate.mail_tx,
-            &session,
-            &user,
-            ip_address,
-            login_event_type,
-            agent,
-        )
-        .await?;
-
-        if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-            debug!("Found openid session cookie.");
-            let redirect_url = openid_cookie.value().to_string();
-            Ok((
-                cookies,
-                private_cookies.remove(openid_cookie),
-                ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: Some(redirect_url)
-                    }),
-                    status: StatusCode::OK,
-                },
-            ))
-        } else {
-            debug!("No OpenID session found");
-            Ok((
-                cookies,
-                private_cookies,
-                ApiResponse {
-                    json: json!(AuthResponse {
-                        user: user_info,
-                        url: None,
-                    }),
-                    status: StatusCode::OK,
-                },
-            ))
-        }
+        unimplemented!("Impossible to get here");
     }
 }
 

@@ -10,7 +10,6 @@ use defguard::{
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     handlers::Auth,
-    headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
 };
@@ -123,8 +122,6 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
-    let user_agent_parser = create_user_agent_parser();
-
     let license = License::new(
         "test_customer".to_string(),
         true,
@@ -167,7 +164,6 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
         worker_state,
         gateway_state,
         pool,
-        user_agent_parser,
         failed_logins,
     );
 

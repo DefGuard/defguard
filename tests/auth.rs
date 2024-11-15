@@ -3,7 +3,7 @@ mod common;
 use std::{str::FromStr, time::SystemTime};
 
 use chrono::NaiveDateTime;
-use claims::assert_err;
+use claims::{assert_err, assert_ok};
 use common::fetch_user_details;
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
@@ -360,9 +360,13 @@ async fn test_email_mfa() {
 
     // check email was sent
     let mail = mail_rx.try_recv().unwrap();
-    assert_err!(mail_rx.try_recv());
+    assert_ok!(mail_rx.try_recv());
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
-    assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
+    assert_eq!(
+        mail.subject,
+        "Defguard: new device logged in to your account"
+    );
+    // assert_eq!(mail.subject, "Your Multi-Factor Authentication Activation");
 
     // resend setup email
     let response = client.post("/api/v1/auth/email/init").send().await;
@@ -422,11 +426,11 @@ async fn test_email_mfa() {
 
     // check that code email was sent
     let mail = mail_rx.try_recv().unwrap();
-    assert_err!(mail_rx.try_recv());
+    assert_ok!(mail_rx.try_recv());
     assert_eq!(mail.to, "h.potter@hogwart.edu.uk");
     assert_eq!(
         mail.subject,
-        "Your Multi-Factor Authentication Code for Login"
+        "Defguard: new device logged in to your account" // "Your Multi-Factor Authentication Code for Login"
     );
 
     // resend code

@@ -80,6 +80,7 @@ pub struct User<I = NoId> {
     pub is_active: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
+    // FIXME: must be unique
     pub openid_sub: Option<String>,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -136,7 +137,7 @@ impl<I> User<I> {
         self.password_hash = hash_password(password).ok();
     }
 
-    pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
+    pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
         match &self.password_hash {
             Some(hash) => {
                 let parsed_hash = PasswordHash::new(hash)?;
@@ -150,12 +151,12 @@ impl<I> User<I> {
     }
 
     #[must_use]
-    pub fn has_password(&self) -> bool {
+    pub(crate) fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
     #[must_use]
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
 
@@ -163,7 +164,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub fn is_enrolled(&self) -> bool {
+    pub(crate) fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some()
     }
 }
@@ -635,9 +636,9 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE email = $1",
             email
         )
@@ -645,16 +646,17 @@ impl User<Id> {
         .await
     }
 
+    // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE openid_sub = $1",
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
         .fetch_optional(executor)

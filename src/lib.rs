@@ -38,7 +38,6 @@ use tokio::{
 };
 use tower_http::trace::{DefaultOnResponse, TraceLayer};
 use tracing::Level;
-use uaparser::UserAgentParser;
 use utoipa::{
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
     Modify, OpenApi,
@@ -283,7 +282,6 @@ pub fn build_webapp(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
-    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
@@ -496,7 +494,6 @@ pub fn build_webapp(
             webhook_rx,
             wireguard_tx,
             mail_tx,
-            user_agent_parser,
             failed_logins,
         ))
         .layer(
@@ -522,7 +519,6 @@ pub async fn run_web_server(
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
-    user_agent_parser: Arc<UserAgentParser>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
@@ -533,7 +529,6 @@ pub async fn run_web_server(
         worker_state,
         gateway_state,
         pool,
-        user_agent_parser,
         failed_logins,
     );
     info!("Started web services");

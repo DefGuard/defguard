@@ -41,6 +41,7 @@ async fn test_openid_providers() {
         "https://accounts.google.com",
         "client_id",
         "client_secret",
+        Some("display_name"),
     );
 
     let response = client
@@ -60,7 +61,7 @@ async fn test_openid_providers() {
         url: String,
     }
 
-    let provider: UrlResponse = response.json::<UrlResponse>().await;
+    let provider: UrlResponse = response.json().await;
 
     let url = Url::parse(&provider.url).unwrap();
 
@@ -70,11 +71,12 @@ async fn test_openid_providers() {
         .unwrap();
     assert_eq!(client_id.1, "client_id");
 
-    let nonce = url.query_pairs().find(|(key, _)| key == "nonce");
+    let mut query_pairs = url.query_pairs();
+    let nonce = query_pairs.clone().find(|(key, _)| key == "nonce");
     assert!(nonce.is_some());
-    let state = url.query_pairs().find(|(key, _)| key == "state");
+    let state = query_pairs.clone().find(|(key, _)| key == "state");
     assert!(state.is_some());
-    let redirect_uri = url.query_pairs().find(|(key, _)| key == "redirect_uri");
+    let redirect_uri = query_pairs.find(|(key, _)| key == "redirect_uri");
     assert!(redirect_uri.is_some());
 
     // Test that the endpoint is forbidden when the license is expired
