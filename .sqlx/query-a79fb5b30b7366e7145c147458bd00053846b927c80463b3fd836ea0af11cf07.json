@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\") VALUES ($1,$2,$3,$4) RETURNING id",
+  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -14,6 +14,7 @@
         "Text",
         "Text",
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -21,5 +22,5 @@
       false
     ]
   },
-  "hash": "a6fe220739875c6894e1a678d4c24de34b7c3ca8bd5e48ed9f313d20cbe8f8e4"
+  "hash": "a79fb5b30b7366e7145c147458bd00053846b927c80463b3fd836ea0af11cf07"
 }
