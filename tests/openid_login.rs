@@ -41,6 +41,7 @@ async fn test_openid_providers() {
         "https://accounts.google.com",
         "client_id",
         "client_secret",
+        Some("display_name"),
     );
 
     let response = client
