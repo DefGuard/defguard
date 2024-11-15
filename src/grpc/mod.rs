@@ -10,10 +10,7 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
-use openidconnect::{
-    core::{CoreAuthenticationFlow, CoreResponseType},
-    AuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope,
-};
+use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
@@ -545,7 +542,7 @@ pub async fn run_grpc_bidi_stream(
                             }
                         }
                         Some(core_request::Payload::AuthInfo(request)) => {
-                            if validate_license(get_cached_license().as_ref()).is_err() {
+                            if !is_enterprise_enabled() {
                                 warn!("Enterprise license required");
                                 Some(core_response::Payload::CoreError(CoreError {
                                     status_code: Code::FailedPrecondition as i32,
