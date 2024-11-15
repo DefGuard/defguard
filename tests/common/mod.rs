@@ -10,7 +10,6 @@ use defguard::{
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     handlers::Auth,
-    headers::create_user_agent_parser,
     mail::Mail,
     SERVER_CONFIG,
 };
