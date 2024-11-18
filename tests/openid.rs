@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
+use common::init_config;
 use defguard::{
     config::DefGuardConfig,
     db::{
@@ -26,6 +27,7 @@ use reqwest::{
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::PgPool;
+use tokio::net::TcpListener;
 
 mod common;
 use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
@@ -36,7 +38,10 @@ async fn make_client() -> TestClient {
 }
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
-    let (client, _) = make_base_client(pool, config).await;
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Could not bind ephemeral socket");
+    let (client, _) = make_base_client(pool, config, listener).await;
     client
 }
 
@@ -402,7 +407,8 @@ static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
 
 #[tokio::test]
 async fn test_openid_authorization_code() {
-    let (pool, config) = init_test_db().await;
+    let config = init_config(None);
+    let pool = init_test_db(&config).await;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
@@ -505,7 +511,8 @@ async fn test_openid_authorization_code() {
 
 #[tokio::test]
 async fn test_openid_authorization_code_with_pkce() {
-    let (pool, mut config) = init_test_db().await;
+    let mut config = init_config(None);
+    let pool = init_test_db(&config).await;
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 

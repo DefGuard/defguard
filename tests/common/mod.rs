@@ -1,6 +1,9 @@
 pub(crate) mod client;
 
-use std::sync::{Arc, Mutex};
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
 use defguard::{
     auth::failed_login::FailedLoginMap,
@@ -13,10 +16,11 @@ use defguard::{
     mail::Mail,
     SERVER_CONFIG,
 };
-use reqwest::{header::HeaderName, StatusCode};
+use reqwest::{header::HeaderName, StatusCode, Url};
 use secrecy::ExposeSecret;
 use serde_json::json;
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
+use tokio::net::TcpListener;
 use tokio::sync::{
     broadcast::{self, Receiver},
     mpsc::{unbounded_channel, UnboundedReceiver},
@@ -31,9 +35,17 @@ pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for
 #[allow(dead_code, clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
-pub async fn init_test_db() -> (PgPool, DefGuardConfig) {
-    let config = DefGuardConfig::new_test_config();
+/// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
+// TODO: Allow customizing the whole config, not just the URL
+pub fn init_config(defguard_url: Option<&str>) -> DefGuardConfig {
+    let url = defguard_url.unwrap_or("http://localhost:8000");
+    let mut config = DefGuardConfig::new_test_config();
+    config.url = Url::from_str(url).unwrap();
     let _ = SERVER_CONFIG.set(config.clone());
+    config
+}
+
+pub async fn init_test_db(config: &DefGuardConfig) -> PgPool {
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)
@@ -57,9 +69,9 @@ pub async fn init_test_db() -> (PgPool, DefGuardConfig) {
     )
     .await;
 
-    initialize_users(&pool, &config).await;
+    initialize_users(&pool, config).await;
 
-    (pool, config)
+    pool
 }
 
 async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
@@ -112,7 +124,11 @@ impl ClientState {
     }
 }
 
-pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClient, ClientState) {
+pub async fn make_base_client(
+    pool: PgPool,
+    config: DefGuardConfig,
+    listener: TcpListener,
+) -> (TestClient, ClientState) {
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -167,13 +183,23 @@ pub async fn make_base_client(pool: PgPool, config: DefGuardConfig) -> (TestClie
         failed_logins,
     );
 
-    (TestClient::new(webapp).await, client_state)
+    (TestClient::new(webapp, listener).await, client_state)
+}
+
+/// Make an instance url based on the listener
+fn get_test_url(listener: &TcpListener) -> String {
+    let port = listener.local_addr().unwrap().port();
+    format!("http://localhost:{}", port)
 }
 
 #[allow(dead_code)]
 pub async fn make_test_client() -> (TestClient, ClientState) {
-    let (pool, config) = init_test_db().await;
-    make_base_client(pool, config).await
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Could not bind ephemeral socket");
+    let config = init_config(Some(&get_test_url(&listener)));
+    let pool = init_test_db(&config).await;
+    make_base_client(pool, config, listener).await
 }
 
 #[allow(dead_code)]
@@ -183,6 +209,8 @@ pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDeta
     response.json().await
 }
 
+/// Exceeds enterprise free version limits by creating more than 1 network
+#[allow(dead_code)]
 pub async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
