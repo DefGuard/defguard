@@ -54,7 +54,7 @@ pub(crate) async fn create_session(
     mail_tx: &UnboundedSender<Mail>,
     ip_address: IpAddr,
     user_agent: &str,
-    user: &User<Id>,
+    user: &mut User<Id>,
 ) -> Result<(Session, Option<UserInfo>, Option<MFAInfo>), WebError> {
     let agent = USER_AGENT_PARSER.parse(user_agent);
     let device_info = get_user_agent_device(&agent);
@@ -74,6 +74,9 @@ pub(crate) async fn create_session(
 
     let login_event_type = "AUTHENTICATION".to_string();
 
+    // Check that MFA state is correct before proceeding further
+    user.verify_mfa_state(pool).await?;
+
     info!("Authenticated user {}", user.username);
     if user.mfa_enabled {
         debug!(
@@ -85,7 +88,7 @@ pub(crate) async fn create_session(
                 pool,
                 mail_tx,
                 &session,
-                &user,
+                user,
                 ip_address.to_string(),
                 login_event_type,
                 agent,
@@ -104,13 +107,13 @@ pub(crate) async fn create_session(
             "User {} has MFA disabled, returning user info for login.",
             user.username
         );
-        let user_info = UserInfo::from_user(pool, &user).await?;
+        let user_info = UserInfo::from_user(pool, user).await?;
 
         check_new_device_login(
             pool,
             mail_tx,
             &session,
-            &user,
+            user,
             ip_address.to_string(),
             login_event_type,
             agent,
@@ -138,7 +141,7 @@ pub(crate) async fn authenticate(
     // check if user can proceed with login
     check_username(&appstate.failed_logins, &username)?;
 
-    let user = match User::find_by_username(&appstate.pool, &username).await {
+    let mut user = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
             Ok(()) => {
                 if user.is_active {
@@ -202,7 +205,7 @@ pub(crate) async fn authenticate(
         &appstate.mail_tx,
         ip_address,
         user_agent.as_str(),
-        &user,
+        &mut user,
     )
     .await?;
 

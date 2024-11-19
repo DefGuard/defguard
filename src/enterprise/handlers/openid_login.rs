@@ -375,7 +375,7 @@ pub(crate) async fn auth_callback(
         .remove(Cookie::from(CSRF_COOKIE_NAME));
 
     let config = server_config();
-    let user = user_from_claims(
+    let mut user = user_from_claims(
         &appstate.pool,
         Nonce::new(cookie_nonce),
         payload.code,
@@ -389,7 +389,7 @@ pub(crate) async fn auth_callback(
         &appstate.mail_tx,
         ip_address,
         user_agent.as_str(),
-        &user,
+        &mut user,
     )
     .await?;
 

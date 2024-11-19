@@ -90,9 +90,6 @@ export const AuthPage = () => {
         setMFAStore(mfa);
         let mfaUrl = '';
         switch (mfa.mfa_method) {
-          case UserMFAMethod.WEB3:
-            mfaUrl = '/auth/mfa/web3';
-            break;
           case UserMFAMethod.WEB_AUTH_N:
             mfaUrl = '/auth/mfa/webauthn';
             break;
