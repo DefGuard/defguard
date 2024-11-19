@@ -7,7 +7,7 @@ use serde_json::json;
 use super::{
     mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
     ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
-    WalletChallenge, WalletChange, WalletSignature,
+    WalletChallenge, WalletSignature,
 };
 use crate::{
     appstate::AppState,
@@ -1148,8 +1148,6 @@ pub async fn set_wallet(
 pub async fn update_wallet(
     session: SessionInfo,
     Path((username, address)): Path<(String, String)>,
-    State(appstate): State<AppState>,
-    Json(data): Json<WalletChange>,
 ) -> ApiResult {
     debug!(
         "User {} updating wallet {address} for user {username}",

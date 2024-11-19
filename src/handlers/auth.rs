@@ -754,7 +754,6 @@ pub async fn web3auth_start(
 
 /// Finish Web3 authentication
 pub async fn web3auth_end(
-    State(appstate): State<AppState>,
     Json(signature): Json<WalletSignature>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     debug!(
