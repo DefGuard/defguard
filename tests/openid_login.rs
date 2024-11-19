@@ -1,8 +1,8 @@
 use chrono::{Duration, Utc};
-use common::{exceed_enterprise_limits, make_test_client_with_real_url};
+use common::{exceed_enterprise_limits, make_test_client, make_test_client_with_real_url};
 use defguard::db::{models::oauth2client::OAuth2Client, Id};
+use defguard::enterprise::license::get_cached_license;
 use defguard::{
-    config::DefGuardConfig,
     db::models::NewOpenIDClient,
     enterprise::{
         handlers::openid_providers::AddProviderData,
@@ -12,23 +12,17 @@ use defguard::{
 };
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
-use tokio::net::TcpListener;
 
 mod common;
-use self::common::{client::TestClient, make_base_client, make_test_client};
+use self::common::client::TestClient;
 
 async fn make_client() -> TestClient {
-    let (client, _) = make_test_client_with_real_url().await;
+    let (client, _) = make_test_client().await;
     client
 }
 
-#[allow(dead_code)]
-async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("Could not bind ephemeral socket");
-    let (client, _) = make_base_client(pool, config, listener).await;
+async fn make_client_with_real_url() -> TestClient {
+    let (client, _) = make_test_client_with_real_url().await;
     client
 }
 
@@ -99,12 +93,11 @@ async fn test_openid_providers() {
 #[tokio::test]
 async fn test_openid_login() {
     // Test setup
-    let client = make_client().await;
+    let client = make_client_with_real_url().await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let url = client.base_url();
-    exceed_enterprise_limits(&client).await;
 
     // Add an OpenID client
     let redirect_uri = format!("{}/auth/callback", &url);
