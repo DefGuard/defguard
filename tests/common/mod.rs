@@ -37,8 +37,8 @@ pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri
 
 /// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
 // TODO: Allow customizing the whole config, not just the URL
-pub fn init_config(defguard_url: Option<&str>) -> DefGuardConfig {
-    let url = defguard_url.unwrap_or("http://localhost:8000");
+pub fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
+    let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let mut config = DefGuardConfig::new_test_config();
     config.url = Url::from_str(url).unwrap();
     let _ = SERVER_CONFIG.set(config.clone());
@@ -194,6 +194,18 @@ fn get_test_url(listener: &TcpListener) -> String {
 
 #[allow(dead_code)]
 pub async fn make_test_client() -> (TestClient, ClientState) {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Could not bind ephemeral socket");
+    let config = init_config(None);
+    let pool = init_test_db(&config).await;
+    make_base_client(pool, config, listener).await
+}
+
+/// Makes a test client with a DEFGUARD_URL set to the random url of the listener.
+/// This is useful when the instance's url real url needs to match the one set in the ENV variable.
+#[allow(dead_code)]
+pub async fn make_test_client_with_real_url() -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");

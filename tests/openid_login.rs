@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use common::exceed_enterprise_limits;
+use common::{exceed_enterprise_limits, make_test_client_with_real_url};
 use defguard::db::{models::oauth2client::OAuth2Client, Id};
 use defguard::{
     config::DefGuardConfig,
@@ -19,7 +19,7 @@ mod common;
 use self::common::{client::TestClient, make_base_client, make_test_client};
 
 async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client_with_real_url().await;
     client
 }
 
