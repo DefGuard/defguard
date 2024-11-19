@@ -140,7 +140,7 @@ pub async fn make_base_client(
 
     let license = License::new(
         "test_customer".to_string(),
-        true,
+        false,
         // Some(Utc.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap()),
         // Permanent license
         None,
