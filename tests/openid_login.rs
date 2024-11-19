@@ -1,9 +1,7 @@
 use chrono::{Duration, Utc};
 use common::{exceed_enterprise_limits, make_test_client};
-use defguard::db::{models::oauth2client::OAuth2Client, Id};
 use defguard::enterprise::license::get_cached_license;
 use defguard::{
-    db::models::NewOpenIDClient,
     enterprise::{
         handlers::openid_providers::AddProviderData,
         license::{set_cached_license, License},
@@ -11,7 +9,7 @@ use defguard::{
     handlers::Auth,
 };
 use reqwest::{StatusCode, Url};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 mod common;
 use self::common::client::TestClient;

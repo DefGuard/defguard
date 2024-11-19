@@ -40,12 +40,11 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct WalletInfo {
     pub address: String,
     pub name: String,
     pub chain_id: Id,
-    pub use_for_mfa: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -217,7 +216,6 @@ impl UserDetails {
 pub struct MFAInfo {
     mfa_method: MFAMethod,
     totp_available: bool,
-    web3_available: bool,
     webauthn_available: bool,
     email_available: bool,
 }
@@ -227,7 +225,6 @@ impl MFAInfo {
         query_as!(
             Self,
             "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, \
-            (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", \
             (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" \
             FROM \"user\" WHERE \"user\".id = $1",
             user.id
@@ -236,10 +233,7 @@ impl MFAInfo {
 
     #[must_use]
     pub fn mfa_available(&self) -> bool {
-        self.webauthn_available
-            || self.totp_available
-            || self.web3_available
-            || self.email_available
+        self.webauthn_available || self.totp_available || self.email_available
     }
 
     #[must_use]
@@ -256,9 +250,6 @@ impl MFAInfo {
         let mut methods = Vec::new();
         if self.webauthn_available {
             methods.push(MFAMethod::Webauthn);
-        }
-        if self.web3_available {
-            methods.push(MFAMethod::Web3);
         }
         if self.totp_available {
             methods.push(MFAMethod::OneTimePassword);
