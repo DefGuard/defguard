@@ -17,7 +17,16 @@ export const CreateOpenIdClient = async (browser: Browser, client: OpenIdClient)
   await modalElement.waitFor({ state: 'visible' });
   const modalForm = modalElement.locator('form');
   await modalForm.getByTestId('field-name').type(client.name);
-  await modalForm.getByTestId('field-redirect_uri.0.url').type(client.redirectURL);
+  const urls = client.redirectURL.length;
+  for (let i = 0; i < urls; i++) {
+    const isLast = i === urls - 1;
+    await modalForm
+      .getByTestId(`field-redirect_uri.${i}.url`)
+      .fill(client.redirectURL[i]);
+    if (!isLast) {
+      await modalForm.locator('button:has-text("Add URL")').click();
+    }
+  }
   for (const scope of client.scopes) {
     await modalForm.getByTestId(`field-scope-${scope}`).click();
   }
