@@ -36,6 +36,7 @@ export const OpenIdSettingsForm = () => {
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
   const queryClient = useQueryClient();
   const docsLink =
+    // eslint-disable-next-line max-len
     'https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers';
   const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
 
