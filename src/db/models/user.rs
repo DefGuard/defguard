@@ -15,7 +15,6 @@ use totp_lite::{totp_custom, Sha1};
 use super::{
     device::{Device, UserDevice},
     group::Group,
-    wallet::Wallet,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
@@ -234,7 +233,6 @@ impl User<Id> {
 
     /// Check if any of the multi-factor authentication methods is on.
     /// - TOTP is enabled
-    /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
     async fn check_mfa_enabled<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
     where
@@ -246,9 +244,8 @@ impl User<Id> {
         }
 
         query_scalar!(
-            "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+            "SELECT totp_enabled OR email_mfa_enabled \
             OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
-            LEFT JOIN wallet ON wallet.user_id = \"user\".id \
             LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
             WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
             self.id
@@ -360,7 +357,6 @@ impl User<Id> {
         )
         .execute(pool)
         .await?;
-        Wallet::disable_mfa_for_user(pool, self.id).await?;
         WebAuthn::delete_all_for_user(pool, self.id).await?;
 
         self.totp_secret = None;
@@ -727,7 +723,7 @@ impl User<Id> {
     {
         query_as!(
             WalletInfo,
-            "SELECT address \"address!\", name, chain_id, use_for_mfa \
+            "SELECT address \"address!\", name, chain_id \
             FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
             self.id
         )

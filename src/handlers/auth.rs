@@ -754,8 +754,6 @@ pub async fn web3auth_start(
 
 /// Finish Web3 authentication
 pub async fn web3auth_end(
-    private_cookies: PrivateCookieJar,
-    mut session: Session,
     State(appstate): State<AppState>,
     Json(signature): Json<WalletSignature>,
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
@@ -763,61 +761,6 @@ pub async fn web3auth_end(
         "Finishing web3 authentication for wallet {}",
         signature.address
     );
-    if let Some(ref challenge) = session.web3_challenge {
-        if let Some(wallet) =
-            Wallet::find_by_user_and_address(&appstate.pool, session.user_id, &signature.address)
-                .await?
-        {
-            if wallet.use_for_mfa {
-                return match wallet.verify_address(challenge, &signature.signature) {
-                    Ok(true) => {
-                        session
-                            .set_state(&appstate.pool, SessionState::MultiFactorVerified)
-                            .await?;
-                        if let Some(user) =
-                            User::find_by_id(&appstate.pool, session.user_id).await?
-                        {
-                            let username = user.username.clone();
-                            let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-                            info!(
-                                "User {username} authenticated with wallet {}",
-                                signature.address
-                            );
-                            if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
-                                debug!("Found openid session cookie.");
-                                let redirect_url = openid_cookie.value().to_string();
-                                let private_cookies = private_cookies.remove(openid_cookie);
-                                Ok((
-                                    private_cookies,
-                                    ApiResponse {
-                                        json: json!(AuthResponse {
-                                            user: user_info,
-                                            url: Some(redirect_url),
-                                        }),
-                                        status: StatusCode::OK,
-                                    },
-                                ))
-                            } else {
-                                Ok((
-                                    private_cookies,
-                                    ApiResponse {
-                                        json: json!(AuthResponse {
-                                            user: user_info,
-                                            url: None,
-                                        }),
-                                        status: StatusCode::OK,
-                                    },
-                                ))
-                            }
-                        } else {
-                            Ok((private_cookies, ApiResponse::default()))
-                        }
-                    }
-                    _ => Err(WebError::Authorization("Signature not verified".into())),
-                };
-            }
-        }
-    }
     Err(WebError::Http(StatusCode::BAD_REQUEST))
 }
 

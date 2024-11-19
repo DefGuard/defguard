@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, address, name, chain_id, challenge_message, challenge_signature, creation_timestamp, validation_timestamp, use_for_mfa FROM wallet WHERE user_id = $1 AND address = $2",
+  "query": "SELECT id, user_id, address, name, chain_id, challenge_message, challenge_signature, creation_timestamp, validation_timestamp FROM wallet WHERE user_id = $1 AND address = $2",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,6 @@
         "ordinal": 8,
         "name": "validation_timestamp",
         "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 9,
-        "name": "use_for_mfa",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -69,9 +64,8 @@
       false,
       true,
       false,
-      true,
-      false
+      true
     ]
   },
-  "hash": "e48af3ee182c0f3829a2248faf705626b1ad29755fef9758f88353e786a1b2ed"
+  "hash": "b120af63a9a1faaa8f64db27ca2989525bfaedcf7f3e025ec9fc80ae734681e0"
 }

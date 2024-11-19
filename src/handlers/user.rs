@@ -3,13 +3,11 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
-use utoipa::ToSchema;
 
 use super::{
-    mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
-    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
-    WalletChange, WalletSignature,
+    mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
+    ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
+    WalletChallenge, WalletChange, WalletSignature,
 };
 use crate::{
     appstate::AppState,
@@ -18,9 +16,10 @@ use crate::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+            WalletInfo,
         },
-        AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
-        UserInfo, Wallet, WebAuthn, WireguardNetwork,
+        AppEvent, GatewayEvent, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn, WireguardNetwork,
     },
     enterprise::limits::update_counts,
     error::WebError,
@@ -984,14 +983,6 @@ pub async fn reset_password(
     }
 }
 
-/// Similar to [`models::WalletInfo`] but without `use_for_mfa`.
-#[derive(Deserialize, ToSchema)]
-pub struct WalletInfoShort {
-    pub address: String,
-    pub name: String,
-    pub chain_id: i64,
-}
-
 /// Wallet challenge
 ///
 /// Endpoint allows to generate a wallet challenge for ownership verification.
@@ -1020,7 +1011,7 @@ pub async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Query(wallet_info): Query<WalletInfoShort>,
+    Query(wallet_info): Query<WalletInfo>,
 ) -> ApiResult {
     debug!(
         "User {} generating wallet challenge for user {username}",
@@ -1164,61 +1155,7 @@ pub async fn update_wallet(
         "User {} updating wallet {address} for user {username}",
         session.user.username,
     );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id, &address).await?
-    {
-        if wallet.user_id == user.id {
-            let mfa_change = wallet.use_for_mfa != data.use_for_mfa;
-            wallet.use_for_mfa = data.use_for_mfa;
-            wallet.save(&appstate.pool).await?;
-            if mfa_change {
-                if data.use_for_mfa {
-                    debug!("Wallet {} MFA flag enabled", wallet.address);
-                    if !user.mfa_enabled {
-                        // send notification email about enabled MFA
-                        send_mfa_configured_email(
-                            Some(&session.session),
-                            &user,
-                            &MFAMethod::Web3,
-                            &appstate.mail_tx,
-                        )?;
-                        user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                        let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
-                        info!("User {} MFA enabled", username);
-                        info!(
-                            "User {} updated wallet {address} for user {username}",
-                            session.user.username,
-                        );
-                        return Ok(ApiResponse {
-                            json: json!(RecoveryCodes::new(recovery_codes)),
-                            status: StatusCode::OK,
-                        });
-                    }
-                } else {
-                    debug!("Wallet {} MFA flag removed", wallet.address);
-                    user.verify_mfa_state(&appstate.pool).await?;
-                }
-            }
-            info!(
-                "User {} updated wallet {address} for user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse::default())
-        } else {
-            error!(
-                "User {} failed to update wallet {address} for user {username} (id: {}), the owner id is {}",
-                session.user.username, user.id, wallet.user_id
-            );
-            Err(WebError::ObjectNotFound("wrong wallet".into()))
-        }
-    } else {
-        error!(
-            "User {} failed to update wallet {address} for user {username}, wallet not found",
-            session.user.username
-        );
-        Err(WebError::ObjectNotFound("wallet not found".into()))
-    }
+    Err(WebError::ObjectNotFound("deprecated wallet update".into()))
 }
 
 /// Delete wallet.

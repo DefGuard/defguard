@@ -79,7 +79,6 @@ export interface WalletInfo {
   address: string;
   chain_id: number;
   name: string;
-  use_for_mfa: boolean;
 }
 
 export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
@@ -295,7 +294,6 @@ export interface UserEditRequest {
 export interface EditWalletMFARequest {
   username: string;
   address: string;
-  use_for_mfa: boolean;
 }
 
 export interface MFALoginResponse {

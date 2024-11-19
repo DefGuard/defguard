@@ -1,1 +1,1 @@
-UPDATE wallet SET use_for_mfa = false;
+ALTER TABLE wallet DROP use_for_mfa;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT address \"address!\", name, chain_id, use_for_mfa FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
+  "query": "SELECT address \"address!\", name, chain_id FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -17,11 +17,6 @@
         "ordinal": 2,
         "name": "chain_id",
         "type_info": "Int8"
-      },
-      {
-        "ordinal": 3,
-        "name": "use_for_mfa",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -32,9 +27,8 @@
     "nullable": [
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "2e73d767e5c98702de3d5340e9f0818f346d9d25547aedd4dc388347b7620cfd"
+  "hash": "1c220b1ba44ec49ad6423e97635995ecb9c0fcb8762c25aa960e7b5a2e49963b"
 }

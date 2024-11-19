@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, (SELECT count(*) > 0 FROM wallet WHERE user_id = $1 AND wallet.use_for_mfa) \"web3_available!\", (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" FROM \"user\" WHERE \"user\".id = $1",
+  "query": "SELECT mfa_method \"mfa_method: _\", totp_enabled totp_available, email_mfa_enabled email_available, (SELECT count(*) > 0 FROM webauthn WHERE user_id = $1) \"webauthn_available!\" FROM \"user\" WHERE \"user\".id = $1",
   "describe": {
     "columns": [
       {
@@ -33,11 +33,6 @@
       },
       {
         "ordinal": 3,
-        "name": "web3_available!",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 4,
         "name": "webauthn_available!",
         "type_info": "Bool"
       }
@@ -51,9 +46,8 @@
       false,
       false,
       false,
-      null,
       null
     ]
   },
-  "hash": "7faf2df7356d7887e9780894568b76674eef0d3848f3805778291df5d4fa3537"
+  "hash": "5aaac5fbf3656a825ab33f07dd9bf8698c283d3158c7b6806a24d777819c7e64"
 }
