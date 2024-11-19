@@ -405,9 +405,14 @@ pub async fn authorization(
                                     let _result = session.delete(&appstate.pool).await;
                                     Ok(login_redirect(&data, private_cookies))
                                 } else {
-                                    let user = User::find_by_id(&appstate.pool, session.user_id)
-                                        .await?
-                                        .ok_or(WebError::Authorization("User not found".into()))?;
+                                    let mut user =
+                                        User::find_by_id(&appstate.pool, session.user_id)
+                                            .await?
+                                            .ok_or(WebError::Authorization(
+                                                "User not found".into(),
+                                            ))?;
+
+                                    user.verify_mfa_state(&appstate.pool).await?;
 
                                     // Session exists even if user hasn't completed MFA verification yet,
                                     // thus we need to check if MFA is enabled and the verification is done.

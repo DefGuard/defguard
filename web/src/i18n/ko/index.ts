@@ -376,7 +376,7 @@ const ko: BaseTranslation = {
           },
           enableEnrollment: {
             label: '등록 프로세스 사용',
-            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">자세한 정보는 여기를 참고하세요</a>',
+            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">자세한 정보는 여기를 참고하세요</a>',
           },
         },
       },
@@ -443,7 +443,7 @@ const ko: BaseTranslation = {
     title: '장치 추가',
     helpers: {
       setupOpt: `이 마법사를 사용하여 장치를 추가할 수 있습니다. 당사의 기본 애플리케이션인 "defguard" 또는 다른 WireGuard 클라이언트를 선택하세요. 잘 모르시겠다면 간편하게 defguard를 사용하는 것을 권장합니다.`,
-      client: `defguard 데스크톱 클라이언트는 <a href="https://defguard.net/download" target="_blank">여기</a>에서 다운로드하고 <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">이 가이드</a>를 따르세요.`,
+      client: `defguard 데스크톱 클라이언트는 <a href="https://defguard.net/download" target="_blank">여기</a>에서 다운로드하고 <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">이 가이드</a>를 따르세요.`,
     },
     messages: {
       deviceAdded: '장치가 추가되었습니다',
@@ -1572,7 +1572,7 @@ const ko: BaseTranslation = {
       noConnection: `연결이 설정되지 않았습니다. 제공된 명령을 실행하십시오.`,
       connected: `게이트웨이가 연결되었습니다.`,
       statusError: '게이트웨이 상태를 가져오지 못했습니다',
-      oneLineInstall: `한 줄 설치를 수행하는 경우: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `한 줄 설치를 수행하는 경우: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
           아무 것도 할 필요가 없습니다.`,
       fromPackage: `https://github.com/DefGuard/gateway/releases/latest에서 사용 가능한 패키지를 설치하고 [문서]({setupGatewayDocs:string})에 따라 \`/etc/defguard/gateway.toml\`을 구성하십시오.
           `,
@@ -1797,7 +1797,7 @@ const ko: BaseTranslation = {
     supportCard: {
       title: '지원',
       body: `
-GitHub에 문의하거나 문제를 제출하기 전에 [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)에서 제공되는 Defguard 문서를 숙지하십시오.
+GitHub에 문의하거나 문제를 제출하기 전에 [docs.defguard.net](https://docs.defguard.net/)에서 제공되는 Defguard 문서를 숙지하십시오.
 
 제출하려면:
 * 버그 - [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)로 이동하십시오.

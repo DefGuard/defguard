@@ -16,20 +16,14 @@ export const MFANav = () => {
   const localLL = LL.loginPage.mfa;
 
   const totpRoute = useMatch('/auth/mfa/totp');
-  const web3Route = useMatch('/auth/mfa/web3');
   const webAuthNRoute = useMatch('/auth/mfa/webauthn');
   const emailRoute = useMatch('/auth/mfa/email');
   const recoveryRoute = useMatch('/auth/mfa/recovery');
 
   const navigate = useNavigate();
 
-  const [emailAvailable, totpAvailable, web3Available, webauthnAvailable] = useMFAStore(
-    (state) => [
-      state.email_available,
-      state.totp_available,
-      state.web3_available,
-      state.webauthn_available,
-    ],
+  const [emailAvailable, totpAvailable, webauthnAvailable] = useMFAStore(
+    (state) => [state.email_available, state.totp_available, state.webauthn_available],
     shallow,
   );
 
@@ -44,17 +38,12 @@ export const MFANav = () => {
     if (webauthnAvailable && !webAuthNRoute) {
       res.push(UserMFAMethod.WEB_AUTH_N);
     }
-    if (web3Available && !web3Route) {
-      res.push(UserMFAMethod.WEB3);
-    }
     return res;
   }, [
     totpRoute,
     emailRoute,
     totpAvailable,
     emailAvailable,
-    web3Available,
-    web3Route,
     webauthnAvailable,
     webAuthNRoute,
   ]);
@@ -78,12 +67,6 @@ export const MFANav = () => {
         text: localLL.controls.useWebauthn(),
         link: '/auth/mfa/webauthn',
         type: UserMFAMethod.WEB_AUTH_N,
-      },
-      {
-        key: 3,
-        text: localLL.controls.useWallet(),
-        link: '/auth/mfa/web3',
-        type: UserMFAMethod.WEB3,
       },
     ];
 

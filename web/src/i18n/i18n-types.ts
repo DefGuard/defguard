@@ -884,7 +884,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
+						 * <​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​e​n​r​o​l​l​m​e​n​t​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​h​e​r​e​<​/​a​>
 						 */
 						link: string
 					}
@@ -1036,7 +1036,7 @@ type RootTranslation = {
 			 */
 			setupOpt: string
 			/**
-			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
+			 * P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​n​e​t​/​d​o​w​n​l​o​a​d​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​h​e​r​e​<​/​a​>​ ​a​n​d​ ​t​h​e​n​ ​f​o​l​l​o​w​ ​<​a​ ​h​r​e​f​=​"​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​h​e​l​p​/​c​o​n​f​i​g​u​r​i​n​g​-​v​p​n​/​a​d​d​-​n​e​w​-​i​n​s​t​a​n​c​e​"​ ​t​a​r​g​e​t​=​"​_​b​l​a​n​k​"​>​t​h​i​s​ ​g​u​i​d​e​<​/​a​>​.
 			 */
 			client: string
 		}
@@ -3795,7 +3795,7 @@ type RootTranslation = {
 			 */
 			statusError: string
 			/**
-			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
+			 * I​f​ ​y​o​u​ ​a​r​e​ ​d​o​i​n​g​ ​o​n​e​ ​l​i​n​e​ ​i​n​s​t​a​l​l​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​a​d​m​i​n​-​a​n​d​-​f​e​a​t​u​r​e​s​/​s​e​t​t​i​n​g​-​u​p​-​y​o​u​r​-​i​n​s​t​a​n​c​e​/​o​n​e​-​l​i​n​e​-​i​n​s​t​a​l​l​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​y​o​u​ ​d​o​n​'​t​ ​n​e​e​d​ ​t​o​ ​d​o​ ​a​n​y​t​h​i​n​g​.
 			 */
 			oneLineInstall: string
@@ -4295,7 +4295,7 @@ type RootTranslation = {
 			title: string
 			/**
 			 * 
-		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​]​(​h​t​t​p​s​:​/​/​d​e​f​g​u​a​r​d​.​g​i​t​b​o​o​k​.​i​o​/​d​e​f​g​u​a​r​d​/​)​
+		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​)​
 		​
 		​T​o​ ​s​u​b​m​i​t​:​
 		​*​ ​B​u​g​s​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​b​u​g​&​t​e​m​p​l​a​t​e​=​b​u​g​_​r​e​p​o​r​t​.​m​d​&​t​i​t​l​e​=​)​
@@ -5167,7 +5167,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * <a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>
+						 * <a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>
 						 */
 						link: () => LocalizedString
 					}
@@ -5318,7 +5318,7 @@ export type TranslationFunctions = {
 			 */
 			setupOpt: () => LocalizedString
 			/**
-			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
+			 * Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.
 			 */
 			client: () => LocalizedString
 		}
@@ -8059,7 +8059,7 @@ export type TranslationFunctions = {
 			 */
 			statusError: () => LocalizedString
 			/**
-			 * If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
+			 * If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
 		          you don't need to do anything.
 			 */
 			oneLineInstall: () => LocalizedString
@@ -8556,7 +8556,7 @@ export type TranslationFunctions = {
 			title: () => LocalizedString
 			/**
 			 * 
-		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [docs.defguard.net](https://docs.defguard.net/)
 	
 		To submit:
 		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)

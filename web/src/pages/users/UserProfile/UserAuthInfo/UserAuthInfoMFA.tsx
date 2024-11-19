@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { cloneDeep, isUndefined } from 'lodash-es';
+import { cloneDeep } from 'lodash-es';
 import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -46,11 +46,6 @@ export const UserAuthInfoMFA = () => {
 
   const mfaWebAuthNEnabled = useMemo(
     () => userProfile?.security_keys && userProfile.security_keys.length > 0,
-    [userProfile],
-  );
-
-  const mfaWeb3Enabled = useMemo(
-    () => !isUndefined(userProfile?.wallets.find((w) => w.use_for_mfa === true)),
     [userProfile],
   );
 
@@ -161,28 +156,6 @@ export const UserAuthInfoMFA = () => {
       }
     }
     return LL.userPage.userAuthInfo.mfa.disabled();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, locale]);
-
-  const getWalletsInfoText = useMemo(() => {
-    if (userProfile) {
-      const userAuthorizedWallets = userProfile.wallets.filter((w) => w.use_for_mfa);
-      if (userAuthorizedWallets && userAuthorizedWallets.length) {
-        const res = [
-          `${userAuthorizedWallets.length} ${
-            userAuthorizedWallets.length > 1
-              ? LL.userPage.userAuthInfo.mfa.wallet.plural()
-              : LL.userPage.userAuthInfo.mfa.wallet.singular()
-          }`,
-        ];
-        if (userProfile.user.mfa_method === UserMFAMethod.WEB3) {
-          res.push(`(${LL.userPage.userAuthInfo.mfa.default()})`);
-        }
-        return res.join(' ');
-      }
-      return LL.userPage.userAuthInfo.mfa.disabled();
-    }
-    return '';
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile, locale]);
 
@@ -301,21 +274,6 @@ export const UserAuthInfoMFA = () => {
               </EditButton>
             </div>
           </RowBox>
-          <RowBox>
-            <p>{LL.userPage.userAuthInfo.mfa.labels.wallets()}</p>
-            <div className="right">
-              <span>{getWalletsInfoText}</span>
-              <EditButton>
-                <EditButtonOption
-                  disabled={
-                    userProfile?.user.mfa_method === UserMFAMethod.WEB3 || !mfaWeb3Enabled
-                  }
-                  text={LL.userPage.userAuthInfo.mfa.editMode.makeDefault()}
-                  onClick={() => changeDefaultMFAMethod(UserMFAMethod.WEB3)}
-                />
-              </EditButton>
-            </div>
-          </RowBox>
         </>
       ) : (
         <>
@@ -332,10 +290,6 @@ export const UserAuthInfoMFA = () => {
           <div className="row">
             <p>{LL.userPage.userAuthInfo.mfa.labels.webauth()}</p>
             <p className="info">{getWebAuthNInfoText}</p>
-          </div>
-          <div className="row">
-            <p>{LL.userPage.userAuthInfo.mfa.labels.wallets()}</p>
-            <p className="info">{getWalletsInfoText}</p>
           </div>
         </>
       )}

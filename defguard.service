@@ -1,6 +1,6 @@
 [Unit]
 Description=defguard core service
-Documentation=https://defguard.gitbook.io/defguard/
+Documentation=https://docs.defguard.net/
 Wants=network-online.target
 After=network-online.target
 
