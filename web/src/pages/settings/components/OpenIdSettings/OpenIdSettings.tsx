@@ -1,6 +1,9 @@
 import './style.scss';
 
+import parse from 'html-react-parser';
+
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/BigInfoBox/BigInfoBox';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
@@ -28,6 +31,13 @@ export const OpenIdSettings = () => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+      {!enterpriseStatus?.needs_license && !enterpriseStatus?.license_info && (
+        <div className="license-not-required-container">
+          <BigInfoBox
+            message={parse(LL.settingsPage.license.licenseInfo.licenseNotRequired())}
+          />
         </div>
       )}
       <div className="left">

@@ -15,7 +15,6 @@ use totp_lite::{totp_custom, Sha1};
 use super::{
     device::{Device, UserDevice},
     group::Group,
-    wallet::Wallet,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
@@ -80,6 +79,7 @@ pub struct User<I = NoId> {
     pub is_active: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
+    // FIXME: must be unique
     pub openid_sub: Option<String>,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -136,7 +136,7 @@ impl<I> User<I> {
         self.password_hash = hash_password(password).ok();
     }
 
-    pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
+    pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
         match &self.password_hash {
             Some(hash) => {
                 let parsed_hash = PasswordHash::new(hash)?;
@@ -150,12 +150,12 @@ impl<I> User<I> {
     }
 
     #[must_use]
-    pub fn has_password(&self) -> bool {
+    pub(crate) fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
     #[must_use]
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
 
@@ -163,7 +163,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub fn is_enrolled(&self) -> bool {
+    pub(crate) fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some()
     }
 }
@@ -233,7 +233,6 @@ impl User<Id> {
 
     /// Check if any of the multi-factor authentication methods is on.
     /// - TOTP is enabled
-    /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
     async fn check_mfa_enabled<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
     where
@@ -245,9 +244,8 @@ impl User<Id> {
         }
 
         query_scalar!(
-            "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+            "SELECT totp_enabled OR email_mfa_enabled \
             OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
-            LEFT JOIN wallet ON wallet.user_id = \"user\".id \
             LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
             WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
             self.id
@@ -359,7 +357,6 @@ impl User<Id> {
         )
         .execute(pool)
         .await?;
-        Wallet::disable_mfa_for_user(pool, self.id).await?;
         WebAuthn::delete_all_for_user(pool, self.id).await?;
 
         self.totp_secret = None;
@@ -635,9 +632,9 @@ impl User<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
             FROM \"user\" WHERE email = $1",
             email
         )
@@ -645,16 +642,17 @@ impl User<Id> {
         .await
     }
 
+    // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE openid_sub = $1",
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
         .fetch_optional(executor)
@@ -725,7 +723,7 @@ impl User<Id> {
     {
         query_as!(
             WalletInfo,
-            "SELECT address \"address!\", name, chain_id, use_for_mfa \
+            "SELECT address \"address!\", name, chain_id \
             FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
             self.id
         )

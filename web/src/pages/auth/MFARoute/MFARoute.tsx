@@ -10,7 +10,6 @@ import { MFAEmail } from './MFAEmail/MFAEmail';
 import { MFANav } from './MFANav/MFANav';
 import { MFARecovery } from './MFARecovery/MFARecovery';
 import { MFATOTPAuth } from './MFATOTPAuth/MFATOTPAuth';
-import { MFAWeb3 } from './MFAWeb3/MFAWeb3';
 import { MFAWebAuthN } from './MFAWebAuthN/MFAWebAuthN';
 
 export const MFARoute = () => {
@@ -22,7 +21,6 @@ export const MFARoute = () => {
         <Route index element={<RedirectToDefaultMFA />} />
         <Route path="totp" element={<MFATOTPAuth />} />
         <Route path="webauthn" element={<MFAWebAuthN />} />
-        <Route path="web3" element={<MFAWeb3 />} />
         <Route path="email" element={<MFAEmail />} />
         <Route path="recovery" element={<MFARecovery />} />
         <Route path="/*" element={<RedirectToDefaultMFA />} />
@@ -38,9 +36,6 @@ const RedirectToDefaultMFA = () => {
 
   useEffect(() => {
     switch (defaultMFAMethod) {
-      case UserMFAMethod.WEB3:
-        navigate('/auth/mfa/web3', { replace: true });
-        break;
       case UserMFAMethod.WEB_AUTH_N:
         navigate('/auth/mfa/webauthn', { replace: true });
         break;

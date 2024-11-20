@@ -376,7 +376,7 @@ const en: BaseTranslation = {
           },
           enableEnrollment: {
             label: 'Use user self-enrollment process',
-            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">more information here</a>',
+            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">more information here</a>',
           },
         },
       },
@@ -443,7 +443,7 @@ const en: BaseTranslation = {
     title: 'Add device',
     helpers: {
       setupOpt: `You can add a device using this wizard. Opt for our native application "defguard" or any other WireGuard client. If you're unsure, we recommend using defguard for simplicity.`,
-      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
+      client: `Please download defguard desktop client <a href="https://defguard.net/download" target="_blank">here</a> and then follow <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">this guide</a>.`,
     },
     messages: {
       deviceAdded: 'Device added',
@@ -856,6 +856,7 @@ const en: BaseTranslation = {
       portMax: 'Maximum port is 65535.',
       endpoint: 'Enter a valid endpoint.',
       address: 'Enter a valid address.',
+      addressNetmask: 'Enter a valid address with a netmask.',
       validPort: 'Enter a valid port.',
       validCode: 'Code should have 6 digits.',
       allowedIps: 'Only valid IP or domain is allowed.',
@@ -981,6 +982,11 @@ const en: BaseTranslation = {
             helper:
               'Base URL of your OpenID provider, e.g. https://accounts.google.com. Make sure to check our documentation for more information and examples.',
           },
+          display_name: {
+            label: 'Display Name',
+            helper:
+              "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
+          },
         },
       },
     },
@@ -1088,6 +1094,8 @@ const en: BaseTranslation = {
       licenseInfo: {
         title: 'License information',
         noLicense: 'No license',
+        licenseNotRequired:
+          "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {
           subscription: {
             label: 'Subscription',
@@ -1587,7 +1595,7 @@ const en: BaseTranslation = {
       noConnection: `No connection established, please run provided command.`,
       connected: `Gateway connected.`,
       statusError: 'Failed to get gateway status',
-      oneLineInstall: `If you are doing one line install: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `If you are doing one line install: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
           you don't need to do anything.`,
       fromPackage: `Install the package available at https://github.com/DefGuard/gateway/releases/latest and configure \`/etc/defguard/gateway.toml\`
           according to the [documentation]({setupGatewayDocs:string}).`,
@@ -1599,6 +1607,7 @@ const en: BaseTranslation = {
   },
   loginPage: {
     pageTitle: 'Enter your credentials',
+    oidcLogin: 'Sign in with',
     callback: {
       return: 'Go back to login',
       error: 'An error occurred during external OpenID login',
@@ -1812,7 +1821,7 @@ If you need assistance or you were asked to generate support data by our team (f
     supportCard: {
       title: 'Support',
       body: `
-Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [docs.defguard.net](https://docs.defguard.net/)
 
 To submit:
 * Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)

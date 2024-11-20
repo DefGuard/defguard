@@ -112,7 +112,10 @@ impl Token {
         }
     }
 
-    pub async fn save(&self, transaction: &mut PgConnection) -> Result<(), TokenError> {
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
         query!(
             "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type) \
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
@@ -125,7 +128,7 @@ impl Token {
             self.used_at,
             self.token_type,
         )
-        .execute(transaction)
+        .execute(executor)
         .await?;
         Ok(())
     }
@@ -253,10 +256,13 @@ impl Token {
         Ok(user)
     }
 
-    pub async fn delete_unused_user_tokens(
-        transaction: &mut PgConnection,
+    pub async fn delete_unused_user_tokens<'e, E>(
+        executor: E,
         user_id: Id,
-    ) -> Result<(), TokenError> {
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
         debug!("Deleting unused tokens for the user.");
         let result = query!(
             "DELETE FROM token \
@@ -264,7 +270,7 @@ impl Token {
             AND used_at IS NULL",
             user_id
         )
-        .execute(transaction)
+        .execute(executor)
         .await?;
         info!(
             "Deleted {} unused enrollment tokens for the user.",
@@ -588,12 +594,15 @@ impl User<Id> {
     }
 
     // Remove unused tokens when triggering user enrollment
-    async fn clear_unused_enrollment_tokens(
+    pub(crate) async fn clear_unused_enrollment_tokens<'e, E>(
         &self,
-        transaction: &mut PgConnection,
-    ) -> Result<(), TokenError> {
+        executor: E,
+    ) -> Result<(), TokenError>
+    where
+        E: PgExecutor<'e>,
+    {
         info!("Removing unused tokens for user {}.", self.username);
-        Token::delete_unused_user_tokens(transaction, self.id).await
+        Token::delete_unused_user_tokens(executor, self.id).await
     }
 }
 

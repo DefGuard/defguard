@@ -10,6 +10,7 @@ use std::{
 };
 
 use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
 #[cfg(feature = "worker")]
@@ -27,7 +28,6 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
-use uaparser::UserAgentParser;
 use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
@@ -46,11 +46,15 @@ use self::{
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
-    db::{AppEvent, Id, Settings},
+    db::{
+        models::enrollment::{Token, ENROLLMENT_TOKEN_TYPE},
+        AppEvent, Id, Settings,
+    },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings,
+        db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
         grpc::polling::PollingServer,
-        license::{get_cached_license, validate_license},
+        handlers::openid_login::{make_oidc_client, user_from_claims},
+        is_enterprise_enabled,
     },
     handlers::mail::send_gateway_disconnected_email,
     mail::Mail,
@@ -75,7 +79,10 @@ pub(crate) mod proto {
     tonic::include_proto!("defguard.proxy");
 }
 
-use proto::{core_request, proxy_client::ProxyClient, CoreError, CoreResponse};
+use proto::{
+    core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
+    CoreResponse,
+};
 
 // Helper struct used to handle gateway state
 // gateways are grouped by network
@@ -351,20 +358,15 @@ pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
     // TODO: merge the two
-    let enrollment_server = EnrollmentServer::new(
-        pool.clone(),
-        wireguard_tx.clone(),
-        mail_tx.clone(),
-        user_agent_parser,
-    );
+    let enrollment_server =
+        EnrollmentServer::new(pool.clone(), wireguard_tx.clone(), mail_tx.clone());
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
-    let polling_server = PollingServer::new(pool);
+    let polling_server = PollingServer::new(pool.clone());
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
     let endpoint = endpoint
@@ -539,6 +541,100 @@ pub async fn run_grpc_bidi_stream(
                                 }
                             }
                         }
+                        Some(core_request::Payload::AuthInfo(request)) => {
+                            if !is_enterprise_enabled() {
+                                warn!("Enterprise license required");
+                                Some(core_response::Payload::CoreError(CoreError {
+                                    status_code: Code::FailedPrecondition as i32,
+                                    message: "no valid license".into(),
+                                }))
+                            } else if let Ok(redirect_url) = Url::parse(&request.redirect_url) {
+                                if let Some(provider) = OpenIdProvider::get_current(&pool).await? {
+                                    if let Ok((_client_id, client)) =
+                                        make_oidc_client(redirect_url, &provider).await
+                                    {
+                                        let (url, csrf_token, nonce) = client
+                                            .authorize_url(
+                                                CoreAuthenticationFlow::AuthorizationCode,
+                                                CsrfToken::new_random,
+                                                Nonce::new_random,
+                                            )
+                                            .add_scope(Scope::new("email".to_string()))
+                                            .add_scope(Scope::new("profile".to_string()))
+                                            .url();
+                                        Some(core_response::Payload::AuthInfo(AuthInfoResponse {
+                                            url: url.into(),
+                                            csrf_token: csrf_token.secret().to_owned(),
+                                            nonce: nonce.secret().to_owned(),
+                                            button_display_name: provider.display_name,
+                                        }))
+                                    } else {
+                                        Some(core_response::Payload::CoreError(CoreError {
+                                            status_code: Code::Internal as i32,
+                                            message: "failed to build OIDC client".into(),
+                                        }))
+                                    }
+                                } else {
+                                    error!("Failed to get current OpenID provider");
+                                    Some(core_response::Payload::CoreError(CoreError {
+                                        status_code: Code::Internal as i32,
+                                        message: "failed to get current OpenID provider".into(),
+                                    }))
+                                }
+                            } else {
+                                Some(core_response::Payload::CoreError(CoreError {
+                                    status_code: Code::Internal as i32,
+                                    message: "invalid redirect URL".into(),
+                                }))
+                            }
+                        }
+                        Some(core_request::Payload::AuthCallback(request)) => {
+                            let callback_url = Url::parse(&request.callback_url).unwrap();
+                            let code = AuthorizationCode::new(request.code);
+                            match user_from_claims(
+                                &pool,
+                                Nonce::new(request.nonce),
+                                code,
+                                callback_url,
+                            )
+                            .await
+                            {
+                                Ok(user) => {
+                                    user.clear_unused_enrollment_tokens(&pool).await?;
+                                    debug!("Cleared unused tokens for {}.", user.username);
+                                    debug!(
+                                        "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
+                                        user.username
+                                    );
+                                    let config = server_config();
+                                    let desktop_configuration = Token::new(
+                                        user.id,
+                                        Some(user.id),
+                                        Some(user.email),
+                                        config.enrollment_token_timeout.as_secs(),
+                                        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+                                    );
+                                    debug!("Saving a new desktop configuration token...");
+                                    desktop_configuration.save(&pool).await?;
+                                    debug!("Saved desktop configuration token. Responding to proxy with the token.");
+
+                                    Some(core_response::Payload::AuthCallback(
+                                        AuthCallbackResponse {
+                                            url: config.enrollment_url.clone().into(),
+                                            token: desktop_configuration.id,
+                                        },
+                                    ))
+                                }
+                                Err(err) => {
+                                    let message = format!("OpenID auth error {err}");
+                                    error!(message);
+                                    Some(core_response::Payload::CoreError(CoreError {
+                                        status_code: Code::Internal as i32,
+                                        message,
+                                    }))
+                                }
+                            }
+                        }
                         // Reply without payload.
                         None => None,
                     };
@@ -679,7 +775,7 @@ impl InstanceInfo {
             proxy_url: config.enrollment_url.clone(),
             username: username.into(),
             disable_all_traffic: enterprise_settings.disable_all_traffic,
-            enterprise_enabled: validate_license(get_cached_license().as_ref()).is_ok(),
+            enterprise_enabled: is_enterprise_enabled(),
         }
     }
 }

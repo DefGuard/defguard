@@ -79,7 +79,6 @@ export interface WalletInfo {
   address: string;
   chain_id: number;
   name: string;
-  use_for_mfa: boolean;
 }
 
 export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
@@ -167,7 +166,7 @@ export interface LoginData {
 }
 
 export interface CallbackData {
-  id_token: string;
+  code: string;
   state: string;
 }
 
@@ -295,7 +294,6 @@ export interface UserEditRequest {
 export interface EditWalletMFARequest {
   username: string;
   address: string;
-  use_for_mfa: boolean;
 }
 
 export interface MFALoginResponse {
@@ -314,6 +312,7 @@ export interface LoginResponse {
 
 export interface OpenIdInfoResponse {
   url: string;
+  button_display_name?: string;
 }
 
 export interface DeleteWebAuthNKeyRequest {
@@ -884,6 +883,7 @@ export type EnterpriseStatus = {
   enabled: boolean;
   // If there is no license, there is no license info
   license_info?: LicenseInfo;
+  needs_license: boolean;
 };
 
 export interface Webhook {
@@ -914,6 +914,7 @@ export interface OpenIdProvider {
   base_url: string;
   client_id: string;
   client_secret: string;
+  display_name: string;
 }
 
 export interface EditOpenidClientRequest {

@@ -3,7 +3,7 @@ use tonic::Status;
 
 use crate::{
     db::{models::polling_token::PollingToken, Device, Id, User},
-    enterprise::license::{get_cached_license, validate_license},
+    enterprise::is_enterprise_enabled,
     grpc::{
         proto::{InstanceInfoRequest, InstanceInfoResponse},
         utils::build_device_config_response,
@@ -25,8 +25,8 @@ impl PollingServer {
         debug!("Validating polling token. Token: {token}");
 
         // Polling service is enterprise-only, check the lincense
-        if validate_license(get_cached_license().as_ref()).is_err() {
-            debug!("No valid license, denying instance polling info");
+        if !is_enterprise_enabled() {
+            debug!("Instance has enterprise features disabled, denying instance polling info");
             return Err(Status::failed_precondition("no valid license"));
         }
 
@@ -41,7 +41,7 @@ impl PollingServer {
         };
 
         // Polling tokens are valid indefinitely
-        info!("Token validation successful {token:?}.");
+        debug!("Token validation successful {token:?}.");
 
         Ok(token)
     }

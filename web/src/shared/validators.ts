@@ -1,8 +1,18 @@
-import { patternValidDomain, patternValidIp } from './patterns';
+import ipaddr from 'ipaddr.js';
+
+import { patternValidDomain } from './patterns';
 
 // Returns flase when invalid
-export const validateIpOrDomain = (val: string, allowMask = false): boolean => {
-  return validateIp(val, allowMask) || patternValidDomain.test(val);
+export const validateIpOrDomain = (
+  val: string,
+  allowMask = false,
+  allowIPv6 = false,
+): boolean => {
+  return (
+    (allowIPv6 && validateIPv6(val, allowMask)) ||
+    validateIPv4(val, allowMask) ||
+    patternValidDomain.test(val)
+  );
 };
 
 // Returns flase when invalid
@@ -14,7 +24,7 @@ export const validateIpList = (
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
   for (const value of split) {
-    if (!validateIp(value, allowMasks)) {
+    if (!validateIPv4(value, allowMasks)) {
       return false;
     }
   }
@@ -26,11 +36,17 @@ export const validateIpOrDomainList = (
   val: string,
   splitWith = ',',
   allowMasks = false,
+  allowIPv6 = false,
 ): boolean => {
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
   for (const value of split) {
-    if (!validateIp(value, allowMasks) && !patternValidDomain.test(value)) {
+    console.log(allowIPv6 && !validateIPv6(value, allowMasks));
+    if (
+      !validateIPv4(value, allowMasks) &&
+      !patternValidDomain.test(value) &&
+      (!allowIPv6 || !validateIPv6(value, allowMasks))
+    ) {
       return false;
     }
   }
@@ -38,19 +54,22 @@ export const validateIpOrDomainList = (
 };
 
 // Returns flase when invalid
-export const validateIp = (ip: string, allowMask = false): boolean => {
+export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {
-      const split = ip.split('/');
-      if (split.length !== 2) return true;
-      const ipValid = patternValidIp.test(split[0]);
-      if (split[1] === '') return false;
-      const mask = Number(split[1]);
-      const maskValid = mask >= 0 && mask <= 32;
-      return ipValid && maskValid;
+      ipaddr.IPv4.isValidCIDR(ip);
     }
   }
-  return patternValidIp.test(ip);
+  return ipaddr.IPv4.isValid(ip);
+};
+
+export const validateIPv6 = (ip: string, allowMask = false): boolean => {
+  if (allowMask) {
+    if (ip.includes('/')) {
+      ipaddr.IPv6.isValidCIDR(ip);
+    }
+  }
+  return ipaddr.IPv6.isValid(ip);
 };
 
 export const validatePort = (val: string) => {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\",\"use_for_mfa\" FROM \"wallet\"",
+  "query": "SELECT id, \"user_id\",\"address\",\"name\",\"chain_id\",\"challenge_message\",\"challenge_signature\",\"creation_timestamp\",\"validation_timestamp\" FROM \"wallet\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -47,15 +47,12 @@
         "ordinal": 8,
         "name": "validation_timestamp",
         "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 9,
-        "name": "use_for_mfa",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -66,9 +63,8 @@
       false,
       true,
       false,
-      true,
-      false
+      true
     ]
   },
-  "hash": "054e9d1f22c77a3b793616e92ab97e16fc9d6814e41f8d30e3e2a8431181c347"
+  "hash": "eda201202a33aeda6c2d5589d21985dfde04b4c28fa8901a040d9286c020cc93"
 }

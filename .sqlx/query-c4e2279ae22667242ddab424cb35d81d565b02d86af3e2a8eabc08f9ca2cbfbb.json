@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT totp_enabled OR email_mfa_enabled OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" LEFT JOIN webauthn ON webauthn.user_id = \"user\".id WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bool!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c4e2279ae22667242ddab424cb35d81d565b02d86af3e2a8eabc08f9ca2cbfbb"
+}

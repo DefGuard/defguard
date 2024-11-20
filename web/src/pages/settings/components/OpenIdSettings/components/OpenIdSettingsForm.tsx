@@ -36,7 +36,8 @@ export const OpenIdSettingsForm = () => {
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
   const queryClient = useQueryClient();
   const docsLink =
-    'https://defguard.gitbook.io/defguard/admin-and-features/external-openid-providers';
+    // eslint-disable-next-line max-len
+    'https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers';
   const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
 
   const {
@@ -91,6 +92,7 @@ export const OpenIdSettingsForm = () => {
           .min(1, LL.form.error.required()),
         client_id: z.string().min(1, LL.form.error.required()),
         client_secret: z.string().min(1, LL.form.error.required()),
+        display_name: z.string(),
       }),
     [LL.form.error],
   );
@@ -102,6 +104,7 @@ export const OpenIdSettingsForm = () => {
       base_url: currentProvider?.base_url ?? '',
       client_id: currentProvider?.client_id ?? '',
       client_secret: currentProvider?.client_secret ?? '',
+      display_name: currentProvider?.display_name ?? '',
     }),
     [currentProvider],
   );
@@ -174,6 +177,20 @@ export const OpenIdSettingsForm = () => {
     }
   }, []);
 
+  const getProviderDisplayName = useCallback(
+    ({ name }: { name: string }): string | null => {
+      switch (name) {
+        case 'Google':
+          return 'Google';
+        case 'Microsoft':
+          return 'Microsoft';
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
   const handleChange = useCallback(
     (val: string) => {
       setCurrentProvider({
@@ -182,9 +199,11 @@ export const OpenIdSettingsForm = () => {
         base_url: getProviderUrl({ name: val }) ?? '',
         client_id: currentProvider?.client_id ?? '',
         client_secret: currentProvider?.client_secret ?? '',
+        display_name:
+          getProviderDisplayName({ name: val }) ?? currentProvider?.display_name ?? '',
       });
     },
-    [currentProvider, getProviderUrl],
+    [currentProvider, getProviderUrl, getProviderDisplayName],
   );
 
   return (
@@ -246,6 +265,14 @@ export const OpenIdSettingsForm = () => {
           }
           type="password"
           disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'display_name' }}
+          label={localLL.form.labels.display_name.label()}
+          labelExtras={
+            <Helper>{parse(localLL.form.labels.display_name.helper())}</Helper>
+          }
+          disabled={!enterpriseEnabled || currentProvider?.name !== 'Custom'}
         />
       </form>
       <a href={docsLink} target="_blank" rel="noreferrer">

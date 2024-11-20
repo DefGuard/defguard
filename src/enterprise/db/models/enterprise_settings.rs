@@ -1,7 +1,7 @@
 use sqlx::{query, query_as, PgExecutor};
 use struct_patch::Patch;
 
-use crate::enterprise::license::{get_cached_license, validate_license};
+use crate::enterprise::is_enterprise_enabled;
 
 #[derive(Debug, Deserialize, Patch, Serialize)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
@@ -34,11 +34,7 @@ impl EnterpriseSettings {
     {
         // avoid holding the rwlock across await, makes the future !Send
         // and therefore unusable in axum handlers
-        let is_valid = {
-            let license = get_cached_license();
-            validate_license(license.as_ref()).is_ok()
-        };
-        if is_valid {
+        if is_enterprise_enabled() {
             let settings = query_as!(
                 Self,
                 "SELECT admin_device_management, \

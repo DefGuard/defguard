@@ -88,7 +88,7 @@ export const UsersListGroups = ({ groups }: Props) => {
     >
       {displayGroups.map((g, index) => (
         <div className="group" key={`${g}-${index}`}>
-          <TextContainer text={g} disableCopy />
+          <TextContainer text={g} />
         </div>
       ))}
       {enabledModal && (

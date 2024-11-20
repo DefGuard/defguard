@@ -104,7 +104,7 @@ export const SmtpSettingsForm = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => (!val ? true : validateIpOrDomain(val)),
+            (val) => (!val ? true : validateIpOrDomain(val, false, true)),
             LL.form.error.endpoint(),
           ),
         smtp_port: z

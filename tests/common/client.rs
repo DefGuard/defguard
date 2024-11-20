@@ -4,7 +4,7 @@ use axum::{serve, Router};
 use bytes::Bytes;
 use reqwest::{
     cookie::{Cookie, Jar},
-    header::{HeaderMap, HeaderName},
+    header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
     Body, Client, StatusCode, Url,
 };
@@ -19,10 +19,7 @@ pub struct TestClient {
 #[allow(dead_code)]
 impl TestClient {
     #[must_use]
-    pub async fn new(app: Router) -> Self {
-        let listener = TcpListener::bind("127.0.0.1:0")
-            .await
-            .expect("Could not bind ephemeral socket");
+    pub async fn new(app: Router, listener: TcpListener) -> Self {
         let port = listener.local_addr().unwrap().port();
 
         tokio::spawn(async move {
@@ -35,7 +32,11 @@ impl TestClient {
 
         let jar = Arc::new(Jar::default());
 
+        let mut headers = HeaderMap::new();
+        headers.insert(USER_AGENT, HeaderValue::from_static("test/0.0"));
+
         let client = Client::builder()
+            .default_headers(headers)
             .redirect(Policy::none())
             .cookie_provider(jar.clone())
             .build()
@@ -54,7 +55,7 @@ impl TestClient {
     ///
     /// this is useful when trying to check if Location headers in responses
     /// are generated correctly as Location contains an absolute URL
-    fn base_url(&self) -> String {
+    pub fn base_url(&self) -> String {
         let mut s = String::from("http://localhost:");
         s.push_str(&self.port.to_string());
         s

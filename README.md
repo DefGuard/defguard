@@ -20,7 +20,7 @@
 - Already using Google/Microsoft or other OpenID Provider? - [external OpenID provider support](https://docs.defguard.net/enterprise/external-openid-providers)
 - Only solution with [secure remote user Enrollment & Onboarding](https://docs.defguard.net/help/enrollment)
 - Yubico YubiKey Hardware [security key management and provisioning](https://docs.defguard.net/admin-and-features/yubikey-provisioning)
-- Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing  network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
+- Secure and robust architecture, featuring components and micro-services seamlessly deployable in diverse network setups (eg. utilizing network segments like Demilitarized Zones, Intranet with no external access, etc), ensuring a secure environment.
 - Enterprise ready (multiple Locations/Gateways/Kubernetes deployment, etc..)
 - Built on WireGuard® protocol which is faster than IPSec, and significantly faster than OpenVPN
 - Built with Rust for speed and security
@@ -60,6 +60,7 @@ Better quality video can [be viewed here](https://github.com/DefGuard/docs/raw/d
 ![defguard WireGuard MFA](https://github.com/DefGuard/docs/blob/docs/releases/0.9/mfa.png?raw=true)
 
 [Desktop client](https://github.com/DefGuard/client):
+
 - **2FA / Multi-Factor Authentication** with TOTP or email based tokens & WireGuard PSK
 - [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
 - Control users [ability to manage devices and VPN options](https://docs.defguard.net/enterprise/behavior-customization)
@@ -81,6 +82,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://raw.githubusercontent.com/DefGua
 ```
 
 Here is a step-by-step video about this process:
+
 <div align="center">
  <p align="center">
   
@@ -97,9 +99,9 @@ Just follow [this tutorial](http://bit.ly/defguard-setup)
 
 ## Manual deployment examples
 
-* [Standalone system package based install](https://docs.defguard.net/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
-* Using [Docker Compose](https://docs.defguard.net/features/setting-up-your-instance/docker-compose)
-* Using [Kubernetes](https://docs.defguard.net/features/setting-up-your-instance/kubernetes)
+- [Standalone system package based install](https://docs.defguard.net/admin-and-features/setting-up-your-instance/standalone-package-based-installation)
+- Using [Docker Compose](https://docs.defguard.net/features/setting-up-your-instance/docker-compose)
+- Using [Kubernetes](https://docs.defguard.net/features/setting-up-your-instance/kubernetes)
 
 ## Roadmap & Development backlog
 
@@ -156,7 +158,7 @@ The story and motivation behind defguard [can be found here: https://teonite.com
 
 ## Documentation
 
-See the [documentation](https://defguard.gitbook.io) for more information.
+See the [documentation](https://docs.defguard.net/) for more information.
 
 ## Community and Support
 
@@ -180,4 +182,5 @@ Please review the [Contributing guide](https://docs.defguard.net/for-developers/
 </p>
 
 # Legal
+
 WireGuard® is [registered trademarks](https://www.wireguard.com/trademark-policy/) of Jason A. Donenfeld.

@@ -57,7 +57,8 @@ export type User = {
 export type OpenIdClient = {
   name: string;
   clientID?: string;
-  redirectURL: string;
+  clientSecret?: string;
+  redirectURL: string[];
   scopes: OpenIdScope[];
 };
 
