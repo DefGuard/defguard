@@ -436,6 +436,7 @@ export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseStatus: () => Promise<EnterpriseStatus>;
+  getEnterpriseInfo: () => Promise<EnterpriseInfo>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -880,6 +881,10 @@ export type LicenseInfo = {
 };
 
 export type EnterpriseStatus = {
+  enabled: boolean;
+};
+
+export type EnterpriseInfo = {
   enabled: boolean;
   // If there is no license, there is no license info
   license_info?: LicenseInfo;

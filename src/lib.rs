@@ -12,7 +12,7 @@ use axum::{
     serve, Extension, Json, Router,
 };
 use enterprise::handlers::{
-    check_enterprise_status,
+    check_enterprise_info, check_enterprise_status,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
@@ -414,7 +414,9 @@ pub fn build_webapp(
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
-    let webapp = webapp.route("/api/v1/enterprise_status", get(check_enterprise_status));
+    let webapp = webapp
+        .route("/api/v1/enterprise_status", get(check_enterprise_status))
+        .route("/api/v1/enterprise_info", get(check_enterprise_info));
 
     #[cfg(feature = "openid")]
     let webapp = webapp

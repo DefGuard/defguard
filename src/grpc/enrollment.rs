@@ -20,7 +20,7 @@ use crate::{
         },
         Device, GatewayEvent, Id, Settings, User,
     },
-    enterprise::db::models::enterprise_settings::EnterpriseSettings,
+    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     grpc::utils::build_device_config_response,
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
@@ -302,6 +302,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         debug!("Updating user details ended with success.");
+        let _ = update_counts(&self.pool).await;
 
         // sync with LDAP
         debug!("Add user to ldap: {}.", self.ldap_feature_active);
@@ -468,6 +469,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         info!("New device created: {device:?}.");
+        let _ = update_counts(&self.pool).await;
 
         debug!(
             "Adding device {} to all existing user networks for user {}({:?}).",

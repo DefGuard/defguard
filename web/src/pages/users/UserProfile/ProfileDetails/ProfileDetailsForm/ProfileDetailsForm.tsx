@@ -127,7 +127,7 @@ export const ProfileDetailsForm = () => {
     getGroups,
     {
       refetchOnWindowFocus: false,
-      enabled: fetchGroups,
+      enabled: fetchGroups && isAdmin,
     },
   );
   const toaster = useToaster();
@@ -330,7 +330,7 @@ export const ProfileDetailsForm = () => {
               options={groupsOptions}
               controller={{ control, name: 'groups' }}
               label={LL.userPage.userDetails.fields.groups.label()}
-              loading={groupsLoading || userEditLoading}
+              loading={isAdmin && (groupsLoading || userEditLoading)}
               disabled={!isAdmin}
               renderSelected={(val) => ({
                 key: val,

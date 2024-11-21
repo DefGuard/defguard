@@ -1,27 +1,43 @@
 import './style.scss';
 
+import { useQuery } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/BigInfoBox/BigInfoBox';
-import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import useApi from '../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../shared/queries';
 import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
 
 export const OpenIdSettings = () => {
-  const enterpriseStatus = useAppStore((state) => state.enterprise_status);
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.enterpriseOnly;
+  const { getEnterpriseInfo } = useApi();
+  const { data: enterpriseInfo, isLoading } = useQuery({
+    queryFn: getEnterpriseInfo,
+    queryKey: [QueryKeys.FETCH_ENTERPRISE_INFO],
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+  if (isLoading) {
+    return (
+      <div className="spinner-container">
+        <LoaderSpinner size={100} />
+      </div>
+    );
+  }
 
   return (
     <>
-      {!enterpriseStatus?.enabled && (
+      {!enterpriseInfo?.enabled && (
         <div className="enterprise-info-backdrop">
           <div className="enterprise-info">
             <div>
               <h2>{localLL.title()}</h2>
               {/* If enterprise is disabled but we have some license info, we may assume that the license has expired */}
-              {enterpriseStatus?.license_info && <p>{localLL.currentExpired()}</p>}
+              {enterpriseInfo?.license_info && <p>{localLL.currentExpired()}</p>}
               <p>
                 {localLL.subtitle()}{' '}
                 <a href="https://defguard.net/pricing/" target="_blank" rel="noreferrer">
@@ -33,7 +49,7 @@ export const OpenIdSettings = () => {
           </div>
         </div>
       )}
-      {!enterpriseStatus?.needs_license && !enterpriseStatus?.license_info && (
+      {!enterpriseInfo?.needs_license && !enterpriseInfo?.license_info && (
         <div className="license-not-required-container">
           <BigInfoBox
             message={parse(LL.settingsPage.license.licenseInfo.licenseNotRequired())}
