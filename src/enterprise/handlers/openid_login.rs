@@ -26,7 +26,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     db::{Id, Settings, User},
-    enterprise::db::models::openid_provider::OpenIdProvider,
+    enterprise::{db::models::openid_provider::OpenIdProvider, limits::update_counts},
     error::WebError,
     handlers::{
         auth::create_session,
@@ -270,6 +270,7 @@ pub(crate) async fn user_from_claims(
         }
     };
 
+    update_counts(pool).await?;
     Ok(user)
 }
 

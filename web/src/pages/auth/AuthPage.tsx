@@ -116,7 +116,10 @@ export const AuthPage = () => {
           // check where to navigate administrator
           const appInfo = await getAppInfo();
           const settings = await getSettings();
-          setAppStore({ appInfo, settings });
+          setAppStore({
+            appInfo,
+            settings,
+          });
           if (settings.wireguard_enabled) {
             if (!appInfo?.network_present) {
               navigateURL = '/admin/wizard';

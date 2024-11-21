@@ -21,7 +21,7 @@ use crate::{
         AppEvent, GatewayEvent, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
         WebAuthn, WireguardNetwork,
     },
-    enterprise::limits::update_counts,
+    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     mail::Mail,
@@ -481,6 +481,13 @@ pub async fn start_remote_desktop_configuration(
         "User {} has started a new desktop activation for {username}.",
         session.user.username
     );
+
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.admin_device_management && !session.is_admin {
+        return Err(WebError::Forbidden(
+            "Only admin users can manage devices".into(),
+        ));
+    }
 
     debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;

@@ -28,8 +28,8 @@ export const AppLoader = () => {
   const appSettings = useAppStore((state) => state.settings);
   const {
     getAppInfo,
-    getEnterpriseStatus,
     user: { getMe },
+    getEnterpriseStatus,
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
   const [userLoading, setUserLoading] = useState(true);
@@ -68,6 +68,18 @@ export const AppLoader = () => {
     enabled: !isUndefined(currentUser),
   });
 
+  useQuery([QueryKeys.FETCH_ENTERPRISE_SETTINGS], getEnterpriseSettings, {
+    onSuccess: (settings) => {
+      setAppStore({ enterprise_settings: settings });
+    },
+    onError: (err) => {
+      console.error(err);
+    },
+    refetchOnWindowFocus: true,
+    retry: false,
+    enabled: !isUndefined(currentUser),
+  });
+
   useQuery([QueryKeys.FETCH_ENTERPRISE_STATUS], getEnterpriseStatus, {
     onSuccess: (status) => {
       setAppStore({
@@ -83,16 +95,6 @@ export const AppLoader = () => {
     retry: false,
   });
 
-  useQuery([QueryKeys.FETCH_ENTERPRISE_SETTINGS], getEnterpriseSettings, {
-    onSuccess: (settings) => {
-      setAppStore({ enterprise_settings: settings });
-    },
-    onError: (err) => {
-      console.error(err);
-    },
-    refetchOnWindowFocus: true,
-    retry: false,
-  });
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
     [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
     getEssentialSettings,

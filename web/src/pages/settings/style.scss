@@ -111,6 +111,15 @@
         flex-flow: column;
         row-gap: 48px;
       }
+
+      .spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        grid-column: 1 / -1;
+        width: 100%;
+      }
     }
   }
 

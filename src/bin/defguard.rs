@@ -9,7 +9,7 @@ use defguard::{
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     enterprise::{
         license::{run_periodic_license_check, set_cached_license, License},
-        limits::update_counts,
+        limits::{run_periodic_count_update, update_counts},
     },
     grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     init_dev_env, init_vpn_location,
@@ -123,7 +123,9 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
-        res = run_periodic_license_check(pool) => error!("Periodic license check task returned early: {res:#?}"),
+        res = run_periodic_license_check(pool.clone()) => error!("Periodic license check task returned early: {res:#?}"),
+        // Temporary. Change to a database trigger when they are implemented.
+        res = run_periodic_count_update(&pool) => error!("Periodic count update task returned early: {res:#?}"),
     }
     Ok(())
 }

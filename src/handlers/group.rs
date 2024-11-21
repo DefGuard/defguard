@@ -170,6 +170,7 @@ pub(crate) async fn list_groups_info(
     )
 )]
 pub(crate) async fn list_groups(
+    _role: UserAdminRole,
     _session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
