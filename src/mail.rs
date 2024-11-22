@@ -43,8 +43,8 @@ struct SmtpSettings {
     pub server: String,
     pub port: u16,
     pub encryption: SmtpEncryption,
-    pub user: Option<String>,
-    pub password: Option<String>,
+    pub user: String,
+    pub password: String,
     pub sender: String,
 }
 
@@ -69,8 +69,8 @@ impl SmtpSettings {
                 server,
                 port,
                 encryption,
-                user: Some(user),
-                password: Some(password.expose_secret().to_string()),
+                user,
+                password: password.expose_secret().to_string(),
                 sender,
             })
         } else {
@@ -228,12 +228,10 @@ impl MailHandler {
         .port(settings.port)
         .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
 
-        let builder = if settings.user.is_some() && settings.password.is_some() {
-            builder.credentials(Credentials::new(
-                settings.user.unwrap(),
-                settings.password.unwrap(),
-            ))
+        let builder = if !settings.user.is_empty() && !settings.password.is_empty() {
+            builder.credentials(Credentials::new(settings.user, settings.password))
         } else {
+            debug!("SMTP credentials were not provided, skipping username/password authentication");
             builder
         };
 
