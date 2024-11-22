@@ -228,7 +228,7 @@ impl MailHandler {
         .port(settings.port)
         .timeout(Some(Duration::from_secs(SMTP_TIMEOUT_SECONDS)));
 
-        // Skip credentials if any of them are empty
+        // Skip credentials if any of them is empty
         let builder = if settings.user.is_empty() || settings.password.is_empty() {
             debug!("SMTP credentials were not provided, skipping username/password authentication");
             builder
