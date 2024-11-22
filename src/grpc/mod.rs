@@ -589,48 +589,58 @@ pub async fn run_grpc_bidi_stream(
                             }
                         }
                         Some(core_request::Payload::AuthCallback(request)) => {
-                            let callback_url = Url::parse(&request.callback_url).unwrap();
-                            let code = AuthorizationCode::new(request.code);
-                            match user_from_claims(
-                                &pool,
-                                Nonce::new(request.nonce),
-                                code,
-                                callback_url,
-                            )
-                            .await
-                            {
-                                Ok(user) => {
-                                    user.clear_unused_enrollment_tokens(&pool).await?;
-                                    debug!("Cleared unused tokens for {}.", user.username);
-                                    debug!(
+                            match Url::parse(&request.callback_url) {
+                                Ok(callback_url) => {
+                                    let code = AuthorizationCode::new(request.code);
+                                    match user_from_claims(
+                                        &pool,
+                                        Nonce::new(request.nonce),
+                                        code,
+                                        callback_url,
+                                    )
+                                    .await
+                                    {
+                                        Ok(user) => {
+                                            user.clear_unused_enrollment_tokens(&pool).await?;
+                                            debug!("Cleared unused tokens for {}.", user.username);
+                                            debug!(
                                         "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
                                         user.username
                                     );
-                                    let config = server_config();
-                                    let desktop_configuration = Token::new(
-                                        user.id,
-                                        Some(user.id),
-                                        Some(user.email),
-                                        config.enrollment_token_timeout.as_secs(),
-                                        Some(ENROLLMENT_TOKEN_TYPE.to_string()),
-                                    );
-                                    debug!("Saving a new desktop configuration token...");
-                                    desktop_configuration.save(&pool).await?;
-                                    debug!("Saved desktop configuration token. Responding to proxy with the token.");
+                                            let config = server_config();
+                                            let desktop_configuration = Token::new(
+                                                user.id,
+                                                Some(user.id),
+                                                Some(user.email),
+                                                config.enrollment_token_timeout.as_secs(),
+                                                Some(ENROLLMENT_TOKEN_TYPE.to_string()),
+                                            );
+                                            debug!("Saving a new desktop configuration token...");
+                                            desktop_configuration.save(&pool).await?;
+                                            debug!("Saved desktop configuration token. Responding to proxy with the token.");
 
-                                    Some(core_response::Payload::AuthCallback(
-                                        AuthCallbackResponse {
-                                            url: config.enrollment_url.clone().into(),
-                                            token: desktop_configuration.id,
-                                        },
-                                    ))
+                                            Some(core_response::Payload::AuthCallback(
+                                                AuthCallbackResponse {
+                                                    url: config.enrollment_url.clone().into(),
+                                                    token: desktop_configuration.id,
+                                                },
+                                            ))
+                                        }
+                                        Err(err) => {
+                                            let message = format!("OpenID auth error {err}");
+                                            error!(message);
+                                            Some(core_response::Payload::CoreError(CoreError {
+                                                status_code: Code::Internal as i32,
+                                                message,
+                                            }))
+                                        }
+                                    }
                                 }
                                 Err(err) => {
-                                    let message = format!("OpenID auth error {err}");
-                                    error!(message);
+                                    error!("Proxy requested an OpenID authentication info for a callback URL ({}) that couldn't be parsed. Details: {err}", request.callback_url);
                                     Some(core_response::Payload::CoreError(CoreError {
                                         status_code: Code::Internal as i32,
-                                        message,
+                                        message: "invalid callback URL".into(),
                                     }))
                                 }
                             }
