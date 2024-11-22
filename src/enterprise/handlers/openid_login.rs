@@ -37,7 +37,11 @@ use crate::{
 };
 
 async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
-    let issuer_url = IssuerUrl::new(url.to_string()).unwrap();
+    let issuer_url = IssuerUrl::new(url.to_string()).map_err(|err| {
+        WebError::BadRequest(format!(
+            "Failed to create issuer URL from the provided URL: {url}. Error details: {err:?}",
+        ))
+    })?;
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
