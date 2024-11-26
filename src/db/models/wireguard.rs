@@ -953,25 +953,6 @@ mod test {
 
     use super::*;
 
-    async fn add_devices(pool: &PgPool, network: &WireguardNetwork<Id>, count: usize) {
-        let user = User::new(
-            "testuser",
-            Some("hunter2"),
-            "Tester",
-            "Test",
-            "test@test.com",
-            None,
-        )
-        .save(pool)
-        .await
-        .unwrap();
-        for i in 0..count {
-            Device::new_with_ip(pool, user.id, format!("dev{i}"), format!("key{i}"), network)
-                .await
-                .unwrap();
-        }
-    }
-
     #[sqlx::test]
     async fn test_connected_at_reconnection(pool: PgPool) {
         let mut network = WireguardNetwork::default();

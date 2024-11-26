@@ -18,7 +18,7 @@ use defguard::{
 };
 use reqwest::{header::HeaderName, StatusCode, Url};
 use secrecy::ExposeSecret;
-use serde_json::json;
+use serde_json::{json, Value};
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
 use tokio::net::TcpListener;
 use tokio::sync::{
@@ -37,7 +37,7 @@ pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri
 
 /// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
 // TODO: Allow customizing the whole config, not just the URL
-pub fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
+pub(crate) fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
     let url = custom_defguard_url.unwrap_or("http://localhost:8000");
     let mut config = DefGuardConfig::new_test_config();
     config.url = Url::from_str(url).unwrap();
@@ -45,7 +45,7 @@ pub fn init_config(custom_defguard_url: Option<&str>) -> DefGuardConfig {
     config
 }
 
-pub async fn init_test_db(config: &DefGuardConfig) -> PgPool {
+pub(crate) async fn init_test_db(config: &DefGuardConfig) -> PgPool {
     let opts = PgConnectOptions::new()
         .host(&config.database_host)
         .port(config.database_port)
@@ -92,7 +92,8 @@ async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
     .unwrap();
 }
 
-pub struct ClientState {
+#[allow(dead_code)]
+pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
@@ -124,7 +125,7 @@ impl ClientState {
     }
 }
 
-pub async fn make_base_client(
+pub(crate) async fn make_base_client(
     pool: PgPool,
     config: DefGuardConfig,
     listener: TcpListener,
@@ -193,7 +194,7 @@ fn get_test_url(listener: &TcpListener) -> String {
 }
 
 #[allow(dead_code)]
-pub async fn make_test_client() -> (TestClient, ClientState) {
+pub(crate) async fn make_test_client() -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
@@ -205,7 +206,7 @@ pub async fn make_test_client() -> (TestClient, ClientState) {
 /// Makes a test client with a DEFGUARD_URL set to the random url of the listener.
 /// This is useful when the instance's url real url needs to match the one set in the ENV variable.
 #[allow(dead_code)]
-pub async fn make_test_client_with_real_url() -> (TestClient, ClientState) {
+pub(crate) async fn make_test_client_with_real_url() -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
@@ -215,7 +216,7 @@ pub async fn make_test_client_with_real_url() -> (TestClient, ClientState) {
 }
 
 #[allow(dead_code)]
-pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
+pub(crate) async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
     let response = client.get(format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     response.json().await
@@ -223,14 +224,14 @@ pub async fn fetch_user_details(client: &TestClient, username: &str) -> UserDeta
 
 /// Exceeds enterprise free version limits by creating more than 1 network
 #[allow(dead_code)]
-pub async fn exceed_enterprise_limits(client: &TestClient) {
+pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
     client
         .post("/api/v1/network")
         .json(&json!({
             "name": "network1",
-            "address": "10.1.1.1/24",
+            "addresses": ["10.1.1.1/24"],
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -247,7 +248,7 @@ pub async fn exceed_enterprise_limits(client: &TestClient) {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network2",
-            "address": "10.1.1.1/24",
+            "addresses": ["10.1.1.1/24"],
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -259,4 +260,20 @@ pub async fn exceed_enterprise_limits(client: &TestClient) {
         }))
         .send()
         .await;
+}
+
+#[allow(dead_code)]
+pub(crate) fn make_network() -> Value {
+    json!({
+        "name": "network",
+        "addresses": ["10.1.1.1/24"],
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180
+    })
 }

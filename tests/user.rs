@@ -11,10 +11,10 @@ use defguard::{
 use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use reqwest::{header::USER_AGENT, StatusCode};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
-use serde_json::{json, Value};
+use serde_json::json;
 use tokio_stream::{self as stream, StreamExt};
 
-use self::common::{client::TestClient, fetch_user_details, make_test_client};
+use self::common::{client::TestClient, fetch_user_details, make_network, make_test_client};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;
@@ -558,21 +558,6 @@ async fn test_user_unregister_authorized_app() {
     let response = client.get("/api/v1/me").send().await;
     let user_info: UserInfo = response.json().await;
     assert_eq!(user_info.authorized_apps.len(), 0);
-}
-
-fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "mfa_enabled": false,
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
-    })
 }
 
 #[tokio::test]
