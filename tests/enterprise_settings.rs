@@ -16,7 +16,7 @@ use self::common::make_test_client;
 fn make_network() -> Value {
     json!({
         "name": "network",
-        "address": "10.1.1.1/24",
+        "addresses": ["10.1.1.1/24"],
         "port": 55555,
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",

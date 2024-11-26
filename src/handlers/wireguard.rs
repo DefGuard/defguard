@@ -40,7 +40,7 @@ use crate::{
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
-    pub address: IpNetwork,
+    pub addresses: Vec<IpNetwork>,
     pub endpoint: String,
     pub port: i32,
     pub allowed_ips: Option<String>,
@@ -106,7 +106,7 @@ pub async fn create_network(
     let allowed_ips = data.parse_allowed_ips();
     let network = WireguardNetwork::new(
         data.name,
-        data.address,
+        data.addresses,
         data.port,
         data.endpoint,
         data.dns,
@@ -170,7 +170,7 @@ pub async fn modify_network(
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.address = data.address;
+    network.addresses = data.addresses;
     network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;

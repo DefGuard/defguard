@@ -74,8 +74,8 @@ pub enum GatewayEvent {
 pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
-    #[model(enum)]
-    pub address: IpNetwork,
+    #[model(ref)]
+    pub addresses: Vec<IpNetwork>,
     pub port: i32,
     pub pubkey: String,
     #[serde(default, skip_serializing)]
@@ -130,7 +130,7 @@ pub enum WireguardNetworkError {
 impl WireguardNetwork {
     pub fn new(
         name: String,
-        address: IpNetwork,
+        addresses: Vec<IpNetwork>,
         port: i32,
         endpoint: String,
         dns: Option<String>,
@@ -144,7 +144,7 @@ impl WireguardNetwork {
         Ok(Self {
             id: NoId,
             name,
-            address,
+            addresses,
             port,
             pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
@@ -159,9 +159,10 @@ impl WireguardNetwork {
     }
 
     /// Try to set `address` from `&str`.
+    // FIXME: handle multiple addresses
     pub fn try_set_address(&mut self, address: &str) -> Result<IpNetwork, IpNetworkError> {
         IpNetwork::from_str(address).inspect(|&network| {
-            self.address = network;
+            self.addresses = vec![network];
         })
     }
 }
@@ -177,7 +178,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, addresses, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
@@ -205,21 +206,12 @@ impl WireguardNetwork<Id> {
         Ok(())
     }
 
-    /// Return number of devices that use this network.
-    async fn device_count(
+    pub(crate) fn validate_network_size(
         &self,
-        transaction: &mut PgConnection,
-    ) -> Result<i64, WireguardNetworkError> {
-        let count = query_scalar!("SELECT count(*) \"count!\" FROM wireguard_network_device WHERE wireguard_network_id = $1", self.id)
-            .fetch_one(transaction)
-            .await?;
-
-        Ok(count)
-    }
-
-    pub fn validate_network_size(&self, device_count: usize) -> Result<(), WireguardNetworkError> {
+        device_count: usize,
+    ) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in network {self}");
-        let network_size = self.address.size();
+        let network_size = self.addresses[0].size();
         // include address, network, and broadcast in the calculation
         match network_size {
             NetworkSize::V4(size) => {
@@ -239,73 +231,13 @@ impl WireguardNetwork<Id> {
 
     /// Utility method to create WireGuard keypair
     #[must_use]
-    pub fn genkey() -> WireguardKey {
+    pub(crate) fn genkey() -> WireguardKey {
         let private = StaticSecret::random_from_rng(OsRng);
         let public = PublicKey::from(&private);
         WireguardKey {
             private: BASE64_STANDARD.encode(private.to_bytes()),
             public: BASE64_STANDARD.encode(public.to_bytes()),
         }
-    }
-
-    /// Try to change network address, changing device addresses if necessary.
-    pub async fn change_address(
-        &mut self,
-        transaction: &mut PgConnection,
-        new_address: IpNetwork,
-    ) -> Result<(), WireguardNetworkError> {
-        info!(
-            "Changing network address for {self} from {} to {new_address}",
-            self.address
-        );
-        let old_address = self.address;
-
-        // check if new network size will fit all existing devices
-        let new_size = new_address.size();
-        if new_size < old_address.size() {
-            // include address, network, and broadcast in the calculation
-            let count = self.device_count(transaction).await? + 3;
-            match new_size {
-                NetworkSize::V4(size) => {
-                    if count as u32 > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
-                    }
-                }
-                NetworkSize::V6(size) => {
-                    if count as u128 > size {
-                        return Err(WireguardNetworkError::NetworkTooSmall);
-                    }
-                }
-            }
-        }
-
-        // re-address all devices
-        if new_address.network() != old_address.network() {
-            info!("Re-addressing devices in network {}", self);
-            let mut devices = Device::all(&mut *transaction).await?;
-            let net_ip = new_address.ip();
-            let net_network = new_address.network();
-            let net_broadcast = new_address.broadcast();
-            let mut devices_iter = devices.iter_mut();
-
-            for ip in &new_address {
-                if ip == net_ip || ip == net_network || ip == net_broadcast {
-                    continue;
-                }
-                match devices_iter.next() {
-                    Some(device) => {
-                        let wireguard_network_device =
-                            WireguardNetworkDevice::new(self.id, device.id, ip);
-                        wireguard_network_device.update(&mut *transaction).await?;
-                    }
-                    None => break,
-                }
-            }
-        }
-
-        self.address = new_address;
-
-        Ok(())
     }
 
     /// Get a list of all devices belonging to users in allowed groups.
@@ -353,7 +285,7 @@ impl WireguardNetwork<Id> {
 
     /// Generate network IPs for all existing devices
     /// If `allowed_groups` is set, devices should be filtered accordingly
-    pub async fn add_all_allowed_devices(
+    pub(crate) async fn add_all_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<(), ModelError> {
@@ -371,7 +303,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Generate network IPs for a device if it's allowed in network
-    pub async fn add_device_to_network(
+    pub(crate) async fn add_device_to_network(
         &self,
         transaction: &mut PgConnection,
         device: &Device<Id>,
@@ -394,7 +326,7 @@ impl WireguardNetwork<Id> {
     /// Refresh network IPs for all relevant devices
     /// If the list of allowed devices has changed add/remove devices accordingly
     /// If the network address has changed readdress existing devices
-    pub async fn sync_allowed_devices(
+    pub(crate) async fn sync_allowed_devices(
         &self,
         transaction: &mut PgConnection,
         reserved_ips: Option<&[IpAddr]>,
@@ -424,7 +356,7 @@ impl WireguardNetwork<Id> {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
                 // network address changed and IP needs to be updated
-                if !self.address.contains(device_network_config.wireguard_ip) {
+                if !self.addresses[0].contains(device_network_config.wireguard_ip) {
                     let wireguard_network_device = device
                         .assign_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
@@ -488,7 +420,7 @@ impl WireguardNetwork<Id> {
     /// if they do assign a specified IP.
     /// Return a list of imported devices which need to be manually mapped to a user
     /// and a list of WireGuard events to be sent out.
-    pub async fn handle_imported_devices(
+    pub(crate) async fn handle_imported_devices(
         &self,
         transaction: &mut PgConnection,
         imported_devices: Vec<ImportedDevice>,
@@ -551,7 +483,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Handle device -> user mapping in second step of network import wizard
-    pub async fn handle_mapped_devices(
+    pub(crate) async fn handle_mapped_devices(
         &self,
         transaction: &mut PgConnection,
         mapped_devices: Vec<MappedDevice>,
@@ -896,7 +828,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats
-    pub async fn network_stats(
+    pub(crate) async fn network_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -923,7 +855,7 @@ impl Default for WireguardNetwork {
         Self {
             id: NoId,
             name: String::default(),
-            address: IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+            addresses: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             port: i32::default(),
             pubkey: String::default(),
             prvkey: String::default(),
@@ -1020,7 +952,6 @@ mod test {
     use chrono::{Duration, SubsecRound};
 
     use super::*;
-    use crate::db::models::device::WireguardNetworkDevice;
 
     async fn add_devices(pool: &PgPool, network: &WireguardNetwork<Id>, count: usize) {
         let user = User::new(
@@ -1039,59 +970,6 @@ mod test {
                 .await
                 .unwrap();
         }
-    }
-
-    #[sqlx::test]
-    async fn test_change_address(pool: PgPool) {
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/24").unwrap();
-        let mut network = network.save(&pool).await.unwrap();
-
-        add_devices(&pool, &network, 3).await;
-
-        let mut transaction = pool.begin().await.unwrap();
-        network
-            .change_address(&mut transaction, "10.2.2.2/24".parse().unwrap())
-            .await
-            .unwrap();
-        let keys = ["key0", "key1", "key2"];
-        let ips = ["10.2.2.1", "10.2.2.3", "10.2.2.4"];
-        transaction.commit().await.unwrap();
-
-        for (index, pub_key) in keys.iter().enumerate() {
-            let device = Device::find_by_pubkey(&pool, pub_key)
-                .await
-                .unwrap()
-                .unwrap();
-            let wireguard_network_device =
-                WireguardNetworkDevice::find(&pool, device.id, network.id)
-                    .await
-                    .unwrap()
-                    .unwrap();
-            assert_eq!(
-                wireguard_network_device.wireguard_ip.to_string(),
-                ips[index]
-            );
-        }
-    }
-
-    #[sqlx::test]
-    async fn test_change_address_wont_fit(pool: PgPool) {
-        let mut network = WireguardNetwork::default();
-        network.try_set_address("10.1.1.1/29").unwrap();
-        let mut network = network.save(&pool).await.unwrap();
-
-        add_devices(&pool, &network, 3).await;
-
-        let mut transaction = pool.begin().await.unwrap();
-        assert!(network
-            .change_address(&mut transaction, "10.2.2.2/30".parse().unwrap())
-            .await
-            .is_err());
-        assert!(network
-            .change_address(&mut transaction, "10.2.2.2/29".parse().unwrap())
-            .await
-            .is_ok());
     }
 
     #[sqlx::test]

@@ -47,7 +47,7 @@ async fn test_config_import() {
     // setup initial network
     let initial_network = WireguardNetwork::new(
         "initial".into(),
-        "10.1.9.0/24".parse().unwrap(),
+        vec!["10.1.9.0/24".parse().unwrap()],
         51515,
         String::new(),
         None,
@@ -109,7 +109,7 @@ async fn test_config_import() {
     let network = response.network;
     assert_eq!(network.id, 2);
     assert_eq!(network.name, "network");
-    assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
+    assert_eq!(network.addresses, vec!["10.0.0.1/24".parse().unwrap()]);
     assert_eq!(network.port, 55055);
     assert_eq!(
         network.pubkey,

@@ -49,7 +49,7 @@ pub async fn run_periodic_peer_disconnect(
         let locations = query_as!(
             WireguardNetwork::<Id>,
             "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, addresses, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE mfa_enabled = true",
         )

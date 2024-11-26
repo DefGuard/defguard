@@ -139,7 +139,7 @@ fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration
         name: network.name.clone(),
         port: network.port as u32,
         prvkey: network.prvkey.clone(),
-        address: network.address.to_string(),
+        addresses: network.addresses.iter().map(ToString::to_string).collect(),
         peers,
     }
 }
@@ -325,7 +325,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
                     prvkey: network.prvkey.clone(),
-                    address: network.address.to_string(),
+                    addresses: network.addresses.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
                 })),
@@ -360,7 +360,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network_name.to_string(),
                     prvkey: String::new(),
-                    address: String::new(),
+                    addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
                 })),
