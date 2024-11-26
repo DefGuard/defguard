@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     fmt,
     net::{IpAddr, Ipv4Addr},
-    str::FromStr,
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
@@ -75,7 +74,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
-    pub addresses: Vec<IpNetwork>,
+    pub address: Vec<IpNetwork>,
     pub port: i32,
     pub pubkey: String,
     #[serde(default, skip_serializing)]
@@ -130,7 +129,7 @@ pub enum WireguardNetworkError {
 impl WireguardNetwork {
     pub fn new(
         name: String,
-        addresses: Vec<IpNetwork>,
+        address: Vec<IpNetwork>,
         port: i32,
         endpoint: String,
         dns: Option<String>,
@@ -144,7 +143,7 @@ impl WireguardNetwork {
         Ok(Self {
             id: NoId,
             name,
-            addresses,
+            address,
             port,
             pubkey: BASE64_STANDARD.encode(pubkey.to_bytes()),
             prvkey: BASE64_STANDARD.encode(prvkey.to_bytes()),
@@ -159,16 +158,22 @@ impl WireguardNetwork {
     }
 
     /// Try to set `address` from `&str`.
-    // FIXME: handle multiple addresses
-    pub fn try_set_address(&mut self, address: &str) -> Result<IpNetwork, IpNetworkError> {
-        IpNetwork::from_str(address).inspect(|&network| {
-            self.addresses = vec![network];
-        })
+    #[cfg(test)]
+    pub(crate) fn try_set_address(&mut self, address: &str) -> Result<(), IpNetworkError> {
+        use crate::handlers::wireguard::parse_address_list;
+
+        let address = parse_address_list(address);
+        if address.is_empty() {
+            return Err(IpNetworkError::InvalidAddr("invalid address".into()));
+        }
+        self.address = address;
+
+        Ok(())
     }
 }
 
 impl WireguardNetwork<Id> {
-    pub async fn find_by_name<'e, E>(
+    pub(crate) async fn find_by_name<'e, E>(
         executor: E,
         name: &str,
     ) -> Result<Option<Vec<Self>>, WireguardNetworkError>
@@ -178,7 +183,7 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT \
-                id, name, addresses, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
                 connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE name = $1",
             name
@@ -194,7 +199,7 @@ impl WireguardNetwork<Id> {
     }
 
     // run sync_allowed_devices on all wireguard networks
-    pub async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+    pub(crate) async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
         let mut transaction = app.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
@@ -211,7 +216,7 @@ impl WireguardNetwork<Id> {
         device_count: usize,
     ) -> Result<(), WireguardNetworkError> {
         debug!("Checking if {device_count} devices can fit in network {self}");
-        let network_size = self.addresses[0].size();
+        let network_size = self.address[0].size();
         // include address, network, and broadcast in the calculation
         match network_size {
             NetworkSize::V4(size) => {
@@ -356,7 +361,7 @@ impl WireguardNetwork<Id> {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
                 // network address changed and IP needs to be updated
-                if !self.addresses[0].contains(device_network_config.wireguard_ip) {
+                if !self.address[0].contains(device_network_config.wireguard_ip) {
                     let wireguard_network_device = device
                         .assign_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
@@ -855,7 +860,7 @@ impl Default for WireguardNetwork {
         Self {
             id: NoId,
             name: String::default(),
-            addresses: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
             port: i32::default(),
             pubkey: String::default(),
             prvkey: String::default(),

@@ -2,7 +2,7 @@ import ipaddr from 'ipaddr.js';
 
 import { patternValidDomain } from './patterns';
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpOrDomain = (
   val: string,
   allowMask = false,
@@ -15,23 +15,21 @@ export const validateIpOrDomain = (
   );
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpList = (
   val: string,
   splitWith = ',',
   allowMasks = false,
 ): boolean => {
-  const trimed = val.replace(' ', '');
-  const split = trimed.split(splitWith);
-  for (const value of split) {
-    if (!validateIPv4(value, allowMasks)) {
-      return false;
-    }
-  }
-  return true;
+  return val
+    .replace(' ', '')
+    .split(splitWith)
+    .every((el) => {
+      return validateIPv4(el, allowMasks) || validateIPv6(el, allowMasks);
+    });
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpOrDomainList = (
   val: string,
   splitWith = ',',
@@ -41,7 +39,6 @@ export const validateIpOrDomainList = (
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
   for (const value of split) {
-    console.log(allowIPv6 && !validateIPv6(value, allowMasks));
     if (
       !validateIPv4(value, allowMasks) &&
       !patternValidDomain.test(value) &&
@@ -53,11 +50,11 @@ export const validateIpOrDomainList = (
   return true;
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {
-      ipaddr.IPv4.isValidCIDR(ip);
+      return ipaddr.IPv4.isValidCIDR(ip);
     }
   }
   return ipaddr.IPv4.isValid(ip);
@@ -66,7 +63,7 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
 export const validateIPv6 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {
-      ipaddr.IPv6.isValidCIDR(ip);
+      return ipaddr.IPv6.isValidCIDR(ip);
     }
   }
   return ipaddr.IPv6.isValid(ip);

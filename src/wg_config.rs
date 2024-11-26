@@ -184,7 +184,7 @@ mod test {
         );
         assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
-        assert_eq!(network.addresses, vec!["10.0.0.1/24".parse().unwrap()]);
+        assert_eq!(network.address, vec!["10.0.0.1/24".parse().unwrap()]);
         assert_eq!(network.port, 55055);
         assert_eq!(
             network.pubkey,

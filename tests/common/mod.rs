@@ -231,7 +231,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network1",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -248,7 +248,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network2",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -266,7 +266,7 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
 pub(crate) fn make_network() -> Value {
     json!({
         "name": "network",
-        "addresses": ["10.1.1.1/24"],
+        "address": "10.1.1.1/24",
         "port": 55555,
         "endpoint": "192.168.4.14",
         "allowed_ips": "10.1.1.0/24",

@@ -562,7 +562,7 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
-        if let Some(address) = network.addresses.first() {
+        if let Some(address) = network.address.first() {
             let net_ip = address.ip();
             let net_network = address.network();
             let net_broadcast = address.broadcast();
@@ -620,7 +620,7 @@ mod test {
             pubkey: String,
             network: &WireguardNetwork<Id>,
         ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
-            if let Some(address) = network.addresses.first() {
+            if let Some(address) = network.address.first() {
                 let net_ip = address.ip();
                 let net_network = address.network();
                 let net_broadcast = address.broadcast();

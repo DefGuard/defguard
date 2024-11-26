@@ -123,7 +123,7 @@ async fn test_create_new_network() {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -165,7 +165,7 @@ async fn test_modify_network() {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -196,7 +196,7 @@ async fn test_modify_network() {
         .put("/api/v1/network/1")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -221,7 +221,7 @@ async fn test_modify_network() {
         .put("/api/v1/network/1")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -247,7 +247,7 @@ async fn test_modify_network() {
         .put("/api/v1/network/1")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -272,7 +272,7 @@ async fn test_modify_network() {
         .put("/api/v1/network/1")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -510,7 +510,7 @@ async fn test_modify_user() {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",
@@ -605,7 +605,7 @@ async fn test_delete_only_allowed_group() {
         .post("/api/v1/network")
         .json(&json!({
             "name": "network",
-            "addresses": ["10.1.1.1/24"],
+            "address": "10.1.1.1/24",
             "port": 55555,
             "endpoint": "192.168.4.14",
             "allowed_ips": "10.1.1.0/24",

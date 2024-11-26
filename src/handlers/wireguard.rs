@@ -37,10 +37,18 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
+/// Parse a string with comma-separated IP addresses.
+/// Invalid addresses will be silently ignored.
+pub(crate) fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
+    ips.split(',')
+        .filter_map(|ip| ip.trim().parse().ok())
+        .collect()
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
-    pub addresses: Vec<IpNetwork>,
+    pub address: String, // comma-separated list of addresses
     pub endpoint: String,
     pub port: i32,
     pub allowed_ips: Option<String>,
@@ -53,11 +61,9 @@ pub struct WireguardNetworkData {
 
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
-        self.allowed_ips.as_ref().map_or(Vec::new(), |ips| {
-            ips.split(',')
-                .filter_map(|ip| ip.trim().parse().ok())
-                .collect()
-        })
+        self.allowed_ips
+            .as_ref()
+            .map_or(Vec::new(), |ips| parse_address_list(ips))
     }
 }
 
@@ -92,7 +98,7 @@ pub struct ImportedNetworkData {
 //         (status = 500, description = "Unable to create network.", body = Json, example = json!({"msg": "Invalid network address"}))
 //     )
 // )]
-pub async fn create_network(
+pub(crate) async fn create_network(
     _role: VpnRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -106,7 +112,7 @@ pub async fn create_network(
     let allowed_ips = data.parse_allowed_ips();
     let network = WireguardNetwork::new(
         data.name,
-        data.addresses,
+        parse_address_list(&data.address),
         data.port,
         data.endpoint,
         data.dns,
@@ -149,7 +155,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
-pub async fn modify_network(
+pub(crate) async fn modify_network(
     _role: VpnRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -170,7 +176,7 @@ pub async fn modify_network(
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.addresses = data.addresses;
+    network.address = parse_address_list(&data.address);
     network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
@@ -201,7 +207,7 @@ pub async fn modify_network(
     })
 }
 
-pub async fn delete_network(
+pub(crate) async fn delete_network(
     _role: VpnRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -224,7 +230,7 @@ pub async fn delete_network(
     Ok(ApiResponse::default())
 }
 
-pub async fn list_networks(
+pub(crate) async fn list_networks(
     _role: VpnRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -256,7 +262,7 @@ pub async fn list_networks(
     })
 }
 
-pub async fn network_details(
+pub(crate) async fn network_details(
     Path(network_id): Path<i64>,
     _role: VpnRole,
     State(appstate): State<AppState>,
@@ -291,7 +297,7 @@ pub async fn network_details(
     Ok(response)
 }
 
-pub async fn gateway_status(
+pub(crate) async fn gateway_status(
     Path(network_id): Path<i64>,
     _role: VpnRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -308,7 +314,7 @@ pub async fn gateway_status(
     })
 }
 
-pub async fn remove_gateway(
+pub(crate) async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(i64, String)>,
     _role: VpnRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -332,7 +338,7 @@ pub async fn remove_gateway(
     })
 }
 
-pub async fn import_network(
+pub(crate) async fn import_network(
     _role: VpnRole,
     State(appstate): State<AppState>,
     Json(data): Json<ImportNetworkData>,
@@ -385,7 +391,7 @@ pub async fn import_network(
 }
 
 // This is used exclusively for the wizard to map imported devices to users.
-pub async fn add_user_devices(
+pub(crate) async fn add_user_devices(
     _role: VpnRole,
     session: SessionInfo,
     State(appstate): State<AppState>,

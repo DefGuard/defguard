@@ -46,7 +46,7 @@ async fn test_network() {
     // modify network
     let network_data = WireguardNetworkData {
         name: "my network".into(),
-        addresses: vec!["10.1.1.0/24".parse().unwrap()],
+        address: "10.1.1.0/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
         allowed_ips: Some("10.1.1.0/24".into()),
