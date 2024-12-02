@@ -56,8 +56,7 @@ export const Login = () => {
       z.object({
         username: z
           .string()
-          .min(1, LL.form.error.required())
-          .min(3, LL.form.error.minimumLength())
+          .min(1, LL.form.error.minimumLength())
           .max(64)
           .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
         password: z
