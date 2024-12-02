@@ -92,7 +92,7 @@ impl ClientMfaServer {
         };
 
         // fetch user
-        let Ok(Some(user)) = User::find_by_id(&self.pool, device.user_id).await else {
+        let Ok(Some(mut user)) = User::find_by_id(&self.pool, device.user_id).await else {
             error!("Failed to find user with ID {}", device.user_id);
             return Err(Status::invalid_argument("user not found"));
         };
@@ -127,6 +127,14 @@ impl ClientMfaServer {
                 return Err(Status::unauthenticated("unauthorized"));
             }
         }
+
+        user.verify_mfa_state(&self.pool).await.map_err(|err| {
+            error!(
+                "Failed to verify MFA state for user {}: {err:?}",
+                user.username
+            );
+            Status::internal("unexpected error")
+        })?;
 
         // check if selected method is enabled
         let method = MfaMethod::try_from(request.method).map_err(|err| {
