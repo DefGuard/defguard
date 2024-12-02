@@ -32,7 +32,7 @@ use crate::{
 ///
 /// To enable LDAP sync usernames need to avoid reserved characters.
 /// Username requirements:
-/// - 3 - 64 characters long
+/// - 1 - 64 characters long
 /// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
 /// - digits (0-9)
 /// - starts with non-special character
@@ -41,7 +41,7 @@ use crate::{
 pub fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
-    if !(3..64).contains(&length) {
+    if !(1..64).contains(&length) {
         return Err(WebError::Serialization(format!(
             "Username ({username}) has incorrect length"
         )));
@@ -91,7 +91,6 @@ pub fn prune_username(username: &str) -> String {
         .to_string();
 
     result.retain(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
-    result = result.replace(' ', "");
 
     result
 }
@@ -1412,11 +1411,11 @@ mod test {
         assert_ok!(check_username("First_Last"));
         assert_ok!(check_username("32zenek"));
         assert_ok!(check_username("32-zenek"));
+        assert_ok!(check_username("a"));
+        assert_ok!(check_username("32"));
+        assert_ok!(check_username("a4"));
 
         // invalid usernames
-        assert_err!(check_username("a"));
-        assert_err!(check_username("32"));
-        assert_err!(check_username("a4"));
         assert_err!(check_username("__zenek"));
         assert_err!(check_username("zenek?"));
         assert_err!(check_username("MeMeMe!"));
