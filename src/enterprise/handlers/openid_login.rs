@@ -226,7 +226,7 @@ pub(crate) async fn user_from_claims(
                     );
                     return Err(WebError::Authorization(
                         "User not found and the automatic account creation is disabled. \
-                        Please create the user first."
+                        Enable it or create the user."
                             .into(),
                     ));
                 }
@@ -253,72 +253,72 @@ pub(crate) async fn user_from_claims(
                 let phone = token_claims.phone_number();
 
                 let userinfo_response: CoreUserInfoClaims;
-                let (given_name, family_name, phone) = match (given_name, family_name, phone) {
-                    (Some(given_name), Some(family_name), phone) => {
-                        debug!(
-                            "Given name and family name found in the claims for user {username}."
-                        );
-                        (given_name, family_name, phone)
-                    }
-                    (_, _, _) => {
-                        debug!(
-                            "Given name or family name not found in the claims for user {username}, trying to get them \
-                            from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
-                        );
+                let (given_name, family_name, phone) = if let (
+                    Some(given_name),
+                    Some(family_name),
+                    phone,
+                ) = (given_name, family_name, phone)
+                {
+                    debug!("Given name and family name found in the claims for user {username}.");
+                    (given_name, family_name, phone)
+                } else {
+                    debug!(
+                        "Given name or family name not found in the claims for user {username}, trying to get them \
+                        from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
+                    );
 
-                        let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
-                            Make sure you have configured your provider correctly and that you have granted the \
-                            necessary permissions to retrieve such information from the token or the userinfo endpoint.";
-                        userinfo_response = core_client
-                            .user_info(access_token.clone(), Some(token_claims.subject().clone()))
-                            .map_err(
-                                |err| {
-                                    error!(
-                                        "Failed to get family name and given name from provider's userinfo endpoint, they may not support this. Error details: {err:?}",
-                                    );
+                    let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
+                        Make sure you have configured your provider correctly and that you have granted the \
+                        necessary permissions to retrieve such information from the token or the userinfo endpoint.";
+                    userinfo_response = core_client
+                        .user_info(access_token.clone(), Some(token_claims.subject().clone()))
+                        .map_err(
+                            |err| {
+                                error!(
+                                    "Failed to get family name and given name from provider's userinfo endpoint, they may not support this. Error details: {err:?}",
+                                );
 
-                                    WebError::BadRequest(
-                                        retrieval_error.into(),
-                                    )
-                                }
-                            )?
-                            .request_async(async_http_client)
-                            .await
-                            .map_err(
-                                |err| {
-                                    error!(
-                                        "Failed to get family name and given name from provider's userinfo endpoint. Error details: {err:?}",
-                                    );
+                                WebError::BadRequest(
+                                    retrieval_error.into(),
+                                )
+                            }
+                        )?
+                        .request_async(async_http_client)
+                        .await
+                        .map_err(
+                            |err| {
+                                error!(
+                                    "Failed to get family name and given name from provider's userinfo endpoint. Error details: {err:?}",
+                                );
 
-                                    WebError::BadRequest(
-                                        retrieval_error.into(),
-                                    )
-                                }
-                            )?;
+                                WebError::BadRequest(
+                                    retrieval_error.into(),
+                                )
+                            }
+                        )?;
 
-                        let claim_error = |claim_name: &str| {
-                            format!(
-                                "Failed to retrieve {claim_name} from provider's userinfo endpoint and the ID token. \
-                                Make sure you have configured your provider correctly and that you have \
-                                granted the necessary permissions to retrieve such information from the token or the userinfo endpoint.",
-                            )
-                        };
-                        let given_name = userinfo_response
-                            .given_name()
-                            .and_then(|claim| claim.get(None))
-                            .ok_or(WebError::BadRequest(claim_error("given name")))?;
-                        let family_name = userinfo_response
-                            .family_name()
-                            .and_then(|claim| claim.get(None))
-                            .ok_or(WebError::BadRequest(claim_error("family name")))?;
-                        let phone = userinfo_response.phone_number();
+                    let claim_error = |claim_name: &str| {
+                        format!(
+                            "Failed to retrieve {claim_name} from provider's userinfo endpoint and the ID token. \
+                            Make sure you have configured your provider correctly and that you have \
+                            granted the necessary permissions to retrieve such information from the token or the userinfo endpoint.",
+                        )
+                    };
+                    let given_name = userinfo_response
+                        .given_name()
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(claim_error("given name")))?;
+                    let family_name = userinfo_response
+                        .family_name()
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(claim_error("family name")))?;
+                    let phone = userinfo_response.phone_number();
 
-                        debug!(
-                            "Given name and family name successfully retrieved from the user info endpoint for user {username}."
-                        );
+                    debug!(
+                        "Given name and family name successfully retrieved from the user info endpoint for user {username}."
+                    );
 
-                        (given_name, family_name, phone)
-                    }
+                    (given_name, family_name, phone)
                 };
 
                 let mut user = User::new(
