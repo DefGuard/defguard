@@ -570,6 +570,7 @@ impl User<Id> {
                 if code == expected_code {
                     return true;
                 }
+                debug!("The TOTP code for email MFA for user {} verification doesn't fit current time frame, checking the previous one. Expected: {}, got: {}", self.username, expected_code, code);
 
                 let previous_code = totp_custom::<Sha1>(
                     timeout,
@@ -577,8 +578,21 @@ impl User<Id> {
                     email_mfa_secret,
                     timestamp.as_secs() - timeout,
                 );
-                return code == previous_code;
+
+                if code == previous_code {
+                    return true;
+                } else {
+                    debug!(
+                        "The TOTP code for email MFA for user {} verification doesn't fit previous time frame, expected: {}, got: {}",
+                        self.username, previous_code, code
+                    );
+                    return false;
+                }
+            } else {
+                debug!("Couldn't calculate current timestamp when verifying email MFA code for user {}", self.username);
             }
+        } else {
+            debug!("Email MFA secret not configured for user {}", self.username);
         }
         false
     }
