@@ -920,6 +920,9 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret: string;
   display_name: string;
+  google_service_account_key?: string;
+  google_service_account_email?: string;
+  admin_email?: string;
 }
 
 export interface EditOpenidClientRequest {

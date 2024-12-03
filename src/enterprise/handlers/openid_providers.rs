@@ -3,7 +3,11 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use md4::Digest;
+use rsa::{pkcs8::DecodePrivateKey, RsaPrivateKey};
 use serde_json::json;
+use sha1::Sha1;
+use tracing_subscriber::field::debug;
 
 use super::LicenseInfo;
 use crate::{
@@ -11,6 +15,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     enterprise::db::models::openid_provider::OpenIdProvider,
     handlers::{ApiResponse, ApiResult},
+    hex,
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -20,6 +25,9 @@ pub struct AddProviderData {
     client_id: String,
     client_secret: String,
     display_name: Option<String>,
+    admin_email: Option<String>,
+    google_service_account_email: Option<String>,
+    google_service_account_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -35,6 +43,9 @@ impl AddProviderData {
         client_id: &str,
         client_secret: &str,
         display_name: Option<&str>,
+        admin_email: Option<&str>,
+        google_service_account_email: Option<&str>,
+        google_service_account_key: Option<&str>,
     ) -> Self {
         Self {
             name: name.to_string(),
@@ -42,6 +53,9 @@ impl AddProviderData {
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
             display_name: display_name.map(|s| s.to_string()),
+            admin_email: admin_email.map(|s| s.to_string()),
+            google_service_account_email: google_service_account_email.map(|s| s.to_string()),
+            google_service_account_key: google_service_account_key.map(|s| s.to_string()),
         }
     }
 }
@@ -53,6 +67,36 @@ pub async fn add_openid_provider(
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
+
+    // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
+    // Check if the thing received from the frontend is a valid RSA private key (signaling user intent to change key)
+    // or is it just some empty string or other junk.
+    let private_key = match &provider_data.google_service_account_key {
+        Some(key) => {
+            if RsaPrivateKey::from_pkcs8_pem(key).is_ok() {
+                debug!(
+                    "User {} provided a valid RSA private key for provider's directory sync, using it",
+                    session.user.username
+                );
+                provider_data.google_service_account_key.clone()
+            } else if let Some(provider) = &current_provider {
+                debug!(
+                    "User {} did not provide a valid RSA private key for provider's directory sync or the key did not change, using the existing key",
+                    session.user.username
+                );
+                provider.google_service_account_key.clone()
+            } else {
+                warn!(
+                    "User {} did not provide a valid RSA private key for provider's directory sync",
+                    session.user.username
+                );
+                None
+            }
+        }
+        None => None,
+    };
+
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
@@ -60,6 +104,9 @@ pub async fn add_openid_provider(
         provider_data.client_id,
         provider_data.client_secret,
         provider_data.display_name,
+        private_key,
+        provider_data.google_service_account_email,
+        provider_data.admin_email,
     )
     .upsert(&appstate.pool)
     .await?;
@@ -84,10 +131,14 @@ pub async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     match OpenIdProvider::get_current(&appstate.pool).await? {
-        Some(provider) => Ok(ApiResponse {
-            json: json!(provider),
-            status: StatusCode::OK,
-        }),
+        Some(mut provider) => {
+            // Get rid of it, it should stay on the backend only.
+            provider.google_service_account_key = None;
+            Ok(ApiResponse {
+                json: json!(provider),
+                status: StatusCode::OK,
+            })
+        }
         None => Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::NOT_FOUND,

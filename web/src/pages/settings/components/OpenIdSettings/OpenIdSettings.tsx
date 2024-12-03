@@ -10,6 +10,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
 import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
+import { OpenIdDirectorySyncForm } from './components/OpenIdDirectorySyncForm';
 
 export const OpenIdSettings = () => {
   const { LL } = useI18nContext();

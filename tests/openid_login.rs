@@ -41,6 +41,9 @@ async fn test_openid_providers() {
         "client_id",
         "client_secret",
         Some("display_name"),
+        None,
+        None,
+        None,
     );
 
     let response = client

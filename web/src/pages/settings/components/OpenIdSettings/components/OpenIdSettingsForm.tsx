@@ -27,8 +27,11 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OpenIdProvider } from '../../../../../shared/types';
+import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
 
 type FormFields = OpenIdProvider;
+
+const SUPPORTED_SYNC_PROVIDERS = ['Google'];
 
 export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -39,6 +42,9 @@ export const OpenIdSettingsForm = () => {
     // eslint-disable-next-line max-len
     'https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers';
   const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const [googleServiceAccountFileName, setGoogleServiceAccountFileName] = useState<
+    string | null
+  >(null);
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
@@ -93,6 +99,9 @@ export const OpenIdSettingsForm = () => {
         client_id: z.string().min(1, LL.form.error.required()),
         client_secret: z.string().min(1, LL.form.error.required()),
         display_name: z.string(),
+        admin_email: z.string(),
+        google_service_account_email: z.string(),
+        google_service_account_key: z.string(),
       }),
     [LL.form.error],
   );
@@ -105,11 +114,14 @@ export const OpenIdSettingsForm = () => {
       client_id: currentProvider?.client_id ?? '',
       client_secret: currentProvider?.client_secret ?? '',
       display_name: currentProvider?.display_name ?? '',
+      admin_email: currentProvider?.admin_email ?? '',
+      google_service_account_email: currentProvider?.google_service_account_email ?? '',
+      google_service_account_key: currentProvider?.google_service_account_key ?? '',
     }),
     [currentProvider],
   );
 
-  const { handleSubmit, reset, control } = useForm<FormFields>({
+  const { handleSubmit, reset, control, setValue } = useForm<FormFields>({
     resolver: zodResolver(schema),
     defaultValues,
     mode: 'all',
@@ -121,6 +133,7 @@ export const OpenIdSettingsForm = () => {
   }, [defaultValues, reset]);
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
+    console.log('DATA: ', data);
     mutate(data);
   };
 
@@ -194,6 +207,7 @@ export const OpenIdSettingsForm = () => {
   const handleChange = useCallback(
     (val: string) => {
       setCurrentProvider({
+        ...currentProvider,
         id: currentProvider?.id ?? 0,
         name: val,
         base_url: getProviderUrl({ name: val }) ?? '',
@@ -201,15 +215,21 @@ export const OpenIdSettingsForm = () => {
         client_secret: currentProvider?.client_secret ?? '',
         display_name:
           getProviderDisplayName({ name: val }) ?? currentProvider?.display_name ?? '',
+        google_service_account_email: currentProvider?.google_service_account_email ?? '',
+        google_service_account_key: currentProvider?.google_service_account_key ?? '',
+        admin_email: currentProvider?.admin_email ?? '',
       });
     },
     [currentProvider, getProviderUrl, getProviderDisplayName],
   );
 
+  console.log(currentProvider);
+
   return (
     <section id="openid-settings">
       <header>
         <h2>{localLL.form.title()}</h2>
+
         <Helper>{parse(localLL.form.helper())}</Helper>
         <div className="controls">
           <Button
@@ -235,6 +255,19 @@ export const OpenIdSettingsForm = () => {
         </div>
       </header>
       <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
+        {/* <form
+        id="openid-settings-form"
+        onSubmit={(e) => {
+          console.log('form submitted');
+          // print the form data
+          const formData = new FormData(e.target as HTMLFormElement);
+          for (const [key, value] of formData.entries()) {
+            console.log(key, value);
+          }
+
+          e.preventDefault();
+        }}
+      > */}
         <Select
           sizeVariant={SelectSizeVariant.STANDARD}
           selected={currentProvider?.name ?? undefined}
@@ -274,6 +307,79 @@ export const OpenIdSettingsForm = () => {
           }
           disabled={!enterpriseEnabled || currentProvider?.name !== 'Custom'}
         />
+        <h3 id="dirsync-header">Directory Sync Settings </h3>
+        <div id="directory-sync-settings">
+          {SUPPORTED_SYNC_PROVIDERS.includes(currentProvider?.name ?? '') ? (
+            currentProvider?.name === 'Google' ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'admin_email' }}
+                  label={'Google Admin Email'}
+                  // labelExtras={
+                  //   <Helper>
+                  //     {parse(localLL.form.labels.google_service_account_email.helper())}
+                  //   </Helper>
+                  // }
+                  disabled={!enterpriseEnabled}
+                />
+                <div className="hidden-input">
+                  <FormInput
+                    value={currentProvider?.google_service_account_key ?? ''}
+                    type="text"
+                    name="google_service_account_key"
+                    controller={{ control, name: 'google_service_account_key' }}
+                    readOnly
+                  />
+                </div>
+                <FormInput
+                  value={currentProvider?.google_service_account_email ?? ''}
+                  controller={{ control, name: 'google_service_account_email' }}
+                  type="text"
+                  name="google_service_account_email"
+                  readOnly
+                  label={'Service account currently in use'}
+                />
+                <div className="input">
+                  <div className="top">
+                    <label className="input-label">Service Account Key file:</label>
+                  </div>
+                  <div className="file-upload-container">
+                    <input
+                      className="file-upload"
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            const key = JSON.parse(e.target?.result as string);
+                            setValue('google_service_account_key', key.private_key);
+                            setValue('google_service_account_email', key.client_email);
+                            setGoogleServiceAccountFileName(file.name);
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                    />
+                    <div className="upload-label">
+                      <SvgIconDownload />{' '}
+                      <p>
+                        {googleServiceAccountFileName
+                          ? `Uploaded: ${googleServiceAccountFileName}`
+                          : 'Upload Service Account Key'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null
+          ) : (
+            <p id="sync-not-supported">
+              Directory sync is not supported for the selected provider
+            </p>
+          )}
+        </div>
       </form>
       <a href={docsLink} target="_blank" rel="noreferrer">
         {localLL.form.documentation()}

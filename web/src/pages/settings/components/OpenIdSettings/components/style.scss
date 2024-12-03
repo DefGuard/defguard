@@ -29,4 +29,63 @@
     align-items: center;
     gap: 10px;
   }
+
+  #sync-not-supported {
+    text-align: center;
+    margin: 20px 0;
+    color: var(--text-body-tertiary);
+  }
+
+  .hidden-input {
+    display: none;
+  }
+
+  .file-upload-container {
+    background-color: var(--surface-frame-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed var(--border-primary);
+    border-radius: 10px;
+    position: relative;
+    padding: 20px;
+    z-index: 0;
+  }
+
+  .file-upload-container.dragging {
+    border-color: var(--border-secondary);
+  }
+
+  .file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    cursor: pointer;
+  }
+
+  #dirsync-header {
+    margin-bottom: 10px;
+  }
+
+  .upload-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+
+    p {
+      color: var(--text-body-secondary);
+      font-size: 14px;
+    }
+
+    & > svg {
+      width: 20px;
+      height: 20px;
+      transform: rotate(180deg);
+    }
+  }
 }

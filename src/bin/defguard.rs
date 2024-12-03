@@ -8,6 +8,10 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     enterprise::{
+        directory_sync::{
+            google::GoogleDirectorySync, run_periodic_directory_sync, sync_all_users,
+            sync_user_groups, DirectorySync,
+        },
         license::{run_periodic_license_check, set_cached_license, License},
         limits::{run_periodic_count_update, update_counts},
     },
@@ -126,6 +130,7 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_periodic_license_check(pool.clone()) => error!("Periodic license check task returned early: {res:#?}"),
         // Temporary. Change to a database trigger when they are implemented.
         res = run_periodic_count_update(&pool) => error!("Periodic count update task returned early: {res:#?}"),
+        res = run_periodic_directory_sync(&pool) => error!("Periodic directory sync task returned early: {res:#?}"),
     }
     Ok(())
 }

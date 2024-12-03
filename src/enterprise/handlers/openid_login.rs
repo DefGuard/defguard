@@ -11,7 +11,8 @@ use axum_extra::{
 use openidconnect::{
     core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
     reqwest::async_http_client,
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, OAuth2TokenResponse,
+    RedirectUrl, Scope,
 };
 use reqwest::Url;
 use serde_json::json;
@@ -302,6 +303,15 @@ pub(crate) async fn get_auth_info(
         )
         .add_scope(Scope::new("email".into()))
         .add_scope(Scope::new("profile".into()))
+        .add_scope(Scope::new(
+            "https://www.googleapis.com/auth/admin.directory.group.readonly".into(),
+        ))
+        .add_scope(Scope::new(
+            "https://www.googleapis.com/auth/admin.directory.group.member.readonly".into(),
+        ))
+        .add_scope(Scope::new(
+            "https://www.googleapis.com/auth/admin.directory.user.security".into(),
+        ))
         .url();
 
     let cookie_domain = config
