@@ -12,6 +12,7 @@ import { LoaderPage } from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
+import { useUpdatesStore } from '../shared/hooks/store/useUpdatesStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -37,6 +38,7 @@ export const AppLoader = () => {
   const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
+  const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
     onSuccess: async (user) => {
@@ -133,6 +135,22 @@ export const AppLoader = () => {
       setAppStore({ settings: essentialSettings });
     }
   }, [essentialSettings, setAppStore]);
+
+  //TODO: Check for updates from core here :3
+  useEffect(() => {
+    setUpdateStore({
+      critical: true,
+      notes: `
+# Quick fix release
+
+- Allow usernames with minimum 1 character by @moubctez in #878
+- Okta fixes - more about Okta integration in our docs - fallback to calling user-info if claims not present in the ID token by @t-aleksander in #883
+        `,
+      releaseLink: 'https://github.com/DefGuard/defguard/releases/tag/v1.1.3',
+      version: '1.1.3',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;

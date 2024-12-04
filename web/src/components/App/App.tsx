@@ -20,6 +20,7 @@ import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import { WizardPage } from '../../pages/wizard/WizardPage';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { UpdateNotificationModal } from '../../shared/components/modals/UpdateNotificationModal/UpdateNotificationModal';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
@@ -180,6 +181,7 @@ const App = () => {
             />
           </Routes>
           <Navigation />
+          <UpdateNotificationModal />
         </Router>
       </div>
       <ToastManager />

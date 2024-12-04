@@ -91,6 +91,10 @@ type RootTranslation = {
 			 * E​d​i​t
 			 */
 			edit: string
+			/**
+			 * D​i​s​m​i​s​s
+			 */
+			dismiss: string
 		}
 		/**
 		 * K​e​y
@@ -134,6 +138,29 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		updatesNotification: {
+			header: {
+				/**
+				 * U​p​d​a​t​e​ ​A​v​a​i​l​a​b​l​e
+				 */
+				title: string
+				/**
+				 * n​e​w​ ​v​e​r​s​i​o​n​ ​{​v​e​r​s​i​o​n​}
+				 * @param {string} version
+				 */
+				newVersion: RequiredParams<'version'>
+				/**
+				 * c​r​i​t​i​c​a​l​ ​u​p​d​a​t​e
+				 */
+				criticalBadge: string
+			}
+			controls: {
+				/**
+				 * V​i​s​i​t​ ​r​e​l​e​a​s​e​ ​p​a​g​e
+				 */
+				visitRelease: string
+			}
+		}
 		addGroup: {
 			/**
 			 * A​d​d​ ​g​r​o​u​p
@@ -4386,6 +4413,10 @@ export type TranslationFunctions = {
 			 * Edit
 			 */
 			edit: () => LocalizedString
+			/**
+			 * Dismiss
+			 */
+			dismiss: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -4429,6 +4460,28 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		updatesNotification: {
+			header: {
+				/**
+				 * Update Available
+				 */
+				title: () => LocalizedString
+				/**
+				 * new version {version}
+				 */
+				newVersion: (arg: { version: string }) => LocalizedString
+				/**
+				 * critical update
+				 */
+				criticalBadge: () => LocalizedString
+			}
+			controls: {
+				/**
+				 * Visit release page
+				 */
+				visitRelease: () => LocalizedString
+			}
+		}
 		addGroup: {
 			/**
 			 * Add group

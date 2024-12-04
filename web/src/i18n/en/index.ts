@@ -24,6 +24,7 @@ const en: BaseTranslation = {
       rename: 'Rename',
       copy: 'Copy',
       edit: 'Edit',
+      dismiss: 'Dismiss',
     },
     key: 'Key',
     name: 'Name',
@@ -40,6 +41,16 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    updatesNotification: {
+      header: {
+        title: 'Update Available',
+        newVersion: 'new version {version: string}',
+        criticalBadge: 'critical update',
+      },
+      controls: {
+        visitRelease: 'Visit release page',
+      },
+    },
     addGroup: {
       title: 'Add group',
       selectAll: 'Select all users',

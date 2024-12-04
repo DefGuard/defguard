@@ -7,7 +7,7 @@
     "serve": "vite preview",
     "generate-translation-types": "typesafe-i18n --no-watch",
     "lint": "eslint -c ./.eslintrc.cjs --ignore-path .eslintignore --ext .ts --ext .tsx src/ && prettier --check 'src/**/*.{ts,tsx,scss}' && tsc",
-    "fix": "prettier -w 'src/**/*.{ts,tsx,scss}' && eslint -c ./.eslintrc.cjs --ignore-path .eslintignore --fix 'src/**/*.{ts,tsx}'",
+    "fix": "prettier -w 'src/**/*.{ts,tsx,scss}' && eslint -c ./.eslintrc.cjs --ignore-path .eslintignore --fix --ext .ts --ext .tsx src/",
     "parse-core-svgs": "svgr --no-index --jsx-runtime 'automatic' --svgo-config ./svgo.config.json --prettier-config ./.prettierrc --out-dir ./src/shared/components/svg/ --typescript ./src/shared/images/svg/",
     "parse-ui-svgs": "svgr --no-index --jsx-runtime 'automatic' --svgo-config ./svgo.config.json --prettier-config ./.prettierrc --out-dir ./src/shared/defguard-ui/components/svg/ --typescript ./src/shared/defguard-ui/images/svg/",
     "parse-svgs": "pnpm parse-ui-svgs && pnpm parse-core-svgs",
