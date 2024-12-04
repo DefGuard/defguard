@@ -642,6 +642,25 @@ impl User<Id> {
         .await
     }
 
+    pub async fn find_by_email_case_insensitive<'e, E>(
+        executor: E,
+        email: &str,
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE lower(email) = lower($1)",
+            email
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
     // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
     where

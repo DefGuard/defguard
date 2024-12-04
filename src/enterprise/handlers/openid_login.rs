@@ -200,7 +200,7 @@ pub(crate) async fn user_from_claims(
             user
         }
         None => {
-            if let Some(mut user) = User::find_by_email(pool, email).await? {
+            if let Some(mut user) = User::find_by_email_case_insensitive(pool, email).await? {
                 if !user.is_active {
                     debug!("User {} tried to log in, but is disabled", user.username);
                     return Err(WebError::Authorization("User is disabled".into()));
