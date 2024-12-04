@@ -584,7 +584,7 @@ impl User<Id> {
     }
 
     /// Verify recovery code. If it is valid, consume it, so it can't be used again.
-    pub async fn verify_recovery_code(
+    pub(crate) async fn verify_recovery_code(
         &mut self,
         pool: &PgPool,
         code: &str,
@@ -626,7 +626,10 @@ impl User<Id> {
         .await
     }
 
-    pub async fn find_by_email<'e, E>(executor: E, email: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_email<'e, E>(
+        executor: E,
+        email: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -635,7 +638,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE email = $1",
+            FROM \"user\" WHERE email ILIKE $1",
             email
         )
         .fetch_optional(executor)
@@ -643,7 +646,10 @@ impl User<Id> {
     }
 
     // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
-    pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_sub<'e, E>(
+        executor: E,
+        sub: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -659,7 +665,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub(crate) async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -672,7 +678,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -689,7 +695,7 @@ impl User<Id> {
     /// Returns a vector of [`UserDevice`]s (hence the name).
     /// [`UserDevice`] is a struct containing additional network info about a device.
     /// If you only need [`Device`]s, use [`User::devices()`] instead.
-    pub async fn user_devices(&self, pool: &PgPool) -> Result<Vec<UserDevice>, SqlxError> {
+    pub(crate) async fn user_devices(&self, pool: &PgPool) -> Result<Vec<UserDevice>, SqlxError> {
         let devices = self.devices(pool).await?;
         let mut user_devices = Vec::new();
         for device in devices {
@@ -703,7 +709,7 @@ impl User<Id> {
 
     /// Returns a vector of [`Device`]s related to a user. If you want to get [`UserDevice`]s (which contain additional network info),
     /// use [`User::user_devices()`] instead.
-    pub async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device<Id>>, SqlxError>
+    pub(crate) async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -717,7 +723,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
+    pub(crate) async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -731,7 +737,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn oauth2authorizedapps<'e, E>(
+    pub(crate) async fn oauth2authorizedapps<'e, E>(
         &self,
         executor: E,
     ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
@@ -751,7 +757,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn security_keys(&self, pool: &PgPool) -> Result<Vec<SecurityKey>, SqlxError> {
+    pub(crate) async fn security_keys(&self, pool: &PgPool) -> Result<Vec<SecurityKey>, SqlxError> {
         query_as!(
             SecurityKey,
             "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1",
@@ -777,7 +783,7 @@ impl User<Id> {
         Ok(())
     }
 
-    pub async fn remove_from_group<'e, E>(
+    pub(crate) async fn remove_from_group<'e, E>(
         &self,
         executor: E,
         group: &Group<Id>,
@@ -797,7 +803,7 @@ impl User<Id> {
     }
 
     /// Remove authorized apps by their client id's from user
-    pub async fn remove_oauth2_authorized_apps<'e, E>(
+    pub(crate) async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
         executor: E,
         app_client_ids: &[i64],
@@ -1005,5 +1011,28 @@ mod test {
             assert!(user.verify_recovery_code(&pool, code).await.unwrap());
         }
         assert_eq!(user.recovery_codes.len(), 0);
+    }
+
+    #[sqlx::test]
+    async fn test_email_case_insensitivity(pool: PgPool) {
+        let harry = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        assert!(harry.save(&pool).await.is_ok());
+
+        let henry = User::new(
+            "h.potter",
+            Some("pass123"),
+            "Potter",
+            "Henry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        assert!(henry.save(&pool).await.is_err());
     }
 }
