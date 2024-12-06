@@ -1,10 +1,49 @@
-use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, PgPool};
+use std::fmt;
 
-use crate::{
-    db::{Id, NoId},
-    secret::SecretString,
-};
+use model_derive::Model;
+use sqlx::{query, query_as, Error as SqlxError, PgPool, Type};
+
+use crate::db::{Id, NoId};
+
+// The behavior when a user is deleted from the directory
+// Keep: Keep the user, despite being deleted from the external provider's directory
+// Disable: Disable the user
+// Delete: Delete the user
+#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
+#[sqlx(type_name = "dirsync_user_behavior", rename_all = "snake_case")]
+pub enum DirectorySyncUserBehavior {
+    Keep,
+    Disable,
+    Delete,
+}
+
+impl fmt::Display for DirectorySyncUserBehavior {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DirectorySyncUserBehavior::Keep => "keep",
+                DirectorySyncUserBehavior::Disable => "disable",
+                DirectorySyncUserBehavior::Delete => "delete",
+            }
+        )
+    }
+}
+
+impl From<String> for DirectorySyncUserBehavior {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "keep" => DirectorySyncUserBehavior::Keep,
+            "disable" => DirectorySyncUserBehavior::Disable,
+            "delete" => DirectorySyncUserBehavior::Delete,
+            _ => {
+                warn!("Unknown directory sync user behavior passed: {}", s);
+                DirectorySyncUserBehavior::Keep
+            }
+        }
+    }
+}
 
 #[derive(Deserialize, Model, Serialize)]
 pub struct OpenIdProvider<I = NoId> {
@@ -18,6 +57,13 @@ pub struct OpenIdProvider<I = NoId> {
     pub google_service_account_key: Option<String>,
     pub google_service_account_email: Option<String>,
     pub admin_email: Option<String>,
+    pub directory_sync_enabled: bool,
+    // How often to sync the directory in seconds
+    pub directory_sync_interval: i32,
+    #[model(enum)]
+    pub directory_sync_user_behavior: DirectorySyncUserBehavior,
+    #[model(enum)]
+    pub directory_sync_admin_behavior: DirectorySyncUserBehavior,
 }
 
 impl OpenIdProvider {
@@ -31,6 +77,10 @@ impl OpenIdProvider {
         google_service_account_key: Option<String>,
         google_service_account_email: Option<String>,
         admin_email: Option<String>,
+        directory_sync_enabled: bool,
+        directory_sync_interval: i32,
+        directory_sync_user_behavior: DirectorySyncUserBehavior,
+        directory_sync_admin_behavior: DirectorySyncUserBehavior,
     ) -> Self {
         Self {
             id: NoId,
@@ -42,6 +92,10 @@ impl OpenIdProvider {
             google_service_account_key,
             google_service_account_email,
             admin_email,
+            directory_sync_enabled,
+            directory_sync_interval,
+            directory_sync_user_behavior,
+            directory_sync_admin_behavior,
         }
     }
 
@@ -50,8 +104,9 @@ impl OpenIdProvider {
             query!(
                 "UPDATE openidprovider SET name = $1, \
                 base_url = $2, client_id = $3, client_secret = $4, \
-                display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8 \
-                WHERE id = $9",
+                display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, \
+                directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12 \
+                WHERE id = $13",
                 self.name,
                 self.base_url,
                 self.client_id,
@@ -60,6 +115,10 @@ impl OpenIdProvider {
                 self.google_service_account_key,
                 self.google_service_account_email,
                 self.admin_email,
+                self.directory_sync_enabled,
+                self.directory_sync_interval,
+                self.directory_sync_user_behavior as DirectorySyncUserBehavior,
+                self.directory_sync_admin_behavior as DirectorySyncUserBehavior,
                 provider.id,
             )
             .execute(pool)
@@ -77,7 +136,9 @@ impl OpenIdProvider<Id> {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, client_id, client_secret, display_name, \
-            google_service_account_key, google_service_account_email, admin_email \
+            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, 
+            directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\" \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -89,7 +150,9 @@ impl OpenIdProvider<Id> {
         query_as!(
             OpenIdProvider,
             "SELECT id, name, base_url, client_id, client_secret, display_name, \
-            google_service_account_key, google_service_account_email, admin_email \
+            google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \
+            directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
+            directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\" \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(pool)

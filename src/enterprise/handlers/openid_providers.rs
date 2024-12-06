@@ -13,7 +13,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::openid_provider::OpenIdProvider,
+    enterprise::db::models::openid_provider::{DirectorySyncUserBehavior, OpenIdProvider},
     handlers::{ApiResponse, ApiResult},
     hex,
 };
@@ -28,6 +28,10 @@ pub struct AddProviderData {
     admin_email: Option<String>,
     google_service_account_email: Option<String>,
     google_service_account_key: Option<String>,
+    directory_sync_enabled: bool,
+    directory_sync_interval: i32,
+    directory_sync_user_behavior: String,
+    directory_sync_admin_behavior: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -35,30 +39,36 @@ pub struct DeleteProviderData {
     name: String,
 }
 
-impl AddProviderData {
-    #[must_use]
-    pub fn new(
-        name: &str,
-        base_url: &str,
-        client_id: &str,
-        client_secret: &str,
-        display_name: Option<&str>,
-        admin_email: Option<&str>,
-        google_service_account_email: Option<&str>,
-        google_service_account_key: Option<&str>,
-    ) -> Self {
-        Self {
-            name: name.to_string(),
-            base_url: base_url.to_string(),
-            client_id: client_id.to_string(),
-            client_secret: client_secret.to_string(),
-            display_name: display_name.map(|s| s.to_string()),
-            admin_email: admin_email.map(|s| s.to_string()),
-            google_service_account_email: google_service_account_email.map(|s| s.to_string()),
-            google_service_account_key: google_service_account_key.map(|s| s.to_string()),
-        }
-    }
-}
+// impl AddProviderData {
+//     #[must_use]
+//     pub(crate) fn new(
+//         name: &str,
+//         base_url: &str,
+//         client_id: &str,
+//         client_secret: &str,
+//         display_name: Option<&str>,
+//         admin_email: Option<&str>,
+//         google_service_account_email: Option<&str>,
+//         google_service_account_key: Option<&str>,
+//         directory_sync_enabled: bool,
+//         directory_sync_interval: i32,
+//         directory_sync_user_behavior: &str,
+//     ) -> Self {
+//         Self {
+//             name: name.into(),
+//             base_url: base_url.into(),
+//             client_id: client_id.into(),
+//             client_secret: client_secret.into(),
+//             display_name: display_name.map(|s| s.into()),
+//             admin_email: admin_email.map(|s| s.into()),
+//             google_service_account_email: google_service_account_email.map(|s| s.into()),
+//             google_service_account_key: google_service_account_key.map(|s| s.into()),
+//             directory_sync_enabled,
+//             directory_sync_interval,
+//             directory_sync_user_behavior: directory_sync_user_behavior.into(),
+//         }
+//     }
+// }
 
 pub async fn add_openid_provider(
     _license: LicenseInfo,
@@ -107,6 +117,10 @@ pub async fn add_openid_provider(
         private_key,
         provider_data.google_service_account_email,
         provider_data.admin_email,
+        provider_data.directory_sync_enabled,
+        provider_data.directory_sync_interval,
+        provider_data.directory_sync_user_behavior.into(),
+        provider_data.directory_sync_admin_behavior.into(),
     )
     .upsert(&appstate.pool)
     .await?;

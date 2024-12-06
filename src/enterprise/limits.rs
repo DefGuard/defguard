@@ -54,13 +54,9 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     Ok(())
 }
 
-// Just to make sure we don't miss any user/device/network count changes
-pub async fn run_periodic_count_update(pool: &PgPool) -> Result<(), SqlxError> {
-    let delay = Duration::from_secs(60 * 60);
-    loop {
-        update_counts(pool).await?;
-        sleep(delay).await;
-    }
+pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
+    update_counts(pool).await?;
+    Ok(())
 }
 
 impl Counts {

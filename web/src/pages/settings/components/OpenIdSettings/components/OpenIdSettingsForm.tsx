@@ -28,6 +28,11 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OpenIdProvider } from '../../../../../shared/types';
 import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
+import { CheckBox } from '../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
+import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { titleCase } from '../../../../../shared/utils/titleCase';
 
 type FormFields = OpenIdProvider;
 
@@ -102,6 +107,10 @@ export const OpenIdSettingsForm = () => {
         admin_email: z.string(),
         google_service_account_email: z.string(),
         google_service_account_key: z.string(),
+        directory_sync_enabled: z.boolean(),
+        directory_sync_interval: z.number(),
+        directory_sync_user_behavior: z.string(),
+        directory_sync_admin_behavior: z.string(),
       }),
     [LL.form.error],
   );
@@ -117,6 +126,12 @@ export const OpenIdSettingsForm = () => {
       admin_email: currentProvider?.admin_email ?? '',
       google_service_account_email: currentProvider?.google_service_account_email ?? '',
       google_service_account_key: currentProvider?.google_service_account_key ?? '',
+      directory_sync_enabled: currentProvider?.directory_sync_enabled ?? false,
+      directory_sync_interval: currentProvider?.directory_sync_interval ?? 600,
+      directory_sync_user_behavior:
+        currentProvider?.directory_sync_user_behavior ?? 'keep',
+      directory_sync_admin_behavior:
+        currentProvider?.directory_sync_admin_behavior ?? 'keep',
     }),
     [currentProvider],
   );
@@ -218,10 +233,58 @@ export const OpenIdSettingsForm = () => {
         google_service_account_email: currentProvider?.google_service_account_email ?? '',
         google_service_account_key: currentProvider?.google_service_account_key ?? '',
         admin_email: currentProvider?.admin_email ?? '',
+        directory_sync_enabled: currentProvider?.directory_sync_enabled ?? false,
+        directory_sync_interval: currentProvider?.directory_sync_interval ?? 600,
+        directory_sync_user_behavior:
+          currentProvider?.directory_sync_user_behavior ?? 'keep',
+        directory_sync_admin_behavior:
+          currentProvider?.directory_sync_admin_behavior ?? 'keep',
       });
     },
     [currentProvider, getProviderUrl, getProviderDisplayName],
   );
+
+  const userBehaviorOptions = useMemo(
+    () => [
+      {
+        value: 'keep',
+        label: 'Keep',
+        key: 1,
+      },
+      {
+        value: 'disable',
+        label: 'Disable',
+        key: 2,
+      },
+      {
+        value: 'delete',
+        label: 'Delete',
+        key: 3,
+      },
+    ],
+    [],
+  );
+
+  // const renderSelected = useCallback(
+  //   (userBehaviorOption: string): SelectSelectedValue => {
+  //     const selectedOption = userBehaviorOptions.find(
+  //       (o) => o.value === userBehaviorOption,
+  //     );
+
+  //     if (selectedOption) {
+  //       return {
+  //         key: networkId,
+  //         displayValue: selectedOption.label,
+  //       };
+  //     }
+
+  //     return {
+  //       key: 'none',
+  //       displayValue: 'Error',
+  //     };
+  //   },
+  //   [getOptions],
+  // );
 
   console.log(currentProvider);
 
@@ -283,12 +346,14 @@ export const OpenIdSettingsForm = () => {
           label={localLL.form.labels.base_url.label()}
           labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
           disabled={currentProvider?.name === 'Google' || !enterpriseEnabled}
+          required
         />
         <FormInput
           controller={{ control, name: 'client_id' }}
           label={localLL.form.labels.client_id.label()}
           labelExtras={<Helper>{parse(localLL.form.labels.client_id.helper())}</Helper>}
           disabled={!enterpriseEnabled}
+          required
         />
         <FormInput
           controller={{ control, name: 'client_secret' }}
@@ -296,6 +361,7 @@ export const OpenIdSettingsForm = () => {
           labelExtras={
             <Helper>{parse(localLL.form.labels.client_secret.helper())}</Helper>
           }
+          required
           type="password"
           disabled={!enterpriseEnabled}
         />
@@ -307,19 +373,54 @@ export const OpenIdSettingsForm = () => {
           }
           disabled={!enterpriseEnabled || currentProvider?.name !== 'Custom'}
         />
-        <h3 id="dirsync-header">Directory Sync Settings </h3>
+        <header id="dirsync-header">
+          <h3>Directory Sync Settings</h3>
+          <Helper>
+            Directory synchrnoization allows you to automatically synchronize users groups
+            and their status from your external provider.
+          </Helper>
+        </header>
         <div id="directory-sync-settings">
           {SUPPORTED_SYNC_PROVIDERS.includes(currentProvider?.name ?? '') ? (
             currentProvider?.name === 'Google' ? (
               <>
+                <div id="enable-dir-sync">
+                  <FormCheckBox
+                    disabled={isLoading || !enterpriseEnabled}
+                    label={'Enable Directory Sync'}
+                    labelPlacement="right"
+                    controller={{ control, name: 'directory_sync_enabled' }}
+                  />
+                </div>
+                <FormInput
+                  value={currentProvider?.google_service_account_email ?? ''}
+                  controller={{ control, name: 'directory_sync_interval' }}
+                  type="number"
+                  name="directory_sync_interval"
+                  label={'Synchronization interval'}
+                  required
+                />
+                <FormSelect
+                  controller={{ control, name: 'directory_sync_user_behavior' }}
+                  options={userBehaviorOptions}
+                  label="User behavior"
+                  renderSelected={(val) => ({
+                    key: val,
+                    displayValue: titleCase(val),
+                  })}
+                />
+                <FormSelect
+                  controller={{ control, name: 'directory_sync_admin_behavior' }}
+                  options={userBehaviorOptions}
+                  label="Admin behavior"
+                  renderSelected={(val) => ({
+                    key: val,
+                    displayValue: titleCase(val),
+                  })}
+                />
                 <FormInput
                   controller={{ control, name: 'admin_email' }}
                   label={'Google Admin Email'}
-                  // labelExtras={
-                  //   <Helper>
-                  //     {parse(localLL.form.labels.google_service_account_email.helper())}
-                  //   </Helper>
-                  // }
                   disabled={!enterpriseEnabled}
                 />
                 <div className="hidden-input">

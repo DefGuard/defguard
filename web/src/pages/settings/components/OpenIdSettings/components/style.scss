@@ -67,8 +67,15 @@
     cursor: pointer;
   }
 
+  .select {
+    padding-bottom: 0;
+  }
+
   #dirsync-header {
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 
   .upload-label {
@@ -87,5 +94,9 @@
       height: 20px;
       transform: rotate(180deg);
     }
+  }
+
+  #enable-dir-sync {
+    margin-bottom: 25px;
   }
 }

@@ -8,17 +8,14 @@ use defguard::{
     config::{Command, DefGuardConfig},
     db::{init_db, AppEvent, GatewayEvent, Settings, User},
     enterprise::{
-        directory_sync::{
-            google::GoogleDirectorySync, run_periodic_directory_sync, sync_all_users,
-            sync_user_groups, DirectorySync,
-        },
         license::{run_periodic_license_check, set_cached_license, License},
-        limits::{run_periodic_count_update, update_counts},
+        limits::update_counts,
     },
     grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
     run_web_server,
+    utility_thread::run_utility_thread,
     wireguard_peer_disconnect::run_periodic_peer_disconnect,
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG, VERSION,
@@ -127,10 +124,11 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_mail_handler(mail_rx, pool.clone()) => error!("Mail handler returned early: {res:#?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
-        res = run_periodic_license_check(pool.clone()) => error!("Periodic license check task returned early: {res:#?}"),
+        res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:#?}"),
         // Temporary. Change to a database trigger when they are implemented.
-        res = run_periodic_count_update(&pool) => error!("Periodic count update task returned early: {res:#?}"),
-        res = run_periodic_directory_sync(&pool) => error!("Periodic directory sync task returned early: {res:#?}"),
+        // res = run_periodic_count_update(&pool) => error!("Periodic count update task returned early: {res:#?}"),
+        // res = run_periodic_directory_sync(&pool) => error!("Periodic directory sync task returned early: {res:#?}"),
+        res = run_utility_thread(&pool) => error!("Utility thread returned early: {res:#?}"),
     }
     Ok(())
 }

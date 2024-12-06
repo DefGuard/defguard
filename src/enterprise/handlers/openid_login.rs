@@ -303,15 +303,6 @@ pub(crate) async fn get_auth_info(
         )
         .add_scope(Scope::new("email".into()))
         .add_scope(Scope::new("profile".into()))
-        .add_scope(Scope::new(
-            "https://www.googleapis.com/auth/admin.directory.group.readonly".into(),
-        ))
-        .add_scope(Scope::new(
-            "https://www.googleapis.com/auth/admin.directory.group.member.readonly".into(),
-        ))
-        .add_scope(Scope::new(
-            "https://www.googleapis.com/auth/admin.directory.user.security".into(),
-        ))
         .url();
 
     let cookie_domain = config
