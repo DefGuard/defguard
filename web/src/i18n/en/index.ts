@@ -41,6 +41,12 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    updatesNotificationToaster: {
+      title: 'New version available {version: string}',
+      controls: {
+        more: "See what's new",
+      },
+    },
     updatesNotification: {
       header: {
         title: 'Update Available',

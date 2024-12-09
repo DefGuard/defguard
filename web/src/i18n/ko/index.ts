@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
-import type { BaseTranslation } from '../i18n-types';
+import en from '../en';
+import { extendDictionary } from '../i18n-util';
 
-const ko: BaseTranslation = {
+const ko = extendDictionary(en, {
   common: {
     conditions: {
       or: '또는',
@@ -1807,6 +1808,6 @@ GitHub에 문의하거나 문제를 제출하기 전에 [docs.defguard.net](http
 `,
     },
   },
-};
+});
 
 export default ko;

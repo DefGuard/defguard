@@ -138,6 +138,19 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		updatesNotificationToaster: {
+			/**
+			 * N​e​w​ ​v​e​r​s​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​{​v​e​r​s​i​o​n​}
+			 * @param {string} version
+			 */
+			title: RequiredParams<'version'>
+			controls: {
+				/**
+				 * S​e​e​ ​w​h​a​t​'​s​ ​n​e​w
+				 */
+				more: string
+			}
+		}
 		updatesNotification: {
 			header: {
 				/**
@@ -4460,6 +4473,18 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		updatesNotificationToaster: {
+			/**
+			 * New version available {version}
+			 */
+			title: (arg: { version: string }) => LocalizedString
+			controls: {
+				/**
+				 * See what's new
+				 */
+				more: () => LocalizedString
+			}
+		}
 		updatesNotification: {
 			header: {
 				/**

@@ -2,6 +2,10 @@ import { isObject, pick } from 'lodash-es';
 import { persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
+import { VersionUpdateToast } from '../../components/Layout/VersionUpdateToast/VersionUpdateToast';
+import { ToastType } from '../../defguard-ui/components/Layout/ToastManager/Toast/types';
+import { useToastsStore } from '../../defguard-ui/hooks/toasts/useToastStore';
+
 const keysToPersist: Array<keyof StoreValues> = ['dismissal'];
 
 const defaultState: StoreValues = {
@@ -20,7 +24,12 @@ export const useUpdatesStore = createWithEqualityFn<Store>()(
       setUpdate: (update) => {
         const state = get();
         if (!state.dismissal || state.dismissal.version !== update.version) {
-          set({ update: update, modalVisible: true });
+          useToastsStore.getState().addToast({
+            customComponent: VersionUpdateToast,
+            message: '',
+            type: ToastType.INFO,
+          });
+          set({ update: update });
         } else {
           set({ update: update });
         }

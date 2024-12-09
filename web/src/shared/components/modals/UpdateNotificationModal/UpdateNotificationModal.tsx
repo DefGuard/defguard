@@ -12,6 +12,7 @@ import {
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { RenderMarkdown } from '../../Layout/RenderMarkdown/RenderMarkdown';
 import './style.scss';
+import dayjs from 'dayjs';
 
 export const UpdateNotificationModal = () => {
   const isOpen = useUpdatesStore((s) => s.modalVisible);
@@ -25,6 +26,7 @@ export const UpdateNotificationModal = () => {
       }}
       className="updates-modal"
       id="updates-modal"
+      disableClose
     >
       <ModalContent />
     </Modal>
@@ -35,6 +37,7 @@ const ModalContent = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.updatesNotification;
   const data = useUpdatesStore((s) => s.update);
+  const setStore = useUpdatesStore((s) => s.setStore, shallow);
   if (!data) return null;
   return (
     <div className="content-wrapper">
@@ -67,6 +70,15 @@ const ModalContent = () => {
             styleVariant={ButtonStyleVariant.STANDARD}
             size={ButtonSize.LARGE}
             text={LL.common.controls.dismiss()}
+            onClick={() => {
+              setStore({
+                modalVisible: false,
+                dismissal: {
+                  dismissedAt: dayjs.utc().toISOString(),
+                  version: data.version,
+                },
+              });
+            }}
           />
           <a href={data.releaseLink} target="_blank" rel="noreferrer noopener">
             <Button
