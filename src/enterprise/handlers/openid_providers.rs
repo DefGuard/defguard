@@ -3,19 +3,15 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use md4::Digest;
 use rsa::{pkcs8::DecodePrivateKey, RsaPrivateKey};
 use serde_json::json;
-use sha1::Sha1;
-use tracing_subscriber::field::debug;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::openid_provider::{DirectorySyncUserBehavior, OpenIdProvider},
+    enterprise::db::models::openid_provider::OpenIdProvider,
     handlers::{ApiResponse, ApiResult},
-    hex,
 };
 
 #[derive(Debug, Deserialize, Serialize)]

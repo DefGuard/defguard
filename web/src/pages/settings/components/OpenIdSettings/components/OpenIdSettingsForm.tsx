@@ -28,8 +28,6 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OpenIdProvider } from '../../../../../shared/types';
 import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
-import { CheckBox } from '../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
-import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { titleCase } from '../../../../../shared/utils/titleCase';
@@ -108,7 +106,7 @@ export const OpenIdSettingsForm = () => {
         google_service_account_email: z.string(),
         google_service_account_key: z.string(),
         directory_sync_enabled: z.boolean(),
-        directory_sync_interval: z.number(),
+        directory_sync_interval: z.number().min(60, LL.form.error.invalid()),
         directory_sync_user_behavior: z.string(),
         directory_sync_admin_behavior: z.string(),
       }),
@@ -374,11 +372,8 @@ export const OpenIdSettingsForm = () => {
           disabled={!enterpriseEnabled || currentProvider?.name !== 'Custom'}
         />
         <header id="dirsync-header">
-          <h3>Directory Sync Settings</h3>
-          <Helper>
-            Directory synchrnoization allows you to automatically synchronize users groups
-            and their status from your external provider.
-          </Helper>
+          <h3>{localLL.form.directory_sync_settings.title()}</h3>
+          <Helper>{localLL.form.directory_sync_settings.helper()}</Helper>
         </header>
         <div id="directory-sync-settings">
           {SUPPORTED_SYNC_PROVIDERS.includes(currentProvider?.name ?? '') ? (
@@ -387,41 +382,53 @@ export const OpenIdSettingsForm = () => {
                 <div id="enable-dir-sync">
                   <FormCheckBox
                     disabled={isLoading || !enterpriseEnabled}
-                    label={'Enable Directory Sync'}
+                    label={localLL.form.labels.enable_directory_sync.label()}
                     labelPlacement="right"
                     controller={{ control, name: 'directory_sync_enabled' }}
                   />
                 </div>
                 <FormInput
-                  value={currentProvider?.google_service_account_email ?? ''}
+                  value={currentProvider?.directory_sync_interval ?? ''}
                   controller={{ control, name: 'directory_sync_interval' }}
                   type="number"
                   name="directory_sync_interval"
-                  label={'Synchronization interval'}
+                  label={localLL.form.labels.sync_interval.label()}
                   required
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.sync_interval.helper())}</Helper>
+                  }
                 />
                 <FormSelect
                   controller={{ control, name: 'directory_sync_user_behavior' }}
                   options={userBehaviorOptions}
-                  label="User behavior"
+                  label={localLL.form.labels.user_behavior.label()}
                   renderSelected={(val) => ({
                     key: val,
                     displayValue: titleCase(val),
                   })}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.user_behavior.helper())}</Helper>
+                  }
                 />
                 <FormSelect
                   controller={{ control, name: 'directory_sync_admin_behavior' }}
                   options={userBehaviorOptions}
-                  label="Admin behavior"
+                  label={localLL.form.labels.admin_behavior.label()}
                   renderSelected={(val) => ({
                     key: val,
                     displayValue: titleCase(val),
                   })}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.admin_behavior.helper())}</Helper>
+                  }
                 />
                 <FormInput
                   controller={{ control, name: 'admin_email' }}
-                  label={'Google Admin Email'}
+                  label={localLL.form.labels.admin_email.label()}
                   disabled={!enterpriseEnabled}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.admin_email.helper())}</Helper>
+                  }
                 />
                 <div className="hidden-input">
                   <FormInput
@@ -438,11 +445,21 @@ export const OpenIdSettingsForm = () => {
                   type="text"
                   name="google_service_account_email"
                   readOnly
-                  label={'Service account currently in use'}
+                  label={localLL.form.labels.service_account_used.label()}
+                  labelExtras={
+                    <Helper>
+                      {parse(localLL.form.labels.service_account_used.helper())}
+                    </Helper>
+                  }
                 />
                 <div className="input">
                   <div className="top">
-                    <label className="input-label">Service Account Key file:</label>
+                    <label className="input-label">
+                      {localLL.form.labels.service_account_key_file.label()}:
+                    </label>
+                    <Helper>
+                      {localLL.form.labels.service_account_key_file.helper()}
+                    </Helper>
                   </div>
                   <div className="file-upload-container">
                     <input
@@ -467,8 +484,8 @@ export const OpenIdSettingsForm = () => {
                       <SvgIconDownload />{' '}
                       <p>
                         {googleServiceAccountFileName
-                          ? `Uploaded: ${googleServiceAccountFileName}`
-                          : 'Upload Service Account Key'}
+                          ? `${localLL.form.labels.service_account_key_file.uploaded()}: ${googleServiceAccountFileName}`
+                          : localLL.form.labels.service_account_key_file.uploadPrompt()}
                       </p>
                     </div>
                   </div>
@@ -477,7 +494,7 @@ export const OpenIdSettingsForm = () => {
             ) : null
           ) : (
             <p id="sync-not-supported">
-              Directory sync is not supported for the selected provider
+              {localLL.form.directory_sync_settings.notSupported()}
             </p>
           )}
         </div>

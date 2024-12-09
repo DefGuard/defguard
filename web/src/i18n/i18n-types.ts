@@ -2390,6 +2390,20 @@ type RootTranslation = {
 				 * D​e​l​e​t​e​ ​p​r​o​v​i​d​e​r
 				 */
 				'delete': string
+				directory_sync_settings: {
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​S​e​t​t​i​n​g​s
+					 */
+					title: string
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​ ​g​r​o​u​p​s​ ​a​n​d​ ​t​h​e​i​r​ ​s​t​a​t​u​s​ ​f​r​o​m​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
+					 */
+					helper: string
+					/**
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
+					 */
+					notSupported: string
+				}
 				labels: {
 					provider: {
 						/**
@@ -2440,6 +2454,80 @@ type RootTranslation = {
 						 * N​a​m​e​ ​o​f​ ​t​h​e​ ​O​p​e​n​I​D​ ​p​r​o​v​i​d​e​r​ ​t​o​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​l​o​g​i​n​'​s​ ​p​a​g​e​ ​b​u​t​t​o​n​.​ ​I​f​ ​n​o​t​ ​p​r​o​v​i​d​e​d​,​ ​t​h​e​ ​b​u​t​t​o​n​ ​w​i​l​l​ ​d​i​s​p​l​a​y​ ​g​e​n​e​r​i​c​ ​'​L​o​g​i​n​ ​w​i​t​h​ ​O​I​D​C​'​ ​t​e​x​t​.
 						 */
 						helper: string
+					}
+					enable_directory_sync: {
+						/**
+						 * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c
+						 */
+						label: string
+					}
+					sync_interval: {
+						/**
+						 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
+						 */
+						label: string
+						/**
+						 * I​n​t​e​r​v​a​l​ ​i​n​ ​s​e​c​o​n​d​s​ ​b​e​t​w​e​e​n​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​s​.
+						 */
+						helper: string
+					}
+					user_behavior: {
+						/**
+						 * U​s​e​r​ ​b​e​h​a​v​i​o​r
+						 */
+						label: string
+						/**
+						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​u​s​e​r​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​ ​t​h​e​m​,​ ​d​i​s​a​b​l​i​n​g​ ​t​h​e​m​ ​o​r​ ​c​o​m​p​l​e​t​e​l​y​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
+						 */
+						helper: string
+					}
+					admin_behavior: {
+						/**
+						 * A​d​m​i​n​ ​b​e​h​a​v​i​o​r
+						 */
+						label: string
+						/**
+						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​D​e​f​g​u​a​r​d​ ​a​d​m​i​n​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​ ​t​h​e​m​,​ ​d​i​s​a​b​l​i​n​g​ ​t​h​e​m​ ​o​r​ ​c​o​m​p​l​e​t​e​l​y​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
+						 */
+						helper: string
+					}
+					admin_email: {
+						/**
+						 * A​d​m​i​n​ ​e​m​a​i​l
+						 */
+						label: string
+						/**
+						 * E​m​a​i​l​ ​a​d​d​r​e​s​s​ ​o​f​ ​t​h​e​ ​a​c​c​o​u​n​t​ ​o​n​ ​w​h​i​c​h​ ​b​e​h​a​l​f​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​c​h​e​c​k​s​ ​w​i​l​l​ ​b​e​ ​p​e​r​f​o​r​m​e​d​,​ ​e​.​g​.​ ​t​h​e​ ​p​e​r​s​o​n​ ​w​h​o​ ​s​e​t​u​p​ ​t​h​e​ ​G​o​o​g​l​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​.​ ​S​e​e​ ​o​u​r​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
+						 */
+						helper: string
+					}
+					service_account_used: {
+						/**
+						 * S​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​u​s​e​d
+						 */
+						label: string
+						/**
+						 * T​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​c​u​r​r​e​n​t​l​y​ ​b​e​i​n​g​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​Y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​i​t​ ​b​y​ ​u​p​l​o​a​d​i​n​g​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​.
+						 */
+						helper: string
+					}
+					service_account_key_file: {
+						/**
+						 * S​e​r​v​i​c​e​ ​A​c​c​o​u​n​t​ ​K​e​y​ ​f​i​l​e
+						 */
+						label: string
+						/**
+						 * U​p​l​o​a​d​ ​a​ ​n​e​w​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e​ ​t​o​ ​s​e​t​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​u​s​e​d​ ​f​o​r​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​N​O​T​E​:​ ​T​h​e​ ​u​p​l​o​a​d​e​d​ ​f​i​l​e​ ​w​o​n​'​t​ ​b​e​ ​v​i​s​i​b​l​e​ ​a​f​t​e​r​ ​s​a​v​i​n​g​ ​t​h​e​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​r​e​l​o​a​d​i​n​g​ ​t​h​e​ ​p​a​g​e​ ​a​s​ ​i​t​'​s​ ​c​o​n​t​e​n​t​s​ ​a​r​e​ ​s​e​n​s​i​t​i​v​e​ ​a​n​d​ ​a​r​e​ ​n​e​v​e​r​ ​s​e​n​t​ ​b​a​c​k​ ​t​o​ ​t​h​e​ ​d​a​s​h​b​o​a​r​d​.
+						 */
+						helper: string
+						/**
+						 * F​i​l​e​ ​u​p​l​o​a​d​e​d
+						 */
+						uploaded: string
+						/**
+						 * U​p​l​o​a​d​ ​a​ ​s​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​k​e​y​ ​f​i​l​e
+						 */
+						uploadPrompt: string
 					}
 				}
 			}
@@ -6665,6 +6753,20 @@ export type TranslationFunctions = {
 				 * Delete provider
 				 */
 				'delete': () => LocalizedString
+				directory_sync_settings: {
+					/**
+					 * Directory Sync Settings
+					 */
+					title: () => LocalizedString
+					/**
+					 * Directory synchronization allows you to automatically synchronize users groups and their status from your external provider.
+					 */
+					helper: () => LocalizedString
+					/**
+					 * Directory sync is not supported for this provider.
+					 */
+					notSupported: () => LocalizedString
+				}
 				labels: {
 					provider: {
 						/**
@@ -6715,6 +6817,80 @@ export type TranslationFunctions = {
 						 * Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.
 						 */
 						helper: () => LocalizedString
+					}
+					enable_directory_sync: {
+						/**
+						 * Enable directory sync
+						 */
+						label: () => LocalizedString
+					}
+					sync_interval: {
+						/**
+						 * Synchronization interval
+						 */
+						label: () => LocalizedString
+						/**
+						 * Interval in seconds between directory synchronizations.
+						 */
+						helper: () => LocalizedString
+					}
+					user_behavior: {
+						/**
+						 * User behavior
+						 */
+						label: () => LocalizedString
+						/**
+						 * Choose how to handle users that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.
+						 */
+						helper: () => LocalizedString
+					}
+					admin_behavior: {
+						/**
+						 * Admin behavior
+						 */
+						label: () => LocalizedString
+						/**
+						 * Choose how to handle Defguard admins that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.
+						 */
+						helper: () => LocalizedString
+					}
+					admin_email: {
+						/**
+						 * Admin email
+						 */
+						label: () => LocalizedString
+						/**
+						 * Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.
+						 */
+						helper: () => LocalizedString
+					}
+					service_account_used: {
+						/**
+						 * Service account used
+						 */
+						label: () => LocalizedString
+						/**
+						 * The service account currently being used for synchronization. You can change it by uploading a new service account key file.
+						 */
+						helper: () => LocalizedString
+					}
+					service_account_key_file: {
+						/**
+						 * Service Account Key file
+						 */
+						label: () => LocalizedString
+						/**
+						 * Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.
+						 */
+						helper: () => LocalizedString
+						/**
+						 * File uploaded
+						 */
+						uploaded: () => LocalizedString
+						/**
+						 * Upload a service account key file
+						 */
+						uploadPrompt: () => LocalizedString
 					}
 				}
 			}
