@@ -146,7 +146,6 @@ export const OpenIdSettingsForm = () => {
   }, [defaultValues, reset]);
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    console.log('DATA: ', data);
     mutate(data);
   };
 
@@ -263,29 +262,6 @@ export const OpenIdSettingsForm = () => {
     [],
   );
 
-  // const renderSelected = useCallback(
-  //   (userBehaviorOption: string): SelectSelectedValue => {
-  //     const selectedOption = userBehaviorOptions.find(
-  //       (o) => o.value === userBehaviorOption,
-  //     );
-
-  //     if (selectedOption) {
-  //       return {
-  //         key: networkId,
-  //         displayValue: selectedOption.label,
-  //       };
-  //     }
-
-  //     return {
-  //       key: 'none',
-  //       displayValue: 'Error',
-  //     };
-  //   },
-  //   [getOptions],
-  // );
-
-  console.log(currentProvider);
-
   return (
     <section id="openid-settings">
       <header>
@@ -316,19 +292,6 @@ export const OpenIdSettingsForm = () => {
         </div>
       </header>
       <form id="openid-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        {/* <form
-        id="openid-settings-form"
-        onSubmit={(e) => {
-          console.log('form submitted');
-          // print the form data
-          const formData = new FormData(e.target as HTMLFormElement);
-          for (const [key, value] of formData.entries()) {
-            console.log(key, value);
-          }
-
-          e.preventDefault();
-        }}
-      > */}
         <Select
           sizeVariant={SelectSizeVariant.STANDARD}
           selected={currentProvider?.name ?? undefined}
