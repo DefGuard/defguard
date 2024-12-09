@@ -125,9 +125,6 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx) => error!("Periodic peer disconnect task returned early: {res:#?}"),
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:#?}"),
         res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:#?}"),
-        // Temporary. Change to a database trigger when they are implemented.
-        // res = run_periodic_count_update(&pool) => error!("Periodic count update task returned early: {res:#?}"),
-        // res = run_periodic_directory_sync(&pool) => error!("Periodic directory sync task returned early: {res:#?}"),
         res = run_utility_thread(&pool) => error!("Utility thread returned early: {res:#?}"),
     }
     Ok(())
