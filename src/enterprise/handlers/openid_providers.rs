@@ -16,18 +16,18 @@ use crate::{
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {
-    name: String,
-    base_url: String,
-    client_id: String,
-    client_secret: String,
-    display_name: Option<String>,
-    admin_email: Option<String>,
-    google_service_account_email: Option<String>,
-    google_service_account_key: Option<String>,
-    directory_sync_enabled: bool,
-    directory_sync_interval: i32,
-    directory_sync_user_behavior: String,
-    directory_sync_admin_behavior: String,
+    pub name: String,
+    pub base_url: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub display_name: Option<String>,
+    pub admin_email: Option<String>,
+    pub google_service_account_email: Option<String>,
+    pub google_service_account_key: Option<String>,
+    pub directory_sync_enabled: bool,
+    pub directory_sync_interval: i32,
+    pub directory_sync_user_behavior: String,
+    pub directory_sync_admin_behavior: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

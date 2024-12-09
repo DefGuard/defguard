@@ -1,9 +1,5 @@
 use sqlx::{error::Error as SqlxError, query_as, PgPool};
-use std::{
-    sync::{RwLock, RwLockReadGuard},
-    time::Duration,
-};
-use tokio::time::sleep;
+use std::sync::{RwLock, RwLockReadGuard};
 
 #[derive(Debug)]
 pub(crate) struct Counts {
