@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Int4",
+        {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "358eb4ff38e630d85f51a67c8946a9e467968e630de46b1e73be973e2951acf9"
+}

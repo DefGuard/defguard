@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, base_url, client_id, client_secret, display_name, google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \n            directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\" FROM openidprovider WHERE name = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "base_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "client_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "client_secret",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "google_service_account_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "google_service_account_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "admin_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "directory_sync_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "directory_sync_interval",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "24cbfef8c4c37a0b23ad36bc962c288e63b5257d2f8639972eee9d4ea705fc9d"
+}

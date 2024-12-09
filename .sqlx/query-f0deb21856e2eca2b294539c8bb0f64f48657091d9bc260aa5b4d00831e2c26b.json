@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12 WHERE id = $13",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Int4",
+        {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "dirsync_user_behavior",
+            "kind": {
+              "Enum": [
+                "keep",
+                "disable",
+                "delete"
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f0deb21856e2eca2b294539c8bb0f64f48657091d9bc260aa5b4d00831e2c26b"
+}

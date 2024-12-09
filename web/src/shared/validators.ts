@@ -41,7 +41,6 @@ export const validateIpOrDomainList = (
   const trimed = val.replace(' ', '');
   const split = trimed.split(splitWith);
   for (const value of split) {
-    console.log(allowIPv6 && !validateIPv6(value, allowMasks));
     if (
       !validateIPv4(value, allowMasks) &&
       !patternValidDomain.test(value) &&

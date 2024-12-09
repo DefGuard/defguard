@@ -52,6 +52,7 @@ use crate::{
     },
     enterprise::{
         db::models::{enterprise_settings::EnterpriseSettings, openid_provider::OpenIdProvider},
+        directory_sync::sync_user_groups_if_configured,
         grpc::polling::PollingServer,
         handlers::openid_login::{make_oidc_client, user_from_claims},
         is_enterprise_enabled,
@@ -602,6 +603,14 @@ pub async fn run_grpc_bidi_stream(
                                     {
                                         Ok(user) => {
                                             user.clear_unused_enrollment_tokens(&pool).await?;
+                                            if let Err(err) =
+                                                sync_user_groups_if_configured(&user, &pool).await
+                                            {
+                                                error!(
+                                                    "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
+                                                   user.username,
+                                                );
+                                            }
                                             debug!("Cleared unused tokens for {}.", user.username);
                                             debug!(
                                         "Creating a new desktop activation token for user {} as a result of proxy OpenID auth callback.",
