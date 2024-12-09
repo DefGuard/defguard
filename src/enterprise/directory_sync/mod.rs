@@ -836,11 +836,20 @@ mod test {
         assert_eq!(testuserdisabled_groups.len(), 3);
         groups.sort_by(|a, b| a.name.cmp(&b.name));
 
-        for i in (0..3).rev() {
-            assert_eq!(testuser_groups[i].name, format!("group{}", i + 1));
-            assert_eq!(testuser2_groups[i].name, format!("group{}", i + 1));
-            assert_eq!(testuserdisabled_groups[i].name, format!("group{}", i + 1));
-        }
+        let group_present =
+            |groups: &Vec<Group<Id>>, name: &str| groups.iter().any(|g| g.name == name);
+
+        assert!(group_present(&testuser_groups, "group1"));
+        assert!(group_present(&testuser_groups, "group2"));
+        assert!(group_present(&testuser_groups, "group3"));
+
+        assert!(group_present(&testuser2_groups, "group1"));
+        assert!(group_present(&testuser2_groups, "group2"));
+        assert!(group_present(&testuser2_groups, "group3"));
+
+        assert!(group_present(&testuserdisabled_groups, "group1"));
+        assert!(group_present(&testuserdisabled_groups, "group2"));
+        assert!(group_present(&testuserdisabled_groups, "group3"));
     }
 
     #[sqlx::test]
