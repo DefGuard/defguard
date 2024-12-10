@@ -966,7 +966,7 @@ const en: BaseTranslation = {
         directory_sync_settings: {
           title: 'Directory Sync Settings',
           helper:
-            'Directory synchronization allows you to automatically synchronize users groups and their status from your external provider.',
+            'Directory synchronization allows you to automatically synchronize users, groups, and their status from an external provider.',
           notSupported: 'Directory sync is not supported for this provider.',
         },
         labels: {
@@ -1003,7 +1003,7 @@ const en: BaseTranslation = {
           user_behavior: {
             label: 'User behavior',
             helper:
-              'Choose how to handle users that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.',
+              'Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.',
           },
           admin_behavior: {
             label: 'Admin behavior',

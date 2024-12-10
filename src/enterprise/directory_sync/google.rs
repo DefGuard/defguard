@@ -160,10 +160,10 @@ impl GoogleDirectorySync {
             .append_pair("userKey", user_id)
             .append_pair("max_results", "999");
 
-        let client = reqwest::Client::builder().build()?;
+        let client = reqwest::Client::new();
         let response = client
             .get(url)
-            .header("Authorization", format!("Bearer {}", access_token))
+            .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", access_token))
             .timeout(std::time::Duration::from_secs(10))
             .send()
             .await?;
@@ -245,7 +245,7 @@ impl GoogleDirectorySync {
             .append_pair("grant_type", GRANT_TYPE)
             .append_pair("assertion", &token);
         let client = reqwest::Client::builder().build()?;
-        let response = client.post(url).header("content-length", 0).send().await?;
+        let response = client.post(url).header(reqwest::header::CONTENT_LENGTH, 0).send().await?;
         Ok(response.json().await?)
     }
 
@@ -286,7 +286,7 @@ impl DirectorySync for GoogleDirectorySync {
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
         debug!("Getting groups of user {}", user_id);
         let response = self.query_user_groups(user_id).await?;
-        debug!("Got groups response for user {}", user_id);
+        debug!("Got groups response for user {user_id}");
         Ok(response.groups)
     }
 

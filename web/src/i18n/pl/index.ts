@@ -994,7 +994,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           user_behavior: {
             label: 'Zachowanie kont użytkowników',
             helper:
-              'Wybierz, jak postępować z kontami użytkowników, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
+              'Wybierz jak postępować z kontami użytkowników, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
           },
           admin_behavior: {
             label: 'Zachowanie kont administratorów',

@@ -109,7 +109,7 @@ async fn sync_user_groups<T: DirectorySync>(
     }
 
     for current_group in &current_groups {
-        if !directory_group_names.contains(&current_group.name.as_str()) {
+        if !directory_group_names.contains(current_group.name.as_str()) {
             debug!(
                 "Removing user {} from group {} as they are not a member of it in the directory",
                 user.email, current_group.name
@@ -145,7 +145,7 @@ pub(crate) async fn sync_user_groups_if_configured(
             sync_user_groups(&dir_sync, user, pool).await?;
         }
         Err(err) => {
-            error!("Failed to build directory sync client: {}", err);
+            error!("Failed to build directory sync client: {err}");
         }
     }
 
@@ -158,26 +158,26 @@ async fn create_and_add_to_group(
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
     debug!(
-        "Creating group {} if it doesn't exist and adding user {} to it if they are not already a member",
+        "Creating group {} if it doesn't exist and adding user {group_name} to it if they are not already a member",
         user.email, group_name
     );
     let group = if let Some(group) = Group::find_by_name(pool, group_name).await? {
         debug!("Group {} already exists", group_name);
         group
     } else {
-        debug!("Group {} didn't exist, creating it now", group_name);
+        debug!("Group {group_name} didn't exist, creating it now");
         let new_group = Group::new(group_name).save(pool).await?;
-        debug!("Group {} created", group_name);
+        debug!("Group {group_name} created");
         new_group
     };
 
     debug!(
-        "Adding user {} to group {} if they are not already a member",
+        "Adding user {} to group {group_name} if they are not already a member",
         user.email, group_name
     );
     user.add_to_group(pool, &group).await?;
     debug!(
-        "User {} was added to group {} if they weren't already a member",
+        "User {} was added to group {group_name} if they weren't already a member",
         user.email, group_name
     );
     Ok(())
@@ -229,7 +229,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
         debug!("Syncing groups for user {}", user);
         let Some(user) = User::find_by_email(pool, &user).await? else {
             debug!(
-                "User {} not found in the database, skipping group sync",
+                "User {user} not found in the database, skipping group sync",
                 user
             );
             continue;
@@ -508,7 +508,7 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
             sync_all_users_groups(&dir_sync, pool).await?;
         }
         Err(err) => {
-            error!("Failed to build directory sync client: {}", err);
+            error!("Failed to build directory sync client: {err}");
         }
     }
 
@@ -557,7 +557,7 @@ mod test {
             None,
             "lastname",
             "firstname",
-            format!("{}@email.com", name).as_str(),
+            format!("{name}@email.com").as_str(),
             None,
         )
         .save(pool)

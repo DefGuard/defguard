@@ -25,7 +25,7 @@ pub async fn run_utility_thread(pool: &PgPool) -> Result<(), anyhow::Error> {
         {
             if let Err(e) = do_count_update(pool).await {
                 error!(
-                    "There was an error while performing count update job: {:?}",
+                    "There was an error while performing count update job: {e:?}",
                     e
                 );
             }
