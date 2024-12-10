@@ -46,31 +46,25 @@ pub struct DirectoryUser {
 
 trait DirectorySync {
     /// Get all groups in a directory
-    fn get_groups(
-        &self,
-    ) -> impl std::future::Future<Output = Result<Vec<DirectoryGroup>, DirectorySyncError>> + Send;
+    async fn get_groups(&self) -> Result<Vec<DirectoryGroup>, DirectorySyncError>;
 
     /// Get all groups a user is a member of
-    fn get_user_groups(
+    async fn get_user_groups(
         &self,
         user_id: &str,
-    ) -> impl std::future::Future<Output = Result<Vec<DirectoryGroup>, DirectorySyncError>> + Send;
+    ) -> Result<Vec<DirectoryGroup>, DirectorySyncError>;
 
     /// Get all members of a group
-    fn get_group_members(
+    async fn get_group_members(
         &self,
         group: &DirectoryGroup,
-    ) -> impl std::future::Future<Output = Result<Vec<String>, DirectorySyncError>> + Send;
+    ) -> Result<Vec<String>, DirectorySyncError>;
 
     /// Prepare the directory sync client, e.g. get an access token
-    fn prepare(
-        &mut self,
-    ) -> impl std::future::Future<Output = Result<(), DirectorySyncError>> + Send;
+    async fn prepare(&mut self) -> Result<(), DirectorySyncError>;
 
     /// Get all users in the directory
-    fn get_all_users(
-        &self,
-    ) -> impl std::future::Future<Output = Result<Vec<DirectoryUser>, DirectorySyncError>> + Send;
+    async fn get_all_users(&self) -> Result<Vec<DirectoryUser>, DirectorySyncError>;
 }
 
 async fn sync_user_groups<T: DirectorySync>(
@@ -108,8 +102,8 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    for current_group in &current_groups {
-        if !directory_group_names.contains(current_group.name.as_str()) {
+    for current_group in current_groups.iter() {
+        if !directory_group_names.contains(&current_group.name.as_str()) {
             debug!(
                 "Removing user {} from group {} as they are not a member of it in the directory",
                 user.email, current_group.name
@@ -159,10 +153,10 @@ async fn create_and_add_to_group(
 ) -> Result<(), DirectorySyncError> {
     debug!(
         "Creating group {} if it doesn't exist and adding user {group_name} to it if they are not already a member",
-        user.email, group_name
+        user.email
     );
     let group = if let Some(group) = Group::find_by_name(pool, group_name).await? {
-        debug!("Group {} already exists", group_name);
+        debug!("Group {group_name} already exists, skipping creation");
         group
     } else {
         debug!("Group {group_name} didn't exist, creating it now");
@@ -173,12 +167,12 @@ async fn create_and_add_to_group(
 
     debug!(
         "Adding user {} to group {group_name} if they are not already a member",
-        user.email, group_name
+        user.email
     );
     user.add_to_group(pool, &group).await?;
     debug!(
         "User {} was added to group {group_name} if they weren't already a member",
-        user.email, group_name
+        user.email
     );
     Ok(())
 }
@@ -223,15 +217,12 @@ async fn sync_all_users_groups<T: DirectorySync>(
         }
     }
 
-    let mut transaction = pool.begin().await.unwrap();
+    let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     for (user, groups) in user_group_map.into_iter() {
-        debug!("Syncing groups for user {}", user);
+        debug!("Syncing groups for user {user}");
         let Some(user) = User::find_by_email(pool, &user).await? else {
-            debug!(
-                "User {user} not found in the database, skipping group sync",
-                user
-            );
+            debug!("User {user} not found in the database, skipping group sync");
             continue;
         };
 
@@ -261,11 +252,11 @@ async fn sync_all_users_groups<T: DirectorySync>(
             }
         }
 
-        for group in groups.iter() {
+        for group in groups {
             create_and_add_to_group(&user, group, pool).await?;
         }
     }
-    transaction.commit().await.unwrap();
+    transaction.commit().await?;
 
     info!("Syncing all users' groups done.");
     Ok(())

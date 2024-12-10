@@ -1,6 +1,7 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use chrono::Utc;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::Url;
 
@@ -10,6 +11,7 @@ const GROUPS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/groups
 const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 const AUD: &str = "https://oauth2.googleapis.com/token";
 const ALL_USERS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/users";
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -49,13 +51,27 @@ struct ServiceAccountConfigJson {
     client_email: String,
 }
 
-impl From<&str> for ServiceAccountConfig {
-    fn from(json: &str) -> Self {
-        let config: ServiceAccountConfigJson = serde_json::from_str(json).unwrap();
-        Self {
+// impl From<&str> for ServiceAccountConfig {
+//     fn from(json: &str) -> Result<Self, serde_json::Error> {
+//         let config: ServiceAccountConfigJson = serde_json::from_str(json)?;
+//         Ok(
+//             Self {
+//                 private_key: config.private_key,
+//                 client_email: config.client_email,
+//             }
+//         )
+//     }
+// }
+
+impl TryFrom<&str> for ServiceAccountConfig {
+    type Error = serde_json::Error;
+
+    fn try_from(json: &str) -> Result<Self, Self::Error> {
+        let config: ServiceAccountConfigJson = serde_json::from_str(json)?;
+        Ok(Self {
             private_key: config.private_key,
             client_email: config.client_email,
-        }
+        })
     }
 }
 
@@ -132,14 +148,14 @@ impl GoogleDirectorySync {
         let token_response = self.query_access_token().await?;
         let expires_in = chrono::Duration::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
-        self.token_expiry = Some(chrono::Utc::now() + expires_in);
+        self.token_expiry = Some(Utc::now() + expires_in);
         Ok(())
     }
 
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Google directory sync token is expired");
         self.token_expiry
-            .map(|expiry| expiry < chrono::Utc::now())
+            .map(|expiry| expiry < Utc::now())
             // No token = expired token
             .unwrap_or(true)
     }
@@ -154,7 +170,7 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).expect("Invalid USER_GROUPS_URL has been set.");
+        let mut url = Url::from_str(GROUPS_URL).unwrap();
 
         url.query_pairs_mut()
             .append_pair("userKey", user_id)
@@ -163,8 +179,11 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::new();
         let response = client
             .get(url)
-            .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", access_token))
-            .timeout(std::time::Duration::from_secs(10))
+            .header(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {}", access_token),
+            )
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
 
@@ -181,7 +200,7 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).expect("Invalid USER_GROUPS_URL has been set.");
+        let mut url = Url::from_str(GROUPS_URL).unwrap();
 
         url.query_pairs_mut()
             .append_pair("customer", "my_customer")
@@ -191,7 +210,7 @@ impl GoogleDirectorySync {
         let response = client
             .get(url)
             .header("Authorization", format!("Bearer {}", access_token))
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
 
@@ -215,14 +234,14 @@ impl GoogleDirectorySync {
             "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
             group.id
         );
-        let mut url = Url::from_str(&url_str).expect("Invalid GROUP_MEMBERS_URL has been set.");
+        let mut url = Url::from_str(&url_str).unwrap();
         url.query_pairs_mut()
             .append_pair("includeDerivedMembership", "true");
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
             .header("Authorization", format!("Bearer {}", access_token))
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
         Ok(response.json().await?)
@@ -238,14 +257,16 @@ impl GoogleDirectorySync {
     #[cfg(not(test))]
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
-        let mut url: Url = ACCESS_TOKEN_URL
-            .parse()
-            .expect("Invalid ACCESS_TOKEN_URL has been set.");
+        let mut url = Url::parse(ACCESS_TOKEN_URL).unwrap();
         url.query_pairs_mut()
             .append_pair("grant_type", GRANT_TYPE)
             .append_pair("assertion", &token);
         let client = reqwest::Client::builder().build()?;
-        let response = client.post(url).header(reqwest::header::CONTENT_LENGTH, 0).send().await?;
+        let response = client
+            .post(url)
+            .header(reqwest::header::CONTENT_LENGTH, 0)
+            .send()
+            .await?;
         Ok(response.json().await?)
     }
 
@@ -258,13 +279,13 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(ALL_USERS_URL).expect("Invalid ALL_USERS_URL has been set.");
+        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
         url.query_pairs_mut().append_pair("customer", "my_customer");
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
             .header("Authorization", format!("Bearer {}", access_token))
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
 
@@ -284,7 +305,7 @@ impl DirectorySync for GoogleDirectorySync {
         &self,
         user_id: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Getting groups of user {}", user_id);
+        debug!("Getting groups of user {user_id}");
         let response = self.query_user_groups(user_id).await?;
         debug!("Got groups response for user {user_id}");
         Ok(response.groups)
