@@ -536,7 +536,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
-pub async fn run_periodic_license_check(pool: PgPool) -> Result<(), LicenseError> {
+pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseError> {
     let config = server_config();
     let mut check_period: Duration = *config.check_period;
     info!(
@@ -598,8 +598,8 @@ pub async fn run_periodic_license_check(pool: PgPool) -> Result<(), LicenseError
             info!("License requires renewal, renewing license...");
             check_period = *config.check_period_renewal_window;
             debug!("Changing check period to {}", format_duration(check_period));
-            match renew_license(&pool).await {
-                Ok(new_license_key) => match save_license_key(&pool, &new_license_key).await {
+            match renew_license(pool).await {
+                Ok(new_license_key) => match save_license_key(pool, &new_license_key).await {
                     Ok(()) => {
                         update_cached_license(Some(&new_license_key))?;
                         check_period = *config.check_period;

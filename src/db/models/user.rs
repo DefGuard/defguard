@@ -9,7 +9,7 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool, Type};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecutor, PgPool, Type};
 use totp_lite::{totp_custom, Sha1};
 
 use super::{
@@ -66,7 +66,7 @@ pub struct UserDiagnostic {
     pub enrolled: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize)]
+#[derive(Clone, Debug, Model, PartialEq, Serialize, FromRow)]
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,
@@ -645,6 +645,24 @@ impl User<Id> {
         .await
     }
 
+    pub(crate) async fn find_many_by_emails<'e, E>(
+        executor: E,
+        emails: &[&str],
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as(
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method, recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE email = ANY($1)",
+        )
+        .bind(emails)
+        .fetch_all(executor)
+        .await
+    }
+
     // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
     pub(crate) async fn find_by_sub<'e, E>(
         executor: E,
@@ -882,6 +900,40 @@ impl User<Id> {
         .fetch_optional(executor)
         .await
     }
+
+    /// Find users which emails are NOT in `user_emails`.
+    pub(crate) async fn exclude<'e, E>(
+        executor: E,
+        user_emails: &[&str],
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        // This can't be a macro since sqlx can't handle an array of slices in a macro.
+        query_as(
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method, recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
+        )
+        .bind(user_emails)
+        .fetch_all(executor)
+        .await
+    }
+
+    pub(crate) async fn is_admin<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let admin_group_name = &server_config().admin_groupname;
+        query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id = (SELECT id FROM \"group\" WHERE name = $2)) \"bool!\"",
+            self.id,
+            admin_group_name
+        )
+        .fetch_one(executor)
+        .await
+    }
 }
 
 #[cfg(test)]
@@ -1034,5 +1086,126 @@ mod test {
             None,
         );
         assert!(henry.save(&pool).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_is_admin(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let is_admin = user.is_admin(&pool).await.unwrap();
+
+        assert!(!is_admin);
+
+        let admin_group_name = &server_config().admin_groupname;
+
+        query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES ((SELECT id FROM \"group\" WHERE name = $1), $2)",
+            admin_group_name,
+            user.id
+        ).execute(&pool).await.unwrap();
+
+        let is_admin = user.is_admin(&pool).await.unwrap();
+
+        assert!(is_admin);
+    }
+
+    #[sqlx::test]
+    async fn test_get_missing(pool: PgPool) {
+        let user1 = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let user2 = User::new(
+            "hpotter2",
+            Some("pass1234"),
+            "Potter2",
+            "Harry2",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let albus = User::new(
+            "adumbledore",
+            Some("magic!"),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_emails = vec![user1.email.as_str(), albus.email.as_str()];
+        let users = User::exclude(&pool, &user_emails).await.unwrap();
+        assert_eq!(users.len(), 1);
+        assert_eq!(users[0].id, user2.id);
+    }
+
+    #[sqlx::test]
+    async fn test_find_many_by_emails(pool: PgPool) {
+        let user1 = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        User::new(
+            "hpotter2",
+            Some("pass1234"),
+            "Potter2",
+            "Harry2",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let albus = User::new(
+            "adumbledore",
+            Some("magic!"),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_emails = vec![user1.email.as_str(), albus.email.as_str()];
+        let users = User::find_many_by_emails(&pool, &user_emails)
+            .await
+            .unwrap();
+        assert_eq!(users.len(), 2);
+        assert_eq!(users[0].id, user1.id);
+        assert_eq!(users[1].id, albus.id);
     }
 }

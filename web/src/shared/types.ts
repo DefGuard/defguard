@@ -920,6 +920,13 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret: string;
   display_name: string;
+  google_service_account_key?: string;
+  google_service_account_email?: string;
+  admin_email?: string;
+  directory_sync_enabled: boolean;
+  directory_sync_interval: number;
+  directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
+  directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
 }
 
 export interface EditOpenidClientRequest {
