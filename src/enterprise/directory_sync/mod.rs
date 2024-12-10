@@ -124,6 +124,7 @@ pub(crate) async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
+    #[cfg(not(test))]
     if !is_enterprise_enabled() {
         debug!("Enterprise is not enabled, skipping syncing user groups");
         return Ok(());
