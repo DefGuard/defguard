@@ -39,7 +39,6 @@ const ModalContent = () => {
   const data = useUpdatesStore((s) => s.update);
   const setStore = useUpdatesStore((s) => s.setStore, shallow);
   if (!data) return null;
-  console.log(data);
   return (
     <div className="content-wrapper">
       <div className="top">
