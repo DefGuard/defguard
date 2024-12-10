@@ -39,6 +39,7 @@ const ModalContent = () => {
   const data = useUpdatesStore((s) => s.update);
   const setStore = useUpdatesStore((s) => s.setStore, shallow);
   if (!data) return null;
+  console.log(data);
   return (
     <div className="content-wrapper">
       <div className="top">
@@ -80,7 +81,7 @@ const ModalContent = () => {
               });
             }}
           />
-          <a href={data.releaseLink} target="_blank" rel="noreferrer noopener">
+          <a href={data.release_notes_url} target="_blank" rel="noreferrer noopener">
             <Button
               styleVariant={ButtonStyleVariant.PRIMARY}
               size={ButtonSize.LARGE}

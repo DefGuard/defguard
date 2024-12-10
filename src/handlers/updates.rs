@@ -23,7 +23,7 @@ pub async fn check_new_version(_admin: AdminRole, session: SessionInfo) -> ApiRe
         debug!("No new version available");
         Ok(ApiResponse {
             json: serde_json::json!({ "message": "No updates available" }),
-            status: StatusCode::NOT_FOUND,
+            status: StatusCode::NO_CONTENT,
         })
     }
 }
