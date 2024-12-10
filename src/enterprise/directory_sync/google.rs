@@ -45,36 +45,6 @@ pub struct ServiceAccountConfig {
     client_email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ServiceAccountConfigJson {
-    private_key: String,
-    client_email: String,
-}
-
-// impl From<&str> for ServiceAccountConfig {
-//     fn from(json: &str) -> Result<Self, serde_json::Error> {
-//         let config: ServiceAccountConfigJson = serde_json::from_str(json)?;
-//         Ok(
-//             Self {
-//                 private_key: config.private_key,
-//                 client_email: config.client_email,
-//             }
-//         )
-//     }
-// }
-
-impl TryFrom<&str> for ServiceAccountConfig {
-    type Error = serde_json::Error;
-
-    fn try_from(json: &str) -> Result<Self, Self::Error> {
-        let config: ServiceAccountConfigJson = serde_json::from_str(json)?;
-        Ok(Self {
-            private_key: config.private_key,
-            client_email: config.client_email,
-        })
-    }
-}
-
 #[derive(Debug)]
 pub struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
