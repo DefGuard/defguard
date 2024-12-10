@@ -963,6 +963,12 @@ const en: BaseTranslation = {
         custom: 'Custom',
         documentation: 'Documentation',
         delete: 'Delete provider',
+        directory_sync_settings: {
+          title: 'Directory Sync Settings',
+          helper:
+            'Directory synchronization allows you to automatically synchronize users, groups, and their status from an external provider.',
+          notSupported: 'Directory sync is not supported for this provider.',
+        },
         labels: {
           provider: {
             label: 'Provider',
@@ -986,6 +992,40 @@ const en: BaseTranslation = {
             label: 'Display Name',
             helper:
               "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
+          },
+          enable_directory_sync: {
+            label: 'Enable directory sync',
+          },
+          sync_interval: {
+            label: 'Synchronization interval',
+            helper: 'Interval in seconds between directory synchronizations.',
+          },
+          user_behavior: {
+            label: 'User behavior',
+            helper:
+              'Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.',
+          },
+          admin_behavior: {
+            label: 'Admin behavior',
+            helper:
+              'Choose how to handle Defguard admins that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.',
+          },
+          admin_email: {
+            label: 'Admin email',
+            helper:
+              'Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.',
+          },
+          service_account_used: {
+            label: 'Service account used',
+            helper:
+              'The service account currently being used for synchronization. You can change it by uploading a new service account key file.',
+          },
+          service_account_key_file: {
+            label: 'Service Account Key file',
+            helper:
+              "Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.",
+            uploaded: 'File uploaded',
+            uploadPrompt: 'Upload a service account key file',
           },
         },
       },

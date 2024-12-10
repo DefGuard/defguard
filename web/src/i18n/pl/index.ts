@@ -952,6 +952,13 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         custom: 'Niestandardowy',
         documentation: 'Dokumentacja',
         delete: 'Usuń dostawcę',
+
+        directory_sync_settings: {
+          title: 'Ustawienia synchronizacji katalogu',
+          helper:
+            'Synchronizacja katalogu pozwala na automatyczną synchronizację grup użytkowników i ich statusu na podstawie zewnętrznego dostawcy.',
+          notSupported: 'Synchronizacja katalogu nie jest obsługiwana dla tego dostawcy.',
+        },
         labels: {
           provider: {
             label: 'Dostawca',
@@ -975,6 +982,41 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             label: 'Wyświetlana nazwa',
             helper:
               'Nazwa dostawcy OpenID, która będzie wyświetlana na przycisku logowania. Jeśli zostawisz to pole puste, przycisk będzie miał tekst "Zaloguj przez OIDC".',
+          },
+          enable_directory_sync: {
+            label: 'Włącz synchronizację katalogu',
+          },
+          sync_interval: {
+            label: 'Interwał synchronizacji',
+            helper: 'Odstęp czasu w sekundach pomiędzy synchronizacjami katalogu.',
+          },
+
+          user_behavior: {
+            label: 'Zachowanie kont użytkowników',
+            helper:
+              'Wybierz jak postępować z kontami użytkowników, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
+          },
+          admin_behavior: {
+            label: 'Zachowanie kont administratorów',
+            helper:
+              'Wybierz, jak postępować z kontami administratorów Defguard, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
+          },
+          admin_email: {
+            label: 'E-mail administratora',
+            helper:
+              'Adres e-mail konta, za pośrednictwem którego będzię odbywać się synchronizacja, np. e-mail konta osoby, która skonfigurowała konto usługi Google. Więcej szczegółów możesz znaleźć w naszej dokumentacji.',
+          },
+          service_account_used: {
+            label: 'Używane konto usługi',
+            helper:
+              'Obecnie używane konto usługi Google do synchronizacji. Możesz je zmienić, przesyłając nowy plik klucza konta usługi.',
+          },
+          service_account_key_file: {
+            label: 'Plik klucza konta usługi',
+            helper:
+              'Prześlij nowy plik klucza konta usługi, aby ustawić konto usługi używane do synchronizacji. UWAGA: Przesłany plik nie będzie widoczny po zapisaniu ustawień i ponownym załadowaniu strony, ponieważ jego zawartość jest poufna i nie jest przesyłana z powrotem do panelu.',
+            uploaded: 'Przesłany plik',
+            uploadPrompt: 'Prześlij plik klucza konta usługi',
           },
         },
       },

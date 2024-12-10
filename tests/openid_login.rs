@@ -1,6 +1,8 @@
 use chrono::{Duration, Utc};
 use common::{exceed_enterprise_limits, make_test_client};
-use defguard::enterprise::license::get_cached_license;
+use defguard::enterprise::{
+    db::models::openid_provider::DirectorySyncUserBehavior, license::get_cached_license,
+};
 use defguard::{
     enterprise::{
         handlers::openid_providers::AddProviderData,
@@ -35,13 +37,20 @@ async fn test_openid_providers() {
 
     exceed_enterprise_limits(&client).await;
 
-    let provider_data = AddProviderData::new(
-        "test",
-        "https://accounts.google.com",
-        "client_id",
-        "client_secret",
-        Some("display_name"),
-    );
+    let provider_data = AddProviderData {
+        name: "test".to_string(),
+        base_url: "https://accounts.google.com".to_string(),
+        client_id: "client_id".to_string(),
+        client_secret: "client_secret".to_string(),
+        display_name: Some("display_name".to_string()),
+        admin_email: None,
+        google_service_account_email: None,
+        google_service_account_key: None,
+        directory_sync_enabled: false,
+        directory_sync_interval: 100,
+        directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+    };
 
     let response = client
         .post("/api/v1/openid/provider")
