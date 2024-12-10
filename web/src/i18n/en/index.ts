@@ -1,4 +1,5 @@
 /* eslint-disable max-len */
+import { title } from 'process';
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
@@ -41,6 +42,55 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    addStandaloneDevice: {
+      infoBox: {
+        setup:
+          'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+      },
+      steps: {
+        method: {
+          title: 'Choose a proffered method',
+          cards: {
+            cli: {
+              title: 'defguard Command Line Client',
+              subtitle:
+                'When using defguard-cli your device will automatically have VPN configuration up-to-date (real time-sync).',
+              download: 'Download defguard CLI Client',
+            },
+            manual: {
+              title: 'Manual WireGuard Client',
+              subtitle:
+                'If your device does not support our cli binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN Location configuration will require manual changes in device configuration.',
+            },
+          },
+        },
+        manual: {
+          title: 'Add new VPN device using WireGuard Client',
+        },
+        cli: {
+          title: 'Add device using defguard Command Line Client',
+          finish: {
+            topMessage:
+              'First download defguard command line client binaries and install them on your server.',
+            downloadButton: 'Download defguard CLI Client',
+            commandCopy: 'Copy and paste this command in your terminal on the device',
+          },
+          setup: {
+            stepMessage:
+              'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+            form: {
+              labels: {
+                deviceName: 'Device Name',
+                location: 'Location',
+                assignedAddress: 'Assigned IP',
+                description: 'Description',
+              },
+              submit: 'Add Device',
+            },
+          },
+        },
+      },
+    },
     updatesNotificationToaster: {
       title: 'New version available {version: string}',
       controls: {
@@ -864,7 +914,9 @@ const en: BaseTranslation = {
       required: 'Field is required.',
       invalidCode: 'Submitted code is invalid.',
       maximumLength: 'Maximum length exceeded.',
+      maximumLengthOf: `Field length cannot exceed {length: number}`,
       minimumLength: 'Minimum length not reached.',
+      minimumLengthOf: `Minimum length of {length: number} not reached.`,
       noSpecialChars: 'No special characters are allowed.',
       oneDigit: 'One digit required.',
       oneSpecial: 'Special character required.',

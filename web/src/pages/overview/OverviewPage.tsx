@@ -18,6 +18,7 @@ import { sortByDate } from '../../shared/utils/sortByDate';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
+import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
 import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
@@ -111,25 +112,29 @@ export const OverviewPage = () => {
   }, [setOverViewStore, viewMode]);
 
   return (
-    <PageContainer id="network-overview-page">
-      <OverviewHeader loading={networksLoading} />
-      {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
-        <GatewaysStatus networkId={selectedNetworkId} />
-      )}
-      {networkStats && networkUsersStats && (
-        <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
-      )}
-      <div className="bottom-row">
-        {userStatsLoading ? (
-          <div className="stats-loader">
-            <LoaderSpinner size={180} />
-          </div>
-        ) : getNetworkUsers.length > 0 ? (
-          <OverviewConnectedUsers stats={getNetworkUsers} />
-        ) : (
-          <NoData />
+    <>
+      <PageContainer id="network-overview-page">
+        <OverviewHeader loading={networksLoading} />
+        {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
+          <GatewaysStatus networkId={selectedNetworkId} />
         )}
-      </div>
-    </PageContainer>
+        {networkStats && networkUsersStats && (
+          <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
+        )}
+        <div className="bottom-row">
+          {userStatsLoading ? (
+            <div className="stats-loader">
+              <LoaderSpinner size={180} />
+            </div>
+          ) : getNetworkUsers.length > 0 ? (
+            <OverviewConnectedUsers stats={getNetworkUsers} />
+          ) : (
+            <NoData />
+          )}
+        </div>
+      </PageContainer>
+      {/* Modals */}
+      <AddStandaloneDeviceModal />
+    </>
   );
 };

@@ -138,6 +138,104 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		addStandaloneDevice: {
+			infoBox: {
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+				 */
+				setup: string
+			}
+			steps: {
+				method: {
+					/**
+					 * C​h​o​o​s​e​ ​a​ ​p​r​o​f​f​e​r​e​d​ ​m​e​t​h​o​d
+					 */
+					title: string
+					cards: {
+						cli: {
+							/**
+							 * d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​h​a​v​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​u​p​-​t​o​-​d​a​t​e​ ​(​r​e​a​l​ ​t​i​m​e​-​s​y​n​c​)​.
+							 */
+							subtitle: string
+							/**
+							 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+							 */
+							download: string
+						}
+						manual: {
+							/**
+							 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​c​l​i​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+							 */
+							subtitle: string
+						}
+					}
+				}
+				manual: {
+					/**
+					 * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+				}
+				cli: {
+					/**
+					 * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+					 */
+					title: string
+					finish: {
+						/**
+						 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+						 */
+						topMessage: string
+						/**
+						 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+						 */
+						downloadButton: string
+						/**
+						 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+						 */
+						commandCopy: string
+					}
+					setup: {
+						/**
+						 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+						 */
+						stepMessage: string
+						form: {
+							labels: {
+								/**
+								 * D​e​v​i​c​e​ ​N​a​m​e
+								 */
+								deviceName: string
+								/**
+								 * L​o​c​a​t​i​o​n
+								 */
+								location: string
+								/**
+								 * A​s​s​i​g​n​e​d​ ​I​P
+								 */
+								assignedAddress: string
+								/**
+								 * D​e​s​c​r​i​p​t​i​o​n
+								 */
+								description: string
+							}
+							/**
+							 * A​d​d​ ​D​e​v​i​c​e
+							 */
+							submit: string
+						}
+					}
+				}
+			}
+		}
 		updatesNotificationToaster: {
 			/**
 			 * N​e​w​ ​v​e​r​s​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​{​v​e​r​s​i​o​n​}
@@ -2106,9 +2204,19 @@ type RootTranslation = {
 			 */
 			maximumLength: string
 			/**
+			 * F​i​e​l​d​ ​l​e​n​g​t​h​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​{​l​e​n​g​t​h​}
+			 * @param {number} length
+			 */
+			maximumLengthOf: RequiredParams<'length'>
+			/**
 			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​n​o​t​ ​r​e​a​c​h​e​d​.
 			 */
 			minimumLength: string
+			/**
+			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​o​f​ ​{​l​e​n​g​t​h​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} length
+			 */
+			minimumLengthOf: RequiredParams<'length'>
 			/**
 			 * N​o​ ​s​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​s​ ​a​r​e​ ​a​l​l​o​w​e​d​.
 			 */
@@ -4473,6 +4581,104 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		addStandaloneDevice: {
+			infoBox: {
+				/**
+				 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+				 */
+				setup: () => LocalizedString
+			}
+			steps: {
+				method: {
+					/**
+					 * Choose a proffered method
+					 */
+					title: () => LocalizedString
+					cards: {
+						cli: {
+							/**
+							 * defguard Command Line Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * When using defguard-cli your device will automatically have VPN configuration up-to-date (real time-sync).
+							 */
+							subtitle: () => LocalizedString
+							/**
+							 * Download defguard CLI Client
+							 */
+							download: () => LocalizedString
+						}
+						manual: {
+							/**
+							 * Manual WireGuard Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * If your device does not support our cli binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN Location configuration will require manual changes in device configuration.
+							 */
+							subtitle: () => LocalizedString
+						}
+					}
+				}
+				manual: {
+					/**
+					 * Add new VPN device using WireGuard Client
+					 */
+					title: () => LocalizedString
+				}
+				cli: {
+					/**
+					 * Add device using defguard Command Line Client
+					 */
+					title: () => LocalizedString
+					finish: {
+						/**
+						 * First download defguard command line client binaries and install them on your server.
+						 */
+						topMessage: () => LocalizedString
+						/**
+						 * Download defguard CLI Client
+						 */
+						downloadButton: () => LocalizedString
+						/**
+						 * Copy and paste this command in your terminal on the device
+						 */
+						commandCopy: () => LocalizedString
+					}
+					setup: {
+						/**
+						 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+						 */
+						stepMessage: () => LocalizedString
+						form: {
+							labels: {
+								/**
+								 * Device Name
+								 */
+								deviceName: () => LocalizedString
+								/**
+								 * Location
+								 */
+								location: () => LocalizedString
+								/**
+								 * Assigned IP
+								 */
+								assignedAddress: () => LocalizedString
+								/**
+								 * Description
+								 */
+								description: () => LocalizedString
+							}
+							/**
+							 * Add Device
+							 */
+							submit: () => LocalizedString
+						}
+					}
+				}
+			}
+		}
 		updatesNotificationToaster: {
 			/**
 			 * New version available {version}
@@ -6421,9 +6627,17 @@ export type TranslationFunctions = {
 			 */
 			maximumLength: () => LocalizedString
 			/**
+			 * Field length cannot exceed {length}
+			 */
+			maximumLengthOf: (arg: { length: number }) => LocalizedString
+			/**
 			 * Minimum length not reached.
 			 */
 			minimumLength: () => LocalizedString
+			/**
+			 * Minimum length of {length} not reached.
+			 */
+			minimumLengthOf: (arg: { length: number }) => LocalizedString
 			/**
 			 * No special characters are allowed.
 			 */

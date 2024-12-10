@@ -1,0 +1,59 @@
+#add-standalone-device-modal {
+  width: 100%;
+  max-width: 920px;
+
+  & > .header {
+    padding-left: 55px;
+  }
+
+  .controls {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    column-gap: 20px;
+    padding-top: 40px;
+
+    .btn {
+      width: 100%;
+      height: 47px;
+    }
+
+    &.solo {
+      width: 100%;
+      align-items: center;
+      justify-content: center;
+
+      .btn {
+        width: 50%;
+      }
+    }
+  }
+
+  .step-content > div {
+    box-sizing: border-box;
+    padding: 0 55px;
+
+    .message-box {
+      margin-bottom: 20px;
+    }
+  }
+
+  .step-content {
+    form {
+      .row {
+        width: 100%;
+        display: flex;
+        flex-flow: column;
+        row-gap: 0;
+
+        @include media-breakpoint-up(lg) {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 20px;
+        }
+      }
+    }
+  }
+}

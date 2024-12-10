@@ -25,6 +25,7 @@ import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedR
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { Navigation } from '../Navigation/Navigation';
+import { AddStandaloneDeviceModal } from '../../pages/overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -182,6 +183,7 @@ const App = () => {
           </Routes>
           <Navigation />
           <UpdateNotificationModal />
+          <AddStandaloneDeviceModal />
         </Router>
       </div>
       <ToastManager />
