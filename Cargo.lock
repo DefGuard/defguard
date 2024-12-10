@@ -1153,6 +1153,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "trait-variant",
  "uaparser",
  "utoipa",
  "utoipa-swagger-ui",
@@ -5647,6 +5648,17 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trait-variant"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70977707304198400eb4835a78f6a9f928bf41bba420deb8fdb175cd965d77a7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
 ]
 
 [[package]]

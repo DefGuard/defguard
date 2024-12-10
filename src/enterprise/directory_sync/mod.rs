@@ -44,6 +44,7 @@ pub struct DirectoryUser {
     pub active: bool,
 }
 
+#[trait_variant::make(Send)]
 trait DirectorySync {
     /// Get all groups in a directory
     async fn get_groups(&self) -> Result<Vec<DirectoryGroup>, DirectorySyncError>;

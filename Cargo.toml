@@ -94,6 +94,7 @@ totp-lite = { version = "2.0" }
 tower-http = { version = "0.5", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+trait-variant = "0.1"
 uaparser = "0.6"
 # openapi
 utoipa = { version = "4", features = ["axum_extras"] }
