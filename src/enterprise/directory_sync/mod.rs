@@ -331,7 +331,7 @@ async fn sync_all_users_state<T: DirectorySync>(
         .await?
         .into_iter()
         // We don't want to disable the main admin user
-        .filter(|u| u.email != "admin@defguard")
+        .filter(|u| u.username != "admin")
         .collect::<Vec<User<Id>>>();
 
     let disabled_users_emails = all_users
@@ -651,7 +651,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
-        assert!(User::find_by_email(&pool, "admin@defguard")
+        assert!(User::find_by_username(&pool, "admin")
             .await
             .unwrap()
             .is_some());
@@ -663,7 +663,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         // We should never delete the main admin user
-        assert!(User::find_by_email(&pool, "admin@defguard")
+        assert!(User::find_by_username(&pool, "admin")
             .await
             .unwrap()
             .is_some());
@@ -693,7 +693,7 @@ mod test {
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-        assert!(User::find_by_email(&pool, "admin@defguard")
+        assert!(User::find_by_username(&pool, "admin")
             .await
             .unwrap()
             .is_some());
@@ -705,7 +705,7 @@ mod test {
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
         // We should never delete the main admin user
-        assert!(User::find_by_email(&pool, "admin@defguard")
+        assert!(User::find_by_username(&pool, "admin")
             .await
             .unwrap()
             .is_some());

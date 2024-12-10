@@ -649,6 +649,15 @@ pub async fn modify_user(
             });
         }
 
+        // if the admin is the special "admin" user, prevent him from changing his username
+        if username == "admin" && user_info.username != "admin" {
+            warn!("{} tried to change special admin account's username. This account is protected from username changes.", session.user.username);
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+
         // update VPN gateway config if user status or groups have changed
         if user_info
             .handle_user_groups(&mut transaction, &mut user)

@@ -2396,7 +2396,7 @@ type RootTranslation = {
 					 */
 					title: string
 					/**
-					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​ ​g​r​o​u​p​s​ ​a​n​d​ ​t​h​e​i​r​ ​s​t​a​t​u​s​ ​f​r​o​m​ ​y​o​u​r​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​,​ ​g​r​o​u​p​s​,​ ​a​n​d​ ​t​h​e​i​r​ ​s​t​a​t​u​s​ ​f​r​o​m​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
 					 */
 					helper: string
 					/**
@@ -2477,7 +2477,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​u​s​e​r​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​ ​t​h​e​m​,​ ​d​i​s​a​b​l​i​n​g​ ​t​h​e​m​ ​o​r​ ​c​o​m​p​l​e​t​e​l​y​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
+						 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​h​a​n​d​l​e​ ​u​s​e​r​s​ ​t​h​a​t​ ​a​r​e​ ​n​o​t​ ​p​r​e​s​e​n​t​ ​i​n​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​ ​a​n​y​m​o​r​e​.​ ​Y​o​u​ ​c​a​n​ ​s​e​l​e​c​t​ ​b​e​t​w​e​e​n​ ​k​e​e​p​i​n​g​,​ ​d​i​s​a​b​l​i​n​g​,​ ​o​r​ ​d​e​l​e​t​i​n​g​ ​t​h​e​m​.
 						 */
 						helper: string
 					}
@@ -6759,7 +6759,7 @@ export type TranslationFunctions = {
 					 */
 					title: () => LocalizedString
 					/**
-					 * Directory synchronization allows you to automatically synchronize users groups and their status from your external provider.
+					 * Directory synchronization allows you to automatically synchronize users, groups, and their status from an external provider.
 					 */
 					helper: () => LocalizedString
 					/**
@@ -6840,7 +6840,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * Choose how to handle users that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.
+						 * Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.
 						 */
 						helper: () => LocalizedString
 					}
