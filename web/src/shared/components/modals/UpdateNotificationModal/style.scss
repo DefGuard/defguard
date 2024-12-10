@@ -1,0 +1,206 @@
+// modal content setup
+#updates-modal {
+  max-width: 100%;
+  overflow-x: hidden;
+
+  @include media-breakpoint-up(lg) {
+    background-color: transparent;
+    box-shadow: var(--box-shadow);
+  }
+
+  .content-wrapper {
+    background-color: var(--surface-nav-bg);
+    border-radius: 0;
+
+    @include media-breakpoint-down(lg) {
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 20px 20px 40px;
+      row-gap: 30px;
+    }
+
+    @include media-breakpoint-up(lg) {
+      background-color: var(--surface-main-primary);
+      border-radius: 15px;
+    }
+
+    & > .top {
+      box-sizing: border-box;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: center;
+      row-gap: 10px;
+      background-color: var(--surface-main-primary);
+      width: 100%;
+      padding: 20px;
+
+      @include media-breakpoint-down(lg) {
+        border-radius: 15px;
+        min-width: 280px;
+        max-width: calc(100% - 40px);
+      }
+
+      @include media-breakpoint-up(md) {
+        padding: 50px;
+      }
+
+      @include media-breakpoint-up(lg) {
+        background-color: transparent;
+        padding: 56px 20px;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+      }
+
+      & > div {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+      }
+
+      .header {
+        column-gap: 20px;
+
+        svg {
+          width: 30px;
+          height: 30px;
+
+          @include media-breakpoint-up(lg) {
+            width: 50px;
+            height: 50px;
+          }
+        }
+
+        p {
+          color: var(--surface-icon-secondary);
+
+          text-wrap: nowrap;
+
+          @include media-breakpoint-down(md) {
+            font-size: 24px;
+          }
+
+          @include typography(app-title);
+        }
+      }
+
+      .info {
+        column-gap: 8px;
+
+        @include media-breakpoint-down(md) {
+          display: flex;
+          flex-flow: column;
+          row-gap: 10px;
+        }
+
+        .version {
+          color: var(--surface-icon-secondary);
+
+          @include media-breakpoint-down(md) {
+            font-size: 16px;
+          }
+
+          @include typography(app-welcome-2);
+        }
+
+        .badge {
+          display: flex;
+          flex-flow: row;
+          column-gap: 8px;
+          box-sizing: border-box;
+          padding: 5px 20px;
+          border-radius: 5px;
+          background-color: var(--surface-nav-bg);
+          align-items: center;
+          justify-content: center;
+          min-height: 25px;
+          color: var(--surface-alert-primary);
+
+          span,
+          p {
+            @include typography(app-body-2);
+          }
+        }
+      }
+    }
+
+    & > .bottom {
+      background-color: var(--surface-nav-bg);
+
+      @include media-breakpoint-up(lg) {
+        border-radius: 15px;
+        padding: 30px 50px 50px;
+      }
+
+      & > .content {
+        padding-bottom: 40px;
+        display: flex;
+        flex-flow: column;
+        row-gap: 20px;
+
+        ul {
+          padding-left: 20px;
+          box-sizing: border-box;
+        }
+
+        p,
+        span,
+        a,
+        li {
+          @include typography(app-body-2);
+        }
+
+        h1 {
+          @include typography(app-welcome-1);
+        }
+
+        h2 {
+          @include typography(markdown-h4);
+        }
+
+        h3 {
+          @include typography(markdown-h5);
+        }
+      }
+
+      .controls {
+        width: 100%;
+        display: flex;
+        gap: 20px;
+        flex-flow: column-reverse;
+
+        @include media-breakpoint-up(md) {
+          flex-flow: row;
+        }
+
+        .btn,
+        a {
+          width: 100%;
+          text-decoration: none;
+        }
+
+        .btn {
+          max-height: 47px;
+        }
+      }
+    }
+  }
+}
+
+// modal container setup
+.modal-root {
+  .modal.updates-modal {
+    min-height: 100dvh;
+
+    @include media-breakpoint-up(lg) {
+      grid-template-columns: max(920px);
+      padding-top: 200px;
+      justify-content: center;
+      align-items: start;
+    }
+  }
+}

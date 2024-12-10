@@ -23,6 +23,7 @@ use handlers::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
+    updates::check_new_version,
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -130,6 +131,7 @@ pub(crate) mod random;
 pub mod secret;
 pub mod support;
 pub mod templates;
+pub mod updates;
 pub mod utility_thread;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
@@ -299,6 +301,7 @@ pub fn build_webapp(
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
+            .route("/updates", get(check_new_version))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))

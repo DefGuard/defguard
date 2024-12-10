@@ -12,6 +12,7 @@ import { LoaderPage } from '../pages/loader/LoaderPage';
 import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
+import { useUpdatesStore } from '../shared/hooks/store/useUpdatesStore';
 import useApi from '../shared/hooks/useApi';
 import { useToaster } from '../shared/hooks/useToaster';
 import { QueryKeys } from '../shared/queries';
@@ -28,6 +29,7 @@ export const AppLoader = () => {
   const appSettings = useAppStore((state) => state.settings);
   const {
     getAppInfo,
+    getNewVersion,
     user: { getMe },
     getEnterpriseStatus,
     settings: { getEssentialSettings, getEnterpriseSettings },
@@ -37,6 +39,8 @@ export const AppLoader = () => {
   const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
+  const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
+  const clearUpdate = useUpdatesStore((s) => s.clearUpdate);
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
     onSuccess: async (user) => {
@@ -133,6 +137,22 @@ export const AppLoader = () => {
       setAppStore({ settings: essentialSettings });
     }
   }, [essentialSettings, setAppStore]);
+
+  useQuery([QueryKeys.FETCH_NEW_VERSION], getNewVersion, {
+    onSuccess: (data) => {
+      if (!data) {
+        clearUpdate();
+      } else {
+        setUpdateStore(data);
+      }
+    },
+    onError: (err) => {
+      console.error(err);
+    },
+    refetchOnWindowFocus: false,
+    retry: false,
+    enabled: !isUndefined(currentUser) && isUserAdmin(currentUser),
+  });
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;

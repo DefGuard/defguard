@@ -19,6 +19,7 @@ const pl: Translation = {
       copy: 'Skopiuj',
       rename: 'Zmień nazwę',
       edit: 'Edytuj',
+      dismiss: 'Odrzuć',
     },
     conditions: {
       and: 'I',
@@ -40,6 +41,22 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    updatesNotification: {
+      header: {
+        criticalBadge: 'Aktualizacja krytyczna',
+        newVersion: 'Nowa wersja {version}',
+        title: 'Aktualizacja dostępna',
+      },
+      controls: {
+        visitRelease: 'Zobacz stronę aktualizacji',
+      },
+    },
+    updatesNotificationToaster: {
+      title: 'Nowa wersja dostępna {version}',
+      controls: {
+        more: 'Zobacz co nowego',
+      },
+    },
     addGroup: {
       groupName: 'Nazwa grupy',
       searchPlaceholder: 'Szukaj',

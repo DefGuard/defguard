@@ -1,0 +1,63 @@
+.update-toaster {
+  box-sizing: border-box;
+  padding: 10px 20px 15px;
+  box-shadow: 0px 6px 10px 0px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background-color: var(--surface-nav-bg);
+  border-radius: 15px;
+
+  min-width: 270px;
+  max-width: 100%;
+
+  .top {
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    flex-flow: row nowrap;
+    min-width: 230px;
+    column-gap: 8px;
+
+    p {
+      color: var(--text-body-primary);
+      text-wrap: nowrap;
+      white-space: none;
+      @include typography(app-number);
+    }
+
+    & > a {
+      margin-left: auto;
+      border: none;
+      background-color: transparent;
+      cursor: pointer;
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      flex-flow: row;
+      align-content: center;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      box-sizing: border-box;
+      text-decoration: none;
+    }
+  }
+
+  .bottom {
+    min-width: 230px;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: space-between;
+
+    & > * {
+      cursor: pointer;
+    }
+
+    button {
+      border: none;
+      background: transparent;
+      color: var(--text-body-primary);
+      @include typography(app-copyright);
+    }
+  }
+}

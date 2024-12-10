@@ -476,6 +476,14 @@ const useApi = (props?: HookProps): ApiHook => {
       return {};
     });
 
+  const getNewVersion: ApiHook['getNewVersion'] = () =>
+    client.get('/updates').then((res) => {
+      if (res.status === 204) {
+        return null;
+      }
+      return res.data;
+    });
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -504,6 +512,7 @@ const useApi = (props?: HookProps): ApiHook => {
 
   return {
     getAppInfo,
+    getNewVersion,
     changePasswordSelf,
     getEnterpriseStatus,
     getEnterpriseInfo,
