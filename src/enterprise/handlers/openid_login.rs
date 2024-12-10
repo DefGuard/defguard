@@ -9,9 +9,10 @@ use axum_extra::{
     TypedHeader,
 };
 use openidconnect::{
-    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata},
+    core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
     reqwest::async_http_client,
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, RedirectUrl, Scope,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, OAuth2TokenResponse,
+    RedirectUrl, Scope,
 };
 use reqwest::Url;
 use serde_json::json;
@@ -108,6 +109,8 @@ pub(crate) async fn user_from_claims(
             "Server did not return an ID token".to_string(),
         ));
     };
+
+    let access_token = token_response.access_token();
 
     // Verify ID token against the nonce value received in the callback.
     let token_verifier = core_client
@@ -225,7 +228,8 @@ pub(crate) async fn user_from_claims(
                         email.as_str()
                     );
                     return Err(WebError::Authorization(
-                        "User not found, but needs to be created in order to login using OIDC."
+                        "User not found and the automatic account creation is disabled. \
+                        Enable it or create the user."
                             .into(),
                     ));
                 }
@@ -242,26 +246,83 @@ pub(crate) async fn user_from_claims(
                     )));
                 }
 
-                // Extract all necessary information from the token needed to create an account
-                let given_name_error =
-                    "Given name not found in the information returned from provider. Make sure \
-                    your provider is configured correctly and that you have granted the \
-                    necessary permissions to retrieve such information.";
+                // Extract all necessary information from the token or call the userinfo endpoint
                 let given_name = token_claims
                     .given_name()
                     // 'None' gets you the default value from a localized claim.
                     //  Otherwise you would need to pass a locale.
-                    .and_then(|claim| claim.get(None))
-                    .ok_or(WebError::BadRequest(given_name_error.into()))?;
-                let family_name_error =
-                    "Family name not found in the information returned from provider. Make sure \
-                    your provider is configured correctly and that you have granted the \
-                    necessary permissions to retrieve such information.";
-                let family_name = token_claims
-                    .family_name()
-                    .and_then(|claim| claim.get(None))
-                    .ok_or(WebError::BadRequest(family_name_error.into()))?;
+                    .and_then(|claim| claim.get(None));
+                let family_name = token_claims.family_name().and_then(|claim| claim.get(None));
                 let phone = token_claims.phone_number();
+
+                let userinfo_response: CoreUserInfoClaims;
+                let (given_name, family_name, phone) = if let (
+                    Some(given_name),
+                    Some(family_name),
+                    phone,
+                ) = (given_name, family_name, phone)
+                {
+                    debug!("Given name and family name found in the claims for user {username}.");
+                    (given_name, family_name, phone)
+                } else {
+                    debug!(
+                        "Given name or family name not found in the claims for user {username}, trying to get them \
+                        from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
+                    );
+
+                    let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
+                        Make sure you have configured your provider correctly and that you have granted the \
+                        necessary permissions to retrieve such information from the token or the userinfo endpoint.";
+                    userinfo_response = core_client
+                        .user_info(access_token.clone(), Some(token_claims.subject().clone()))
+                        .map_err(
+                            |err| {
+                                error!(
+                                    "Failed to get family name and given name from provider's userinfo endpoint, they may not support this. Error details: {err:?}",
+                                );
+
+                                WebError::BadRequest(
+                                    retrieval_error.into(),
+                                )
+                            }
+                        )?
+                        .request_async(async_http_client)
+                        .await
+                        .map_err(
+                            |err| {
+                                error!(
+                                    "Failed to get family name and given name from provider's userinfo endpoint. Error details: {err:?}",
+                                );
+
+                                WebError::BadRequest(
+                                    retrieval_error.into(),
+                                )
+                            }
+                        )?;
+
+                    let claim_error = |claim_name: &str| {
+                        format!(
+                            "Failed to retrieve {claim_name} from provider's userinfo endpoint and the ID token. \
+                            Make sure you have configured your provider correctly and that you have \
+                            granted the necessary permissions to retrieve such information from the token or the userinfo endpoint.",
+                        )
+                    };
+                    let given_name = userinfo_response
+                        .given_name()
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(claim_error("given name")))?;
+                    let family_name = userinfo_response
+                        .family_name()
+                        .and_then(|claim| claim.get(None))
+                        .ok_or(WebError::BadRequest(claim_error("family name")))?;
+                    let phone = userinfo_response.phone_number();
+
+                    debug!(
+                        "Given name and family name successfully retrieved from the user info endpoint for user {username}."
+                    );
+
+                    (given_name, family_name, phone)
+                };
 
                 let mut user = User::new(
                     username.to_string(),

@@ -78,9 +78,8 @@ export const ProfileDetailsForm = () => {
       z.object({
         username: z
           .string()
-          .min(1, LL.form.error.required())
+          .min(1, LL.form.error.minimumLength())
           .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
-          .min(3, LL.form.error.minimumLength())
           .max(64, LL.form.error.maximumLength()),
         first_name: z.string().min(1, LL.form.error.required()),
         last_name: z.string().min(1, LL.form.error.required()),

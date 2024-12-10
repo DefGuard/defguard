@@ -55,7 +55,7 @@ export const AddUserForm = () => {
         .object({
           username: z
             .string()
-            .min(3, LL.form.error.minimumLength())
+            .min(1, LL.form.error.minimumLength())
             .max(64, LL.form.error.maximumLength())
             .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
           // check in refine

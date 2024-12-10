@@ -147,7 +147,7 @@ export const NetworkGatewaySetup = () => {
       <Button
         size={ButtonSize.LARGE}
         styleVariant={ButtonStyleVariant.PRIMARY}
-        text="Available Packages"
+        text={LL.gatewaySetup.button.availablePackages()}
         onClick={() => handleSubmit()}
       />
       <h3>{LL.gatewaySetup.header.oneLineInstall()}</h3>
