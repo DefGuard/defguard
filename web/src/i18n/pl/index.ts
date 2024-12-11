@@ -1030,17 +1030,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         list: 'Widok listy',
       },
     },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: 'Domyślna wiadomość do podpisu',
-        },
-      },
-      controls: {
-        save: 'Zapisz zmiany',
-      },
-    },
     instanceBranding: {
       header: 'Brandowanie instancji',
       form: {

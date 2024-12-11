@@ -1121,17 +1121,6 @@ const en: BaseTranslation = {
         list: 'List view',
       },
     },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: 'Default sign message template',
-        },
-      },
-      controls: {
-        save: 'Save changes',
-      },
-    },
     instanceBranding: {
       header: 'Instance Branding',
       form: {

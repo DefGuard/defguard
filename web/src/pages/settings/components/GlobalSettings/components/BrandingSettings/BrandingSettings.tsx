@@ -109,11 +109,11 @@ export const BrandingSettings = () => {
       main_logo_url:
         settings?.main_logo_url === defaultSettings.main_logo_url
           ? ''
-          : settings?.main_logo_url ?? '',
+          : (settings?.main_logo_url ?? ''),
       nav_logo_url:
         settings?.nav_logo_url === defaultSettings.nav_logo_url
           ? ''
-          : settings?.nav_logo_url ?? '',
+          : (settings?.nav_logo_url ?? ''),
     };
   }, [settings?.instance_name, settings?.main_logo_url, settings?.nav_logo_url]);
 
