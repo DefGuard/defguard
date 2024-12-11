@@ -30,6 +30,7 @@ pub mod openid_flow;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
+pub(crate) mod updates;
 pub(crate) mod user;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]

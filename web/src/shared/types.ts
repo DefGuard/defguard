@@ -6,6 +6,8 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+import { UpdateInfo } from './hooks/store/useUpdatesStore';
+
 export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
@@ -434,6 +436,7 @@ export type AuthenticationKey = {
 
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
+  getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseStatus: () => Promise<EnterpriseStatus>;
   getEnterpriseInfo: () => Promise<EnterpriseInfo>;
