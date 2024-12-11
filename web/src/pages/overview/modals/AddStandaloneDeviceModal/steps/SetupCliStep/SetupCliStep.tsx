@@ -19,8 +19,6 @@ import {
   SelectOption,
   SelectSelectedValue,
 } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
-import useApi from '../../../../../../shared/hooks/useApi';
-import { QueryKeys } from '../../../../../../shared/queries';
 import { useAddStandaloneDeviceModal } from '../../store';
 import { AddStandaloneDeviceModalStep } from '../../types';
 
@@ -35,19 +33,11 @@ export const SetupCliStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const labels = localLL.form.labels;
+  const locationOptions = useAddStandaloneDeviceModal((s) => s.networkOptions);
   const [setState, close, next] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep],
     shallow,
   );
-  const {
-    network: { getNetworks },
-  } = useApi();
-
-  const { data: networks } = useQuery({
-    queryKey: [QueryKeys.FETCH_NETWORKS],
-    queryFn: getNetworks,
-    refetchOnWindowFocus: false,
-  });
 
   const schema = useMemo(
     () =>
@@ -65,18 +55,6 @@ export const SetupCliStep = () => {
       }),
     [LL.form.error],
   );
-
-  const locationOptions = useMemo((): SelectOption<number>[] => {
-    if (networks) {
-      const res: SelectOption<number>[] = networks.map((n) => ({
-        key: n.id,
-        label: n.name,
-        value: n.id,
-      }));
-      return res;
-    }
-    return [];
-  }, [networks]);
 
   const renderLocationOption = useCallback(
     (value: number): SelectSelectedValue => {
@@ -142,7 +120,7 @@ export const SetupCliStep = () => {
         <div className="row">
           <FormSelect
             controller={{ control, name: 'location' }}
-            options={locationOptions}
+            options={locationOptions as NonNullable<SelectOption<number>[]>}
             renderSelected={renderLocationOption}
             label={labels.location()}
           />

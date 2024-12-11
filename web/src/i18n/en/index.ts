@@ -1,5 +1,4 @@
 /* eslint-disable max-len */
-import { title } from 'process';
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
@@ -66,6 +65,35 @@ const en: BaseTranslation = {
         },
         manual: {
           title: 'Add new VPN device using WireGuard Client',
+          setup: {
+            form: {
+              submit: 'Add Device',
+              labels: {
+                deviceName: 'Device Name',
+                location: 'Location',
+                assignedAddress: 'Assigned IP',
+                description: 'Description',
+                generation: {
+                  auto: 'Generate key pair',
+                  manual: 'Use my own public key',
+                },
+                publicKey: 'Provide Your Public Key',
+              },
+            },
+          },
+          finish: {
+            messageTop:
+              'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
+            ctaInstruction:
+              'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard app.',
+            // MD
+            warningMessage: `
+            Please remember that defguard **doesn't store private keys**.  We will securely generate the public&private key pare in your browser, and only store the public key in defguard database. Please download the configuration generated with the private key for the device, as later it will not be accessible.
+            `,
+            actionCard: {
+              title: 'Config',
+            },
+          },
         },
         cli: {
           title: 'Add device using defguard Command Line Client',

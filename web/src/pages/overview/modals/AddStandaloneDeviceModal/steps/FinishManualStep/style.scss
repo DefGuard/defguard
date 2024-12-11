@@ -1,0 +1,51 @@
+#add-standalone-device-modal {
+  .finish-manual-step {
+    & > .device-name {
+      padding-bottom: 20px;
+
+      .label {
+        color: var(--text-body-tertiary);
+        @include typography(app-wizard-1);
+        user-select: none;
+        padding-bottom: 10px;
+      }
+
+      .name {
+        color: var(--text-body-primary);
+        @include typography(app-input);
+      }
+    }
+
+    & > .cta {
+      width: 100%;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 20px;
+
+      p {
+        color: var(--text-body-secondary);
+        text-align: center;
+        width: 100%;
+        max-width: 410px;
+        text-wrap: balance;
+        @include typography(app-input);
+      }
+    }
+
+    .expandable-card {
+      .expanded-content {
+        display: flex;
+        flex-flow: column;
+        align-items: center;
+
+        .config {
+          width: 100%;
+          color: var(--text-button-primary);
+          @include typography(app-code);
+        }
+      }
+    }
+  }
+}

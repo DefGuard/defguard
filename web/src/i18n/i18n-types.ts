@@ -183,6 +183,68 @@ type RootTranslation = {
 					 * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
 					 */
 					title: string
+					setup: {
+						form: {
+							/**
+							 * A​d​d​ ​D​e​v​i​c​e
+							 */
+							submit: string
+							labels: {
+								/**
+								 * D​e​v​i​c​e​ ​N​a​m​e
+								 */
+								deviceName: string
+								/**
+								 * L​o​c​a​t​i​o​n
+								 */
+								location: string
+								/**
+								 * A​s​s​i​g​n​e​d​ ​I​P
+								 */
+								assignedAddress: string
+								/**
+								 * D​e​s​c​r​i​p​t​i​o​n
+								 */
+								description: string
+								generation: {
+									/**
+									 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+									 */
+									auto: string
+									/**
+									 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+									 */
+									manual: string
+								}
+								/**
+								 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+								 */
+								publicKey: string
+							}
+						}
+					}
+					finish: {
+						/**
+						 * D​o​w​n​l​o​a​d​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​t​o​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​n​d​ ​i​m​p​o​r​t​ ​i​t​ ​i​n​t​o​ ​y​o​u​r​ ​V​P​N​ ​c​l​i​e​n​t​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​s​e​t​u​p​.
+						 */
+						messageTop: string
+						/**
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
+						 */
+						ctaInstruction: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​d​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​&​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​r​e​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​a​n​d​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​d​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​l​a​t​e​r​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						warningMessage: string
+						actionCard: {
+							/**
+							 * C​o​n​f​i​g
+							 */
+							title: string
+						}
+					}
 				}
 				cli: {
 					/**
@@ -4626,6 +4688,68 @@ export type TranslationFunctions = {
 					 * Add new VPN device using WireGuard Client
 					 */
 					title: () => LocalizedString
+					setup: {
+						form: {
+							/**
+							 * Add Device
+							 */
+							submit: () => LocalizedString
+							labels: {
+								/**
+								 * Device Name
+								 */
+								deviceName: () => LocalizedString
+								/**
+								 * Location
+								 */
+								location: () => LocalizedString
+								/**
+								 * Assigned IP
+								 */
+								assignedAddress: () => LocalizedString
+								/**
+								 * Description
+								 */
+								description: () => LocalizedString
+								generation: {
+									/**
+									 * Generate key pair
+									 */
+									auto: () => LocalizedString
+									/**
+									 * Use my own public key
+									 */
+									manual: () => LocalizedString
+								}
+								/**
+								 * Provide Your Public Key
+								 */
+								publicKey: () => LocalizedString
+							}
+						}
+					}
+					finish: {
+						/**
+						 * Download the provided configuration file to your device and import it into your VPN client to complete the setup.
+						 */
+						messageTop: () => LocalizedString
+						/**
+						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard app.
+						 */
+						ctaInstruction: () => LocalizedString
+						/**
+						 * 
+					            Please remember that defguard **doesn't store private keys**.  We will securely generate the public&private key pare in your browser, and only store the public key in defguard database. Please download the configuration generated with the private key for the device, as later it will not be accessible.
+					            
+						 */
+						warningMessage: () => LocalizedString
+						actionCard: {
+							/**
+							 * Config
+							 */
+							title: () => LocalizedString
+						}
+					}
 				}
 				cli: {
 					/**

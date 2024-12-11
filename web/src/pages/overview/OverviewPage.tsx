@@ -18,7 +18,6 @@ import { sortByDate } from '../../shared/utils/sortByDate';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
-import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
 import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
@@ -134,7 +133,6 @@ export const OverviewPage = () => {
         </div>
       </PageContainer>
       {/* Modals */}
-      <AddStandaloneDeviceModal />
     </>
   );
 };

@@ -1,6 +1,7 @@
 import './style.scss';
 
-import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -10,17 +11,29 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../../../shared/queries';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
   AddStandaloneDeviceModalChoice,
   AddStandaloneDeviceModalStep,
 } from '../../types';
+import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 
 export const MethodStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.method;
   const choice = useAddStandaloneDeviceModal((s) => s.choice);
+  const {
+    network: { getNetworks },
+  } = useApi();
+  const { data: networks } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORKS],
+    queryFn: getNetworks,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
   const [setState, close, next] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep],
     shallow,
@@ -32,6 +45,17 @@ export const MethodStep = () => {
     },
     [setState],
   );
+
+  useEffect(() => {
+    if (networks && networks.length) {
+      const options: SelectOption<number>[] = networks.map((n) => ({
+        key: n.id,
+        value: n.id,
+        label: n.name,
+      }));
+      setState({ networks, networkOptions: options });
+    }
+  }, [networks, setState]);
 
   return (
     <div className="method-step">
@@ -61,6 +85,7 @@ export const MethodStep = () => {
           size={ButtonSize.LARGE}
         />
         <Button
+          loading={networks === undefined}
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.common.controls.next()}

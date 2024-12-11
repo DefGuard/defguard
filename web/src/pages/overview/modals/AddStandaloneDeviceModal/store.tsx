@@ -1,12 +1,21 @@
 import { isObject } from 'lodash-es';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { AddStandaloneDeviceModalChoice, AddStandaloneDeviceModalStep } from './types';
+import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import { Network } from '../../../../shared/types';
+import {
+  AddStandaloneDeviceModalChoice,
+  AddStandaloneDeviceModalStep,
+  WGConfigGenChoice,
+} from './types';
 
 const defaultValues: StoreValues = {
   visible: false,
   currentStep: AddStandaloneDeviceModalStep.METHOD_CHOICE,
   choice: AddStandaloneDeviceModalChoice.CLI,
+  networks: undefined,
+  networkOptions: [],
+  genChoice: WGConfigGenChoice.AUTO,
 };
 
 export const useAddStandaloneDeviceModal = createWithEqualityFn<Store>(
@@ -27,6 +36,9 @@ type StoreValues = {
   visible: boolean;
   currentStep: AddStandaloneDeviceModalStep;
   choice: AddStandaloneDeviceModalChoice;
+  networkOptions: SelectOption<number>[];
+  networks?: Network[];
+  genChoice: WGConfigGenChoice;
 };
 
 type StoreMethods = {

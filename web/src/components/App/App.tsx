@@ -10,6 +10,7 @@ import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
+import { AddStandaloneDeviceModal } from '../../pages/overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
@@ -25,7 +26,6 @@ import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedR
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { Navigation } from '../Navigation/Navigation';
-import { AddStandaloneDeviceModal } from '../../pages/overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
