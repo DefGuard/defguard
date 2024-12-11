@@ -280,7 +280,7 @@ importers:
         specifier: ^15.8.1
         version: 15.8.1
       rollup:
-        specifier: npm:@rollup/wasm-node@^4.28.1
+        specifier: npm:@rollup/wasm-node
         version: '@rollup/wasm-node@4.28.1'
       rollup-plugin-preserve-directives:
         specifier: ^0.3.1
