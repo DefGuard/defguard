@@ -9,7 +9,10 @@ use crate::{
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
-use super::{db::models::openid_provider::OpenIdProvider, is_enterprise_enabled};
+use super::{
+    db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
+    is_enterprise_enabled,
+};
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {
@@ -130,7 +133,8 @@ pub(crate) async fn sync_user_groups_if_configured(
         return Ok(());
     }
 
-    if !is_directory_sync_enabled(pool).await? {
+    let provider = OpenIdProvider::get_current(pool).await?;
+    if !is_directory_sync_enabled(provider.as_ref()).await? {
         debug!("Directory sync is disabled, skipping syncing user groups");
         return Ok(());
     }
@@ -184,7 +188,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
-    info!("Syncing all users' groups, this may take a while...");
+    info!("Syncing all users' groups with the directory, this may take a while...");
     let directory_groups = directory_sync.get_groups().await?;
     debug!("Found {} groups to sync", directory_groups.len());
 
@@ -295,9 +299,11 @@ async fn get_directory_sync_client(
     }
 }
 
-async fn is_directory_sync_enabled(pool: &PgPool) -> Result<bool, DirectorySyncError> {
+async fn is_directory_sync_enabled(
+    provider: Option<&OpenIdProvider<Id>>,
+) -> Result<bool, DirectorySyncError> {
     debug!("Checking if directory sync is enabled");
-    if let Some(provider_settings) = OpenIdProvider::get_current(pool).await? {
+    if let Some(provider_settings) = provider {
         debug!(
             "Directory sync enabled state: {}",
             provider_settings.directory_sync_enabled
@@ -313,7 +319,7 @@ async fn sync_all_users_state<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
 ) -> Result<(), DirectorySyncError> {
-    debug!("Syncing all users' state with the directory");
+    info!("Syncing all users' state with the directory, this may take a while...");
     let mut transaction = pool.begin().await?;
     let all_users = directory_sync.get_all_users().await?;
     let settings = OpenIdProvider::get_current(pool)
@@ -462,7 +468,7 @@ async fn sync_all_users_state<T: DirectorySync>(
     }
     debug!("Done processing enabled users");
     transaction.commit().await?;
-    debug!("Syncing all users' state with the directory done");
+    info!("Syncing all users' state with the directory done");
     Ok(())
 }
 
@@ -481,15 +487,23 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 }
 
 pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySyncError> {
+    #[cfg(not(test))]
     if !is_enterprise_enabled() {
         debug!("Enterprise is not enabled, skipping performing directory sync");
         return Ok(());
     }
 
-    if !is_directory_sync_enabled(pool).await? {
+    // TODO: The settings are retrieved many times
+    let provider = OpenIdProvider::get_current(pool).await?;
+
+    if !is_directory_sync_enabled(provider.as_ref()).await? {
         debug!("Directory sync is disabled, skipping performing directory sync");
         return Ok(());
     }
+
+    let sync_target = provider
+        .ok_or(DirectorySyncError::NotConfigured)?
+        .directory_sync_target;
 
     match get_directory_sync_client(pool).await {
         Ok(mut dir_sync) => {
@@ -497,8 +511,18 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
             // Same goes for Etags, those could be used to reduce the amount of data transferred. Some way
             // of preserving them should be implemented.
             dir_sync.prepare().await?;
-            sync_all_users_state(&dir_sync, pool).await?;
-            sync_all_users_groups(&dir_sync, pool).await?;
+            if matches!(
+                sync_target,
+                DirectorySyncTarget::All | DirectorySyncTarget::Users
+            ) {
+                sync_all_users_state(&dir_sync, pool).await?;
+            }
+            if matches!(
+                sync_target,
+                DirectorySyncTarget::All | DirectorySyncTarget::Groups
+            ) {
+                sync_all_users_groups(&dir_sync, pool).await?;
+            }
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -511,13 +535,17 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+    use crate::{
+        config::DefGuardConfig, enterprise::db::models::openid_provider::DirectorySyncTarget,
+        SERVER_CONFIG,
+    };
     use secrecy::ExposeSecret;
 
     async fn make_test_provider(
         pool: &PgPool,
         user_behavior: DirectorySyncUserBehavior,
         admin_behavior: DirectorySyncUserBehavior,
+        target: DirectorySyncTarget,
     ) -> OpenIdProvider<Id> {
         let current = OpenIdProvider::get_current(pool).await.unwrap();
 
@@ -538,6 +566,7 @@ mod test {
             60,
             user_behavior,
             admin_behavior,
+            target,
         )
         .save(pool)
         .await
@@ -576,6 +605,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -605,6 +635,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -638,6 +669,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -678,6 +710,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
         )
         .await;
         User::init_admin_user(&pool, config.default_admin_password.expose_secret())
@@ -720,6 +753,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Disable,
             DirectorySyncUserBehavior::Keep,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -762,6 +796,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Keep,
             DirectorySyncUserBehavior::Disable,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -804,6 +839,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -853,6 +889,7 @@ mod test {
             &pool,
             DirectorySyncUserBehavior::Delete,
             DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
         )
         .await;
         let mut client = get_directory_sync_client(&pool).await.unwrap();
@@ -865,5 +902,74 @@ mod test {
         assert_eq!(user_groups.len(), 1);
         let group = Group::find_by_name(&pool, "group1").await.unwrap().unwrap();
         assert_eq!(user_groups[0].id, group.id);
+    }
+
+    #[sqlx::test]
+    async fn test_sync_target_users(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::Users,
+        )
+        .await;
+        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+        let user = make_test_user("testuser", &pool).await;
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+        do_directory_sync(&pool).await.unwrap();
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+    }
+
+    #[sqlx::test]
+    async fn test_sync_target_all(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
+        )
+        .await;
+        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+        let user = make_test_user("testuser", &pool).await;
+        make_test_user("user2", &pool).await;
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+        do_directory_sync(&pool).await.unwrap();
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 3);
+        let user2 = get_test_user(&pool, "user2").await;
+        assert!(user2.is_none());
+    }
+
+    #[sqlx::test]
+    async fn test_sync_target_groups(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::Groups,
+        )
+        .await;
+        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+        let user = make_test_user("testuser", &pool).await;
+        make_test_user("user2", &pool).await;
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 0);
+        do_directory_sync(&pool).await.unwrap();
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 3);
+        let user2 = get_test_user(&pool, "user2").await;
+        assert!(user2.is_some());
     }
 }

@@ -28,6 +28,7 @@ pub struct AddProviderData {
     pub directory_sync_interval: i32,
     pub directory_sync_user_behavior: String,
     pub directory_sync_admin_behavior: String,
+    pub directory_sync_target: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -86,6 +87,7 @@ pub async fn add_openid_provider(
         provider_data.directory_sync_interval,
         provider_data.directory_sync_user_behavior.into(),
         provider_data.directory_sync_admin_behavior.into(),
+        provider_data.directory_sync_target.into(),
     )
     .upsert(&appstate.pool)
     .await?;
