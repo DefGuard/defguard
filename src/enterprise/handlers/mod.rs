@@ -1,5 +1,5 @@
 use crate::{
-    auth::{SessionInfo, AdminRole},
+    auth::{AdminRole, SessionInfo},
     handlers::{ApiResponse, ApiResult},
 };
 
