@@ -228,7 +228,9 @@ async fn sync_all_users_groups<T: DirectorySync>(
             continue;
         };
 
-        let current_groups = user.member_of(&mut *transaction).await?;
+        let mut current_groups = user.member_of(&mut *transaction).await?;
+        // We may not want to touch the default admin group
+        current_groups.retain(|g| g.name != "admin");
         debug!(
             "User {} is a member of {} groups in Defguard: {:?}",
             user.email,
