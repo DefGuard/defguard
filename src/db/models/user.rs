@@ -845,29 +845,34 @@ impl User<Id> {
         pool: &PgPool,
         default_admin_pass: &str,
     ) -> Result<(), anyhow::Error> {
-        info!("Initializing admin user");
-        let password_hash = hash_password(default_admin_pass)?;
-
-        // create admin user
-        let result = query_scalar!(
-            "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
+        debug!("Checking if some admin user already exists and creating one if not...");
+        let admins = User::find_admins(pool).await?;
+        if admins.is_empty() {
+            // create admin user
+            let password_hash = hash_password(default_admin_pass)?;
+            let result = query_scalar!(
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
             VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
             ON CONFLICT DO NOTHING \
             RETURNING id",
-            password_hash
-        )
-        .fetch_optional(pool)
-        .await?;
+                password_hash
+            )
+            .fetch_optional(pool)
+            .await?;
 
-        // if new user was created add them to admin group (ID 1)
-        if let Some(new_user_id) = result {
-            info!("New admin user has been created, adding to Admin group...");
-            query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
-                .bind(new_user_id)
-                .execute(pool)
-                .await?;
+            // if new user was created add them to admin group (ID 1)
+            if let Some(new_user_id) = result {
+                info!("New admin user has been created, adding to Admin group...");
+                query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
+                    .bind(new_user_id)
+                    .execute(pool)
+                    .await?;
+            }
+
+            info!("Admin user has been created as there was no other admin user");
+        } else {
+            debug!("Admin users already exists, skipping creation of the default admin user");
         }
-
         Ok(())
     }
 
