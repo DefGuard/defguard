@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\" FROM \"openidprovider\"",
+  "query": "SELECT id, \"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\" FROM \"openidprovider\"",
   "describe": {
     "columns": [
       {
@@ -89,6 +89,22 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "directory_sync_target: _",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_target",
+            "kind": {
+              "Enum": [
+                "all",
+                "users",
+                "groups"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
@@ -107,8 +123,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "e18de0993cc5864bcd161dc946cf1d4dee151169476a188c2f4127bc3490ce33"
+  "hash": "9bbdc8988c6ab347d5e0b1808eb547357763cf9a1372f418c57ddc66ffab3697"
 }

@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 use common::{exceed_enterprise_limits, make_test_client};
+use defguard::enterprise::db::models::openid_provider::DirectorySyncTarget;
 use defguard::enterprise::{
     db::models::openid_provider::DirectorySyncUserBehavior, license::get_cached_license,
 };
@@ -50,6 +51,7 @@ async fn test_openid_providers() {
         directory_sync_interval: 100,
         directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
         directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
+        directory_sync_target: DirectorySyncTarget::All.to_string(),
     };
 
     let response = client

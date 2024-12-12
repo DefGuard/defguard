@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, base_url, client_id, client_secret, display_name, google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\" FROM openidprovider LIMIT 1",
+  "query": "SELECT id, \"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\" FROM \"openidprovider\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 11,
-        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_user_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -76,7 +76,7 @@
       },
       {
         "ordinal": 12,
-        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_admin_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -89,10 +89,28 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "directory_sync_target: _",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_target",
+            "kind": {
+              "Enum": [
+                "all",
+                "users",
+                "groups"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -107,8 +125,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "bc69e8b09f44d8264d380eebc6c777c83d999e45d78605b925cba4ad2874aafc"
+  "hash": "7e0df54ab4876f49960b16747ffa05c748bd2b09683251c45728e227a320b4bc"
 }

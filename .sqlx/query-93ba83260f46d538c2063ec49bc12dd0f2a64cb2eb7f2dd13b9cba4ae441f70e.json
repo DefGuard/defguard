@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\" FROM \"openidprovider\" WHERE id = $1",
+  "query": "SELECT id, name, base_url, client_id, client_secret, display_name, google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \n            directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", directory_sync_target  \"directory_sync_target: DirectorySyncTarget\" FROM openidprovider WHERE name = $1",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 11,
-        "name": "directory_sync_user_behavior: _",
+        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -76,7 +76,7 @@
       },
       {
         "ordinal": 12,
-        "name": "directory_sync_admin_behavior: _",
+        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -89,11 +89,27 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 13,
+        "name": "directory_sync_target: DirectorySyncTarget",
+        "type_info": {
+          "Custom": {
+            "name": "dirsync_target",
+            "kind": {
+              "Enum": [
+                "all",
+                "users",
+                "groups"
+              ]
+            }
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -109,8 +125,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "1642e9ce8d0d4e6970dd5a84ed301a6fb5fcd601fe172e383824958da5e30a2d"
+  "hash": "93ba83260f46d538c2063ec49bc12dd0f2a64cb2eb7f2dd13b9cba4ae441f70e"
 }
