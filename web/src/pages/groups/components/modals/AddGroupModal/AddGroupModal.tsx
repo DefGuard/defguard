@@ -13,6 +13,7 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -29,7 +30,6 @@ import { ModifyGroupsRequest } from '../../../../../shared/types';
 import { GroupFormSelectAll } from './components/GroupFormSelectAll/GroupFormSelectAll';
 import { UserSelect } from './components/UserSelect/UserSelect';
 import { useAddGroupModal } from './useAddGroupModal';
-import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 
 export const AddGroupModal = () => {
   const isOpen = useAddGroupModal((s) => s.visible);
