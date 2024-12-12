@@ -9,11 +9,9 @@ use utoipa::ToSchema;
 use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, UserAdminRole},
-    db::{Group, User, WireguardNetwork},
+    auth::{AdminRole, SessionInfo},
+    db::{models::group::Permission, Group, User, WireguardNetwork},
     error::WebError,
-    server_config,
-    // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -54,7 +52,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
     )
 )]
 pub(crate) async fn bulk_assign_to_groups(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
@@ -132,7 +130,7 @@ pub(crate) async fn bulk_assign_to_groups(
     )
 )]
 pub(crate) async fn list_groups_info(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Listing groups info");
@@ -254,7 +252,7 @@ pub(crate) async fn get_group(
     )
 )]
 pub(crate) async fn create_group(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
@@ -308,7 +306,7 @@ pub(crate) async fn create_group(
     )
 )]
 pub(crate) async fn modify_group(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(group_info): Json<EditGroupInfo>,
@@ -389,9 +387,10 @@ pub(crate) async fn delete_group(
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Deleting group {name}");
-    // Administrative group must not be removed.
+    // Administrative groups must not be removed.
     // Note: Group names are unique, so this condition should be sufficient.
-    if name == server_config().admin_groupname {
+    let admin_groups = Group::find_by_permission(&appstate.pool, Permission::Admin).await?;
+    if admin_groups.iter().any(|group| group.name == name) {
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
@@ -436,7 +435,7 @@ pub(crate) async fn delete_group(
     )
 )]
 pub(crate) async fn add_group_member(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(data): Json<Username>,
@@ -485,7 +484,7 @@ pub(crate) async fn add_group_member(
     )
 )]
 pub(crate) async fn remove_group_member(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path((name, username)): Path<(String, String)>,
 ) -> Result<ApiResponse, WebError> {

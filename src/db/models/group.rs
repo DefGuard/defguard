@@ -1,13 +1,25 @@
+use std::fmt;
+
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
 use utoipa::ToSchema;
 
-use crate::{
-    db::{models::error::ModelError, Id, NoId, User, WireguardNetwork},
-    server_config,
-};
+use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
 
-#[derive(Debug, Model, ToSchema)]
+#[derive(Debug)]
+pub enum Permission {
+    Admin,
+}
+
+impl fmt::Display for Permission {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Admin => write!(f, "admin"),
+        }
+    }
+}
+
+#[derive(Debug, Model, ToSchema, FromRow)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
@@ -79,6 +91,22 @@ impl Group<Id> {
         .fetch_all(executor)
         .await
     }
+
+    pub(crate) async fn find_by_permission<'e, E>(
+        executor: E,
+        permission: Permission,
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query = format!(
+            "SELECT id, name FROM \"group\" WHERE id in (\
+            SELECT group_id FROM group_permission WHERE {} = TRUE\
+        )",
+            permission
+        );
+        query_as(&query).fetch_all(executor).await
+    }
 }
 
 impl WireguardNetwork<Id> {
@@ -110,7 +138,8 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_group_name = &server_config().admin_groupname;
+        let admin_groups = Group::find_by_permission(&mut *transaction, Permission::Admin).await?;
+
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
@@ -119,9 +148,10 @@ impl WireguardNetwork<Id> {
             return Ok(None);
         }
 
-        // make sure admin group is included
-        if !groups.iter().any(|name| name == admin_group_name) {
-            groups.push(admin_group_name.to_string());
+        for group in admin_groups {
+            if !groups.iter().any(|name| name == &group.name) {
+                groups.push(group.name);
+            }
         }
 
         Ok(Some(groups))

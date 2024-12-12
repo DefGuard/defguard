@@ -925,13 +925,28 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let admin_group_name = &server_config().admin_groupname;
         query_scalar!(
-            "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id = (SELECT id FROM \"group\" WHERE name = $2)) \"bool!\"",
-            self.id,
-            admin_group_name
+            "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id in (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE)) \"bool!\"",
+            self.id
         )
         .fetch_one(executor)
+        .await
+    }
+
+    pub(crate) async fn find_admins<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "
+            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            FROM \"user\" u \
+            WHERE EXISTS (SELECT 1 FROM group_user WHERE user_id = u.id AND group_id in (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE))"
+        )
+        .fetch_all(executor)
         .await
     }
 }
@@ -1109,11 +1124,8 @@ mod test {
 
         assert!(!is_admin);
 
-        let admin_group_name = &server_config().admin_groupname;
-
         query!(
-            "INSERT INTO group_user (group_id, user_id) VALUES ((SELECT id FROM \"group\" WHERE name = $1), $2)",
-            admin_group_name,
+            "INSERT INTO group_user (group_id, user_id) VALUES ((SELECT id FROM \"group\" WHERE id = (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE LIMIT 1)), $1)",
             user.id
         ).execute(&pool).await.unwrap();
 

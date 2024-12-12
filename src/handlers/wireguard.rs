@@ -19,7 +19,7 @@ use uuid::Uuid;
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
     appstate::AppState,
-    auth::{Claims, ClaimsType, SessionInfo, VpnRole},
+    auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
         models::{
             device::{
@@ -93,7 +93,7 @@ pub struct ImportedNetworkData {
 //     )
 // )]
 pub async fn create_network(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Json(data): Json<WireguardNetworkData>,
@@ -150,7 +150,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
 }
 
 pub async fn modify_network(
-    _role: VpnRole,
+    _role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -202,7 +202,7 @@ pub async fn modify_network(
 }
 
 pub async fn delete_network(
-    _role: VpnRole,
+    _role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -225,7 +225,7 @@ pub async fn delete_network(
 }
 
 pub async fn list_networks(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -258,7 +258,7 @@ pub async fn list_networks(
 
 pub async fn network_details(
     Path(network_id): Path<i64>,
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
@@ -293,7 +293,7 @@ pub async fn network_details(
 
 pub async fn gateway_status(
     Path(network_id): Path<i64>,
-    _role: VpnRole,
+    _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Displaying gateway status for network {network_id}");
@@ -310,7 +310,7 @@ pub async fn gateway_status(
 
 pub async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(i64, String)>,
-    _role: VpnRole,
+    _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
 ) -> ApiResult {
     debug!("Removing gateway {gateway_id} in network {network_id}");
@@ -333,7 +333,7 @@ pub async fn remove_gateway(
 }
 
 pub async fn import_network(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<ImportNetworkData>,
 ) -> ApiResult {
@@ -386,7 +386,7 @@ pub async fn import_network(
 
 // This is used exclusively for the wizard to map imported devices to users.
 pub async fn add_user_devices(
-    _role: VpnRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
@@ -794,7 +794,7 @@ pub async fn delete_device(
         (status = 403, description = "You don't have permission to list all devices.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
     )
 )]
-pub async fn list_devices(_role: VpnRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
     info!("Listed {} devices", devices.len());
@@ -880,7 +880,7 @@ pub async fn download_config(
 }
 
 pub async fn create_network_token(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
 ) -> ApiResult {
@@ -936,7 +936,7 @@ impl QueryFrom {
 }
 
 pub async fn user_stats(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,
@@ -961,7 +961,7 @@ pub async fn user_stats(
 }
 
 pub async fn network_stats(
-    _role: VpnRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
     Query(query_from): Query<QueryFrom>,

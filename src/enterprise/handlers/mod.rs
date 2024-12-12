@@ -1,5 +1,5 @@
 use crate::{
-    auth::{SessionInfo, UserAdminRole},
+    auth::{SessionInfo, AdminRole},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -57,7 +57,7 @@ pub async fn check_enterprise_status() -> ApiResult {
 }
 
 /// Gets full information about enterprise status.
-pub async fn check_enterprise_info(_admin: UserAdminRole, _session: SessionInfo) -> ApiResult {
+pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let enterprise_enabled = is_enterprise_enabled();
     let needs_license = needs_enterprise_license();
     let license = get_cached_license();
