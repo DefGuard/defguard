@@ -968,7 +968,7 @@ const en: BaseTranslation = {
     },
     openIdSettings: {
       general: {
-        title: 'External OpenID Settings',
+        title: 'External OpenID general settings',
         helper: 'Here you can change general OpenID behavior in your Defguard instance.',
         createAccount: {
           label:
@@ -987,8 +987,20 @@ const en: BaseTranslation = {
         directory_sync_settings: {
           title: 'Directory Sync Settings',
           helper:
-            'Directory synchronization allows you to automatically synchronize users, groups, and their status from an external provider.',
+            "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
           notSupported: 'Directory sync is not supported for this provider.',
+        },
+        selects: {
+          synchronize: {
+            all: 'All',
+            users: 'Users',
+            groups: 'Groups',
+          },
+          behavior: {
+            keep: 'Keep',
+            disable: 'Disable',
+            delete: 'Delete',
+          },
         },
         labels: {
           provider: {
@@ -1017,6 +1029,11 @@ const en: BaseTranslation = {
           enable_directory_sync: {
             label: 'Enable directory sync',
           },
+          sync_target: {
+            label: 'Synchronize',
+            helper:
+              "What to synchronize from the external provider. You can choose between synchronizing both users' state and group memberships, or narrow it down to just one of these.",
+          },
           sync_interval: {
             label: 'Synchronization interval',
             helper: 'Interval in seconds between directory synchronizations.',
@@ -1037,7 +1054,7 @@ const en: BaseTranslation = {
               'Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.',
           },
           service_account_used: {
-            label: 'Service account used',
+            label: 'Service account in use',
             helper:
               'The service account currently being used for synchronization. You can change it by uploading a new service account key file.',
           },

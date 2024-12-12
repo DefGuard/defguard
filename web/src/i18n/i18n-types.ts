@@ -2407,7 +2407,7 @@ type RootTranslation = {
 		openIdSettings: {
 			general: {
 				/**
-				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​S​e​t​t​i​n​g​s
+				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​g​e​n​e​r​a​l​ ​s​e​t​t​i​n​g​s
 				 */
 				title: string
 				/**
@@ -2452,13 +2452,43 @@ type RootTranslation = {
 					 */
 					title: string
 					/**
-					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​,​ ​g​r​o​u​p​s​,​ ​a​n​d​ ​t​h​e​i​r​ ​s​t​a​t​u​s​ ​f​r​o​m​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​l​l​o​w​s​ ​y​o​u​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​s​y​n​c​h​r​o​n​i​z​e​ ​u​s​e​r​s​'​ ​s​t​a​t​u​s​ ​a​n​d​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​a​n​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.
 					 */
 					helper: string
 					/**
 					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
 					 */
 					notSupported: string
+				}
+				selects: {
+					synchronize: {
+						/**
+						 * A​l​l
+						 */
+						all: string
+						/**
+						 * U​s​e​r​s
+						 */
+						users: string
+						/**
+						 * G​r​o​u​p​s
+						 */
+						groups: string
+					}
+					behavior: {
+						/**
+						 * K​e​e​p
+						 */
+						keep: string
+						/**
+						 * D​i​s​a​b​l​e
+						 */
+						disable: string
+						/**
+						 * D​e​l​e​t​e
+						 */
+						'delete': string
+					}
 				}
 				labels: {
 					provider: {
@@ -2517,6 +2547,16 @@ type RootTranslation = {
 						 */
 						label: string
 					}
+					sync_target: {
+						/**
+						 * S​y​n​c​h​r​o​n​i​z​e
+						 */
+						label: string
+						/**
+						 * W​h​a​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​f​r​o​m​ ​t​h​e​ ​e​x​t​e​r​n​a​l​ ​p​r​o​v​i​d​e​r​.​ ​Y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​b​e​t​w​e​e​n​ ​s​y​n​c​h​r​o​n​i​z​i​n​g​ ​b​o​t​h​ ​u​s​e​r​s​'​ ​s​t​a​t​e​ ​a​n​d​ ​g​r​o​u​p​ ​m​e​m​b​e​r​s​h​i​p​s​,​ ​o​r​ ​n​a​r​r​o​w​ ​i​t​ ​d​o​w​n​ ​t​o​ ​j​u​s​t​ ​o​n​e​ ​o​f​ ​t​h​e​s​e​.
+						 */
+						helper: string
+					}
 					sync_interval: {
 						/**
 						 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
@@ -2559,7 +2599,7 @@ type RootTranslation = {
 					}
 					service_account_used: {
 						/**
-						 * S​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​u​s​e​d
+						 * S​e​r​v​i​c​e​ ​a​c​c​o​u​n​t​ ​i​n​ ​u​s​e
 						 */
 						label: string
 						/**
@@ -6824,7 +6864,7 @@ export type TranslationFunctions = {
 		openIdSettings: {
 			general: {
 				/**
-				 * External OpenID Settings
+				 * External OpenID general settings
 				 */
 				title: () => LocalizedString
 				/**
@@ -6869,13 +6909,43 @@ export type TranslationFunctions = {
 					 */
 					title: () => LocalizedString
 					/**
-					 * Directory synchronization allows you to automatically synchronize users, groups, and their status from an external provider.
+					 * Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.
 					 */
 					helper: () => LocalizedString
 					/**
 					 * Directory sync is not supported for this provider.
 					 */
 					notSupported: () => LocalizedString
+				}
+				selects: {
+					synchronize: {
+						/**
+						 * All
+						 */
+						all: () => LocalizedString
+						/**
+						 * Users
+						 */
+						users: () => LocalizedString
+						/**
+						 * Groups
+						 */
+						groups: () => LocalizedString
+					}
+					behavior: {
+						/**
+						 * Keep
+						 */
+						keep: () => LocalizedString
+						/**
+						 * Disable
+						 */
+						disable: () => LocalizedString
+						/**
+						 * Delete
+						 */
+						'delete': () => LocalizedString
+					}
 				}
 				labels: {
 					provider: {
@@ -6934,6 +7004,16 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 					}
+					sync_target: {
+						/**
+						 * Synchronize
+						 */
+						label: () => LocalizedString
+						/**
+						 * What to synchronize from the external provider. You can choose between synchronizing both users' state and group memberships, or narrow it down to just one of these.
+						 */
+						helper: () => LocalizedString
+					}
 					sync_interval: {
 						/**
 						 * Synchronization interval
@@ -6976,7 +7056,7 @@ export type TranslationFunctions = {
 					}
 					service_account_used: {
 						/**
-						 * Service account used
+						 * Service account in use
 						 */
 						label: () => LocalizedString
 						/**

@@ -1,11 +1,10 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5,\"display_name\" = $6,\"google_service_account_key\" = $7,\"google_service_account_email\" = $8,\"admin_email\" = $9,\"directory_sync_enabled\" = $10,\"directory_sync_interval\" = $11,\"directory_sync_user_behavior\" = $12,\"directory_sync_admin_behavior\" = $13 WHERE id = $1",
+  "query": "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12, directory_sync_target = $13 WHERE id = $14",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "Text",
         "Text",
@@ -39,10 +38,23 @@
               ]
             }
           }
-        }
+        },
+        {
+          "Custom": {
+            "name": "dirsync_target",
+            "kind": {
+              "Enum": [
+                "all",
+                "users",
+                "groups"
+              ]
+            }
+          }
+        },
+        "Int8"
       ]
     },
     "nullable": []
   },
-  "hash": "6e9d906972ba9ce9c5a098aa040e0b0c005b8ba1227d436e9055bd5d990d2ef8"
+  "hash": "ccea8776d7cdc2d6c87ecd54c36113b3e829aad2a0cdbfa00b83a81158b9aa96"
 }

@@ -956,7 +956,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     openIdSettings: {
       general: {
-        title: 'Ustawienia zewnętrznego OpenID',
+        title: 'Ogólne ustawienia zewnętrznego OpenID',
         helper:
           'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
         createAccount: {
@@ -979,6 +979,18 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Synchronizacja katalogu pozwala na automatyczną synchronizację grup użytkowników i ich statusu na podstawie zewnętrznego dostawcy.',
           notSupported: 'Synchronizacja katalogu nie jest obsługiwana dla tego dostawcy.',
+        },
+        selects: {
+          synchronize: {
+            all: 'Wszystko',
+            users: 'Użytkownicy',
+            groups: 'Grupy',
+          },
+          behavior: {
+            keep: 'Zachowaj',
+            disable: 'Dezaktywuj',
+            delete: 'Usuń',
+          },
         },
         labels: {
           provider: {
@@ -1007,11 +1019,15 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           enable_directory_sync: {
             label: 'Włącz synchronizację katalogu',
           },
+          sync_target: {
+            label: 'Synchronizuj',
+            helper:
+              'Co będzie synchronizowane z zewnętrznym dostawcą OpenID. Możesz wybrać pomiędzy synchronizacją statusu użytkowników, ich przynależności do grup lub synchronizacją obu.',
+          },
           sync_interval: {
             label: 'Interwał synchronizacji',
             helper: 'Odstęp czasu w sekundach pomiędzy synchronizacjami katalogu.',
           },
-
           user_behavior: {
             label: 'Zachowanie kont użytkowników',
             helper:

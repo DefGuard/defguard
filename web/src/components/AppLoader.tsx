@@ -149,6 +149,7 @@ export const AppLoader = () => {
     },
     refetchOnWindowFocus: false,
     retry: false,
+    staleTime: Infinity,
     enabled: !isUndefined(currentUser) && currentUser.is_admin,
   });
 
