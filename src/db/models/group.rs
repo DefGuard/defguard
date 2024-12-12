@@ -100,9 +100,8 @@ impl Group<Id> {
         E: PgExecutor<'e>,
     {
         let query = format!(
-            "SELECT id, name FROM \"group\" WHERE id in (\
-            SELECT group_id FROM group_permission WHERE {} = TRUE\
-        )",
+            "SELECT id, name FROM \"group\" WHERE id in \
+            (SELECT group_id FROM group_permission WHERE {} = TRUE)",
             permission
         );
         query_as(&query).fetch_all(executor).await
@@ -120,10 +119,11 @@ impl Group<Id> {
             "SELECT {} FROM group_permission WHERE group_id = $1",
             permission
         );
-        query_scalar(&query_str)
+        let result = query_scalar(&query_str)
             .bind(self.id)
-            .fetch_one(executor)
-            .await
+            .fetch_optional(executor)
+            .await?;
+        Ok(result.unwrap_or(false))
     }
 
     pub(crate) async fn set_permission<'e, E>(
@@ -330,5 +330,42 @@ mod test {
 
         let members = group.member_usernames(&pool).await.unwrap();
         assert!(members.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_group_permissions(pool: PgPool) {
+        let group = Group::new("admin2").save(&pool).await.unwrap();
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        user.add_to_group(&pool, &group).await.unwrap();
+        assert!(!user.is_admin(&pool).await.unwrap());
+        assert!(!group
+            .has_permission(&pool, Permission::Admin)
+            .await
+            .unwrap());
+        group
+            .set_permission(&pool, Permission::Admin, true)
+            .await
+            .unwrap();
+
+        assert!(group
+            .has_permission(&pool, Permission::Admin)
+            .await
+            .unwrap());
+        assert!(user.is_admin(&pool).await.unwrap());
+        let groups = Group::find_by_permission(&pool, Permission::Admin)
+            .await
+            .unwrap();
+        assert_eq!(groups.len(), 2);
+        assert!(groups.iter().any(|g| g.name == "admin2"));
     }
 }
