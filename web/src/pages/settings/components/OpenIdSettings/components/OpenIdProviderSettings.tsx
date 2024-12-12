@@ -16,8 +16,6 @@ import {
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { OpenIdProvider } from '../../../../../shared/types';
 
-type FormFields = OpenIdProvider;
-
 export const OpenIdSettingsForm = ({
   setCurrentProvider,
   currentProvider,
@@ -25,7 +23,7 @@ export const OpenIdSettingsForm = ({
 }: {
   setCurrentProvider: (provider: OpenIdProvider | null) => void;
   currentProvider: OpenIdProvider | null;
-  formControl: UseFormReturn<FormFields>;
+  formControl: UseFormReturn<OpenIdProvider>;
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
