@@ -9,7 +9,6 @@ import { useI18nContext } from '../i18n/i18n-react';
 import { baseLocale, detectLocale, locales } from '../i18n/i18n-util';
 import { loadLocaleAsync } from '../i18n/i18n-util.async';
 import { LoaderPage } from '../pages/loader/LoaderPage';
-import { isUserAdmin } from '../shared/helpers/isUserAdmin';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
 import { useUpdatesStore } from '../shared/hooks/store/useUpdatesStore';
@@ -44,8 +43,7 @@ export const AppLoader = () => {
 
   useQuery([QueryKeys.FETCH_ME], getMe, {
     onSuccess: async (user) => {
-      const isAdmin = isUserAdmin(user);
-      setAuthState({ isAdmin, user });
+      setAuthState({ user });
       setUserLoading(false);
     },
     onError: () => {
@@ -151,7 +149,7 @@ export const AppLoader = () => {
     },
     refetchOnWindowFocus: false,
     retry: false,
-    enabled: !isUndefined(currentUser) && isUserAdmin(currentUser),
+    enabled: !isUndefined(currentUser) && currentUser.is_admin,
   });
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {

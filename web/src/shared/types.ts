@@ -49,6 +49,7 @@ export type User = {
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
   enrolled: boolean;
+  is_admin: boolean;
 };
 
 export type UserProfile = {
@@ -416,6 +417,7 @@ export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
   members?: string[];
+  is_admin: boolean;
 };
 
 export type AddUsersToGroupsRequest = {
@@ -1063,4 +1065,5 @@ export type GroupInfo = {
   name: string;
   members: string[];
   vpn_locations: string[];
+  is_admin: boolean;
 };

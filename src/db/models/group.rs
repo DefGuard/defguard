@@ -107,6 +107,45 @@ impl Group<Id> {
         );
         query_as(&query).fetch_all(executor).await
     }
+
+    pub(crate) async fn has_permission<'e, E>(
+        &self,
+        executor: E,
+        permission: Permission,
+    ) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query_str = format!(
+            "SELECT {} FROM group_permission WHERE group_id = $1",
+            permission
+        );
+        query_scalar(&query_str)
+            .bind(self.id)
+            .fetch_one(executor)
+            .await
+    }
+
+    pub(crate) async fn set_permission<'e, E>(
+        &self,
+        executor: E,
+        permission: Permission,
+        value: bool,
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query_str = format!(
+            "INSERT INTO group_permission (group_id, {permission}) VALUES ($1, $2) \
+            ON CONFLICT (group_id) DO UPDATE SET {permission} = $2",
+        );
+        query(&query_str)
+            .bind(self.id)
+            .bind(value)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
 }
 
 impl WireguardNetwork<Id> {

@@ -195,6 +195,14 @@ type RootTranslation = {
 			 * C​r​e​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
 		}
 		editGroup: {
 			/**
@@ -217,6 +225,14 @@ type RootTranslation = {
 			 * U​p​d​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
 		}
 		deleteGroup: {
 			/**
@@ -4616,6 +4632,14 @@ export type TranslationFunctions = {
 			 * Create group
 			 */
 			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
 		}
 		editGroup: {
 			/**
@@ -4638,6 +4662,14 @@ export type TranslationFunctions = {
 			 * Update group
 			 */
 			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
 		}
 		deleteGroup: {
 			/**

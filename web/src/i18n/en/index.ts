@@ -63,6 +63,8 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     editGroup: {
       title: 'Edit group',
@@ -70,6 +72,8 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Update group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     deleteGroup: {
       title: 'Delete group {name:string}',

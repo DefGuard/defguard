@@ -138,13 +138,14 @@ pub(crate) async fn list_groups_info(
         GroupInfo,
         "SELECT g.name name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
-        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\" \
+        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
+        (EXISTS (SELECT 1 FROM \"group_permission\" gp WHERE gp.group_id = g.id AND gp.admin = true)) \"is_admin!\" \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
         LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id \
         LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id \
-        GROUP BY g.name"
+        GROUP BY g.name, g.id"
     )
     .fetch_all(&appstate.pool)
     .await?;
@@ -199,7 +200,8 @@ pub(crate) async fn list_groups(
             {
                 "name": "name",
                 "members": ["user"],
-                "vpn_locations": ["location"]
+                "vpn_locations": ["location"],
+                "is_admin": false
             }
         )),
         (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
@@ -216,9 +218,12 @@ pub(crate) async fn get_group(
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
         let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
+        let is_admin = group
+            .has_permission(&appstate.pool, Permission::Admin)
+            .await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, members, vpn_locations)),
+            json: json!(GroupInfo::new(name, members, vpn_locations, is_admin)),
             status: StatusCode::OK,
         })
     } else {
@@ -264,7 +269,9 @@ pub(crate) async fn create_group(
     // FIXME: conflicts must not return internal server error (500).
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     // TODO: create group in LDAP
-
+    group
+        .set_permission(&mut *transaction, Permission::Admin, group_info.is_admin)
+        .await?;
     for username in &group_info.members {
         let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
             let msg = format!("Failed to find user {username}");
@@ -327,6 +334,10 @@ pub(crate) async fn modify_group(
         group.save(&mut *transaction).await?;
         // TODO: update LDAP
     }
+
+    group
+        .set_permission(&mut *transaction, Permission::Admin, group_info.is_admin)
+        .await?;
 
     // Modify group members.
     let mut current_members = group.members(&mut *transaction).await?;

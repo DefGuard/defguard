@@ -63,6 +63,8 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     editGroup: {
       groupName: 'Nazwa grupy',
@@ -70,6 +72,8 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Zmień grupę',
       title: 'Edytuj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     deleteGroup: {
       title: 'Usuń grupę {name}',
