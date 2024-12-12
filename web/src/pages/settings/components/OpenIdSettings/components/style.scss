@@ -1,6 +1,7 @@
 @use '@scssutils' as *;
 
-#openid-settings {
+#openid-settings,
+#dirsync-settings {
   & > header {
     & > .btn {
       margin-left: auto;
@@ -50,6 +51,10 @@
     position: relative;
     padding: 20px;
     z-index: 0;
+
+    .disabled {
+      cursor: not-allowed;
+    }
   }
 
   .file-upload-container.dragging {
@@ -67,16 +72,16 @@
     cursor: pointer;
   }
 
-  .select {
-    padding-bottom: 0;
+  .select-container {
+    margin-bottom: 0;
   }
 
-  #dirsync-header {
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  // #dirsync-header {
+  //   margin-bottom: 10px;
+  //   display: flex;
+  //   align-items: center;
+  //   gap: 10px;
+  // }
 
   .upload-label {
     display: flex;
@@ -99,4 +104,49 @@
   #enable-dir-sync {
     margin-bottom: 25px;
   }
+}
+
+#root-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  grid-column: 1 / -1;
+
+  & > .controls {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  & > .left {
+    grid-column: 1;
+  }
+
+  & > .right {
+    grid-column: 2;
+  }
+
+  & > .left,
+  & > .right {
+    width: 100%;
+    max-width: 750px;
+    display: flex;
+    flex-flow: column;
+    row-gap: 48px;
+  }
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  grid-column: 1 / -1;
+  min-height: 300px;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
 }

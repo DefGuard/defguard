@@ -144,7 +144,7 @@ impl GoogleDirectorySync {
 
         url.query_pairs_mut()
             .append_pair("userKey", user_id)
-            .append_pair("max_results", "999");
+            .append_pair("maxResults", "500");
 
         let client = reqwest::Client::new();
         let response = client
@@ -174,7 +174,7 @@ impl GoogleDirectorySync {
 
         url.query_pairs_mut()
             .append_pair("customer", "my_customer")
-            .append_pair("max_results", "999");
+            .append_pair("maxResults", "500");
 
         let client = reqwest::Client::builder().build()?;
         let response = client
@@ -206,7 +206,8 @@ impl GoogleDirectorySync {
         );
         let mut url = Url::from_str(&url_str).unwrap();
         url.query_pairs_mut()
-            .append_pair("includeDerivedMembership", "true");
+            .append_pair("includeDerivedMembership", "true")
+            .append_pair("maxResults", "500");
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
@@ -250,7 +251,10 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut url = Url::from_str(ALL_USERS_URL).unwrap();
-        url.query_pairs_mut().append_pair("customer", "my_customer");
+        url.query_pairs_mut()
+            .append_pair("customer", "my_customer")
+            .append_pair("maxResults", "500")
+            .append_pair("showDeleted", "false");
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)

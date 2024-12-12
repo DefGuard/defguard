@@ -151,6 +151,7 @@ export const AppLoader = () => {
     },
     refetchOnWindowFocus: false,
     retry: false,
+    staleTime: Infinity,
     enabled: !isUndefined(currentUser) && isUserAdmin(currentUser),
   });
 
