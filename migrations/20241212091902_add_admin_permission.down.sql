@@ -1,1 +1,1 @@
-DROP TABLE "group_permission";
+ALTER TABLE "group" DROP COLUMN is_admin;

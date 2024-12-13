@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{Id, NoId, Session},
+    db::{models::group::Permission, Id, NoId, Session},
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -702,7 +702,7 @@ impl User<Id> {
     {
         query_as!(
             Group,
-            "SELECT id, name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT id, name, is_admin FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -848,6 +848,14 @@ impl User<Id> {
         debug!("Checking if some admin user already exists and creating one if not...");
         let admins = User::find_admins(pool).await?;
         if admins.is_empty() {
+            let admin_groups = Group::find_by_permission(pool, Permission::IsAdmin).await?;
+            if admin_groups.is_empty() {
+                error!("No admin group found, can't create admin user.");
+                return Err(anyhow::anyhow!(
+                    "No admin group or users found. You'll need to assign the admin group "
+                ));
+            }
+
             // create admin user
             let password_hash = hash_password(default_admin_pass)?;
             let result = query_scalar!(
@@ -881,7 +889,6 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         Session::delete_all_for_user(executor, self.id).await?;
-
         Ok(())
     }
 
@@ -930,14 +937,13 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_scalar!(
-            "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id in (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE)) \"bool!\"",
-            self.id
-        )
-        .fetch_one(executor)
-        .await
+        query_scalar!("SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+        WHERE is_admin = true AND user_id = $1) \"bool!\"", self.id)
+            .fetch_one(executor)
+            .await
     }
 
+    /// Find all users that are admins and are active.
     pub(crate) async fn find_admins<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -949,7 +955,8 @@ impl User<Id> {
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
             FROM \"user\" u \
-            WHERE EXISTS (SELECT 1 FROM group_user WHERE user_id = u.id AND group_id in (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE))"
+            WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
         )
         .fetch_all(executor)
         .await
@@ -1130,13 +1137,72 @@ mod test {
         assert!(!is_admin);
 
         query!(
-            "INSERT INTO group_user (group_id, user_id) VALUES ((SELECT id FROM \"group\" WHERE id = (SELECT group_id FROM \"group_permission\" WHERE admin = TRUE LIMIT 1)), $1)",
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1)",
             user.id
-        ).execute(&pool).await.unwrap();
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let is_admin = user.is_admin(&pool).await.unwrap();
 
         assert!(is_admin);
+    }
+
+    #[sqlx::test]
+    async fn test_find_admins(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "hpotter2",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user3 = User::new(
+            "hpotter3",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter3@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1), (1, $2)",
+            user.id,
+            user2.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let admins = User::find_admins(&pool).await.unwrap();
+        assert_eq!(admins.len(), 2);
+        assert!(admins.iter().any(|u| u.id == user.id));
+        assert!(admins.iter().any(|u| u.id == user2.id));
     }
 
     #[sqlx::test]

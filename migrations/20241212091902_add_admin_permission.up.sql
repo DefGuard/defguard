@@ -1,9 +1,5 @@
-CREATE TABLE "group_permission" (
-    group_id bigint REFERENCES "group"(id) ON DELETE CASCADE,
-    admin boolean NOT NULL DEFAULT FALSE,
-    primary key (group_id)
-);
-
-INSERT INTO "group_permission" (group_id, admin) VALUES ((
-    SELECT id FROM "group" WHERE name = 'admin'
-), true);
+ALTER TABLE "group" ADD COLUMN is_admin boolean NOT NULL DEFAULT FALSE;
+-- First group created by migrations is the admin group,
+-- which until now couldn't be deleted, so we can assume that it should 
+-- have the ID of 1.
+UPDATE "group" SET is_admin = true WHERE id = 1;

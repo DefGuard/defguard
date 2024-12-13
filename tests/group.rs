@@ -118,7 +118,8 @@ async fn test_modify_group_no_locations_in_request() {
         "members": [
             "hpotter",
             "admin"
-        ]
+        ],
+        "is_admin": false
     });
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -128,7 +129,8 @@ async fn test_modify_group_no_locations_in_request() {
         "name": "gryffindor",
         "members": [
             "hpotter",
-        ]
+        ],
+        "is_admin": false
     });
     let response = client
         .put("/api/v1/group/hogwards")

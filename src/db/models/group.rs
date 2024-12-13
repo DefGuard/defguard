@@ -8,13 +8,13 @@ use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
 
 #[derive(Debug)]
 pub enum Permission {
-    Admin,
+    IsAdmin,
 }
 
 impl fmt::Display for Permission {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Admin => write!(f, "admin"),
+            Self::IsAdmin => write!(f, "is_admin"),
         }
     }
 }
@@ -23,6 +23,7 @@ impl fmt::Display for Permission {
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
+    pub is_admin: bool,
 }
 
 impl Group {
@@ -31,6 +32,7 @@ impl Group {
         Self {
             id: NoId,
             name: name.into(),
+            is_admin: false,
         }
     }
 }
@@ -40,9 +42,13 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self, "SELECT id, name FROM \"group\" WHERE name = $1", name)
-            .fetch_optional(executor)
-            .await
+        query_as!(
+            Self,
+            "SELECT id, name, is_admin FROM \"group\" WHERE name = $1",
+            name
+        )
+        .fetch_optional(executor)
+        .await
     }
 
     pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
@@ -100,9 +106,7 @@ impl Group<Id> {
         E: PgExecutor<'e>,
     {
         let query = format!(
-            "SELECT id, name FROM \"group\" WHERE id in \
-            (SELECT group_id FROM group_permission WHERE {} = TRUE)",
-            permission
+            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id DESC"
         );
         query_as(&query).fetch_all(executor).await
     }
@@ -115,10 +119,7 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let query_str = format!(
-            "SELECT {} FROM group_permission WHERE group_id = $1",
-            permission
-        );
+        let query_str = format!("SELECT {permission} FROM \"group\" WHERE id = $1");
         let result = query_scalar(&query_str)
             .bind(self.id)
             .fetch_optional(executor)
@@ -135,10 +136,7 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let query_str = format!(
-            "INSERT INTO group_permission (group_id, {permission}) VALUES ($1, $2) \
-            ON CONFLICT (group_id) DO UPDATE SET {permission} = $2",
-        );
+        let query_str = format!("UPDATE \"group\" SET {permission} = $2 WHERE id = $1");
         query(&query_str)
             .bind(self.id)
             .bind(value)
@@ -177,7 +175,8 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_groups = Group::find_by_permission(&mut *transaction, Permission::Admin).await?;
+        let admin_groups =
+            Group::find_by_permission(&mut *transaction, Permission::IsAdmin).await?;
 
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
@@ -349,20 +348,20 @@ mod test {
         user.add_to_group(&pool, &group).await.unwrap();
         assert!(!user.is_admin(&pool).await.unwrap());
         assert!(!group
-            .has_permission(&pool, Permission::Admin)
+            .has_permission(&pool, Permission::IsAdmin)
             .await
             .unwrap());
         group
-            .set_permission(&pool, Permission::Admin, true)
+            .set_permission(&pool, Permission::IsAdmin, true)
             .await
             .unwrap();
 
         assert!(group
-            .has_permission(&pool, Permission::Admin)
+            .has_permission(&pool, Permission::IsAdmin)
             .await
             .unwrap());
         assert!(user.is_admin(&pool).await.unwrap());
-        let groups = Group::find_by_permission(&pool, Permission::Admin)
+        let groups = Group::find_by_permission(&pool, Permission::IsAdmin)
             .await
             .unwrap();
         assert_eq!(groups.len(), 2);

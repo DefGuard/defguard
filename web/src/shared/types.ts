@@ -594,6 +594,7 @@ export interface ApiHook {
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    testDirsync: () => Promise<DirsyncTestResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -1067,4 +1068,9 @@ export type GroupInfo = {
   members: string[];
   vpn_locations: string[];
   is_admin: boolean;
+};
+
+export type DirsyncTestResponse = {
+  message: string;
+  success: boolean;
 };

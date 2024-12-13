@@ -139,7 +139,7 @@ pub(crate) async fn list_groups_info(
         "SELECT g.name name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
         COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
-        (EXISTS (SELECT 1 FROM \"group_permission\" gp WHERE gp.group_id = g.id AND gp.admin = true)) \"is_admin!\" \
+        is_admin \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
@@ -219,7 +219,7 @@ pub(crate) async fn get_group(
         let members = group.member_usernames(&appstate.pool).await?;
         let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
         let is_admin = group
-            .has_permission(&appstate.pool, Permission::Admin)
+            .has_permission(&appstate.pool, Permission::IsAdmin)
             .await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
@@ -270,7 +270,7 @@ pub(crate) async fn create_group(
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     // TODO: create group in LDAP
     group
-        .set_permission(&mut *transaction, Permission::Admin, group_info.is_admin)
+        .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
         .await?;
     for username in &group_info.members {
         let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
@@ -336,7 +336,7 @@ pub(crate) async fn modify_group(
     }
 
     group
-        .set_permission(&mut *transaction, Permission::Admin, group_info.is_admin)
+        .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
         .await?;
 
     // Modify group members.
@@ -400,7 +400,7 @@ pub(crate) async fn delete_group(
     debug!("Deleting group {name}");
     // Administrative groups must not be removed.
     // Note: Group names are unique, so this condition should be sufficient.
-    let admin_groups = Group::find_by_permission(&appstate.pool, Permission::Admin).await?;
+    let admin_groups = Group::find_by_permission(&appstate.pool, Permission::IsAdmin).await?;
     if admin_groups.iter().any(|group| group.name == name) {
         return Ok(ApiResponse {
             json: json!({}),

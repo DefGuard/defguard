@@ -2459,6 +2459,17 @@ type RootTranslation = {
 					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
 					 */
 					notSupported: string
+					connectionTest: {
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​s​u​c​c​e​s​s​f​u​l
+						 */
+						success: string
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:​ ​{​e​r​r​o​r​}
+						 * @param {string} error
+						 */
+						error: RequiredParams<'error'>
+					}
 				}
 				selects: {
 					synchronize: {
@@ -6916,6 +6927,16 @@ export type TranslationFunctions = {
 					 * Directory sync is not supported for this provider.
 					 */
 					notSupported: () => LocalizedString
+					connectionTest: {
+						/**
+						 * Connection successful
+						 */
+						success: () => LocalizedString
+						/**
+						 * Connection failed with error: {error}
+						 */
+						error: (arg: { error: string }) => LocalizedString
+					}
 				}
 				selects: {
 					synchronize: {

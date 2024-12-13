@@ -989,6 +989,10 @@ const en: BaseTranslation = {
           helper:
             "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
           notSupported: 'Directory sync is not supported for this provider.',
+          connectionTest: {
+            success: 'Connection successful',
+            error: 'Connection failed with error: {error: string}',
+          },
         },
         selects: {
           synchronize: {

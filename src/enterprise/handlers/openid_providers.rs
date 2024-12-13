@@ -10,7 +10,9 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::openid_provider::OpenIdProvider,
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
+    },
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -206,6 +208,37 @@ pub async fn list_openid_providers(
     let providers = OpenIdProvider::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(providers),
+        status: StatusCode::OK,
+    })
+}
+
+pub async fn test_dirsync_connection(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} testing directory sync connection",
+        session.user.username
+    );
+
+    if let Err(err) = test_directory_sync_connection(&appstate.pool).await {
+        error!(
+            "User {} tested directory sync connection, the connection failed: {}",
+            session.user.username, err
+        );
+        return Ok(ApiResponse {
+            json: json!({ "message": err.to_string(), "success": false }),
+            status: StatusCode::OK,
+        });
+    }
+    debug!(
+        "User {} tested directory sync connection, the connection was successful",
+        session.user.username
+    );
+    Ok(ApiResponse {
+        json: json!({ "message": "Connection successful", "success": true }),
         status: StatusCode::OK,
     })
 }

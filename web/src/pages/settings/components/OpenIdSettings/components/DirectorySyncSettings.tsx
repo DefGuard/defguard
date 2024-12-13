@@ -13,6 +13,10 @@ import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/Ic
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { OpenIdProvider } from '../../../../../shared/types';
 import { titleCase } from '../../../../../shared/utils/titleCase';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 
 type FormFields = OpenIdProvider;
 
@@ -31,8 +35,11 @@ export const DirsyncSettings = ({
   const [googleServiceAccountFileName, setGoogleServiceAccountFileName] = useState<
     string | null
   >(null);
-
+  const {
+    settings: { testDirsync },
+  } = useApi();
   const { control, setValue } = formControl;
+  const toaster = useToaster();
 
   const userBehaviorOptions = useMemo(
     () => [
@@ -109,7 +116,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.sync_target.helper())}</Helper>
                 }
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
               />
               <FormInput
                 value={currentProvider?.directory_sync_interval ?? ''}
@@ -121,7 +128,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.sync_interval.helper())}</Helper>
                 }
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
               />
               <FormSelect
                 controller={{ control, name: 'directory_sync_user_behavior' }}
@@ -134,7 +141,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.user_behavior.helper())}</Helper>
                 }
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
               />
               <FormSelect
                 controller={{ control, name: 'directory_sync_admin_behavior' }}
@@ -147,12 +154,12 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.admin_behavior.helper())}</Helper>
                 }
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
               />
               <FormInput
                 controller={{ control, name: 'admin_email' }}
                 label={localLL.form.labels.admin_email.label()}
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.admin_email.helper())}</Helper>
                 }
@@ -179,7 +186,7 @@ export const DirsyncSettings = ({
                     {parse(localLL.form.labels.service_account_used.helper())}
                   </Helper>
                 }
-                disabled={!enabled || !enterpriseEnabled}
+                disabled={!enterpriseEnabled}
                 required={enabled}
               />
               <div className="input">
@@ -189,9 +196,9 @@ export const DirsyncSettings = ({
                   </label>
                   <Helper>{localLL.form.labels.service_account_key_file.helper()}</Helper>
                 </div>
-                <div className={`file-upload-container ${enabled ? '' : 'disabled'}`}>
+                <div className={'file-upload-container'}>
                   <input
-                    className={`file-upload`}
+                    className={'file-upload'}
                     type="file"
                     accept=".json"
                     onChange={(e) => {
@@ -207,7 +214,7 @@ export const DirsyncSettings = ({
                         reader.readAsText(file);
                       }
                     }}
-                    disabled={!enabled || !enterpriseEnabled}
+                    disabled={!enterpriseEnabled}
                   />
                   <div className="upload-label">
                     <SvgIconDownload />{' '}
@@ -218,6 +225,26 @@ export const DirsyncSettings = ({
                     </p>
                   </div>
                 </div>
+              </div>
+              <div className="test-connection">
+                <Button
+                  onClick={() => {
+                    testDirsync().then((res) => {
+                      if (res.success) {
+                        toaster.success(
+                          localLL.form.directory_sync_settings.connectionTest.success(),
+                        );
+                      } else {
+                        toaster.error(
+                          `${localLL.form.directory_sync_settings.connectionTest.error()} ${res.message}`,
+                        );
+                      }
+                    });
+                  }}
+                  disabled={!enterpriseEnabled}
+                  text="Test connection"
+                  styleVariant={ButtonStyleVariant.PRIMARY}
+                ></Button>
               </div>
             </>
           ) : null

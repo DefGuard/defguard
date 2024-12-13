@@ -245,7 +245,7 @@ macro_rules! role {
     };
 }
 
-role!(AdminRole, Permission::Admin);
+role!(AdminRole, Permission::IsAdmin);
 
 // User authenticated by a valid access token
 pub struct AccessUserInfo(pub(crate) User<Id>);

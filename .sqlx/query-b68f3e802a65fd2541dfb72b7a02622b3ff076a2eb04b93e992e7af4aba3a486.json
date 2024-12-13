@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"group\" SET \"name\" = $2,\"is_admin\" = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b68f3e802a65fd2541dfb72b7a02622b3ff076a2eb04b93e992e7af4aba3a486"
+}
