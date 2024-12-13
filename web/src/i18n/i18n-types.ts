@@ -2465,10 +2465,9 @@ type RootTranslation = {
 						 */
 						success: string
 						/**
-						 * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:​ ​{​e​r​r​o​r​}
-						 * @param {string} error
+						 * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:
 						 */
-						error: RequiredParams<'error'>
+						error: string
 					}
 				}
 				selects: {
@@ -6933,9 +6932,9 @@ export type TranslationFunctions = {
 						 */
 						success: () => LocalizedString
 						/**
-						 * Connection failed with error: {error}
+						 * Connection failed with error:
 						 */
-						error: (arg: { error: string }) => LocalizedString
+						error: () => LocalizedString
 					}
 				}
 				selects: {

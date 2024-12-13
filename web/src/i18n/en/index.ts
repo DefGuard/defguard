@@ -991,7 +991,7 @@ const en: BaseTranslation = {
           notSupported: 'Directory sync is not supported for this provider.',
           connectionTest: {
             success: 'Connection successful',
-            error: 'Connection failed with error: {error: string}',
+            error: 'Connection failed with error:',
           },
         },
         selects: {

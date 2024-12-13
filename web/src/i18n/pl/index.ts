@@ -979,6 +979,10 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Synchronizacja katalogu pozwala na automatyczną synchronizację grup użytkowników i ich statusu na podstawie zewnętrznego dostawcy.',
           notSupported: 'Synchronizacja katalogu nie jest obsługiwana dla tego dostawcy.',
+          connectionTest: {
+            success: 'Połączenie zakończone sukcesem.',
+            error: 'Wystąpił błąd podczas próby połączenia:',
+          },
         },
         selects: {
           synchronize: {
