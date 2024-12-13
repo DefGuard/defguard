@@ -8,15 +8,15 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
-import { OpenIdProvider } from '../../../../../shared/types';
-import { titleCase } from '../../../../../shared/utils/titleCase';
-import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { OpenIdProvider } from '../../../../../shared/types';
+import { titleCase } from '../../../../../shared/utils/titleCase';
 
 type FormFields = OpenIdProvider;
 

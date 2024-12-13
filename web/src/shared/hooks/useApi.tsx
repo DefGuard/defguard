@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
