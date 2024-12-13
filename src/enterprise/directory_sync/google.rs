@@ -116,8 +116,6 @@ where
         &reqwest::StatusCode::OK => Ok(response.json().await?),
         _ => Err(DirectorySyncError::RequestError(format!(
             "{context_message} Code returned: {status}. Details: {}",
-            context_message,
-            status,
             response.text().await?
         ))),
     }
