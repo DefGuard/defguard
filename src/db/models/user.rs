@@ -850,9 +850,10 @@ impl User<Id> {
         if admins.is_empty() {
             let admin_groups = Group::find_by_permission(pool, Permission::IsAdmin).await?;
             if admin_groups.is_empty() {
-                error!("No admin group found, can't create admin user.");
                 return Err(anyhow::anyhow!(
-                    "No admin group or users found. You'll need to assign the admin group "
+                    "No admin group and users found, or they are all disabled. \
+                    You'll need to create and assign the admin group manually, \
+                    as there must be at least one active admin user."
                 ));
             }
 
@@ -860,24 +861,38 @@ impl User<Id> {
             let password_hash = hash_password(default_admin_pass)?;
             let result = query_scalar!(
                 "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-            VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
-            ON CONFLICT DO NOTHING \
-            RETURNING id",
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                ON CONFLICT DO NOTHING \
+                RETURNING id",
                 password_hash
             )
             .fetch_optional(pool)
             .await?;
 
-            // if new user was created add them to admin group (ID 1)
+            // if new user was created add them to admin group, first one you find
+            // the groups are sorted by ID desceding, so it will often be the 1st one = the default admin group
             if let Some(new_user_id) = result {
+                let admin_group_id = admin_groups
+                    .first()
+                    .ok_or(anyhow::anyhow!(
+                        "No admin group found, can't create admin user"
+                    ))?
+                    .id;
                 info!("New admin user has been created, adding to Admin group...");
-                query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
+                query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+                    .bind(admin_group_id)
                     .bind(new_user_id)
                     .execute(pool)
                     .await?;
+                info!("Admin user has been created as there was no other admin user");
+            } else {
+                return Err(anyhow::anyhow!(
+                    "A conflict occurred while trying to add a missing admin. \
+                    There is already a user with username 'admin' but he is not an admin or he is disabled. \
+                    You will need to assign someone the admin group manually or enable this admin user, \
+                    as there must be at least one active admin."
+                ));
             }
-
-            info!("Admin user has been created as there was no other admin user");
         } else {
             debug!("Admin users already exists, skipping creation of the default admin user");
         }

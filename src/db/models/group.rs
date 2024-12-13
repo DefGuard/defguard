@@ -106,7 +106,7 @@ impl Group<Id> {
         E: PgExecutor<'e>,
     {
         let query = format!(
-            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id DESC"
+            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id"
         );
         query_as(&query).fetch_all(executor).await
     }
