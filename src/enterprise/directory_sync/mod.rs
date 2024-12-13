@@ -40,7 +40,7 @@ impl From<reqwest::Error> for DirectorySyncError {
             DirectorySyncError::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
         } else if err.is_timeout() {
             DirectorySyncError::RequestError(format!(
-                "The request to the provider's API timed out: {}",
+                "The request to the provider's API timed out: {err}",
                 err
             ))
         } else {
