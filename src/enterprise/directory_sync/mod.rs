@@ -747,29 +747,26 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
-
         sync_all_users_state(&client, &pool).await.unwrap();
 
-        assert!(get_test_user(&pool, "user1").await.is_none());
+        assert!(
+            get_test_user(&pool, "user1").await.is_none()
+                || get_test_user(&pool, "user3").await.is_none()
+        );
+        assert!(
+            get_test_user(&pool, "user1").await.is_some()
+                || get_test_user(&pool, "user3").await.is_some()
+        );
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        // We should never delete the main admin user
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
     }
 
     #[sqlx::test]
@@ -791,28 +788,26 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
-
         sync_all_users_state(&client, &pool).await.unwrap();
 
-        assert!(get_test_user(&pool, "user1").await.is_none());
+        assert!(
+            get_test_user(&pool, "user1").await.is_none()
+                || get_test_user(&pool, "user3").await.is_none()
+        );
+        assert!(
+            get_test_user(&pool, "user1").await.is_some()
+                || get_test_user(&pool, "user3").await.is_some()
+        );
         assert!(get_test_user(&pool, "user2").await.is_none());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        // We should never delete the main admin user
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
     }
 
     #[sqlx::test]
@@ -874,9 +869,11 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_test_user("testuserdisabled", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
@@ -885,6 +882,7 @@ mod test {
 
         assert!(user1.is_active);
         assert!(user2.is_active);
+        assert!(user3.is_active);
         assert!(testuser.is_active);
         assert!(testuserdisabled.is_active);
 
@@ -892,10 +890,12 @@ mod test {
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
+        let user3 = get_test_user(&pool, "user3").await.unwrap();
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
 
-        assert!(!user1.is_active);
+        assert!(!user1.is_active || !user3.is_active);
+        assert!(user1.is_active || user3.is_active);
         assert!(user2.is_active);
         assert!(testuser.is_active);
         assert!(!testuserdisabled.is_active);
