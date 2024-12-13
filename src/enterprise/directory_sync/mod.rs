@@ -37,7 +37,7 @@ pub enum DirectorySyncError {
 impl From<reqwest::Error> for DirectorySyncError {
     fn from(err: reqwest::Error) -> Self {
         if err.is_decode() {
-            DirectorySyncError::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {}", err))
+            DirectorySyncError::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
         } else if err.is_timeout() {
             DirectorySyncError::RequestError(format!(
                 "The request to the provider's API timed out: {}",
