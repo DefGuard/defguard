@@ -126,24 +126,24 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Ok(cookies) = CookieJar::from_request_parts(parts, state).await {
-            if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
-                return {
-                    match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
-                        Ok(Some(session)) => {
-                            if session.expired() {
-                                let _result = session.delete(&appstate.pool).await;
-                                Err(WebError::Authorization("Session expired".into()))
-                            } else {
-                                Ok(session)
-                            }
+        let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;
+        if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
+            return {
+                match Session::find_by_id(&appstate.pool, session_cookie.value()).await {
+                    Ok(Some(session)) => {
+                        if session.expired() {
+                            let _result = session.delete(&appstate.pool).await;
+                            Err(WebError::Authorization("Session expired".into()))
+                        } else {
+                            Ok(session)
                         }
-                        Ok(None) => Err(WebError::Authorization("Session not found".into())),
-                        Err(err) => Err(err.into()),
                     }
-                };
-            }
+                    Ok(None) => Err(WebError::Authorization("Session not found".into())),
+                    Err(err) => Err(err.into()),
+                }
+            };
         }
+
         Err(WebError::Authorization("Session is required".into()))
     }
 }
