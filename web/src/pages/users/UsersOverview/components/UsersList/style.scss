@@ -4,11 +4,10 @@
   align-items: center;
 
   @include media-breakpoint-up(lg) {
-    grid-template-columns:
-      33px minmax(100px, 1fr)
-      repeat(2, minmax(128px, 1fr))
-      minmax(300px, 1fr)
-      50px;
+    grid-template-columns: 33px minmax(100px, 1fr) repeat(2, minmax(128px, 1fr)) minmax(
+        300px,
+        1fr
+      ) 50px;
   }
 }
 

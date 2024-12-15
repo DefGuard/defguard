@@ -25,6 +25,7 @@ const en: BaseTranslation = {
       copy: 'Copy',
       edit: 'Edit',
       dismiss: 'Dismiss',
+      show: 'Show',
     },
     key: 'Key',
     name: 'Name',
@@ -41,6 +42,10 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    deleteStandaloneDevice: {
+      title: 'Delete network device',
+      content: 'Device {name: string} will be deleted.',
+    },
     addStandaloneDevice: {
       infoBox: {
         setup:
@@ -1915,6 +1920,37 @@ To submit:
 
 Any other requests you can reach us at: support@defguard.net
 `,
+    },
+  },
+  devicesPage: {
+    title: 'Devices',
+    search: {
+      placeholder: 'Find',
+    },
+    bar: {
+      itemsCount: 'All devices',
+      filters: {},
+      actions: {
+        addNewDevice: 'Add new',
+      },
+    },
+    list: {
+      columns: {
+        labels: {
+          name: 'Device name',
+          location: 'Location',
+          assignedIp: 'IP',
+          description: 'Description',
+          addedBy: 'Added by',
+          addedAt: 'Add date',
+          edit: 'Edit',
+        },
+        edit: {
+          actionLabels: {
+            edit: 'Edit',
+          },
+        },
+      },
     },
   },
 };

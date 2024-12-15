@@ -95,6 +95,10 @@ type RootTranslation = {
 			 * D​i​s​m​i​s​s
 			 */
 			dismiss: string
+			/**
+			 * S​h​o​w
+			 */
+			show: string
 		}
 		/**
 		 * K​e​y
@@ -138,6 +142,17 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		deleteStandaloneDevice: {
+			/**
+			 * D​e​l​e​t​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			/**
+			 * D​e​v​i​c​e​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​.
+			 * @param {string} name
+			 */
+			content: RequiredParams<'name'>
+		}
 		addStandaloneDevice: {
 			infoBox: {
 				/**
@@ -2720,26 +2735,6 @@ type RootTranslation = {
 				list: string
 			}
 		}
-		web3Settings: {
-			/**
-			 * W​e​b​3​ ​/​ ​W​a​l​l​e​t​ ​c​o​n​n​e​c​t
-			 */
-			header: string
-			fields: {
-				signMessage: {
-					/**
-					 * D​e​f​a​u​l​t​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​t​e​m​p​l​a​t​e
-					 */
-					label: string
-				}
-			}
-			controls: {
-				/**
-				 * S​a​v​e​ ​c​h​a​n​g​e​s
-				 */
-				save: string
-			}
-		}
 		instanceBranding: {
 			/**
 			 * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
@@ -4517,6 +4512,74 @@ type RootTranslation = {
 			body: string
 		}
 	}
+	devicesPage: {
+		/**
+		 * D​e​v​i​c​e​s
+		 */
+		title: string
+		search: {
+			/**
+			 * F​i​n​d
+			 */
+			placeholder: string
+		}
+		bar: {
+			/**
+			 * A​l​l​ ​d​e​v​i​c​e​s
+			 */
+			itemsCount: string
+			filters: {
+			}
+			actions: {
+				/**
+				 * A​d​d​ ​n​e​w
+				 */
+				addNewDevice: string
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​n​a​m​e
+					 */
+					name: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * I​P
+					 */
+					assignedIp: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					/**
+					 * A​d​d​e​d​ ​b​y
+					 */
+					addedBy: string
+					/**
+					 * A​d​d​ ​d​a​t​e
+					 */
+					addedAt: string
+					/**
+					 * E​d​i​t
+					 */
+					edit: string
+				}
+				edit: {
+					actionLabels: {
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -4600,6 +4663,10 @@ export type TranslationFunctions = {
 			 * Dismiss
 			 */
 			dismiss: () => LocalizedString
+			/**
+			 * Show
+			 */
+			show: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -4643,6 +4710,16 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		deleteStandaloneDevice: {
+			/**
+			 * Delete network device
+			 */
+			title: () => LocalizedString
+			/**
+			 * Device {name} will be deleted.
+			 */
+			content: (arg: { name: string }) => LocalizedString
+		}
 		addStandaloneDevice: {
 			infoBox: {
 				/**
@@ -7199,26 +7276,6 @@ export type TranslationFunctions = {
 				list: () => LocalizedString
 			}
 		}
-		web3Settings: {
-			/**
-			 * Web3 / Wallet connect
-			 */
-			header: () => LocalizedString
-			fields: {
-				signMessage: {
-					/**
-					 * Default sign message template
-					 */
-					label: () => LocalizedString
-				}
-			}
-			controls: {
-				/**
-				 * Save changes
-				 */
-				save: () => LocalizedString
-			}
-		}
 		instanceBranding: {
 			/**
 			 * Instance Branding
@@ -8982,6 +9039,74 @@ export type TranslationFunctions = {
 	
 			 */
 			body: () => LocalizedString
+		}
+	}
+	devicesPage: {
+		/**
+		 * Devices
+		 */
+		title: () => LocalizedString
+		search: {
+			/**
+			 * Find
+			 */
+			placeholder: () => LocalizedString
+		}
+		bar: {
+			/**
+			 * All devices
+			 */
+			itemsCount: () => LocalizedString
+			filters: {
+			}
+			actions: {
+				/**
+				 * Add new
+				 */
+				addNewDevice: () => LocalizedString
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * Device name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * IP
+					 */
+					assignedIp: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					/**
+					 * Added by
+					 */
+					addedBy: () => LocalizedString
+					/**
+					 * Add date
+					 */
+					addedAt: () => LocalizedString
+					/**
+					 * Edit
+					 */
+					edit: () => LocalizedString
+				}
+				edit: {
+					actionLabels: {
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+				}
+			}
 		}
 	}
 }

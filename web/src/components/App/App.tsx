@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
+import { DevicesPage } from '../../pages/devices/DevicesPage';
 import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
@@ -146,6 +147,14 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedGroups={['admin']}>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="devices/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <DevicesPage />
                   </ProtectedRoute>
                 }
               />
