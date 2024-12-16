@@ -12,6 +12,7 @@
       gap: 10px;
     }
   }
+
   form {
     width: 100%;
     display: flex;
@@ -22,9 +23,11 @@
       width: 100%;
     }
   }
+
   .select {
     padding-bottom: 25px;
   }
+
   .checkbox-row {
     display: flex;
     align-items: center;
@@ -51,10 +54,6 @@
     position: relative;
     padding: 20px;
     z-index: 0;
-
-    .disabled {
-      cursor: not-allowed;
-    }
   }
 
   .file-upload-container.dragging {
@@ -76,13 +75,6 @@
     margin-bottom: 0;
   }
 
-  // #dirsync-header {
-  //   margin-bottom: 10px;
-  //   display: flex;
-  //   align-items: center;
-  //   gap: 10px;
-  // }
-
   .upload-label {
     display: flex;
     align-items: center;
@@ -99,6 +91,12 @@
       height: 20px;
       transform: rotate(180deg);
     }
+  }
+
+  .test-connection {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
   }
 
   #enable-dir-sync {
@@ -144,9 +142,4 @@
   height: 100%;
   grid-column: 1 / -1;
   min-height: 300px;
-}
-
-.disabled {
-  pointer-events: none;
-  opacity: 0.5;
 }

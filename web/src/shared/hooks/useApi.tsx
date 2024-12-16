@@ -484,6 +484,9 @@ const useApi = (props?: HookProps): ApiHook => {
       return res.data;
     });
 
+  const testDirsync: ApiHook['settings']['testDirsync'] = () =>
+    client.get('/test_directory_sync').then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -654,6 +657,7 @@ const useApi = (props?: HookProps): ApiHook => {
       addOpenIdProvider,
       deleteOpenIdProvider,
       editOpenIdProvider,
+      testDirsync,
     },
     support: {
       downloadSupportData,

@@ -63,6 +63,8 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     editGroup: {
       title: 'Edit group',
@@ -70,6 +72,8 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Update group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     deleteGroup: {
       title: 'Delete group {name:string}',
@@ -985,6 +989,10 @@ const en: BaseTranslation = {
           helper:
             "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
           notSupported: 'Directory sync is not supported for this provider.',
+          connectionTest: {
+            success: 'Connection successful',
+            error: 'Connection failed with error:',
+          },
         },
         selects: {
           synchronize: {

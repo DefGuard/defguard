@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{Id, NoId, Session},
+    db::{models::group::Permission, Id, NoId, Session},
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -702,7 +702,7 @@ impl User<Id> {
     {
         query_as!(
             Group,
-            "SELECT id, name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT id, name, is_admin FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -845,29 +845,57 @@ impl User<Id> {
         pool: &PgPool,
         default_admin_pass: &str,
     ) -> Result<(), anyhow::Error> {
-        info!("Initializing admin user");
-        let password_hash = hash_password(default_admin_pass)?;
+        debug!("Checking if some admin user already exists and creating one if not...");
+        let admins = User::find_admins(pool).await?;
+        if admins.is_empty() {
+            let admin_groups = Group::find_by_permission(pool, Permission::IsAdmin).await?;
+            if admin_groups.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "No admin group and users found, or they are all disabled. \
+                    You'll need to create and assign the admin group manually, \
+                    as there must be at least one active admin user."
+                ));
+            }
 
-        // create admin user
-        let result = query_scalar!(
-            "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-            VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
-            ON CONFLICT DO NOTHING \
-            RETURNING id",
-            password_hash
-        )
-        .fetch_optional(pool)
-        .await?;
+            // create admin user
+            let password_hash = hash_password(default_admin_pass)?;
+            let result = query_scalar!(
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                ON CONFLICT DO NOTHING \
+                RETURNING id",
+                password_hash
+            )
+            .fetch_optional(pool)
+            .await?;
 
-        // if new user was created add them to admin group (ID 1)
-        if let Some(new_user_id) = result {
-            info!("New admin user has been created, adding to Admin group...");
-            query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
-                .bind(new_user_id)
-                .execute(pool)
-                .await?;
+            // if new user was created add them to admin group, first one you find
+            // the groups are sorted by ID desceding, so it will often be the 1st one = the default admin group
+            if let Some(new_user_id) = result {
+                let admin_group_id = admin_groups
+                    .first()
+                    .ok_or(anyhow::anyhow!(
+                        "No admin group found, can't create admin user"
+                    ))?
+                    .id;
+                info!("New admin user has been created, adding to Admin group...");
+                query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+                    .bind(admin_group_id)
+                    .bind(new_user_id)
+                    .execute(pool)
+                    .await?;
+                info!("Admin user has been created as there was no other admin user");
+            } else {
+                return Err(anyhow::anyhow!(
+                    "A conflict occurred while trying to add a missing admin. \
+                    There is already a user with username 'admin' but he is not an admin or he is disabled. \
+                    You will need to assign someone the admin group manually or enable this admin user, \
+                    as there must be at least one active admin."
+                ));
+            }
+        } else {
+            debug!("Admin users already exists, skipping creation of the default admin user");
         }
-
         Ok(())
     }
 
@@ -876,7 +904,6 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         Session::delete_all_for_user(executor, self.id).await?;
-
         Ok(())
     }
 
@@ -925,13 +952,28 @@ impl User<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let admin_group_name = &server_config().admin_groupname;
-        query_scalar!(
-            "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id = (SELECT id FROM \"group\" WHERE name = $2)) \"bool!\"",
-            self.id,
-            admin_group_name
+        query_scalar!("SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+        WHERE is_admin = true AND user_id = $1) \"bool!\"", self.id)
+            .fetch_one(executor)
+            .await
+    }
+
+    /// Find all users that are admins and are active.
+    pub(crate) async fn find_admins<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "
+            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            FROM \"user\" u \
+            WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
         )
-        .fetch_one(executor)
+        .fetch_all(executor)
         .await
     }
 }
@@ -1109,17 +1151,73 @@ mod test {
 
         assert!(!is_admin);
 
-        let admin_group_name = &server_config().admin_groupname;
-
         query!(
-            "INSERT INTO group_user (group_id, user_id) VALUES ((SELECT id FROM \"group\" WHERE name = $1), $2)",
-            admin_group_name,
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1)",
             user.id
-        ).execute(&pool).await.unwrap();
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let is_admin = user.is_admin(&pool).await.unwrap();
 
         assert!(is_admin);
+    }
+
+    #[sqlx::test]
+    async fn test_find_admins(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "hpotter2",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user3 = User::new(
+            "hpotter3",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter3@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1), (1, $2)",
+            user.id,
+            user2.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let admins = User::find_admins(&pool).await.unwrap();
+        assert_eq!(admins.len(), 2);
+        assert!(admins.iter().any(|u| u.id == user.id));
+        assert!(admins.iter().any(|u| u.id == user2.id));
     }
 
     #[sqlx::test]

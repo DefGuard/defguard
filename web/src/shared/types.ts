@@ -49,6 +49,7 @@ export type User = {
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
   enrolled: boolean;
+  is_admin: boolean;
 };
 
 export type UserProfile = {
@@ -416,6 +417,7 @@ export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
   members?: string[];
+  is_admin: boolean;
 };
 
 export type AddUsersToGroupsRequest = {
@@ -592,6 +594,7 @@ export interface ApiHook {
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    testDirsync: () => Promise<DirsyncTestResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -1064,4 +1067,10 @@ export type GroupInfo = {
   name: string;
   members: string[];
   vpn_locations: string[];
+  is_admin: boolean;
+};
+
+export type DirsyncTestResponse = {
+  message: string;
+  success: boolean;
 };

@@ -6,7 +6,6 @@ import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import SvgDefguardLogoLogin from '../../shared/components/svg/DefguardLogoLogin';
-import { isUserAdmin } from '../../shared/helpers/isUserAdmin';
 import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
@@ -110,9 +109,8 @@ export const AuthPage = () => {
 
       // authorization finished
       if (user) {
-        const isAdmin = isUserAdmin(user);
         let navigateURL = '/me';
-        if (isAdmin) {
+        if (user.is_admin) {
           // check where to navigate administrator
           const appInfo = await getAppInfo();
           const settings = await getSettings();
@@ -130,7 +128,7 @@ export const AuthPage = () => {
             navigateURL = '/admin/users';
           }
         }
-        setAuthStore({ user, isAdmin });
+        setAuthStore({ user });
         resetMFAStore();
         navigate(navigateURL, { replace: true });
       }

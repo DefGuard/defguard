@@ -42,8 +42,6 @@ export const GroupsList = ({ groups, search }: Props) => {
     );
   }, [groups, search]);
 
-  const renderRow = useCallback((data: ListData) => <CustomRow group={data} />, []);
-
   const listHeaders = useMemo((): ListHeader[] => {
     return [
       {
@@ -59,6 +57,17 @@ export const GroupsList = ({ groups, search }: Props) => {
       },
     ];
   }, []);
+
+  const adminGroupCount = useCallback(() => {
+    return groups.filter((group) => group.is_admin).length;
+  }, [groups]);
+
+  const renderRow = useCallback(
+    (data: ListData) => (
+      <CustomRow group={data} disableDelete={adminGroupCount() === 1 && data.is_admin} />
+    ),
+    [adminGroupCount],
+  );
 
   return (
     <VirtualizedList
@@ -81,9 +90,10 @@ export const GroupsList = ({ groups, search }: Props) => {
 
 type RowProps = {
   group: GroupInfo;
+  disableDelete: boolean;
 };
 
-const CustomRow = ({ group }: RowProps) => {
+const CustomRow = ({ group, disableDelete }: RowProps) => {
   const openModal = useAddGroupModal((s) => s.open);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
@@ -142,7 +152,7 @@ const CustomRow = ({ group }: RowProps) => {
               openModal(group);
             }}
           />
-          {group.name.toLowerCase() !== 'admin' && (
+          {!disableDelete && (
             <EditButtonOption
               styleVariant={EditButtonOptionStyleVariant.WARNING}
               text={LL.common.controls.delete()}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS (SELECT 1 FROM group_user WHERE user_id = $1 AND group_id = (SELECT id FROM \"group\" WHERE name = $2)) \"bool!\"",
+  "query": "SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin = true AND user_id = $1) \"bool!\"",
   "describe": {
     "columns": [
       {
@@ -11,13 +11,12 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "181ebceed70d406df118db385aa52acc4b8e9a212be00a6ed5729d5924ce6d7b"
+  "hash": "62d68324433b5bb49e3764ec4cfaeb531f58e2160dc579fbae7f99621ef7eb31"
 }

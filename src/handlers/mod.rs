@@ -208,15 +208,22 @@ pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
     pub vpn_locations: Vec<String>,
+    pub is_admin: bool,
 }
 
 impl GroupInfo {
     #[must_use]
-    pub fn new<S: Into<String>>(name: S, members: Vec<String>, vpn_locations: Vec<String>) -> Self {
+    pub fn new<S: Into<String>>(
+        name: S,
+        members: Vec<String>,
+        vpn_locations: Vec<String>,
+        is_admin: bool,
+    ) -> Self {
         Self {
             name: name.into(),
             members,
             vpn_locations,
+            is_admin,
         }
     }
 }
@@ -226,6 +233,7 @@ impl GroupInfo {
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
+    pub is_admin: bool,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, UserAdminRole},
+    auth::{AdminRole, SessionInfo},
     db::{
         models::{
             device::DeviceInfo,
@@ -156,7 +156,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
     )
 )]
-pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -282,7 +282,7 @@ pub async fn get_user(
     )
 )]
 pub async fn add_user(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
@@ -378,7 +378,7 @@ pub async fn add_user(
     )
 )]
 pub async fn start_enrollment(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -560,7 +560,7 @@ pub async fn start_remote_desktop_configuration(
     )
 )]
 pub async fn username_available(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
 ) -> ApiResult {
@@ -707,7 +707,7 @@ pub async fn modify_user(
     )
 )]
 pub async fn delete_user(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
@@ -830,7 +830,7 @@ pub async fn change_self_password(
     )
 )]
 pub async fn change_password(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -908,7 +908,7 @@ pub async fn change_password(
     )
 )]
 pub async fn reset_password(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,

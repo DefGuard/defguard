@@ -195,6 +195,14 @@ type RootTranslation = {
 			 * C​r​e​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
 		}
 		editGroup: {
 			/**
@@ -217,6 +225,14 @@ type RootTranslation = {
 			 * U​p​d​a​t​e​ ​g​r​o​u​p
 			 */
 			submit: string
+			/**
+			 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+			 */
+			groupSettings: string
+			/**
+			 * A​d​m​i​n​ ​g​r​o​u​p
+			 */
+			adminGroup: string
 		}
 		deleteGroup: {
 			/**
@@ -2443,6 +2459,16 @@ type RootTranslation = {
 					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​i​s​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​v​i​d​e​r​.
 					 */
 					notSupported: string
+					connectionTest: {
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​s​u​c​c​e​s​s​f​u​l
+						 */
+						success: string
+						/**
+						 * C​o​n​n​e​c​t​i​o​n​ ​f​a​i​l​e​d​ ​w​i​t​h​ ​e​r​r​o​r​:
+						 */
+						error: string
+					}
 				}
 				selects: {
 					synchronize: {
@@ -4656,6 +4682,14 @@ export type TranslationFunctions = {
 			 * Create group
 			 */
 			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
 		}
 		editGroup: {
 			/**
@@ -4678,6 +4712,14 @@ export type TranslationFunctions = {
 			 * Update group
 			 */
 			submit: () => LocalizedString
+			/**
+			 * Group settings
+			 */
+			groupSettings: () => LocalizedString
+			/**
+			 * Admin group
+			 */
+			adminGroup: () => LocalizedString
 		}
 		deleteGroup: {
 			/**
@@ -6884,6 +6926,16 @@ export type TranslationFunctions = {
 					 * Directory sync is not supported for this provider.
 					 */
 					notSupported: () => LocalizedString
+					connectionTest: {
+						/**
+						 * Connection successful
+						 */
+						success: () => LocalizedString
+						/**
+						 * Connection failed with error:
+						 */
+						error: () => LocalizedString
+					}
 				}
 				selects: {
 					synchronize: {

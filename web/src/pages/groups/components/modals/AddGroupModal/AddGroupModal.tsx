@@ -13,6 +13,7 @@ import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -58,6 +59,7 @@ const invalidateQueries = (client: QueryClient, key: string) =>
 export type ModifyGroupFormFields = {
   name: string;
   members: string[];
+  is_admin: boolean;
 };
 
 const ModalContent = () => {
@@ -131,6 +133,7 @@ const ModalContent = () => {
             return isUndefined(names?.find((n) => n === name));
           }, LL.form.error.invalid()),
         members: z.array(z.string()),
+        is_admin: z.boolean(),
       }),
     [LL.form.error, groupInfo, groups],
   );
@@ -140,11 +143,13 @@ const ModalContent = () => {
       return {
         name: groupInfo.name,
         members: groupInfo.members ?? [],
+        is_admin: groupInfo.is_admin,
       };
     }
     return {
       name: '',
       members: [],
+      is_admin: false,
     };
   }, [groupInfo]);
 
@@ -162,6 +167,7 @@ const ModalContent = () => {
     const sendValues: ModifyGroupsRequest = {
       name: values.name,
       members: values.members,
+      is_admin: values.is_admin,
     };
     if (groupInfo) {
       editGroupMutation({ ...sendValues, originalName: groupInfo.name });
@@ -173,6 +179,14 @@ const ModalContent = () => {
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput controller={{ control, name: 'name' }} label={localLL.groupName()} />
+      <div className="group-settings">
+        <label>{localLL.groupSettings()}:</label>
+        <FormCheckBox
+          controller={{ control, name: 'is_admin' }}
+          label={localLL.adminGroup()}
+          labelPlacement="right"
+        />
+      </div>
       <Divider />
       {users && <GroupFormSelectAll users={users} control={control} />}
       <Divider />

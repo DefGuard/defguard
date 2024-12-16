@@ -18,18 +18,34 @@ use super::{
 pub enum DirectorySyncError {
     #[error("Database error: {0}")]
     DbError(#[from] SqlxError),
-    #[error("Access token has expired")]
+    #[error("Access token has expired or is not present. An issue may have occured while trying to obtain a new one.")]
     AccessTokenExpired,
-    #[error("Failed to process request: {0}")]
-    RequestError(#[from] reqwest::Error),
-    #[error("Failed to build a JWT token: {0}")]
+    #[error("Processing a request to the provider's API failed: {0}")]
+    RequestError(String),
+    #[error(
+        "Failed to build a JWT token, required for communicating with the provider's API: {0}"
+    )]
     JWTError(#[from] jsonwebtoken::errors::Error),
     #[error("The selected provider {0} is not supported for directory sync")]
     UnsupportedProvider(String),
-    #[error("Directory sync not configured")]
+    #[error("Directory sync is not configured")]
     NotConfigured,
-    #[error("Defguard group not found: {0}")]
+    #[error("Couldn't map provider's group to a Defguard group as it doesn't exist. There may be an issue with automatic group creation. Error details: {0}")]
     DefGuardGroupNotFound(String),
+}
+
+impl From<reqwest::Error> for DirectorySyncError {
+    fn from(err: reqwest::Error) -> Self {
+        if err.is_decode() {
+            DirectorySyncError::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
+        } else if err.is_timeout() {
+            DirectorySyncError::RequestError(format!(
+                "The request to the provider's API timed out: {err}"
+            ))
+        } else {
+            DirectorySyncError::RequestError(err.to_string())
+        }
+    }
 }
 
 pub mod google;
@@ -69,6 +85,9 @@ trait DirectorySync {
 
     /// Get all users in the directory
     async fn get_all_users(&self) -> Result<Vec<DirectoryUser>, DirectorySyncError>;
+
+    /// Tests the connection to the directory
+    async fn test_connection(&self) -> Result<(), DirectorySyncError>;
 }
 
 async fn sync_user_groups<T: DirectorySync>(
@@ -118,6 +137,28 @@ async fn sync_user_groups<T: DirectorySync>(
     }
 
     transaction.commit().await?;
+
+    Ok(())
+}
+
+pub(crate) async fn test_directory_sync_connection(
+    pool: &PgPool,
+) -> Result<(), DirectorySyncError> {
+    #[cfg(not(test))]
+    if !is_enterprise_enabled() {
+        debug!("Enterprise is not enabled, skipping testing directory sync connection");
+        return Ok(());
+    }
+
+    match get_directory_sync_client(pool).await {
+        Ok(mut dir_sync) => {
+            dir_sync.prepare().await?;
+            dir_sync.test_connection().await?;
+        }
+        Err(err) => {
+            error!("Failed to build directory sync client: {err}");
+        }
+    }
 
     Ok(())
 }
@@ -225,6 +266,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
 
     let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
+    let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for (user, groups) in user_group_map.into_iter() {
         debug!("Syncing groups for user {user}");
         let Some(user) = User::find_by_email(pool, &user).await? else {
@@ -245,15 +287,26 @@ async fn sync_all_users_groups<T: DirectorySync>(
                 user.email, current_group.name
             );
             if !groups.contains(current_group.name.as_str()) {
-                let group = Group::find_by_name(pool, &current_group.name).await?;
-                if let Some(group) = group {
-                    debug!("Removing user {} from group {} as they are not a member of it in the directory", user.email, group.name);
-                    user.remove_from_group(&mut *transaction, &group).await?;
+                if current_group.is_admin {
+                    if admin_count == 1 {
+                        error!(
+                            "User {} is the last admin in the system, can't remove them from an admin group {}",
+                            user.email, current_group.name
+                        );
+                        continue;
+                    } else {
+                        debug!(
+                            "Removing user {} from group {} as they are not a member of it in the directory",
+                            user.email, current_group.name
+                        );
+                        user.remove_from_group(&mut *transaction, current_group)
+                            .await?;
+                        admin_count -= 1;
+                    }
                 } else {
-                    warn!(
-                        "Group {} not found in the database, skipping removing it from user {}",
-                        current_group.name, user.email
-                    );
+                    debug!("Removing user {} from group {} as they are not a member of it in the directory", user.email, current_group.name);
+                    user.remove_from_group(&mut *transaction, current_group)
+                        .await?;
                 }
             }
         }
@@ -337,8 +390,6 @@ async fn sync_all_users_state<T: DirectorySync>(
     let missing_users = User::exclude(&mut *transaction, &emails)
         .await?
         .into_iter()
-        // We don't want to disable the main admin user
-        .filter(|u| u.username != "admin")
         .collect::<Vec<User<Id>>>();
 
     let disabled_users_emails = all_users
@@ -383,6 +434,7 @@ async fn sync_all_users_state<T: DirectorySync>(
         user_behavior,
         admin_behavior
     );
+    let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for mut user in missing_users {
         match user.is_admin(&mut *transaction).await? {
             true => match admin_behavior {
@@ -394,12 +446,21 @@ async fn sync_all_users_state<T: DirectorySync>(
                 }
                 DirectorySyncUserBehavior::Disable => {
                     if user.is_active {
-                        info!(
+                        if admin_count == 1 {
+                            error!(
+                                "Admin {} is the last admin in the system, can't disable them",
+                                user.email
+                            );
+                            continue;
+                        } else {
+                            info!(
                             "Disabling admin {} because they are not present in the directory and the admin behavior setting is set to disable",
                             user.email
                         );
-                        user.is_active = false;
-                        user.save(&mut *transaction).await?;
+                            user.is_active = false;
+                            user.save(&mut *transaction).await?;
+                            admin_count -= 1;
+                        }
                     } else {
                         debug!(
                             "Admin {} is already disabled in Defguard, skipping",
@@ -408,11 +469,20 @@ async fn sync_all_users_state<T: DirectorySync>(
                     }
                 }
                 DirectorySyncUserBehavior::Delete => {
-                    info!(
-                        "Deleting admin {} because they are not in the directory",
-                        user.email
-                    );
-                    user.delete(&mut *transaction).await?;
+                    if admin_count == 1 {
+                        error!(
+                            "Admin {} is the last admin in the system, can't delete them",
+                            user.email
+                        );
+                        continue;
+                    } else {
+                        info!(
+                            "Deleting admin {} because they are not present in the directory",
+                            user.email
+                        );
+                        user.delete(&mut *transaction).await?;
+                        admin_count -= 1;
+                    }
                 }
             },
             false => match user_behavior {
@@ -677,29 +747,26 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
-
         sync_all_users_state(&client, &pool).await.unwrap();
 
-        assert!(get_test_user(&pool, "user1").await.is_none());
+        assert!(
+            get_test_user(&pool, "user1").await.is_none()
+                || get_test_user(&pool, "user3").await.is_none()
+        );
+        assert!(
+            get_test_user(&pool, "user1").await.is_some()
+                || get_test_user(&pool, "user3").await.is_some()
+        );
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        // We should never delete the main admin user
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
     }
 
     #[sqlx::test]
@@ -721,28 +788,26 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
-
         sync_all_users_state(&client, &pool).await.unwrap();
 
-        assert!(get_test_user(&pool, "user1").await.is_none());
+        assert!(
+            get_test_user(&pool, "user1").await.is_none()
+                || get_test_user(&pool, "user3").await.is_none()
+        );
+        assert!(
+            get_test_user(&pool, "user1").await.is_some()
+                || get_test_user(&pool, "user3").await.is_some()
+        );
         assert!(get_test_user(&pool, "user2").await.is_none());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-
-        // We should never delete the main admin user
-        assert!(User::find_by_username(&pool, "admin")
-            .await
-            .unwrap()
-            .is_some());
     }
 
     #[sqlx::test]
@@ -804,9 +869,11 @@ mod test {
 
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
+        let user3 = make_test_user("user3", &pool).await;
         make_test_user("testuser", &pool).await;
         make_test_user("testuserdisabled", &pool).await;
         make_admin(&pool, &user1).await;
+        make_admin(&pool, &user3).await;
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
@@ -815,6 +882,7 @@ mod test {
 
         assert!(user1.is_active);
         assert!(user2.is_active);
+        assert!(user3.is_active);
         assert!(testuser.is_active);
         assert!(testuserdisabled.is_active);
 
@@ -822,10 +890,12 @@ mod test {
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
+        let user3 = get_test_user(&pool, "user3").await.unwrap();
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
 
-        assert!(!user1.is_active);
+        assert!(!user1.is_active || !user3.is_active);
+        assert!(user1.is_active || user3.is_active);
         assert!(user2.is_active);
         assert!(testuser.is_active);
         assert!(!testuserdisabled.is_active);
@@ -971,5 +1041,84 @@ mod test {
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
         assert!(user2.is_some());
+    }
+
+    #[sqlx::test]
+    async fn test_sync_unassign_last_admin_group(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
+        )
+        .await;
+        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // Make one admin and check if he's deleted
+        let user = make_test_user("testuser", &pool).await;
+        let admin_grp = Group::find_by_name(&pool, "admin").await.unwrap().unwrap();
+        user.add_to_group(&pool, &admin_grp).await.unwrap();
+        let user_groups = user.member_of(&pool).await.unwrap();
+        assert_eq!(user_groups.len(), 1);
+        assert!(user.is_admin(&pool).await.unwrap());
+
+        do_directory_sync(&pool).await.unwrap();
+
+        // He should still be an admin as it's the last one
+        assert!(user.is_admin(&pool).await.unwrap());
+
+        // Make another admin and check if one of them is deleted
+        let user2 = make_test_user("testuser2", &pool).await;
+        user2.add_to_group(&pool, &admin_grp).await.unwrap();
+
+        do_directory_sync(&pool).await.unwrap();
+
+        let admins = User::find_admins(&pool).await.unwrap();
+        // There should be only one admin left
+        assert_eq!(admins.len(), 1);
+
+        let defguard_user = make_test_user("defguard", &pool).await;
+        make_admin(&pool, &defguard_user).await;
+
+        do_directory_sync(&pool).await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_sync_delete_last_admin_user(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+        make_test_provider(
+            &pool,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncUserBehavior::Delete,
+            DirectorySyncTarget::All,
+        )
+        .await;
+        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        client.prepare().await.unwrap();
+
+        // a user that's not in the directory
+        let defguard_user = make_test_user("defguard", &pool).await;
+        make_admin(&pool, &defguard_user).await;
+        assert!(defguard_user.is_admin(&pool).await.unwrap());
+
+        do_directory_sync(&pool).await.unwrap();
+
+        // The user should still be an admin
+        assert!(defguard_user.is_admin(&pool).await.unwrap());
+
+        // remove his admin status
+        let admin_grp = Group::find_by_name(&pool, "admin").await.unwrap().unwrap();
+        defguard_user
+            .remove_from_group(&pool, &admin_grp)
+            .await
+            .unwrap();
+
+        do_directory_sync(&pool).await.unwrap();
+        let user = User::find_by_username(&pool, "defguard").await.unwrap();
+        assert!(user.is_none());
     }
 }

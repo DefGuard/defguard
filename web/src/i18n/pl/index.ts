@@ -63,6 +63,8 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     editGroup: {
       groupName: 'Nazwa grupy',
@@ -70,6 +72,8 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Zmień grupę',
       title: 'Edytuj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     deleteGroup: {
       title: 'Usuń grupę {name}',
@@ -975,6 +979,10 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Synchronizacja katalogu pozwala na automatyczną synchronizację grup użytkowników i ich statusu na podstawie zewnętrznego dostawcy.',
           notSupported: 'Synchronizacja katalogu nie jest obsługiwana dla tego dostawcy.',
+          connectionTest: {
+            success: 'Połączenie zakończone sukcesem.',
+            error: 'Wystąpił błąd podczas próby połączenia:',
+          },
         },
         selects: {
           synchronize: {

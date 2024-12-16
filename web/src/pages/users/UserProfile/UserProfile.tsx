@@ -127,7 +127,7 @@ const EditModeControls = () => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const userProfile = useUserProfileStore((state) => state.userProfile);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
   const setDeleteUserModalState = useModalStore((state) => state.setDeleteUserModal);

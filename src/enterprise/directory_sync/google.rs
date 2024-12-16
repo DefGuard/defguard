@@ -56,6 +56,7 @@ pub struct GoogleDirectorySync {
 ///
 /// Google Directory API responses
 ///
+///
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AccessTokenResponse {
@@ -99,6 +100,25 @@ struct UsersResponse {
 #[derive(Debug, Serialize, Deserialize)]
 struct GroupsResponse {
     groups: Vec<DirectoryGroup>,
+}
+
+/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
+/// The context_message is used to provide more context to the error message.
+async fn parse_response<T>(
+    response: reqwest::Response,
+    context_message: &str,
+) -> Result<T, DirectorySyncError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let status = &response.status();
+    match status {
+        &reqwest::StatusCode::OK => Ok(response.json().await?),
+        _ => Err(DirectorySyncError::RequestError(format!(
+            "{context_message} Code returned: {status}. Details: {}",
+            response.text().await?
+        ))),
+    }
 }
 
 impl GoogleDirectorySync {
@@ -156,8 +176,7 @@ impl GoogleDirectorySync {
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
-
-        Ok(response.json().await?)
+        parse_response(response, "Failed to query user groups from Google API.").await
     }
 
     #[cfg(not(test))]
@@ -183,8 +202,7 @@ impl GoogleDirectorySync {
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
-
-        Ok(response.json().await?)
+        parse_response(response, "Failed to query groups from Google API.").await
     }
 
     #[cfg(not(test))]
@@ -215,7 +233,7 @@ impl GoogleDirectorySync {
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
-        Ok(response.json().await?)
+        parse_response(response, "Failed to query group members from Google API.").await
     }
 
     fn build_token(&self) -> Result<String, DirectorySyncError> {
@@ -238,7 +256,7 @@ impl GoogleDirectorySync {
             .header(reqwest::header::CONTENT_LENGTH, 0)
             .send()
             .await?;
-        Ok(response.json().await?)
+        parse_response(response, "Failed to get access token from Google API.").await
     }
 
     #[cfg(not(test))]
@@ -262,8 +280,29 @@ impl GoogleDirectorySync {
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
+        parse_response(response, "Failed to query all users in the Google API.").await
+    }
 
-        Ok(response.json().await?)
+    async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
+        let access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
+        url.query_pairs_mut()
+            .append_pair("customer", "my_customer")
+            .append_pair("maxResults", "1")
+            .append_pair("showDeleted", "false");
+        let client = reqwest::Client::builder().build()?;
+        let result = client
+            .get(url)
+            .header("Authorization", format!("Bearer {}", access_token))
+            .timeout(REQUEST_TIMEOUT)
+            .send()
+            .await?;
+        let _result: UsersResponse =
+            parse_response(result, "Failed to test connection to Google API.").await?;
+        Ok(())
     }
 }
 
@@ -321,6 +360,11 @@ impl DirectorySync for GoogleDirectorySync {
         let response = self.query_all_users().await?;
         debug!("Got all users response");
         Ok(response.users.into_iter().map(|u| u.into()).collect())
+    }
+
+    async fn test_connection(&self) -> Result<(), DirectorySyncError> {
+        self.query_test_connection().await?;
+        Ok(())
     }
 }
 

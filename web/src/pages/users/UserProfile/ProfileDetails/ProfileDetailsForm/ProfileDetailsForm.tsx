@@ -62,7 +62,7 @@ export const ProfileDetailsForm = () => {
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const submitButton = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const [fetchGroups, setFetchGroups] = useState(false);
   const {
