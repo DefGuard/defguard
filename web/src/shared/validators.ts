@@ -38,10 +38,9 @@ export const validateIpOrDomainList = (
   allowMasks = false,
   allowIPv6 = false,
 ): boolean => {
-  const trimed = val.replace(' ', '');
-  const split = trimed.split(splitWith);
+  const trimmed = val.replace(' ', '');
+  const split = trimmed.split(splitWith);
   for (const value of split) {
-    console.log(allowIPv6 && !validateIPv6(value, allowMasks));
     if (
       !validateIPv4(value, allowMasks) &&
       !patternValidDomain.test(value) &&
@@ -53,7 +52,7 @@ export const validateIpOrDomainList = (
   return true;
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {

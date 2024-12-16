@@ -78,6 +78,7 @@ pub struct UserInfo {
     pub authorized_apps: Vec<OAuth2AuthorizedAppInfo>,
     pub is_active: bool,
     pub enrolled: bool,
+    pub is_admin: bool,
 }
 
 impl UserInfo {
@@ -100,6 +101,7 @@ impl UserInfo {
             authorized_apps,
             is_active: user.is_active,
             enrolled: user.is_enrolled(),
+            is_admin: user.is_admin(pool).await?,
         })
     }
 

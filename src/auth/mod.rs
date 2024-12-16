@@ -18,10 +18,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     appstate::AppState,
-    db::{Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session, SessionState, User},
+    db::{
+        models::group::Permission, Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session,
+        SessionState, User,
+    },
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
-    server_config,
 };
 
 pub static JWT_ISSUER: &str = "DefGuard";
@@ -168,8 +170,10 @@ impl SessionInfo {
         }
     }
 
-    fn contains_group(&self, group_name: &str) -> bool {
-        self.groups.iter().any(|group| group.name == group_name)
+    fn contains_any_group(&self, group_names: &[&str]) -> bool {
+        self.groups
+            .iter()
+            .any(|group| group_names.contains(&group.name.as_str()))
     }
 }
 
@@ -193,11 +197,11 @@ where
             let Ok(groups) = user.member_of(&appstate.pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
-            let groupname = server_config().admin_groupname.clone();
+            let is_admin = user.is_admin(&appstate.pool).await?;
             Ok(SessionInfo {
                 session,
                 user,
-                is_admin: groups.iter().any(|group| group.name == groupname),
+                is_admin,
                 groups,
             })
         } else {
@@ -208,7 +212,7 @@ where
 
 #[macro_export]
 macro_rules! role {
-    ($name:ident, $($config_field:ident)*) => {
+    ($name:ident, $($permission:path)*) => {
         pub struct $name;
 
         #[async_trait]
@@ -224,8 +228,14 @@ macro_rules! role {
                 state: &S,
             ) -> Result<Self, Self::Rejection> {
                 let session_info = SessionInfo::from_request_parts(parts, state).await?;
+                let appstate = AppState::from_ref(state);
                 $(
-                if session_info.contains_group(&server_config().$config_field) {
+                let groups_with_permission = Group::find_by_permission(
+                    &appstate.pool,
+                    $permission,
+                ).await?;
+                let group_names = groups_with_permission.iter().map(|group| group.name.as_str()).collect::<Vec<_>>();
+                if session_info.contains_any_group(&group_names) {
                     return Ok(Self {});
                 }
                 )*
@@ -235,9 +245,7 @@ macro_rules! role {
     };
 }
 
-role!(AdminRole, admin_groupname);
-role!(UserAdminRole, admin_groupname useradmin_groupname);
-role!(VpnRole, admin_groupname vpn_groupname);
+role!(AdminRole, Permission::IsAdmin);
 
 // User authenticated by a valid access token
 pub struct AccessUserInfo(pub(crate) User<Id>);

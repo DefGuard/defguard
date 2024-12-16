@@ -24,6 +24,7 @@ const en: BaseTranslation = {
       rename: 'Rename',
       copy: 'Copy',
       edit: 'Edit',
+      dismiss: 'Dismiss',
     },
     key: 'Key',
     name: 'Name',
@@ -40,12 +41,30 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    updatesNotificationToaster: {
+      title: 'New version available {version: string}',
+      controls: {
+        more: "See what's new",
+      },
+    },
+    updatesNotification: {
+      header: {
+        title: 'Update Available',
+        newVersion: 'new version {version: string}',
+        criticalBadge: 'critical update',
+      },
+      controls: {
+        visitRelease: 'Visit release page',
+      },
+    },
     addGroup: {
       title: 'Add group',
       selectAll: 'Select all users',
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Create group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     editGroup: {
       title: 'Edit group',
@@ -53,6 +72,8 @@ const en: BaseTranslation = {
       groupName: 'Group name',
       searchPlaceholder: 'Filter/Search',
       submit: 'Update group',
+      groupSettings: 'Group settings',
+      adminGroup: 'Admin group',
     },
     deleteGroup: {
       title: 'Delete group {name:string}',
@@ -947,7 +968,7 @@ const en: BaseTranslation = {
     },
     openIdSettings: {
       general: {
-        title: 'External OpenID Settings',
+        title: 'External OpenID general settings',
         helper: 'Here you can change general OpenID behavior in your Defguard instance.',
         createAccount: {
           label:
@@ -963,6 +984,28 @@ const en: BaseTranslation = {
         custom: 'Custom',
         documentation: 'Documentation',
         delete: 'Delete provider',
+        directory_sync_settings: {
+          title: 'Directory Sync Settings',
+          helper:
+            "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
+          notSupported: 'Directory sync is not supported for this provider.',
+          connectionTest: {
+            success: 'Connection successful',
+            error: 'Connection failed with error:',
+          },
+        },
+        selects: {
+          synchronize: {
+            all: 'All',
+            users: 'Users',
+            groups: 'Groups',
+          },
+          behavior: {
+            keep: 'Keep',
+            disable: 'Disable',
+            delete: 'Delete',
+          },
+        },
         labels: {
           provider: {
             label: 'Provider',
@@ -986,6 +1029,45 @@ const en: BaseTranslation = {
             label: 'Display Name',
             helper:
               "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
+          },
+          enable_directory_sync: {
+            label: 'Enable directory sync',
+          },
+          sync_target: {
+            label: 'Synchronize',
+            helper:
+              "What to synchronize from the external provider. You can choose between synchronizing both users' state and group memberships, or narrow it down to just one of these.",
+          },
+          sync_interval: {
+            label: 'Synchronization interval',
+            helper: 'Interval in seconds between directory synchronizations.',
+          },
+          user_behavior: {
+            label: 'User behavior',
+            helper:
+              'Choose how to handle users that are not present in the external provider anymore. You can select between keeping, disabling, or deleting them.',
+          },
+          admin_behavior: {
+            label: 'Admin behavior',
+            helper:
+              'Choose how to handle Defguard admins that are not present in the external provider anymore. You can select between keeping them, disabling them or completely deleting them.',
+          },
+          admin_email: {
+            label: 'Admin email',
+            helper:
+              'Email address of the account on which behalf the synchronization checks will be performed, e.g. the person who setup the Google service account. See our documentation for more details.',
+          },
+          service_account_used: {
+            label: 'Service account in use',
+            helper:
+              'The service account currently being used for synchronization. You can change it by uploading a new service account key file.',
+          },
+          service_account_key_file: {
+            label: 'Service Account Key file',
+            helper:
+              "Upload a new service account key file to set the service account used for synchronization. NOTE: The uploaded file won't be visible after saving the settings and reloading the page as it's contents are sensitive and are never sent back to the dashboard.",
+            uploaded: 'File uploaded',
+            uploadPrompt: 'Upload a service account key file',
           },
         },
       },
