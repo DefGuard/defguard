@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DirectorySyncError"],"mod":["google"],"struct":["DirectoryGroup","DirectoryUser"]};
