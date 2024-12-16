@@ -150,3 +150,48 @@ async fn test_modify_group_no_locations_in_request() {
     assert_eq!(group_info.name, "gryffindor");
     assert_eq!(group_info.members, vec!["hpotter"]);
 }
+
+#[tokio::test]
+async fn test_remove_last_admin_group() {
+    let (client, _) = make_test_client().await;
+
+    // Authorize as an administrator.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Get group info.
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let group_info: GroupInfo = response.json().await;
+    assert_eq!(group_info.members, vec!["admin".to_string()]);
+
+    let response = client.delete("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_modify_last_admin_group() {
+    let (client, _) = make_test_client().await;
+
+    // Authorize as an administrator.
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Get group info.
+    let response = client.get("/api/v1/group/admin").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let group_info: GroupInfo = response.json().await;
+    assert_eq!(group_info.members, vec!["admin".to_string()]);
+    // try to remove admin status from the last group
+    let data = json!({
+        "name": "admin",
+        "members": [
+            "admin",
+        ],
+        "is_admin": false
+    });
+    let response = client.put("/api/v1/group/admin").json(&data).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
