@@ -62,7 +62,6 @@ pub(crate) async fn new_polling_token(
 pub(crate) async fn build_device_config_response(
     pool: &PgPool,
     device: Device<Id>,
-    // Whether to make a new polling token for the device
     token: Option<String>,
 ) -> Result<DeviceConfigResponse, Status> {
     let settings = Settings::get_settings(pool).await.map_err(|_| {
