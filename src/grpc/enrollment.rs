@@ -21,7 +21,7 @@ use crate::{
         Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
-    grpc::utils::build_device_config_response,
+    grpc::utils::{build_device_config_response, new_polling_token},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     ldap::utils::ldap_add_user,
@@ -611,7 +611,18 @@ impl EnrollmentServer {
         debug!("Getting network info for device: {:?}", request.pubkey);
         let _token = self.validate_session(&request.token).await?;
 
-        build_device_config_response(&self.pool, &request.pubkey, true).await
+        Device::validate_pubkey(&request.pubkey).map_err(|_| {
+            error!("Invalid pubkey {}", &request.pubkey);
+            Status::invalid_argument("invalid pubkey")
+        })?;
+        // Find existing device by public key.
+        let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
+            error!("Failed to fetch device by pubkey: {}", &request.pubkey);
+            return Err(Status::internal("device not found"));
+        };
+
+        let token = new_polling_token(&self.pool, &device).await?;
+        build_device_config_response(&self.pool, device, Some(token)).await
     }
 }
 
