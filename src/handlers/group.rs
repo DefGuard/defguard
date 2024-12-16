@@ -335,6 +335,23 @@ pub(crate) async fn modify_group(
         // TODO: update LDAP
     }
 
+    if group.is_admin != group_info.is_admin && !group_info.is_admin {
+        // prevent removing admin permissions from the last admin group
+        let admin_groups_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
+            .await?
+            .len();
+        if admin_groups_count == 1 {
+            error!(
+                "Can't remove admin permissions from the last admin group: {}",
+                name
+            );
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
     group
         .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
         .await?;
@@ -400,8 +417,11 @@ pub(crate) async fn delete_group(
     debug!("Deleting group {name}");
     // Administrative groups must not be removed.
     // Note: Group names are unique, so this condition should be sufficient.
-    let admin_groups = Group::find_by_permission(&appstate.pool, Permission::IsAdmin).await?;
-    if admin_groups.iter().any(|group| group.name == name) {
+    let admin_group_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
+        .await?
+        .len();
+    if admin_group_count == 1 {
+        error!("Cannot delete the last admin group: {name}");
         return Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
