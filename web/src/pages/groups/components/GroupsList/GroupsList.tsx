@@ -66,7 +66,7 @@ export const GroupsList = ({ groups, search }: Props) => {
     (data: ListData) => (
       <CustomRow group={data} disableDelete={adminGroupCount() === 1 && data.is_admin} />
     ),
-    [],
+    [adminGroupCount],
   );
 
   return (

@@ -415,20 +415,20 @@ pub(crate) async fn delete_group(
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Deleting group {name}");
-    // Administrative groups must not be removed.
-    // Note: Group names are unique, so this condition should be sufficient.
-    let admin_group_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
-        .await?
-        .len();
-    if admin_group_count == 1 {
-        error!("Cannot delete the last admin group: {name}");
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
-    }
-
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+        // Prevent removing the last admin group
+        if group.is_admin {
+            let admin_group_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
+                .await?
+                .len();
+            if admin_group_count == 1 {
+                error!("Cannot delete the last admin group: {name}");
+                return Ok(ApiResponse {
+                    json: json!({}),
+                    status: StatusCode::BAD_REQUEST,
+                });
+            }
+        }
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
