@@ -1,6 +1,22 @@
 import ipaddr from 'ipaddr.js';
+import { z } from 'zod';
 
-import { patternValidDomain } from './patterns';
+import { patternValidDomain, patternValidWireguardKey } from './patterns';
+
+export const validateWireguardPublicKey = (props: {
+  requiredError: string;
+  minError: string;
+  maxError: string;
+  validKeyError: string;
+}) =>
+  z
+    .string({
+      invalid_type_error: props.requiredError,
+      required_error: props.requiredError,
+    })
+    .min(44, props.minError)
+    .max(44, props.maxError)
+    .regex(patternValidWireguardKey, props.validKeyError);
 
 // Returns flase when invalid
 export const validateIpOrDomain = (

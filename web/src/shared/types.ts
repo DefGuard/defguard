@@ -302,7 +302,7 @@ export interface EditWalletMFARequest {
 export interface MFALoginResponse {
   mfa_method: UserMFAMethod;
   totp_available: boolean;
-  web3_available: boolean;
+  web3_available?: boolean;
   webauthn_available: boolean;
   email_available: boolean;
 }
@@ -548,11 +548,6 @@ export interface ApiHook {
         enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
         verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
-      };
-      web3: {
-        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
-        updateWalletMFA: (data: EditWalletMFARequest) => MFARecoveryCodesResponse;
       };
     };
   };
@@ -808,7 +803,6 @@ export interface UseOpenIDStore {
  * full defguard instance Settings
  */
 export type Settings = SettingsModules &
-  SettingsWeb3 &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
@@ -861,10 +855,6 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
-};
-
-export type SettingsWeb3 = {
-  challenge_template: string;
 };
 
 export type SettingsOpenID = {
@@ -1035,10 +1025,6 @@ export interface WalletProvider {
 export interface WalletSignature {
   address: string;
   signature: string;
-}
-
-export interface Web3StartRequest {
-  address: string;
 }
 
 export interface TOTPRequest {
