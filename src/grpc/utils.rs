@@ -124,7 +124,7 @@ pub(crate) async fn build_device_config_response(
     }
 
     info!(
-        "User {}({}) device {}({}) config fetched",
+        "User {}({}) device {}({}) automatically fetched the newest configuration.",
         user.username, user.id, device.name, device.id,
     );
 
