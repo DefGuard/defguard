@@ -80,7 +80,7 @@ const ModalContent = () => {
               });
             }}
           />
-          <a href={data.releaseLink} target="_blank" rel="noreferrer noopener">
+          <a href={data.release_notes_url} target="_blank" rel="noreferrer noopener">
             <Button
               styleVariant={ButtonStyleVariant.PRIMARY}
               size={ButtonSize.LARGE}

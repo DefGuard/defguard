@@ -56,6 +56,7 @@ export const useUpdatesStore = createWithEqualityFn<Store>()(
         }
         set({ update: update });
       },
+      clearUpdate: () => set({ update: undefined }),
     }),
     {
       name: 'updates-store',
@@ -73,12 +74,12 @@ type Dismissal = {
   dismissedAt: string;
 };
 
-type UpdateInfo = {
+export type UpdateInfo = {
   version: string;
   critical: boolean;
   // Markdown
   notes: string;
-  releaseLink: string;
+  release_notes_url: string;
 };
 
 type StoreValues = {
@@ -92,4 +93,5 @@ type StoreMethods = {
   openModal: () => void;
   closeModal: () => void;
   setUpdate: (value: NonNullable<StoreValues['update']>) => void;
+  clearUpdate: () => void;
 };

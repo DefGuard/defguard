@@ -6,6 +6,8 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+import { UpdateInfo } from './hooks/store/useUpdatesStore';
+
 export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
@@ -47,6 +49,7 @@ export type User = {
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
   enrolled: boolean;
+  is_admin: boolean;
 };
 
 export type UserProfile = {
@@ -414,6 +417,7 @@ export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
   members?: string[];
+  is_admin: boolean;
 };
 
 export type AddUsersToGroupsRequest = {
@@ -434,6 +438,7 @@ export type AuthenticationKey = {
 
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
+  getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseStatus: () => Promise<EnterpriseStatus>;
   getEnterpriseInfo: () => Promise<EnterpriseInfo>;
@@ -584,6 +589,7 @@ export interface ApiHook {
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    testDirsync: () => Promise<DirsyncTestResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -910,6 +916,14 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret: string;
   display_name: string;
+  google_service_account_key?: string;
+  google_service_account_email?: string;
+  admin_email?: string;
+  directory_sync_enabled: boolean;
+  directory_sync_interval: number;
+  directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
+  directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
+  directory_sync_target: 'all' | 'users' | 'groups';
 }
 
 export interface EditOpenidClientRequest {
@@ -1039,4 +1053,10 @@ export type GroupInfo = {
   name: string;
   members: string[];
   vpn_locations: string[];
+  is_admin: boolean;
+};
+
+export type DirsyncTestResponse = {
+  message: string;
+  success: boolean;
 };

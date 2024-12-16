@@ -30,7 +30,7 @@ import { Navigation } from '../Navigation/Navigation';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   return (
     <>
       <div id="app">

@@ -28,6 +28,13 @@
       }
     }
 
+    .group-settings {
+      padding-bottom: 25px;
+      display: flex;
+      flex-flow: column;
+      row-gap: 10px;
+    }
+
     .select-all {
       cursor: pointer;
       height: 60px;

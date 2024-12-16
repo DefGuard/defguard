@@ -73,7 +73,7 @@ export const VersionUpdateToast = ({ id }: ToastOptions) => {
             />
           </svg>
         )}
-        <a href={updateData.releaseLink} target="_blank" rel="noreferrer noopener">
+        <a href={updateData.release_notes_url} target="_blank" rel="noreferrer noopener">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="22"

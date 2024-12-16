@@ -27,7 +27,10 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     db::{Id, Settings, User},
-    enterprise::{db::models::openid_provider::OpenIdProvider, limits::update_counts},
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider,
+        directory_sync::sync_user_groups_if_configured, limits::update_counts,
+    },
     error::WebError,
     handlers::{
         auth::create_session,
@@ -485,6 +488,12 @@ pub(crate) async fn auth_callback(
     }
 
     if let Some(user_info) = user_info {
+        if let Err(err) = sync_user_groups_if_configured(&user, &appstate.pool).await {
+            error!(
+                "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
+                user.username
+            );
+        }
         let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
             let url = openid_cookie.value().to_string();

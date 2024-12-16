@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name FROM \"group\" WHERE name = $1",
+  "query": "SELECT id, \"name\",\"is_admin\" FROM \"group\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -12,17 +12,23 @@
         "ordinal": 1,
         "name": "name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "is_admin",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "ba65214847bd66c0b57d1d2eea65d862c062b3224e61598247ec8c927216caf3"
+  "hash": "71c5b427aa144e63596f8a29e52b02912381f62a775141820b35fb7fba8fac97"
 }

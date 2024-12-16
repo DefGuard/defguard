@@ -15,7 +15,10 @@ use enterprise::handlers::{
     check_enterprise_info, check_enterprise_status,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
-    openid_providers::{add_openid_provider, delete_openid_provider, get_current_openid_provider},
+    openid_providers::{
+        add_openid_provider, delete_openid_provider, get_current_openid_provider,
+        test_dirsync_connection,
+    },
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -23,6 +26,7 @@ use handlers::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
+    updates::check_new_version,
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -130,6 +134,8 @@ pub(crate) mod random;
 pub mod secret;
 pub mod support;
 pub mod templates;
+pub mod updates;
+pub mod utility_thread;
 pub mod wg_config;
 pub mod wireguard_peer_disconnect;
 pub mod wireguard_stats_purge;
@@ -298,6 +304,7 @@ pub fn build_webapp(
             .route("/info", get(get_app_info))
             .route("/ssh_authorized_keys", get(get_authorized_keys))
             .route("/api-docs", get(openapi))
+            .route("/updates", get(check_new_version))
             // /auth
             .route("/auth", post(authenticate))
             .route("/auth/logout", post(logout))
@@ -414,9 +421,13 @@ pub fn build_webapp(
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
-    let webapp = webapp
-        .route("/api/v1/enterprise_status", get(check_enterprise_status))
-        .route("/api/v1/enterprise_info", get(check_enterprise_info));
+    let webapp = webapp.nest(
+        "/api/v1",
+        Router::new()
+            .route("/enterprise_status", get(check_enterprise_status))
+            .route("/enterprise_info", get(check_enterprise_info))
+            .route("/test_directory_sync", get(test_dirsync_connection)),
+    );
 
     #[cfg(feature = "openid")]
     let webapp = webapp

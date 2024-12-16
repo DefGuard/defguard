@@ -216,7 +216,7 @@ pub async fn send_gateway_disconnected_email(
     pool: &PgPool,
 ) -> Result<(), WebError> {
     debug!("Sending gateway disconnected mail to all admin users");
-    let admin_users = User::find_by_group_name(pool, &server_config().admin_groupname).await?;
+    let admin_users = User::find_admins(pool).await?;
     let gateway_name = gateway_name.unwrap_or_default();
     for user in admin_users {
         let mail = Mail {

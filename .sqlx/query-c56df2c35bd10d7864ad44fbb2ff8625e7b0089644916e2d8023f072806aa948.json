@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"group\" (\"name\") VALUES ($1) RETURNING id",
+  "query": "INSERT INTO \"group\" (\"name\",\"is_admin\") VALUES ($1,$2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Text",
+        "Bool"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "e99464b4da5a21bcffda16866783d11c819eb078e392f1492467ae420800242d"
+  "hash": "c56df2c35bd10d7864ad44fbb2ff8625e7b0089644916e2d8023f072806aa948"
 }

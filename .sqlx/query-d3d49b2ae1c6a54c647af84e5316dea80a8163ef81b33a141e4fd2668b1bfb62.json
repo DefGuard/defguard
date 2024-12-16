@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.name name, COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", is_admin FROM \"group\" g LEFT JOIN \"group_user\" gu ON gu.group_id = g.id LEFT JOIN \"user\" u ON u.id = gu.user_id LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id GROUP BY g.name, g.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "members!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "vpn_locations!",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_admin",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "d3d49b2ae1c6a54c647af84e5316dea80a8163ef81b33a141e4fd2668b1bfb62"
+}
