@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -34,6 +33,7 @@ export const SetupCliStep = () => {
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const labels = localLL.form.labels;
   const locationOptions = useAddStandaloneDeviceModal((s) => s.networkOptions);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [setState, close, next] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep],
     shallow,

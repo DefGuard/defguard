@@ -11,6 +11,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
@@ -19,7 +20,6 @@ import {
   AddStandaloneDeviceModalChoice,
   AddStandaloneDeviceModalStep,
 } from '../../types';
-import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 
 export const MethodStep = () => {
   const { LL } = useI18nContext();

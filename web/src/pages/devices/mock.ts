@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import { MockDevice } from './hooks/useDevicesPage';
 
 export const mockDevices: MockDevice[] = [
