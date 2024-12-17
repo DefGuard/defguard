@@ -12,7 +12,7 @@ use tokio::{sync::broadcast::Sender, time::sleep};
 
 use crate::db::{
     models::{
-        device::{DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+        device::{DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice},
         error::ModelError,
         wireguard::WireguardNetworkError,
     },
@@ -67,7 +67,7 @@ pub async fn run_periodic_peer_disconnect(
                     WHERE network = $1 \
                     ORDER BY device_id, collected_at DESC \
                 ) \
-            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
+            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \

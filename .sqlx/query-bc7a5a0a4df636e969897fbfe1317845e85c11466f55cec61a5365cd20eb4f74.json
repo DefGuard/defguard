@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE device.id = $1 AND \"user\".id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "wireguard_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "device_type: DeviceType",
+        "type_info": {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "bc7a5a0a4df636e969897fbfe1317845e85c11466f55cec61a5365cd20eb4f74"
+}

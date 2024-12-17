@@ -14,7 +14,7 @@ use super::{
 use crate::{
     db::{
         models::{
-            device::{DeviceConfig, DeviceInfo},
+            device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
             polling_token::PollingToken,
         },
@@ -451,6 +451,8 @@ impl EnrollmentServer {
             request.name.clone(),
             request.pubkey.clone(),
             enrollment.user_id,
+            DeviceType::User,
+            None,
         );
         debug!(
             "Creating new device for user {}({:?}) {device:?}.",
