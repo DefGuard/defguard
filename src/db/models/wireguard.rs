@@ -730,7 +730,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves stats for specified devices
-    async fn device_stats(
+    pub(crate) async fn device_stats(
         &self,
         conn: &PgPool,
         devices: &[Device<Id>],
@@ -811,7 +811,7 @@ impl WireguardNetwork<Id> {
                 d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
             FROM device d \
             JOIN s ON d.id = s.device_id \
-            WHERE s.latest_handshake >= $1 AND s.network = $2",
+            WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
             oldest_handshake,
             self.id,
         )

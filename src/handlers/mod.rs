@@ -23,6 +23,7 @@ pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
+pub(crate) mod network_devices;
 #[cfg(feature = "openid")]
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]

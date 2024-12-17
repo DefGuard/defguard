@@ -23,14 +23,14 @@ use enterprise::handlers::{
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
+    network_devices::{
+        add_network_device, get_network_device, list_network_devices, modify_network_device,
+    },
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
         rename_authentication_key,
     },
     updates::check_new_version,
-    wireguard::{
-        add_network_device, get_network_device, list_network_devices, modify_network_device,
-    },
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -55,9 +55,9 @@ use utoipa_swagger_ui::SwaggerUi;
 #[cfg(feature = "wireguard")]
 use self::handlers::wireguard::{
     add_device, add_user_devices, create_network, create_network_token, delete_device,
-    delete_network, download_config, gateway_status, get_device, import_network, list_devices,
-    list_networks, list_user_devices, modify_device, modify_network, network_details,
-    network_stats, remove_gateway, user_stats,
+    delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
+    list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
+    network_stats, remove_gateway,
 };
 #[cfg(feature = "worker")]
 use self::handlers::worker::{
@@ -489,7 +489,7 @@ pub fn build_webapp(
                 get(download_config),
             )
             .route("/network/:network_id/token", get(create_network_token))
-            .route("/network/:network_id/stats/users", get(user_stats))
+            .route("/network/:network_id/stats/users", get(devices_stats))
             .route("/network/:network_id/stats", get(network_stats))
             .layer(Extension(gateway_state)),
     );
