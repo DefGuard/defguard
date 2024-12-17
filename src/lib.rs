@@ -11,6 +11,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     serve, Extension, Json, Router,
 };
+use db::models::device::DeviceType;
 use enterprise::handlers::{
     check_enterprise_info, check_enterprise_status,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
@@ -27,6 +28,9 @@ use handlers::{
         rename_authentication_key,
     },
     updates::check_new_version,
+    wireguard::{
+        add_network_device, get_network_device, list_network_devices, modify_network_device,
+    },
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -462,6 +466,12 @@ pub fn build_webapp(
             .route("/device/:device_id", delete(delete_device))
             .route("/device", get(list_devices))
             .route("/device/user/:username", get(list_user_devices))
+            // Network devices, as opposed to user devices
+            .route("/device/network", post(add_network_device))
+            .route("/device/network", get(list_network_devices))
+            .route("/device/network/:device_id", put(modify_network_device))
+            .route("/device/network/:device_id", get(get_network_device))
+            .route("/device/network/:device_id", delete(delete_device))
             .route("/network", post(create_network))
             .route("/network/:network_id", put(modify_network))
             .route("/network/:network_id", delete(delete_network))
@@ -626,12 +636,14 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             "TestDevice".to_string(),
             "gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=".to_string(),
             1,
+            DeviceType::User,
+            None,
         )
         .save(&mut *transaction)
         .await
         .expect("Could not save device");
         device
-            .assign_network_ip(&mut transaction, &network, None)
+            .assign_next_network_ip(&mut transaction, &network, None)
             .await
             .expect("Could not assign IP to device");
     }
