@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { PropsWithChildren, useEffect } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -57,6 +59,7 @@ const Page = () => {
   }, []);
   return (
     <ManagementPageLayout
+      id="standalone-devices-page"
       title={localLL.title()}
       search={{
         placeholder: localLL.search.placeholder(),

@@ -2027,6 +2027,16 @@ type RootTranslation = {
 		 * U​s​e​r​s
 		 */
 		pageTitle: string
+		grid: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			usersTitle: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devicesTitle: string
+		}
 		search: {
 			/**
 			 * F​i​n​d​ ​u​s​e​r​s
@@ -2160,6 +2170,10 @@ type RootTranslation = {
 			 * G​r​o​u​p​s
 			 */
 			groups: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
 		}
 		mobileTitles: {
 			/**
@@ -2210,6 +2224,10 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			support: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
 		}
 		/**
 		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
@@ -6730,6 +6748,16 @@ export type TranslationFunctions = {
 		 * Users
 		 */
 		pageTitle: () => LocalizedString
+		grid: {
+			/**
+			 * Connected Users
+			 */
+			usersTitle: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devicesTitle: () => LocalizedString
+		}
 		search: {
 			/**
 			 * Find users
@@ -6863,6 +6891,10 @@ export type TranslationFunctions = {
 			 * Groups
 			 */
 			groups: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
@@ -6913,6 +6945,10 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			support: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 		/**
 		 * Copyright ©2023-2024

@@ -33,12 +33,14 @@
 
         & > .btn {
           margin-left: auto;
+
           .content {
             span {
               white-space: nowrap;
             }
           }
         }
+
         & > .network-gateways-connection {
           width: auto;
         }
@@ -72,10 +74,12 @@
     & > header {
       box-sizing: border-box;
       margin-bottom: 10px;
+
       @include media-breakpoint-up(md) {
         padding-left: 1.5rem;
         padding-right: 1.5rem;
       }
+
       @include media-breakpoint-up(lg) {
         padding: 2rem 2rem 0;
         display: grid;
@@ -112,6 +116,7 @@
           grid-row: 2;
           grid-column: 1;
         }
+
         @include media-breakpoint-up(xxl) {
           grid-row: 1;
           grid-column: 2;
@@ -119,6 +124,7 @@
 
         & > .select {
           min-width: 200px;
+
           .select-container {
             height: 40px;
           }
@@ -131,6 +137,7 @@
         & > .select-skeleton {
           width: 200px;
           height: 40px;
+
           & > span {
             height: 100%;
           }
@@ -142,58 +149,24 @@
       @include media-breakpoint-down(xl) {
         margin-bottom: 1.5rem;
       }
+
       @include media-breakpoint-up(xl) {
         margin-bottom: 5rem;
       }
     }
 
     .bottom-row {
-      @include media-breakpoint-down(xl) {
-        display: block;
-      }
-      @include media-breakpoint-up(xl) {
-        display: grid;
-        flex-grow: 1;
-        grid-template-columns: 1fr;
-        column-gap: 4rem;
-        max-width: 100%;
-        padding-right: 6rem;
-      }
+      display: flex;
+      flex-flow: column;
+      row-gap: 20px;
+      box-sizing: border-box;
+      padding: 0 50px 0 60px;
 
       & > .no-data {
         width: 100%;
         padding-top: 20px;
         text-align: center;
       }
-
-      & > .overview-connected-users {
-        @include media-breakpoint-down(xl) {
-          & > header,
-          .connected-users {
-            padding-left: 2rem;
-            padding-right: 2rem;
-            margin: auto;
-          }
-        }
-        @include media-breakpoint-up(xl) {
-          grid-column: 1;
-
-          & > header,
-          .connected-users {
-            padding-left: 6rem;
-          }
-        }
-      }
-
-      // & > .activity-stream {
-      //   @include media-breakpoint-down(xl) {
-      //     padding-left: 2rem;
-      //     padding-right: 2rem;
-      //   }
-      //   @include media-breakpoint-up(xl) {
-      //     grid-column: 2;
-      //   }
-      // }
     }
 
     h1 {
@@ -215,6 +188,7 @@
     align-content: center;
     justify-content: center;
     align-items: center;
+
     @include media-breakpoint-up(lg) {
       grid-row: 1;
     }

@@ -1,0 +1,48 @@
+.overview-expandable {
+  width: 100%;
+
+  & > .header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: 10px;
+    width: min-content;
+    user-select: none;
+    cursor: pointer;
+
+    p {
+      @include typography(app-body-1);
+      text-wrap: nowrap;
+
+      & {
+        font-weight: 600;
+        color: var(--text-body-primary);
+      }
+    }
+
+    svg {
+      transform: rotateZ(-90deg);
+    }
+  }
+
+  .expandable {
+    display: grid;
+    grid-template-rows: 0fr;
+    width: 100%;
+    transition-property: grid-template-rows;
+    transition-duration: 100ms;
+    transition-timing-function: ease-in-out;
+
+    & > div {
+      box-sizing: border-box;
+      padding-top: 20px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    &.expanded {
+      grid-template-rows: 1fr;
+    }
+  }
+}
