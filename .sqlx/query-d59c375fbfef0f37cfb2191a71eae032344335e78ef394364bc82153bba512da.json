@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\" FROM \"device\"",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\" FROM \"device\"",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,26 @@
         "ordinal": 4,
         "name": "created",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "device_type: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -37,8 +57,10 @@
       false,
       false,
       false,
-      false
+      false,
+      false,
+      true
     ]
   },
-  "hash": "e6537b70e7f27eb6103a7715d520ec1bb8491908a059422e751592b7da96028f"
+  "hash": "d59c375fbfef0f37cfb2191a71eae032344335e78ef394364bc82153bba512da"
 }

@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH stats AS ( SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake FROM wireguard_peer_stats WHERE network = $1 ORDER BY device_id, collected_at DESC ) SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" FROM device d JOIN wireguard_network_device wnd ON wnd.device_id = d.id LEFT JOIN stats on d.id = stats.device_id WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "wireguard_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "device_type: DeviceType",
+        "type_info": {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "40a5193e4cef8ebcf7f870ab19ea077bb2ac2ea0f398bd9069dce045860a571a"
+}
