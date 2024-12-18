@@ -7,7 +7,7 @@ use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
+use pgp::{types::PublicKeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
 use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
@@ -247,7 +247,7 @@ impl License {
             let signing_key = public_key
                 .public_subkeys
                 .into_iter()
-                .find(KeyTrait::is_signing_key)
+                .find(PublicKeyTrait::is_signing_key)
                 .ok_or(LicenseError::LicenseServerError(
                     "Failed to find a signing key in the provided public key".to_string(),
                 ))?;
