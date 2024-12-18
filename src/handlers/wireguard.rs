@@ -12,7 +12,7 @@ use axum::{
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
-use sqlx::{PgConnection, PgPool};
+use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 

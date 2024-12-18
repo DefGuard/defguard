@@ -24,7 +24,8 @@ use enterprise::handlers::{
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
-        add_network_device, get_network_device, list_network_devices, modify_network_device,
+        add_network_device, check_ip_availability, find_available_ip, get_network_device,
+        list_network_devices, modify_network_device,
     },
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -469,6 +470,11 @@ pub fn build_webapp(
             // Network devices, as opposed to user devices
             .route("/device/network", post(add_network_device))
             .route("/device/network", get(list_network_devices))
+            .route("/device/network/ip/:network_id", get(find_available_ip))
+            .route(
+                "/device/network/ip/:network_id",
+                post(check_ip_availability),
+            )
             .route("/device/network/:device_id", put(modify_network_device))
             .route("/device/network/:device_id", get(get_network_device))
             .route("/device/network/:device_id", delete(delete_device))
