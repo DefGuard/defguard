@@ -5,6 +5,7 @@ use axum::{
     http::StatusCode,
 };
 use chrono::NaiveDateTime;
+use ipnetwork::IpNetwork;
 use serde_json::json;
 use sqlx::PgConnection;
 
@@ -257,10 +258,15 @@ pub(crate) async fn find_available_ip(
             .await?
             .is_none()
         {
-            let ip = ip.to_string();
+            let (network_part, modifiable_part, network_prefix) = split_ip(&ip, &network.address);
             transaction.commit().await?;
             return Ok(ApiResponse {
-                json: json!({ "ip": ip }),
+                json: json!({
+                   "ip": ip.to_string(),
+                   "network_part": network_part,
+                   "modifiable_part": modifiable_part,
+                   "network_prefix": network_prefix,
+                }),
                 status: StatusCode::OK,
             });
         }
@@ -507,4 +513,112 @@ pub async fn modify_network_device(
         json: json!(network_device_info),
         status: StatusCode::OK,
     })
+}
+
+/// Splits the IP address (IPv4 or IPv6) into three parts: network part, modifiable part and prefix
+/// The network part is the part that can't be changed by the user.
+/// This is to display an IP address in the UI like this: 192.168.(1.1)/16, where the part in the parenthesis can be changed by the user.
+// The algorithm works as follows:
+// 1. Get the network address, broadcast address and IP address segments, e.g. 192.1.1.1 would be [192, 1, 1, 1]
+// 2. Iterate over the segments and compare the broadcast and network segments, as long as the current segments are equal, append the segment to the network part.
+//    If they are not equal, we found the modifiable segment (one of the segments of an address that may change between hosts in the same network),
+//    append the rest of the segments to the modifiable part.
+// 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
+fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
+    let network_addr = network.network();
+    let network_prefix = network.prefix();
+    let network_broadcast = network.broadcast();
+
+    let ip_segments = match ip {
+        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
+        IpAddr::V6(ip) => ip.segments().to_vec(),
+    };
+
+    let broadcast_segments = match network_broadcast {
+        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
+        IpAddr::V6(ip) => ip.segments().to_vec(),
+    };
+
+    let network_segments = match network_addr {
+        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
+        IpAddr::V6(ip) => ip.segments().to_vec(),
+    };
+
+    let mut network_part = String::new();
+    let mut modifiable_part = String::new();
+    let delimiter = if ip.is_ipv4() { "." } else { ":" };
+    let formatter = |x: &u16| {
+        if ip.is_ipv4() {
+            x.to_string()
+        } else {
+            format!("{:04x}", x)
+        }
+    };
+
+    for (i, ((broadcast_segment, network_segment), ip_segment)) in broadcast_segments
+        .iter()
+        .zip(network_segments.iter())
+        .zip(ip_segments.iter())
+        .enumerate()
+    {
+        if broadcast_segment != network_segment {
+            let parts = ip_segments.split_at(i).1;
+            let joined = parts
+                .iter()
+                .map(formatter)
+                .collect::<Vec<String>>()
+                .join(delimiter);
+            modifiable_part.push_str(&joined);
+            break;
+        } else {
+            let formatted = formatter(ip_segment);
+            network_part.push_str(&format!("{formatted}{delimiter}"));
+        }
+    }
+
+    (network_part, modifiable_part, network_prefix.to_string())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_ip_splitter() {
+        let net = split_ip(
+            &IpAddr::from_str("192.168.3.1").unwrap(),
+            &IpNetwork::from_str("192.168.3.1/30").unwrap(),
+        );
+
+        assert_eq!(net.0, "192.168.3.");
+        assert_eq!(net.1, "1");
+        assert_eq!(net.2, "30");
+
+        let net = split_ip(
+            &IpAddr::from_str("192.168.5.7").unwrap(),
+            &IpNetwork::from_str("192.168.3.1/24").unwrap(),
+        );
+
+        assert_eq!(net.0, "192.168.5.");
+        assert_eq!(net.1, "7");
+        assert_eq!(net.2, "24");
+
+        let net = split_ip(
+            &IpAddr::from_str("2001:0db8:85a3::8a2e:0370:7334").unwrap(),
+            &IpNetwork::from_str("2001:0db8:85a3::8a2e:0370:7334/64").unwrap(),
+        );
+
+        assert_eq!(net.0, "2001:0db8:85a3:0000:");
+        assert_eq!(net.1, "0000:8a2e:0370:7334");
+        assert_eq!(net.2, "64");
+
+        let net = split_ip(
+            &IpAddr::from_str("2001:0db8::0010:8a2e:0370:aaaa").unwrap(),
+            &IpNetwork::from_str("2001:db8::10:8a2e:370:aaa8/125").unwrap(),
+        );
+
+        assert_eq!(net.0, "2001:0db8:0000:0000:0010:8a2e:0370:");
+        assert_eq!(net.1, "aaaa");
+        assert_eq!(net.2, "125");
+    }
 }

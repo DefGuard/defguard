@@ -2,7 +2,7 @@ mod common;
 
 use claims::assert_err;
 use defguard::{
-    db::{Device, GatewayEvent, Group, Id, User, WireguardNetwork},
+    db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
 use matches::assert_matches;
@@ -30,6 +30,8 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         "admin device".into(),
         "nst4lmZz9kPTq6OdeQq2G2th3n+QneHKmG1wJJ3Jrq0=".into(),
         admin_user.id,
+        DeviceType::User,
+        None,
     )
     .save(pool)
     .await
@@ -47,6 +49,8 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         "test device".into(),
         "wYOt6ImBaQ3BEMQ3Xf5P5fTnbqwOvjcqYkkSBt+1xOg=".into(),
         test_user.id,
+        DeviceType::User,
+        None,
     )
     .save(pool)
     .await
@@ -74,6 +78,8 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         "other device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         other_user.id,
+        DeviceType::User,
+        None,
     )
     .save(pool)
     .await
@@ -97,6 +103,8 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         "non group device".into(),
         "6xmL/jRuxmzQ3J2/kVZnKnh+6dwODcEEczmmkIKU4sM=".into(),
         non_group_user.id,
+        DeviceType::User,
+        None,
     )
     .save(pool)
     .await
