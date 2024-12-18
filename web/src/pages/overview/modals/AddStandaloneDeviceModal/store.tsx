@@ -1,4 +1,5 @@
 import { isObject } from 'lodash-es';
+import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
@@ -16,6 +17,8 @@ const defaultValues: StoreValues = {
   networks: undefined,
   networkOptions: [],
   genChoice: WGConfigGenChoice.AUTO,
+  submitSubject: new Subject<void>(),
+  initAvailableIp: undefined,
 };
 
 export const useAddStandaloneDeviceModal = createWithEqualityFn<Store>(
@@ -37,8 +40,10 @@ type StoreValues = {
   currentStep: AddStandaloneDeviceModalStep;
   choice: AddStandaloneDeviceModalChoice;
   networkOptions: SelectOption<number>[];
-  networks?: Network[];
   genChoice: WGConfigGenChoice;
+  submitSubject: Subject<void>;
+  initAvailableIp?: string;
+  networks?: Network[];
 };
 
 type StoreMethods = {

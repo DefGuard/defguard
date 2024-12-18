@@ -15,3 +15,17 @@ export enum WGConfigGenChoice {
   MANUAL,
   AUTO,
 }
+
+export type AddStandaloneDeviceFormFields = {
+  name: string;
+  location_id: number;
+  assigned_ip: string;
+  wireguard_pubkey: string;
+  generationChoice: WGConfigGenChoice;
+  description?: string;
+};
+
+export type AddStandaloneDeviceCLIFormFields = Omit<
+  AddStandaloneDeviceFormFields,
+  'generationChoice' | 'wireguard_pubkey'
+>;

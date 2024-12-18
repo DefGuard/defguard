@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -14,6 +14,7 @@ import {
 import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
@@ -25,15 +26,21 @@ export const MethodStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.method;
   const choice = useAddStandaloneDeviceModal((s) => s.choice);
+  const [inLoading, setLoading] = useState(false);
   const {
     network: { getNetworks },
+    standaloneDevice: { getAvailableIp },
   } = useApi();
+
   const { data: networks } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORKS],
     queryFn: getNetworks,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+
+  const stateAvailableIp = useAddStandaloneDeviceModal((s) => s.initAvailableIp);
+
   const [setState, close, next] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep],
     shallow,
@@ -46,16 +53,59 @@ export const MethodStep = () => {
     [setState],
   );
 
+  const setAvailableIp = useCallback(
+    async (locationId: number) => {
+      setLoading(true);
+      try {
+        const response = await getAvailableIp({
+          locationId,
+        });
+        setState({
+          initAvailableIp: response.ip,
+        });
+      } catch (e) {
+        return Promise.reject(e);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getAvailableIp, setState],
+  );
+
+  const handleNetworksEffect = useCallback(
+    (networks: Network[]) => {
+      if (networks && networks.length) {
+        const options: SelectOption<number>[] = networks.map((n) => ({
+          key: n.id,
+          value: n.id,
+          label: n.name,
+        }));
+        setAvailableIp(networks[0].id).finally(() => {
+          setState({ networks, networkOptions: options });
+          setLoading(false);
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setAvailableIp],
+  );
+
+  const handleNext = () => {
+    switch (choice) {
+      case AddStandaloneDeviceModalChoice.CLI:
+        next(AddStandaloneDeviceModalStep.SETUP_CLI);
+        break;
+      case AddStandaloneDeviceModalChoice.MANUAL:
+        next(AddStandaloneDeviceModalStep.SETUP_MANUAL);
+        break;
+    }
+  };
+
   useEffect(() => {
     if (networks && networks.length) {
-      const options: SelectOption<number>[] = networks.map((n) => ({
-        key: n.id,
-        value: n.id,
-        label: n.name,
-      }));
-      setState({ networks, networkOptions: options });
+      handleNetworksEffect(networks);
     }
-  }, [networks, setState]);
+  }, [networks, handleNetworksEffect]);
 
   return (
     <div className="method-step">
@@ -85,18 +135,19 @@ export const MethodStep = () => {
           size={ButtonSize.LARGE}
         />
         <Button
-          loading={networks === undefined}
+          loading={networks === undefined || inLoading}
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.common.controls.next()}
           onClick={() => {
-            switch (choice) {
-              case AddStandaloneDeviceModalChoice.CLI:
-                next(AddStandaloneDeviceModalStep.SETUP_CLI);
-                break;
-              case AddStandaloneDeviceModalChoice.MANUAL:
-                next(AddStandaloneDeviceModalStep.SETUP_MANUAL);
-                break;
+            if (stateAvailableIp) {
+              handleNext();
+            } else {
+              if (networks) {
+                setAvailableIp(networks[0].id).then(() => {
+                  handleNext();
+                });
+              }
             }
           }}
         />

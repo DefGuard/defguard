@@ -489,6 +489,18 @@ export interface ApiHook {
     }) => EmptyApiResponse;
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
+  standaloneDevice: {
+    createDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<CreateStandaloneDeviceResponse>;
+    getDevice: (deviceId: number | string) => Promise<StandaloneDevice>;
+    deleteDevice: (deviceId: number | string) => Promise<void>;
+    editDevice: (device: StandaloneDevice) => Promise<void>;
+    getAvailableIp: (
+      data: GetAvailableLocationIpRequest,
+    ) => Promise<GetAvailableLocationIpResponse>;
+    validateLocationIp: (data: ValidateLocationIpRequest) => Promise<void>;
+  };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
@@ -1059,4 +1071,43 @@ export type GroupInfo = {
 export type DirsyncTestResponse = {
   message: string;
   success: boolean;
+};
+
+export type CreateStandaloneDeviceRequest = {
+  name: string;
+  location_id: number;
+  assigned_ip: string;
+  wireguard_pubkey: string;
+  description?: string;
+};
+
+export type ValidateLocationIpRequest = {
+  ip: string;
+  location: number | string;
+};
+
+export type GetAvailableLocationIpRequest = {
+  locationId: number | string;
+};
+
+export type GetAvailableLocationIpResponse = {
+  ip: string;
+};
+
+export type StandaloneDevice = {
+  id: number;
+  name: string;
+  assigned_ip: string;
+  description?: string;
+  added_by: string;
+  added_date: string;
+  location: {
+    id: number;
+    name: string;
+  };
+};
+
+export type CreateStandaloneDeviceResponse = {
+  config: unknown;
+  device: StandaloneDevice;
 };
