@@ -9,11 +9,9 @@ use utoipa::ToSchema;
 use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, UserAdminRole},
-    db::{Group, User, WireguardNetwork},
+    auth::{AdminRole, SessionInfo},
+    db::{models::group::Permission, Group, User, WireguardNetwork},
     error::WebError,
-    server_config,
-    // ldap::utils::{ldap_add_user_to_group, ldap_modify_group, ldap_remove_user_from_group},
 };
 
 #[derive(Serialize, ToSchema)]
@@ -54,7 +52,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
     )
 )]
 pub(crate) async fn bulk_assign_to_groups(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
@@ -132,7 +130,7 @@ pub(crate) async fn bulk_assign_to_groups(
     )
 )]
 pub(crate) async fn list_groups_info(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Listing groups info");
@@ -140,13 +138,14 @@ pub(crate) async fn list_groups_info(
         GroupInfo,
         "SELECT g.name name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
-        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\" \
+        COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
+        is_admin \
         FROM \"group\" g \
         LEFT JOIN \"group_user\" gu ON gu.group_id = g.id \
         LEFT JOIN \"user\" u ON u.id = gu.user_id \
         LEFT JOIN \"wireguard_network_allowed_group\" wnag ON wnag.group_id = g.id \
         LEFT JOIN \"wireguard_network\" wn ON wn.id = wnag.network_id \
-        GROUP BY g.name"
+        GROUP BY g.name, g.id"
     )
     .fetch_all(&appstate.pool)
     .await?;
@@ -201,7 +200,8 @@ pub(crate) async fn list_groups(
             {
                 "name": "name",
                 "members": ["user"],
-                "vpn_locations": ["location"]
+                "vpn_locations": ["location"],
+                "is_admin": false
             }
         )),
         (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
@@ -218,9 +218,12 @@ pub(crate) async fn get_group(
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
         let members = group.member_usernames(&appstate.pool).await?;
         let vpn_locations = group.allowed_vpn_locations(&appstate.pool).await?;
+        let is_admin = group
+            .has_permission(&appstate.pool, Permission::IsAdmin)
+            .await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, members, vpn_locations)),
+            json: json!(GroupInfo::new(name, members, vpn_locations, is_admin)),
             status: StatusCode::OK,
         })
     } else {
@@ -254,7 +257,7 @@ pub(crate) async fn get_group(
     )
 )]
 pub(crate) async fn create_group(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(group_info): Json<EditGroupInfo>,
 ) -> Result<ApiResponse, WebError> {
@@ -266,7 +269,9 @@ pub(crate) async fn create_group(
     // FIXME: conflicts must not return internal server error (500).
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
     // TODO: create group in LDAP
-
+    group
+        .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
+        .await?;
     for username in &group_info.members {
         let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
             let msg = format!("Failed to find user {username}");
@@ -308,7 +313,7 @@ pub(crate) async fn create_group(
     )
 )]
 pub(crate) async fn modify_group(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(group_info): Json<EditGroupInfo>,
@@ -329,6 +334,27 @@ pub(crate) async fn modify_group(
         group.save(&mut *transaction).await?;
         // TODO: update LDAP
     }
+
+    if group.is_admin != group_info.is_admin && !group_info.is_admin {
+        // prevent removing admin permissions from the last admin group
+        let admin_groups_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
+            .await?
+            .len();
+        if admin_groups_count == 1 {
+            error!(
+                "Can't remove admin permissions from the last admin group: {}",
+                name
+            );
+            return Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            });
+        }
+    }
+
+    group
+        .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
+        .await?;
 
     // Modify group members.
     let mut current_members = group.members(&mut *transaction).await?;
@@ -389,16 +415,20 @@ pub(crate) async fn delete_group(
     Path(name): Path<String>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Deleting group {name}");
-    // Administrative group must not be removed.
-    // Note: Group names are unique, so this condition should be sufficient.
-    if name == server_config().admin_groupname {
-        return Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        });
-    }
-
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
+        // Prevent removing the last admin group
+        if group.is_admin {
+            let admin_group_count = Group::find_by_permission(&appstate.pool, Permission::IsAdmin)
+                .await?
+                .len();
+            if admin_group_count == 1 {
+                error!("Cannot delete the last admin group: {name}");
+                return Ok(ApiResponse {
+                    json: json!({}),
+                    status: StatusCode::BAD_REQUEST,
+                });
+            }
+        }
         group.delete(&appstate.pool).await?;
         // TODO: delete group from LDAP
 
@@ -436,7 +466,7 @@ pub(crate) async fn delete_group(
     )
 )]
 pub(crate) async fn add_group_member(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(name): Path<String>,
     Json(data): Json<Username>,
@@ -485,7 +515,7 @@ pub(crate) async fn add_group_member(
     )
 )]
 pub(crate) async fn remove_group_member(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path((name, username)): Path<(String, String)>,
 ) -> Result<ApiResponse, WebError> {

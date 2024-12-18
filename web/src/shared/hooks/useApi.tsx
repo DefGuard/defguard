@@ -333,23 +333,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
     client.post('/auth/email/verify', data).then(unpackRequest);
 
-  const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
-    client.post('/auth/web3/start', data).then(unpackRequest);
-
-  const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
-    client.post('/auth/web3', data).then(unpackRequest);
-
-  const editWalletMFA: ApiHook['auth']['mfa']['web3']['updateWalletMFA'] = ({
-    address,
-    username,
-    ...rest
-  }) =>
-    client
-      .put(`/user/${username}/wallet/${address}`, {
-        ...rest,
-      })
-      .then(unpackRequest);
-
   const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] = ({
     keyId,
     username,
@@ -476,6 +459,17 @@ const useApi = (props?: HookProps): ApiHook => {
       return {};
     });
 
+  const getNewVersion: ApiHook['getNewVersion'] = () =>
+    client.get('/updates').then((res) => {
+      if (res.status === 204) {
+        return null;
+      }
+      return res.data;
+    });
+
+  const testDirsync: ApiHook['settings']['testDirsync'] = () =>
+    client.get('/test_directory_sync').then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -504,6 +498,7 @@ const useApi = (props?: HookProps): ApiHook => {
 
   return {
     getAppInfo,
+    getNewVersion,
     changePasswordSelf,
     getEnterpriseStatus,
     getEnterpriseInfo,
@@ -600,11 +595,6 @@ const useApi = (props?: HookProps): ApiHook => {
           sendCode: mfaEmailMFASendCode,
           verify: mfaEmailMFAVerify,
         },
-        web3: {
-          start: mfaWeb3Start,
-          finish: mfaWeb3Finish,
-          updateWalletMFA: editWalletMFA,
-        },
       },
     },
     provisioning: {
@@ -645,6 +635,7 @@ const useApi = (props?: HookProps): ApiHook => {
       addOpenIdProvider,
       deleteOpenIdProvider,
       editOpenIdProvider,
+      testDirsync,
     },
     support: {
       downloadSupportData,

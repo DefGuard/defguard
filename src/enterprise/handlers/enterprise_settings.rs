@@ -19,7 +19,7 @@ pub async fn get_enterprise_settings(
         session.user.username
     );
     let settings = EnterpriseSettings::get(&appstate.pool).await?;
-    info!(
+    debug!(
         "User {} retrieved enterprise settings",
         session.user.username
     );

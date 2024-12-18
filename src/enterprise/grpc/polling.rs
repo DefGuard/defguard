@@ -75,15 +75,14 @@ impl PollingServer {
         };
         if !user.is_active {
             warn!(
-                "Denying polling info for inactive user {}({:?})",
+                "Denying polling info for inactive user {}({})",
                 user.username, user.id
             );
             return Err(Status::permission_denied("user inactive"));
         }
 
-        // Build & return polling info
-        let device_config =
-            build_device_config_response(&self.pool, &device.wireguard_pubkey, false).await?;
+        // Build and return polling info.
+        let device_config = build_device_config_response(&self.pool, device, None).await?;
 
         Ok(InstanceInfoResponse {
             device_config: Some(device_config),

@@ -6,10 +6,12 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
+import { DevicesPage } from '../../pages/devices/DevicesPage';
 import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
+import { AddStandaloneDeviceModal } from '../../pages/overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
 import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
@@ -20,6 +22,7 @@ import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import { WizardPage } from '../../pages/wizard/WizardPage';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { UpdateNotificationModal } from '../../shared/components/modals/UpdateNotificationModal/UpdateNotificationModal';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
@@ -27,7 +30,7 @@ import { Navigation } from '../Navigation/Navigation';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   return (
     <>
       <div id="app">
@@ -147,6 +150,14 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="devices/*"
+                element={
+                  <ProtectedRoute allowedGroups={['admin']}>
+                    <DevicesPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="users" />} />
             </Route>
             <Route
@@ -180,6 +191,8 @@ const App = () => {
             />
           </Routes>
           <Navigation />
+          <UpdateNotificationModal />
+          <AddStandaloneDeviceModal />
         </Router>
       </div>
       <ToastManager />

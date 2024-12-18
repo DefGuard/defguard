@@ -9,20 +9,18 @@ export const useAuthStore = createWithEqualityFn<AuthStore>()(
   persist(
     (set, get) => ({
       user: undefined,
-      isAdmin: undefined,
       openIdParams: undefined,
       loginSubject: new Subject<LoginSubjectData>(),
       setState: (newState) => set({ ...get(), ...newState }),
       resetState: () =>
         set({
           user: undefined,
-          isAdmin: undefined,
           openIdParams: undefined,
         }),
     }),
     {
       name: 'auth-store',
-      partialize: (store) => pick(store, ['user', 'isAdmin', 'authLocation']),
+      partialize: (store) => pick(store, ['user', 'authLocation']),
       storage: createJSONStorage(() => sessionStorage),
     },
   ),
@@ -31,7 +29,6 @@ export const useAuthStore = createWithEqualityFn<AuthStore>()(
 export interface AuthStore {
   loginSubject: Subject<LoginSubjectData>;
   user?: User;
-  isAdmin?: boolean;
   // If this is set, redirect user to allow page and nowhere else
   openIdParams?: URLSearchParams;
   setState: (newState: Partial<AuthStore>) => void;

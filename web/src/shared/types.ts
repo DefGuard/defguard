@@ -6,6 +6,8 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+import { UpdateInfo } from './hooks/store/useUpdatesStore';
+
 export type ApiError = AxiosError<ApiErrorResponse>;
 
 export type ApiErrorResponse = {
@@ -47,6 +49,7 @@ export type User = {
   authorized_apps?: OAuth2AuthorizedApps[];
   is_active: boolean;
   enrolled: boolean;
+  is_admin: boolean;
 };
 
 export type UserProfile = {
@@ -299,7 +302,7 @@ export interface EditWalletMFARequest {
 export interface MFALoginResponse {
   mfa_method: UserMFAMethod;
   totp_available: boolean;
-  web3_available: boolean;
+  web3_available?: boolean;
   webauthn_available: boolean;
   email_available: boolean;
 }
@@ -414,6 +417,7 @@ export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
   members?: string[];
+  is_admin: boolean;
 };
 
 export type AddUsersToGroupsRequest = {
@@ -434,6 +438,7 @@ export type AuthenticationKey = {
 
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
+  getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseStatus: () => Promise<EnterpriseStatus>;
   getEnterpriseInfo: () => Promise<EnterpriseInfo>;
@@ -544,11 +549,6 @@ export interface ApiHook {
         disable: () => EmptyApiResponse;
         verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
       };
-      web3: {
-        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
-        updateWalletMFA: (data: EditWalletMFARequest) => MFARecoveryCodesResponse;
-      };
     };
   };
   provisioning: {
@@ -589,6 +589,7 @@ export interface ApiHook {
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
+    testDirsync: () => Promise<DirsyncTestResponse>;
   };
   support: {
     downloadSupportData: () => Promise<unknown>;
@@ -802,7 +803,6 @@ export interface UseOpenIDStore {
  * full defguard instance Settings
  */
 export type Settings = SettingsModules &
-  SettingsWeb3 &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
@@ -855,10 +855,6 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
-};
-
-export type SettingsWeb3 = {
-  challenge_template: string;
 };
 
 export type SettingsOpenID = {
@@ -920,6 +916,14 @@ export interface OpenIdProvider {
   client_id: string;
   client_secret: string;
   display_name: string;
+  google_service_account_key?: string;
+  google_service_account_email?: string;
+  admin_email?: string;
+  directory_sync_enabled: boolean;
+  directory_sync_interval: number;
+  directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
+  directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
+  directory_sync_target: 'all' | 'users' | 'groups';
 }
 
 export interface EditOpenidClientRequest {
@@ -1023,10 +1027,6 @@ export interface WalletSignature {
   signature: string;
 }
 
-export interface Web3StartRequest {
-  address: string;
-}
-
 export interface TOTPRequest {
   code: string;
 }
@@ -1053,4 +1053,10 @@ export type GroupInfo = {
   name: string;
   members: string[];
   vpn_locations: string[];
+  is_admin: boolean;
+};
+
+export type DirsyncTestResponse = {
+  message: string;
+  success: boolean;
 };

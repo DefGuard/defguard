@@ -111,25 +111,28 @@ export const OverviewPage = () => {
   }, [setOverViewStore, viewMode]);
 
   return (
-    <PageContainer id="network-overview-page">
-      <OverviewHeader loading={networksLoading} />
-      {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
-        <GatewaysStatus networkId={selectedNetworkId} />
-      )}
-      {networkStats && networkUsersStats && (
-        <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
-      )}
-      <div className="bottom-row">
-        {userStatsLoading ? (
-          <div className="stats-loader">
-            <LoaderSpinner size={180} />
-          </div>
-        ) : getNetworkUsers.length > 0 ? (
-          <OverviewConnectedUsers stats={getNetworkUsers} />
-        ) : (
-          <NoData />
+    <>
+      <PageContainer id="network-overview-page">
+        <OverviewHeader loading={networksLoading} />
+        {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
+          <GatewaysStatus networkId={selectedNetworkId} />
         )}
-      </div>
-    </PageContainer>
+        {networkStats && networkUsersStats && (
+          <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
+        )}
+        <div className="bottom-row">
+          {userStatsLoading ? (
+            <div className="stats-loader">
+              <LoaderSpinner size={180} />
+            </div>
+          ) : getNetworkUsers.length > 0 ? (
+            <OverviewConnectedUsers stats={getNetworkUsers} />
+          ) : (
+            <NoData />
+          )}
+        </div>
+      </PageContainer>
+      {/* Modals */}
+    </>
   );
 };
