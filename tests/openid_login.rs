@@ -1,9 +1,7 @@
 use chrono::{Duration, Utc};
 use common::{exceed_enterprise_limits, make_test_client};
 use defguard::enterprise::db::models::openid_provider::DirectorySyncTarget;
-use defguard::enterprise::{
-    db::models::openid_provider::DirectorySyncUserBehavior, license::get_cached_license,
-};
+use defguard::enterprise::db::models::openid_provider::DirectorySyncUserBehavior;
 use defguard::{
     enterprise::{
         handlers::openid_providers::AddProviderData,

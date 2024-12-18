@@ -1193,7 +1193,7 @@ mod test {
         .await
         .unwrap();
 
-        let user3 = User::new(
+        User::new(
             "hpotter3",
             Some("pass123"),
             "Potter",
