@@ -68,6 +68,7 @@ async fn test_config_import() {
         1,
         DeviceType::User,
         None,
+        true,
     )
     .save(&mut *transaction)
     .await
@@ -83,6 +84,7 @@ async fn test_config_import() {
         1,
         DeviceType::User,
         None,
+        true,
     )
     .save(&mut *transaction)
     .await

@@ -67,11 +67,12 @@ pub async fn run_periodic_peer_disconnect(
                     WHERE network = $1 \
                     ORDER BY device_id, collected_at DESC \
                 ) \
-            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
+            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+            configured \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND \
+            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND d.configured = true AND \
             (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND \
             (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
             location.id,

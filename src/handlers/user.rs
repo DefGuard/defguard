@@ -515,6 +515,7 @@ pub async fn start_remote_desktop_configuration(
             config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
+            None,
         )
         .await?;
 

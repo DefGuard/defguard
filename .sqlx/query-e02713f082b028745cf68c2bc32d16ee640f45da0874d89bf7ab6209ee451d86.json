@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5,\"device_type\" = $6,\"description\" = $7 WHERE id = $1",
+  "query": "UPDATE \"device\" SET \"name\" = $2,\"wireguard_pubkey\" = $3,\"user_id\" = $4,\"created\" = $5,\"device_type\" = $6,\"description\" = $7,\"configured\" = $8 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -21,10 +21,11 @@
             }
           }
         },
-        "Text"
+        "Text",
+        "Bool"
       ]
     },
     "nullable": []
   },
-  "hash": "e0da72c4ff7e04d1d7e565f9211eb6a8a4ed31829213e5939b8a0ec3b4b2abe6"
+  "hash": "e02713f082b028745cf68c2bc32d16ee640f45da0874d89bf7ab6209ee451d86"
 }

@@ -88,6 +88,7 @@ pub struct Token {
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
+    pub device_id: Option<Id>,
 }
 
 impl Token {
@@ -109,6 +110,7 @@ impl Token {
             expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
             token_type,
+            device_id: None,
         }
     }
 
@@ -117,8 +119,8 @@ impl Token {
         E: PgExecutor<'e>,
     {
         query!(
-            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             self.id,
             self.user_id,
             self.admin_id,
@@ -127,6 +129,7 @@ impl Token {
             self.expires_at,
             self.used_at,
             self.token_type,
+            self.device_id
         )
         .execute(executor)
         .await?;
@@ -198,7 +201,7 @@ impl Token {
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
         if let Some(enrollment) = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
             FROM token WHERE id = $1",
             id
         )
@@ -216,7 +219,7 @@ impl Token {
     pub async fn fetch_all(pool: &PgPool) -> Result<Vec<Self>, TokenError> {
         let tokens = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
             FROM token",
         )
         .fetch_all(pool)
@@ -503,6 +506,9 @@ impl User<Id> {
         enrollment_service_url: Url,
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
+        // Whether to attach some device to the token. It allows for a partial initialization of
+        // the device before the desktop configuration has taken place.
+        device_id: Option<Id>,
     ) -> Result<String, TokenError> {
         info!(
             "User {} starting a new desktop activation for user {}",
@@ -530,13 +536,16 @@ impl User<Id> {
             "Create a new desktop activation token for user {}.",
             self.username
         );
-        let desktop_configuration = Token::new(
+        let mut desktop_configuration = Token::new(
             self.id,
             Some(admin.id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
+        if let Some(device_id) = device_id {
+            desktop_configuration.device_id = Some(device_id);
+        }
         debug!("Saving a new desktop configuration token...");
         desktop_configuration.save(&mut *transaction).await?;
         debug!(

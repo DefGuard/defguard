@@ -66,6 +66,12 @@ pub struct Device<I = NoId> {
     #[model(enum)]
     pub device_type: DeviceType,
     pub description: Option<String>,
+    /// Whether the device should be considered as setup and ready to use
+    /// or does it require some additional steps to be taken. Not configured devices
+    /// won't be sent to the gateway. It is assumed that an unconfigured device is already
+    /// added to all networks it should be in, but it's not ready to be used yet due to
+    /// e.g. public key not properly set up yet.
+    pub configured: bool,
 }
 
 impl fmt::Display for Device<NoId> {
@@ -373,6 +379,7 @@ impl Device {
         user_id: Id,
         device_type: DeviceType,
         description: Option<String>,
+        configured: bool,
     ) -> Self {
         Self {
             id: NoId,
@@ -382,6 +389,7 @@ impl Device {
             created: Utc::now().naive_utc(),
             device_type,
             description,
+            configured,
         }
     }
 }
@@ -451,7 +459,8 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type  \"device_type: DeviceType\" \
+            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type  \"device_type: DeviceType\", \
+            configured \
             FROM device d \
             JOIN wireguard_network_device wnd \
             ON d.id = wnd.device_id \
@@ -469,7 +478,8 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -484,7 +494,8 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -501,7 +512,8 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -528,13 +540,49 @@ impl Device<Id> {
     pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
         )
         .fetch_all(pool)
         .await
+    }
+
+    pub async fn get_network_configs(
+        &self,
+        network: &WireguardNetwork<Id>,
+        transaction: &mut PgConnection,
+    ) -> Result<(DeviceNetworkInfo, DeviceConfig), DeviceError> {
+        let wireguard_network_device =
+            WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
+                .await?
+                .ok_or_else(|| {
+                    DeviceError::Unexpected("Device not found in network".to_string())
+                })?;
+        let device_network_info = DeviceNetworkInfo {
+            network_id: network.id,
+            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+            preshared_key: wireguard_network_device.preshared_key.clone(),
+            is_authorized: wireguard_network_device.is_authorized,
+        };
+
+        let config = self.create_config(network, &wireguard_network_device);
+        let device_config = DeviceConfig {
+            network_id: network.id,
+            network_name: network.name.clone(),
+            config,
+            endpoint: format!("{}:{}", network.endpoint, network.port),
+            address: wireguard_network_device.wireguard_ip,
+            allowed_ips: network.allowed_ips.clone(),
+            pubkey: network.pubkey.clone(),
+            dns: network.dns.clone(),
+            mfa_enabled: network.mfa_enabled,
+            keepalive_interval: network.keepalive_interval,
+        };
+
+        Ok((device_network_info, device_config))
     }
 
     pub async fn add_to_network(
@@ -743,7 +791,8 @@ impl Device<Id> {
         E: PgExecutor<'e>,
     {
         query_as!(Self,
-             "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
         ).fetch_all(executor).await
@@ -789,9 +838,10 @@ mod test {
                 }
                 // Break loop if IP is unassigned and return device
                 if Device::find_by_ip(pool, ip, network.id).await?.is_none() {
-                    let device = Device::new(name.clone(), pubkey, user_id, DeviceType::User, None)
-                        .save(pool)
-                        .await?;
+                    let device =
+                        Device::new(name.clone(), pubkey, user_id, DeviceType::User, None, true)
+                            .save(pool)
+                            .await?;
                     info!("Created device: {}", device.name);
                     debug!("For user: {}", device.user_id);
                     let wireguard_network_device =

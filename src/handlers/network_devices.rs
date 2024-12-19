@@ -22,6 +22,7 @@ use crate::{
     },
     enterprise::limits::update_counts,
     handlers::mail::send_new_device_added_email,
+    server_config,
     templates::TemplateLocation,
 };
 
@@ -286,6 +287,107 @@ pub(crate) async fn find_available_ip(
     })
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StartNetworkDeviceSetup {
+    name: String,
+    description: Option<String>,
+    location_id: i64,
+    assigned_ip: String,
+}
+
+// Setup a network device to be later configured by a CLI client
+pub(crate) async fn start_network_device_setup(
+    _admin_role: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+    Json(setup_start): Json<StartNetworkDeviceSetup>,
+) -> ApiResult {
+    let device_name = setup_start.name.clone();
+    debug!(
+        "User {} starting network device {device_name} setup in location with ID {}.",
+        session.user.username, setup_start.location_id
+    );
+
+    let user = session.user;
+    let network = WireguardNetwork::find_by_id(&appstate.pool, setup_start.location_id)
+        .await?
+        .ok_or_else(|| {
+            error!(
+                "Failed to add device {device_name}, network with ID {} not found",
+                setup_start.location_id
+            );
+            WebError::BadRequest("Failed to add device, network not found".to_string())
+        })?;
+
+    debug!(
+        "Identified network location with ID {} as {}",
+        setup_start.location_id, network.name
+    );
+
+    let mut transaction = appstate.pool.begin().await?;
+    let device = Device::new(
+        setup_start.name,
+        "NOT_CONFIGURED".to_string(),
+        user.id,
+        DeviceType::Network,
+        setup_start.description,
+        false,
+    )
+    .save(&mut *transaction)
+    .await?;
+
+    debug!(
+        "Created a new unconfigured network device {device_name} with ID {}",
+        device.id
+    );
+
+    let ip: IpAddr = setup_start.assigned_ip.parse().map_err(|e| {
+        error!("Failed to add network device {device_name}, invalid IP address: {e}");
+        WebError::BadRequest("Invalid IP address".to_string())
+    })?;
+    check_ip(ip, &network, &mut transaction).await?;
+
+    let (_, config) = device
+        .add_to_network(&network, ip, &mut transaction)
+        .await?;
+
+    info!(
+        "User {} added a new unconfigured network device {device_name} with IP {ip} to network {}",
+        user.username, network.name
+    );
+
+    let result = AddNetworkDeviceResult {
+        config,
+        device: NetworkDeviceInfo::from_device(device, &mut transaction).await?,
+    };
+    let config = server_config();
+    let configuration_token = user
+        .start_remote_desktop_configuration(
+            &mut transaction,
+            &user,
+            None,
+            config.enrollment_token_timeout.as_secs(),
+            config.enrollment_url.clone(),
+            false,
+            appstate.mail_tx.clone(),
+            Some(result.device.id),
+        )
+        .await?;
+
+    debug!(
+        "Generated a new device CLI configuration token for a network device {device_name} with ID {}: {configuration_token}",
+        result.device.id
+    );
+
+    transaction.commit().await?;
+    update_counts(&appstate.pool).await?;
+
+    Ok(ApiResponse {
+        json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        status: StatusCode::CREATED,
+    })
+}
+
 pub(crate) async fn add_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
@@ -330,6 +432,7 @@ pub(crate) async fn add_network_device(
         user.id,
         DeviceType::Network,
         add_network_device.description,
+        true,
     )
     .save(&mut *transaction)
     .await?;

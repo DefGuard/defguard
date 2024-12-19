@@ -320,7 +320,8 @@ impl WireguardNetwork<Id> {
             Some(allowed_groups) => {
                 query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
@@ -338,7 +339,8 @@ impl WireguardNetwork<Id> {
             None => {
                 query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                    configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
@@ -593,6 +595,7 @@ impl WireguardNetwork<Id> {
                 mapped_device.user_id,
                 DeviceType::User,
                 None,
+                true,
             )
             .save(&mut *transaction)
             .await?;
@@ -808,7 +811,8 @@ impl WireguardNetwork<Id> {
                 ORDER BY device_id, latest_handshake DESC \
             ) \
             SELECT \
-                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\" \
+                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                configured \
             FROM device d \
             JOIN s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
@@ -1136,6 +1140,7 @@ mod test {
             user.id,
             DeviceType::User,
             None,
+            true,
         )
         .save(&pool)
         .await
@@ -1198,6 +1203,7 @@ mod test {
             user.id,
             DeviceType::User,
             None,
+            true,
         )
         .save(&pool)
         .await
