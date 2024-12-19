@@ -500,6 +500,7 @@ export interface ApiHook {
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (data: ValidateLocationIpRequest) => Promise<void>;
+    getDevicesList: () => Promise<StandaloneDevice[]>;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;

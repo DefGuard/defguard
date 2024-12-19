@@ -490,6 +490,9 @@ const useApi = (props?: HookProps): ApiHook => {
     ...rest
   }) => client.post(`/device/network/${location}`, rest);
 
+  const getStandaloneDevicesList: ApiHook['standaloneDevice']['getDevicesList'] = () =>
+    client.get('/device/network');
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -540,6 +543,7 @@ const useApi = (props?: HookProps): ApiHook => {
       getDevice: getStandaloneDevice,
       getAvailableIp: getAvailableLocationIp,
       validateLocationIp: validateLocationIp,
+      getDevicesList: getStandaloneDevicesList,
     },
     user: {
       getMe,

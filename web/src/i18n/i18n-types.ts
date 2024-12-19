@@ -152,6 +152,16 @@ type RootTranslation = {
 			 * @param {string} name
 			 */
 			content: RequiredParams<'name'>
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​r​e​m​o​v​e​ ​d​e​v​i​c​e​.
+				 */
+				error: string
+			}
 		}
 		addStandaloneDevice: {
 			infoBox: {
@@ -4891,6 +4901,16 @@ export type TranslationFunctions = {
 			 * Device {name} will be deleted.
 			 */
 			content: (arg: { name: string }) => LocalizedString
+			messages: {
+				/**
+				 * Device deleted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to remove device.
+				 */
+				error: () => LocalizedString
+			}
 		}
 		addStandaloneDevice: {
 			infoBox: {

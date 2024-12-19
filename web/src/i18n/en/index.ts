@@ -45,6 +45,10 @@ const en: BaseTranslation = {
     deleteStandaloneDevice: {
       title: 'Delete network device',
       content: 'Device {name: string} will be deleted.',
+      messages: {
+        success: 'Device deleted',
+        error: 'Failed to remove device.',
+      },
     },
     addStandaloneDevice: {
       infoBox: {

@@ -14,6 +14,7 @@ import {
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { validateWireguardPublicKey } from '../../../../../shared/validators';
 import { useAddStandaloneDeviceModal } from '../store';
 import {
@@ -21,13 +22,9 @@ import {
   AddStandaloneDeviceModalChoice,
   WGConfigGenChoice,
 } from '../types';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-
-type FormFields = AddStandaloneDeviceFormFields;
 
 type Props = {
-  onSubmit: (formValues: FormFields) => Promise<void>;
-  defaultValues: FormFields;
+  onSubmit: (formValues: AddStandaloneDeviceFormFields) => Promise<void>;
   mode: AddStandaloneDeviceModalChoice;
   initialAssignedIp: string;
   onLoadingChange: (value: boolean) => void;
