@@ -3930,6 +3930,16 @@ type RootTranslation = {
 			 */
 			gatewayDisconnected: string
 		}
+		cardsLabels: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+		}
 	}
 	connectedUsersOverview: {
 		/**
@@ -8656,6 +8666,16 @@ export type TranslationFunctions = {
 			 * Gateway disconnected
 			 */
 			gatewayDisconnected: () => LocalizedString
+		}
+		cardsLabels: {
+			/**
+			 * Connected Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 	}
 	connectedUsersOverview: {

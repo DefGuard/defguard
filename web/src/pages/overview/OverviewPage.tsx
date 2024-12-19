@@ -6,6 +6,7 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
@@ -34,6 +35,7 @@ export const OverviewPage = () => {
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const resetWizard = useWizardStore((state) => state.resetState);
   const viewMode = useOverviewStore((state) => state.viewMode);
+  const { LL } = useI18nContext();
 
   const {
     network: { getNetworks, getOverviewStats, getNetworkStats },
@@ -142,14 +144,14 @@ export const OverviewPage = () => {
           {!userStatsLoading &&
             getNetworkUsers &&
             getNetworkUsers.user_devices.length > 0 && (
-              <OverviewExpandable title="Connected Users">
+              <OverviewExpandable title={LL.networkOverview.cardsLabels.users()}>
                 <OverviewConnectedUsers stats={getNetworkUsers.user_devices} />
               </OverviewExpandable>
             )}
           {!userStatsLoading &&
             getNetworkUsers &&
             getNetworkUsers.network_devices.length > 0 && (
-              <OverviewExpandable title="Connected Users">
+              <OverviewExpandable title={LL.networkOverview.cardsLabels.devices()}>
                 <div className="connection-cards">
                   <div className="connected-users grid">
                     {getNetworkUsers.network_devices.map((device) => (

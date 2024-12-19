@@ -1649,6 +1649,10 @@ const en: BaseTranslation = {
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
     },
+    cardsLabels: {
+      users: 'Connected Users',
+      devices: 'Connected Network Devices',
+    },
   },
   connectedUsersOverview: {
     pageTitle: 'Connected users',
