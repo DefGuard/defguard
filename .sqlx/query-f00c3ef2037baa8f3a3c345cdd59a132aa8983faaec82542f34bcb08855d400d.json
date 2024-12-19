@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" FROM device WHERE user_id = $1",
+  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" FROM device WHERE user_id = $1 and device_type = 'user'::device_type",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "8e9156599fbedfc2e3f16c38a78f8b537e168a977b0c1efec474b7b5257e8673"
+  "hash": "f00c3ef2037baa8f3a3c345cdd59a132aa8983faaec82542f34bcb08855d400d"
 }

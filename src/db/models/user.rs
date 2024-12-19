@@ -734,7 +734,7 @@ impl User<Id> {
         query_as!(
             Device,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" \
-            FROM device WHERE user_id = $1",
+            FROM device WHERE user_id = $1 and device_type = 'user'::device_type",
             self.id
         )
         .fetch_all(executor)
