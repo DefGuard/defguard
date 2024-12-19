@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\" FROM \"device\" WHERE id = $1",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE wireguard_pubkey = $1",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,12 @@
       },
       {
         "ordinal": 5,
-        "name": "device_type: _",
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "device_type: DeviceType",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -44,14 +49,14 @@
         }
       },
       {
-        "ordinal": 6,
-        "name": "description",
-        "type_info": "Text"
+        "ordinal": 7,
+        "name": "configured",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -60,9 +65,10 @@
       false,
       false,
       false,
+      true,
       false,
-      true
+      false
     ]
   },
-  "hash": "aea66e1d210a2366ed4efa8ca15b88819ddbb90f8b414d78fedaef790ab024ce"
+  "hash": "ce03b3e26496b9e59b52fcc16072bdf4301655acf15cfc5a3b5c33065e78b36f"
 }

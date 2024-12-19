@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type  \"device_type: DeviceType\" FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\" FROM \"device\"",
   "describe": {
     "columns": [
       {
@@ -30,12 +30,7 @@
       },
       {
         "ordinal": 5,
-        "name": "description",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 6,
-        "name": "device_type: DeviceType",
+        "name": "device_type: _",
         "type_info": {
           "Custom": {
             "name": "device_type",
@@ -47,15 +42,23 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "configured",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Inet",
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -65,5 +68,5 @@
       false
     ]
   },
-  "hash": "8fbeea207e2ee0fcd2996792845dee72f4324fdc991bbb8e408190c535bf95c2"
+  "hash": "1e9a919b4a300c7a579300d72212a3c7b6c535e606e18afd3e5cc3e655c71a27"
 }

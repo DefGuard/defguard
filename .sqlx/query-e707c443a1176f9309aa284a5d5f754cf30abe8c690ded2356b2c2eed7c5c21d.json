@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" FROM device JOIN \"user\" ON device.user_id = \"user\".id WHERE \"user\".username = $1",
+  "query": "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured\n                FROM device d JOIN \"user\" u ON d.user_id = u.id JOIN group_user gu ON u.id = gu.user_id JOIN \"group\" g ON gu.group_id = g.id WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) AND u.is_active = true AND d.device_type = 'user'::device_type ORDER BY d.id ASC",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,16 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "configured",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "TextArray"
       ]
     },
     "nullable": [
@@ -61,8 +66,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "f8a52de7a941ae33ce8d04880cfe9d2ddd0c1e7993337e2ca1b16f9519c84a85"
+  "hash": "e707c443a1176f9309aa284a5d5f754cf30abe8c690ded2356b2c2eed7c5c21d"
 }

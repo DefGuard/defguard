@@ -32,6 +32,7 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         admin_user.id,
         DeviceType::User,
         None,
+        true,
     )
     .save(pool)
     .await
@@ -51,6 +52,7 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         test_user.id,
         DeviceType::User,
         None,
+        true,
     )
     .save(pool)
     .await
@@ -80,6 +82,7 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         other_user.id,
         DeviceType::User,
         None,
+        true,
     )
     .save(pool)
     .await
@@ -105,6 +108,7 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
         non_group_user.id,
         DeviceType::User,
         None,
+        true,
     )
     .save(pool)
     .await

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\" FROM device WHERE user_id = $1",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = $1 ORDER BY name",
   "describe": {
     "columns": [
       {
@@ -47,11 +47,26 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "configured",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
       ]
     },
     "nullable": [
@@ -61,8 +76,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "8e9156599fbedfc2e3f16c38a78f8b537e168a977b0c1efec474b7b5257e8673"
+  "hash": "b81a45f3c325cc4e3c4b7c4877a293d148081ee8707acc63aabbb6e6ec0abc6a"
 }

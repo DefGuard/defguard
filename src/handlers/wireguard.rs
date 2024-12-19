@@ -555,6 +555,7 @@ pub async fn add_device(
         user.id,
         DeviceType::User,
         None,
+        true,
     )
     .save(&mut *transaction)
     .await?;

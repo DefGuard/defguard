@@ -25,7 +25,7 @@ use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, find_available_ip, get_network_device,
-        list_network_devices, modify_network_device,
+        list_network_devices, modify_network_device, start_network_device_setup,
     },
     ssh_authorized_keys::{
         add_authentication_key, delete_authentication_key, fetch_authentication_keys,
@@ -478,6 +478,10 @@ pub fn build_webapp(
             .route("/device/network/:device_id", put(modify_network_device))
             .route("/device/network/:device_id", get(get_network_device))
             .route("/device/network/:device_id", delete(delete_device))
+            .route(
+                "/device/network/start_cli",
+                post(start_network_device_setup),
+            )
             .route("/network", post(create_network))
             .route("/network/:network_id", put(modify_network))
             .route("/network/:network_id", delete(delete_network))
@@ -644,6 +648,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             1,
             DeviceType::User,
             None,
+            true,
         )
         .save(&mut *transaction)
         .await
