@@ -29,6 +29,9 @@ const en: BaseTranslation = {
     },
     key: 'Key',
     name: 'Name',
+    noData: 'No data',
+    unavailable: 'Unavailable',
+    notSet: 'Not set',
   },
   messages: {
     error: 'Error has occurred.',

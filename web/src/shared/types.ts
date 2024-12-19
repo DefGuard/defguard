@@ -521,7 +521,7 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (networkId: number) => EmptyApiResponse;
-    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getOverviewStats: (data: GetNetworkStatsRequest) => Promise<OverviewStatsResponse>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
@@ -1014,6 +1014,22 @@ export interface NetworkDeviceStats {
   wireguard_ip: string;
   stats: NetworkSpeedStats[];
 }
+
+export type OverviewStatsResponse = {
+  user_devices: NetworkUserStats[];
+  network_devices: StandaloneDeviceStats[];
+};
+
+export type StandaloneDeviceStats = {
+  id: number;
+  stats: NetworkSpeedStats[];
+  user_id: number;
+  name: string;
+  wireguard_ip?: string;
+  public_ip?: string;
+  connected_at?: string;
+};
+
 export interface NetworkUserStats {
   user: User;
   devices: NetworkDeviceStats[];

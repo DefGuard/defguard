@@ -21,7 +21,6 @@ import {
   MFALoginResponse,
   Network,
   NetworkToken,
-  NetworkUserStats,
   OpenidClient,
   OpenIdProvider,
   RemoveUserClientRequest,
@@ -269,9 +268,11 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then((res) => res.data);
 
-  const getUsersStats = (data: GetNetworkStatsRequest) =>
+  const getOverviewStats: ApiHook['network']['getOverviewStats'] = (
+    data: GetNetworkStatsRequest,
+  ) =>
     client
-      .get<NetworkUserStats[]>(`/network/${data.id}/stats/users`, {
+      .get(`/network/${data.id}/stats/users`, {
         params: {
           ...data,
         },
@@ -586,11 +587,11 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,
       deleteNetwork,
-      getUsersStats,
       getNetworkToken,
       getNetworkStats,
       getGatewaysStatus,
       deleteGateway,
+      getOverviewStats: getOverviewStats,
     },
     auth: {
       login,

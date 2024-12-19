@@ -108,6 +108,18 @@ type RootTranslation = {
 		 * N​a​m​e
 		 */
 		name: string
+		/**
+		 * N​o​ ​d​a​t​a
+		 */
+		noData: string
+		/**
+		 * U​n​a​v​a​i​l​a​b​l​e
+		 */
+		unavailable: string
+		/**
+		 * N​o​t​ ​s​e​t
+		 */
+		notSet: string
 	}
 	messages: {
 		/**
@@ -4858,6 +4870,18 @@ export type TranslationFunctions = {
 		 * Name
 		 */
 		name: () => LocalizedString
+		/**
+		 * No data
+		 */
+		noData: () => LocalizedString
+		/**
+		 * Unavailable
+		 */
+		unavailable: () => LocalizedString
+		/**
+		 * Not set
+		 */
+		notSet: () => LocalizedString
 	}
 	messages: {
 		/**
