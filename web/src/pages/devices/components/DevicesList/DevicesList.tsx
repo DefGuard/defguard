@@ -2,6 +2,7 @@ import './style.scss';
 
 import dayjs from 'dayjs';
 import { useCallback, useMemo } from 'react';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
@@ -14,7 +15,9 @@ import {
   ListSortDirection,
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
-import { MockDevice, useDevicesPage } from '../../hooks/useDevicesPage';
+import { StandaloneDevice } from '../../../../shared/types';
+import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
+import { useDevicesPage } from '../../hooks/useDevicesPage';
 
 export const DevicesList = () => {
   const { LL } = useI18nContext();
@@ -23,7 +26,7 @@ export const DevicesList = () => {
   const [{ devices, search }] = useDevicesPage();
 
   const renderRow = useCallback(
-    (device: MockDevice) => <DeviceRow key={device.id} {...device} />,
+    (device: StandaloneDevice) => <DeviceRow key={device.id} {...device} />,
     [],
   );
 
@@ -71,19 +74,12 @@ export const DevicesList = () => {
   );
 };
 
-const DeviceRow = ({
-  addedBy,
-  addedDate,
-  assignedIp,
-  description,
-  id,
-  location,
-  name,
-}: MockDevice) => {
+const DeviceRow = (props: StandaloneDevice) => {
+  const { description, id, location, name, added_by, added_date, assigned_ip } = props;
   const formatDate = useMemo(() => {
-    const day = dayjs(addedDate);
+    const day = dayjs(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
-  }, [addedDate]);
+  }, [added_date]);
   return (
     <div className="device-row">
       <div className="cell-1">
@@ -91,38 +87,38 @@ const DeviceRow = ({
         <LimitedText floatingClassName="device-item-floating" text={name} />
       </div>
       <div className="cell-2">
-        <LimitedText
-          floatingClassName="device-item-floating"
-          text={location[0]?.name ?? ''}
-        />
+        <LimitedText floatingClassName="device-item-floating" text={location.name} />
       </div>
       <div className="cell-3">
-        <span>{assignedIp}</span>
+        <span>{assigned_ip}</span>
       </div>
       <div className="cell-4">
-        <LimitedText floatingClassName="device-item-floating" text={description} />
+        <LimitedText floatingClassName="device-item-floating" text={description ?? ''} />
       </div>
       <div className="cell-5">
-        <LimitedText floatingClassName="device-item-floating" text={addedBy} />
+        <LimitedText floatingClassName="device-item-floating" text={added_by} />
       </div>
       <div className="cell-6">
         <span>{formatDate}</span>
       </div>
       <div className="cell-7">
-        <DeviceRowEditButton />
+        <DeviceRowEditButton data={props} />
       </div>
     </div>
   );
 };
 
-const DeviceRowEditButton = () => {
+const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
   const { LL } = useI18nContext();
+  const openDelete = useDeleteStandaloneDeviceModal((s) => s.open, shallow);
+
   return (
     <EditButton>
       <EditButtonOption text={LL.common.controls.edit()} />
       <EditButtonOption
         text={LL.common.controls.delete()}
         styleVariant={EditButtonOptionStyleVariant.WARNING}
+        onClick={() => openDelete(props.data)}
       />
     </EditButton>
   );

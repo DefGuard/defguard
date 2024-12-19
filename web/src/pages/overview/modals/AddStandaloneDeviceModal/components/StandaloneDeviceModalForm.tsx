@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -40,6 +40,8 @@ export const StandaloneDeviceModalForm = ({
   const {
     standaloneDevice: { validateLocationIp, getAvailableIp },
   } = useApi();
+  // auto assign upon location change is happening
+  const [ipIsLoading, setIpIsLoading] = useState(false);
   const localLL = LL.modals.addStandaloneDevice.steps.manual.setup;
   const errors = LL.form.error;
   const labels = localLL.form.labels;
@@ -87,10 +89,10 @@ export const StandaloneDeviceModalForm = ({
     () =>
       z
         .object({
-          name: z.string(),
+          name: z.string().min(1, LL.form.error.required()),
           location_id: z.number(),
           description: z.string(),
-          assigned_ip: z.string(),
+          assigned_ip: z.string().min(1, LL.form.error.required()),
           generationChoice: z.nativeEnum(WGConfigGenChoice),
           wireguard_pubkey: z.string().optional(),
         })
@@ -104,16 +106,18 @@ export const StandaloneDeviceModalForm = ({
                 validKeyError: errors.invalid(),
               }).safeParse(vals.wireguard_pubkey);
               if (!result.success) {
-                ctx.addIssue({
-                  path: ['wireguard_pubkey'],
-                  message: result.error.message,
-                  code: 'custom',
+                result.error.errors.forEach((e) => {
+                  ctx.addIssue({
+                    path: ['wireguard_pubkey'],
+                    message: e.message,
+                    code: 'custom',
+                  });
                 });
               }
             }
           }
         }),
-    [errors, mode],
+    [LL.form.error, errors, mode],
   );
 
   const {
@@ -122,6 +126,7 @@ export const StandaloneDeviceModalForm = ({
     watch,
     formState: { isSubmitting },
     setError,
+    setValue,
   } = useForm<AddStandaloneDeviceFormFields>({
     defaultValues: {
       description: '',
@@ -137,32 +142,42 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
-  const locationId = watch('location_id');
-
   const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (values) => {
-    // TODO: validate ip here
-    // await actual handler after post submit validation is done
+    console.log('Submit fired');
     try {
-      // TODO: Needs API changes
-      const isValid = await validateLocationIp({
+      const response = await validateLocationIp({
         ip: values.assigned_ip,
         location: values.location_id,
       });
-      if (isValid) {
+      const { available } = response;
+      console.log(response, available);
+      if (available) {
         await onSubmit(values);
       } else {
-        // FIXME: change the label
         setError('assigned_ip', {
-          message: 'Invalid IP (change the label)',
+          message: LL.form.error.invalid(),
         });
       }
     } catch (e) {
-      toaster.error('Something went wrong.', 'Please try again.');
+      toaster.error(LL.messages.error());
     }
   };
 
-  // reassign ip on change
-  useEffect(() => {}, [locationId]);
+  const autoAssignRecommendedIp = useCallback(
+    (locationId: number | undefined) => {
+      if (locationId !== undefined) {
+        setIpIsLoading(true);
+        getAvailableIp({
+          locationId,
+        })
+          .then((resp) => setValue('assigned_ip', resp.ip))
+          .finally(() => {
+            setIpIsLoading(false);
+          });
+      }
+    },
+    [getAvailableIp, setValue],
+  );
 
   // inform parent that form is processing stuff
   useEffect(() => {
@@ -190,10 +205,12 @@ export const StandaloneDeviceModalForm = ({
           options={locationOptions as NonNullable<SelectOption<number>[]>}
           renderSelected={renderSelectedOption}
           label={labels.location()}
+          onChangeSingle={autoAssignRecommendedIp}
         />
         <FormInput
           controller={{ control, name: 'assigned_ip' }}
           label={labels.assignedAddress()}
+          disabled={ipIsLoading}
         />
       </div>
       <FormInput
@@ -208,7 +225,7 @@ export const StandaloneDeviceModalForm = ({
           />
           <FormInput
             controller={{ control, name: 'wireguard_pubkey' }}
-            label={labels.description()}
+            label={labels.publicKey()}
             disabled={generationChoiceValue === WGConfigGenChoice.AUTO}
           />
         </>

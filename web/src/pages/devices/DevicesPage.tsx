@@ -69,6 +69,7 @@ const Page = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
+
   return (
     <ManagementPageLayout
       id="standalone-devices-page"
@@ -76,7 +77,10 @@ const Page = () => {
       search={{
         placeholder: localLL.search.placeholder(),
         onSearch: (v) => {
-          console.log(v);
+          setPageState((s) => ({
+            ...s,
+            search: v,
+          }));
         },
       }}
       actions={<PageActions />}

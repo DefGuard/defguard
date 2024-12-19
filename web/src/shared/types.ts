@@ -499,7 +499,9 @@ export interface ApiHook {
     getAvailableIp: (
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
-    validateLocationIp: (data: ValidateLocationIpRequest) => Promise<void>;
+    validateLocationIp: (
+      data: ValidateLocationIpRequest,
+    ) => Promise<ValidateLocationIpResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
   };
   device: {
@@ -1078,13 +1080,18 @@ export type CreateStandaloneDeviceRequest = {
   name: string;
   location_id: number;
   assigned_ip: string;
-  wireguard_pubkey: string;
+  wireguard_pubkey?: string;
   description?: string;
 };
 
 export type ValidateLocationIpRequest = {
   ip: string;
   location: number | string;
+};
+
+export type ValidateLocationIpResponse = {
+  available: boolean;
+  reason?: string;
 };
 
 export type GetAvailableLocationIpRequest = {
@@ -1108,7 +1115,19 @@ export type StandaloneDevice = {
   };
 };
 
+export type DeviceConfigurationResponse = {
+  address: string;
+  allowed_ips: string[];
+  config: string;
+  endpoint: string;
+  keepalive_interval: number;
+  mfa_enabled: boolean;
+  network_id: number;
+  network_name: string;
+  pubkey: string;
+};
+
 export type CreateStandaloneDeviceResponse = {
-  config: unknown;
+  config: DeviceConfigurationResponse;
   device: StandaloneDevice;
 };

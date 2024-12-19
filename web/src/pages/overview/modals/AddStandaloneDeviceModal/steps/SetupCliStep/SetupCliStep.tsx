@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -9,32 +10,53 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../../../shared/queries';
 import { StandaloneDeviceModalForm } from '../../components/StandaloneDeviceModalForm';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
   AddStandaloneDeviceFormFields,
   AddStandaloneDeviceModalChoice,
-  AddStandaloneDeviceModalStep,
 } from '../../types';
 
 export const SetupCliStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const [formLoading, setFormLoading] = useState(false);
+  const queryClient = useQueryClient();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [setState, close, next] = useAddStandaloneDeviceModal(
-    (s) => [s.setStore, s.close, s.changeStep],
+  const [setState, close, next, submitSubject] = useAddStandaloneDeviceModal(
+    (s) => [s.setStore, s.close, s.changeStep, s.submitSubject],
     shallow,
   );
+
+  const {
+    standaloneDevice: { createDevice },
+  } = useApi();
+
+  const { mutateAsync } = useMutation({
+    mutationFn: createDevice,
+    onSuccess: (resp) => {
+      console.table(resp);
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      });
+      // next(AddStandaloneDeviceModalStep.FINISH_CLI);
+    },
+  });
 
   const initIp = useAddStandaloneDeviceModal((s) => s.initAvailableIp);
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
       console.table(values);
-      next(AddStandaloneDeviceModalStep.FINISH_CLI);
+      await mutateAsync({
+        assigned_ip: values.assigned_ip,
+        location_id: values.location_id,
+        name: values.name,
+      });
     },
-    [next],
+    [mutateAsync],
   );
 
   if (initIp === undefined) return null;
@@ -68,7 +90,9 @@ export const SetupCliStep = () => {
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={localLL.form.submit()}
-          onClick={() => {}}
+          onClick={() => {
+            submitSubject.next();
+          }}
           type="submit"
         />
       </div>
