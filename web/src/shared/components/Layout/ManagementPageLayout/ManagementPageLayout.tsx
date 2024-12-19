@@ -12,6 +12,7 @@ export const ManagementPageLayout = ({
   actions,
   itemsCount,
   search,
+  id,
 }: ManagementPageProps) => {
   const navOpen = useNavigationStore((s) => s.isOpen);
   return (
@@ -19,6 +20,7 @@ export const ManagementPageLayout = ({
       className={clsx('management-page', {
         'nav-open': navOpen,
       })}
+      id={id}
     >
       <div className="page-content">
         <header>

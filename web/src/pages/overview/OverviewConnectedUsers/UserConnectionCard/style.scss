@@ -14,6 +14,10 @@
   grid-template-rows: min-content 0fr;
   height: min-content;
 
+  &:hover {
+    border-color: var(--gray-border);
+  }
+
   &.expanded {
     grid-template-rows: min-content min-content;
     border-color: var(--gray-border);
@@ -242,6 +246,7 @@
       align-items: center;
       justify-content: center;
       height: 100%;
+
       & > span {
         @include typography-legacy(15px, 18px, medium);
         @include text-overflow-dots;

@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useId } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -14,6 +14,7 @@ import {
 import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
@@ -22,18 +23,43 @@ import {
 } from '../../types';
 
 export const MethodStep = () => {
+  // this is needs bcs opening modal again and again would prevent availableIp to refetch
+  const modalSessionID = useId();
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.method;
   const choice = useAddStandaloneDeviceModal((s) => s.choice);
   const {
     network: { getNetworks },
+    standaloneDevice: { getAvailableIp },
   } = useApi();
+
   const { data: networks } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORKS],
     queryFn: getNetworks,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+
+  const {
+    data: availableIp,
+    refetch: refetchAvailableIp,
+    isLoading: availableIpLoading,
+  } = useQuery({
+    queryKey: [
+      'ADD_STANDALONE_DEVICE_MODAL_FETCH_INITIAL_AVAILABLE_IP',
+      networks,
+      modalSessionID,
+    ],
+    queryFn: () =>
+      getAvailableIp({
+        locationId: (networks as Network[])[0].id,
+      }),
+    enabled: networks !== undefined && Array.isArray(networks) && networks.length > 0,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: false,
+  });
+
   const [setState, close, next] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep],
     shallow,
@@ -46,16 +72,38 @@ export const MethodStep = () => {
     [setState],
   );
 
+  const handleNext = () => {
+    switch (choice) {
+      case AddStandaloneDeviceModalChoice.CLI:
+        next(AddStandaloneDeviceModalStep.SETUP_CLI);
+        break;
+      case AddStandaloneDeviceModalChoice.MANUAL:
+        next(AddStandaloneDeviceModalStep.SETUP_MANUAL);
+        break;
+    }
+  };
+
   useEffect(() => {
-    if (networks && networks.length) {
+    if (networks) {
       const options: SelectOption<number>[] = networks.map((n) => ({
         key: n.id,
         value: n.id,
         label: n.name,
       }));
-      setState({ networks, networkOptions: options });
+      setState({
+        networks,
+        networkOptions: options,
+      });
     }
-  }, [networks, setState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [networks]);
+
+  useEffect(() => {
+    if (availableIp) {
+      setState({ initAvailableIp: availableIp.ip });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableIp]);
 
   return (
     <div className="method-step">
@@ -85,18 +133,17 @@ export const MethodStep = () => {
           size={ButtonSize.LARGE}
         />
         <Button
-          loading={networks === undefined}
+          loading={
+            networks === undefined || availableIpLoading || availableIp === undefined
+          }
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.common.controls.next()}
           onClick={() => {
-            switch (choice) {
-              case AddStandaloneDeviceModalChoice.CLI:
-                next(AddStandaloneDeviceModalStep.SETUP_CLI);
-                break;
-              case AddStandaloneDeviceModalChoice.MANUAL:
-                next(AddStandaloneDeviceModalStep.SETUP_MANUAL);
-                break;
+            if (availableIp) {
+              handleNext();
+            } else {
+              refetchAvailableIp();
             }
           }}
         />

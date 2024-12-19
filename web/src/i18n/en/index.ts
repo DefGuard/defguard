@@ -45,6 +45,10 @@ const en: BaseTranslation = {
     deleteStandaloneDevice: {
       title: 'Delete network device',
       content: 'Device {name: string} will be deleted.',
+      messages: {
+        success: 'Device deleted',
+        error: 'Failed to remove device.',
+      },
     },
     addStandaloneDevice: {
       infoBox: {
@@ -867,6 +871,10 @@ const en: BaseTranslation = {
   },
   usersOverview: {
     pageTitle: 'Users',
+    grid: {
+      usersTitle: 'Connected Users',
+      devicesTitle: 'Connected Network Devices',
+    },
     search: {
       placeholder: 'Find users',
     },
@@ -910,6 +918,7 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
       groups: 'Groups',
+      devices: 'Network Devices',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -924,6 +933,7 @@ const en: BaseTranslation = {
       networkSettings: 'Edit Location',
       enrollment: 'Enrollment',
       support: 'Support',
+      devices: 'Network Devices',
     },
     copyright: 'Copyright ©2023-2024',
     version: {

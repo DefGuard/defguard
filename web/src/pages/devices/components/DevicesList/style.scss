@@ -59,6 +59,11 @@
 }
 
 #devices-page-devices-list .device-row {
+  .avatar-icon {
+    min-width: 40px;
+    max-width: 40px;
+  }
+
   p,
   span {
     font-family: 'Roboto';
