@@ -1,5 +1,9 @@
 .navigation-link {
   svg {
+    rect {
+      fill: var(--surface-icon-primary);
+    }
+
     path {
       fill: var(--surface-icon-primary);
     }
@@ -12,6 +16,10 @@
   &:hover,
   &.active {
     svg {
+      rect {
+        fill: var(--surface-main-primary);
+      }
+
       path {
         fill: var(--surface-main-primary);
       }

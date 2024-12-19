@@ -23,17 +23,18 @@ jobs:
       - ${{ matrix.runner }}
     strategy:
       matrix:
-        cpu: [arm64, amd64, arm/v7]
+        # cpu: [arm64, amd64, arm/v7]
+        cpu: [amd64]
         include:
-          - cpu: arm64
-            runner: ARM64
-            tag: arm64
+          # - cpu: arm64
+          #   runner: ARM64
+          #   tag: arm64
           - cpu: amd64
             runner: X64
             tag: amd64
-          - cpu: arm/v7
-            runner: ARM
-            tag: armv7
+          # - cpu: arm/v7
+          #   runner: ARM
+          #   tag: armv7
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,30 +63,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  docker-manifest:
-    runs-on: [self-hosted, Linux]
-    needs: [build-docker]
-    steps:
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.GHCR_REPO }}
-          flavor: ${{ inputs.flavor }}
-          tags: ${{ inputs.tags }}
-      - name: Login to GitHub container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create and push manifests
-        run: |
-          tags='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
-          for tag in ${tags}
-          do
-            docker manifest rm ${tag} || true
-            docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64 ${{ env.GHCR_REPO }}:${{ github.sha }}-armv7
-            docker manifest push ${tag}
-          done
+  # docker-manifest:
+  #   runs-on: [self-hosted, Linux]
+  #   needs: [build-docker]
+  #   steps:
+  #     - name: Docker meta
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: |
+  #           ${{ env.GHCR_REPO }}
+  #         flavor: ${{ inputs.flavor }}
+  #         tags: ${{ inputs.tags }}
+  #     - name: Login to GitHub container registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Create and push manifests
+  #       run: |
+  #         tags='${{ env.GHCR_REPO }}:${{ github.sha }} ${{ steps.meta.outputs.tags }}'
+  #         for tag in ${tags}
+  #         do
+  #           docker manifest rm ${tag} || true
+  #           docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64 ${{ env.GHCR_REPO }}:${{ github.sha }}-armv7
+  #           docker manifest push ${tag}
+  #         done

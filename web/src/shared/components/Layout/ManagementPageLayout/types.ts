@@ -6,6 +6,7 @@ export type ManagementPageProps = {
   search?: ManagementPageSearch;
   actions?: ReactNode;
   itemsCount?: ManagementPageItemsCount;
+  id?: string;
 };
 
 export type ManagementPageItemsCount = {

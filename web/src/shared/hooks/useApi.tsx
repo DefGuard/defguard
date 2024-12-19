@@ -470,6 +470,29 @@ const useApi = (props?: HookProps): ApiHook => {
   const testDirsync: ApiHook['settings']['testDirsync'] = () =>
     client.get('/test_directory_sync').then(unpackRequest);
 
+  const createStandaloneDevice: ApiHook['standaloneDevice']['createDevice'] = (data) =>
+    client.post('/device/network', data).then(unpackRequest);
+
+  const deleteStandaloneDevice: ApiHook['standaloneDevice']['deleteDevice'] = (
+    deviceId,
+  ) => client.delete(`/device/network/${deviceId}`);
+  const editStandaloneDevice: ApiHook['standaloneDevice']['editDevice'] = (device) =>
+    client.put(`/device/network/${device.id}`, device).then(unpackRequest);
+
+  const getStandaloneDevice: ApiHook['standaloneDevice']['getDevice'] = (deviceId) =>
+    client.get(`/device/network/${deviceId}`).then(unpackRequest);
+
+  const getAvailableLocationIp: ApiHook['standaloneDevice']['getAvailableIp'] = (data) =>
+    client.get(`/device/network/ip/${data.locationId}`).then(unpackRequest);
+
+  const validateLocationIp: ApiHook['standaloneDevice']['validateLocationIp'] = ({
+    location,
+    ...rest
+  }) => client.post(`/device/network/ip/${location}`, rest).then(unpackRequest);
+
+  const getStandaloneDevicesList: ApiHook['standaloneDevice']['getDevicesList'] = () =>
+    client.get('/device/network').then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -512,6 +535,15 @@ const useApi = (props?: HookProps): ApiHook => {
       createGroup,
       editGroup,
       addUsersToGroups,
+    },
+    standaloneDevice: {
+      createDevice: createStandaloneDevice,
+      deleteDevice: deleteStandaloneDevice,
+      editDevice: editStandaloneDevice,
+      getDevice: getStandaloneDevice,
+      getAvailableIp: getAvailableLocationIp,
+      validateLocationIp: validateLocationIp,
+      getDevicesList: getStandaloneDevicesList,
     },
     user: {
       getMe,

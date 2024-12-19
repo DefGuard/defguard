@@ -18,7 +18,9 @@ import { sortByDate } from '../../shared/utils/sortByDate';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
+import mockUsers from './mock_user_devices.json';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
+import { OverviewExpandable } from './OverviewExpandable/OverviewExpandable';
 import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
 
@@ -88,20 +90,30 @@ export const OverviewPage = () => {
     },
   );
 
+  //FIXME: dont merge mock :)
   const getNetworkUsers = useMemo(() => {
     let res: NetworkUserStats[] = [];
-    if (!isUndefined(networkUsersStats)) {
-      res = sortByDate(
-        networkUsersStats,
-        (i) => {
-          const devices = sortByDate(i.devices, (d) => d.connected_at, false);
-          return devices[0].connected_at;
-        },
-        false,
-      );
-    }
+    // if (!isUndefined(networkUsersStats)) {
+    //   res = sortByDate(
+    //     networkUsersStats,
+    //     (i) => {
+    //       const devices = sortByDate(i.devices, (d) => d.connected_at, false);
+    //       return devices[0].connected_at;
+    //     },
+    //     false,
+    //   );
+    // }
+    const inputData = mockUsers as NetworkUserStats[];
+    res = sortByDate(
+      inputData.slice(0, 12),
+      (i) => {
+        const devices = sortByDate(i.devices, (d) => d.connected_at, false);
+        return devices[0].connected_at;
+      },
+      false,
+    );
     return res;
-  }, [networkUsersStats]);
+  }, []);
 
   // FIXME: lockdown viewMode on grid for now
   useEffect(() => {
@@ -121,14 +133,21 @@ export const OverviewPage = () => {
           <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
         )}
         <div className="bottom-row">
-          {userStatsLoading ? (
+          {userStatsLoading && (
             <div className="stats-loader">
               <LoaderSpinner size={180} />
             </div>
-          ) : getNetworkUsers.length > 0 ? (
-            <OverviewConnectedUsers stats={getNetworkUsers} />
-          ) : (
-            <NoData />
+          )}
+          {!userStatsLoading && getNetworkUsers.length === 0 && <NoData />}
+          {!userStatsLoading && getNetworkUsers.length > 0 && (
+            <>
+              <OverviewExpandable title="Connected Users">
+                <OverviewConnectedUsers stats={getNetworkUsers} />
+              </OverviewExpandable>
+              <OverviewExpandable title="Connected Network Devices">
+                <OverviewConnectedUsers stats={getNetworkUsers} />
+              </OverviewExpandable>
+            </>
           )}
         </div>
       </PageContainer>

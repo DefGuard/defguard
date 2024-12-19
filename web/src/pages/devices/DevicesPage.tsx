@@ -1,16 +1,20 @@
+import './style.scss';
+
+import { useQuery } from '@tanstack/react-query';
 import { PropsWithChildren, useEffect } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { ManagementPageLayout } from '../../shared/components/Layout/ManagementPageLayout/ManagementPageLayout';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../shared/defguard-ui/components/Layout/Button/types';
+import useApi from '../../shared/hooks/useApi';
+import { QueryKeys } from '../../shared/queries';
 import { AddStandaloneDeviceModal } from '../overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { useAddStandaloneDeviceModal } from '../overview/modals/AddStandaloneDeviceModal/store';
 import { AddDeviceIcon } from './components/AddDeviceIcon';
 import { DevicesList } from './components/DevicesList/DevicesList';
 import { ConfirmDeviceDeleteModal } from './components/DevicesList/modals/ConfirmDeviceDeleteModal';
 import { DevicesPageProvider, useDevicesPage } from './hooks/useDevicesPage';
-import { mockDevices } from './mock';
 
 export const DevicesPage = () => {
   return (
@@ -47,21 +51,36 @@ const Page = () => {
   const { LL } = useI18nContext();
   const localLL = LL.devicesPage;
   const [{ devices }, setPageState] = useDevicesPage();
+  const {
+    standaloneDevice: { getDevicesList },
+  } = useApi();
+
+  const { data } = useQuery({
+    queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+    queryFn: getDevicesList,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
-    setPageState((s) => ({
-      ...s,
-      devices: mockDevices,
-    }));
+    if (data) {
+      setPageState((s) => ({ ...s, devices: data }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [data]);
+
   return (
     <ManagementPageLayout
+      id="standalone-devices-page"
       title={localLL.title()}
       search={{
         placeholder: localLL.search.placeholder(),
         onSearch: (v) => {
-          console.log(v);
+          setPageState((s) => ({
+            ...s,
+            search: v,
+          }));
         },
       }}
       actions={<PageActions />}

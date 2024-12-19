@@ -1,6 +1,6 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { MockDevice } from './useDevicesPage';
+import { StandaloneDevice } from '../../../shared/types';
 
 const defaultValues: StoreValues = {
   visible: false,
@@ -21,10 +21,10 @@ type Store = StoreValues & StoreMethods;
 
 type StoreValues = {
   visible: boolean;
-  device?: MockDevice;
+  device?: StandaloneDevice;
 };
 type StoreMethods = {
-  open: (device: MockDevice) => void;
+  open: (device: StandaloneDevice) => void;
   close: () => void;
   reset: () => void;
 };

@@ -4,7 +4,6 @@ import classNames from 'classnames';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { motion } from 'framer-motion';
-import { floor } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { timer } from 'rxjs';
@@ -25,6 +24,7 @@ import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { summarizeDeviceStats, summarizeUsersNetworkStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
+import { formatConnectionTime } from './formatConnectionTime';
 
 dayjs.extend(utc);
 
@@ -157,17 +157,7 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
   const [displayedTime, setDisplayedTime] = useState<string | undefined>();
 
   const updateConnectionTime = useCallback(() => {
-    const minutes = dayjs().diff(dayjs.utc(connectedAt), 'm');
-    if (minutes > 60) {
-      const hours = floor(minutes / 60);
-      const res = [`${hours}h`];
-      if (minutes % 60 > 0) {
-        res.push(`${minutes % 60}m`);
-      }
-      setDisplayedTime(res.join(' '));
-    } else {
-      setDisplayedTime(`${minutes}m`);
-    }
+    setDisplayedTime(formatConnectionTime(connectedAt));
   }, [connectedAt]);
 
   useEffect(() => {

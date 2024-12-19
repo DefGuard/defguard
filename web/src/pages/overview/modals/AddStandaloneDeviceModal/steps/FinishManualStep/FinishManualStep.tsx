@@ -20,21 +20,12 @@ import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { downloadWGConfig } from '../../../../../../shared/utils/downloadWGConfig';
 import { useAddStandaloneDeviceModal } from '../../store';
 
-const mockConfig = `[Interface]
-PrivateKey = YOUR_PRIVATE_KEY 
-Address = 10.2.0.16/24
-DNS = 10.2.0.1
-
-[Peer]
-PublicKey = 2LYRr2HgSScFe0UucpGCdXKDDAluNc9VAE=
-AllowedIPs = 10.6.0.0/24, 10.2.0.0/24, 10.3.0.0/24, 10.4.0.0/24, 256.23.12.12/23
-Endpoint = 123.223.23.123:8596
-PersistentKeepalive = 23`;
-
 export const FinishManualStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.manual.finish;
   const [closeModal] = useAddStandaloneDeviceModal((s) => [s.close], shallow);
+  const manual = useAddStandaloneDeviceModal((s) => s.manualResponse);
+  const generatedKeys = useAddStandaloneDeviceModal((s) => s.genKeys);
 
   return (
     <div className="finish-manual-step">
@@ -47,7 +38,7 @@ export const FinishManualStep = () => {
         <p className="label">
           {LL.modals.addStandaloneDevice.steps.manual.setup.form.labels.deviceName()}:
         </p>
-        <p className="name">Mocked name</p>
+        <p className="name">{manual?.device.name}</p>
       </div>
       <div className="cta">
         <p>{localLL.ctaInstruction()}</p>
@@ -55,12 +46,14 @@ export const FinishManualStep = () => {
       <MessageBox type={MessageBoxType.ERROR}>
         <RenderMarkdown content={localLL.warningMessage()} />
       </MessageBox>
-      <DeviceConfigCard
-        config={mockConfig}
-        publicKey="2LYRr2HgSScFe0UucpGCdXKDDAluNc9VAE="
-        privateKey="4McPrhR6RIgSSpGCdX0CafsAM9ER0orPrhR6RtI3s="
-        deviceName="mocked device"
-      />
+      {manual && (
+        <DeviceConfigCard
+          config={manual.config.config}
+          publicKey={manual.config.pubkey}
+          privateKey={generatedKeys?.privateKey}
+          deviceName={manual.device.name}
+        />
+      )}
       <div className="controls solo">
         <Button
           size={ButtonSize.LARGE}

@@ -101,7 +101,8 @@
 
         & > svg {
           g,
-          path {
+          path,
+          rect {
             fill: var(--primary);
           }
         }

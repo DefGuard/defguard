@@ -24,6 +24,7 @@ import { useUserProfileStore } from '../../shared/hooks/store/useUserProfileStor
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { User } from '../../shared/types';
+import { DevicePageNavigationIcon } from './components/DevicesPageNavigationIcon';
 import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
 import { navigationExcludedRoutes } from './config';
@@ -103,6 +104,13 @@ export const Navigation = () => {
         title: LL.navigation.bar.groups(),
         linkPath: '/admin/groups',
         icon: <SvgIconNavGroups />,
+        allowedToView: ['admin'],
+        enabled: true,
+      },
+      {
+        title: LL.navigation.bar.devices(),
+        linkPath: '/admin/devices',
+        icon: <DevicePageNavigationIcon />,
         allowedToView: ['admin'],
         enabled: true,
       },
