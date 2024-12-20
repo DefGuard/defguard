@@ -203,6 +203,18 @@ async fn check_ip(
             network.name,
         )));
     }
+    if ip == network_address.network() || ip == network_address.broadcast() {
+        return Err(WebError::BadRequest(format!(
+            "Provided IP address {ip} is network or broadcast address of network {}",
+            network.name
+        )));
+    }
+    if ip == network_address.ip() {
+        return Err(WebError::BadRequest(format!(
+            "Provided IP address {ip} may overlap with the network's gateway IP in network {}",
+            network.name
+        )));
+    }
 
     let device = Device::find_by_ip(transaction, ip, network.id).await?;
     if let Some(device) = device {
@@ -217,7 +229,7 @@ async fn check_ip(
 
 #[derive(Deserialize)]
 pub struct IpAvailabilityCheck {
-    ip: IpAddr,
+    ip: String,
 }
 
 pub(crate) async fn check_ip_availability(
@@ -231,12 +243,27 @@ pub(crate) async fn check_ip_availability(
         .await?
         .ok_or_else(|| {
             error!(
-                "Failed to check IP availability for network with ID {}, network not found",
-                network_id
+                "Failed to check IP availability for network with ID {network_id}, network not found",
+
             );
             WebError::BadRequest("Failed to check IP availability, network not found".to_string())
         })?;
-    if !network.address.contains(ip.ip) {
+
+    let ip = if let Ok(ip) = IpAddr::from_str(&ip.ip) {
+        ip
+    } else {
+        warn!(
+            "Failed to check IP availability for network with ID {network_id}, invalid IP address",
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": false,
+            }),
+            status: StatusCode::OK,
+        });
+    };
+    if !network.address.contains(ip) {
         warn!(
             "Provided device IP is not in the network ({}) range {}",
             network.name, network.address
@@ -249,7 +276,33 @@ pub(crate) async fn check_ip_availability(
             status: StatusCode::OK,
         });
     }
-    if let Some(device) = Device::find_by_ip(&mut *transaction, ip.ip, network.id).await? {
+    if ip == network.address.network() || ip == network.address.broadcast() {
+        warn!(
+            "Provided device IP is network or broadcast address of network {}",
+            network.name
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": true,
+            }),
+            status: StatusCode::OK,
+        });
+    }
+    if ip == network.address.ip() {
+        warn!(
+            "Provided device IP may overlap with the network's gateway IP in network {}",
+            network.name
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": true,
+            }),
+            status: StatusCode::OK,
+        });
+    }
+    if let Some(device) = Device::find_by_ip(&mut *transaction, ip, network.id).await? {
         warn!(
             "Provided device IP is already assigned to device {} in network {}",
             device.name, network.name
