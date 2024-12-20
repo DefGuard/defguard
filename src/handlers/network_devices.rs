@@ -220,14 +220,28 @@ pub(crate) async fn check_ip_availability(
             );
             WebError::BadRequest("Failed to check IP availability, network not found".to_string())
         })?;
-    if let Err(e) = check_ip(ip.ip, &network, &mut transaction).await {
+    if !network.address.contains(ip.ip) {
         warn!(
-            "Provided device IP is unavailable, reason: {}",
-            e.to_string()
+            "Provided device IP is not in the network ({}) range {}",
+            network.name, network.address
         );
         return Ok(ApiResponse {
             json: json!({
                 "available": false,
+                "valid": false,
+            }),
+            status: StatusCode::OK,
+        });
+    }
+    if let Some(device) = Device::find_by_ip(&mut *transaction, ip.ip, network.id).await? {
+        warn!(
+            "Provided device IP is already assigned to device {} in network {}",
+            device.name, network.name
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": true,
             }),
             status: StatusCode::OK,
         });
@@ -235,6 +249,7 @@ pub(crate) async fn check_ip_availability(
     Ok(ApiResponse {
         json: json!({
             "available": true,
+            "valid": true,
         }),
         status: StatusCode::OK,
     })
