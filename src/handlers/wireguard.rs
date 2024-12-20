@@ -217,7 +217,15 @@ pub async fn delete_network(
     );
     let network = find_network(network_id, &appstate.pool).await?;
     let network_name = network.name.clone();
-    network.delete(&appstate.pool).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let network_devices = network
+        .get_devices_by_type(&mut *transaction, DeviceType::Network)
+        .await?;
+    for device in network_devices {
+        device.delete(&mut *transaction).await?;
+    }
+    network.delete(&mut *transaction).await?;
+    transaction.commit().await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",

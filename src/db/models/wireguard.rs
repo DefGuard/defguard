@@ -420,7 +420,11 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
-        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        // network devices are always allowed
+        let network_devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
+        allowed_devices.extend(network_devices);
+
         // convert to a map for easier processing
         let mut allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
@@ -937,6 +941,28 @@ impl WireguardNetwork<Id> {
             download: transfer_series.iter().filter_map(|t| t.download).sum(),
             transfer_series,
         })
+    }
+
+    pub async fn get_devices_by_type<'e, E>(
+        &self,
+        executor: E,
+        device_type: DeviceType,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Device,
+            "SELECT \
+                id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                configured \
+            FROM device WHERE id in (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $1) \
+            AND device_type = $2",
+            self.id,
+            device_type as DeviceType
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 
