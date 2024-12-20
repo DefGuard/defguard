@@ -99,6 +99,39 @@ impl NetworkDeviceInfo {
     }
 }
 
+pub async fn download_network_device_config(
+    _admin_role: AdminRole,
+    State(appstate): State<AppState>,
+    Path(device_id): Path<i64>,
+) -> Result<String, WebError> {
+    debug!("Creating a WireGuard config for network device {device_id}.");
+    let device =
+        Device::find_by_id(&appstate.pool, device_id)
+            .await?
+            .ok_or(WebError::ObjectNotFound(format!(
+                "Network device with ID {device_id} not found"
+            )))?;
+    let network = device
+        .find_device_networks(&appstate.pool)
+        .await?
+        .pop()
+        .ok_or(WebError::ObjectNotFound(format!(
+            "No network found for network device: {}({})",
+            device.name, device.id
+        )))?;
+    let network_device = WireguardNetworkDevice::find(&appstate.pool, device_id, network.id)
+        .await?
+        .ok_or(WebError::ObjectNotFound(format!(
+            "No IP address found for device: {}({})",
+            device.name, device.id
+        )))?;
+    debug!(
+        "Created a WireGuard config for network device {device_id} in network {}.",
+        network.name
+    );
+    Ok(device.create_config(&network, &network_device))
+}
+
 pub async fn get_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
