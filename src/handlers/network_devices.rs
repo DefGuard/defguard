@@ -416,12 +416,6 @@ pub(crate) async fn start_network_device_setup_for_device(
         ));
     }
 
-    if device.configured {
-        return Err(WebError::BadRequest(
-            format!("Failed to start network device setup for a choosen device {}, device is already configured", device.name)
-        ));
-    }
-
     let mut transaction = appstate.pool.begin().await?;
     let user = User::find_by_id(&mut *transaction, device.user_id)
         .await?
