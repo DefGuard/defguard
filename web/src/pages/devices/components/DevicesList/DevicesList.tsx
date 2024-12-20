@@ -18,6 +18,7 @@ import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layou
 import { StandaloneDevice } from '../../../../shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
+import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 
 export const DevicesList = () => {
   const { LL } = useI18nContext();
@@ -111,10 +112,14 @@ const DeviceRow = (props: StandaloneDevice) => {
 const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
   const { LL } = useI18nContext();
   const openDelete = useDeleteStandaloneDeviceModal((s) => s.open, shallow);
+  const openEdit = useEditStandaloneDeviceModal((s) => s.open, shallow);
 
   return (
     <EditButton>
-      <EditButtonOption text={LL.common.controls.edit()} />
+      <EditButtonOption
+        text={LL.common.controls.edit()}
+        onClick={() => openEdit(props.data)}
+      />
       <EditButtonOption
         text={LL.common.controls.delete()}
         styleVariant={EditButtonOptionStyleVariant.WARNING}

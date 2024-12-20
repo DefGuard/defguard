@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Subject } from 'rxjs';
@@ -21,7 +23,7 @@ import {
   AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
 } from '../AddStandaloneDeviceModal/types';
-import { StandaloneDeviceModalForm } from '../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalForm } from '../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../components/types';
 
 export const EditStandaloneModal = () => {
@@ -43,6 +45,7 @@ export const EditStandaloneModal = () => {
       isOpen={isOpen}
       onClose={close}
       afterClose={reset}
+      id="edit-standalone-device-modal"
     >
       <ModalContent />
     </ModalWithTitle>
@@ -165,6 +168,7 @@ const ModalContent = () => {
         />
         <Button
           loading={formLoading}
+          disabled={defaultValues === undefined}
           className="submit"
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}

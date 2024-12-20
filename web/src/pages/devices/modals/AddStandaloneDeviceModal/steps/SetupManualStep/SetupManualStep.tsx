@@ -13,7 +13,7 @@ import {
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
-import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {

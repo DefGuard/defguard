@@ -1,26 +1,28 @@
+import './style.scss';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { Subject } from 'rxjs';
 import { z } from 'zod';
 
-import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
-import { FormToggle } from '../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { FormToggle } from '../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
 import {
   SelectOption,
   SelectSelectedValue,
-} from '../../../../shared/defguard-ui/components/Layout/Select/types';
-import { ToggleOption } from '../../../../shared/defguard-ui/components/Layout/Toggle/types';
-import useApi from '../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../shared/hooks/useToaster';
-import { validateWireguardPublicKey } from '../../../../shared/validators';
+} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
+import { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { validateWireguardPublicKey } from '../../../../../shared/validators';
 import {
   AddStandaloneDeviceFormFields,
   WGConfigGenChoice,
-} from '../AddStandaloneDeviceModal/types';
-import { StandaloneDeviceModalFormMode } from './types';
+} from '../../AddStandaloneDeviceModal/types';
+import { StandaloneDeviceModalFormMode } from '../types';
 
 type Props = {
   onSubmit: (formValues: AddStandaloneDeviceFormFields) => Promise<void>;
@@ -203,7 +205,7 @@ export const StandaloneDeviceModalForm = ({
   }, [submitSubject]);
 
   return (
-    <form onSubmit={handleSubmit(submitHandler)}>
+    <form onSubmit={handleSubmit(submitHandler)} className="standalone-device-modal-form">
       <FormInput controller={{ control, name: 'name' }} label={labels.deviceName()} />
       <div className="row">
         <FormSelect
@@ -213,6 +215,7 @@ export const StandaloneDeviceModalForm = ({
           label={labels.location()}
           onChangeSingle={autoAssignRecommendedIp}
           disabled={mode === StandaloneDeviceModalFormMode.EDIT}
+          disableOpen={mode === StandaloneDeviceModalFormMode.EDIT}
         />
         <FormInput
           controller={{ control, name: 'assigned_ip' }}

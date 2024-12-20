@@ -13,7 +13,7 @@ import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {

@@ -15,6 +15,7 @@ import { ConfirmDeviceDeleteModal } from './components/DevicesList/modals/Confir
 import { DevicesPageProvider, useDevicesPage } from './hooks/useDevicesPage';
 import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { useAddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/store';
+import { EditStandaloneModal } from './modals/EditStandaloneDeviceModal/EditStandaloneModal';
 
 export const DevicesPage = () => {
   return (
@@ -23,6 +24,7 @@ export const DevicesPage = () => {
       {/* Add modals here */}
       <AddStandaloneDeviceModal />
       <ConfirmDeviceDeleteModal />
+      <EditStandaloneModal />
     </PageContext>
   );
 };
