@@ -9,12 +9,12 @@ import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button
 import { ButtonStyleVariant } from '../../shared/defguard-ui/components/Layout/Button/types';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { AddStandaloneDeviceModal } from '../overview/modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
-import { useAddStandaloneDeviceModal } from '../overview/modals/AddStandaloneDeviceModal/store';
 import { AddDeviceIcon } from './components/AddDeviceIcon';
 import { DevicesList } from './components/DevicesList/DevicesList';
 import { ConfirmDeviceDeleteModal } from './components/DevicesList/modals/ConfirmDeviceDeleteModal';
 import { DevicesPageProvider, useDevicesPage } from './hooks/useDevicesPage';
+import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
+import { useAddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/store';
 
 export const DevicesPage = () => {
   return (

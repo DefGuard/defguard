@@ -154,6 +154,22 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		editStandaloneModal: {
+			/**
+			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+				 */
+				success: string
+				/**
+				 * M​o​d​i​f​y​i​n​g​ ​t​h​e​ ​d​e​v​i​c​e​ ​f​a​i​l​e​d
+				 */
+				failure: string
+			}
+		}
 		deleteStandaloneDevice: {
 			/**
 			 * D​e​l​e​t​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
@@ -2318,6 +2334,14 @@ type RootTranslation = {
 			username: string
 		}
 		error: {
+			/**
+			 * I​P​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidIp: string
+			/**
+			 * I​P​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
+			 */
+			reservedIp: string
 			/**
 			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
 			 */
@@ -4936,6 +4960,22 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		editStandaloneModal: {
+			/**
+			 * Edit network device
+			 */
+			title: () => LocalizedString
+			toasts: {
+				/**
+				 * Device modified
+				 */
+				success: () => LocalizedString
+				/**
+				 * Modifying the device failed
+				 */
+				failure: () => LocalizedString
+			}
+		}
 		deleteStandaloneDevice: {
 			/**
 			 * Delete network device
@@ -7079,6 +7119,14 @@ export type TranslationFunctions = {
 			username: () => LocalizedString
 		}
 		error: {
+			/**
+			 * IP is invalid.
+			 */
+			invalidIp: () => LocalizedString
+			/**
+			 * IP is already in use.
+			 */
+			reservedIp: () => LocalizedString
 			/**
 			 * Field contains forbidden characters.
 			 */

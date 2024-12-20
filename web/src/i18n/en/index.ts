@@ -45,6 +45,13 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    editStandaloneModal: {
+      title: 'Edit network device',
+      toasts: {
+        success: 'Device modified',
+        failure: 'Modifying the device failed',
+      },
+    },
     deleteStandaloneDevice: {
       title: 'Delete network device',
       content: 'Device {name: string} will be deleted.',
@@ -961,6 +968,8 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
+      invalidIp: 'IP is invalid.',
+      reservedIp: 'IP is already in use.',
       forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',

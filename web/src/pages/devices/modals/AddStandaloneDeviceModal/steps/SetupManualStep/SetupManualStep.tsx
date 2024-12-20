@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -13,11 +13,11 @@ import {
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
-import { StandaloneDeviceModalForm } from '../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
   AddStandaloneDeviceFormFields,
-  AddStandaloneDeviceModalChoice,
   AddStandaloneDeviceModalStep,
   WGConfigGenChoice,
 } from '../../types';
@@ -30,7 +30,10 @@ export const SetupManualStep = () => {
     (s) => [s.setStore, s.changeStep, s.submitSubject, s.close],
     shallow,
   );
-  const initialIp = useAddStandaloneDeviceModal((s) => s.initAvailableIp);
+  const [initialIp, locationOptions] = useAddStandaloneDeviceModal(
+    (s) => [s.initAvailableIp, s.networkOptions],
+    shallow,
+  );
 
   const queryClient = useQueryClient();
 
@@ -73,15 +76,32 @@ export const SetupManualStep = () => {
     [mutateAsync, next, setState],
   );
 
-  if (initialIp === undefined) return null;
+  const defaultFormValues = useMemo(() => {
+    if (locationOptions && initialIp) {
+      const res: AddStandaloneDeviceFormFields = {
+        assigned_ip: initialIp,
+        generationChoice: WGConfigGenChoice.AUTO,
+        location_id: locationOptions[0].value,
+        name: '',
+        wireguard_pubkey: '',
+        description: '',
+      };
+      return res;
+    }
+    return undefined;
+  }, [initialIp, locationOptions]);
+
+  if (initialIp === undefined || defaultFormValues === undefined) return null;
 
   return (
     <div className="setup-manual">
       <StandaloneDeviceModalForm
+        defaults={defaultFormValues}
+        locationOptions={locationOptions}
+        mode={StandaloneDeviceModalFormMode.CREATE_MANUAL}
+        submitSubject={submitSubject}
         onSubmit={handleSubmit}
         onLoadingChange={setFormLoading}
-        initialAssignedIp={initialIp}
-        mode={AddStandaloneDeviceModalChoice.MANUAL}
       />
       <div className="controls">
         <Button

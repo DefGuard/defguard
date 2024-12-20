@@ -1,40 +1,43 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { Subject } from 'rxjs';
 import { z } from 'zod';
-import { shallow } from 'zustand/shallow';
 
-import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
-import { FormToggle } from '../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
+import { useI18nContext } from '../../../../i18n/i18n-react';
+import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import { FormToggle } from '../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
 import {
   SelectOption,
   SelectSelectedValue,
-} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
-import { validateWireguardPublicKey } from '../../../../../shared/validators';
-import { useAddStandaloneDeviceModal } from '../store';
+} from '../../../../shared/defguard-ui/components/Layout/Select/types';
+import { ToggleOption } from '../../../../shared/defguard-ui/components/Layout/Toggle/types';
+import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
+import { validateWireguardPublicKey } from '../../../../shared/validators';
 import {
   AddStandaloneDeviceFormFields,
-  AddStandaloneDeviceModalChoice,
   WGConfigGenChoice,
-} from '../types';
+} from '../AddStandaloneDeviceModal/types';
+import { StandaloneDeviceModalFormMode } from './types';
 
 type Props = {
   onSubmit: (formValues: AddStandaloneDeviceFormFields) => Promise<void>;
-  mode: AddStandaloneDeviceModalChoice;
-  initialAssignedIp: string;
+  mode: StandaloneDeviceModalFormMode;
   onLoadingChange: (value: boolean) => void;
+  locationOptions: SelectOption<number>[];
+  submitSubject: Subject<void>;
+  defaults: AddStandaloneDeviceFormFields;
 };
 
 export const StandaloneDeviceModalForm = ({
   onSubmit,
   mode,
   onLoadingChange,
-  initialAssignedIp,
+  locationOptions,
+  submitSubject,
+  defaults,
 }: Props) => {
   const { LL } = useI18nContext();
   const {
@@ -45,9 +48,7 @@ export const StandaloneDeviceModalForm = ({
   const localLL = LL.modals.addStandaloneDevice.steps.manual.setup;
   const errors = LL.form.error;
   const labels = localLL.form.labels;
-  const locationOptions = useAddStandaloneDeviceModal((s) => s.networkOptions);
   const submitRef = useRef<HTMLInputElement | null>(null);
-  const submitSubject = useAddStandaloneDeviceModal((s) => s.submitSubject, shallow);
   const toaster = useToaster();
   const renderSelectedOption = useCallback(
     (val?: number): SelectSelectedValue => {
@@ -97,7 +98,7 @@ export const StandaloneDeviceModalForm = ({
           wireguard_pubkey: z.string().optional(),
         })
         .superRefine((vals, ctx) => {
-          if (mode === AddStandaloneDeviceModalChoice.MANUAL) {
+          if (mode === StandaloneDeviceModalFormMode.CREATE_MANUAL) {
             if (vals.generationChoice === WGConfigGenChoice.MANUAL) {
               const result = validateWireguardPublicKey({
                 requiredError: errors.required(),
@@ -128,14 +129,7 @@ export const StandaloneDeviceModalForm = ({
     setError,
     setValue,
   } = useForm<AddStandaloneDeviceFormFields>({
-    defaultValues: {
-      description: '',
-      generationChoice: WGConfigGenChoice.AUTO,
-      name: '',
-      location_id: locationOptions[0].value,
-      assigned_ip: initialAssignedIp,
-      wireguard_pubkey: '',
-    },
+    defaultValues: defaults,
     resolver: zodResolver(schema),
     mode: 'all',
   });
@@ -143,20 +137,32 @@ export const StandaloneDeviceModalForm = ({
   const generationChoiceValue = watch('generationChoice');
 
   const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (values) => {
-    console.log('Submit fired');
+    if (
+      mode === StandaloneDeviceModalFormMode.EDIT &&
+      values.assigned_ip === defaults.assigned_ip
+    ) {
+      await onSubmit(values);
+      return;
+    }
     try {
       const response = await validateLocationIp({
         ip: values.assigned_ip,
         location: values.location_id,
       });
-      const { available } = response;
-      console.log(response, available);
-      if (available) {
+      const { available, valid } = response;
+      if (available && valid) {
         await onSubmit(values);
       } else {
-        setError('assigned_ip', {
-          message: LL.form.error.invalid(),
-        });
+        if (!available) {
+          setError('assigned_ip', {
+            message: LL.form.error.reservedIp(),
+          });
+        }
+        if (!valid) {
+          setError('assigned_ip', {
+            message: LL.form.error.invalidIp(),
+          });
+        }
       }
     } catch (e) {
       toaster.error(LL.messages.error());
@@ -194,7 +200,7 @@ export const StandaloneDeviceModalForm = ({
     });
     return () => sub.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [submitSubject]);
 
   return (
     <form onSubmit={handleSubmit(submitHandler)}>
@@ -206,6 +212,7 @@ export const StandaloneDeviceModalForm = ({
           renderSelected={renderSelectedOption}
           label={labels.location()}
           onChangeSingle={autoAssignRecommendedIp}
+          disabled={mode === StandaloneDeviceModalFormMode.EDIT}
         />
         <FormInput
           controller={{ control, name: 'assigned_ip' }}
@@ -217,7 +224,7 @@ export const StandaloneDeviceModalForm = ({
         controller={{ control, name: 'description' }}
         label={labels.description()}
       />
-      {mode === AddStandaloneDeviceModalChoice.MANUAL && (
+      {mode === StandaloneDeviceModalFormMode.CREATE_MANUAL && (
         <>
           <FormToggle
             controller={{ control, name: 'generationChoice' }}

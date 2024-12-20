@@ -498,7 +498,7 @@ export interface ApiHook {
     ) => Promise<StartEnrollmentResponse>;
     getDevice: (deviceId: number | string) => Promise<StandaloneDevice>;
     deleteDevice: (deviceId: number | string) => Promise<void>;
-    editDevice: (device: StandaloneDevice) => Promise<void>;
+    editDevice: (data: StandaloneDeviceEditRequest) => Promise<void>;
     getAvailableIp: (
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
@@ -1110,7 +1110,7 @@ export type ValidateLocationIpRequest = {
 
 export type ValidateLocationIpResponse = {
   available: boolean;
-  reason?: string;
+  valid: boolean;
 };
 
 export type GetAvailableLocationIpRequest = {
@@ -1149,4 +1149,11 @@ export type DeviceConfigurationResponse = {
 export type CreateStandaloneDeviceResponse = {
   config: DeviceConfigurationResponse;
   device: StandaloneDevice;
+};
+
+export type StandaloneDeviceEditRequest = {
+  id: number;
+  assigned_ip: string;
+  description?: string;
+  name: string;
 };

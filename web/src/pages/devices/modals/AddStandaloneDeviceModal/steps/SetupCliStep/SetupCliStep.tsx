@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -13,12 +13,13 @@ import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
-import { StandaloneDeviceModalForm } from '../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm';
+import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
   AddStandaloneDeviceFormFields,
-  AddStandaloneDeviceModalChoice,
   AddStandaloneDeviceModalStep,
+  WGConfigGenChoice,
 } from '../../types';
 
 export const SetupCliStep = () => {
@@ -51,7 +52,25 @@ export const SetupCliStep = () => {
     },
   });
 
-  const initIp = useAddStandaloneDeviceModal((s) => s.initAvailableIp);
+  const [initIp, locationOptions] = useAddStandaloneDeviceModal(
+    (s) => [s.initAvailableIp, s.networkOptions],
+    shallow,
+  );
+
+  const defaultValues = useMemo(() => {
+    if (initIp && locationOptions) {
+      const res: AddStandaloneDeviceFormFields = {
+        assigned_ip: initIp,
+        generationChoice: WGConfigGenChoice.AUTO,
+        location_id: locationOptions[0].value,
+        name: '',
+        wireguard_pubkey: '',
+        description: '',
+      };
+      return res;
+    }
+    return undefined;
+  }, [initIp, locationOptions]);
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
@@ -67,7 +86,7 @@ export const SetupCliStep = () => {
     [mutateAsync, next, setState],
   );
 
-  if (initIp === undefined) return null;
+  if (initIp === undefined || defaultValues === undefined) return null;
 
   return (
     <div className="setup-cli-step">
@@ -77,10 +96,12 @@ export const SetupCliStep = () => {
         dismissId="add-standalone-device-cli-setup-step-header"
       />
       <StandaloneDeviceModalForm
-        initialAssignedIp={initIp}
-        mode={AddStandaloneDeviceModalChoice.CLI}
+        locationOptions={locationOptions}
+        defaults={defaultValues}
         onLoadingChange={setFormLoading}
         onSubmit={handleSubmit}
+        mode={StandaloneDeviceModalFormMode.CREATE_CLI}
+        submitSubject={submitSubject}
       />
       <div className="controls">
         <Button

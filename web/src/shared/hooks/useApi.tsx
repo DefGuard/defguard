@@ -478,8 +478,10 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteStandaloneDevice: ApiHook['standaloneDevice']['deleteDevice'] = (
     deviceId,
   ) => client.delete(`/device/network/${deviceId}`);
-  const editStandaloneDevice: ApiHook['standaloneDevice']['editDevice'] = (device) =>
-    client.put(`/device/network/${device.id}`, device).then(unpackRequest);
+  const editStandaloneDevice: ApiHook['standaloneDevice']['editDevice'] = ({
+    id,
+    ...data
+  }) => client.put(`/device/network/${id}`, data).then(unpackRequest);
 
   const getStandaloneDevice: ApiHook['standaloneDevice']['getDevice'] = (deviceId) =>
     client.get(`/device/network/${deviceId}`).then(unpackRequest);
