@@ -11,12 +11,14 @@ import {
 import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { StandaloneDeviceModalForm } from '../../components/StandaloneDeviceModalForm';
 import { useAddStandaloneDeviceModal } from '../../store';
 import {
   AddStandaloneDeviceFormFields,
   AddStandaloneDeviceModalChoice,
+  AddStandaloneDeviceModalStep,
 } from '../../types';
 
 export const SetupCliStep = () => {
@@ -24,24 +26,28 @@ export const SetupCliStep = () => {
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const [formLoading, setFormLoading] = useState(false);
   const queryClient = useQueryClient();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [setState, close, next, submitSubject] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.close, s.changeStep, s.submitSubject],
     shallow,
   );
 
+  const toast = useToaster();
+
   const {
-    standaloneDevice: { createDevice },
+    standaloneDevice: { createCliDevice },
   } = useApi();
 
   const { mutateAsync } = useMutation({
-    mutationFn: createDevice,
-    onSuccess: (resp) => {
-      console.table(resp);
+    mutationFn: createCliDevice,
+    onSuccess: () => {
+      toast.success(LL.modals.addStandaloneDevice.toasts.deviceCreated());
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
       });
-      // next(AddStandaloneDeviceModalStep.FINISH_CLI);
+    },
+    onError: (e) => {
+      toast.error(LL.modals.addStandaloneDevice.toasts.creationFailed());
+      console.error(e);
     },
   });
 
@@ -49,14 +55,16 @@ export const SetupCliStep = () => {
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
-      console.table(values);
-      await mutateAsync({
+      const response = await mutateAsync({
         assigned_ip: values.assigned_ip,
         location_id: values.location_id,
         name: values.name,
+        description: values.description,
       });
+      setState({ enrollResponse: response });
+      next(AddStandaloneDeviceModalStep.FINISH_CLI);
     },
-    [mutateAsync],
+    [mutateAsync, next, setState],
   );
 
   if (initIp === undefined) return null;
@@ -65,10 +73,7 @@ export const SetupCliStep = () => {
     <div className="setup-cli-step">
       <MessageBox
         type={MessageBoxType.INFO}
-        message={
-          // eslint-disable-next-line max-len
-          'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.'
-        }
+        message={localLL.stepMessage()}
         dismissId="add-standalone-device-cli-setup-step-header"
       />
       <StandaloneDeviceModalForm

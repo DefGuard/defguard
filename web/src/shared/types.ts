@@ -490,9 +490,12 @@ export interface ApiHook {
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
   standaloneDevice: {
-    createDevice: (
+    createManualDevice: (
       data: CreateStandaloneDeviceRequest,
     ) => Promise<CreateStandaloneDeviceResponse>;
+    createCliDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<StartEnrollmentResponse>;
     getDevice: (deviceId: number | string) => Promise<StandaloneDevice>;
     deleteDevice: (deviceId: number | string) => Promise<void>;
     editDevice: (device: StandaloneDevice) => Promise<void>;

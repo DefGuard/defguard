@@ -54,6 +54,10 @@ const en: BaseTranslation = {
       },
     },
     addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Device added',
+        creationFailed: 'Device could not be added.',
+      },
       infoBox: {
         setup:
           'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
