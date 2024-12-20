@@ -484,7 +484,7 @@ pub fn build_webapp(
                 post(start_network_device_setup),
             )
             .route(
-                "/device/network/:device_id/start_cli",
+                "/device/network/start_cli/:device_id",
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network))
