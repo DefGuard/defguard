@@ -35,7 +35,7 @@ export const SetupManualStep = () => {
   const queryClient = useQueryClient();
 
   const {
-    standaloneDevice: { createDevice },
+    standaloneDevice: { createManualDevice: createDevice },
   } = useApi();
 
   const { mutateAsync } = useMutation({

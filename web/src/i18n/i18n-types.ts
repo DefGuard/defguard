@@ -108,6 +108,18 @@ type RootTranslation = {
 		 * N​a​m​e
 		 */
 		name: string
+		/**
+		 * N​o​ ​d​a​t​a
+		 */
+		noData: string
+		/**
+		 * U​n​a​v​a​i​l​a​b​l​e
+		 */
+		unavailable: string
+		/**
+		 * N​o​t​ ​s​e​t
+		 */
+		notSet: string
 	}
 	messages: {
 		/**
@@ -164,6 +176,16 @@ type RootTranslation = {
 			}
 		}
 		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​a​d​d​e​d
+				 */
+				deviceCreated: string
+				/**
+				 * D​e​v​i​c​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​a​d​d​e​d​.
+				 */
+				creationFailed: string
+			}
 			infoBox: {
 				/**
 				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
@@ -3918,6 +3940,16 @@ type RootTranslation = {
 			 */
 			gatewayDisconnected: string
 		}
+		cardsLabels: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+		}
 	}
 	connectedUsersOverview: {
 		/**
@@ -4858,6 +4890,18 @@ export type TranslationFunctions = {
 		 * Name
 		 */
 		name: () => LocalizedString
+		/**
+		 * No data
+		 */
+		noData: () => LocalizedString
+		/**
+		 * Unavailable
+		 */
+		unavailable: () => LocalizedString
+		/**
+		 * Not set
+		 */
+		notSet: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -4913,6 +4957,16 @@ export type TranslationFunctions = {
 			}
 		}
 		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * Device added
+				 */
+				deviceCreated: () => LocalizedString
+				/**
+				 * Device could not be added.
+				 */
+				creationFailed: () => LocalizedString
+			}
 			infoBox: {
 				/**
 				 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
@@ -8632,6 +8686,16 @@ export type TranslationFunctions = {
 			 * Gateway disconnected
 			 */
 			gatewayDisconnected: () => LocalizedString
+		}
+		cardsLabels: {
+			/**
+			 * Connected Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 	}
 	connectedUsersOverview: {

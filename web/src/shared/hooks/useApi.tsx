@@ -21,7 +21,6 @@ import {
   MFALoginResponse,
   Network,
   NetworkToken,
-  NetworkUserStats,
   OpenidClient,
   OpenIdProvider,
   RemoveUserClientRequest,
@@ -269,9 +268,11 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then((res) => res.data);
 
-  const getUsersStats = (data: GetNetworkStatsRequest) =>
+  const getOverviewStats: ApiHook['network']['getOverviewStats'] = (
+    data: GetNetworkStatsRequest,
+  ) =>
     client
-      .get<NetworkUserStats[]>(`/network/${data.id}/stats/users`, {
+      .get(`/network/${data.id}/stats/users`, {
         params: {
           ...data,
         },
@@ -470,8 +471,9 @@ const useApi = (props?: HookProps): ApiHook => {
   const testDirsync: ApiHook['settings']['testDirsync'] = () =>
     client.get('/test_directory_sync').then(unpackRequest);
 
-  const createStandaloneDevice: ApiHook['standaloneDevice']['createDevice'] = (data) =>
-    client.post('/device/network', data).then(unpackRequest);
+  const createStandaloneDevice: ApiHook['standaloneDevice']['createManualDevice'] = (
+    data,
+  ) => client.post('/device/network', data).then(unpackRequest);
 
   const deleteStandaloneDevice: ApiHook['standaloneDevice']['deleteDevice'] = (
     deviceId,
@@ -492,6 +494,10 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const getStandaloneDevicesList: ApiHook['standaloneDevice']['getDevicesList'] = () =>
     client.get('/device/network').then(unpackRequest);
+
+  const createStandaloneCliDevice: ApiHook['standaloneDevice']['createCliDevice'] = (
+    data,
+  ) => client.post('/device/network/start_cli', data).then(unpackRequest);
 
   useEffect(() => {
     client.interceptors.response.use(
@@ -537,13 +543,14 @@ const useApi = (props?: HookProps): ApiHook => {
       addUsersToGroups,
     },
     standaloneDevice: {
-      createDevice: createStandaloneDevice,
+      createManualDevice: createStandaloneDevice,
       deleteDevice: deleteStandaloneDevice,
       editDevice: editStandaloneDevice,
       getDevice: getStandaloneDevice,
       getAvailableIp: getAvailableLocationIp,
       validateLocationIp: validateLocationIp,
       getDevicesList: getStandaloneDevicesList,
+      createCliDevice: createStandaloneCliDevice,
     },
     user: {
       getMe,
@@ -586,11 +593,11 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,
       deleteNetwork,
-      getUsersStats,
       getNetworkToken,
       getNetworkStats,
       getGatewaysStatus,
       deleteGateway,
+      getOverviewStats: getOverviewStats,
     },
     auth: {
       login,

@@ -3,7 +3,11 @@ import { Subject } from 'rxjs';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
-import { CreateStandaloneDeviceResponse, Network } from '../../../../shared/types';
+import {
+  CreateStandaloneDeviceResponse,
+  Network,
+  StartEnrollmentResponse,
+} from '../../../../shared/types';
 import {
   AddStandaloneDeviceModalChoice,
   AddStandaloneDeviceModalStep,
@@ -21,6 +25,7 @@ const defaultValues: StoreValues = {
   initAvailableIp: undefined,
   genKeys: undefined,
   manualResponse: undefined,
+  enrollResponse: undefined,
 };
 
 export const useAddStandaloneDeviceModal = createWithEqualityFn<Store>(
@@ -51,6 +56,7 @@ type StoreValues = {
     privateKey: string;
   };
   manualResponse?: CreateStandaloneDeviceResponse;
+  enrollResponse?: StartEnrollmentResponse;
 };
 
 type StoreMethods = {

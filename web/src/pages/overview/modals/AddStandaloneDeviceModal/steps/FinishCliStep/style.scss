@@ -17,5 +17,11 @@
         height: 47px;
       }
     }
+
+    .expanded-content {
+      p {
+        @include typography(app-input);
+      }
+    }
   }
 }

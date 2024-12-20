@@ -8,15 +8,14 @@ interface Props {
 }
 
 export const OverviewConnectedUsers = ({ stats }: Props) => {
+  if (!stats || stats.length === 0) return null;
   return (
     <div className="connection-cards">
-      {stats && stats.length > 0 && (
-        <div className="connected-users grid">
-          {stats.map((userStats) => (
-            <UserConnectionCard key={userStats.user.username} data={userStats} />
-          ))}
-        </div>
-      )}
+      <div className="connected-users grid">
+        {stats.map((userStats) => (
+          <UserConnectionCard key={userStats.user.username} data={userStats} />
+        ))}
+      </div>
     </div>
   );
 };

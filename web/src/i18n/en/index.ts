@@ -29,6 +29,9 @@ const en: BaseTranslation = {
     },
     key: 'Key',
     name: 'Name',
+    noData: 'No data',
+    unavailable: 'Unavailable',
+    notSet: 'Not set',
   },
   messages: {
     error: 'Error has occurred.',
@@ -51,6 +54,10 @@ const en: BaseTranslation = {
       },
     },
     addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Device added',
+        creationFailed: 'Device could not be added.',
+      },
       infoBox: {
         setup:
           'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
@@ -1645,6 +1652,10 @@ const en: BaseTranslation = {
       in: 'In:',
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
+    },
+    cardsLabels: {
+      users: 'Connected Users',
+      devices: 'Connected Network Devices',
     },
   },
   connectedUsersOverview: {

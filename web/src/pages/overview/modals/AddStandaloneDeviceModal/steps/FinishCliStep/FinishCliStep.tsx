@@ -1,5 +1,6 @@
 import './style.scss';
 
+import { useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -13,12 +14,24 @@ import {
 import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useClipboard } from '../../../../../../shared/hooks/useClipboard';
 import { useAddStandaloneDeviceModal } from '../../store';
 
 export const FinishCliStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.cli.finish;
   const [closeModal] = useAddStandaloneDeviceModal((s) => [s.close], shallow);
+  const enroll = useAddStandaloneDeviceModal((s) => s.enrollResponse);
+  const { writeToClipboard } = useClipboard();
+
+  const commandToCopy = useMemo(() => {
+    if (enroll) {
+      return `defguard -u ${enroll.enrollment_url} -t ${enroll.enrollment_token}`;
+    }
+    return '';
+  }, [enroll]);
+
+  if (!enroll) return null;
   return (
     <div className="finish-cli-step">
       <MessageBox
@@ -32,18 +45,25 @@ export const FinishCliStep = () => {
             text={localLL.downloadButton()}
             size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
+            onClick={() => {}}
           />
         </a>
       </div>
       <ExpandableCard
         title={localLL.commandCopy()}
         actions={[
-          <ActionButton variant={ActionButtonVariant.COPY} onClick={() => {}} key={0} />,
+          <ActionButton
+            variant={ActionButtonVariant.COPY}
+            onClick={() => {
+              writeToClipboard(commandToCopy);
+            }}
+            key={0}
+          />,
         ]}
         expanded={true}
         disableExpand={true}
       >
-        <p>{'defguard -u https://enrollment.defguard.net -t sdf$&9234&8dfsk345LSD3'}</p>
+        <p className="config">{commandToCopy}</p>
       </ExpandableCard>
       <div className="controls solo">
         <Button
