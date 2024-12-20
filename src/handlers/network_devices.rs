@@ -14,10 +14,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::device::{
-            DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
-            WireguardNetworkDevice,
-        },
+        models::device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
         Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
@@ -49,29 +46,6 @@ impl NetworkDeviceInfo {
         device: Device<Id>,
         transaction: &mut PgConnection,
     ) -> Result<Self, WebError> {
-        let mut wireguard_devices =
-            WireguardNetworkDevice::find_by_device(&mut *transaction, device.id)
-                .await?
-                .ok_or_else(|| {
-                    WebError::ObjectNotFound(format!(
-                        "Failed to find the network with which the network device {} is associated",
-                        device.name
-                    ))
-                })?;
-        if wireguard_devices.len() > 1 {
-            warn!(
-                "Found multiple networks for a network device with ID {}, picking the last one",
-                device.id
-            );
-        }
-        let wireguard_device = wireguard_devices.pop().ok_or_else(|| {
-            WebError::ObjectNotFound(format!(
-                "Failed to find the network with which the network device {} is associated",
-                device.name
-            ))
-        })?;
-
-        let added_by = device.get_owner(&mut *transaction).await?;
         let network = device
             .find_device_networks(&mut *transaction)
             .await?
@@ -82,7 +56,16 @@ impl NetworkDeviceInfo {
                     device.name
                 ))
             })?;
-
+        let wireguard_device =
+            WireguardNetworkDevice::find(&mut *transaction, device.id, network.id)
+                .await?
+                .ok_or_else(|| {
+                    WebError::ObjectNotFound(format!(
+                        "Failed to find the network with which the network device {} is associated",
+                        device.name
+                    ))
+                })?;
+        let added_by = device.get_owner(&mut *transaction).await?;
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
@@ -600,20 +583,7 @@ pub(crate) async fn add_network_device(
 pub struct ModifyNetworkDevice {
     name: String,
     description: Option<String>,
-    wireguard_pubkey: String,
-    location_id: i64,
     assigned_ip: String,
-}
-
-impl From<ModifyNetworkDevice> for ModifyDevice {
-    fn from(data: ModifyNetworkDevice) -> Self {
-        ModifyDevice {
-            name: data.name,
-            description: data.description,
-            wireguard_pubkey: data.wireguard_pubkey,
-            device_type: DeviceType::Network,
-        }
-    }
 }
 
 pub async fn modify_network_device(
@@ -639,95 +609,40 @@ pub async fn modify_network_device(
             error!("Failed to update device {device_id}, device not found in any network");
             WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
         })?;
-    if device_network.pubkey == data.wireguard_pubkey {
-        error!("Failed to update device {device_id}, device's pubkey must be different from server's pubkey");
-        return Ok(ApiResponse {
-            json: json!({"msg": "device's pubkey must be different from server's pubkey"}),
-            status: StatusCode::BAD_REQUEST,
-        });
-    }
-
-    let new_network_id = data.location_id;
-    let new_ip = IpAddr::from_str(&data.assigned_ip).map_err(|e| {
-        error!("Failed to update device {device_id}, invalid IP address: {e}");
-        WebError::BadRequest("Invalid IP address".to_string())
-    })?;
-
-    // update device info
-    device.update_from(data.into());
-    device.save(&mut *transaction).await?;
-
-    // network changed, remove device from old network and add to new one
-    if new_network_id != device_network.id {
-        let new_network = WireguardNetwork::find_by_id(&mut *transaction, new_network_id)
+    let mut wireguard_network_device =
+        WireguardNetworkDevice::find(&mut *transaction, device.id, device_network.id)
             .await?
             .ok_or_else(|| {
-                error!(
-                    "Failed to update device {device_id}, new network with ID {} not found",
-                    new_network_id
-                );
-                WebError::BadRequest("Failed to update device, new network not found".to_string())
+                error!("Failed to update device {device_id}, device not found in any network");
+                WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
             })?;
+    let new_ip = IpAddr::from_str(&data.assigned_ip).map_err(|e| {
+        WebError::BadRequest(format!(
+            "Failed to update device {device_id}, invalid IP address: {e}"
+        ))
+    })?;
 
-        check_ip(new_ip, &new_network, &mut transaction).await?;
+    device.name = data.name;
+    device.description = data.description;
+    device.save(&mut *transaction).await?;
 
-        device
-            .remove_from_network(&device_network, &mut transaction)
-            .await?;
-        let (network_info, config) = device
-            .add_to_network(&new_network, new_ip, &mut transaction)
-            .await?;
-        appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
-            device: device.clone(),
-            network_info: vec![network_info.clone()],
-        }));
-
-        let template_locations = vec![TemplateLocation {
-            name: config.network_name.clone(),
-            assigned_ip: config.address.to_string(),
-        }];
-
-        send_new_device_added_email(
-            &device.name,
-            &device.wireguard_pubkey,
-            &template_locations,
-            &session.user.email,
-            &appstate.mail_tx,
-            Some(session.session.ip_address.as_str()),
-            session.session.device_info.clone().as_deref(),
-        )?;
-
+    // ip changed, remove device from network and add it again with new ip
+    if new_ip != wireguard_network_device.wireguard_ip {
+        check_ip(new_ip, &device_network, &mut transaction).await?;
+        wireguard_network_device.wireguard_ip = new_ip;
+        wireguard_network_device.update(&mut *transaction).await?;
+        let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
+        appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
         info!(
-            "User {} moved network device {} to network {}",
-            session.user.username, device.name, new_network.name
-        );
-    } else {
-        let mut network_info = Vec::new();
-        let wireguard_network_device =
-            WireguardNetworkDevice::find(&mut *transaction, device.id, device_network.id).await?;
-
-        if let Some(wireguard_network_device) = wireguard_network_device {
-            let device_network_info = DeviceNetworkInfo {
-                network_id: device_network.id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip,
-                preshared_key: wireguard_network_device.preshared_key,
-                is_authorized: wireguard_network_device.is_authorized,
-            };
-            network_info.push(device_network_info);
-        }
-
-        appstate.send_wireguard_event(GatewayEvent::DeviceModified(DeviceInfo {
-            device: device.clone(),
-            network_info,
-        }));
-
-        info!(
-            "User {} updated network device {device_id}",
-            session.user.username
+            "User {} changed IP address of network device {} from {} to {new_ip} in network {}",
+            session.user.username,
+            device.name,
+            wireguard_network_device.wireguard_ip,
+            device_network.name
         );
     }
 
-    let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
+    let network_device_info = NetworkDeviceInfo::from_device(device, &mut *transaction).await?;
     transaction.commit().await?;
 
     Ok(ApiResponse {
