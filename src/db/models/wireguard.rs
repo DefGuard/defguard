@@ -942,6 +942,28 @@ impl WireguardNetwork<Id> {
             transfer_series,
         })
     }
+
+    pub async fn get_devices_by_type<'e, E>(
+        &self,
+        executor: E,
+        device_type: DeviceType,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Device,
+            "SELECT \
+                id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                configured \
+            FROM device WHERE id in (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $1) \
+            AND device_type = $2",
+            self.id,
+            device_type as DeviceType
+        )
+        .fetch_all(executor)
+        .await
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]

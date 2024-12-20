@@ -642,7 +642,7 @@ pub async fn modify_network_device(
         );
     }
 
-    let network_device_info = NetworkDeviceInfo::from_device(device, &mut *transaction).await?;
+    let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
     transaction.commit().await?;
 
     Ok(ApiResponse {
