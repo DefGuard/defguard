@@ -18,7 +18,7 @@ use crate::{
             DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
             WireguardNetworkDevice,
         },
-        Device, GatewayEvent, Id, WireguardNetwork,
+        Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
     handlers::mail::send_new_device_added_email,
@@ -41,6 +41,7 @@ struct NetworkDeviceInfo {
     added_by: String,
     added_date: NaiveDateTime,
     location: NetworkDeviceLocation,
+    configured: bool,
 }
 
 impl NetworkDeviceInfo {
@@ -93,6 +94,7 @@ impl NetworkDeviceInfo {
                 id: wireguard_device.wireguard_network_id,
                 name: network.name,
             },
+            configured: device.configured,
         })
     }
 }
@@ -382,6 +384,72 @@ pub(crate) async fn start_network_device_setup(
     transaction.commit().await?;
     update_counts(&appstate.pool).await?;
 
+    Ok(ApiResponse {
+        json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        status: StatusCode::CREATED,
+    })
+}
+
+// Make a new CLI configuration token for an already added network device
+pub(crate) async fn start_network_device_setup_for_device(
+    _admin_role: AdminRole,
+    session: SessionInfo,
+    Path(device_id): Path<i64>,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} starting network device setup for already added device with ID {}.",
+        session.user.username, device_id
+    );
+    let device = Device::find_by_id(&appstate.pool, device_id)
+        .await?
+        .ok_or_else(|| {
+            WebError::BadRequest(format!(
+                "Failed to start network device setup for device with ID {}, device not found",
+                device_id
+            ))
+        })?;
+
+    if device.device_type != DeviceType::Network {
+        return Err(WebError::BadRequest(
+            format!("Failed to start network device setup for a choosen device {}, device is not a network device, device type: {:?}", device.name, device.device_type)
+        ));
+    }
+
+    if device.configured {
+        return Err(WebError::BadRequest(
+            format!("Failed to start network device setup for a choosen device {}, device is already configured", device.name)
+        ));
+    }
+
+    let mut transaction = appstate.pool.begin().await?;
+    let user = User::find_by_id(&mut *transaction, device.user_id)
+        .await?
+        .ok_or_else(|| {
+            WebError::BadRequest(format!(
+                "Failed to start network device setup for device with ID {}, user which added the device not found",
+                device_id
+            ))
+        })?;
+    let config = server_config();
+    let configuration_token = user
+        .start_remote_desktop_configuration(
+            &mut transaction,
+            &user,
+            None,
+            config.enrollment_token_timeout.as_secs(),
+            config.enrollment_url.clone(),
+            false,
+            appstate.mail_tx.clone(),
+            Some(device.id),
+        )
+        .await?;
+    transaction.commit().await?;
+
+    debug!(
+        "Generated a new device CLI configuration token for already existing network device {} with ID {}: {configuration_token}",
+        device.name, device.id
+    );
     Ok(ApiResponse {
         json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
         status: StatusCode::CREATED,
