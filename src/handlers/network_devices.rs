@@ -143,7 +143,6 @@ pub async fn get_network_device(
 
 pub(crate) async fn list_network_devices(
     _admin_role: AdminRole,
-    session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     debug!("Listing all network devices");
@@ -173,11 +172,11 @@ pub(crate) async fn list_network_devices(
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AddNetworkDevice {
-    name: String,
-    description: Option<String>,
-    location_id: i64,
-    assigned_ip: String,
-    wireguard_pubkey: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub location_id: i64,
+    pub assigned_ip: String,
+    pub wireguard_pubkey: String,
 }
 
 #[derive(Serialize)]
