@@ -50,21 +50,17 @@ impl NetworkDeviceInfo {
             .find_device_networks(&mut *transaction)
             .await?
             .pop()
-            .ok_or_else(|| {
-                WebError::ObjectNotFound(format!(
-                    "Failed to find the network with which the network device {} is associated",
-                    device.name
-                ))
-            })?;
+            .ok_or(WebError::ObjectNotFound(format!(
+                "Failed to find the network with which the network device {} is associated",
+                device.name
+            )))?;
         let wireguard_device =
             WireguardNetworkDevice::find(&mut *transaction, device.id, network.id)
                 .await?
-                .ok_or_else(|| {
-                    WebError::ObjectNotFound(format!(
-                        "Failed to find the network with which the network device {} is associated",
-                        device.name
-                    ))
-                })?;
+                .ok_or(WebError::ObjectNotFound(format!(
+                    "Failed to find network device {} network information in network {}",
+                    device.name, network.name
+                )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
         Ok(NetworkDeviceInfo {
             id: device.id,
@@ -146,24 +142,25 @@ pub async fn get_network_device(
 }
 
 pub(crate) async fn list_network_devices(
+    _admin_role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    // only allow for admin or user themselves
-    if !session.is_admin || !session.user.is_active {
-        warn!(
-            "User {} tried to list network devices, but is not an admin",
-            session.user.username
-        );
-        return Err(WebError::Forbidden("Admin access required".into()));
-    };
     debug!("Listing all network devices");
     let mut devices_response: Vec<NetworkDeviceInfo> = vec![];
     let mut transaction = appstate.pool.begin().await?;
     let devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
     for device in devices {
-        let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
-        devices_response.push(network_device_info);
+        match NetworkDeviceInfo::from_device(device, &mut transaction).await {
+            Ok(device_info) => {
+                devices_response.push(device_info);
+            }
+            Err(e) => {
+                error!(
+                    "Failed to get network information for network device. This device will not be displayed. Error details: {e}"
+                )
+            }
+        }
     }
     transaction.commit().await?;
 

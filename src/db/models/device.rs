@@ -219,7 +219,6 @@ pub struct AddDevice {
 pub struct ModifyDevice {
     pub name: String,
     pub wireguard_pubkey: String,
-    pub device_type: DeviceType,
     pub description: Option<String>,
 }
 
@@ -398,7 +397,6 @@ impl Device<Id> {
     pub fn update_from(&mut self, other: ModifyDevice) {
         self.name = other.name;
         self.wireguard_pubkey = other.wireguard_pubkey;
-        self.device_type = other.device_type;
         self.description = other.description;
     }
 

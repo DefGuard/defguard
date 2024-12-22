@@ -4,13 +4,15 @@ use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
         models::wireguard::{
-            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
+            WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
+            WireguardUserStatsRow,
         },
         Device, Id, NoId, WireguardPeerStats,
     },
     handlers::Auth,
 };
 use reqwest::StatusCode;
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 use self::common::make_test_client;
@@ -93,7 +95,13 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    #[derive(Deserialize)]
+    struct StatsResponse {
+        user_devices: Vec<WireguardUserStatsRow>,
+        _network_devices: Vec<WireguardDeviceStatsRow>,
+    }
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert!(stats.is_empty());
 
     // insert stats
