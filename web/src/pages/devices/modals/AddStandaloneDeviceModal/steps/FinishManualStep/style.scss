@@ -33,19 +33,5 @@
         @include typography(app-input);
       }
     }
-
-    .expandable-card {
-      .expanded-content {
-        display: flex;
-        flex-flow: column;
-        align-items: center;
-
-        .config {
-          width: 100%;
-          color: var(--text-button-primary);
-          @include typography(app-code);
-        }
-      }
-    }
   }
 }

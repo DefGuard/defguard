@@ -16,6 +16,7 @@ import { DevicesPageProvider, useDevicesPage } from './hooks/useDevicesPage';
 import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddStandaloneDeviceModal';
 import { useAddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/store';
 import { EditStandaloneModal } from './modals/EditStandaloneDeviceModal/EditStandaloneModal';
+import { StandaloneDeviceConfigModal } from './modals/StandaloneDeviceConfigModal/StandaloneDeviceConfigModal';
 
 export const DevicesPage = () => {
   return (
@@ -25,6 +26,7 @@ export const DevicesPage = () => {
       <AddStandaloneDeviceModal />
       <ConfirmDeviceDeleteModal />
       <EditStandaloneModal />
+      <StandaloneDeviceConfigModal />
     </PageContext>
   );
 };

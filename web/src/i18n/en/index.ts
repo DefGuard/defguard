@@ -45,6 +45,15 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    standaloneDeviceConfigModal: {
+      title: 'Device config',
+      cardTitle: 'Config',
+      toasters: {
+        getConfig: {
+          error: 'Failed to get device config.',
+        },
+      },
+    },
     editStandaloneModal: {
       title: 'Edit network device',
       toasts: {
@@ -2040,10 +2049,11 @@ Any other requests you can reach us at: support@defguard.net
           addedAt: 'Add date',
           edit: 'Edit',
         },
-        edit: {
-          actionLabels: {
-            edit: 'Edit',
-          },
+      },
+      edit: {
+        actionLabels: {
+          config: 'View config',
+          generateToken: 'Generate auth token',
         },
       },
     },

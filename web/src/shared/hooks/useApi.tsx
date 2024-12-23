@@ -501,6 +501,10 @@ const useApi = (props?: HookProps): ApiHook => {
     data,
   ) => client.post('/device/network/start_cli', data).then(unpackRequest);
 
+  const getStandaloneDeviceConfig: ApiHook['standaloneDevice']['getDeviceConfig'] = (
+    id,
+  ) => client.get(`/device/network/${id}/config`).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -553,6 +557,7 @@ const useApi = (props?: HookProps): ApiHook => {
       validateLocationIp: validateLocationIp,
       getDevicesList: getStandaloneDevicesList,
       createCliDevice: createStandaloneCliDevice,
+      getDeviceConfig: getStandaloneDeviceConfig,
     },
     user: {
       getMe,

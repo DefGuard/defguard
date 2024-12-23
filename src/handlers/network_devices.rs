@@ -38,6 +38,7 @@ struct NetworkDeviceInfo {
     added_by: String,
     added_date: NaiveDateTime,
     location: NetworkDeviceLocation,
+    wireguard_pubkey: String,
     configured: bool,
 }
 
@@ -69,6 +70,7 @@ impl NetworkDeviceInfo {
             description: device.description,
             added_by: added_by.username,
             added_date: device.created,
+            wireguard_pubkey: device.wireguard_pubkey,
             location: NetworkDeviceLocation {
                 id: wireguard_device.wireguard_network_id,
                 name: network.name,

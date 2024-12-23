@@ -21,15 +21,7 @@
       grid-template-columns: 1fr;
 
       @include media-breakpoint-up(lg) {
-        grid-template-columns: repeat(auto-fill, 400px);
-      }
-
-      @include media-breakpoint-up(xl) {
-        grid-template-columns: repeat(auto-fill, 460px);
-      }
-
-      @include media-breakpoint-up(xxl) {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fill, 370px);
       }
     }
   }

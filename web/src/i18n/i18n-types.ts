@@ -154,6 +154,24 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		standaloneDeviceConfigModal: {
+			/**
+			 * D​e​v​i​c​e​ ​c​o​n​f​i​g
+			 */
+			title: string
+			/**
+			 * C​o​n​f​i​g
+			 */
+			cardTitle: string
+			toasters: {
+				getConfig: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​.
+					 */
+					error: string
+				}
+			}
+		}
 		editStandaloneModal: {
 			/**
 			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
@@ -4813,6 +4831,10 @@ type RootTranslation = {
 						 * E​d​i​t
 						 */
 						edit: string
+						/**
+						 * V​i​e​w​ ​c​o​n​f​i​g
+						 */
+						config: string
 					}
 				}
 			}
@@ -4960,6 +4982,24 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		standaloneDeviceConfigModal: {
+			/**
+			 * Device config
+			 */
+			title: () => LocalizedString
+			/**
+			 * Config
+			 */
+			cardTitle: () => LocalizedString
+			toasters: {
+				getConfig: {
+					/**
+					 * Failed to get device config.
+					 */
+					error: () => LocalizedString
+				}
+			}
+		}
 		editStandaloneModal: {
 			/**
 			 * Edit network device
@@ -9580,6 +9620,10 @@ export type TranslationFunctions = {
 						 * Edit
 						 */
 						edit: () => LocalizedString
+						/**
+						 * View config
+						 */
+						config: () => LocalizedString
 					}
 				}
 			}

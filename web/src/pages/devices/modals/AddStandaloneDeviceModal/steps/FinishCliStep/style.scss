@@ -20,7 +20,7 @@
 
     .expanded-content {
       p {
-        @include typography(app-input);
+        @include typography(app-code);
       }
     }
   }

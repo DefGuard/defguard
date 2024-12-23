@@ -506,6 +506,7 @@ export interface ApiHook {
       data: ValidateLocationIpRequest,
     ) => Promise<ValidateLocationIpResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
+    getDeviceConfig: (deviceId: number | string) => Promise<string>;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
@@ -1128,6 +1129,9 @@ export type StandaloneDevice = {
   description?: string;
   added_by: string;
   added_date: string;
+  configured: boolean;
+  // when configured is false this will be empty
+  wireguard_pubkey?: string;
   location: {
     id: number;
     name: string;
