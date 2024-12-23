@@ -50,21 +50,17 @@ impl NetworkDeviceInfo {
             .find_device_networks(&mut *transaction)
             .await?
             .pop()
-            .ok_or_else(|| {
-                WebError::ObjectNotFound(format!(
-                    "Failed to find the network with which the network device {} is associated",
-                    device.name
-                ))
-            })?;
+            .ok_or(WebError::ObjectNotFound(format!(
+                "Failed to find the network with which the network device {} is associated",
+                device.name
+            )))?;
         let wireguard_device =
             WireguardNetworkDevice::find(&mut *transaction, device.id, network.id)
                 .await?
-                .ok_or_else(|| {
-                    WebError::ObjectNotFound(format!(
-                        "Failed to find the network with which the network device {} is associated",
-                        device.name
-                    ))
-                })?;
+                .ok_or(WebError::ObjectNotFound(format!(
+                    "Failed to find network device {} network information in network {}",
+                    device.name, network.name
+                )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
         Ok(NetworkDeviceInfo {
             id: device.id,
@@ -146,24 +142,24 @@ pub async fn get_network_device(
 }
 
 pub(crate) async fn list_network_devices(
-    session: SessionInfo,
+    _admin_role: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    // only allow for admin or user themselves
-    if !session.is_admin || !session.user.is_active {
-        warn!(
-            "User {} tried to list network devices, but is not an admin",
-            session.user.username
-        );
-        return Err(WebError::Forbidden("Admin access required".into()));
-    };
     debug!("Listing all network devices");
     let mut devices_response: Vec<NetworkDeviceInfo> = vec![];
     let mut transaction = appstate.pool.begin().await?;
     let devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
     for device in devices {
-        let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
-        devices_response.push(network_device_info);
+        match NetworkDeviceInfo::from_device(device, &mut transaction).await {
+            Ok(device_info) => {
+                devices_response.push(device_info);
+            }
+            Err(e) => {
+                error!(
+                    "Failed to get network information for network device. This device will not be displayed. Error details: {e}"
+                )
+            }
+        }
     }
     transaction.commit().await?;
 
@@ -176,11 +172,11 @@ pub(crate) async fn list_network_devices(
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AddNetworkDevice {
-    name: String,
-    description: Option<String>,
-    location_id: i64,
-    assigned_ip: String,
-    wireguard_pubkey: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub location_id: i64,
+    pub assigned_ip: String,
+    pub wireguard_pubkey: String,
 }
 
 #[derive(Serialize)]
@@ -203,6 +199,18 @@ async fn check_ip(
             network.name,
         )));
     }
+    if ip == network_address.network() || ip == network_address.broadcast() {
+        return Err(WebError::BadRequest(format!(
+            "Provided IP address {ip} is network or broadcast address of network {}",
+            network.name
+        )));
+    }
+    if ip == network_address.ip() {
+        return Err(WebError::BadRequest(format!(
+            "Provided IP address {ip} may overlap with the network's gateway IP in network {}",
+            network.name
+        )));
+    }
 
     let device = Device::find_by_ip(transaction, ip, network.id).await?;
     if let Some(device) = device {
@@ -217,7 +225,7 @@ async fn check_ip(
 
 #[derive(Deserialize)]
 pub struct IpAvailabilityCheck {
-    ip: IpAddr,
+    ip: String,
 }
 
 pub(crate) async fn check_ip_availability(
@@ -231,12 +239,27 @@ pub(crate) async fn check_ip_availability(
         .await?
         .ok_or_else(|| {
             error!(
-                "Failed to check IP availability for network with ID {}, network not found",
-                network_id
+                "Failed to check IP availability for network with ID {network_id}, network not found",
+
             );
             WebError::BadRequest("Failed to check IP availability, network not found".to_string())
         })?;
-    if !network.address.contains(ip.ip) {
+
+    let ip = if let Ok(ip) = IpAddr::from_str(&ip.ip) {
+        ip
+    } else {
+        warn!(
+            "Failed to check IP availability for network with ID {network_id}, invalid IP address",
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": false,
+            }),
+            status: StatusCode::OK,
+        });
+    };
+    if !network.address.contains(ip) {
         warn!(
             "Provided device IP is not in the network ({}) range {}",
             network.name, network.address
@@ -249,7 +272,33 @@ pub(crate) async fn check_ip_availability(
             status: StatusCode::OK,
         });
     }
-    if let Some(device) = Device::find_by_ip(&mut *transaction, ip.ip, network.id).await? {
+    if ip == network.address.network() || ip == network.address.broadcast() {
+        warn!(
+            "Provided device IP is network or broadcast address of network {}",
+            network.name
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": true,
+            }),
+            status: StatusCode::OK,
+        });
+    }
+    if ip == network.address.ip() {
+        warn!(
+            "Provided device IP may overlap with the network's gateway IP in network {}",
+            network.name
+        );
+        return Ok(ApiResponse {
+            json: json!({
+                "available": false,
+                "valid": true,
+            }),
+            status: StatusCode::OK,
+        });
+    }
+    if let Some(device) = Device::find_by_ip(&mut *transaction, ip, network.id).await? {
         warn!(
             "Provided device IP is already assigned to device {} in network {}",
             device.name, network.name
