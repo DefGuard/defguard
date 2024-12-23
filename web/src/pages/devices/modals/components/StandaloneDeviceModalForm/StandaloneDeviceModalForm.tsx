@@ -97,10 +97,13 @@ export const StandaloneDeviceModalForm = ({
           name: z
             .string()
             .min(1, LL.form.error.required())
-            .refine(
-              (value) => !reservedNames.includes(value.trim()),
-              LL.form.error.reservedName(),
-            ),
+            .refine((value) => {
+              if (mode === StandaloneDeviceModalFormMode.EDIT) {
+                const filtered = reservedNames.filter((n) => n !== defaults.name.trim());
+                return !filtered.includes(value.trim());
+              }
+              return !reservedNames.includes(value.trim());
+            }, LL.form.error.reservedName()),
           location_id: z.number(),
           description: z.string(),
           assigned_ip: z.string().min(1, LL.form.error.required()),
