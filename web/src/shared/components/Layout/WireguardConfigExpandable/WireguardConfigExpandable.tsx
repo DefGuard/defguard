@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import { Fragment, ReactNode, useCallback, useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -52,10 +52,10 @@ export const WireguardConfigExpandable = ({
     return (
       <p className="config">
         {content.map((text, index) => (
-          <>
+          <Fragment key={index}>
             <span>{text}</span>
             {index !== content.length - 1 && <br />}
-          </>
+          </Fragment>
         ))}
       </p>
     );

@@ -10,9 +10,11 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { useDevicesPage } from '../../../../hooks/useDevicesPage';
 import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
@@ -23,6 +25,7 @@ import {
 } from '../../types';
 
 export const SetupCliStep = () => {
+  const [{ reservedDeviceNames }] = useDevicesPage();
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const [formLoading, setFormLoading] = useState(false);
@@ -31,6 +34,7 @@ export const SetupCliStep = () => {
     (s) => [s.setStore, s.close, s.changeStep, s.submitSubject],
     shallow,
   );
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const toast = useToaster();
 
@@ -44,6 +48,9 @@ export const SetupCliStep = () => {
       toast.success(LL.modals.addStandaloneDevice.toasts.deviceCreated());
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
       });
     },
     onError: (e) => {
@@ -102,6 +109,7 @@ export const SetupCliStep = () => {
         onSubmit={handleSubmit}
         mode={StandaloneDeviceModalFormMode.CREATE_CLI}
         submitSubject={submitSubject}
+        reservedNames={reservedDeviceNames}
       />
       <div className="controls">
         <Button

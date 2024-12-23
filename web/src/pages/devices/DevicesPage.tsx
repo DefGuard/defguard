@@ -7,6 +7,7 @@ import { useI18nContext } from '../../i18n/i18n-react';
 import { ManagementPageLayout } from '../../shared/components/Layout/ManagementPageLayout/ManagementPageLayout';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
 import { ButtonStyleVariant } from '../../shared/defguard-ui/components/Layout/Button/types';
+import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { AddDeviceIcon } from './components/AddDeviceIcon';
@@ -55,11 +56,23 @@ const Page = () => {
   const { LL } = useI18nContext();
   const localLL = LL.devicesPage;
   const [{ devices }, setPageState] = useDevicesPage();
+  const currentUser = useAuthStore((s) => s.user);
+
   const {
     standaloneDevice: { getDevicesList },
+    user: { getUser },
   } = useApi();
 
-  const { data } = useQuery({
+  const { data: userProfile } = useQuery({
+    queryFn: () => getUser(currentUser?.username as string),
+    queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUser?.id],
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    enabled: currentUser !== undefined,
+  });
+
+  const { data: devicesData } = useQuery({
     queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
     queryFn: getDevicesList,
     refetchOnMount: true,
@@ -68,11 +81,20 @@ const Page = () => {
   });
 
   useEffect(() => {
-    if (data) {
-      setPageState((s) => ({ ...s, devices: data }));
+    if (userProfile && devicesData) {
+      setPageState((s) => ({
+        ...s,
+        reservedDeviceNames: [
+          ...userProfile.devices.map((d) => d.name.trim()),
+          ...devicesData
+            .filter((d) => d.added_by === (currentUser?.username as string))
+            .map((d) => d.name.trim()),
+        ],
+        devices: devicesData,
+      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [userProfile, devicesData]);
 
   return (
     <ManagementPageLayout

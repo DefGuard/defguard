@@ -5,11 +5,13 @@ import { StandaloneDevice } from '../../../shared/types';
 
 export type DevicesPageContext = {
   devices: StandaloneDevice[];
+  reservedDeviceNames: string[];
   search: string;
 };
 
 const initialState: DevicesPageContext = {
   devices: [],
+  reservedDeviceNames: [],
   search: '',
 };
 

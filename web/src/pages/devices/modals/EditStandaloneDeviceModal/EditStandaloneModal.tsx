@@ -13,11 +13,13 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { Network } from '../../../../shared/types';
 import { selectifyNetworks } from '../../../../shared/utils/form/selectifyNetwork';
+import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
   AddStandaloneDeviceFormFields,
@@ -63,6 +65,8 @@ const ModalContent = () => {
   const [closeModal] = useEditStandaloneDeviceModal((s) => [s.close], shallow);
   const toaster = useToaster();
   const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const [{ reservedDeviceNames }] = useDevicesPage();
 
   const {
     network: { getNetworks },
@@ -75,6 +79,9 @@ const ModalContent = () => {
       toaster.success(localLL.toasts.success());
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
       });
       closeModal();
     },
@@ -153,6 +160,7 @@ const ModalContent = () => {
           onLoadingChange={setFormLoading}
           onSubmit={handleSubmit}
           submitSubject={submitSubject}
+          reservedNames={reservedDeviceNames}
         />
       )}
       {!defaultValues && (

@@ -10,9 +10,11 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
+import { useDevicesPage } from '../../../../hooks/useDevicesPage';
 import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
 import { useAddStandaloneDeviceModal } from '../../store';
@@ -37,6 +39,10 @@ export const SetupManualStep = () => {
 
   const queryClient = useQueryClient();
 
+  const currentUserId = useAuthStore((s) => s.user?.id);
+
+  const [{ reservedDeviceNames }] = useDevicesPage();
+
   const {
     standaloneDevice: { createManualDevice: createDevice },
   } = useApi();
@@ -46,6 +52,9 @@ export const SetupManualStep = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
       });
     },
   });
@@ -102,6 +111,7 @@ export const SetupManualStep = () => {
         submitSubject={submitSubject}
         onSubmit={handleSubmit}
         onLoadingChange={setFormLoading}
+        reservedNames={reservedDeviceNames}
       />
       <div className="controls">
         <Button

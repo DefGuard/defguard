@@ -63,7 +63,7 @@ export const FinishCliStep = () => {
         expanded={true}
         disableExpand={true}
       >
-        <p className="config">{commandToCopy}</p>
+        <p className="code">{commandToCopy}</p>
       </ExpandableCard>
       <div className="controls solo">
         <Button

@@ -226,6 +226,44 @@ type RootTranslation = {
 				 */
 				setup: string
 			}
+			form: {
+				/**
+				 * A​d​d​ ​D​e​v​i​c​e
+				 */
+				submit: string
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * A​s​s​i​g​n​e​d​ ​I​P
+					 */
+					assignedAddress: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					generation: {
+						/**
+						 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+						 */
+						auto: string
+						/**
+						 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+						 */
+						manual: string
+					}
+					/**
+					 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+					 */
+					publicKey: string
+				}
+			}
 			steps: {
 				method: {
 					/**
@@ -2352,6 +2390,10 @@ type RootTranslation = {
 			username: string
 		}
 		error: {
+			/**
+			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
+			 */
+			reservedName: string
 			/**
 			 * I​P​ ​i​s​ ​i​n​v​a​l​i​d​.
 			 */
@@ -4825,17 +4867,17 @@ type RootTranslation = {
 					 */
 					edit: string
 				}
-				edit: {
-					actionLabels: {
-						/**
-						 * E​d​i​t
-						 */
-						edit: string
-						/**
-						 * V​i​e​w​ ​c​o​n​f​i​g
-						 */
-						config: string
-					}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * V​i​e​w​ ​c​o​n​f​i​g
+					 */
+					config: string
+					/**
+					 * G​e​n​e​r​a​t​e​ ​a​u​t​h​ ​t​o​k​e​n
+					 */
+					generateToken: string
 				}
 			}
 		}
@@ -5052,6 +5094,44 @@ export type TranslationFunctions = {
 				 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
 				 */
 				setup: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Add Device
+				 */
+				submit: () => LocalizedString
+				labels: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * Assigned IP
+					 */
+					assignedAddress: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					generation: {
+						/**
+						 * Generate key pair
+						 */
+						auto: () => LocalizedString
+						/**
+						 * Use my own public key
+						 */
+						manual: () => LocalizedString
+					}
+					/**
+					 * Provide Your Public Key
+					 */
+					publicKey: () => LocalizedString
+				}
 			}
 			steps: {
 				method: {
@@ -7159,6 +7239,10 @@ export type TranslationFunctions = {
 			username: () => LocalizedString
 		}
 		error: {
+			/**
+			 * Name is already taken.
+			 */
+			reservedName: () => LocalizedString
 			/**
 			 * IP is invalid.
 			 */
@@ -9614,17 +9698,17 @@ export type TranslationFunctions = {
 					 */
 					edit: () => LocalizedString
 				}
-				edit: {
-					actionLabels: {
-						/**
-						 * Edit
-						 */
-						edit: () => LocalizedString
-						/**
-						 * View config
-						 */
-						config: () => LocalizedString
-					}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * View config
+					 */
+					config: () => LocalizedString
+					/**
+					 * Generate auth token
+					 */
+					generateToken: () => LocalizedString
 				}
 			}
 		}

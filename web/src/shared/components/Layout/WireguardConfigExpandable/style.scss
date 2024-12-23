@@ -6,8 +6,12 @@
 
     .config {
       width: 100%;
-      color: var(--text-button-primary);
       @include typography(app-code);
+      color: var(--text-button-primary);
+
+      span {
+        color: inherit;
+      }
     }
   }
 }

@@ -31,6 +31,7 @@ type Props = {
   locationOptions: SelectOption<number>[];
   submitSubject: Subject<void>;
   defaults: AddStandaloneDeviceFormFields;
+  reservedNames: string[];
 };
 
 export const StandaloneDeviceModalForm = ({
@@ -40,6 +41,7 @@ export const StandaloneDeviceModalForm = ({
   locationOptions,
   submitSubject,
   defaults,
+  reservedNames,
 }: Props) => {
   const { LL } = useI18nContext();
   const {
@@ -92,7 +94,13 @@ export const StandaloneDeviceModalForm = ({
     () =>
       z
         .object({
-          name: z.string().min(1, LL.form.error.required()),
+          name: z
+            .string()
+            .min(1, LL.form.error.required())
+            .refine(
+              (value) => !reservedNames.includes(value.trim()),
+              LL.form.error.reservedName(),
+            ),
           location_id: z.number(),
           description: z.string(),
           assigned_ip: z.string().min(1, LL.form.error.required()),
@@ -120,7 +128,7 @@ export const StandaloneDeviceModalForm = ({
             }
           }
         }),
-    [LL.form.error, errors, mode],
+    [LL.form.error, errors, mode, reservedNames],
   );
 
   const {

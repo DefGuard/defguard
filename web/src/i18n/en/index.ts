@@ -78,6 +78,20 @@ const en: BaseTranslation = {
         setup:
           'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
       },
+      form: {
+        submit: 'Add Device',
+        labels: {
+          deviceName: 'Device Name',
+          location: 'Location',
+          assignedAddress: 'Assigned IP',
+          description: 'Description',
+          generation: {
+            auto: 'Generate key pair',
+            manual: 'Use my own public key',
+          },
+          publicKey: 'Provide Your Public Key',
+        },
+      },
       steps: {
         method: {
           title: 'Choose a proffered method',
@@ -977,6 +991,7 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
+      reservedName: 'Name is already taken.',
       invalidIp: 'IP is invalid.',
       reservedIp: 'IP is already in use.',
       forbiddenCharacter: 'Field contains forbidden characters.',

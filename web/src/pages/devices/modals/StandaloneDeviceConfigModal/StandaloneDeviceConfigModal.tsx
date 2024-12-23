@@ -31,6 +31,7 @@ export const StandaloneDeviceConfigModal = () => {
       onClose={close}
       afterClose={reset}
       id="standalone-device-config-modal"
+      includeDefaultStyles
     >
       <ModalContent />
     </ModalWithTitle>
@@ -51,7 +52,7 @@ const ModalContent = () => {
         // modal can't be opened when configured is false means pubkey will be always a string here
         publicKey={data.device.wireguard_pubkey as string}
       />
-      <div className="controls">
+      <div className="controls solo">
         <Button
           className="cancel"
           onClick={() => close()}

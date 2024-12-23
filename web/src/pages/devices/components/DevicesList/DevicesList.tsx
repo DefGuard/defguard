@@ -146,7 +146,7 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
         onClick={() => openEdit(props.data)}
       />
       <EditButtonOption
-        text={LL.devicesPage.list.columns.edit.actionLabels.config()}
+        text={LL.devicesPage.list.edit.actionLabels.config()}
         onClick={() => handleOpenConfig()}
         disabled={!props.data.configured || isLoading}
       />
