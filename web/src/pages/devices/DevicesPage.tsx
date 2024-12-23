@@ -18,6 +18,7 @@ import { AddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/AddS
 import { useAddStandaloneDeviceModal } from './modals/AddStandaloneDeviceModal/store';
 import { EditStandaloneModal } from './modals/EditStandaloneDeviceModal/EditStandaloneModal';
 import { StandaloneDeviceConfigModal } from './modals/StandaloneDeviceConfigModal/StandaloneDeviceConfigModal';
+import { StandaloneDeviceEnrollmentModal } from './modals/StandaloneDeviceEnrollmentModal/StandaloneDeviceEnrollmentModal';
 
 export const DevicesPage = () => {
   return (
@@ -28,6 +29,7 @@ export const DevicesPage = () => {
       <ConfirmDeviceDeleteModal />
       <EditStandaloneModal />
       <StandaloneDeviceConfigModal />
+      <StandaloneDeviceEnrollmentModal />
     </PageContext>
   );
 };

@@ -23,6 +23,7 @@ import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneD
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import { useStandaloneDeviceConfigModal } from '../../modals/StandaloneDeviceConfigModal/store';
+import { useStandaloneDeviceEnrollmentModal } from '../../modals/StandaloneDeviceEnrollmentModal/store';
 
 export const DevicesList = () => {
   const { LL } = useI18nContext();
@@ -116,19 +117,29 @@ const DeviceRow = (props: StandaloneDevice) => {
 const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
   const { LL } = useI18nContext();
   const {
-    standaloneDevice: { getDeviceConfig },
+    standaloneDevice: { getDeviceConfig, generateAuthToken },
   } = useApi();
   const toaster = useToaster();
-  const { mutateAsync, isLoading } = useMutation({
+  const { mutateAsync, isLoading: deviceConfigLoading } = useMutation({
     mutationFn: getDeviceConfig,
     onError: (e) => {
       toaster.error(LL.modals.standaloneDeviceConfigModal.toasters.getConfig.error());
       console.error(e);
     },
   });
+
+  const { mutateAsync: mutateTokenGen, isLoading: deviceTokenLoading } = useMutation({
+    mutationFn: generateAuthToken,
+    onError: (e) => {
+      toaster.error(LL.modals.standaloneDeviceEnrollmentModal.toasters.error());
+      console.error(e);
+    },
+  });
+
   const openDelete = useDeleteStandaloneDeviceModal((s) => s.open, shallow);
   const openEdit = useEditStandaloneDeviceModal((s) => s.open, shallow);
   const openConfig = useStandaloneDeviceConfigModal((s) => s.open);
+  const openEnrollment = useStandaloneDeviceEnrollmentModal((s) => s.open);
 
   const handleOpenConfig = useCallback(() => {
     mutateAsync(props.data.id).then((config) => {
@@ -139,6 +150,15 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
     });
   }, [mutateAsync, openConfig, props.data]);
 
+  const handleTokenGen = useCallback(() => {
+    mutateTokenGen(props.data.id).then((res) => {
+      openEnrollment({
+        device: props.data,
+        enrollment: res,
+      });
+    });
+  }, [mutateTokenGen, openEnrollment, props.data]);
+
   return (
     <EditButton>
       <EditButtonOption
@@ -148,7 +168,12 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
       <EditButtonOption
         text={LL.devicesPage.list.edit.actionLabels.config()}
         onClick={() => handleOpenConfig()}
-        disabled={!props.data.configured || isLoading}
+        disabled={!props.data.configured || deviceConfigLoading}
+      />
+      <EditButtonOption
+        text={LL.devicesPage.list.edit.actionLabels.generateToken()}
+        onClick={() => handleTokenGen()}
+        disabled={deviceTokenLoading}
       />
       <EditButtonOption
         text={LL.common.controls.delete()}

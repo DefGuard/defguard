@@ -45,8 +45,14 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    standaloneDeviceEnrollmentModal: {
+      title: 'Network device token',
+      toasters: {
+        error: 'Token generation failed.',
+      },
+    },
     standaloneDeviceConfigModal: {
-      title: 'Device config',
+      title: 'Network device config',
       cardTitle: 'Config',
       toasters: {
         getConfig: {
@@ -111,22 +117,6 @@ const en: BaseTranslation = {
         },
         manual: {
           title: 'Add new VPN device using WireGuard Client',
-          setup: {
-            form: {
-              submit: 'Add Device',
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-                generation: {
-                  auto: 'Generate key pair',
-                  manual: 'Use my own public key',
-                },
-                publicKey: 'Provide Your Public Key',
-              },
-            },
-          },
           finish: {
             messageTop:
               'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
@@ -153,12 +143,6 @@ const en: BaseTranslation = {
             stepMessage:
               'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
             form: {
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-              },
               submit: 'Add Device',
             },
           },
@@ -1028,6 +1012,14 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    standaloneDeviceTokenModalContent: {
+      headerMessage:
+        'First download defguard command line client binaries and install them on your server.',
+      downloadButton: 'Download defguard CLI Client',
+      expandableCard: {
+        title: 'Copy and paste this command in your terminal on the device',
+      },
+    },
     deviceConfigsCard: {
       cardTitle: 'WireGuard Config for location:',
       messages: {
@@ -2042,7 +2034,7 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   devicesPage: {
-    title: 'Devices',
+    title: 'Network Devices',
     search: {
       placeholder: 'Find',
     },

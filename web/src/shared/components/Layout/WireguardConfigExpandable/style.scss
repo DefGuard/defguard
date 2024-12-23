@@ -10,7 +10,8 @@
       color: var(--text-button-primary);
 
       span {
-        color: inherit;
+        @include typography(app-code);
+        color: var(--text-button-primary);
       }
     }
   }

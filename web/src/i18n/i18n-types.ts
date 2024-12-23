@@ -154,9 +154,21 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​t​o​k​e​n
+			 */
+			title: string
+			toasters: {
+				/**
+				 * T​o​k​e​n​ ​g​e​n​e​r​a​t​i​o​n​ ​f​a​i​l​e​d​.
+				 */
+				error: string
+			}
+		}
 		standaloneDeviceConfigModal: {
 			/**
-			 * D​e​v​i​c​e​ ​c​o​n​f​i​g
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g
 			 */
 			title: string
 			/**
@@ -302,46 +314,6 @@ type RootTranslation = {
 					 * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
 					 */
 					title: string
-					setup: {
-						form: {
-							/**
-							 * A​d​d​ ​D​e​v​i​c​e
-							 */
-							submit: string
-							labels: {
-								/**
-								 * D​e​v​i​c​e​ ​N​a​m​e
-								 */
-								deviceName: string
-								/**
-								 * L​o​c​a​t​i​o​n
-								 */
-								location: string
-								/**
-								 * A​s​s​i​g​n​e​d​ ​I​P
-								 */
-								assignedAddress: string
-								/**
-								 * D​e​s​c​r​i​p​t​i​o​n
-								 */
-								description: string
-								generation: {
-									/**
-									 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
-									 */
-									auto: string
-									/**
-									 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
-									 */
-									manual: string
-								}
-								/**
-								 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
-								 */
-								publicKey: string
-							}
-						}
-					}
 					finish: {
 						/**
 						 * D​o​w​n​l​o​a​d​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​t​o​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​n​d​ ​i​m​p​o​r​t​ ​i​t​ ​i​n​t​o​ ​y​o​u​r​ ​V​P​N​ ​c​l​i​e​n​t​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​s​e​t​u​p​.
@@ -390,24 +362,6 @@ type RootTranslation = {
 						 */
 						stepMessage: string
 						form: {
-							labels: {
-								/**
-								 * D​e​v​i​c​e​ ​N​a​m​e
-								 */
-								deviceName: string
-								/**
-								 * L​o​c​a​t​i​o​n
-								 */
-								location: string
-								/**
-								 * A​s​s​i​g​n​e​d​ ​I​P
-								 */
-								assignedAddress: string
-								/**
-								 * D​e​s​c​r​i​p​t​i​o​n
-								 */
-								description: string
-							}
 							/**
 							 * A​d​d​ ​D​e​v​i​c​e
 							 */
@@ -2527,6 +2481,22 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+			 */
+			headerMessage: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+			 */
+			downloadButton: string
+			expandableCard: {
+				/**
+				 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+				 */
+				title: string
+			}
+		}
 		deviceConfigsCard: {
 			/**
 			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
@@ -4812,7 +4782,7 @@ type RootTranslation = {
 	}
 	devicesPage: {
 		/**
-		 * D​e​v​i​c​e​s
+		 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
 		 */
 		title: string
 		search: {
@@ -5024,9 +4994,21 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * Network device token
+			 */
+			title: () => LocalizedString
+			toasters: {
+				/**
+				 * Token generation failed.
+				 */
+				error: () => LocalizedString
+			}
+		}
 		standaloneDeviceConfigModal: {
 			/**
-			 * Device config
+			 * Network device config
 			 */
 			title: () => LocalizedString
 			/**
@@ -5171,46 +5153,6 @@ export type TranslationFunctions = {
 					 * Add new VPN device using WireGuard Client
 					 */
 					title: () => LocalizedString
-					setup: {
-						form: {
-							/**
-							 * Add Device
-							 */
-							submit: () => LocalizedString
-							labels: {
-								/**
-								 * Device Name
-								 */
-								deviceName: () => LocalizedString
-								/**
-								 * Location
-								 */
-								location: () => LocalizedString
-								/**
-								 * Assigned IP
-								 */
-								assignedAddress: () => LocalizedString
-								/**
-								 * Description
-								 */
-								description: () => LocalizedString
-								generation: {
-									/**
-									 * Generate key pair
-									 */
-									auto: () => LocalizedString
-									/**
-									 * Use my own public key
-									 */
-									manual: () => LocalizedString
-								}
-								/**
-								 * Provide Your Public Key
-								 */
-								publicKey: () => LocalizedString
-							}
-						}
-					}
 					finish: {
 						/**
 						 * Download the provided configuration file to your device and import it into your VPN client to complete the setup.
@@ -5259,24 +5201,6 @@ export type TranslationFunctions = {
 						 */
 						stepMessage: () => LocalizedString
 						form: {
-							labels: {
-								/**
-								 * Device Name
-								 */
-								deviceName: () => LocalizedString
-								/**
-								 * Location
-								 */
-								location: () => LocalizedString
-								/**
-								 * Assigned IP
-								 */
-								assignedAddress: () => LocalizedString
-								/**
-								 * Description
-								 */
-								description: () => LocalizedString
-							}
 							/**
 							 * Add Device
 							 */
@@ -7372,6 +7296,22 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * First download defguard command line client binaries and install them on your server.
+			 */
+			headerMessage: () => LocalizedString
+			/**
+			 * Download defguard CLI Client
+			 */
+			downloadButton: () => LocalizedString
+			expandableCard: {
+				/**
+				 * Copy and paste this command in your terminal on the device
+				 */
+				title: () => LocalizedString
+			}
+		}
 		deviceConfigsCard: {
 			/**
 			 * WireGuard Config for location:
@@ -9643,7 +9583,7 @@ export type TranslationFunctions = {
 	}
 	devicesPage: {
 		/**
-		 * Devices
+		 * Network Devices
 		 */
 		title: () => LocalizedString
 		search: {

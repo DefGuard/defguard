@@ -507,6 +507,7 @@ export interface ApiHook {
     ) => Promise<ValidateLocationIpResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
+    generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
   };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;

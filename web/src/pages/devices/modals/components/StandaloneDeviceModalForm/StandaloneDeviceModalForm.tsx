@@ -49,9 +49,9 @@ export const StandaloneDeviceModalForm = ({
   } = useApi();
   // auto assign upon location change is happening
   const [ipIsLoading, setIpIsLoading] = useState(false);
-  const localLL = LL.modals.addStandaloneDevice.steps.manual.setup;
+  const localLL = LL.modals.addStandaloneDevice.form;
   const errors = LL.form.error;
-  const labels = localLL.form.labels;
+  const labels = localLL.labels;
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
   const renderSelectedOption = useCallback(
@@ -131,7 +131,7 @@ export const StandaloneDeviceModalForm = ({
             }
           }
         }),
-    [LL.form.error, errors, mode, reservedNames],
+    [LL.form.error, defaults.name, errors, mode, reservedNames],
   );
 
   const {

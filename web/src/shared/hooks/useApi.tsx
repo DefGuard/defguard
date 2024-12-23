@@ -505,6 +505,10 @@ const useApi = (props?: HookProps): ApiHook => {
     id,
   ) => client.get(`/device/network/${id}/config`).then(unpackRequest);
 
+  // eslint-disable-next-line max-len
+  const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
+    (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -558,6 +562,7 @@ const useApi = (props?: HookProps): ApiHook => {
       getDevicesList: getStandaloneDevicesList,
       createCliDevice: createStandaloneCliDevice,
       getDeviceConfig: getStandaloneDeviceConfig,
+      generateAuthToken: generateStandaloneDeviceAuthToken,
     },
     user: {
       getMe,
