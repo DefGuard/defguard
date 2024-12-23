@@ -2,14 +2,15 @@ mod common;
 
 use std::{net::IpAddr, str::FromStr};
 
-use defguard::db::{Device, GatewayEvent, Id, WireguardNetwork};
-use defguard::handlers::{network_devices::AddNetworkDevice, Auth};
+use defguard::{
+    db::{Device, GatewayEvent, Id, WireguardNetwork},
+    handlers::{network_devices::AddNetworkDevice, Auth},
+};
 use ipnetwork::IpNetwork;
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use serde_json::json;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use self::common::make_test_client;
 

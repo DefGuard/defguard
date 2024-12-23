@@ -454,7 +454,7 @@ impl EnrollmentServer {
 
         let (device, network_info, configs) = if let Some(device_id) = enrollment_token.device_id {
             debug!(
-                "A device with ID {device_id} is attached to a received enrollment token, trying to finish it's configuration instead of creating a new one."
+                "A device with ID {device_id} is attached to a received enrollment token, trying to finish its configuration instead of creating a new one."
             );
             let mut device = Device::find_by_id(&mut *transaction, device_id)
                 .await.map_err(|err| {

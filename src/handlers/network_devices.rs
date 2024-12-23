@@ -245,9 +245,7 @@ pub(crate) async fn check_ip_availability(
             WebError::BadRequest("Failed to check IP availability, network not found".to_string())
         })?;
 
-    let ip = if let Ok(ip) = IpAddr::from_str(&ip.ip) {
-        ip
-    } else {
+    let Ok(ip) = IpAddr::from_str(&ip.ip) else {
         warn!(
             "Failed to check IP availability for network with ID {network_id}, invalid IP address",
         );
@@ -675,7 +673,7 @@ pub async fn modify_network_device(
     device.description = data.description;
     device.save(&mut *transaction).await?;
 
-    // ip changed, remove device from network and add it again with new ip
+    // IP address has changed, so remove device from network and add it again with new IP address.
     if new_ip != wireguard_network_device.wireguard_ip {
         check_ip(new_ip, &device_network, &mut transaction).await?;
         wireguard_network_device.wireguard_ip = new_ip;

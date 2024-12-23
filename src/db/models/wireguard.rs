@@ -402,8 +402,8 @@ impl WireguardNetwork<Id> {
         ip: IpAddr,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!(
-            "Adding network device {} with IP {} to network {self}",
-            device.device_id, ip
+            "Adding network device {} with IP {ip} to network {self}",
+            device.device_id
         );
         let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, ip);
         wireguard_network_device.insert(&mut *transaction).await?;
