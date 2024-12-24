@@ -137,15 +137,12 @@ impl<I> User<I> {
     }
 
     pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        match &self.password_hash {
-            Some(hash) => {
-                let parsed_hash = PasswordHash::new(hash)?;
-                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
-            }
-            None => {
-                error!("Password not set for user {}", self.username);
-                Err(HashError::Password)
-            }
+        if let Some(hash) = &self.password_hash {
+            let parsed_hash = PasswordHash::new(hash)?;
+            Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        } else {
+            error!("Password not set for user {}", self.username);
+            Err(HashError::Password)
         }
     }
 
@@ -570,6 +567,12 @@ impl User<Id> {
                 if code == expected_code {
                     return true;
                 }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit current time
+                    frame, checking the previous one.
+                    Expected: {expected_code}, got: {code}",
+                    self.username
+                );
 
                 let previous_code = totp_custom::<Sha1>(
                     timeout,
@@ -577,8 +580,23 @@ impl User<Id> {
                     email_mfa_secret,
                     timestamp.as_secs() - timeout,
                 );
-                return code == previous_code;
+
+                if code == previous_code {
+                    return true;
+                }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    expected: {previous_code}, got: {code}",
+                    self.username
+                );
+                return false;
             }
+            debug!(
+                "Couldn't calculate current timestamp when verifying email MFA code for user {}",
+                self.username
+            );
+        } else {
+            debug!("Email MFA secret not configured for user {}", self.username);
         }
         false
     }

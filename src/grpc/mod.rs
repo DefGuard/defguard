@@ -527,17 +527,15 @@ pub async fn run_grpc_bidi_stream(
                                     Some(core_response::Payload::InstanceInfo(response_payload))
                                 }
                                 Err(err) => {
-                                    match err.code() {
+                                    if Code::FailedPrecondition == err.code() {
                                         // Ignore the case when we are not enterprise but the client is trying to fetch the instance config,
                                         // to avoid spamming the logs with misleading errors.
-                                        Code::FailedPrecondition => {
-                                            debug!("A client tried to fetch the instance config, but we are not enterprise.");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
-                                        _ => {
-                                            error!("Instance info error {err}");
-                                            Some(core_response::Payload::CoreError(err.into()))
-                                        }
+
+                                        debug!("A client tried to fetch the instance config, but we are not enterprise.");
+                                        Some(core_response::Payload::CoreError(err.into()))
+                                    } else {
+                                        error!("Instance info error {err}");
+                                        Some(core_response::Payload::CoreError(err.into()))
                                     }
                                 }
                             }

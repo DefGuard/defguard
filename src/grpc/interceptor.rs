@@ -22,8 +22,7 @@ impl Interceptor for JwtInterceptor {
         let hostname = req
             .metadata()
             .get("hostname")
-            .map(|h| h.to_str().unwrap_or("UNKNOWN"))
-            .unwrap_or("UNKNOWN");
+            .map_or("UNKNOWN", |h| h.to_str().unwrap_or("UNKNOWN"));
 
         let token = match req.metadata().get("authorization") {
             Some(token) => token.to_str().map_err(|err| {

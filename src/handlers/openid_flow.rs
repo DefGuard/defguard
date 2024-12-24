@@ -160,7 +160,7 @@ impl Serialize for FieldResponseTypes {
 
 struct FieldResponseTypesVisitor;
 
-impl<'de> Visitor<'de> for FieldResponseTypesVisitor {
+impl Visitor<'_> for FieldResponseTypesVisitor {
     type Value = FieldResponseTypes;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
