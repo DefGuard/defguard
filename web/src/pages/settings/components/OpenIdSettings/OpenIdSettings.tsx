@@ -8,8 +8,7 @@ import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/Big
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../shared/queries';
-import { OpenIdGeneralSettings } from './components/OpenIdGeneralSettings';
-import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
+import { OpenIdSettingsRootForm } from './components/OpenIdSettingsRootForm';
 
 export const OpenIdSettings = () => {
   const { LL } = useI18nContext();
@@ -56,12 +55,7 @@ export const OpenIdSettings = () => {
           />
         </div>
       )}
-      <div className="left">
-        <OpenIdSettingsForm />
-      </div>
-      <div className="right">
-        <OpenIdGeneralSettings />
-      </div>
+      <OpenIdSettingsRootForm />
     </>
   );
 };

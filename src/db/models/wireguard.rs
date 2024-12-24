@@ -22,7 +22,7 @@ use super::{
 };
 use crate::{
     appstate::AppState,
-    db::{Id, NoId},
+    db::{models::device::DeviceType, Id, NoId},
     grpc::{gateway::Peer, GatewayState},
     wg_config::ImportedDevice,
 };
@@ -320,13 +320,15 @@ impl WireguardNetwork<Id> {
             Some(allowed_groups) => {
                 query_as!(
                 Device,
-                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                configured
                 FROM device d \
                 JOIN \"user\" u ON d.user_id = u.id \
                 JOIN group_user gu ON u.id = gu.user_id \
                 JOIN \"group\" g ON gu.group_id = g.id \
                 WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) \
                 AND u.is_active = true \
+                AND d.device_type = 'user'::device_type \
                 ORDER BY d.id ASC",
                 &allowed_groups
             )
@@ -337,10 +339,12 @@ impl WireguardNetwork<Id> {
             None => {
                 query_as!(
                     Device,
-                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                    configured \
                     FROM device d \
                     JOIN \"user\" u ON d.user_id = u.id \
                     WHERE u.is_active = true \
+                    AND d.device_type = 'user'::device_type \
                     ORDER BY d.id ASC"
                 )
                 .fetch_all(&mut *transaction)
@@ -364,7 +368,7 @@ impl WireguardNetwork<Id> {
         let devices = self.get_allowed_devices(&mut *transaction).await?;
         for device in devices {
             device
-                .assign_network_ip(&mut *transaction, self, None)
+                .assign_next_network_ip(&mut *transaction, self, None)
                 .await?;
         }
         Ok(())
@@ -382,13 +386,28 @@ impl WireguardNetwork<Id> {
         let allowed_device_ids: Vec<i64> = allowed_devices.iter().map(|dev| dev.id).collect();
         if allowed_device_ids.contains(&device.id) {
             let wireguard_network_device = device
-                .assign_network_ip(&mut *transaction, self, reserved_ips)
+                .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
             Ok(wireguard_network_device)
         } else {
             info!("Device {device} not allowed in network {self}");
             Err(WireguardNetworkError::DeviceNotAllowed(format!("{device}")))
         }
+    }
+
+    pub async fn add_network_device_to_network(
+        &self,
+        transaction: &mut PgConnection,
+        device: &WireguardNetworkDevice,
+        ip: IpAddr,
+    ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
+        info!(
+            "Adding network device {} with IP {ip} to network {self}",
+            device.device_id
+        );
+        let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, ip);
+        wireguard_network_device.insert(&mut *transaction).await?;
+        Ok(wireguard_network_device)
     }
 
     /// Refresh network IPs for all relevant devices
@@ -401,7 +420,11 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
-        let allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        // network devices are always allowed
+        let network_devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
+        allowed_devices.extend(network_devices);
+
         // convert to a map for easier processing
         let mut allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
             .into_iter()
@@ -426,7 +449,7 @@ impl WireguardNetwork<Id> {
                 // network address changed and IP needs to be updated
                 if !self.address.contains(device_network_config.wireguard_ip) {
                     let wireguard_network_device = device
-                        .assign_network_ip(&mut *transaction, self, reserved_ips)
+                        .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
                     events.push(GatewayEvent::DeviceModified(DeviceInfo {
                         device,
@@ -468,7 +491,7 @@ impl WireguardNetwork<Id> {
         // add configs for new allowed devices
         for device in allowed_devices.into_values() {
             let wireguard_network_device = device
-                .assign_network_ip(&mut *transaction, self, reserved_ips)
+                .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                 .await?;
             events.push(GatewayEvent::DeviceCreated(DeviceInfo {
                 device,
@@ -574,6 +597,9 @@ impl WireguardNetwork<Id> {
                 mapped_device.name.clone(),
                 mapped_device.wireguard_pubkey.clone(),
                 mapped_device.user_id,
+                DeviceType::User,
+                None,
+                true,
             )
             .save(&mut *transaction)
             .await?;
@@ -711,7 +737,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves stats for specified devices
-    async fn device_stats(
+    pub(crate) async fn device_stats(
         &self,
         conn: &PgPool,
         devices: &[Device<Id>],
@@ -789,10 +815,11 @@ impl WireguardNetwork<Id> {
                 ORDER BY device_id, latest_handshake DESC \
             ) \
             SELECT \
-                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created \
+                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                configured \
             FROM device d \
             JOIN s ON d.id = s.device_id \
-            WHERE s.latest_handshake >= $1 AND s.network = $2",
+            WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
             oldest_handshake,
             self.id,
         )
@@ -914,6 +941,28 @@ impl WireguardNetwork<Id> {
             download: transfer_series.iter().filter_map(|t| t.download).sum(),
             transfer_series,
         })
+    }
+
+    pub async fn get_devices_by_type<'e, E>(
+        &self,
+        executor: E,
+        device_type: DeviceType,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Device,
+            "SELECT \
+                id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                configured \
+            FROM device WHERE id in (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $1) \
+            AND device_type = $2",
+            self.id,
+            device_type as DeviceType
+        )
+        .fetch_all(executor)
+        .await
     }
 }
 
@@ -1111,10 +1160,17 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let device = Device::new(String::new(), String::new(), user.id)
-            .save(&pool)
-            .await
-            .unwrap();
+        let device = Device::new(
+            String::new(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         // insert stats
         let samples = 60; // 1 hour of samples
@@ -1167,10 +1223,17 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let device = Device::new(String::new(), String::new(), user.id)
-            .save(&pool)
-            .await
-            .unwrap();
+        let device = Device::new(
+            String::new(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         // insert stats
         let samples = 60; // 1 hour of samples

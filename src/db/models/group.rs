@@ -1,16 +1,29 @@
+use std::fmt;
+
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgConnection, PgExecutor};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor};
 use utoipa::ToSchema;
 
-use crate::{
-    db::{models::error::ModelError, Id, NoId, User, WireguardNetwork},
-    server_config,
-};
+use crate::db::{models::error::ModelError, Id, NoId, User, WireguardNetwork};
 
-#[derive(Debug, Model, ToSchema)]
+#[derive(Debug)]
+pub enum Permission {
+    IsAdmin,
+}
+
+impl fmt::Display for Permission {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::IsAdmin => write!(f, "is_admin"),
+        }
+    }
+}
+
+#[derive(Debug, Model, ToSchema, FromRow)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
+    pub is_admin: bool,
 }
 
 impl Group {
@@ -19,6 +32,7 @@ impl Group {
         Self {
             id: NoId,
             name: name.into(),
+            is_admin: false,
         }
     }
 }
@@ -28,9 +42,13 @@ impl Group<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(Self, "SELECT id, name FROM \"group\" WHERE name = $1", name)
-            .fetch_optional(executor)
-            .await
+        query_as!(
+            Self,
+            "SELECT id, name, is_admin FROM \"group\" WHERE name = $1",
+            name
+        )
+        .fetch_optional(executor)
+        .await
     }
 
     pub async fn member_usernames<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
@@ -79,6 +97,53 @@ impl Group<Id> {
         .fetch_all(executor)
         .await
     }
+
+    pub(crate) async fn find_by_permission<'e, E>(
+        executor: E,
+        permission: Permission,
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query = format!(
+            "SELECT id, name, is_admin FROM \"group\" WHERE {permission} = TRUE ORDER BY id"
+        );
+        query_as(&query).fetch_all(executor).await
+    }
+
+    pub(crate) async fn has_permission<'e, E>(
+        &self,
+        executor: E,
+        permission: Permission,
+    ) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query_str = format!("SELECT {permission} FROM \"group\" WHERE id = $1");
+        let result = query_scalar(&query_str)
+            .bind(self.id)
+            .fetch_optional(executor)
+            .await?;
+        Ok(result.unwrap_or(false))
+    }
+
+    pub(crate) async fn set_permission<'e, E>(
+        &self,
+        executor: E,
+        permission: Permission,
+        value: bool,
+    ) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let query_str = format!("UPDATE \"group\" SET {permission} = $2 WHERE id = $1");
+        query(&query_str)
+            .bind(self.id)
+            .bind(value)
+            .execute(executor)
+            .await?;
+        Ok(())
+    }
 }
 
 impl WireguardNetwork<Id> {
@@ -110,7 +175,9 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
     ) -> Result<Option<Vec<String>>, ModelError> {
         debug!("Returning a list of allowed groups for network {self}");
-        let admin_group_name = &server_config().admin_groupname;
+        let admin_groups =
+            Group::find_by_permission(&mut *transaction, Permission::IsAdmin).await?;
+
         // get allowed groups from DB
         let mut groups = self.fetch_allowed_groups(&mut *transaction).await?;
 
@@ -119,9 +186,10 @@ impl WireguardNetwork<Id> {
             return Ok(None);
         }
 
-        // make sure admin group is included
-        if !groups.iter().any(|name| name == admin_group_name) {
-            groups.push(admin_group_name.to_string());
+        for group in admin_groups {
+            if !groups.iter().any(|name| name == &group.name) {
+                groups.push(group.name);
+            }
         }
 
         Ok(Some(groups))
@@ -261,5 +329,42 @@ mod test {
 
         let members = group.member_usernames(&pool).await.unwrap();
         assert!(members.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_group_permissions(pool: PgPool) {
+        let group = Group::new("admin2").save(&pool).await.unwrap();
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        user.add_to_group(&pool, &group).await.unwrap();
+        assert!(!user.is_admin(&pool).await.unwrap());
+        assert!(!group
+            .has_permission(&pool, Permission::IsAdmin)
+            .await
+            .unwrap());
+        group
+            .set_permission(&pool, Permission::IsAdmin, true)
+            .await
+            .unwrap();
+
+        assert!(group
+            .has_permission(&pool, Permission::IsAdmin)
+            .await
+            .unwrap());
+        assert!(user.is_admin(&pool).await.unwrap());
+        let groups = Group::find_by_permission(&pool, Permission::IsAdmin)
+            .await
+            .unwrap();
+        assert_eq!(groups.len(), 2);
+        assert!(groups.iter().any(|g| g.name == "admin2"));
     }
 }
