@@ -16,7 +16,7 @@ use super::{
     device::{Device, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
-    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
+    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
@@ -34,7 +34,6 @@ pub enum MFAMethod {
     None,
     OneTimePassword,
     Webauthn,
-    Web3,
     Email,
 }
 
@@ -46,7 +45,6 @@ impl fmt::Display for MFAMethod {
             match self {
                 MFAMethod::None => "None",
                 MFAMethod::OneTimePassword => "TOTP",
-                MFAMethod::Web3 => "Web3",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
             }
@@ -754,20 +752,6 @@ impl User<Id> {
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
             configured \
             FROM device WHERE user_id = $1 and device_type = 'user'::device_type",
-            self.id
-        )
-        .fetch_all(executor)
-        .await
-    }
-
-    pub(crate) async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
-            WalletInfo,
-            "SELECT address \"address!\", name, chain_id \
-            FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
             self.id
         )
         .fetch_all(executor)

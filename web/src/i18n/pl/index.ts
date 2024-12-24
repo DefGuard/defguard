@@ -264,25 +264,6 @@ const pl: Translation = {
         success: 'Urządzenie zostało usunięte.',
       },
     },
-    addWallet: {
-      title: 'Dodaj portfel',
-      infoBox: 'Aby dodać portfel ETH konieczne będzie podpisanie wiadomości.',
-      form: {
-        fields: {
-          name: {
-            placeholder: 'Nazwa portfela',
-            label: 'Nazwa',
-          },
-          address: {
-            placeholder: 'Adres portfela',
-            label: 'Adres',
-          },
-        },
-        controls: {
-          submit: 'Dodaj portfel',
-        },
-      },
-    },
     keyDetails: {
       title: 'Szczegóły YubiKey',
       downloadAll: 'Pobierz wszystkie klucze',
@@ -624,14 +605,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         default: 'domyślny',
         enabled: 'Włączony',
         disabled: 'Wyłączony',
-        wallet: {
-          singular: 'Portfel',
-          plural: 'Portfele',
-        },
         labels: {
           totp: 'Hasła jednorazowe oparte na czasie',
           webauth: 'Klucze bezpieczeństwa',
-          wallets: 'Portfele',
           email: 'E-mail',
         },
         editMode: {
@@ -669,32 +645,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           edit: 'Edycja urządzenia',
           delete: 'Usuń urządzenie',
           showConfigurations: 'Pokaż konfiguracje',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: 'Adres skopiowany.',
-        duplicate: {
-          primary: 'Podłączony portfel jest już zarejestrowany',
-          sub: 'Proszę połączyć nieużywany portfel.',
-        },
-      },
-      header: 'Portfele użytkowników',
-      addWallet: 'Dodaj nowy portfel',
-      card: {
-        address: 'Adres',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'Włącz MFA',
-          disableMFA: 'Wyłącz MFA',
-          delete: 'Usuń',
-          copyAddress: 'Skopuj adres',
-        },
-        messages: {
-          deleteSuccess: 'Portfel usunięty',
-          enableMFA: 'MFA w portfelu włączone',
-          disableMFA: 'MFA w portfelu wyłączone',
         },
       },
     },
@@ -1677,7 +1627,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       title: 'Autoryzacja dwuetapowa.',
       controls: {
         useAuthenticator: 'Zamiast tego użyj aplikacji Authenticator',
-        useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
         useWebauthn: 'Zamiast tego użyj klucza bezpieczeństwa',
         useRecoveryCode: 'Zamiast tego użyj kodu odzyskiwania',
         useEmail: 'Zamiast tego użyj e-mail',
@@ -1719,18 +1668,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           controls: {
             submit: 'Użyj kodu odzyskiwania',
           },
-        },
-      },
-      wallet: {
-        header:
-          'Użyj portfela kryptowalutowego, aby się zalogować, proszę podpisać wiadomość w aplikacji portfelowej lub rozszerzeniu.',
-        controls: {
-          submit: 'Użyj swojego portfela',
-        },
-        messages: {
-          walletError: 'Portfel został rozłączony podczas procesu podpisywania.',
-          walletErrorMfa:
-            'Portfel nie jest autoryzowany do logowania MFA. Proszę użyć autoryzowanego portfela.',
         },
       },
       webauthn: {

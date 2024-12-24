@@ -88,8 +88,8 @@ use self::{
         auth::{
             authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
             logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
-            totp_disable, totp_enable, totp_secret, web3auth_end, web3auth_start, webauthn_end,
-            webauthn_finish, webauthn_init, webauthn_start,
+            totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
+            webauthn_start,
         },
         forward_auth::forward_auth,
         group::{
@@ -105,9 +105,9 @@ use self::{
         support::{configuration, logs},
         user::{
             add_user, change_password, change_self_password, delete_authorized_app,
-            delete_security_key, delete_user, delete_wallet, get_user, list_users, me, modify_user,
-            reset_password, set_wallet, start_enrollment, start_remote_desktop_configuration,
-            update_wallet, username_available, wallet_challenge,
+            delete_security_key, delete_user, get_user, list_users, me, modify_user,
+            reset_password, start_enrollment, start_remote_desktop_configuration,
+            username_available,
         },
         webhooks::{
             add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
@@ -175,7 +175,7 @@ mod openapi {
         user, wireguard as device,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username, WalletChange, WalletSignature,
+        StartEnrollmentRequest, Username,
     };
     use utoipa::OpenApi;
 
@@ -197,10 +197,6 @@ mod openapi {
             user::change_self_password,
             user::change_password,
             user::reset_password,
-            user::wallet_challenge,
-            user::set_wallet,
-            user::update_wallet,
-            user::delete_wallet,
             user::delete_security_key,
             user::me,
             user::delete_authorized_app,
@@ -224,7 +220,7 @@ mod openapi {
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, WalletSignature, WalletChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
             ),
         ),
         tags(
@@ -234,7 +230,6 @@ Endpoints that allow to control user data.
 Available actions:
 - list all users
 - CRUD mechanism for handling users
-- operations on user wallet
 - operations on security key and authorized app
 - change user password.
             "),
@@ -329,8 +324,6 @@ pub fn build_webapp(
             .route("/auth/email", post(email_mfa_enable))
             .route("/auth/email", delete(email_mfa_disable))
             .route("/auth/email/verify", post(email_mfa_code))
-            .route("/auth/web3/start", post(web3auth_start))
-            .route("/auth/web3", post(web3auth_end))
             .route("/auth/recovery", post(recovery_code))
             // /user
             .route("/user", get(list_users))
@@ -348,7 +341,6 @@ pub fn build_webapp(
             .route("/user/change_password", put(change_self_password))
             .route("/user/:username/password", put(change_password))
             .route("/user/:username/reset_password", post(reset_password))
-            .route("/user/:username/challenge", get(wallet_challenge))
             // auth keys
             .route("/user/:username/auth_key", get(fetch_authentication_keys))
             .route("/user/:username/auth_key", post(add_authentication_key))
@@ -366,9 +358,6 @@ pub fn build_webapp(
                 "/user/:username/yubikey/:key_id/rename",
                 post(rename_yubikey),
             )
-            .route("/user/:username/wallet", put(set_wallet))
-            .route("/user/:username/wallet/:address", put(update_wallet))
-            .route("/user/:username/wallet/:address", delete(delete_wallet))
             .route(
                 "/user/:username/security_key/:id",
                 delete(delete_security_key),

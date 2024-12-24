@@ -2,13 +2,12 @@ mod common;
 
 use defguard::{
     db::{
-        models::{oauth2client::OAuth2Client, wallet::keccak256, NewOpenIDClient},
+        models::{oauth2client::OAuth2Client, NewOpenIDClient},
         AddDevice, Id, UserInfo,
     },
-    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username, WalletChallenge},
+    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
     hex::to_lower_hex,
 };
-use ethers_core::types::transaction::eip712::{Eip712, TypedData};
 use reqwest::{header::USER_AGENT, StatusCode};
 use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde_json::{json, Value};
@@ -307,120 +306,6 @@ async fn test_admin_group() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // TODO: check group membership
-}
-
-#[tokio::test]
-async fn test_wallet() {
-    let client = make_client().await;
-
-    let auth = Auth::new("hpotter", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let secp = Secp256k1::new();
-    let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
-
-    // create eth wallet address
-    let public_key = public_key.serialize_uncompressed();
-    let hash = keccak256(&public_key[1..]);
-    let addr = &hash[hash.len() - 20..];
-    let wallet_address = to_lower_hex(addr);
-
-    let challenge_query = format!(
-        "/api/v1/user/hpotter/challenge?address={wallet_address}&name=portefeuille&chain_id=5"
-    );
-
-    // get challenge message
-    let response = client.get(challenge_query.clone()).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let challenge: WalletChallenge = response.json().await;
-
-    let parsed_data: TypedData = serde_json::from_str(&challenge.message).unwrap();
-    let parsed_message = parsed_data.message;
-
-    // see migrations for the default message
-    let challenge_message = "Please read this carefully:
-
-Click to sign to prove you are in possesion of your private key to the account.
-This request will not trigger a blockchain transaction or cost any gas fees.";
-    let message: String = format!(
-        r#"{{
-	"domain": {{ "name": "Defguard", "version": "1" }},
-        "types": {{
-		"EIP712Domain": [
-                    {{ "name": "name", "type": "string" }},
-                    {{ "name": "version", "type": "string" }}
-		],
-		"ProofOfOwnership": [
-                    {{ "name": "wallet", "type": "address" }},
-                    {{ "name": "content", "type": "string" }},
-                    {{ "name": "nonce", "type": "string" }}
-		]
-	}},
-	"primaryType": "ProofOfOwnership",
-	"message": {{
-		"wallet": "{}",
-		"content": "{}",
-                "nonce": {}
-	}}}}
-        "#,
-        wallet_address,
-        challenge_message,
-        parsed_message.get("nonce").unwrap(),
-    )
-    .chars()
-    .filter(|c| c != &'\r' && c != &'\n' && c != &'\t')
-    .collect::<String>();
-
-    assert_eq!(challenge.message, message);
-
-    let user_info = fetch_user_details(&client, "hpotter").await;
-    assert!(user_info.wallets.is_empty());
-
-    // Sign message
-    let typed_data: TypedData = serde_json::from_str(&message).unwrap();
-    let hash_msg = typed_data.encode_eip712().unwrap();
-    let message = Message::from_digest_slice(&hash_msg).unwrap();
-
-    let sig_r = secp.sign_ecdsa_recoverable(&message, &secret_key);
-    let (rec_id, sig) = sig_r.serialize_compact();
-
-    // Create recoverable_signature array
-    let mut sig_arr = [0; 65];
-    sig_arr[0..64].copy_from_slice(&sig[0..64]);
-    sig_arr[64] = rec_id.to_i32() as u8;
-    // send signature
-    let response = client
-        .put("/api/v1/user/hpotter/wallet")
-        .json(&json!({
-            "address": wallet_address,
-            "signature": to_lower_hex(&sig_arr),
-        }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // get user info for wallets
-    let user_info = fetch_user_details(&client, "hpotter").await;
-    assert_eq!(user_info.wallets.len(), 1);
-    let wallet_info = &user_info.wallets[0];
-    assert_eq!(wallet_info.address, wallet_address);
-    assert_eq!(wallet_info.name, "portefeuille");
-    assert_eq!(wallet_info.chain_id, 5);
-
-    // challenge must not be available for verified wallet addresses
-    let response = client.get(challenge_query).send().await;
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    // delete wallet
-    let response = client
-        .delete(format!("/api/v1/user/hpotter/wallet/{wallet_address}"))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let user_info = fetch_user_details(&client, "hpotter").await;
-    assert!(user_info.wallets.is_empty());
 }
 
 #[tokio::test]

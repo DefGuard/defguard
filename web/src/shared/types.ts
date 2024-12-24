@@ -26,7 +26,6 @@ export enum UserMFAMethod {
   ONE_TIME_PASSWORD = 'OneTimePassword',
   EMAIL = 'Email',
   WEB_AUTH_N = 'Webauthn',
-  WEB3 = 'Web3',
 }
 
 export enum AuthenticationKeyType {
@@ -55,7 +54,6 @@ export type User = {
 export type UserProfile = {
   user: User;
   devices: Device[];
-  wallets: WalletInfo[];
   security_keys: SecurityKey[];
 };
 
@@ -76,12 +74,6 @@ export interface Location {
   shared: {
     ipAddress: string;
   }[];
-}
-
-export interface WalletInfo {
-  address: string;
-  chain_id: number;
-  name: string;
 }
 
 export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
@@ -230,26 +222,6 @@ export interface ResetPasswordRequest {
   username: string;
 }
 
-export interface WalletChallengeRequest {
-  name?: string;
-  username: string;
-  address: string;
-  chainId?: number;
-}
-
-export interface WalletChallenge {
-  id: number;
-  message: string;
-}
-
-export interface AddWalletRequest {
-  name: string;
-  chain_id: number;
-  username: string;
-  address: string;
-  signature: string;
-}
-
 export interface AddUserRequest {
   username: string;
   password?: string;
@@ -294,15 +266,9 @@ export interface UserEditRequest {
   data: Partial<User>;
 }
 
-export interface EditWalletMFARequest {
-  username: string;
-  address: string;
-}
-
 export interface MFALoginResponse {
   mfa_method: UserMFAMethod;
   totp_available: boolean;
-  web3_available?: boolean;
   webauthn_available: boolean;
   email_available: boolean;
 }
@@ -464,9 +430,6 @@ export interface ApiHook {
     usernameAvailable: (username: string) => EmptyApiResponse;
     changePassword: (data: ChangePasswordRequest) => EmptyApiResponse;
     resetPassword: (data: ResetPasswordRequest) => EmptyApiResponse;
-    walletChallenge: (data: WalletChallengeRequest) => Promise<WalletChallenge>;
-    setWallet: (data: AddWalletRequest) => EmptyApiResponse;
-    deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;
     addToGroup: (data: UserGroupRequest) => EmptyApiResponse;
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
     startDesktopActivation: (
@@ -681,11 +644,6 @@ export interface ChangePasswordModal {
   user?: User;
 }
 
-export interface ChangeWalletModal {
-  visible: boolean;
-  user?: User;
-}
-
 export interface ChangeUserPasswordModal {
   visible: boolean;
   user?: User;
@@ -732,10 +690,6 @@ export interface RecoveryCodesModal extends StandardModalState {
   codes?: string[];
 }
 
-export interface ConnectWalletModal extends StandardModalState {
-  onConnect?: () => void;
-}
-
 export interface WebhookModal extends StandardModalState {
   webhook?: Webhook;
 }
@@ -753,8 +707,6 @@ export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
   // DO NOT EXTEND THIS STORE
-  addWalletModal: StandardModalState;
-  // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
   // DO NOT EXTEND THIS STORE
   keyDeleteModal: KeyDeleteModal;
@@ -764,8 +716,6 @@ export interface UseModalStore {
   toggleUserModal: ToggleUserModal;
   // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
-  // DO NOT EXTEND THIS STORE
-  changeWalletModal: ChangeWalletModal;
   // DO NOT EXTEND THIS STORE
   provisionKeyModal: ProvisionKeyModal;
   // DO NOT EXTEND THIS STORE
@@ -782,8 +732,6 @@ export interface UseModalStore {
   addSecurityKeyModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   registerTOTP: StandardModalState;
-  // DO NOT EXTEND THIS STORE
-  connectWalletModal: ConnectWalletModal;
   // DO NOT EXTEND THIS STORE
   recoveryCodesModal: RecoveryCodesModal;
   // DO NOT EXTEND THIS STORE
@@ -804,8 +752,6 @@ export interface UseModalStore {
   setProvisionKeyModal: ModalSetter<ProvisionKeyModal>;
   // DO NOT EXTEND THIS STORE
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
-  // DO NOT EXTEND THIS STORE
-  setChangeWalletModal: ModalSetter<ChangeWalletModal>;
   // DO NOT EXTEND THIS STORE
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   // DO NOT EXTEND THIS STORE
@@ -1048,19 +994,6 @@ export interface WireguardNetworkStats {
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
-}
-
-export interface WalletProvider {
-  title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Icon: any;
-  right: JSX.Element | string | null;
-  active?: boolean;
-}
-
-export interface WalletSignature {
-  address: string;
-  signature: string;
 }
 
 export interface TOTPRequest {

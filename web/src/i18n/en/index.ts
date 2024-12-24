@@ -370,25 +370,6 @@ const en: BaseTranslation = {
         success: 'Device has been deleted.',
       },
     },
-    addWallet: {
-      title: 'Add wallet',
-      infoBox: 'In order to add a ETH wallet you will need to sign message.',
-      form: {
-        fields: {
-          name: {
-            placeholder: 'Wallet name',
-            label: 'Name',
-          },
-          address: {
-            placeholder: 'Wallet address',
-            label: 'Address',
-          },
-        },
-        controls: {
-          submit: 'Add wallet',
-        },
-      },
-    },
     keyDetails: {
       title: 'YubiKey details',
       downloadAll: 'Download all keys',
@@ -745,15 +726,10 @@ const en: BaseTranslation = {
         default: 'default',
         enabled: 'Enabled',
         disabled: 'Disabled',
-        wallet: {
-          singular: 'Wallet',
-          plural: 'Wallets',
-        },
         labels: {
           totp: 'Time based one time passwords',
           email: 'Email',
           webauth: 'Security keys',
-          wallets: 'Wallets',
         },
         editMode: {
           enable: 'Enable',
@@ -790,32 +766,6 @@ const en: BaseTranslation = {
           edit: 'Edit device',
           delete: 'Delete device',
           showConfigurations: 'Show configuration',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: 'Address copied.',
-        duplicate: {
-          primary: 'Connected wallet is already registered',
-          sub: 'Please connect unused wallet.',
-        },
-      },
-      header: 'User wallets',
-      addWallet: 'Add new wallet',
-      card: {
-        address: 'Address',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'Enable MFA',
-          disableMFA: 'Disable MFA',
-          delete: 'Delete',
-          copyAddress: 'Copy address',
-        },
-        messages: {
-          deleteSuccess: 'Wallet deleted',
-          enableMFA: 'Wallet MFA enabled',
-          disableMFA: 'Wallet MFA disabled',
         },
       },
     },
@@ -1818,7 +1768,6 @@ const en: BaseTranslation = {
       title: 'Two-factor authentication',
       controls: {
         useAuthenticator: 'Use Authenticator app instead',
-        useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
         useEmail: 'Use E-mail instead',
@@ -1858,18 +1807,6 @@ const en: BaseTranslation = {
           controls: {
             submit: 'Use recovery code',
           },
-        },
-      },
-      wallet: {
-        header:
-          'Use your crypto wallet to sign in, please sign message in your wallet app or extension.',
-        controls: {
-          submit: 'Use your wallet',
-        },
-        messages: {
-          walletError: 'Wallet was disconnected during signing process.',
-          walletErrorMfa:
-            'Wallet is not authorized for MFA login. Please use authorized wallet.',
         },
       },
       webauthn: {
