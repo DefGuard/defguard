@@ -421,11 +421,11 @@ impl License {
     /// Checks if the license has reached its maximum overdue time.
     #[must_use]
     pub fn is_max_overdue(&self) -> bool {
-        if !self.subscription {
+        if self.subscription {
+            self.time_overdue() > MAX_OVERDUE_TIME
+        } else {
             // Non-subscription licenses are considered expired immediately, no grace period is required
             self.is_expired()
-        } else {
-            self.time_overdue() > MAX_OVERDUE_TIME
         }
     }
 }
@@ -561,36 +561,31 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
 
-            match &*license {
-                Some(license) => {
-                    if license.requires_renewal() {
-                        // check if we are pass the maximum expiration date, after which we don't
-                        // want to try to renew the license anymore
-                        if license.is_max_overdue() {
-                            check_period = *config.check_period;
-                            warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {}", format_duration(check_period));
-                            false
-                        } else {
-                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
-                            true
-                        }
-                    } else {
-                        // This if is only for logging purposes, to provide more detailed information
-                        if license.subscription {
-                            debug!(
-                                "License doesn't need to be renewed yet, skipping renewal check"
-                            );
-                        } else {
-                            debug!("License is not a subscription, skipping renewal check");
-                        }
+            if let Some(license) = &*license {
+                if license.requires_renewal() {
+                    // check if we are pass the maximum expiration date, after which we don't
+                    // want to try to renew the license anymore
+                    if license.is_max_overdue() {
+                        check_period = *config.check_period;
+                        warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
+                        debug!("Changing check period to {}", format_duration(check_period));
                         false
+                    } else {
+                        debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
+                        true
                     }
-                }
-                None => {
-                    debug!("No license found, skipping license check");
+                } else {
+                    // This if is only for logging purposes, to provide more detailed information
+                    if license.subscription {
+                        debug!("License doesn't need to be renewed yet, skipping renewal check");
+                    } else {
+                        debug!("License is not a subscription, skipping renewal check");
+                    }
                     false
                 }
+            } else {
+                debug!("No license found, skipping license check");
+                false
             }
         };
 

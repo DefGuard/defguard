@@ -159,10 +159,11 @@ pub(crate) async fn list_network_devices(
             Ok(device_info) => {
                 devices_response.push(device_info);
             }
-            Err(e) => {
+            Err(err) => {
                 error!(
-                    "Failed to get network information for network device. This device will not be displayed. Error details: {e}"
-                )
+                    "Failed to get network information for network device. This device will not be
+                    displayed. Error details: {err}"
+                );
             }
         }
     }
@@ -488,15 +489,17 @@ pub(crate) async fn start_network_device_setup_for_device(
         .await?
         .ok_or_else(|| {
             WebError::BadRequest(format!(
-                "Failed to start network device setup for device with ID {}, device not found",
-                device_id
+                "Failed to start network device setup for device with ID {device_id},
+                device not found"
             ))
         })?;
 
     if device.device_type != DeviceType::Network {
-        return Err(WebError::BadRequest(
-            format!("Failed to start network device setup for a choosen device {}, device is not a network device, device type: {:?}", device.name, device.device_type)
-        ));
+        return Err(WebError::BadRequest(format!(
+            "Failed to start network device setup for a choosen device {},
+            device is not a network device, device type: {:?}",
+            device.name, device.device_type
+        )));
     }
 
     let mut transaction = appstate.pool.begin().await?;
@@ -504,8 +507,8 @@ pub(crate) async fn start_network_device_setup_for_device(
         .await?
         .ok_or_else(|| {
             WebError::BadRequest(format!(
-                "Failed to start network device setup for device with ID {}, user which added the device not found",
-                device_id
+                "Failed to start network device setup for device with ID {device_id},
+                user which added the device not found"
             ))
         })?;
     let config = server_config();
@@ -524,11 +527,15 @@ pub(crate) async fn start_network_device_setup_for_device(
     transaction.commit().await?;
 
     debug!(
-        "Generated a new device CLI configuration token for already existing network device {} with ID {}: {configuration_token}",
+        "Generated a new device CLI configuration token for already existing network
+        device {} with ID {}: {configuration_token}",
         device.name, device.id
     );
     Ok(ApiResponse {
-        json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
+        json: json!({
+            "enrollment_token": configuration_token,
+            "enrollment_url": config.enrollment_url.to_string()
+        }),
         status: StatusCode::CREATED,
     })
 }
@@ -717,7 +724,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
     let network_prefix = network.prefix();
 
     let ip_segments = match ip {
-        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
+        IpAddr::V4(ip) => ip.octets().iter().map(|x| u16::from(*x)).collect(),
         IpAddr::V6(ip) => ip.segments().to_vec(),
     };
 
@@ -725,7 +732,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
         IpNetwork::V4(net) => {
             let last_ip = u32::from(net.ip()) | (!u32::from(net.mask()));
             let last_ip: Ipv4Addr = last_ip.into();
-            last_ip.octets().iter().map(|x| *x as u16).collect()
+            last_ip.octets().iter().map(|x| u16::from(*x)).collect()
         }
         IpNetwork::V6(net) => {
             let last_ip = u128::from(net.ip()) | (!u128::from(net.mask()));
@@ -735,7 +742,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
     };
 
     let network_segments = match network_addr {
-        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
+        IpAddr::V4(ip) => ip.octets().iter().map(|x| u16::from(*x)).collect(),
         IpAddr::V6(ip) => ip.segments().to_vec(),
     };
 
@@ -746,7 +753,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
         if ip.is_ipv4() {
             x.to_string()
         } else {
-            format!("{:04x}", x)
+            format!("{x:04x}")
         }
     };
 
@@ -765,10 +772,9 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
                 .join(delimiter);
             modifiable_part.push_str(&joined);
             break;
-        } else {
-            let formatted = formatter(ip_segment);
-            network_part.push_str(&format!("{formatted}{delimiter}"));
         }
+        let formatted = formatter(ip_segment);
+        network_part.push_str(&format!("{formatted}{delimiter}"));
     }
 
     (network_part, modifiable_part, network_prefix.to_string())

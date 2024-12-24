@@ -55,7 +55,7 @@ impl EnrollmentServer {
     }
 
     /// Checks if token provided with request corresponds to a valid enrollment session
-    async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
+    async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
         info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
@@ -63,10 +63,10 @@ impl EnrollmentServer {
         };
         let enrollment = Token::find_by_id(&self.pool, token).await?;
         debug!("Found matching token, verifying validity: {enrollment:?}.");
-        if !enrollment
+        if enrollment
             .token_type
             .as_ref()
-            .is_some_and(|token_type| token_type == ENROLLMENT_TOKEN_TYPE)
+            .is_none_or(|token_type| token_type != ENROLLMENT_TOKEN_TYPE)
         {
             error!(
                 "Invalid token type used in enrollment process: {:?}",
@@ -244,7 +244,7 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_session(&request.token).await?;
+        let enrollment = self.validate_session(request.token.as_ref()).await?;
 
         let ip_address;
         let device_info;
@@ -365,7 +365,7 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
-        let enrollment_token = self.validate_session(&request.token).await?;
+        let enrollment_token = self.validate_session(request.token.as_ref()).await?;
 
         // fetch related users
         let user = enrollment_token.fetch_user(&self.pool).await?;
@@ -503,9 +503,7 @@ impl EnrollmentServer {
                     Status::internal("unexpected error")
                 })?;
 
-            let network = if let Some(network) = networks.pop() {
-                network
-            } else {
+            let Some(network) = networks.pop() else {
                 error!(
                     "Network device {} added by user {}({:?}) is not assigned to any networks. Aborting partial device configuration process.",
                     device.name, user.username, user.id
@@ -690,7 +688,7 @@ impl EnrollmentServer {
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let _token = self.validate_session(&request.token).await?;
+        let _token = self.validate_session(request.token.as_ref()).await?;
 
         Device::validate_pubkey(&request.pubkey).map_err(|_| {
             error!("Invalid pubkey {}", &request.pubkey);

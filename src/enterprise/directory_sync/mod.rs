@@ -175,7 +175,7 @@ pub(crate) async fn sync_user_groups_if_configured(
     }
 
     let provider = OpenIdProvider::get_current(pool).await?;
-    if !is_directory_sync_enabled(provider.as_ref()).await? {
+    if !is_directory_sync_enabled(provider.as_ref()) {
         debug!("Directory sync is disabled, skipping syncing user groups");
         return Ok(());
     }
@@ -294,17 +294,17 @@ async fn sync_all_users_groups<T: DirectorySync>(
                             user.email, current_group.name
                         );
                         continue;
-                    } else {
-                        debug!(
+                    }
+                    debug!(
                             "Removing user {} from group {} as they are not a member of it in the directory",
                             user.email, current_group.name
                         );
-                        user.remove_from_group(&mut *transaction, current_group)
-                            .await?;
-                        admin_count -= 1;
-                    }
+                    user.remove_from_group(&mut *transaction, current_group)
+                        .await?;
+                    admin_count -= 1;
                 } else {
-                    debug!("Removing user {} from group {} as they are not a member of it in the directory", user.email, current_group.name);
+                    debug!("Removing user {} from group {} as they are not a member of it in the directory",
+                    user.email, current_group.name);
                     user.remove_from_group(&mut *transaction, current_group)
                         .await?;
                 }
@@ -352,19 +352,17 @@ async fn get_directory_sync_client(
     }
 }
 
-async fn is_directory_sync_enabled(
-    provider: Option<&OpenIdProvider<Id>>,
-) -> Result<bool, DirectorySyncError> {
+fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
     debug!("Checking if directory sync is enabled");
     if let Some(provider_settings) = provider {
         debug!(
             "Directory sync enabled state: {}",
             provider_settings.directory_sync_enabled
         );
-        Ok(provider_settings.directory_sync_enabled)
+        provider_settings.directory_sync_enabled
     } else {
         debug!("No openid provider found, directory sync is disabled");
-        Ok(false)
+        false
     }
 }
 
@@ -436,8 +434,8 @@ async fn sync_all_users_state<T: DirectorySync>(
     );
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for mut user in missing_users {
-        match user.is_admin(&mut *transaction).await? {
-            true => match admin_behavior {
+        if user.is_admin(&mut *transaction).await? {
+            match admin_behavior {
                 DirectorySyncUserBehavior::Keep => {
                     debug!(
                         "Keeping admin {} despite not being present in the directory",
@@ -448,19 +446,19 @@ async fn sync_all_users_state<T: DirectorySync>(
                     if user.is_active {
                         if admin_count == 1 {
                             error!(
-                                "Admin {} is the last admin in the system, can't disable them",
+                                "Admin {} is the last admin in the system; can't disable",
                                 user.email
                             );
                             continue;
-                        } else {
-                            info!(
-                            "Disabling admin {} because they are not present in the directory and the admin behavior setting is set to disable",
+                        }
+                        info!(
+                            "Disabling admin {} because it is not present in the directory and
+                            the admin behavior setting is set to disable",
                             user.email
                         );
-                            user.is_active = false;
-                            user.save(&mut *transaction).await?;
-                            admin_count -= 1;
-                        }
+                        user.is_active = false;
+                        user.save(&mut *transaction).await?;
+                        admin_count -= 1;
                     } else {
                         debug!(
                             "Admin {} is already disabled in Defguard, skipping",
@@ -475,17 +473,17 @@ async fn sync_all_users_state<T: DirectorySync>(
                             user.email
                         );
                         continue;
-                    } else {
-                        info!(
-                            "Deleting admin {} because they are not present in the directory",
-                            user.email
-                        );
-                        user.delete(&mut *transaction).await?;
-                        admin_count -= 1;
                     }
+                    info!(
+                        "Deleting admin {} because they are not present in the directory",
+                        user.email
+                    );
+                    user.delete(&mut *transaction).await?;
+                    admin_count -= 1;
                 }
-            },
-            false => match user_behavior {
+            }
+        } else {
+            match user_behavior {
                 DirectorySyncUserBehavior::Keep => {
                     debug!(
                         "Keeping user {} despite not being present in the directory",
@@ -514,7 +512,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                     );
                     user.delete(&mut *transaction).await?;
                 }
-            },
+            }
         }
     }
     debug!("Done processing missing users");
@@ -527,14 +525,13 @@ async fn sync_all_users_state<T: DirectorySync>(
         if user.is_active {
             debug!("User {} is already enabled, skipping", user.email);
             continue;
-        } else {
-            debug!(
-                "Enabling user {} because they are enabled in the directory and disabled in Defguard",
-                user.email
-            );
-            user.is_active = true;
-            user.save(&mut *transaction).await?;
         }
+        debug!(
+            "Enabling user {} because it is enabled in the directory and disabled in Defguard",
+            user.email
+        );
+        user.is_active = true;
+        user.save(&mut *transaction).await?;
     }
     debug!("Done processing enabled users");
     transaction.commit().await?;
@@ -566,7 +563,7 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
     // TODO: The settings are retrieved many times
     let provider = OpenIdProvider::get_current(pool).await?;
 
-    if !is_directory_sync_enabled(provider.as_ref()).await? {
+    if !is_directory_sync_enabled(provider.as_ref()) {
         debug!("Directory sync is disabled, skipping performing directory sync");
         return Ok(());
     }
