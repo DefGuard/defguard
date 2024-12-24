@@ -1,4 +1,7 @@
-use std::{net::IpAddr, str::FromStr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 use axum::{
     extract::{Json, Path, State},
@@ -247,9 +250,7 @@ pub(crate) async fn check_ip_availability(
             WebError::BadRequest("Failed to check IP availability, network not found".to_string())
         })?;
 
-    let ip = if let Ok(ip) = IpAddr::from_str(&ip.ip) {
-        ip
-    } else {
+    let Ok(ip) = IpAddr::from_str(&ip.ip) else {
         warn!(
             "Failed to check IP availability for network with ID {network_id}, invalid IP address",
         );
@@ -677,7 +678,7 @@ pub async fn modify_network_device(
     device.description = data.description;
     device.save(&mut *transaction).await?;
 
-    // ip changed, remove device from network and add it again with new ip
+    // IP address has changed, so remove device from network and add it again with new IP address.
     if new_ip != wireguard_network_device.wireguard_ip {
         check_ip(new_ip, &device_network, &mut transaction).await?;
         wireguard_network_device.wireguard_ip = new_ip;
@@ -706,24 +707,31 @@ pub async fn modify_network_device(
 /// The network part is the part that can't be changed by the user.
 /// This is to display an IP address in the UI like this: 192.168.(1.1)/16, where the part in the parenthesis can be changed by the user.
 // The algorithm works as follows:
-// 1. Get the network address, broadcast address and IP address segments, e.g. 192.1.1.1 would be [192, 1, 1, 1]
-// 2. Iterate over the segments and compare the broadcast and network segments, as long as the current segments are equal, append the segment to the network part.
-//    If they are not equal, we found the modifiable segment (one of the segments of an address that may change between hosts in the same network),
+// 1. Get the network address, last address and IP address segments, e.g. 192.1.1.1 would be [192, 1, 1, 1]
+// 2. Iterate over the segments and compare the last address and network segments, as long as the current segments are equal, append the segment to the network part.
+//    If they are not equal, we found the first modifiable segment (one of the segments of an address that may change between hosts in the same network),
 //    append the rest of the segments to the modifiable part.
 // 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
 fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
     let network_addr = network.network();
     let network_prefix = network.prefix();
-    let network_broadcast = network.broadcast();
 
     let ip_segments = match ip {
         IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
         IpAddr::V6(ip) => ip.segments().to_vec(),
     };
 
-    let broadcast_segments = match network_broadcast {
-        IpAddr::V4(ip) => ip.octets().iter().map(|x| *x as u16).collect(),
-        IpAddr::V6(ip) => ip.segments().to_vec(),
+    let last_addr_segments = match network {
+        IpNetwork::V4(net) => {
+            let last_ip = u32::from(net.ip()) | (!u32::from(net.mask()));
+            let last_ip: Ipv4Addr = last_ip.into();
+            last_ip.octets().iter().map(|x| *x as u16).collect()
+        }
+        IpNetwork::V6(net) => {
+            let last_ip = u128::from(net.ip()) | (!u128::from(net.mask()));
+            let last_ip: Ipv6Addr = last_ip.into();
+            last_ip.segments().to_vec()
+        }
     };
 
     let network_segments = match network_addr {
@@ -742,13 +750,13 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
         }
     };
 
-    for (i, ((broadcast_segment, network_segment), ip_segment)) in broadcast_segments
+    for (i, ((last_addr_segment, network_segment), ip_segment)) in last_addr_segments
         .iter()
         .zip(network_segments.iter())
         .zip(ip_segments.iter())
         .enumerate()
     {
-        if broadcast_segment != network_segment {
+        if last_addr_segment != network_segment {
             let parts = ip_segments.split_at(i).1;
             let joined = parts
                 .iter()
