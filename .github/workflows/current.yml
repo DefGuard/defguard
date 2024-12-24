@@ -2,9 +2,8 @@ name: Build current image
 on:
   push:
     branches:
-      # - main
-      # - dev
-      - network-devices
+      - main
+      - dev
     paths-ignore:
       - "*.md"
       - "LICENSE"
