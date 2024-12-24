@@ -87,6 +87,7 @@ jobs:
           for tag in ${tags}
           do
             docker manifest rm ${tag} || true
-            docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64 ${{ env.GHCR_REPO }}:${{ github.sha }}-armv7
+            docker manifest create ${tag} ${{ env.GHCR_REPO }}:${{ github.sha }}-amd64 ${{ env.GHCR_REPO }}:${{ github.sha }}-arm64
             docker manifest push ${tag}
           done
+        #  ${{ env.GHCR_REPO }}:${{ github.sha }}-armv7
