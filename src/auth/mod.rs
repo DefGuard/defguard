@@ -228,6 +228,9 @@ macro_rules! role {
                 state: &S,
             ) -> Result<Self, Self::Rejection> {
                 let session_info = SessionInfo::from_request_parts(parts, state).await?;
+                if !session_info.user.is_active {
+                    return Err(WebError::Forbidden("user is disabled".into()));
+                }
                 let appstate = AppState::from_ref(state);
                 $(
                 let groups_with_permission = Group::find_by_permission(

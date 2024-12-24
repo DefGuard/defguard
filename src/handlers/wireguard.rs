@@ -23,9 +23,13 @@ use crate::{
     db::{
         models::{
             device::{
-                DeviceConfig, DeviceInfo, DeviceNetworkInfo, ModifyDevice, WireguardNetworkDevice,
+                DeviceConfig, DeviceInfo, DeviceNetworkInfo, DeviceType, ModifyDevice,
+                WireguardNetworkDevice,
             },
-            wireguard::{DateTimeAggregation, MappedDevice, WireguardNetworkInfo},
+            wireguard::{
+                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
+                WireguardUserStatsRow,
+            },
         },
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
@@ -213,7 +217,15 @@ pub async fn delete_network(
     );
     let network = find_network(network_id, &appstate.pool).await?;
     let network_name = network.name.clone();
-    network.delete(&appstate.pool).await?;
+    let mut transaction = appstate.pool.begin().await?;
+    let network_devices = network
+        .get_devices_by_type(&mut *transaction, DeviceType::Network)
+        .await?;
+    for device in network_devices {
+        device.delete(&mut *transaction).await?;
+    }
+    network.delete(&mut *transaction).await?;
+    transaction.commit().await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkDeleted(network_id, network_name));
     info!(
         "User {} deleted WireGuard network {network_id}",
@@ -545,9 +557,16 @@ pub async fn add_device(
 
     // save device
     let mut transaction = appstate.pool.begin().await?;
-    let device = Device::new(add_device.name, add_device.wireguard_pubkey, user.id)
-        .save(&mut *transaction)
-        .await?;
+    let device = Device::new(
+        add_device.name,
+        add_device.wireguard_pubkey,
+        user.id,
+        DeviceType::User,
+        None,
+        true,
+    )
+    .save(&mut *transaction)
+    .await?;
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
@@ -935,7 +954,13 @@ impl QueryFrom {
     }
 }
 
-pub async fn user_stats(
+#[derive(Serialize)]
+pub struct DevicesStatsResponse {
+    pub user_devices: Vec<WireguardUserStatsRow>,
+    pub network_devices: Vec<WireguardDeviceStatsRow>,
+}
+
+pub async fn devices_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
@@ -949,13 +974,25 @@ pub async fn user_stats(
     };
     let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation = get_aggregation(from)?;
-    let stats = network
+    let user_devices_stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
+    let network_devices = Device::find_by_type(&appstate.pool, DeviceType::Network).await?;
+    let network_devices_stats = network
+        .device_stats(&appstate.pool, &network_devices, &from, &aggregation)
+        .await?
+        .into_iter()
+        .filter(|device_stats| !device_stats.stats.is_empty())
+        .collect();
+    let response = DevicesStatsResponse {
+        user_devices: user_devices_stats,
+        network_devices: network_devices_stats,
+    };
+
     debug!("Displayed WireGuard user stats for network {network_id}");
 
     Ok(ApiResponse {
-        json: json!(stats),
+        json: json!(response),
         status: StatusCode::OK,
     })
 }

@@ -29,6 +29,9 @@ const en: BaseTranslation = {
     },
     key: 'Key',
     name: 'Name',
+    noData: 'No data',
+    unavailable: 'Unavailable',
+    notSet: 'Not set',
   },
   messages: {
     error: 'Error has occurred.',
@@ -42,14 +45,58 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    standaloneDeviceEnrollmentModal: {
+      title: 'Network device token',
+      toasters: {
+        error: 'Token generation failed.',
+      },
+    },
+    standaloneDeviceConfigModal: {
+      title: 'Network device config',
+      cardTitle: 'Config',
+      toasters: {
+        getConfig: {
+          error: 'Failed to get device config.',
+        },
+      },
+    },
+    editStandaloneModal: {
+      title: 'Edit network device',
+      toasts: {
+        success: 'Device modified',
+        failure: 'Modifying the device failed',
+      },
+    },
     deleteStandaloneDevice: {
       title: 'Delete network device',
       content: 'Device {name: string} will be deleted.',
+      messages: {
+        success: 'Device deleted',
+        error: 'Failed to remove device.',
+      },
     },
     addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Device added',
+        creationFailed: 'Device could not be added.',
+      },
       infoBox: {
         setup:
           'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+      },
+      form: {
+        submit: 'Add Device',
+        labels: {
+          deviceName: 'Device Name',
+          location: 'Location',
+          assignedAddress: 'Assigned IP',
+          description: 'Description',
+          generation: {
+            auto: 'Generate key pair',
+            manual: 'Use my own public key',
+          },
+          publicKey: 'Provide Your Public Key',
+        },
       },
       steps: {
         method: {
@@ -70,22 +117,6 @@ const en: BaseTranslation = {
         },
         manual: {
           title: 'Add new VPN device using WireGuard Client',
-          setup: {
-            form: {
-              submit: 'Add Device',
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-                generation: {
-                  auto: 'Generate key pair',
-                  manual: 'Use my own public key',
-                },
-                publicKey: 'Provide Your Public Key',
-              },
-            },
-          },
           finish: {
             messageTop:
               'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
@@ -112,12 +143,6 @@ const en: BaseTranslation = {
             stepMessage:
               'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
             form: {
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-              },
               submit: 'Add Device',
             },
           },
@@ -867,6 +892,10 @@ const en: BaseTranslation = {
   },
   usersOverview: {
     pageTitle: 'Users',
+    grid: {
+      usersTitle: 'Connected Users',
+      devicesTitle: 'Connected Network Devices',
+    },
     search: {
       placeholder: 'Find users',
     },
@@ -910,6 +939,7 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
       groups: 'Groups',
+      devices: 'Network Devices',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -924,6 +954,7 @@ const en: BaseTranslation = {
       networkSettings: 'Edit Location',
       enrollment: 'Enrollment',
       support: 'Support',
+      devices: 'Network Devices',
     },
     copyright: 'Copyright ©2023-2024',
     version: {
@@ -944,6 +975,9 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
+      reservedName: 'Name is already taken.',
+      invalidIp: 'IP is invalid.',
+      reservedIp: 'IP is already in use.',
       forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
@@ -978,6 +1012,14 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    standaloneDeviceTokenModalContent: {
+      headerMessage:
+        'First download defguard command line client binaries and install them on your server.',
+      downloadButton: 'Download defguard CLI Client',
+      expandableCard: {
+        title: 'Copy and paste this command in your terminal on the device',
+      },
+    },
     deviceConfigsCard: {
       cardTitle: 'WireGuard Config for location:',
       messages: {
@@ -1636,6 +1678,10 @@ const en: BaseTranslation = {
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
     },
+    cardsLabels: {
+      users: 'Connected Users',
+      devices: 'Connected Network Devices',
+    },
   },
   connectedUsersOverview: {
     pageTitle: 'Connected users',
@@ -1988,7 +2034,7 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   devicesPage: {
-    title: 'Devices',
+    title: 'Network Devices',
     search: {
       placeholder: 'Find',
     },
@@ -2010,10 +2056,11 @@ Any other requests you can reach us at: support@defguard.net
           addedAt: 'Add date',
           edit: 'Edit',
         },
-        edit: {
-          actionLabels: {
-            edit: 'Edit',
-          },
+      },
+      edit: {
+        actionLabels: {
+          config: 'View config',
+          generateToken: 'Generate auth token',
         },
       },
     },

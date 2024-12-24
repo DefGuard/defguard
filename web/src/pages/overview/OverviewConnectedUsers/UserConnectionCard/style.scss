@@ -14,6 +14,10 @@
   grid-template-rows: min-content 0fr;
   height: min-content;
 
+  &:hover {
+    border-color: var(--gray-border);
+  }
+
   &.expanded {
     grid-template-rows: min-content min-content;
     border-color: var(--gray-border);
@@ -112,6 +116,16 @@
         grid-row: 1;
         grid-column: 2 / 3;
       }
+
+      .avatar-icon {
+        min-width: 40px;
+        min-height: 40px;
+
+        svg {
+          width: 30px;
+          height: 30px;
+        }
+      }
     }
 
     & > .lower {
@@ -121,20 +135,37 @@
       grid-template-rows: 1fr 1fr;
       grid-template-columns: 1fr 1fr;
       row-gap: 10px;
-      grid-template-areas:
-        'time devices'
-        'usage usage';
       column-gap: 10px;
       align-items: center;
       justify-items: start;
       justify-content: space-evenly;
 
-      @media (min-width: 400px) {
-        grid-template-rows: 1fr;
-        grid-template-columns: 100px 100px 1fr;
-        grid-template-areas: 'time devices usage';
-        row-gap: 0;
-        column-gap: 10px;
+      &:not(.device) {
+        grid-template-areas:
+          'time devices'
+          'usage usage';
+
+        @media (min-width: 400px) {
+          grid-template-rows: 1fr;
+          grid-template-columns: 100px 100px 1fr;
+          grid-template-areas: 'time devices usage';
+          row-gap: 0;
+          column-gap: 10px;
+        }
+      }
+
+      &.device {
+        grid-template-areas:
+          'time'
+          'usage';
+
+        @media (min-width: 400px) {
+          grid-template-rows: 1fr;
+          grid-template-columns: 100px 1fr;
+          grid-template-areas: 'time usage';
+          row-gap: 0;
+          column-gap: 10px;
+        }
       }
 
       .connection-time {
@@ -242,6 +273,7 @@
       align-items: center;
       justify-content: center;
       height: 100%;
+
       & > span {
         @include typography-legacy(15px, 18px, medium);
         @include text-overflow-dots;

@@ -13,7 +13,7 @@ use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecuto
 use totp_lite::{totp_custom, Sha1};
 
 use super::{
-    device::{Device, UserDevice},
+    device::{Device, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
@@ -733,8 +733,9 @@ impl User<Id> {
     {
         query_as!(
             Device,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created \
-            FROM device WHERE user_id = $1",
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM device WHERE user_id = $1 and device_type = 'user'::device_type",
             self.id
         )
         .fetch_all(executor)

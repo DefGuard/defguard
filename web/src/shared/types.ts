@@ -489,6 +489,26 @@ export interface ApiHook {
     }) => EmptyApiResponse;
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
+  standaloneDevice: {
+    createManualDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<CreateStandaloneDeviceResponse>;
+    createCliDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<StartEnrollmentResponse>;
+    getDevice: (deviceId: number | string) => Promise<StandaloneDevice>;
+    deleteDevice: (deviceId: number | string) => Promise<void>;
+    editDevice: (data: StandaloneDeviceEditRequest) => Promise<void>;
+    getAvailableIp: (
+      data: GetAvailableLocationIpRequest,
+    ) => Promise<GetAvailableLocationIpResponse>;
+    validateLocationIp: (
+      data: ValidateLocationIpRequest,
+    ) => Promise<ValidateLocationIpResponse>;
+    getDevicesList: () => Promise<StandaloneDevice[]>;
+    getDeviceConfig: (deviceId: number | string) => Promise<string>;
+    generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
+  };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
@@ -506,7 +526,7 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (networkId: number) => EmptyApiResponse;
-    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getOverviewStats: (data: GetNetworkStatsRequest) => Promise<OverviewStatsResponse>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
@@ -999,6 +1019,22 @@ export interface NetworkDeviceStats {
   wireguard_ip: string;
   stats: NetworkSpeedStats[];
 }
+
+export type OverviewStatsResponse = {
+  user_devices: NetworkUserStats[];
+  network_devices: StandaloneDeviceStats[];
+};
+
+export type StandaloneDeviceStats = {
+  id: number;
+  stats: NetworkSpeedStats[];
+  user_id: number;
+  name: string;
+  wireguard_ip?: string;
+  public_ip?: string;
+  connected_at?: string;
+};
+
 export interface NetworkUserStats {
   user: User;
   devices: NetworkDeviceStats[];
@@ -1059,4 +1095,70 @@ export type GroupInfo = {
 export type DirsyncTestResponse = {
   message: string;
   success: boolean;
+};
+
+export type CreateStandaloneDeviceRequest = {
+  name: string;
+  location_id: number;
+  assigned_ip: string;
+  wireguard_pubkey?: string;
+  description?: string;
+};
+
+export type ValidateLocationIpRequest = {
+  ip: string;
+  location: number | string;
+};
+
+export type ValidateLocationIpResponse = {
+  available: boolean;
+  valid: boolean;
+};
+
+export type GetAvailableLocationIpRequest = {
+  locationId: number | string;
+};
+
+export type GetAvailableLocationIpResponse = {
+  ip: string;
+};
+
+export type StandaloneDevice = {
+  id: number;
+  name: string;
+  assigned_ip: string;
+  description?: string;
+  added_by: string;
+  added_date: string;
+  configured: boolean;
+  // when configured is false this will be empty
+  wireguard_pubkey?: string;
+  location: {
+    id: number;
+    name: string;
+  };
+};
+
+export type DeviceConfigurationResponse = {
+  address: string;
+  allowed_ips: string[];
+  config: string;
+  endpoint: string;
+  keepalive_interval: number;
+  mfa_enabled: boolean;
+  network_id: number;
+  network_name: string;
+  pubkey: string;
+};
+
+export type CreateStandaloneDeviceResponse = {
+  config: DeviceConfigurationResponse;
+  device: StandaloneDevice;
+};
+
+export type StandaloneDeviceEditRequest = {
+  id: number;
+  assigned_ip: string;
+  description?: string;
+  name: string;
 };

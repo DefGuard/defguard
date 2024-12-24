@@ -4,13 +4,15 @@ use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
         models::wireguard::{
-            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
+            WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
+            WireguardUserStatsRow,
         },
         Device, Id, NoId, WireguardPeerStats,
     },
     handlers::Auth,
 };
 use reqwest::StatusCode;
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 use self::common::make_test_client;
@@ -40,7 +42,12 @@ async fn test_stats() {
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
+    #[derive(Deserialize)]
+    struct StatsResponse {
+        user_devices: Vec<WireguardUserStatsRow>,
+        #[serde(rename = "network_devices")]
+        _network_devices: Vec<WireguardDeviceStatsRow>,
+    }
     // create network
     let response = client
         .post("/api/v1/network")
@@ -93,7 +100,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert!(stats.is_empty());
 
     // insert stats
@@ -126,7 +134,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(
@@ -230,7 +239,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(

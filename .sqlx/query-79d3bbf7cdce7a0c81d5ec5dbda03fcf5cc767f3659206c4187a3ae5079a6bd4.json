@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\" \"device_type: _\",\"description\",\"configured\" FROM \"device\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "wireguard_pubkey",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "created",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "device_type: _",
+        "type_info": {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "configured",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "79d3bbf7cdce7a0c81d5ec5dbda03fcf5cc767f3659206c4187a3ae5079a6bd4"
+}
