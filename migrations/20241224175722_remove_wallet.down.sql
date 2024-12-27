@@ -1,3 +1,4 @@
+ALTER TYPE mfa_method ADD VALUE 'web3';
 CREATE TABLE wallet (
     id bigserial PRIMARY KEY,
     user_id bigint NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
