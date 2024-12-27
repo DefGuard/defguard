@@ -30,3 +30,7 @@ lint:
 # run all migrations
 migrate:
     sqlx migrate run
+
+# update sqlx query data
+query-data:
+    cargo sqlx prepare --all
