@@ -99,7 +99,7 @@ trait-variant = "0.1"
 uaparser = "0.6"
 # openapi
 utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
+utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [
