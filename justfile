@@ -26,3 +26,7 @@ format:
 # lint Rust project
 lint:
     cargo clippy --all-targets --all-features
+
+# run all migrations
+migrate:
+    sqlx migrate run
