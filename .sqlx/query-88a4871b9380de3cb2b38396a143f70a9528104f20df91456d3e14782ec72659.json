@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge, ip_address, device_info) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "query": "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, ip_address, device_info) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -12,11 +12,10 @@
         "Timestamp",
         "Bytea",
         "Text",
-        "Text",
         "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "7c0e3c6f9850f45f009f434f34c2a6905a387bd3c12382446472822bd3d48c0a"
+  "hash": "88a4871b9380de3cb2b38396a143f70a9528104f20df91456d3e14782ec72659"
 }
