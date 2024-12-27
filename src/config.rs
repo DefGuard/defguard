@@ -57,19 +57,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_GRPC_KEY")]
     pub grpc_key: Option<String>,
 
-    #[arg(long, env = "DEFGUARD_ADMIN_GROUPNAME", default_value = "admin")]
-    pub admin_groupname: String,
-
-    #[arg(
-        long,
-        env = "DEFGUARD_USERADMIN_GROUPNAME",
-        default_value = "useradmin"
-    )]
-    pub useradmin_groupname: String,
-
-    #[arg(long, env = "DEFGUARD_VPN_GROUPNAME", default_value = "vpn")]
-    pub vpn_groupname: String,
-
     #[arg(
         long,
         env = "DEFGUARD_DEFAULT_ADMIN_PASSWORD",
@@ -286,6 +273,17 @@ impl DefGuardConfig {
             None
         }
     }
+
+    /// Returns configured URL with "auth/callback" appended to the path.
+    #[must_use]
+    pub(crate) fn callback_url(&self) -> Url {
+        let mut url = self.url.clone();
+        // Append "auth/callback" to the URL.
+        if let Ok(mut path_segments) = url.path_segments_mut() {
+            path_segments.extend(&["auth", "callback"]);
+        }
+        url
+    }
 }
 
 impl Default for DefGuardConfig {
@@ -308,10 +306,7 @@ mod tests {
 
     #[test]
     fn test_generate_rp_id() {
-        // unset variables
-        env::remove_var("DEFGUARD_URL");
         env::remove_var("DEFGUARD_WEBAUTHN_RP_ID");
-
         env::set_var("DEFGUARD_URL", "https://defguard.example.com");
 
         let config = DefGuardConfig::new();
@@ -330,10 +325,7 @@ mod tests {
 
     #[test]
     fn test_generate_cookie_domain() {
-        // unset variables
-        env::remove_var("DEFGUARD_URL");
         env::remove_var("DEFGUARD_COOKIE_DOMAIN");
-
         env::set_var("DEFGUARD_URL", "https://defguard.example.com");
 
         let config = DefGuardConfig::new();
@@ -348,5 +340,22 @@ mod tests {
         let config = DefGuardConfig::new();
 
         assert_eq!(config.cookie_domain, Some("example.com".to_string()));
+    }
+
+    #[test]
+    fn test_callback_url() {
+        env::set_var("DEFGUARD_URL", "https://defguard.example.com");
+        let config = DefGuardConfig::new();
+        assert_eq!(
+            config.callback_url().as_str(),
+            "https://defguard.example.com/auth/callback"
+        );
+
+        env::set_var("DEFGUARD_URL", "https://defguard.example.com:8443/path");
+        let config = DefGuardConfig::new();
+        assert_eq!(
+            config.callback_url().as_str(),
+            "https://defguard.example.com:8443/path/auth/callback"
+        );
     }
 }

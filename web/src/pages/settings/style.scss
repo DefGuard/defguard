@@ -105,13 +105,26 @@
 
       & > .left,
       & > .right {
-        grid-row: 1;
         width: 100%;
         max-width: 750px;
         display: flex;
         flex-flow: column;
         row-gap: 48px;
       }
+
+      .spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        grid-column: 1 / -1;
+        width: 100%;
+      }
     }
+  }
+
+  .license-not-required-container {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }

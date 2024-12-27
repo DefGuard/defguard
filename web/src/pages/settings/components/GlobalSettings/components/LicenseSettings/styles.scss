@@ -7,6 +7,12 @@
     @include media-breakpoint-up(lg) {
       padding: 16px 15px;
     }
+
+    .loading-license-info {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   }
 }
 
@@ -42,5 +48,9 @@
 }
 
 #no-license {
+  text-align: center;
+}
+
+#license-not-required {
   text-align: center;
 }

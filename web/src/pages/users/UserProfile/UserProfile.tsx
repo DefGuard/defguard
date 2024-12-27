@@ -29,7 +29,6 @@ import { ProfileDetails } from './ProfileDetails/ProfileDetails';
 import { UserAuthenticationKeys } from './UserAuthenticationKeys/UserAuthenticationKeys';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
-import { UserWallets } from './UserWallets/UserWallets';
 
 export const UserProfile = () => {
   const toaster = useToaster();
@@ -92,7 +91,6 @@ export const UserProfile = () => {
         </div>
         <div className="cards-1">
           <UserDevices />
-          <UserWallets />
         </div>
         <div className="cards-2">
           <UserAuthenticationKeys />
@@ -129,7 +127,7 @@ const EditModeControls = () => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const userProfile = useUserProfileStore((state) => state.userProfile);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const setUserProfileState = useUserProfileStore((state) => state.setState);
   const setDeleteUserModalState = useModalStore((state) => state.setDeleteUserModal);

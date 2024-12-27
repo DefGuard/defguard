@@ -72,27 +72,35 @@ export const getMaxDeviceStats = (data: NetworkUserStats[]): number => {
   return maxUpload > maxDownload ? maxUpload : maxDownload;
 };
 
-export const summarizeDeviceStats = (data: NetworkDeviceStats[]): NetworkSpeedStats[] => {
+export const summarizeDeviceStats = (stats: NetworkSpeedStats[]) => {
   const merge: MergeStruct = {};
-  data.forEach((device) => {
-    device.stats.forEach((stat) => {
-      const inRank = merge[stat.collected_at];
-      if (isUndefined(inRank)) {
-        merge[stat.collected_at] = {
-          download: stat.download,
-          upload: stat.upload,
-        };
-      } else {
-        inRank.download = inRank.download + stat.download;
-        inRank.upload = inRank.upload + stat.upload;
-      }
-    });
+  stats.forEach((stat) => {
+    const inRank = merge[stat.collected_at];
+    if (isUndefined(inRank)) {
+      merge[stat.collected_at] = {
+        download: stat.download,
+        upload: stat.upload,
+      };
+    } else {
+      inRank.download = inRank.download + stat.download;
+      inRank.upload = inRank.upload + stat.upload;
+    }
   });
   return Object.keys(merge).map((collectedAt) => ({
     collected_at: collectedAt,
     upload: merge[collectedAt].upload,
     download: merge[collectedAt].download,
   }));
+};
+
+export const summarizeDevicesStats = (
+  data: NetworkDeviceStats[],
+): NetworkSpeedStats[] => {
+  let res: NetworkSpeedStats[] = [];
+  data.forEach((device) => {
+    res = [...res, ...summarizeDeviceStats(device.stats)];
+  });
+  return res;
 };
 
 export interface StatsChartData extends Pick<NetworkSpeedStats, 'download' | 'upload'> {

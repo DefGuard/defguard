@@ -104,7 +104,7 @@ export const SmtpSettingsForm = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine(
-            (val) => (!val ? true : validateIpOrDomain(val)),
+            (val) => (!val ? true : validateIpOrDomain(val, false, true)),
             LL.form.error.endpoint(),
           ),
         smtp_port: z
@@ -112,8 +112,8 @@ export const SmtpSettingsForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .max(65535, LL.form.error.portMax()),
-        smtp_password: z.string().min(1, LL.form.error.required()),
-        smtp_user: z.string().min(1, LL.form.error.required()),
+        smtp_password: z.string(),
+        smtp_user: z.string(),
         smtp_sender: z
           .string()
           .min(1, LL.form.error.required())
@@ -208,14 +208,12 @@ export const SmtpSettingsForm = () => {
           label={localLL.form.fields.user.label()}
           controller={{ control, name: 'smtp_user' }}
           placeholder={localLL.form.fields.user.placeholder()}
-          required
         />
         <FormInput
           label={localLL.form.fields.password.label()}
           controller={{ control, name: 'smtp_password' }}
           placeholder={localLL.form.fields.password.placeholder()}
           type="password"
-          required
         />
         <FormInput
           labelExtras={<Helper>{parse(localLL.form.fields.sender.helper())}</Helper>}

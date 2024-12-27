@@ -1,7 +1,7 @@
 import './styles.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -23,7 +23,7 @@ import { Card } from '../../../../../../shared/defguard-ui/components/Layout/Car
 import { ExpandableCard } from '../../../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { Helper } from '../../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
-import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
+import { LoaderSpinner } from '../../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -46,7 +46,6 @@ export const LicenseSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
-  const enterpriseStatus = useAppStore((state) => state.enterprise_status);
 
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
@@ -56,6 +55,7 @@ export const LicenseSettings = () => {
       toaster.success(LL.settingsPage.messages.editSuccess());
       queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
       queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_STATUS]);
+      queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_INFO]);
     },
     onError: (err: AxiosError) => {
       const errorResponse = err.response?.data as LicenseErrorResponse;
@@ -64,6 +64,14 @@ export const LicenseSettings = () => {
       );
       console.error(err);
     },
+  });
+
+  const { getEnterpriseInfo } = useApi();
+  const { data: enterpriseInfo, isLoading: enterpriseInfoLoading } = useQuery({
+    queryFn: getEnterpriseInfo,
+    queryKey: [QueryKeys.FETCH_ENTERPRISE_INFO],
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const zodSchema = useMemo(
@@ -126,71 +134,85 @@ export const LicenseSettings = () => {
             type="submit"
           />
         </div>
-        <div>
-          <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
-            <FormInput
-              label={LL.settingsPage.license.form.fields.key.label()}
-              controller={{ control, name: 'license' }}
-              placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
-            />
-          </form>
-          <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()} expanded>
-            {enterpriseStatus?.license_info ? (
-              <div id="license-info">
-                <div>
-                  <Label>
-                    {LL.settingsPage.license.licenseInfo.fields.status.label()}
-                  </Label>
-                  {enterpriseStatus?.enabled ? (
-                    <div className="license-status">
-                      <ActivityIcon status={ActivityIconVariant.CONNECTED} />
-                      <p>{LL.settingsPage.license.licenseInfo.fields.status.active()}</p>
-                      {enterpriseStatus?.license_info.subscription ? (
-                        <Helper>
-                          {LL.settingsPage.license.licenseInfo.fields.status.subscriptionHelper()}
-                        </Helper>
-                      ) : null}
+        {enterpriseInfoLoading ? (
+          <div className="loading-license-info">
+            <LoaderSpinner size={50} />
+          </div>
+        ) : (
+          <div>
+            <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
+              <FormInput
+                label={LL.settingsPage.license.form.fields.key.label()}
+                controller={{ control, name: 'license' }}
+                placeholder={LL.settingsPage.license.form.fields.key.placeholder()}
+              />
+            </form>
+            <ExpandableCard title={LL.settingsPage.license.licenseInfo.title()} expanded>
+              {enterpriseInfo?.license_info ? (
+                <div id="license-info">
+                  <div>
+                    <Label>
+                      {LL.settingsPage.license.licenseInfo.fields.status.label()}
+                    </Label>
+                    {enterpriseInfo?.enabled ? (
+                      <div className="license-status">
+                        <ActivityIcon status={ActivityIconVariant.CONNECTED} />
+                        <p>
+                          {LL.settingsPage.license.licenseInfo.fields.status.active()}
+                        </p>
+                        {enterpriseInfo?.license_info.subscription ? (
+                          <Helper>
+                            {LL.settingsPage.license.licenseInfo.fields.status.subscriptionHelper()}
+                          </Helper>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="license-status">
+                        <ActivityIcon status={ActivityIconVariant.ERROR} />
+                        <p>
+                          {LL.settingsPage.license.licenseInfo.fields.status.expired()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Label>
+                      {LL.settingsPage.license.licenseInfo.fields.type.label()}
+                    </Label>
+                    <div className="with-helper">
+                      <p>
+                        {enterpriseInfo?.license_info.subscription
+                          ? LL.settingsPage.license.licenseInfo.types.subscription.label()
+                          : LL.settingsPage.license.licenseInfo.types.offline.label()}
+                      </p>
+                      <Helper>
+                        {enterpriseInfo?.license_info.subscription
+                          ? LL.settingsPage.license.licenseInfo.types.subscription.helper()
+                          : LL.settingsPage.license.licenseInfo.types.offline.helper()}
+                      </Helper>
                     </div>
-                  ) : (
-                    <div className="license-status">
-                      <ActivityIcon status={ActivityIconVariant.ERROR} />
-                      <p>{LL.settingsPage.license.licenseInfo.fields.status.expired()}</p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label>{LL.settingsPage.license.licenseInfo.fields.type.label()}</Label>
-                  <div className="with-helper">
+                  </div>
+                  <div>
+                    <Label>
+                      {LL.settingsPage.license.licenseInfo.fields.validUntil.label()}
+                    </Label>
                     <p>
-                      {enterpriseStatus?.license_info.subscription
-                        ? LL.settingsPage.license.licenseInfo.types.subscription.label()
-                        : LL.settingsPage.license.licenseInfo.types.offline.label()}
+                      {enterpriseInfo?.license_info.valid_until
+                        ? new Date(
+                            enterpriseInfo?.license_info.valid_until,
+                          ).toLocaleString()
+                        : '-'}
                     </p>
-                    <Helper>
-                      {enterpriseStatus?.license_info.subscription
-                        ? LL.settingsPage.license.licenseInfo.types.subscription.helper()
-                        : LL.settingsPage.license.licenseInfo.types.offline.helper()}
-                    </Helper>
                   </div>
                 </div>
-                <div>
-                  <Label>
-                    {LL.settingsPage.license.licenseInfo.fields.validUntil.label()}
-                  </Label>
-                  <p>
-                    {enterpriseStatus?.license_info.valid_until
-                      ? new Date(
-                          enterpriseStatus?.license_info.valid_until,
-                        ).toLocaleString()
-                      : '-'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
-            )}
-          </ExpandableCard>
-        </div>
+              ) : (
+                <>
+                  <p id="no-license">{LL.settingsPage.license.licenseInfo.noLicense()}</p>
+                </>
+              )}
+            </ExpandableCard>
+          </div>
+        )}
       </Card>
     </section>
   );

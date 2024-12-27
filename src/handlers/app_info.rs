@@ -6,7 +6,7 @@ use crate::{
     appstate::AppState,
     auth::SessionInfo,
     db::{Settings, WireguardNetwork},
-    enterprise::license::{get_cached_license, validate_license},
+    enterprise::is_enterprise_enabled,
 };
 
 /// Additional information about core state.
@@ -25,8 +25,7 @@ pub(crate) async fn get_app_info(
 ) -> ApiResult {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let settings = Settings::get_settings(&appstate.pool).await?;
-    let license = get_cached_license();
-    let enterprise = validate_license((license).as_ref()).is_ok();
+    let enterprise = is_enterprise_enabled();
     let res = AppInfo {
         network_present: !networks.is_empty(),
         smtp_enabled: settings.smtp_configured(),

@@ -62,7 +62,7 @@ export const ProfileDetailsForm = () => {
   const setUserProfile = useUserProfileStore((state) => state.setState);
   const submitButton = useRef<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const isAdmin = useAuthStore((state) => state.user?.is_admin);
   const isMe = useUserProfileStore((state) => state.isMe);
   const [fetchGroups, setFetchGroups] = useState(false);
   const {
@@ -78,9 +78,8 @@ export const ProfileDetailsForm = () => {
       z.object({
         username: z
           .string()
-          .min(1, LL.form.error.required())
+          .min(1, LL.form.error.minimumLength())
           .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter())
-          .min(3, LL.form.error.minimumLength())
           .max(64, LL.form.error.maximumLength()),
         first_name: z.string().min(1, LL.form.error.required()),
         last_name: z.string().min(1, LL.form.error.required()),
@@ -127,7 +126,7 @@ export const ProfileDetailsForm = () => {
     getGroups,
     {
       refetchOnWindowFocus: false,
-      enabled: fetchGroups,
+      enabled: fetchGroups && isAdmin,
     },
   );
   const toaster = useToaster();
@@ -330,7 +329,7 @@ export const ProfileDetailsForm = () => {
               options={groupsOptions}
               controller={{ control, name: 'groups' }}
               label={LL.userPage.userDetails.fields.groups.label()}
-              loading={groupsLoading || userEditLoading}
+              loading={isAdmin && (groupsLoading || userEditLoading)}
               disabled={!isAdmin}
               renderSelected={(val) => ({
                 key: val,

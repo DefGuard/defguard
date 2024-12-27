@@ -71,7 +71,6 @@ pub struct Wallet<I = NoId> {
     pub challenge_signature: Option<String>,
     pub creation_timestamp: NaiveDateTime,
     pub validation_timestamp: Option<NaiveDateTime>,
-    pub use_for_mfa: bool,
 }
 
 impl Wallet {
@@ -93,7 +92,6 @@ impl Wallet {
             challenge_signature: None,
             creation_timestamp: Utc::now().naive_utc(),
             validation_timestamp: None,
-            use_for_mfa: false,
         }
     }
 
@@ -199,26 +197,12 @@ impl Wallet<Id> {
         query_as!(
             Self,
             "SELECT id, user_id, address, name, chain_id, challenge_message, challenge_signature, \
-            creation_timestamp, validation_timestamp, use_for_mfa FROM wallet \
+            creation_timestamp, validation_timestamp FROM wallet \
             WHERE user_id = $1 AND address = $2",
             user_id,
             address
         )
         .fetch_optional(executor)
         .await
-    }
-
-    pub async fn disable_mfa_for_user<'e, E>(executor: E, user_id: Id) -> Result<(), SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query!(
-            "UPDATE wallet SET use_for_mfa = FALSE WHERE user_id = $1",
-            user_id
-        )
-        .execute(executor)
-        .await?;
-
-        Ok(())
     }
 }

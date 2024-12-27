@@ -3,39 +3,39 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use rsa::{pkcs8::DecodePrivateKey, RsaPrivateKey};
 use serde_json::json;
 
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    enterprise::db::models::openid_provider::OpenIdProvider,
+    enterprise::{
+        db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
+    },
     handlers::{ApiResponse, ApiResult},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AddProviderData {
-    name: String,
-    base_url: String,
-    client_id: String,
-    client_secret: String,
+    pub name: String,
+    pub base_url: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub display_name: Option<String>,
+    pub admin_email: Option<String>,
+    pub google_service_account_email: Option<String>,
+    pub google_service_account_key: Option<String>,
+    pub directory_sync_enabled: bool,
+    pub directory_sync_interval: i32,
+    pub directory_sync_user_behavior: String,
+    pub directory_sync_admin_behavior: String,
+    pub directory_sync_target: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DeleteProviderData {
     name: String,
-}
-
-impl AddProviderData {
-    #[must_use]
-    pub fn new(name: &str, base_url: &str, client_id: &str, client_secret: &str) -> Self {
-        Self {
-            name: name.to_string(),
-            base_url: base_url.to_string(),
-            client_id: client_id.to_string(),
-            client_secret: client_secret.to_string(),
-        }
-    }
 }
 
 pub async fn add_openid_provider(
@@ -45,12 +45,51 @@ pub async fn add_openid_provider(
     State(appstate): State<AppState>,
     Json(provider_data): Json<AddProviderData>,
 ) -> ApiResult {
+    let current_provider = OpenIdProvider::get_current(&appstate.pool).await?;
+
+    // The key is sent from the frontend only when user explicitly changes it, as we never send it back.
+    // Check if the thing received from the frontend is a valid RSA private key (signaling user intent to change key)
+    // or is it just some empty string or other junk.
+    let private_key = match &provider_data.google_service_account_key {
+        Some(key) => {
+            if RsaPrivateKey::from_pkcs8_pem(key).is_ok() {
+                debug!(
+                    "User {} provided a valid RSA private key for provider's directory sync, using it",
+                    session.user.username
+                );
+                provider_data.google_service_account_key.clone()
+            } else if let Some(provider) = &current_provider {
+                debug!(
+                    "User {} did not provide a valid RSA private key for provider's directory sync or the key did not change, using the existing key",
+                    session.user.username
+                );
+                provider.google_service_account_key.clone()
+            } else {
+                warn!(
+                    "User {} did not provide a valid RSA private key for provider's directory sync",
+                    session.user.username
+                );
+                None
+            }
+        }
+        None => None,
+    };
+
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
         provider_data.base_url,
         provider_data.client_id,
         provider_data.client_secret,
+        provider_data.display_name,
+        private_key,
+        provider_data.google_service_account_email,
+        provider_data.admin_email,
+        provider_data.directory_sync_enabled,
+        provider_data.directory_sync_interval,
+        provider_data.directory_sync_user_behavior.into(),
+        provider_data.directory_sync_admin_behavior.into(),
+        provider_data.directory_sync_target.into(),
     )
     .upsert(&appstate.pool)
     .await?;
@@ -75,10 +114,14 @@ pub async fn get_current_openid_provider(
     State(appstate): State<AppState>,
 ) -> ApiResult {
     match OpenIdProvider::get_current(&appstate.pool).await? {
-        Some(provider) => Ok(ApiResponse {
-            json: json!(provider),
-            status: StatusCode::OK,
-        }),
+        Some(mut provider) => {
+            // Get rid of it, it should stay on the backend only.
+            provider.google_service_account_key = None;
+            Ok(ApiResponse {
+                json: json!(provider),
+                status: StatusCode::OK,
+            })
+        }
         None => Ok(ApiResponse {
             json: json!({}),
             status: StatusCode::NOT_FOUND,
@@ -165,6 +208,37 @@ pub async fn list_openid_providers(
     let providers = OpenIdProvider::all(&appstate.pool).await?;
     Ok(ApiResponse {
         json: json!(providers),
+        status: StatusCode::OK,
+    })
+}
+
+pub async fn test_dirsync_connection(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    session: SessionInfo,
+    State(appstate): State<AppState>,
+) -> ApiResult {
+    debug!(
+        "User {} testing directory sync connection",
+        session.user.username
+    );
+
+    if let Err(err) = test_directory_sync_connection(&appstate.pool).await {
+        error!(
+            "User {} tested directory sync connection, the connection failed: {}",
+            session.user.username, err
+        );
+        return Ok(ApiResponse {
+            json: json!({ "message": err.to_string(), "success": false }),
+            status: StatusCode::OK,
+        });
+    }
+    debug!(
+        "User {} tested directory sync connection, the connection was successful",
+        session.user.username
+    );
+    Ok(ApiResponse {
+        json: json!({ "message": "Connection successful", "success": true }),
         status: StatusCode::OK,
     })
 }

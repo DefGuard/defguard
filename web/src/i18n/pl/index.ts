@@ -19,6 +19,7 @@ const pl: Translation = {
       copy: 'Skopiuj',
       rename: 'Zmień nazwę',
       edit: 'Edytuj',
+      dismiss: 'Odrzuć',
     },
     conditions: {
       and: 'I',
@@ -40,12 +41,30 @@ const pl: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    updatesNotification: {
+      header: {
+        criticalBadge: 'Aktualizacja krytyczna',
+        newVersion: 'Nowa wersja {version}',
+        title: 'Aktualizacja dostępna',
+      },
+      controls: {
+        visitRelease: 'Zobacz stronę aktualizacji',
+      },
+    },
+    updatesNotificationToaster: {
+      title: 'Nowa wersja dostępna {version}',
+      controls: {
+        more: 'Zobacz co nowego',
+      },
+    },
     addGroup: {
       groupName: 'Nazwa grupy',
       searchPlaceholder: 'Szukaj',
       selectAll: 'Zaznacz wszystkich',
       submit: 'Stwórz grupę',
       title: 'Dodaj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     editGroup: {
       groupName: 'Nazwa grupy',
@@ -53,6 +72,8 @@ const pl: Translation = {
       selectAll: 'Zaznacz wszystkich',
       submit: 'Zmień grupę',
       title: 'Edytuj grupę',
+      groupSettings: 'Ustawienia grupy',
+      adminGroup: 'Grupa administratorska',
     },
     deleteGroup: {
       title: 'Usuń grupę {name}',
@@ -378,7 +399,7 @@ const pl: Translation = {
           },
           enableEnrollment: {
             label: 'Użyj zdalnej rejestracji',
-            link: '<a href="https://defguard.gitbook.io/defguard/help/enrollment" target="_blank">więcej informacji tutaj</a>',
+            link: '<a href="https://docs.defguard.net/help/enrollment" target="_blank">więcej informacji tutaj</a>',
           },
         },
       },
@@ -448,7 +469,7 @@ const pl: Translation = {
     },
     helpers: {
       setupOpt: `Możesz dodać urządzenie używając naszego klienta lub samemu skonfigurwać urządzenie.`,
-      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://defguard.gitbook.io/defguard/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
+      client: `Pobierz klienta defguard <a href="https://defguard.net/download" target="_blank">tutaj</a>, a następnie postępuj zgodnie z <a href="https://docs.defguard.net/help/configuring-vpn/add-new-instance" target="_blank">instrukcją</a> w celu jego konfiguracji.`,
     },
 
     steps: {
@@ -841,8 +862,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       oneUppercase: 'Wymagana jedna duża litera.',
       oneLowercase: 'Wymagana jedna mała litera.',
       portMax: 'Maksymalny numer portu to 65535.',
-      endpoint: 'Wpisz prawidłowy punkt końcowy.',
+      endpoint: 'Wpisz poprawny adres.',
       address: 'Wprowadź poprawny adres.',
+      addressNetmask: 'Wprowadź poprawny adres IP oraz maskę sieci.',
       validPort: 'Wprowadź prawidłowy port.',
       validCode: 'Kod powinien mieć 6 cyfr.',
       allowedIps: 'Tylko poprawne adresy IP oraz domeny.',
@@ -934,7 +956,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     openIdSettings: {
       general: {
-        title: 'Ustawienia zewnętrznego OpenID',
+        title: 'Ogólne ustawienia zewnętrznego OpenID',
         helper:
           'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
         createAccount: {
@@ -951,6 +973,29 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         custom: 'Niestandardowy',
         documentation: 'Dokumentacja',
         delete: 'Usuń dostawcę',
+
+        directory_sync_settings: {
+          title: 'Ustawienia synchronizacji katalogu',
+          helper:
+            'Synchronizacja katalogu pozwala na automatyczną synchronizację grup użytkowników i ich statusu na podstawie zewnętrznego dostawcy.',
+          notSupported: 'Synchronizacja katalogu nie jest obsługiwana dla tego dostawcy.',
+          connectionTest: {
+            success: 'Połączenie zakończone sukcesem.',
+            error: 'Wystąpił błąd podczas próby połączenia:',
+          },
+        },
+        selects: {
+          synchronize: {
+            all: 'Wszystko',
+            users: 'Użytkownicy',
+            groups: 'Grupy',
+          },
+          behavior: {
+            keep: 'Zachowaj',
+            disable: 'Dezaktywuj',
+            delete: 'Usuń',
+          },
+        },
         labels: {
           provider: {
             label: 'Dostawca',
@@ -969,6 +1014,50 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             label: 'URL bazowy',
             helper:
               'Podstawowy adres URL twojego dostawcy OpenID, np. https://accounts.google.com. Sprawdź naszą dokumentację, aby uzyskać więcej informacji i zobaczyć przykłady.',
+          },
+          display_name: {
+            label: 'Wyświetlana nazwa',
+            helper:
+              'Nazwa dostawcy OpenID, która będzie wyświetlana na przycisku logowania. Jeśli zostawisz to pole puste, przycisk będzie miał tekst "Zaloguj przez OIDC".',
+          },
+          enable_directory_sync: {
+            label: 'Włącz synchronizację katalogu',
+          },
+          sync_target: {
+            label: 'Synchronizuj',
+            helper:
+              'Co będzie synchronizowane z zewnętrznym dostawcą OpenID. Możesz wybrać pomiędzy synchronizacją statusu użytkowników, ich przynależności do grup lub synchronizacją obu.',
+          },
+          sync_interval: {
+            label: 'Interwał synchronizacji',
+            helper: 'Odstęp czasu w sekundach pomiędzy synchronizacjami katalogu.',
+          },
+          user_behavior: {
+            label: 'Zachowanie kont użytkowników',
+            helper:
+              'Wybierz jak postępować z kontami użytkowników, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
+          },
+          admin_behavior: {
+            label: 'Zachowanie kont administratorów',
+            helper:
+              'Wybierz, jak postępować z kontami administratorów Defguard, które nie znajdują się w katalogu zewnętrznego dostawcy. Możesz wybrać między zachowaniem ich, dezaktywacją lub całkowitym usunięciem.',
+          },
+          admin_email: {
+            label: 'E-mail administratora',
+            helper:
+              'Adres e-mail konta, za pośrednictwem którego będzię odbywać się synchronizacja, np. e-mail konta osoby, która skonfigurowała konto usługi Google. Więcej szczegółów możesz znaleźć w naszej dokumentacji.',
+          },
+          service_account_used: {
+            label: 'Używane konto usługi',
+            helper:
+              'Obecnie używane konto usługi Google do synchronizacji. Możesz je zmienić, przesyłając nowy plik klucza konta usługi.',
+          },
+          service_account_key_file: {
+            label: 'Plik klucza konta usługi',
+            helper:
+              'Prześlij nowy plik klucza konta usługi, aby ustawić konto usługi używane do synchronizacji. UWAGA: Przesłany plik nie będzie widoczny po zapisaniu ustawień i ponownym załadowaniu strony, ponieważ jego zawartość jest poufna i nie jest przesyłana z powrotem do panelu.',
+            uploaded: 'Przesłany plik',
+            uploadPrompt: 'Prześlij plik klucza konta usługi',
           },
         },
       },
@@ -1005,17 +1094,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       filterLabels: {
         grid: 'Widok siatki',
         list: 'Widok listy',
-      },
-    },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: 'Domyślna wiadomość do podpisu',
-        },
-      },
-      controls: {
-        save: 'Zapisz zmiany',
       },
     },
     instanceBranding: {
@@ -1077,6 +1155,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       licenseInfo: {
         title: 'Informacje o licencji',
         noLicense: 'Brak licencji',
+        licenseNotRequired:
+          "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
           subscription: {
             label: 'Subskrypcja',
@@ -1575,7 +1655,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       noConnection: `Brak połączenia proszę uruchom poniższą komendę.`,
       connected: `Gateway połączony.`,
       statusError: 'Nie udało się uzyskać statusu',
-      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://defguard.gitbook.io/defguard/admin-and-features/setting-up-your-instance/one-line-install
+      oneLineInstall: `Jeśli wykonujesz instalację w jednej linii: https://docs.defguard.net/admin-and-features/setting-up-your-instance/one-line-install
         nie ma potrzeby wykonywania dalszych kroków.`,
       fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,
@@ -1592,6 +1672,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       return: 'Powrót do logowania',
       error: 'Wystąpił błąd podczas logowania przez zewnętrznego dostawcę OpenID',
     },
+    oidcLogin: 'Zaloguj się przez',
     mfa: {
       title: 'Autoryzacja dwuetapowa.',
       controls: {
@@ -1802,7 +1883,7 @@ Jeśli potrzebujesz pomocy lub zostałeś poproszony przez nasz zespół o utwor
     supportCard: {
       title: 'Wsparcie',
       body: `
-Przed zgłoszeniem problemów na GitHub należy zapoznać z dokumentacją dostępną na [defguard.gitbook.io/defguard](https://defguard.gitbook.io/defguard/)
+Przed zgłoszeniem problemów na GitHub należy zapoznać z dokumentacją dostępną na [docs.defguard.net](https://docs.defguard.net/)
 
 Aby zgłosić:
 * Problem - przejdź do [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)

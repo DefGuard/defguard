@@ -1,13 +1,20 @@
 /* eslint-disable max-len */
 import './style.scss';
 
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { Button } from '../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 
-export const OpenIdLoginButton = ({ url }: { url: string }) => {
+export const OpenIdLoginButton = ({
+  url,
+  display_name,
+}: {
+  url: string;
+  display_name?: string;
+}) => {
   const { hostname } = new URL(url);
 
   if (hostname === 'accounts.google.com') {
@@ -15,7 +22,7 @@ export const OpenIdLoginButton = ({ url }: { url: string }) => {
   } else if (hostname === 'login.microsoftonline.com') {
     return <MicrosoftButton url={url} />;
   } else {
-    return <CustomButton url={url} />;
+    return <CustomButton url={url} display_name={display_name} />;
   }
 };
 
@@ -24,7 +31,7 @@ const GoogleButton = ({ url }: { url: string }) => {
     <button
       className="gsi-material-button"
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       type="button"
     >
@@ -72,15 +79,16 @@ const GoogleButton = ({ url }: { url: string }) => {
   );
 };
 
-const CustomButton = ({ url }: { url: string }) => {
+const CustomButton = ({ url, display_name }: { url: string; display_name?: string }) => {
+  const { LL } = useI18nContext();
   return (
     <Button
       size={ButtonSize.LARGE}
       styleVariant={ButtonStyleVariant.PRIMARY}
-      text="Login with OIDC"
+      text={`${LL.loginPage.oidcLogin()} ${display_name && display_name.length > 0 ? display_name : 'OIDC'}`}
       data-testid="login-oidc"
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       type="button"
     />
@@ -91,7 +99,7 @@ const MicrosoftButton = ({ url }: { url: string }) => {
   return (
     <button
       onClick={() => {
-        window.location.replace(url);
+        window.location.assign(url);
       }}
       className="ms-button"
       type="button"

@@ -1,10 +1,7 @@
-use std::sync::Arc;
-
 use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
-use uaparser::UserAgentParser;
 
 use super::{
     proto::{
@@ -17,14 +14,14 @@ use super::{
 use crate::{
     db::{
         models::{
-            device::{DeviceConfig, DeviceInfo},
+            device::{DeviceConfig, DeviceInfo, DeviceType},
             enrollment::{Token, TokenError, ENROLLMENT_TOKEN_TYPE},
             polling_token::PollingToken,
         },
         Device, GatewayEvent, Id, Settings, User,
     },
-    enterprise::db::models::enterprise_settings::EnterpriseSettings,
-    grpc::utils::build_device_config_response,
+    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
+    grpc::utils::{build_device_config_response, new_polling_token},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
     ldap::utils::ldap_add_user,
@@ -37,7 +34,6 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    user_agent_parser: Arc<UserAgentParser>,
     ldap_feature_active: bool,
 }
 
@@ -47,7 +43,6 @@ impl EnrollmentServer {
         pool: PgPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
-        user_agent_parser: Arc<UserAgentParser>,
     ) -> Self {
         // FIXME: check if LDAP feature is enabled
         let ldap_feature_active = true;
@@ -55,13 +50,12 @@ impl EnrollmentServer {
             pool,
             wireguard_tx,
             mail_tx,
-            user_agent_parser,
             ldap_feature_active,
         }
     }
 
     /// Checks if token provided with request corresponds to a valid enrollment session
-    async fn validate_session(&self, token: &Option<String>) -> Result<Token, Status> {
+    async fn validate_session(&self, token: Option<&String>) -> Result<Token, Status> {
         info!("Validating enrollment session. Token: {token:?}");
         let Some(token) = token else {
             error!("Missing authorization header in request");
@@ -69,10 +63,10 @@ impl EnrollmentServer {
         };
         let enrollment = Token::find_by_id(&self.pool, token).await?;
         debug!("Found matching token, verifying validity: {enrollment:?}.");
-        if !enrollment
+        if enrollment
             .token_type
             .as_ref()
-            .is_some_and(|token_type| token_type == ENROLLMENT_TOKEN_TYPE)
+            .is_none_or(|token_type| token_type != ENROLLMENT_TOKEN_TYPE)
         {
             error!(
                 "Invalid token type used in enrollment process: {:?}",
@@ -250,19 +244,19 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
-        let enrollment = self.validate_session(&request.token).await?;
+        let enrollment = self.validate_session(request.token.as_ref()).await?;
 
         let ip_address;
         let device_info;
         if let Some(info) = req_device_info {
             ip_address = info.ip_address.unwrap_or_default();
             let user_agent = info.user_agent.unwrap_or_default();
-            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+            device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         // check if password is strong enough
         debug!("Verifying password strength for user activation process.");
@@ -308,6 +302,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
         debug!("Updating user details ended with success.");
+        let _ = update_counts(&self.pool).await;
 
         // sync with LDAP
         debug!("Add user to ldap: {}.", self.ldap_feature_active);
@@ -370,10 +365,10 @@ impl EnrollmentServer {
         req_device_info: Option<super::proto::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
-        let enrollment = self.validate_session(&request.token).await?;
+        let enrollment_token = self.validate_session(request.token.as_ref()).await?;
 
         // fetch related users
-        let user = enrollment.fetch_user(&self.pool).await?;
+        let user = enrollment_token.fetch_user(&self.pool).await?;
 
         // add device
         debug!(
@@ -399,12 +394,12 @@ impl EnrollmentServer {
         if let Some(info) = req_device_info {
             ip_address = info.ip_address.unwrap_or_default();
             let user_agent = info.user_agent.unwrap_or_default();
-            device_info = get_device_info(&self.user_agent_parser, &user_agent);
+            device_info = Some(get_device_info(&user_agent));
         } else {
             ip_address = String::new();
             device_info = None;
         }
-        debug!("Ip address {}, device info {device_info:?}", ip_address);
+        debug!("IP address {}, device info {device_info:?}", ip_address);
 
         debug!(
             "Validating pubkey {} for device creation process for user {}({:?})",
@@ -452,35 +447,116 @@ impl EnrollmentServer {
             request.pubkey, user.username, user.id
         );
 
-        let device = Device::new(
-            request.name.clone(),
-            request.pubkey.clone(),
-            enrollment.user_id,
-        );
-        debug!(
-            "Creating new device for user {}({:?}) {device:?}.",
-            user.username, user.id,
-        );
-
         let mut transaction = self.pool.begin().await.map_err(|err| {
             error!("Failed to begin transaction: {err}");
             Status::internal("unexpected error")
         })?;
-        let device = device.save(&mut *transaction).await.map_err(|err| {
-            error!(
-                "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
-                request.name, request.pubkey, user.username, user.id,
-            );
-            Status::internal("unexpected error")
-        })?;
-        info!("New device created: {device:?}.");
 
-        debug!(
-            "Adding device {} to all existing user networks for user {}({:?}).",
-            device.wireguard_pubkey, user.username, user.id,
-        );
-        let (network_info, configs) =
-            device
+        let (device, network_info, configs) = if let Some(device_id) = enrollment_token.device_id {
+            debug!(
+                "A device with ID {device_id} is attached to a received enrollment token, trying to finish its configuration instead of creating a new one."
+            );
+            let mut device = Device::find_by_id(&mut *transaction, device_id)
+                .await.map_err(|err| {
+                    error!(
+                        "Failed to find device with ID {device_id} for user {}({:?}): {err}",
+                        user.username, user.id
+                    );
+                    Status::internal("unexpected error")
+                })?
+                .ok_or_else(|| {
+                    error!(
+                        "Device with ID {device_id} not found for user {}({:?}). Aborting device configuration process.",
+                        user.username, user.id
+                    );
+                    Status::not_found("device not found")
+                })?;
+
+            // Currently not supported
+            if device.device_type != DeviceType::Network {
+                error!(
+                    "Device {} added by user {}({:?}) is not a network device. Partial device configuration using a token is not supported for non-network devices.",
+                    device.name, user.username, user.id
+                );
+                return Err(Status::invalid_argument("invalid device type"));
+            }
+
+            device.wireguard_pubkey = request.pubkey.clone();
+            device.configured = true;
+
+            device.save(&mut *transaction).await.map_err(|err| {
+                error!(
+                    "Failed to save network device {} for user {}({:?}): {err}",
+                    device.name, user.username, user.id
+                );
+                Status::internal("unexpected error")
+            })?;
+
+            let mut networks = device
+                .find_device_networks(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to find networks for device {} for user {}({:?}): {err}",
+                        device.name, user.username, user.id
+                    );
+                    Status::internal("unexpected error")
+                })?;
+
+            let Some(network) = networks.pop() else {
+                error!(
+                    "Network device {} added by user {}({:?}) is not assigned to any networks. Aborting partial device configuration process.",
+                    device.name, user.username, user.id
+                );
+                return Err(Status::not_found("network not found"));
+            };
+            // We popped the last network, there should be 0 left.
+            if !networks.is_empty() {
+                warn!(
+                    "Network device {} added by user {}({:?}) is assigned to more than one network. Using the last network as a fallback.",
+                    device.name, user.username, user.id
+                );
+            }
+
+            let (network_info, configs) = device
+                .get_network_configs(&network, &mut transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to get network configs for device {} for user {}({:?}): {err}",
+                        device.name, user.username, user.id
+                    );
+                    Status::internal("unexpected error")
+                })?;
+
+            (device, vec![network_info], vec![configs])
+        } else {
+            debug!(
+                "Creating new device for user {}({:?}): {}.",
+                user.username, user.id, request.name
+            );
+            let device = Device::new(
+                request.name.clone(),
+                request.pubkey.clone(),
+                enrollment_token.user_id,
+                DeviceType::User,
+                None,
+                true,
+            );
+            let device = device.save(&mut *transaction).await.map_err(|err| {
+                error!(
+                    "Failed to save device {}, pubkey {} for user {}({:?}): {err}",
+                    request.name, request.pubkey, user.username, user.id,
+                );
+                Status::internal("unexpected error")
+            })?;
+            info!("New device created using a token: {device:?}.");
+            let _ = update_counts(&self.pool).await;
+            debug!(
+                "Adding device {} to all existing user networks for user {}({:?}).",
+                device.wireguard_pubkey, user.username, user.id,
+            );
+            let (network_info, configs) = device
                 .add_to_all_networks(&mut transaction)
                 .await
                 .map_err(|err| {
@@ -490,11 +566,13 @@ impl EnrollmentServer {
                     );
                     Status::internal("unexpected error")
                 })?;
+            info!(
+                "Added device {} to all existing user networks for user {}({:?})",
+                device.wireguard_pubkey, user.username, user.id
+            );
+            (device, network_info, configs)
+        };
 
-        info!(
-            "Added device {} to all existing user networks for user {}({:?})",
-            device.wireguard_pubkey, user.username, user.id
-        );
         debug!(
             "Sending DeviceCreated event to gateway for device {}, user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
@@ -518,7 +596,7 @@ impl EnrollmentServer {
                 error!(
             "Failed to fetch settings for device {} creation process for user {}({:?}): {err}",
             device.wireguard_pubkey, user.username, user.id,
-);
+                );
                 Status::internal("unexpected error")
             })?;
         debug!("Settings: {settings:?}");
@@ -589,10 +667,7 @@ impl EnrollmentServer {
         )
         .map_err(|_| Status::internal("error rendering email template"))?;
 
-        info!(
-            "Device {} assigned to user {}({:?}) and added to all networks.",
-            device.name, user.username, user.id,
-        );
+        info!("Device {} remote configuration done.", device.name);
 
         let response = DeviceConfigResponse {
             device: Some(device.into()),
@@ -613,9 +688,20 @@ impl EnrollmentServer {
         request: ExistingDevice,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Getting network info for device: {:?}", request.pubkey);
-        let _token = self.validate_session(&request.token).await?;
+        let _token = self.validate_session(request.token.as_ref()).await?;
 
-        build_device_config_response(&self.pool, &request.pubkey, true).await
+        Device::validate_pubkey(&request.pubkey).map_err(|_| {
+            error!("Invalid pubkey {}", &request.pubkey);
+            Status::invalid_argument("invalid pubkey")
+        })?;
+        // Find existing device by public key.
+        let Ok(Some(device)) = Device::find_by_pubkey(&self.pool, &request.pubkey).await else {
+            error!("Failed to fetch device by pubkey: {}", &request.pubkey);
+            return Err(Status::internal("device not found"));
+        };
+
+        let token = new_polling_token(&self.pool, &device).await?;
+        build_device_config_response(&self.pool, device, Some(token)).await
     }
 }
 

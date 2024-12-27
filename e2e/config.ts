@@ -42,6 +42,7 @@ export const routes = {
     users: '/admin/users',
     openid: '/admin/openid',
     overview: '/admin/overview',
+    settings: '/admin/settings',
   },
   authorize: '/api/v1/oauth/authorize',
 };

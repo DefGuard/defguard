@@ -1,0 +1,15 @@
+#add-standalone-device-modal .method-step {
+  box-sizing: border-box;
+  padding: 0 55px;
+
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-bottom: 40px;
+    column-gap: 50px;
+
+    .device-setup-method {
+      padding: 68px 27px;
+    }
+  }
+}

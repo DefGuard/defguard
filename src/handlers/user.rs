@@ -3,25 +3,25 @@ use axum::{
     http::StatusCode,
 };
 use serde_json::json;
-use utoipa::ToSchema;
 
 use super::{
-    mail::{send_mfa_configured_email, EMAIL_PASSOWRD_RESET_START_SUBJECT},
-    user_for_admin_or_self, AddUserData, ApiResponse, ApiResult, PasswordChange,
-    PasswordChangeSelf, RecoveryCodes, StartEnrollmentRequest, Username, WalletChallenge,
-    WalletChange, WalletSignature,
+    mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
+    ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
+    WalletChallenge, WalletSignature,
 };
 use crate::{
     appstate::AppState,
-    auth::{SessionInfo, UserAdminRole},
+    auth::{AdminRole, SessionInfo},
     db::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+            WalletInfo,
         },
-        AppEvent, GatewayEvent, MFAMethod, OAuth2AuthorizedApp, Settings, User, UserDetails,
-        UserInfo, Wallet, WebAuthn, WireguardNetwork,
+        AppEvent, GatewayEvent, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
+        WebAuthn, WireguardNetwork,
     },
+    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     error::WebError,
     ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
     mail::Mail,
@@ -32,7 +32,7 @@ use crate::{
 ///
 /// To enable LDAP sync usernames need to avoid reserved characters.
 /// Username requirements:
-/// - 3 - 64 characters long
+/// - 1 - 64 characters long
 /// - lowercase or uppercase latin alphabet letters (A-Z, a-z)
 /// - digits (0-9)
 /// - starts with non-special character
@@ -41,7 +41,7 @@ use crate::{
 pub fn check_username(username: &str) -> Result<(), WebError> {
     // check length
     let length = username.len();
-    if !(3..64).contains(&length) {
+    if !(1..64).contains(&length) {
         return Err(WebError::Serialization(format!(
             "Username ({username}) has incorrect length"
         )));
@@ -91,7 +91,6 @@ pub fn prune_username(username: &str) -> String {
         .to_string();
 
     result.retain(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
-    result = result.replace(' ', "");
 
     result
 }
@@ -157,7 +156,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
     )
 )]
-pub async fn list_users(_role: UserAdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     let all_users = User::all(&appstate.pool).await?;
     let mut users: Vec<UserInfo> = Vec::with_capacity(all_users.len());
     for user in all_users {
@@ -283,7 +282,7 @@ pub async fn get_user(
     )
 )]
 pub async fn add_user(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
@@ -336,6 +335,7 @@ pub async fn add_user(
     )
     .save(&appstate.pool)
     .await?;
+    update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
         let _result = ldap_add_user(&appstate.pool, &user, &password).await;
@@ -378,7 +378,7 @@ pub async fn add_user(
     )
 )]
 pub async fn start_enrollment(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -481,6 +481,13 @@ pub async fn start_remote_desktop_configuration(
         session.user.username
     );
 
+    let settings = EnterpriseSettings::get(&appstate.pool).await?;
+    if settings.admin_device_management && !session.is_admin {
+        return Err(WebError::Forbidden(
+            "Only admin users can manage devices".into(),
+        ));
+    }
+
     debug!("Verify that the user from the current session is an admin or only peforms desktop activation for self.");
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
     debug!("Successfully fetched user data: {user:?}");
@@ -508,6 +515,7 @@ pub async fn start_remote_desktop_configuration(
             config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
+            None,
         )
         .await?;
 
@@ -553,7 +561,7 @@ pub async fn start_remote_desktop_configuration(
     )
 )]
 pub async fn username_available(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<Username>,
 ) -> ApiResult {
@@ -700,7 +708,7 @@ pub async fn modify_user(
     )
 )]
 pub async fn delete_user(
-    _role: UserAdminRole,
+    _role: AdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
@@ -734,6 +742,7 @@ pub async fn delete_user(
         let _result = ldap_delete_user(&mut *transaction, &username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
+        update_counts(&appstate.pool).await?;
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())
@@ -822,7 +831,7 @@ pub async fn change_self_password(
     )
 )]
 pub async fn change_password(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -900,7 +909,7 @@ pub async fn change_password(
     )
 )]
 pub async fn reset_password(
-    _role: UserAdminRole,
+    _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -933,7 +942,7 @@ pub async fn reset_password(
             config.password_reset_token_timeout.as_secs(),
             Some(PASSWORD_RESET_TOKEN_TYPE.to_string()),
         );
-        enrollment.save(&mut transaction).await?;
+        enrollment.save(&mut *transaction).await?;
 
         let mail = Mail {
             to: user.email.clone(),
@@ -981,14 +990,6 @@ pub async fn reset_password(
     }
 }
 
-/// Similar to [`models::WalletInfo`] but without `use_for_mfa`.
-#[derive(Deserialize, ToSchema)]
-pub struct WalletInfoShort {
-    pub address: String,
-    pub name: String,
-    pub chain_id: i64,
-}
-
 /// Wallet challenge
 ///
 /// Endpoint allows to generate a wallet challenge for ownership verification.
@@ -1017,7 +1018,7 @@ pub async fn wallet_challenge(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
-    Query(wallet_info): Query<WalletInfoShort>,
+    Query(wallet_info): Query<WalletInfo>,
 ) -> ApiResult {
     debug!(
         "User {} generating wallet challenge for user {username}",
@@ -1154,68 +1155,12 @@ pub async fn set_wallet(
 pub async fn update_wallet(
     session: SessionInfo,
     Path((username, address)): Path<(String, String)>,
-    State(appstate): State<AppState>,
-    Json(data): Json<WalletChange>,
 ) -> ApiResult {
     debug!(
         "User {} updating wallet {address} for user {username}",
         session.user.username,
     );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id, &address).await?
-    {
-        if wallet.user_id == user.id {
-            let mfa_change = wallet.use_for_mfa != data.use_for_mfa;
-            wallet.use_for_mfa = data.use_for_mfa;
-            wallet.save(&appstate.pool).await?;
-            if mfa_change {
-                if data.use_for_mfa {
-                    debug!("Wallet {} MFA flag enabled", wallet.address);
-                    if !user.mfa_enabled {
-                        // send notification email about enabled MFA
-                        send_mfa_configured_email(
-                            Some(&session.session),
-                            &user,
-                            &MFAMethod::Web3,
-                            &appstate.mail_tx,
-                        )?;
-                        user.set_mfa_method(&appstate.pool, MFAMethod::Web3).await?;
-                        let recovery_codes = user.get_recovery_codes(&appstate.pool).await?;
-                        info!("User {} MFA enabled", username);
-                        info!(
-                            "User {} updated wallet {address} for user {username}",
-                            session.user.username,
-                        );
-                        return Ok(ApiResponse {
-                            json: json!(RecoveryCodes::new(recovery_codes)),
-                            status: StatusCode::OK,
-                        });
-                    }
-                } else {
-                    debug!("Wallet {} MFA flag removed", wallet.address);
-                    user.verify_mfa_state(&appstate.pool).await?;
-                }
-            }
-            info!(
-                "User {} updated wallet {address} for user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse::default())
-        } else {
-            error!(
-                "User {} failed to update wallet {address} for user {username} (id: {}), the owner id is {}",
-                session.user.username, user.id, wallet.user_id
-            );
-            Err(WebError::ObjectNotFound("wrong wallet".into()))
-        }
-    } else {
-        error!(
-            "User {} failed to update wallet {address} for user {username}, wallet not found",
-            session.user.username
-        );
-        Err(WebError::ObjectNotFound("wallet not found".into()))
-    }
+    Err(WebError::ObjectNotFound("deprecated wallet update".into()))
 }
 
 /// Delete wallet.
@@ -1467,11 +1412,11 @@ mod test {
         assert_ok!(check_username("First_Last"));
         assert_ok!(check_username("32zenek"));
         assert_ok!(check_username("32-zenek"));
+        assert_ok!(check_username("a"));
+        assert_ok!(check_username("32"));
+        assert_ok!(check_username("a4"));
 
         // invalid usernames
-        assert_err!(check_username("a"));
-        assert_err!(check_username("32"));
-        assert_err!(check_username("a4"));
         assert_err!(check_username("__zenek"));
         assert_err!(check_username("zenek?"));
         assert_err!(check_username("MeMeMe!"));

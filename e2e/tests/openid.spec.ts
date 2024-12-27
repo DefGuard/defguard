@@ -20,7 +20,7 @@ test.describe('Authorize OpenID client.', () => {
 
   const client: OpenIdClient = {
     name: 'test 01',
-    redirectURL: 'https://oidcdebugger.com/debug',
+    redirectURL: ['https://oidcdebugger.com/debug'],
     scopes: ['openid'],
   };
 

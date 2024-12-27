@@ -56,8 +56,7 @@ export const Login = () => {
       z.object({
         username: z
           .string()
-          .min(1, LL.form.error.required())
-          .min(3, LL.form.error.minimumLength())
+          .min(1, LL.form.error.minimumLength())
           .max(64)
           .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
         password: z
@@ -147,7 +146,10 @@ export const Login = () => {
               data-testid="login-form-submit"
             />
             {enterpriseEnabled && openIdInfo && (
-              <OpenIdLoginButton url={openIdInfo.url} />
+              <OpenIdLoginButton
+                url={openIdInfo.url}
+                display_name={openIdInfo?.button_display_name}
+              />
             )}
           </form>
         </>

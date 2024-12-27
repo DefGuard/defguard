@@ -9,19 +9,18 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool, Type};
+use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecutor, PgPool, Type};
 use totp_lite::{totp_custom, Sha1};
 
 use super::{
-    device::{Device, UserDevice},
+    device::{Device, DeviceType, UserDevice},
     group::Group,
-    wallet::Wallet,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{Id, NoId, Session},
+    db::{models::group::Permission, Id, NoId, Session},
     error::WebError,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -67,7 +66,7 @@ pub struct UserDiagnostic {
     pub enrolled: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize)]
+#[derive(Clone, Debug, Model, PartialEq, Serialize, FromRow)]
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,
@@ -80,6 +79,7 @@ pub struct User<I = NoId> {
     pub is_active: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
+    // FIXME: must be unique
     pub openid_sub: Option<String>,
     // secret has been verified and TOTP can be used
     pub(crate) totp_enabled: bool,
@@ -136,26 +136,23 @@ impl<I> User<I> {
         self.password_hash = hash_password(password).ok();
     }
 
-    pub fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        match &self.password_hash {
-            Some(hash) => {
-                let parsed_hash = PasswordHash::new(hash)?;
-                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
-            }
-            None => {
-                error!("Password not set for user {}", self.username);
-                Err(HashError::Password)
-            }
+    pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
+        if let Some(hash) = &self.password_hash {
+            let parsed_hash = PasswordHash::new(hash)?;
+            Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        } else {
+            error!("Password not set for user {}", self.username);
+            Err(HashError::Password)
         }
     }
 
     #[must_use]
-    pub fn has_password(&self) -> bool {
+    pub(crate) fn has_password(&self) -> bool {
         self.password_hash.is_some()
     }
 
     #[must_use]
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         format!("{} {}", self.first_name, self.last_name)
     }
 
@@ -163,7 +160,7 @@ impl<I> User<I> {
     /// We assume the user is enrolled if they have a password set
     /// or they have logged in using an external OIDC.
     #[must_use]
-    pub fn is_enrolled(&self) -> bool {
+    pub(crate) fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some()
     }
 }
@@ -233,7 +230,6 @@ impl User<Id> {
 
     /// Check if any of the multi-factor authentication methods is on.
     /// - TOTP is enabled
-    /// - a [`Wallet`] flagged `use_for_mfa`
     /// - a security key for Webauthn
     async fn check_mfa_enabled<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
     where
@@ -245,9 +241,8 @@ impl User<Id> {
         }
 
         query_scalar!(
-            "SELECT totp_enabled OR email_mfa_enabled OR coalesce(bool_or(wallet.use_for_mfa), FALSE) \
+            "SELECT totp_enabled OR email_mfa_enabled \
             OR count(webauthn.id) > 0 \"bool!\" FROM \"user\" \
-            LEFT JOIN wallet ON wallet.user_id = \"user\".id \
             LEFT JOIN webauthn ON webauthn.user_id = \"user\".id \
             WHERE \"user\".id = $1 GROUP BY totp_enabled, email_mfa_enabled;",
             self.id
@@ -359,7 +354,6 @@ impl User<Id> {
         )
         .execute(pool)
         .await?;
-        Wallet::disable_mfa_for_user(pool, self.id).await?;
         WebAuthn::delete_all_for_user(pool, self.id).await?;
 
         self.totp_secret = None;
@@ -573,6 +567,12 @@ impl User<Id> {
                 if code == expected_code {
                     return true;
                 }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit current time
+                    frame, checking the previous one.
+                    Expected: {expected_code}, got: {code}",
+                    self.username
+                );
 
                 let previous_code = totp_custom::<Sha1>(
                     timeout,
@@ -580,14 +580,29 @@ impl User<Id> {
                     email_mfa_secret,
                     timestamp.as_secs() - timeout,
                 );
-                return code == previous_code;
+
+                if code == previous_code {
+                    return true;
+                }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    expected: {previous_code}, got: {code}",
+                    self.username
+                );
+                return false;
             }
+            debug!(
+                "Couldn't calculate current timestamp when verifying email MFA code for user {}",
+                self.username
+            );
+        } else {
+            debug!("Email MFA secret not configured for user {}", self.username);
         }
         false
     }
 
     /// Verify recovery code. If it is valid, consume it, so it can't be used again.
-    pub async fn verify_recovery_code(
+    pub(crate) async fn verify_recovery_code(
         &mut self,
         pool: &PgPool,
         code: &str,
@@ -629,39 +644,64 @@ impl User<Id> {
         .await
     }
 
-    pub async fn find_by_email<'e, E>(executor: E, email: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_email<'e, E>(
+        executor: E,
+        email: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE email = $1",
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE email ILIKE $1",
             email
         )
         .fetch_optional(executor)
         .await
     }
 
-    pub async fn find_by_sub<'e, E>(executor: E, sub: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_many_by_emails<'e, E>(
+        executor: E,
+        emails: &[&str],
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as(
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method, recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE email = ANY($1)",
+        )
+        .bind(emails)
+        .fetch_all(executor)
+        .await
+    }
+
+    // FIXME: Remove `LIMIT 1` when `openid_sub` is unique.
+    pub(crate) async fn find_by_sub<'e, E>(
+        executor: E,
+        sub: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Self,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-            phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-            FROM \"user\" WHERE openid_sub = $1",
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
         .fetch_optional(executor)
         .await
     }
 
-    pub async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
+    pub(crate) async fn member_of_names<'e, E>(&self, executor: E) -> Result<Vec<String>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -674,13 +714,13 @@ impl User<Id> {
         .await
     }
 
-    pub async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn member_of<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Group,
-            "SELECT id, name FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
+            "SELECT id, name, is_admin FROM \"group\" JOIN group_user ON \"group\".id = group_user.group_id \
             WHERE group_user.user_id = $1",
             self.id
         )
@@ -691,7 +731,7 @@ impl User<Id> {
     /// Returns a vector of [`UserDevice`]s (hence the name).
     /// [`UserDevice`] is a struct containing additional network info about a device.
     /// If you only need [`Device`]s, use [`User::devices()`] instead.
-    pub async fn user_devices(&self, pool: &PgPool) -> Result<Vec<UserDevice>, SqlxError> {
+    pub(crate) async fn user_devices(&self, pool: &PgPool) -> Result<Vec<UserDevice>, SqlxError> {
         let devices = self.devices(pool).await?;
         let mut user_devices = Vec::new();
         for device in devices {
@@ -705,27 +745,28 @@ impl User<Id> {
 
     /// Returns a vector of [`Device`]s related to a user. If you want to get [`UserDevice`]s (which contain additional network info),
     /// use [`User::user_devices()`] instead.
-    pub async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device<Id>>, SqlxError>
+    pub(crate) async fn devices<'e, E>(&self, executor: E) -> Result<Vec<Device<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             Device,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created \
-            FROM device WHERE user_id = $1",
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM device WHERE user_id = $1 and device_type = 'user'::device_type",
             self.id
         )
         .fetch_all(executor)
         .await
     }
 
-    pub async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
+    pub(crate) async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
             WalletInfo,
-            "SELECT address \"address!\", name, chain_id, use_for_mfa \
+            "SELECT address \"address!\", name, chain_id \
             FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
             self.id
         )
@@ -733,7 +774,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn oauth2authorizedapps<'e, E>(
+    pub(crate) async fn oauth2authorizedapps<'e, E>(
         &self,
         executor: E,
     ) -> Result<Vec<OAuth2AuthorizedAppInfo>, SqlxError>
@@ -753,7 +794,7 @@ impl User<Id> {
         .await
     }
 
-    pub async fn security_keys(&self, pool: &PgPool) -> Result<Vec<SecurityKey>, SqlxError> {
+    pub(crate) async fn security_keys(&self, pool: &PgPool) -> Result<Vec<SecurityKey>, SqlxError> {
         query_as!(
             SecurityKey,
             "SELECT id \"id!\", name FROM webauthn WHERE user_id = $1",
@@ -779,7 +820,7 @@ impl User<Id> {
         Ok(())
     }
 
-    pub async fn remove_from_group<'e, E>(
+    pub(crate) async fn remove_from_group<'e, E>(
         &self,
         executor: E,
         group: &Group<Id>,
@@ -799,7 +840,7 @@ impl User<Id> {
     }
 
     /// Remove authorized apps by their client id's from user
-    pub async fn remove_oauth2_authorized_apps<'e, E>(
+    pub(crate) async fn remove_oauth2_authorized_apps<'e, E>(
         &self,
         executor: E,
         app_client_ids: &[i64],
@@ -823,29 +864,57 @@ impl User<Id> {
         pool: &PgPool,
         default_admin_pass: &str,
     ) -> Result<(), anyhow::Error> {
-        info!("Initializing admin user");
-        let password_hash = hash_password(default_admin_pass)?;
+        debug!("Checking if some admin user already exists and creating one if not...");
+        let admins = User::find_admins(pool).await?;
+        if admins.is_empty() {
+            let admin_groups = Group::find_by_permission(pool, Permission::IsAdmin).await?;
+            if admin_groups.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "No admin group and users found, or they are all disabled. \
+                    You'll need to create and assign the admin group manually, \
+                    as there must be at least one active admin user."
+                ));
+            }
 
-        // create admin user
-        let result = query_scalar!(
-            "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-            VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
-            ON CONFLICT DO NOTHING \
-            RETURNING id",
-            password_hash
-        )
-        .fetch_optional(pool)
-        .await?;
+            // create admin user
+            let password_hash = hash_password(default_admin_pass)?;
+            let result = query_scalar!(
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                ON CONFLICT DO NOTHING \
+                RETURNING id",
+                password_hash
+            )
+            .fetch_optional(pool)
+            .await?;
 
-        // if new user was created add them to admin group (ID 1)
-        if let Some(new_user_id) = result {
-            info!("New admin user has been created, adding to Admin group...");
-            query("INSERT INTO group_user (group_id, user_id) VALUES (1, $1)")
-                .bind(new_user_id)
-                .execute(pool)
-                .await?;
+            // if new user was created add them to admin group, first one you find
+            // the groups are sorted by ID desceding, so it will often be the 1st one = the default admin group
+            if let Some(new_user_id) = result {
+                let admin_group_id = admin_groups
+                    .first()
+                    .ok_or(anyhow::anyhow!(
+                        "No admin group found, can't create admin user"
+                    ))?
+                    .id;
+                info!("New admin user has been created, adding to Admin group...");
+                query("INSERT INTO group_user (group_id, user_id) VALUES ($1, $2)")
+                    .bind(admin_group_id)
+                    .bind(new_user_id)
+                    .execute(pool)
+                    .await?;
+                info!("Admin user has been created as there was no other admin user");
+            } else {
+                return Err(anyhow::anyhow!(
+                    "A conflict occurred while trying to add a missing admin. \
+                    There is already a user with username 'admin' but he is not an admin or he is disabled. \
+                    You will need to assign someone the admin group manually or enable this admin user, \
+                    as there must be at least one active admin."
+                ));
+            }
+        } else {
+            debug!("Admin users already exists, skipping creation of the default admin user");
         }
-
         Ok(())
     }
 
@@ -854,7 +923,6 @@ impl User<Id> {
         E: PgExecutor<'e>,
     {
         Session::delete_all_for_user(executor, self.id).await?;
-
         Ok(())
     }
 
@@ -876,6 +944,55 @@ impl User<Id> {
             device_id
         )
         .fetch_optional(executor)
+        .await
+    }
+
+    /// Find users which emails are NOT in `user_emails`.
+    pub(crate) async fn exclude<'e, E>(
+        executor: E,
+        user_emails: &[&str],
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        // This can't be a macro since sqlx can't handle an array of slices in a macro.
+        query_as(
+            "SELECT id, username, password_hash, last_name, first_name, email, phone, \
+            mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
+            mfa_method, recovery_codes, is_active, openid_sub \
+            FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
+        )
+        .bind(user_emails)
+        .fetch_all(executor)
+        .await
+    }
+
+    pub(crate) async fn is_admin<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_scalar!("SELECT EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+        WHERE is_admin = true AND user_id = $1) \"bool!\"", self.id)
+            .fetch_one(executor)
+            .await
+    }
+
+    /// Find all users that are admins and are active.
+    pub(crate) async fn find_admins<'e, E>(executor: E) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Self,
+            "
+            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
+            u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            FROM \"user\" u \
+            WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
+            WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
+        )
+        .fetch_all(executor)
         .await
     }
 }
@@ -1007,5 +1124,205 @@ mod test {
             assert!(user.verify_recovery_code(&pool, code).await.unwrap());
         }
         assert_eq!(user.recovery_codes.len(), 0);
+    }
+
+    #[sqlx::test]
+    async fn test_email_case_insensitivity(pool: PgPool) {
+        let harry = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        assert!(harry.save(&pool).await.is_ok());
+
+        let henry = User::new(
+            "h.potter",
+            Some("pass123"),
+            "Potter",
+            "Henry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        );
+        assert!(henry.save(&pool).await.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_is_admin(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let is_admin = user.is_admin(&pool).await.unwrap();
+
+        assert!(!is_admin);
+
+        query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1)",
+            user.id
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let is_admin = user.is_admin(&pool).await.unwrap();
+
+        assert!(is_admin);
+    }
+
+    #[sqlx::test]
+    async fn test_find_admins(pool: PgPool) {
+        let config = DefGuardConfig::new_test_config();
+        let _ = SERVER_CONFIG.set(config.clone());
+
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "hpotter2",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        User::new(
+            "hpotter3",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter3@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        query!(
+            "INSERT INTO group_user (group_id, user_id) VALUES (1, $1), (1, $2)",
+            user.id,
+            user2.id,
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let admins = User::find_admins(&pool).await.unwrap();
+        assert_eq!(admins.len(), 2);
+        assert!(admins.iter().any(|u| u.id == user.id));
+        assert!(admins.iter().any(|u| u.id == user2.id));
+    }
+
+    #[sqlx::test]
+    async fn test_get_missing(pool: PgPool) {
+        let user1 = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let user2 = User::new(
+            "hpotter2",
+            Some("pass1234"),
+            "Potter2",
+            "Harry2",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let albus = User::new(
+            "adumbledore",
+            Some("magic!"),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_emails = vec![user1.email.as_str(), albus.email.as_str()];
+        let users = User::exclude(&pool, &user_emails).await.unwrap();
+        assert_eq!(users.len(), 1);
+        assert_eq!(users[0].id, user2.id);
+    }
+
+    #[sqlx::test]
+    async fn test_find_many_by_emails(pool: PgPool) {
+        let user1 = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        User::new(
+            "hpotter2",
+            Some("pass1234"),
+            "Potter2",
+            "Harry2",
+            "h.potter2@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let albus = User::new(
+            "adumbledore",
+            Some("magic!"),
+            "Dumbledore",
+            "Albus",
+            "a.dumbledore@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user_emails = vec![user1.email.as_str(), albus.email.as_str()];
+        let users = User::find_many_by_emails(&pool, &user_emails)
+            .await
+            .unwrap();
+        assert_eq!(users.len(), 2);
+        assert_eq!(users[0].id, user1.id);
+        assert_eq!(users[1].id, albus.id);
     }
 }

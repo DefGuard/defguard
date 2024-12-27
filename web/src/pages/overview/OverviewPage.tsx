@@ -6,6 +6,7 @@ import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
+import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
@@ -13,12 +14,14 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
-import { NetworkUserStats, OverviewLayoutType } from '../../shared/types';
+import { OverviewLayoutType } from '../../shared/types';
 import { sortByDate } from '../../shared/utils/sortByDate';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
+import { StandaloneDeviceConnectionCard } from './OverviewConnectedUsers/UserConnectionCard/UserConnectionCard';
+import { OverviewExpandable } from './OverviewExpandable/OverviewExpandable';
 import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
 
@@ -32,9 +35,10 @@ export const OverviewPage = () => {
   const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const resetWizard = useWizardStore((state) => state.resetState);
   const viewMode = useOverviewStore((state) => state.viewMode);
+  const { LL } = useI18nContext();
 
   const {
-    network: { getNetworks, getUsersStats, getNetworkStats },
+    network: { getNetworks, getOverviewStats, getNetworkStats },
   } = useApi();
 
   const { isLoading: networksLoading } = useQuery(
@@ -74,10 +78,10 @@ export const OverviewPage = () => {
     },
   );
 
-  const { data: networkUsersStats, isLoading: userStatsLoading } = useQuery(
+  const { data: overviewStats, isLoading: userStatsLoading } = useQuery(
     [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
     () =>
-      getUsersStats({
+      getOverviewStats({
         from: getNetworkStatsFilterValue(statsFilter),
         id: selectedNetworkId as number,
       }),
@@ -89,21 +93,24 @@ export const OverviewPage = () => {
   );
 
   const getNetworkUsers = useMemo(() => {
-    let res: NetworkUserStats[] = [];
-    if (!isUndefined(networkUsersStats)) {
-      res = sortByDate(
-        networkUsersStats,
-        (i) => {
-          const devices = sortByDate(i.devices, (d) => d.connected_at, false);
-          return devices[0].connected_at;
-        },
-        false,
+    if (overviewStats !== undefined) {
+      const user = sortByDate(overviewStats.user_devices, (s) => {
+        const fistDevice = sortByDate(s.devices, (d) => d.connected_at, false)[0];
+        return fistDevice.connected_at;
+      });
+      const devices = sortByDate(
+        overviewStats.network_devices.filter((d) => d.connected_at !== undefined),
+        (d) => d.connected_at as string,
       );
+      return {
+        network_devices: devices,
+        user_devices: user,
+      };
     }
-    return res;
-  }, [networkUsersStats]);
+    return undefined;
+  }, [overviewStats]);
 
-  // FIXME: lockdown viewMode on grid for now
+  // FIXME: lock viewMode on grid for now
   useEffect(() => {
     if (viewMode !== OverviewLayoutType.GRID) {
       setOverViewStore({ viewMode: OverviewLayoutType.GRID });
@@ -111,25 +118,52 @@ export const OverviewPage = () => {
   }, [setOverViewStore, viewMode]);
 
   return (
-    <PageContainer id="network-overview-page">
-      <OverviewHeader loading={networksLoading} />
-      {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
-        <GatewaysStatus networkId={selectedNetworkId} />
-      )}
-      {networkStats && networkUsersStats && (
-        <OverviewStats usersStats={networkUsersStats} networkStats={networkStats} />
-      )}
-      <div className="bottom-row">
-        {userStatsLoading ? (
-          <div className="stats-loader">
-            <LoaderSpinner size={180} />
-          </div>
-        ) : getNetworkUsers.length > 0 ? (
-          <OverviewConnectedUsers stats={getNetworkUsers} />
-        ) : (
-          <NoData />
+    <>
+      <PageContainer id="network-overview-page">
+        <OverviewHeader loading={networksLoading} />
+        {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
+          <GatewaysStatus networkId={selectedNetworkId} />
         )}
-      </div>
-    </PageContainer>
+        {networkStats && overviewStats && (
+          <OverviewStats
+            usersStats={overviewStats.user_devices}
+            networkStats={networkStats}
+          />
+        )}
+        <div className="bottom-row">
+          {userStatsLoading && (
+            <div className="stats-loader">
+              <LoaderSpinner size={180} />
+            </div>
+          )}
+          {!getNetworkUsers && !userStatsLoading && <NoData />}
+          {!userStatsLoading &&
+            getNetworkUsers &&
+            getNetworkUsers.network_devices.length === 0 &&
+            getNetworkUsers.user_devices.length === 0 && <NoData />}
+          {!userStatsLoading &&
+            getNetworkUsers &&
+            getNetworkUsers.user_devices.length > 0 && (
+              <OverviewExpandable title={LL.networkOverview.cardsLabels.users()}>
+                <OverviewConnectedUsers stats={getNetworkUsers.user_devices} />
+              </OverviewExpandable>
+            )}
+          {!userStatsLoading &&
+            getNetworkUsers &&
+            getNetworkUsers.network_devices.length > 0 && (
+              <OverviewExpandable title={LL.networkOverview.cardsLabels.devices()}>
+                <div className="connection-cards">
+                  <div className="connected-users grid">
+                    {getNetworkUsers.network_devices.map((device) => (
+                      <StandaloneDeviceConnectionCard data={device} key={device.id} />
+                    ))}
+                  </div>
+                </div>
+              </OverviewExpandable>
+            )}
+        </div>
+      </PageContainer>
+      {/* Modals */}
+    </>
   );
 };

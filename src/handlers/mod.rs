@@ -23,6 +23,7 @@ pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
+pub mod network_devices;
 #[cfg(feature = "openid")]
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
@@ -30,6 +31,7 @@ pub mod openid_flow;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
+pub(crate) mod updates;
 pub(crate) mod user;
 pub(crate) mod webhooks;
 #[cfg(feature = "wireguard")]
@@ -207,15 +209,22 @@ pub struct GroupInfo {
     pub name: String,
     pub members: Vec<String>,
     pub vpn_locations: Vec<String>,
+    pub is_admin: bool,
 }
 
 impl GroupInfo {
     #[must_use]
-    pub fn new<S: Into<String>>(name: S, members: Vec<String>, vpn_locations: Vec<String>) -> Self {
+    pub fn new<S: Into<String>>(
+        name: S,
+        members: Vec<String>,
+        vpn_locations: Vec<String>,
+        is_admin: bool,
+    ) -> Self {
         Self {
             name: name.into(),
             members,
             vpn_locations,
+            is_admin,
         }
     }
 }
@@ -225,6 +234,7 @@ impl GroupInfo {
 pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
+    pub is_admin: bool,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -333,8 +343,8 @@ impl From<WebHookData> for WebHook {
     }
 }
 
-/// Return type needed to know if user came from openid flow
-/// with optional url to redirect him later if yes
+/// Return type needed for knowing if a user came from OpenID flow.
+/// If so, fill in the optional URL field to redirect him later.
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
     pub user: UserInfo,
@@ -349,7 +359,11 @@ pub async fn user_for_admin_or_self(
     username: &str,
 ) -> Result<User<Id>, WebError> {
     if session.user.username == username || session.is_admin {
-        debug!("The user meets one or both of these conditions: 1) the user from the current session has admin privileges, 2) the user performs this operation on themself.");
+        debug!(
+            "The user meets one or both of these conditions: \
+            1) the user from the current session has admin privileges, \
+            2) the user performs this operation on themself."
+        );
         if let Some(user) = User::find_by_username(pool, username).await? {
             debug!("User {} has been found in database.", user.username);
             Ok(user)

@@ -2,20 +2,22 @@
 // Static links to other services
 
 export const externalLink = {
-  defguardReleases: `https://github.com/DefGuard/client/releases`,
+  defguardReleases: `https://defguard.net/download/`,
   gitbook: {
-    base: 'https://defguard.gitbook.io/defguard/',
+    base: 'https://docs.defguard.net/',
     setup: {
       gateway:
-        'https://defguard.gitbook.io/defguard/features/setting-up-your-instance/gateway',
+        'https://docs.defguard.net/admin-and-features/setting-up-your-instance/gateway',
     },
     wireguard: {
       addDevices:
-        'https://defguard.gitbook.io/defguard/features/wireguard/adding-wireguard-devices',
+        'https://docs.defguard.net/help/configuring-vpn/adding-wireguard-devices',
     },
   },
   defguardSite: 'https://defguard.net',
   wireguard: {
     download: 'https://www.wireguard.com/install/',
   },
+  //TODO: change me
+  defguardCliDownload: 'https://github.com/DefGuard/client/releases',
 };

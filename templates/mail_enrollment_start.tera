@@ -7,7 +7,7 @@ token -> enrollment token
 {% extends "base.tera" %}
 {% import "macros.tera" as macros %}
 {% block mail_content %}
-{% set client_docs_url="https://defguard.gitbook.io/defguard/features/desktop-client" %}
+{% set client_docs_url="https://docs.defguard.net/help/desktop-client" %}
 {% set client_docs_link=macros::link(content=client_docs_url, href=client_docs_url) %}
 {% set release_url="https://defguard.net/download/" %}
 {% set release_link=macros::link(content=release_url, href=release_url) %}
