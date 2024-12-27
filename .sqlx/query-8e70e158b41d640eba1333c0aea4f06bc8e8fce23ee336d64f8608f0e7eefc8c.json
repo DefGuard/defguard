@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO group_user (group_id, user_id) VALUES (1, $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8e70e158b41d640eba1333c0aea4f06bc8e8fce23ee336d64f8608f0e7eefc8c"
+}
