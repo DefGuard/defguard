@@ -13,3 +13,4 @@ ladle-build
 .envrc
 .direnv/
 *.pem
+result/

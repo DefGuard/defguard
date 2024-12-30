@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, web3_challenge, ip_address, device_info FROM session WHERE id = $1",
+  "query": "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, ip_address, device_info FROM session WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -35,16 +35,11 @@
       },
       {
         "ordinal": 6,
-        "name": "web3_challenge",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 7,
         "name": "ip_address",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "device_info",
         "type_info": "Text"
       }
@@ -61,10 +56,9 @@
       false,
       false,
       true,
-      true,
       false,
       true
     ]
   },
-  "hash": "d85639917efd63b4bfc32b9df2cc97ff248dd83129f68a47e3f8402b643faeb4"
+  "hash": "2a0e98dbd468dcc85af21293ede187b50b93e8865a7ad88a6a8075060e384a02"
 }

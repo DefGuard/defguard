@@ -5,7 +5,6 @@ import { useI18nContext } from '../../i18n/i18n-react';
 import {
   AddOpenidClientRequest,
   AddUserRequest,
-  AddWalletRequest,
   ApiError,
   ApiHook,
   AuthorizedClient,
@@ -32,8 +31,6 @@ import {
   UserEditRequest,
   UserGroupRequest,
   VerifyOpenidClientRequest,
-  WalletChallenge,
-  WalletChallengeRequest,
   WireguardNetworkStats,
   WorkerJobRequest,
   WorkerJobResponse,
@@ -175,28 +172,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const startEnrollment = ({ username, ...rest }: StartEnrollmentRequest) =>
     client
       .post<StartEnrollmentResponse>(`/user/${username}/start_enrollment`, rest)
-      .then((response) => response.data);
-
-  const walletChallenge = ({
-    username,
-    address,
-    name,
-    chainId,
-  }: WalletChallengeRequest) =>
-    client
-      .get<WalletChallenge>(
-        `/user/${username}/challenge?address=${address}&name=${name}&chain_id=${chainId}`,
-      )
-      .then((response) => response.data);
-
-  const setWallet = ({ username, ...rest }: AddWalletRequest) =>
-    client
-      .put<EmptyApiResponse>(`/user/${username}/wallet`, rest)
-      .then((response) => response.data);
-
-  const deleteWallet = ({ username, address }: WalletChallengeRequest) =>
-    client
-      .delete<EmptyApiResponse>(`/user/${username}/wallet/${address}`)
       .then((response) => response.data);
 
   const getGroups = () => client.get<GroupsResponse>('/group').then(unpackRequest);
@@ -574,9 +549,6 @@ const useApi = (props?: HookProps): ApiHook => {
       usernameAvailable,
       changePassword,
       resetPassword,
-      walletChallenge,
-      setWallet,
-      deleteWallet,
       addToGroup,
       removeFromGroup,
       startEnrollment,

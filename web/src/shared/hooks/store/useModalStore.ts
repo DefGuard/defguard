@@ -19,18 +19,9 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
         openIdClientModal: { ...oldState.openIdClientModal, ...newState },
       })),
     // DO NOT EXTEND THIS STORE
-    addWalletModal: {
-      visible: false,
-    },
-    // DO NOT EXTEND THIS STORE
     recoveryCodesModal: {
       visible: false,
       codes: undefined,
-    },
-    // DO NOT EXTEND THIS STORE
-    connectWalletModal: {
-      visible: false,
-      onConnect: undefined,
     },
     // DO NOT EXTEND THIS STORE
     registerTOTP: {
@@ -53,11 +44,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     },
     // DO NOT EXTEND THIS STORE
     changePasswordModal: {
-      visible: false,
-      user: undefined,
-    },
-    // DO NOT EXTEND THIS STORE
-    changeWalletModal: {
       visible: false,
       user: undefined,
     },
@@ -124,11 +110,6 @@ export const useModalStore = createWithEqualityFn<UseModalStore>(
     setChangePasswordModal: (data) =>
       set((state) => ({
         changePasswordModal: { ...state.changePasswordModal, ...data },
-      })),
-    // DO NOT EXTEND THIS STORE
-    setChangeWalletModal: (data) =>
-      set((state) => ({
-        changeWalletModal: { ...state.changeWalletModal, ...data },
       })),
     // DO NOT EXTEND THIS STORE
     setDeleteUserModal: (data) =>

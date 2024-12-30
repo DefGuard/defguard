@@ -23,7 +23,7 @@ use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
-    WalletAddress, WalletSignature, WebAuthnRegistration, SESSION_COOKIE_NAME,
+    WebAuthnRegistration, SESSION_COOKIE_NAME,
 };
 use crate::{
     appstate::AppState,
@@ -31,9 +31,7 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{
-        Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn,
-    },
+    db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     error::WebError,
     handlers::{
         mail::{
@@ -729,40 +727,6 @@ pub async fn email_mfa_code(
     }
 }
 
-/// Start Web3 authentication
-pub async fn web3auth_start(
-    mut session: Session,
-    State(appstate): State<AppState>,
-    Json(data): Json<WalletAddress>,
-) -> ApiResult {
-    debug!("Starting web3 authentication for wallet {}", data.address);
-    match Settings::get(&appstate.pool).await? {
-        Some(settings) => {
-            let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
-            session
-                .set_web3_challenge(&appstate.pool, challenge.clone())
-                .await?;
-            info!("Started web3 authentication for wallet {}", data.address);
-            Ok(ApiResponse {
-                json: json!({ "challenge": challenge }),
-                status: StatusCode::OK,
-            })
-        }
-        None => Err(WebError::DbError("cannot retrieve settings".into())),
-    }
-}
-
-/// Finish Web3 authentication
-pub async fn web3auth_end(
-    Json(signature): Json<WalletSignature>,
-) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
-    debug!(
-        "Finishing web3 authentication for wallet {}",
-        signature.address
-    );
-    Err(WebError::Http(StatusCode::BAD_REQUEST))
-}
-
 /// Authenticate with a recovery code.
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
@@ -772,7 +736,7 @@ pub async fn recovery_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
-        debug!("Authenticating user {} with recovery code", username);
+        debug!("Authenticating user {username} with recovery code");
         if user
             .verify_recovery_code(&appstate.pool, &recovery_code.code)
             .await?

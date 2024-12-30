@@ -16,7 +16,6 @@ pub mod polling_token;
 pub mod session;
 pub mod settings;
 pub mod user;
-pub mod wallet;
 pub mod webauthn;
 pub mod webhook;
 pub mod wireguard;
@@ -38,13 +37,6 @@ pub struct NewOpenIDClient {
     pub redirect_uri: Vec<String>,
     pub scope: Vec<String>,
     pub enabled: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
-pub struct WalletInfo {
-    pub address: String,
-    pub name: String,
-    pub chain_id: Id,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -194,21 +186,17 @@ pub struct UserDetails {
     #[serde(default)]
     pub devices: Vec<UserDevice>,
     #[serde(default)]
-    pub wallets: Vec<WalletInfo>,
-    #[serde(default)]
     pub security_keys: Vec<SecurityKey>,
 }
 
 impl UserDetails {
     pub async fn from_user(pool: &PgPool, user: &User<Id>) -> Result<Self, SqlxError> {
         let devices = user.user_devices(pool).await?;
-        let wallets = user.wallets(pool).await?;
         let security_keys = user.security_keys(pool).await?;
 
         Ok(Self {
             user: UserInfo::from_user(pool, user).await?,
             devices,
-            wallets,
             security_keys,
         })
     }

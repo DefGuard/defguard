@@ -33,7 +33,6 @@ pub use models::{
     session::{Session, SessionState},
     settings::Settings,
     user::{MFAMethod, User},
-    wallet::Wallet,
     webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
     wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
