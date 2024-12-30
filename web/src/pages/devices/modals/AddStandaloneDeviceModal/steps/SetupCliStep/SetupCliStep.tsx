@@ -59,15 +59,15 @@ export const SetupCliStep = () => {
     },
   });
 
-  const [initIp, locationOptions] = useAddStandaloneDeviceModal(
-    (s) => [s.initAvailableIp, s.networkOptions],
+  const [initIpResponse, locationOptions] = useAddStandaloneDeviceModal(
+    (s) => [s.initLocationIpResponse, s.networkOptions],
     shallow,
   );
 
   const defaultValues = useMemo(() => {
-    if (initIp && locationOptions) {
+    if (initIpResponse && locationOptions) {
       const res: AddStandaloneDeviceFormFields = {
-        assigned_ip: initIp,
+        modifiableIpPart: initIpResponse.modifiable_part,
         generationChoice: WGConfigGenChoice.AUTO,
         location_id: locationOptions[0].value,
         name: '',
@@ -77,12 +77,12 @@ export const SetupCliStep = () => {
       return res;
     }
     return undefined;
-  }, [initIp, locationOptions]);
+  }, [initIpResponse, locationOptions]);
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
       const response = await mutateAsync({
-        assigned_ip: values.assigned_ip,
+        assigned_ip: values.modifiableIpPart,
         location_id: values.location_id,
         name: values.name,
         description: values.description,
@@ -93,7 +93,7 @@ export const SetupCliStep = () => {
     [mutateAsync, next, setState],
   );
 
-  if (initIp === undefined || defaultValues === undefined) return null;
+  if (initIpResponse === undefined || defaultValues === undefined) return null;
 
   return (
     <div className="setup-cli-step">
@@ -110,6 +110,7 @@ export const SetupCliStep = () => {
         mode={StandaloneDeviceModalFormMode.CREATE_CLI}
         submitSubject={submitSubject}
         reservedNames={reservedDeviceNames}
+        initialIpRecommendation={initIpResponse}
       />
       <div className="controls">
         <Button
