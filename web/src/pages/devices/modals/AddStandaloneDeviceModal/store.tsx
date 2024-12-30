@@ -5,6 +5,7 @@ import { createWithEqualityFn } from 'zustand/traditional';
 import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/Select/types';
 import {
   CreateStandaloneDeviceResponse,
+  GetAvailableLocationIpResponse,
   Network,
   StartEnrollmentResponse,
 } from '../../../../shared/types';
@@ -22,7 +23,7 @@ const defaultValues: StoreValues = {
   networkOptions: [],
   genChoice: WGConfigGenChoice.AUTO,
   submitSubject: new Subject<void>(),
-  initAvailableIp: undefined,
+  initLocationIpResponse: undefined,
   genKeys: undefined,
   manualResponse: undefined,
   enrollResponse: undefined,
@@ -49,7 +50,7 @@ type StoreValues = {
   networkOptions: SelectOption<number>[];
   genChoice: WGConfigGenChoice;
   submitSubject: Subject<void>;
-  initAvailableIp?: string;
+  initLocationIpResponse?: GetAvailableLocationIpResponse;
   networks?: Network[];
   genKeys?: {
     publicKey: string;

@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormLocationIp } from '../../../../../shared/defguard-ui/components/Form/FormLocationIp/FormLocationIp';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { FormToggle } from '../../../../../shared/defguard-ui/components/Form/FormToggle/FormToggle';
 import {
@@ -17,6 +18,7 @@ import {
 import { ToggleOption } from '../../../../../shared/defguard-ui/components/Layout/Toggle/types';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
+import { GetAvailableLocationIpResponse } from '../../../../../shared/types';
 import { validateWireguardPublicKey } from '../../../../../shared/validators';
 import {
   AddStandaloneDeviceFormFields,
@@ -32,6 +34,7 @@ type Props = {
   submitSubject: Subject<void>;
   defaults: AddStandaloneDeviceFormFields;
   reservedNames: string[];
+  initialIpRecommendation: GetAvailableLocationIpResponse;
 };
 
 export const StandaloneDeviceModalForm = ({
@@ -42,7 +45,11 @@ export const StandaloneDeviceModalForm = ({
   submitSubject,
   defaults,
   reservedNames,
+  initialIpRecommendation,
 }: Props) => {
+  const [internalRecommendedIp, setInternalRecommendedIp] = useState<
+    GetAvailableLocationIpResponse | undefined
+  >();
   const { LL } = useI18nContext();
   const {
     standaloneDevice: { validateLocationIp, getAvailableIp },
@@ -106,7 +113,7 @@ export const StandaloneDeviceModalForm = ({
             }, LL.form.error.reservedName()),
           location_id: z.number(),
           description: z.string(),
-          assigned_ip: z.string().min(1, LL.form.error.required()),
+          modifiableIpPart: z.string().min(1, LL.form.error.required()),
           generationChoice: z.nativeEnum(WGConfigGenChoice),
           wireguard_pubkey: z.string().optional(),
         })
@@ -140,7 +147,7 @@ export const StandaloneDeviceModalForm = ({
     watch,
     formState: { isSubmitting },
     setError,
-    setValue,
+    resetField,
   } = useForm<AddStandaloneDeviceFormFields>({
     defaultValues: defaults,
     resolver: zodResolver(schema),
@@ -149,17 +156,25 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
-  const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (values) => {
+  const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (
+    formValues,
+  ) => {
+    const values = formValues;
+    values.description = values.description?.trim();
+    values.name = values.name.trim();
+    const currentIpResp = internalRecommendedIp ?? initialIpRecommendation;
+    values.modifiableIpPart =
+      currentIpResp.network_part + formValues.modifiableIpPart.trim();
     if (
       mode === StandaloneDeviceModalFormMode.EDIT &&
-      values.assigned_ip === defaults.assigned_ip
+      values.modifiableIpPart === defaults.modifiableIpPart
     ) {
       await onSubmit(values);
       return;
     }
     try {
       const response = await validateLocationIp({
-        ip: values.assigned_ip,
+        ip: values.modifiableIpPart,
         location: values.location_id,
       });
       const { available, valid } = response;
@@ -167,12 +182,12 @@ export const StandaloneDeviceModalForm = ({
         await onSubmit(values);
       } else {
         if (!available) {
-          setError('assigned_ip', {
+          setError('modifiableIpPart', {
             message: LL.form.error.reservedIp(),
           });
         }
         if (!valid) {
-          setError('assigned_ip', {
+          setError('modifiableIpPart', {
             message: LL.form.error.invalidIp(),
           });
         }
@@ -189,13 +204,18 @@ export const StandaloneDeviceModalForm = ({
         getAvailableIp({
           locationId,
         })
-          .then((resp) => setValue('assigned_ip', resp.ip))
+          .then((resp) => {
+            setInternalRecommendedIp(resp);
+            resetField('modifiableIpPart', {
+              defaultValue: resp.modifiable_part,
+            });
+          })
           .finally(() => {
             setIpIsLoading(false);
           });
       }
     },
-    [getAvailableIp, setValue],
+    [getAvailableIp, resetField],
   );
 
   // inform parent that form is processing stuff
@@ -228,8 +248,15 @@ export const StandaloneDeviceModalForm = ({
           disabled={mode === StandaloneDeviceModalFormMode.EDIT}
           disableOpen={mode === StandaloneDeviceModalFormMode.EDIT}
         />
-        <FormInput
-          controller={{ control, name: 'assigned_ip' }}
+        <FormLocationIp
+          controller={{ control, name: 'modifiableIpPart' }}
+          data={{
+            networkPart:
+              internalRecommendedIp?.network_part ?? initialIpRecommendation.network_part,
+            networkPrefix:
+              internalRecommendedIp?.network_prefix ??
+              initialIpRecommendation.network_prefix,
+          }}
           label={labels.assignedAddress()}
           disabled={ipIsLoading}
         />

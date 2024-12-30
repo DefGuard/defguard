@@ -26,14 +26,13 @@ import {
 
 export const SetupManualStep = () => {
   const { LL } = useI18nContext();
-  const localLL = LL.modals.addStandaloneDevice.steps.manual.setup;
   const [formLoading, setFormLoading] = useState(false);
   const [setState, next, submitSubject, close] = useAddStandaloneDeviceModal(
     (s) => [s.setStore, s.changeStep, s.submitSubject, s.close],
     shallow,
   );
-  const [initialIp, locationOptions] = useAddStandaloneDeviceModal(
-    (s) => [s.initAvailableIp, s.networkOptions],
+  const [initialIpResponse, locationOptions] = useAddStandaloneDeviceModal(
+    (s) => [s.initLocationIpResponse, s.networkOptions],
     shallow,
   );
 
@@ -70,7 +69,7 @@ export const SetupManualStep = () => {
         });
       }
       const response = await mutateAsync({
-        assigned_ip: values.assigned_ip,
+        assigned_ip: values.modifiableIpPart,
         location_id: values.location_id,
         name: values.name,
         description: values.description,
@@ -86,9 +85,9 @@ export const SetupManualStep = () => {
   );
 
   const defaultFormValues = useMemo(() => {
-    if (locationOptions && initialIp) {
+    if (locationOptions && initialIpResponse) {
       const res: AddStandaloneDeviceFormFields = {
-        assigned_ip: initialIp,
+        modifiableIpPart: initialIpResponse.modifiable_part,
         generationChoice: WGConfigGenChoice.AUTO,
         location_id: locationOptions[0].value,
         name: '',
@@ -98,9 +97,9 @@ export const SetupManualStep = () => {
       return res;
     }
     return undefined;
-  }, [initialIp, locationOptions]);
+  }, [initialIpResponse, locationOptions]);
 
-  if (initialIp === undefined || defaultFormValues === undefined) return null;
+  if (initialIpResponse === undefined || defaultFormValues === undefined) return null;
 
   return (
     <div className="setup-manual">
@@ -112,6 +111,7 @@ export const SetupManualStep = () => {
         onSubmit={handleSubmit}
         onLoadingChange={setFormLoading}
         reservedNames={reservedDeviceNames}
+        initialIpRecommendation={initialIpResponse}
       />
       <div className="controls">
         <Button
@@ -125,7 +125,7 @@ export const SetupManualStep = () => {
           loading={formLoading}
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text={localLL.form.submit()}
+          text={LL.modals.addStandaloneDevice.form.submit()}
           onClick={() => {
             submitSubject.next();
           }}
