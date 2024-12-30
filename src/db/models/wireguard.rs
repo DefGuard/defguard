@@ -676,22 +676,6 @@ impl WireguardNetwork<Id> {
         Ok(events)
     }
 
-    /// Parse WireGuard IP address
-    fn parse_wireguard_ip(stats: &WireguardPeerStats<Id>) -> Option<String> {
-        stats
-            .allowed_ips
-            .as_ref()
-            .and_then(|ips| Some(ips.split('/').next()?.to_owned()))
-    }
-
-    /// Parse public IP address
-    fn parse_public_ip(stats: &WireguardPeerStats<Id>) -> Option<String> {
-        stats
-            .endpoint
-            .as_ref()
-            .and_then(|ep| Some(ep.split(':').next()?.to_owned()))
-    }
-
     /// Finds when the device connected based on handshake timestamps
     async fn connected_at(
         &self,
@@ -763,8 +747,12 @@ impl WireguardNetwork<Id> {
                 id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
-                wireguard_ip: latest_stats.as_ref().and_then(Self::parse_wireguard_ip),
-                public_ip: latest_stats.as_ref().and_then(Self::parse_public_ip),
+                wireguard_ip: latest_stats
+                    .as_ref()
+                    .and_then(WireguardPeerStats::trim_allowed_ips),
+                public_ip: latest_stats
+                    .as_ref()
+                    .and_then(WireguardPeerStats::endpoint_without_port),
                 connected_at: self.connected_at(conn, device.id).await?,
                 // Filter stats for this device
                 stats: stats

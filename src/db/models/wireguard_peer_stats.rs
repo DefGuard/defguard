@@ -25,7 +25,7 @@ pub struct WireguardPeerStats<I = NoId> {
 impl WireguardPeerStats {
     /// Delete stats older than a configured threshold.
     /// This is done to prevent unnecessary table growth.
-    /// At least one record is retained for each device & network combination,
+    /// At least one record is retained for each device and network combination,
     /// even when older than set threshold.
     pub(crate) async fn purge_old_stats(
         pool: &PgPool,
@@ -57,7 +57,7 @@ impl WireguardPeerStats {
 
         info!("Removed {rows_count} old records from wireguard_peer_stats",);
 
-        // record successful stats purge in DB
+        // Store successful stats purge in database.
         Self::record_stats_purge(pool, start, end, threshold, rows_count as i64).await?;
 
         Ok(())
@@ -127,5 +127,21 @@ impl WireguardPeerStats<Id> {
         .await?;
 
         Ok(stats)
+    }
+
+    /// Remove port part from `endpoint`.
+    /// IPv4: a.b.c.d:p -> a.b.c.d
+    /// IPv6: [x::y:z]:p -> [x::y:z]
+    pub(crate) fn endpoint_without_port(&self) -> Option<String> {
+        self.endpoint
+            .as_ref()
+            .and_then(|ep| Some(ep.rsplit_once(':')?.0.to_owned()))
+    }
+
+    /// Trim `allowed_ips` returning the first one without CIDR.
+    pub(crate) fn trim_allowed_ips(&self) -> Option<String> {
+        self.allowed_ips
+            .as_ref()
+            .and_then(|ips| Some(ips.split_once('/')?.0.to_owned()))
     }
 }

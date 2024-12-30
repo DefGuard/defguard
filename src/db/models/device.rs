@@ -161,7 +161,7 @@ impl UserDevice {
                 n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
                 wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
                 stats.latest_handshake \"latest_handshake?\", \
-                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) as \"is_active!\" \
+                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) \"is_active!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN stats on n.id = stats.network \
@@ -175,10 +175,9 @@ impl UserDevice {
         let networks_info: Vec<UserDeviceNetworkInfo> = result
             .into_iter()
             .map(|r| {
-                let device_ip = match r.device_endpoint {
-                    Some(endpoint) => endpoint.split(':').next().map(ToString::to_string),
-                    None => None,
-                };
+                let device_ip = r
+                    .device_endpoint
+                    .and_then(|endpoint| Some(endpoint.rsplit_once(':')?.0.to_string()));
                 UserDeviceNetworkInfo {
                     network_id: r.network_id,
                     network_name: r.network_name,
@@ -457,11 +456,10 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type  \"device_type: DeviceType\", \
-            configured \
+            "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, \
+            d.device_type  \"device_type: DeviceType\", configured \
             FROM device d \
-            JOIN wireguard_network_device wnd \
-            ON d.id = wnd.device_id \
+            JOIN wireguard_network_device wnd ON d.id = wnd.device_id \
             WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2",
             IpNetwork::from(ip),
             network_id
@@ -476,8 +474,8 @@ impl Device<Id> {
     {
         query_as!(
             Self,
-            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device WHERE wireguard_pubkey = $1",
             pubkey
         )
@@ -492,8 +490,8 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".username = $2",
             id,
@@ -510,8 +508,8 @@ impl Device<Id> {
     ) -> Result<Option<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE device.id = $1 AND \"user\".id = $2",
             id,
@@ -538,8 +536,8 @@ impl Device<Id> {
     pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
             FROM device JOIN \"user\" ON device.user_id = \"user\".id \
             WHERE \"user\".username = $1",
             username
@@ -556,9 +554,7 @@ impl Device<Id> {
         let wireguard_network_device =
             WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
                 .await?
-                .ok_or_else(|| {
-                    DeviceError::Unexpected("Device not found in network".to_string())
-                })?;
+                .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
             device_wireguard_ip: wireguard_network_device.wireguard_ip,
@@ -624,9 +620,7 @@ impl Device<Id> {
         let wireguard_network_device =
             WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
                 .await?
-                .ok_or_else(|| {
-                    DeviceError::Unexpected("Device not found in network".to_string())
-                })?;
+                .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
         wireguard_network_device.delete(&mut *transaction).await?;
         Ok(())
     }
