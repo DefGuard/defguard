@@ -1121,6 +1121,9 @@ export type GetAvailableLocationIpRequest = {
 
 export type GetAvailableLocationIpResponse = {
   ip: string;
+  network_part: string;
+  modifiable_part: string;
+  network_prefix: string;
 };
 
 export type StandaloneDevice = {

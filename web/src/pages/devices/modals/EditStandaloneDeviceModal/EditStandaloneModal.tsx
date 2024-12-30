@@ -19,6 +19,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { Network } from '../../../../shared/types';
 import { selectifyNetworks } from '../../../../shared/utils/form/selectifyNetwork';
+import { isPresent } from '../../../../shared/utils/isPresent';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
@@ -98,7 +99,7 @@ const ModalContent = () => {
     refetchOnMount: true,
   });
 
-  const { data: availableIp } = useQuery({
+  const { data: availableIpResponse } = useQuery({
     queryKey: [
       'ADD_STANDALONE_DEVICE_MODAL_FETCH_INITIAL_AVAILABLE_IP',
       networks,
@@ -122,10 +123,16 @@ const ModalContent = () => {
   }, [networks]);
 
   const defaultValues = useMemo(() => {
-    if (locationOptions && availableIp && device) {
+    if (locationOptions && availableIpResponse && device) {
+      let modifiablePart = device.assigned_ip.split(availableIpResponse.network_part)[1];
+
+      if (modifiablePart === undefined) {
+        modifiablePart = availableIpResponse.modifiable_part;
+      }
+
       const res: AddStandaloneDeviceFormFields = {
         name: device?.name,
-        assigned_ip: device.assigned_ip,
+        modifiableIpPart: modifiablePart,
         location_id: device.location.id,
         description: device.description,
         generationChoice: WGConfigGenChoice.AUTO,
@@ -134,13 +141,13 @@ const ModalContent = () => {
       return res;
     }
     return undefined;
-  }, [availableIp, device, locationOptions]);
+  }, [availableIpResponse, device, locationOptions]);
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
       if (device) {
         await mutateAsync({
-          assigned_ip: values.assigned_ip,
+          assigned_ip: values.modifiableIpPart,
           id: device.id,
           name: values.name,
           description: values.description,
@@ -152,7 +159,7 @@ const ModalContent = () => {
 
   return (
     <>
-      {defaultValues && (
+      {defaultValues && isPresent(availableIpResponse) && (
         <StandaloneDeviceModalForm
           mode={StandaloneDeviceModalFormMode.EDIT}
           defaults={defaultValues}
@@ -161,6 +168,7 @@ const ModalContent = () => {
           onSubmit={handleSubmit}
           submitSubject={submitSubject}
           reservedNames={reservedDeviceNames}
+          initialIpRecommendation={availableIpResponse}
         />
       )}
       {!defaultValues && (
