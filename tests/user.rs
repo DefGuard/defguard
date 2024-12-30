@@ -6,10 +6,8 @@ use defguard::{
         AddDevice, Id, UserInfo,
     },
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
-    hex::to_lower_hex,
 };
 use reqwest::{header::USER_AGENT, StatusCode};
-use secp256k1::{rand::rngs::OsRng, Message, Secp256k1};
 use serde_json::{json, Value};
 use tokio_stream::{self as stream, StreamExt};
 

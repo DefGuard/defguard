@@ -16,13 +16,17 @@ use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use super::{
-    device::{Device, DeviceError, DeviceInfo, DeviceNetworkInfo, WireguardNetworkDevice},
+    device::{
+        Device, DeviceError, DeviceInfo, DeviceNetworkInfo, DeviceType, WireguardNetworkDevice,
+    },
     error::ModelError,
-    User, UserInfo,
+    user::User,
+    wireguard_peer_stats::WireguardPeerStats,
+    UserInfo,
 };
 use crate::{
     appstate::AppState,
-    db::{models::device::DeviceType, Id, NoId},
+    db::{Id, NoId},
     grpc::{gateway::Peer, GatewayState},
     wg_config::ImportedDevice,
 };
@@ -672,28 +676,6 @@ impl WireguardNetwork<Id> {
         Ok(events)
     }
 
-    async fn fetch_latest_stats(
-        &self,
-        conn: &PgPool,
-        device_id: Id,
-    ) -> Result<Option<WireguardPeerStats<Id>>, SqlxError> {
-        let stats = query_as!(
-            WireguardPeerStats,
-            "SELECT id, device_id \"device_id!\", collected_at \"collected_at!\", network \"network!\", \
-                endpoint, upload \"upload!\", download \"download!\", latest_handshake \"latest_handshake!\", allowed_ips \
-            FROM wireguard_peer_stats \
-            WHERE device_id = $1 AND network = $2 \
-            ORDER BY collected_at DESC \
-            LIMIT 1",
-            device_id,
-            self.id
-        )
-        .fetch_optional(conn)
-        .await?;
-
-        Ok(stats)
-    }
-
     /// Parse WireGuard IP address
     fn parse_wireguard_ip(stats: &WireguardPeerStats<Id>) -> Option<String> {
         stats
@@ -721,7 +703,6 @@ impl WireguardNetwork<Id> {
                 latest_handshake \"latest_handshake: NaiveDateTime\" \
             FROM wireguard_peer_stats_view \
             WHERE device_id = $1 \
-                AND latest_handshake IS NOT NULL \
                 AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) \
                 AND network = $3 \
             ORDER BY collected_at DESC \
@@ -777,7 +758,7 @@ impl WireguardNetwork<Id> {
             .await?;
         let mut result = Vec::new();
         for device in devices {
-            let latest_stats = self.fetch_latest_stats(conn, device.id).await?;
+            let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
             result.push(WireguardDeviceStatsRow {
                 id: device.id,
                 user_id: device.user_id,
@@ -923,7 +904,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats
-    pub async fn network_stats(
+    pub(crate) async fn network_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -1026,21 +1007,6 @@ pub struct WireguardDeviceStatsRow {
 pub struct WireguardUserStatsRow {
     pub user: UserInfo,
     pub devices: Vec<WireguardDeviceStatsRow>,
-}
-
-#[derive(Debug, Deserialize, Model, Serialize)]
-#[table(wireguard_peer_stats)]
-pub struct WireguardPeerStats<I = NoId> {
-    pub id: I,
-    pub device_id: Id,
-    pub collected_at: NaiveDateTime,
-    pub network: i64,
-    pub endpoint: Option<String>,
-    pub upload: i64,
-    pub download: i64,
-    pub latest_handshake: NaiveDateTime,
-    // FIXME: can contain multiple IP addresses
-    pub allowed_ips: Option<String>,
 }
 
 pub struct WireguardNetworkActivityStats {

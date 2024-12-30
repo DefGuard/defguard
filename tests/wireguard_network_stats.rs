@@ -3,11 +3,15 @@ mod common;
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
-        models::wireguard::{
-            WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
-            WireguardUserStatsRow,
+        models::{
+            device::Device,
+            wireguard::{
+                WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
+                WireguardUserStatsRow,
+            },
+            wireguard_peer_stats::WireguardPeerStats,
         },
-        Device, Id, NoId, WireguardPeerStats,
+        Id, NoId,
     },
     handlers::Auth,
 };

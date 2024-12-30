@@ -35,7 +35,7 @@ pub use models::{
     user::{MFAMethod, User},
     webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
-    wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
+    wireguard::{GatewayEvent, WireguardNetwork},
     yubikey::YubiKey,
     MFAInfo, UserDetails, UserInfo,
 };
