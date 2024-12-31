@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH stats AS ( SELECT DISTINCT ON (network) network, endpoint, latest_handshake FROM wireguard_peer_stats WHERE device_id = $2 ORDER BY network, collected_at DESC ) SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, stats.latest_handshake \"latest_handshake?\", COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) \"is_active!\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN stats on n.id = stats.network WHERE wnd.device_id = $2",
+  "query": "WITH stats AS ( SELECT DISTINCT ON (network) network, endpoint, latest_handshake FROM wireguard_peer_stats WHERE device_id = $2 ORDER BY network, collected_at DESC ) SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, stats.latest_handshake \"latest_handshake?\", (NOW() - stats.latest_handshake) < $1 * interval '1 minute' \"is_active!\" FROM wireguard_network_device wnd JOIN wireguard_network n ON n.id = wnd.wireguard_network_id LEFT JOIN stats on n.id = stats.network WHERE wnd.device_id = $2",
   "describe": {
     "columns": [
       {
@@ -55,5 +55,5 @@
       null
     ]
   },
-  "hash": "14bdd9a2517fa78e23bacb183d7141d47ecc4fe33a8b77a0f285225030e288ea"
+  "hash": "da74512e8205e6ec788fca8e795449a7a100af8c05ae87ed37a10c56bb04247c"
 }

@@ -131,11 +131,17 @@ impl WireguardPeerStats<Id> {
 
     /// Remove port part from `endpoint`.
     /// IPv4: a.b.c.d:p -> a.b.c.d
-    /// IPv6: [x::y:z]:p -> [x::y:z]
+    /// IPv6: [x::y:z]:p -> x::y:z
     pub(crate) fn endpoint_without_port(&self) -> Option<String> {
-        self.endpoint
-            .as_ref()
-            .and_then(|ep| Some(ep.rsplit_once(':')?.0.to_owned()))
+        self.endpoint.as_ref().and_then(|endpoint| {
+            let mut addr = endpoint.rsplit_once(':')?.0;
+            // Strip square brackets.
+            if addr.starts_with('[') && addr.ends_with(']') {
+                let end = addr.len() - 1;
+                addr = &addr[1..end];
+            }
+            Some(addr.to_owned())
+        })
     }
 
     /// Trim `allowed_ips` returning the first one without CIDR.

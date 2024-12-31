@@ -676,24 +676,22 @@ impl WireguardNetwork<Id> {
         Ok(events)
     }
 
-    /// Finds when the device connected based on handshake timestamps
+    /// Finds when the device connected based on handshake timestamps.
     async fn connected_at(
         &self,
         conn: &PgPool,
         device_id: Id,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
         let connected_at = query_scalar!(
-            "SELECT \
-                latest_handshake \"latest_handshake: NaiveDateTime\" \
+            "SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
             FROM wireguard_peer_stats_view \
-            WHERE device_id = $1 \
-                AND (latest_handshake_diff > $2 * interval '1 minute' OR latest_handshake_diff IS NULL) \
-                AND network = $3 \
-            ORDER BY collected_at DESC \
-            LIMIT 1",
+            WHERE device_id = $1 AND network = $2 \
+            AND (latest_handshake_diff > $3 * interval '1 min' \
+            OR latest_handshake_diff = interval '0') \
+            ORDER BY collected_at DESC LIMIT 1",
             device_id,
-            WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
-            self.id
+            self.id,
+            WIREGUARD_MAX_HANDSHAKE_MINUTES as f64
         )
         .fetch_optional(conn)
         .await?;
@@ -722,11 +720,10 @@ impl WireguardNetwork<Id> {
             .collect::<Vec<String>>()
             .join(",");
         let query = format!(
-            "SELECT \
-                device_id, \
-                date_trunc($1, collected_at) collected_at, \
-                cast(sum(download) as bigint) download, \
-                cast(sum(upload) as bigint) upload \
+            "SELECT device_id, \
+            date_trunc($1, collected_at) collected_at, \
+            cast(sum(download) as bigint) download, \
+            cast(sum(upload) as bigint) upload \
             FROM wireguard_peer_stats_view \
             WHERE device_id IN ({device_ids}) \
             AND collected_at >= $2 \
@@ -1155,7 +1152,7 @@ mod test {
             .unwrap();
         assert_eq!(
             connected_at,
-            // Postgres stores 6 sub-second digits while chrono stores 9
+            // PostgreSQL stores 6 sub-second digits while chrono stores 9.
             (now - Duration::minutes(30)).trunc_subsecs(6),
         );
     }
@@ -1216,7 +1213,7 @@ mod test {
             .unwrap();
         assert_eq!(
             connected_at,
-            // Postgres stores 6 sub-second digits while chrono stores 9
+            // PostgreSQL stores 6 sub-second digits while chrono stores 9.
             (now - Duration::minutes(samples)).trunc_subsecs(6),
         );
     }

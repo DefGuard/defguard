@@ -157,11 +157,10 @@ impl UserDevice {
                 WHERE device_id = $2 \
                 ORDER BY network, collected_at DESC \
             ) \
-            SELECT \
-                n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-                wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
-                stats.latest_handshake \"latest_handshake?\", \
-                COALESCE (((NOW() - stats.latest_handshake) < $1 * interval '1 minute'), false) \"is_active!\" \
+            SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
+            wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
+            stats.latest_handshake \"latest_handshake?\", \
+            (NOW() - stats.latest_handshake) < $1 * interval '1 minute' \"is_active!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
             LEFT JOIN stats on n.id = stats.network \
@@ -175,9 +174,16 @@ impl UserDevice {
         let networks_info: Vec<UserDeviceNetworkInfo> = result
             .into_iter()
             .map(|r| {
-                let device_ip = r
-                    .device_endpoint
-                    .and_then(|endpoint| Some(endpoint.rsplit_once(':')?.0.to_string()));
+                // TODO: merge below enclosure with WireguardPeerStats::endpoint_without_port().
+                let device_ip = r.device_endpoint.and_then(|endpoint| {
+                    let mut addr = endpoint.rsplit_once(':')?.0;
+                    // Strip square brackets.
+                    if addr.starts_with('[') && addr.ends_with(']') {
+                        let end = addr.len() - 1;
+                        addr = &addr[1..end];
+                    }
+                    Some(addr.to_owned())
+                });
                 UserDeviceNetworkInfo {
                     network_id: r.network_id,
                     network_name: r.network_name,
