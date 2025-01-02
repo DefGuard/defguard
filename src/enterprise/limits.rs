@@ -1,6 +1,12 @@
 use sqlx::{error::Error as SqlxError, query_as, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
+use super::license::get_cached_license;
+
+pub const DEFAULT_USERS_LIMIT: u32 = 5;
+pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
+pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
+
 #[derive(Debug)]
 pub(crate) struct Counts {
     user: i64,
@@ -57,7 +63,25 @@ pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
 
 impl Counts {
     pub(crate) fn is_over_limit(&self) -> bool {
-        self.user > 5 || self.device > 10 || self.wireguard_network > 1
+        debug!("Checking if current object counts ({self:?}) exceed license limits");
+
+        // fetch current license
+        let maybe_license = get_cached_license();
+
+        // validate limits against license if available, use defaults otherwise
+        match &*maybe_license {
+            Some(license) => {
+                let limits = &license.limits;
+                self.user > limits.users as i64
+                    || self.device > limits.devices as i64
+                    || self.wireguard_network > limits.locations as i64
+            }
+            None => {
+                self.user > DEFAULT_USERS_LIMIT as i64
+                    || self.device > DEFAULT_DEVICES_LIMIT as i64
+                    || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT as i64
+            }
+        }
     }
 }
 
