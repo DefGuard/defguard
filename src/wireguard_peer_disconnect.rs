@@ -20,7 +20,7 @@ use crate::db::{
 };
 
 // How long to sleep between loop iterations
-const DISCONNECT_LOOP_SLEEP_SECONDS: u64 = 60; // 1 minute
+const DISCONNECT_LOOP_SLEEP: Duration = Duration::from_secs(60); // 1 minute
 
 #[derive(Debug, Error)]
 pub enum PeerDisconnectError {
@@ -60,26 +60,27 @@ pub async fn run_periodic_peer_disconnect(
         for location in locations {
             debug!("Fetching inactive devices for location {location}");
             let devices = query_as!(
-            Device,
-            "WITH stats AS ( \
-                    SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake \
-                    FROM wireguard_peer_stats \
-                    WHERE network = $1 \
-                    ORDER BY device_id, collected_at DESC \
-                ) \
-            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-            configured \
+                Device,
+                "WITH stats AS ( \
+                SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake \
+                FROM wireguard_peer_stats \
+                WHERE network = $1 \
+                ORDER BY device_id, collected_at DESC \
+            ) \
+            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description,
+            d.device_type \"device_type: DeviceType\", configured \
             FROM device d \
             JOIN wireguard_network_device wnd ON wnd.device_id = d.id \
             LEFT JOIN stats on d.id = stats.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND d.configured = true AND \
-            (wnd.authorized_at IS NULL OR (NOW() - wnd.authorized_at) > $2 * interval '1 second') AND \
-            (stats.latest_handshake IS NULL OR (NOW() - stats.latest_handshake) > $2 * interval '1 second')",
-            location.id,
+            WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true \
+            AND d.configured = true \
+            AND (NOW() - wnd.authorized_at) > $2 * interval '1 second' \
+            AND (NOW() - stats.latest_handshake) > $2 * interval '1 second'",
+                location.id,
                 f64::from(location.peer_disconnect_threshold)
-        )
-                .fetch_all(&pool)
-                .await?;
+            )
+            .fetch_all(&pool)
+            .await?;
 
             for device in devices {
                 debug!("Processing inactive device {device}");
@@ -125,6 +126,6 @@ pub async fn run_periodic_peer_disconnect(
 
         // wait till next iteration
         debug!("Sleeping until next iteration");
-        sleep(Duration::from_secs(DISCONNECT_LOOP_SLEEP_SECONDS)).await;
+        sleep(DISCONNECT_LOOP_SLEEP).await;
     }
 }

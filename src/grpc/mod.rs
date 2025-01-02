@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{Duration as ChronoDuration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
@@ -313,10 +313,8 @@ impl GatewayState {
         let network_name = self.network_name.clone();
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
             Utc::now().naive_utc() - last_notification_time
-                > ChronoDuration::from_std(
-                    *server_config().gateway_disconnection_notification_timeout,
-                )
-                .expect("Failed to parse duration")
+                > TimeDelta::from_std(*server_config().gateway_disconnection_notification_timeout)
+                    .expect("Failed to parse duration")
         } else {
             true
         };

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH s AS ( SELECT DISTINCT ON (device_id) * FROM wireguard_peer_stats ORDER BY device_id, latest_handshake DESC ) SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", configured FROM device d JOIN s ON d.id = s.device_id WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
+  "query": "WITH stats AS ( SELECT DISTINCT ON (device_id) device_id, endpoint, latest_handshake FROM wireguard_peer_stats WHERE network = $1 ORDER BY device_id, collected_at DESC ) SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description,\n            d.device_type \"device_type: DeviceType\", configured FROM device d JOIN wireguard_network_device wnd ON wnd.device_id = d.id LEFT JOIN stats on d.id = stats.device_id WHERE wnd.wireguard_network_id = $1 AND wnd.is_authorized = true AND d.configured = true AND (NOW() - wnd.authorized_at) > $2 * interval '1 second' AND (NOW() - stats.latest_handshake) > $2 * interval '1 second'",
   "describe": {
     "columns": [
       {
@@ -56,8 +56,8 @@
     ],
     "parameters": {
       "Left": [
-        "Timestamp",
-        "Int8"
+        "Int8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -71,5 +71,5 @@
       false
     ]
   },
-  "hash": "462ccbc9a74f566a07eb69ddc7b874ec712a34e77cd9c22de0ff7838bca2af6c"
+  "hash": "c741c5dd9909fa3d6edf89373d7209b436275569f38df71d4489f727754b1975"
 }
