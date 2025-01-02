@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 use humantime::format_duration;
 use sqlx::PgPool;
 use tokio::time::sleep;
@@ -34,7 +34,7 @@ pub async fn run_periodic_stats_purge(
             match WireguardPeerStats::purge_old_stats(&pool, stats_purge_threshold).await {
                 Ok(()) => {
                     let next_purge_timestamp = (Utc::now()
-                        + chrono::Duration::from_std(stats_purge_frequency)
+                        + TimeDelta::from_std(stats_purge_frequency)
                             .expect("Failed to parse duration"))
                     .naive_utc();
                     info!(

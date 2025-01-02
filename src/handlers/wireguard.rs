@@ -9,7 +9,7 @@ use axum::{
     http::StatusCode,
     Extension,
 };
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -96,7 +96,7 @@ pub struct ImportedNetworkData {
 //         (status = 500, description = "Unable to create network.", body = Json, example = json!({"msg": "Invalid network address"}))
 //     )
 // )]
-pub async fn create_network(
+pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
@@ -153,7 +153,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
-pub async fn modify_network(
+pub(crate) async fn modify_network(
     _role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -205,7 +205,7 @@ pub async fn modify_network(
     })
 }
 
-pub async fn delete_network(
+pub(crate) async fn delete_network(
     _role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -236,7 +236,7 @@ pub async fn delete_network(
     Ok(ApiResponse::default())
 }
 
-pub async fn list_networks(
+pub(crate) async fn list_networks(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -268,7 +268,7 @@ pub async fn list_networks(
     })
 }
 
-pub async fn network_details(
+pub(crate) async fn network_details(
     Path(network_id): Path<i64>,
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -303,7 +303,7 @@ pub async fn network_details(
     Ok(response)
 }
 
-pub async fn gateway_status(
+pub(crate) async fn gateway_status(
     Path(network_id): Path<i64>,
     _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -320,7 +320,7 @@ pub async fn gateway_status(
     })
 }
 
-pub async fn remove_gateway(
+pub(crate) async fn remove_gateway(
     Path((network_id, gateway_id)): Path<(i64, String)>,
     _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
@@ -344,7 +344,7 @@ pub async fn remove_gateway(
     })
 }
 
-pub async fn import_network(
+pub(crate) async fn import_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Json(data): Json<ImportNetworkData>,
@@ -397,7 +397,7 @@ pub async fn import_network(
 }
 
 // This is used exclusively for the wizard to map imported devices to users.
-pub async fn add_user_devices(
+pub(crate) async fn add_user_devices(
     _role: AdminRole,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -507,7 +507,7 @@ pub struct AddDeviceResult {
         (status = 500, description = "Cannot add a new device for a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn add_device(
+pub(crate) async fn add_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     State(appstate): State<AppState>,
@@ -656,7 +656,7 @@ pub async fn add_device(
         (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn modify_device(
+pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -742,7 +742,7 @@ pub async fn modify_device(
         (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"}))
     )
 )]
-pub async fn get_device(
+pub(crate) async fn get_device(
     session: SessionInfo,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -775,7 +775,7 @@ pub async fn get_device(
         (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
     )
 )]
-pub async fn delete_device(
+pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
     Path(device_id): Path<i64>,
@@ -813,7 +813,7 @@ pub async fn delete_device(
         (status = 403, description = "You don't have permission to list all devices.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
     )
 )]
-pub async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
     debug!("Listing devices");
     let devices = Device::all(&appstate.pool).await?;
     info!("Listed {} devices", devices.len());
@@ -850,7 +850,7 @@ pub async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) ->
         (status = 403, description = "You don't have permission to list user devices.", body = ApiResponse, example = json!({"msg": "Admin access required"})),
     )
 )]
-pub async fn list_user_devices(
+pub(crate) async fn list_user_devices(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
@@ -873,7 +873,7 @@ pub async fn list_user_devices(
     })
 }
 
-pub async fn download_config(
+pub(crate) async fn download_config(
     session: SessionInfo,
     State(appstate): State<AppState>,
     Path((network_id, device_id)): Path<(i64, i64)>,
@@ -898,7 +898,7 @@ pub async fn download_config(
     }
 }
 
-pub async fn create_network_token(
+pub(crate) async fn create_network_token(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
@@ -932,8 +932,8 @@ pub async fn create_network_token(
 fn get_aggregation(from: NaiveDateTime) -> Result<DateTimeAggregation, StatusCode> {
     // Use hourly aggregation for longer periods
     let aggregation = match Utc::now().naive_utc() - from {
-        duration if duration >= Duration::hours(6) => Ok(DateTimeAggregation::Hour),
-        duration if duration < Duration::zero() => Err(StatusCode::BAD_REQUEST),
+        duration if duration >= TimeDelta::hours(6) => Ok(DateTimeAggregation::Hour),
+        duration if duration < TimeDelta::zero() => Err(StatusCode::BAD_REQUEST),
         _ => Ok(DateTimeAggregation::Minute),
     }?;
     Ok(aggregation)
@@ -949,7 +949,7 @@ impl QueryFrom {
     fn parse_timestamp(&self) -> Result<DateTime<Utc>, StatusCode> {
         Ok(match &self.from {
             Some(from) => DateTime::<Utc>::from_str(from).map_err(|_| StatusCode::BAD_REQUEST)?,
-            None => Utc::now() - Duration::hours(1),
+            None => Utc::now() - TimeDelta::hours(1),
         })
     }
 }
@@ -960,7 +960,7 @@ pub struct DevicesStatsResponse {
     pub network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
-pub async fn devices_stats(
+pub(crate) async fn devices_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,
@@ -977,9 +977,8 @@ pub async fn devices_stats(
     let user_devices_stats = network
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
-    let network_devices = Device::find_by_type(&appstate.pool, DeviceType::Network).await?;
     let network_devices_stats = network
-        .device_stats(&appstate.pool, &network_devices, &from, &aggregation)
+        .device_stats_for_type(&appstate.pool, DeviceType::Network, &from, &aggregation)
         .await?
         .into_iter()
         .filter(|device_stats| !device_stats.stats.is_empty())
@@ -997,7 +996,7 @@ pub async fn devices_stats(
     })
 }
 
-pub async fn network_stats(
+pub(crate) async fn network_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
     Path(network_id): Path<i64>,

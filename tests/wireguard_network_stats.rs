@@ -160,7 +160,7 @@ async fn test_stats() {
         stats[0].devices[0].stats.last().unwrap().clone(),
         WireguardDeviceTransferRow {
             device_id: 1,
-            collected_at: Some(now_trunc),
+            collected_at: now_trunc,
             upload: 10,
             download: 20,
         }
@@ -169,7 +169,7 @@ async fn test_stats() {
         stats[0].devices[1].stats.last().unwrap().clone(),
         WireguardDeviceTransferRow {
             device_id: 2,
-            collected_at: Some(now_trunc),
+            collected_at: now_trunc,
             upload: 10 * 2,
             download: 20 * 2,
         }

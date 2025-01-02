@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use humantime::format_duration;
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, PgExecutor, PgPool};
@@ -38,7 +38,7 @@ impl WireguardPeerStats {
         );
 
         let threshold = (Utc::now()
-            - chrono::Duration::from_std(stats_purge_threshold).expect("Failed to parse duration"))
+            - TimeDelta::from_std(stats_purge_threshold).expect("Failed to parse duration"))
         .naive_utc();
         let result = query!(
             "DELETE FROM wireguard_peer_stats \

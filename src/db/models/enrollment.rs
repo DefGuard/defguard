@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool};
 use tera::{Context, Tera};
@@ -107,7 +107,7 @@ impl Token {
             admin_id,
             email,
             created_at: now.naive_utc(),
-            expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
+            expires_at: (now + TimeDelta::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
             token_type,
             device_id: None,
@@ -154,7 +154,8 @@ impl Token {
     pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
         if let Some(used_at) = self.used_at {
             let now = Utc::now();
-            return now.naive_utc() < (used_at + Duration::seconds(session_timeout_seconds as i64));
+            return now.naive_utc()
+                < (used_at + TimeDelta::seconds(session_timeout_seconds as i64));
         }
         false
     }
@@ -177,7 +178,7 @@ impl Token {
             // session started but still valid
             Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
                 debug!("Session already exists yet it is still valid.");
-                Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
+                Ok(used_at + TimeDelta::seconds(session_timeout_seconds as i64))
             }
             // session expired
             Some(_) => {
@@ -193,7 +194,7 @@ impl Token {
                 self.used_at = Some(now);
 
                 debug!("Generate a new session successfully.");
-                Ok(now + Duration::seconds(session_timeout_seconds as i64))
+                Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
             }
         }
     }

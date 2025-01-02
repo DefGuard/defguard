@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 use self::common::{client::TestClient, make_test_client, X_FORWARDED_HOST, X_FORWARDED_URI};
 
 async fn make_client() -> TestClient {
-    let (client, client_state) = make_test_client().await;
+    let (client, _) = make_test_client().await;
     client
 }
 

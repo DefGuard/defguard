@@ -4,13 +4,16 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
-use sqlx::{query, query_as, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool, Type};
+use sqlx::{
+    postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
+    PgExecutor, PgPool, Type,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE_MINUTES},
+    wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
 };
 use crate::{
     db::{Id, NoId, User},
@@ -160,12 +163,12 @@ impl UserDevice {
             SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
             wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
             stats.latest_handshake \"latest_handshake?\", \
-            (NOW() - stats.latest_handshake) < $1 * interval '1 minute' \"is_active!\" \
+            COALESCE((NOW() - stats.latest_handshake) < $1, FALSE) \"is_active!\" \
             FROM wireguard_network_device wnd \
             JOIN wireguard_network n ON n.id = wnd.wireguard_network_id \
-            LEFT JOIN stats on n.id = stats.network \
+            LEFT JOIN stats ON n.id = stats.network \
             WHERE wnd.device_id = $2",
-            WIREGUARD_MAX_HANDSHAKE_MINUTES as f64,
+            PgInterval::try_from(WIREGUARD_MAX_HANDSHAKE).unwrap(),
             device.id,
         )
         .fetch_all(pool)

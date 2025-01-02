@@ -6,11 +6,14 @@ use std::{
 };
 
 use base64::prelude::{Engine, BASE64_STANDARD};
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
-use sqlx::{query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool};
+use sqlx::{
+    postgres::types::PgInterval, query, query_as, query_scalar, Error as SqlxError, FromRow,
+    PgConnection, PgExecutor, PgPool,
+};
 use thiserror::Error;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -43,8 +46,8 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub static WIREGUARD_MAX_HANDSHAKE_MINUTES: i64 = 5;
-pub static PEER_STATS_LIMIT: i64 = 6 * 60;
+pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(5);
+pub const PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
 pub enum DateTimeAggregation {
@@ -686,17 +689,74 @@ impl WireguardNetwork<Id> {
             "SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
             FROM wireguard_peer_stats_view \
             WHERE device_id = $1 AND network = $2 \
-            AND (latest_handshake_diff > $3 * interval '1 min' \
+            AND (latest_handshake_diff > $3 \
             OR latest_handshake_diff = interval '0') \
             ORDER BY collected_at DESC LIMIT 1",
             device_id,
             self.id,
-            WIREGUARD_MAX_HANDSHAKE_MINUTES as f64
+            PgInterval::try_from(WIREGUARD_MAX_HANDSHAKE).unwrap()
         )
         .fetch_optional(conn)
         .await?;
 
         Ok(connected_at.flatten())
+    }
+
+    /// Retrieves stats for all devices matching given `device_type`.
+    pub(crate) async fn device_stats_for_type(
+        &self,
+        conn: &PgPool,
+        device_type: DeviceType,
+        from: &NaiveDateTime,
+        aggregation: &DateTimeAggregation,
+    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
+        let stats = query!(
+            "SELECT device_id \"device_id!\", device.name, device.user_id, \
+            date_trunc($1, collected_at) \"collected_at!\", \
+            CAST(sum(download) AS bigint) \"download!\", \
+            CAST(sum(upload) AS bigint) \"upload!\" \
+            FROM wireguard_peer_stats_view wpsv \
+            JOIN device ON wpsv.device_id = device.id \
+            WHERE device.device_type = $2 \
+            AND collected_at >= $3 \
+            AND network = $4 \
+            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4",
+            aggregation.fstring(),
+            &device_type as &DeviceType,
+            from,
+            self.id,
+        )
+        .fetch_all(conn)
+        .await?;
+        let mut result = Vec::new();
+        for stat in &stats {
+            let latest_stats =
+                WireguardPeerStats::fetch_latest(conn, stat.device_id, self.id).await?;
+            result.push(WireguardDeviceStatsRow {
+                id: stat.device_id,
+                user_id: stat.user_id,
+                name: stat.name.clone(),
+                wireguard_ip: latest_stats
+                    .as_ref()
+                    .and_then(WireguardPeerStats::trim_allowed_ips),
+                public_ip: latest_stats
+                    .as_ref()
+                    .and_then(WireguardPeerStats::endpoint_without_port),
+                connected_at: self.connected_at(conn, stat.device_id).await?,
+                // Filter stats for this device
+                stats: stats
+                    .iter()
+                    .filter(|s| s.device_id == stat.device_id)
+                    .map(|s| WireguardDeviceTransferRow {
+                        device_id: s.device_id,
+                        collected_at: s.collected_at,
+                        upload: s.upload,
+                        download: s.download,
+                    })
+                    .collect(),
+            });
+        }
+        Ok(result)
     }
 
     /// Retrieves stats for specified devices
@@ -720,16 +780,16 @@ impl WireguardNetwork<Id> {
             .collect::<Vec<String>>()
             .join(",");
         let query = format!(
-            "SELECT device_id, \
+            "SELECT device_id, device.name, device.user_id, \
             date_trunc($1, collected_at) collected_at, \
             cast(sum(download) as bigint) download, \
             cast(sum(upload) as bigint) upload \
-            FROM wireguard_peer_stats_view \
+            FROM wireguard_peer_stats_view wpsv \
+            JOIN device ON wpsv.device_id = device.id \
             WHERE device_id IN ({device_ids}) \
             AND collected_at >= $2 \
             AND network = $3 \
-            GROUP BY 1, 2 \
-            ORDER BY 1, 2"
+            GROUP BY 1, 2, 3, 4 ORDER BY 1, 4"
         );
         let stats: Vec<WireguardDeviceTransferRow> = query_as(&query)
             .bind(aggregation.fstring())
@@ -762,7 +822,7 @@ impl WireguardNetwork<Id> {
         Ok(result)
     }
 
-    /// Retrieves network stats grouped by currently active users since `from` timestamp
+    /// Retrieves network stats grouped by currently active users since `from` timestamp.
     pub async fn user_stats(
         &self,
         conn: &PgPool,
@@ -770,21 +830,18 @@ impl WireguardNetwork<Id> {
         aggregation: &DateTimeAggregation,
     ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
         let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
-        let oldest_handshake =
-            (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+        let oldest_handshake = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
             "WITH s AS ( \
-                SELECT DISTINCT ON (device_id) * \
+                SELECT DISTINCT ON (device_id) device_id, latest_handshake, network \
                 FROM wireguard_peer_stats \
                 ORDER BY device_id, latest_handshake DESC \
             ) \
-            SELECT \
-                d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
-                configured \
-            FROM device d \
-            JOIN s ON d.id = s.device_id \
+            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description,
+            d.device_type \"device_type: DeviceType\", configured \
+            FROM device d JOIN s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
             oldest_handshake,
             self.id,
@@ -840,7 +897,7 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &PgPool,
     ) -> Result<WireguardNetworkActivityStats, SqlxError> {
-        let from = (Utc::now() - Duration::minutes(WIREGUARD_MAX_HANDSHAKE_MINUTES)).naive_utc();
+        let from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         let activity_stats = query_as!(
             WireguardNetworkActivityStats,
             "SELECT \
@@ -969,10 +1026,10 @@ pub struct WireguardStatsRow {
     pub download: Option<i64>,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, FromRow, PartialEq, Serialize)]
 pub struct WireguardDeviceTransferRow {
     pub device_id: Id,
-    pub collected_at: Option<NaiveDateTime>,
+    pub collected_at: NaiveDateTime,
     pub upload: i64,
     pub download: i64,
 }
@@ -1017,7 +1074,7 @@ pub struct WireguardNetworkStats {
 
 #[cfg(test)]
 mod test {
-    use chrono::{Duration, SubsecRound};
+    use chrono::{SubsecRound, TimeDelta};
 
     use super::*;
     use crate::db::models::device::WireguardNetworkDevice;
@@ -1132,12 +1189,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(handshake_minutes),
+                latest_handshake: now - TimeDelta::minutes(handshake_minutes),
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1153,7 +1210,7 @@ mod test {
         assert_eq!(
             connected_at,
             // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-            (now - Duration::minutes(30)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(30)).trunc_subsecs(6),
         );
     }
 
@@ -1193,12 +1250,12 @@ mod test {
             WireguardPeerStats {
                 id: NoId,
                 device_id: device.id,
-                collected_at: now - Duration::minutes(i),
+                collected_at: now - TimeDelta::minutes(i),
                 network: network.id,
                 endpoint: Some("11.22.33.44".into()),
                 upload: (samples - i) * 10,
                 download: (samples - i) * 20,
-                latest_handshake: now - Duration::minutes(i), // handshake every minute
+                latest_handshake: now - TimeDelta::minutes(i), // handshake every minute
                 allowed_ips: Some("10.1.1.0/24".into()),
             }
             .save(&pool)
@@ -1214,7 +1271,7 @@ mod test {
         assert_eq!(
             connected_at,
             // PostgreSQL stores 6 sub-second digits while chrono stores 9.
-            (now - Duration::minutes(samples)).trunc_subsecs(6),
+            (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
         );
     }
 }
