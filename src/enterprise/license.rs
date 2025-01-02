@@ -622,21 +622,16 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
 #[cfg(test)]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mQENBGa0jtoBCAC63WkY0btyVzHI8JGVfIkFClNggcDgK+X/if5ndJtHKRXcW6DB
-bRTBNCdUr7sDzCMEYWu8t400Yn/mrLKuubA3G6rp3Eo2nHnOicoZ6mfAdUQL862l
-m9M8zpJtFodWR5G0nznyvabQi9kI1JT87DEIAdfLhN4eoMpgEm+jASSgFeT63oJ9
-fLHofMZLwYZW/mqsnGxElmUsfnVWeseUSgmKBP4IgdtX4LsCx8XiOyQJww6bEUTj
-ZBSqwwuRa1ybtsV3ihEKjDBmXQo5+J3fsadm/6m5PRJVk5rq9/LGVKIBG9m/x6Pn
-xeYaLsjNyAwOSHH2KpeBLPVEfjsqWRt8fyAzABEBAAG0HEF1dG9nZW5lcmF0ZWQg
-S2V5IDxkZWZndWFyZD6JAU4EEwEKADgWIQTyH9Rb8S5I78bRYzghGgZ+AdnRKwUC
-ZrSO2gIbLwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRAhGgZ+AdnRKyzzCACW
-oGBnAPHkCuvlnZjcYUAJVrjI/S02x4t3wFjaFOu+GQSjeB+AjDawF/S4D5ReQ8iq
-D3dTvno3lk/F5HvqV/ZDU9WMmkDFzJoEwKbNIlWwQvvrTnoyy7lpKskNxwwsErEL
-2+rW+lW/N5KNHFaUh2d5JhK08VRPfyl0WA8gqQ99Wnhq4rHF7ijKFm3im0RlzkMI
-NTXxxee/9J0/Pzh+7zFZlMxnnjwiHlxJXpQFwh7+TS9C3IpChW3ipyPgp1DkzsNv
-Xry1crUOhOyEozdKYh2H6tZEi3bjtGwpYkXJs/g3f6HPKjS8rDOMXw4Japb7LYtC
-Aao60J8cOm8J96u1MsUK
-=6cHp
+mI0EZ3ZfKQEEAKp7t6rldfVtMZ3x42cC+P7ZzF4OxuGlt/eDxoCzFpirCIwu1WY/
+cpi+3zop0dovEBbIoYIHJVLwMxx/y/UzQ9H/3Vc0MZ3ZNwK+LRGugaOi6Y/Z6C3i
+JjBJRMLi1rIU8TbYHE4QG6QUssDH74cE0s/WQjsEqkthkKwf5qv4/TgLABEBAAG0
+HWRlZmd1YXJkLXRlc3QgPGRlZmd1YXJkQHRlc3Q+iNEEEwEIADsWIQSaLjwX4m6j
+CO3NypmohGwBApqEhAUCZ3ZfKQIbAwULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIX
+gAAKCRCohGwBApqEhONUA/9vnmAL8Roouk0GPeTKt9C/srXcmPtIadzoyEqGjsNI
+Y1dpL7jhaKjY8sJtuNaCwTJ529w97fLM+SIeAMbwrK5naSdAIRqknn1h8a8VWkdX
+isbqg9N/kMP891HyJZHM35VbHn1zFuJUh2gVzfIVaaAmC7YIMtmiAP5lYbrId/Ps
+hw==
+=6frq
 -----END PGP PUBLIC KEY BLOCK-----
 ";
 
@@ -648,15 +643,14 @@ mod test {
 
     #[test]
     fn test_license() {
-        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
-        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
         assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 21, 10, 19, 30).unwrap()
+            Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
-
         assert!(license.is_expired());
     }
 
@@ -664,20 +658,20 @@ mod test {
     fn test_new_license() {
         // This key has an additional test_field in the metadata that doesn't exist in the proto definition
         // It should still be able to decode the license correctly
-        let license = "CjIKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGMv0lrYGIggxMjM0NTY3OBK2AokBMwQAAQoAHRYhBPIf1FvxLkjvxtFjOCEaBn4B2dErBQJmxbpSAAoJECEaBn4B2dEru6sH/0FBWgj8Nl1n/hwx1CdwrmKkKOCRpTf244wS07EcwQDr/A5TA011Y4PFJBSFfoIlyuGFHh20KoczFVUPfyiIGkqMMGOe8BH0Pbst6n5hd1S67m5fKgNV+NdaWg1aJfMdbGdworpZWTnsHnsTnER+fhoC/CohPtTshTdBZX0wmyfAWKQW3HM0YcE73+KFvGMzTMyin/bOrjr7bW0d5yoQLaEIpAASTlb6DaX5avyTFitXLf77cMjRu4wysnlPfwIpSqQI+ESHNh+OepOUqxmox+U9hGVtvlIJhvBOLgJ/Kmldc1Kj7uZaldLhWDG5e7+dVdnhbwfuoUsgS9jmpAmeWsg=";
+        let license = "Ci4KIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgR0ZXN0ErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZnvgAKCRCohGwBApqEhJJ/A/4vz8JFTR7xMUiPpj437brzVYJjbKknTTxtpWtZbMH9y3JIGnEy9j8dgYfh5nxnB7xh1DT1FbQ69wW0J38FgEvn4/ZfI6FYCUbvaqbEN1zwF7D9ui1kL9gU7wQb3z+0apWl+g64eF7apsIDeGSEQqwgFRHIhQw3iCp7zUSSaEQITg==";
         let license = License::from_base64(license).unwrap();
 
-        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
         assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 21, 9, 58, 35).unwrap()
+            Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
     }
 
     #[test]
     fn test_invalid_license() {
-        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
         assert!(validate_license(Some(&license)).is_err());
         assert!(validate_license(None).is_err());
