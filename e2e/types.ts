@@ -76,4 +76,10 @@ export type DeviceForm = {
   pubKey?: string;
 };
 
+export type NetworkDeviceForm = {
+  name: string;
+  pubKey?: string;
+  description?: string;
+};
+
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';
