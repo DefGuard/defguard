@@ -823,7 +823,7 @@ impl WireguardNetwork<Id> {
     }
 
     /// Retrieves network stats grouped by currently active users since `from` timestamp.
-    pub async fn user_stats(
+    pub(crate) async fn user_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
@@ -834,15 +834,11 @@ impl WireguardNetwork<Id> {
         // Retrieve connected devices from database
         let devices = query_as!(
             Device,
-            "WITH s AS ( \
-                SELECT DISTINCT ON (device_id) device_id, latest_handshake, network \
-                FROM wireguard_peer_stats \
-                ORDER BY device_id, latest_handshake DESC \
-            ) \
-            SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description,
-            d.device_type \"device_type: DeviceType\", configured \
-            FROM device d JOIN s ON d.id = s.device_id \
-            WHERE s.latest_handshake >= $1 AND s.network = $2 AND d.device_type = 'user'::device_type",
+            "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, \
+            d.description, d.device_type \"device_type: DeviceType\", d.configured \
+            FROM device d JOIN wireguard_peer_stats s ON d.id = s.device_id \
+            WHERE s.latest_handshake >= $1 AND s.network = $2 \
+            AND d.device_type = 'user'::device_type",
             oldest_handshake,
             self.id,
         )
