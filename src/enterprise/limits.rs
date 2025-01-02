@@ -1,4 +1,4 @@
-use sqlx::{error::Error as SqlxError, query_as, PgPool};
+use sqlx::{error::Error as SqlxError, query, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
 use super::license::get_cached_license;
@@ -9,9 +9,9 @@ pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
 
 #[derive(Debug)]
 pub(crate) struct Counts {
-    user: i64,
-    device: i64,
-    wireguard_network: i64,
+    user: u32,
+    device: u32,
+    wireguard_network: u32,
 }
 
 static COUNTS: RwLock<Counts> = RwLock::new(Counts {
@@ -36,16 +36,31 @@ pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
 // TODO: Use it with database triggers when they are implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
-    let counts = query_as!(
-        Counts,
+    let result = query!(
         "SELECT \
-        (SELECT count(*) FROM \"user\") \"user!\", \
-        (SELECT count(*) FROM device) \"device!\", \
-        (SELECT count(*) FROM wireguard_network) \"wireguard_network!\"
+        (SELECT count(*) FROM \"user\") \"users!\", \
+        (SELECT count(*) FROM device) \"devices!\", \
+        (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"
         "
     )
     .fetch_one(pool)
     .await?;
+
+    // do type conversion since Postgres does not support unsigned integers
+    let counts = Counts {
+        user: result
+            .users
+            .try_into()
+            .expect("user count should never be negative"),
+        device: result
+            .devices
+            .try_into()
+            .expect("device count should never be negative"),
+        wireguard_network: result
+            .wireguard_networks
+            .try_into()
+            .expect("network count should never be negative"),
+    };
 
     set_counts(counts);
     debug!(
@@ -72,14 +87,14 @@ impl Counts {
         match &*maybe_license {
             Some(license) => {
                 let limits = &license.limits;
-                self.user > limits.users as i64
-                    || self.device > limits.devices as i64
-                    || self.wireguard_network > limits.locations as i64
+                self.user > limits.users
+                    || self.device > limits.devices
+                    || self.wireguard_network > limits.locations
             }
             None => {
-                self.user > DEFAULT_USERS_LIMIT as i64
-                    || self.device > DEFAULT_DEVICES_LIMIT as i64
-                    || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT as i64
+                self.user > DEFAULT_USERS_LIMIT
+                    || self.device > DEFAULT_DEVICES_LIMIT
+                    || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
             }
         }
     }
