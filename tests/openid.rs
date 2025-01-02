@@ -29,7 +29,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 
-mod common;
+pub mod common;
 use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
 
 async fn make_client() -> TestClient {

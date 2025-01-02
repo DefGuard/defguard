@@ -2,13 +2,16 @@ use std::{str::FromStr, time::Duration};
 
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 use chrono::Utc;
+#[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
 
+#[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
 const ACCESS_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const GROUPS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/groups";
 const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+#[cfg(not(test))]
 const AUD: &str = "https://oauth2.googleapis.com/token";
 const ALL_USERS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/users";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -25,6 +28,7 @@ struct Claims {
 
 impl Claims {
     #[must_use]
+    #[cfg(not(test))]
     fn new(iss: &str, sub: &str) -> Self {
         let now = chrono::Utc::now();
         let now_timestamp = now.timestamp();
@@ -46,6 +50,7 @@ pub struct ServiceAccountConfig {
     client_email: String,
 }
 
+#[allow(dead_code)]
 pub struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
     access_token: Option<String>,
@@ -232,6 +237,7 @@ impl GoogleDirectorySync {
         parse_response(response, "Failed to query group members from Google API.").await
     }
 
+    #[cfg(not(test))]
     fn build_token(&self) -> Result<String, DirectorySyncError> {
         let claims = Claims::new(&self.service_account_config.client_email, &self.admin_email);
         let key = EncodingKey::from_rsa_pem(self.service_account_config.private_key.as_bytes())?;
@@ -555,9 +561,9 @@ mod tests {
 
         assert_eq!(groups.len(), 3);
 
-        for i in 0..3 {
-            assert_eq!(groups[i].id, (i + 1).to_string());
-            assert_eq!(groups[i].name, format!("group{}", i + 1));
+        for (i, group) in groups.iter().enumerate().take(3) {
+            assert_eq!(group.id, (i + 1).to_string());
+            assert_eq!(group.name, format!("group{}", i + 1));
         }
     }
 

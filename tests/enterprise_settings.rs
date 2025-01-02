@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 use common::exceed_enterprise_limits;
 use defguard::{

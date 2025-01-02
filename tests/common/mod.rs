@@ -138,10 +138,9 @@ pub async fn make_base_client(
     let failed_logins = FailedLoginMap::new();
     let failed_logins = Arc::new(Mutex::new(failed_logins));
 
-    let license = License::new(
+    let license = License::new_with_default_limits(
         "test_customer".to_string(),
         false,
-        // Some(Utc.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap()),
         // Permanent license
         None,
     );
