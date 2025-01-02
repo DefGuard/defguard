@@ -160,6 +160,7 @@ export const StandaloneDeviceModalForm = ({
     formValues,
   ) => {
     const values = formValues;
+    const { modifiableIpPart } = values;
     values.description = values.description?.trim();
     values.name = values.name.trim();
     const currentIpResp = internalRecommendedIp ?? initialIpRecommendation;
@@ -167,7 +168,7 @@ export const StandaloneDeviceModalForm = ({
       currentIpResp.network_part + formValues.modifiableIpPart.trim();
     if (
       mode === StandaloneDeviceModalFormMode.EDIT &&
-      values.modifiableIpPart === defaults.modifiableIpPart
+      modifiableIpPart === defaults.modifiableIpPart
     ) {
       await onSubmit(values);
       return;
