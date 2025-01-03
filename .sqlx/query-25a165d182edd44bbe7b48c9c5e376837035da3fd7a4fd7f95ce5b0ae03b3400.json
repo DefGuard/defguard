@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device where device_id = $1)",
+  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1)",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "address",
-        "type_info": "Inet"
+        "type_info": "InetArray"
       },
       {
         "ordinal": 3,
@@ -90,5 +90,5 @@
       false
     ]
   },
-  "hash": "24671ce124b5ffbf8a24408379c561e6bb4b3ca32c478af85da6d4ee1e96d2bb"
+  "hash": "25a165d182edd44bbe7b48c9c5e376837035da3fd7a4fd7f95ce5b0ae03b3400"
 }

@@ -9,10 +9,9 @@ use crate::{
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
 
-use super::{
-    db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
-    is_enterprise_enabled,
-};
+use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
+#[cfg(not(test))]
+use super::is_enterprise_enabled;
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {

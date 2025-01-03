@@ -8,7 +8,6 @@ use defguard::{
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
 };
 use reqwest::{header::USER_AGENT, StatusCode};
-use serde_json::{json, Value};
 use tokio_stream::{self as stream, StreamExt};
 
 use self::common::{client::TestClient, fetch_user_details, make_network, make_test_client};

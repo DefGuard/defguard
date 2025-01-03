@@ -12,7 +12,7 @@
     "parameters": {
       "Left": [
         "Text",
-        "Inet",
+        "InetArray",
         "Int4",
         "Text",
         "Text",

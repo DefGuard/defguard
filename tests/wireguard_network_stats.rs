@@ -17,7 +17,7 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::json;
 
 use self::common::{make_network, make_test_client};
 
