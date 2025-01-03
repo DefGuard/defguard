@@ -82,4 +82,10 @@ export type NetworkDeviceForm = {
   description?: string;
 };
 
+export type EditNetworkDeviceForm = {
+  name?: string;
+  ip?: string;
+  description?: string;
+};
+
 export type OpenIdScope = 'openid' | 'profile' | 'email' | 'phone';
