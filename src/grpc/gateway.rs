@@ -19,7 +19,7 @@ use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
 use super::GatewayMap;
 use crate::{
     db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId,
     },
     mail::Mail,

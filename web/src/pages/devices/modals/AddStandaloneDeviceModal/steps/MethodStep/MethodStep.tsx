@@ -41,7 +41,7 @@ export const MethodStep = () => {
   });
 
   const {
-    data: availableIp,
+    data: availableIpResponse,
     refetch: refetchAvailableIp,
     isLoading: availableIpLoading,
   } = useQuery({
@@ -99,11 +99,11 @@ export const MethodStep = () => {
   }, [networks]);
 
   useEffect(() => {
-    if (availableIp) {
-      setState({ initAvailableIp: availableIp.ip });
+    if (availableIpResponse) {
+      setState({ initLocationIpResponse: availableIpResponse });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableIp]);
+  }, [availableIpResponse]);
 
   return (
     <div className="method-step">
@@ -134,13 +134,15 @@ export const MethodStep = () => {
         />
         <Button
           loading={
-            networks === undefined || availableIpLoading || availableIp === undefined
+            networks === undefined ||
+            availableIpLoading ||
+            availableIpResponse === undefined
           }
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.common.controls.next()}
           onClick={() => {
-            if (availableIp) {
+            if (availableIpResponse) {
               handleNext();
             } else {
               refetchAvailableIp();

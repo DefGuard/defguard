@@ -1,7 +1,8 @@
 /* eslint-disable max-len */
-import type { Translation } from '../i18n-types';
+import en from '../en';
+import { extendDictionary } from '../i18n-util';
 
-const pl: Translation = {
+const pl = extendDictionary(en, {
   common: {
     controls: {
       back: 'Wróć',
@@ -1830,6 +1831,6 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
 `,
     },
   },
-};
+});
 
 export default pl;

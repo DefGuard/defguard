@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
@@ -41,7 +41,7 @@ impl Session {
             user_id,
             state,
             created: now.naive_utc(),
-            expires: (now + Duration::seconds(timeout.as_secs() as i64)).naive_utc(),
+            expires: (now + TimeDelta::seconds(timeout.as_secs() as i64)).naive_utc(),
             webauthn_challenge: None,
             ip_address,
             device_info,

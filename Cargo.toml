@@ -51,12 +51,7 @@ rand_core = { version = "0.6", default-features = false, features = [
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
 rust-embed = { version = "8.5", features = ["include-exclude"] }
-rust-ini = "0.20"
-secp256k1 = { version = "0.29", features = [
-    "recovery",
-    "rand-std",
-    "global-context",
-] }
+rust-ini = "0.21"
 secrecy = { version = "0.8", features = ["serde"] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -78,7 +73,6 @@ tera = "1.20"
 thiserror = "1.0"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
-tiny-keccak = { version = "2.0", features = ["keccak"] }
 tokio = { version = "1", features = [
     "macros",
     "parking_lot",

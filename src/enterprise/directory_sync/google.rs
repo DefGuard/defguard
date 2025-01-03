@@ -1,7 +1,7 @@
 use std::{str::FromStr, time::Duration};
 
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 #[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
@@ -142,7 +142,7 @@ impl GoogleDirectorySync {
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
         let token_response = self.query_access_token().await?;
-        let expires_in = chrono::Duration::seconds(token_response.expires_in);
+        let expires_in = TimeDelta::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
         self.token_expiry = Some(Utc::now() + expires_in);
         Ok(())
@@ -524,17 +524,17 @@ mod tests {
 
         // expired token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
         assert!(dirsync.is_token_expired());
 
         // valid token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() + chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() + TimeDelta::seconds(10000));
         assert!(!dirsync.is_token_expired());
 
         // no token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
         dirsync.refresh_access_token().await.unwrap();
         assert!(!dirsync.is_token_expired());
         assert_eq!(dirsync.access_token, Some("test_token_refreshed".into()));
