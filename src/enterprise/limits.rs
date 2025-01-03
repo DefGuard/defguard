@@ -3,9 +3,15 @@ use std::sync::{RwLock, RwLockReadGuard};
 
 use super::license::get_cached_license;
 
+// Limits for free users
 pub const DEFAULT_USERS_LIMIT: u32 = 5;
 pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
 pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
+// Limits for legacy enterprise license
+// To be used as fallback if no limits info is found in license metadata
+pub const DEFAULT_ENTERPRISE_USERS_LIMIT: u32 = 10;
+pub const DEFAULT_ENTERPRISE_DEVICES_LIMIT: u32 = 25;
+pub const DEFAULT_ENTERPRISE_LOCATIONS_LIMIT: u32 = 1;
 
 #[derive(Debug)]
 pub(crate) struct Counts {
