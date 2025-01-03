@@ -15,7 +15,10 @@ use tokio::time::sleep;
 
 use crate::{
     db::Settings,
-    enterprise::limits::{DEFAULT_DEVICES_LIMIT, DEFAULT_LOCATIONS_LIMIT, DEFAULT_USERS_LIMIT},
+    enterprise::limits::{
+        DEFAULT_ENTERPRISE_DEVICES_LIMIT, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
+        DEFAULT_ENTERPRISE_USERS_LIMIT,
+    },
     server_config, VERSION,
 };
 
@@ -231,9 +234,9 @@ impl License {
         valid_until: Option<DateTime<Utc>>,
     ) -> Self {
         let limits = LicenseLimits {
-            users: DEFAULT_USERS_LIMIT,
-            devices: DEFAULT_DEVICES_LIMIT,
-            locations: DEFAULT_LOCATIONS_LIMIT,
+            users: DEFAULT_ENTERPRISE_USERS_LIMIT,
+            devices: DEFAULT_ENTERPRISE_DEVICES_LIMIT,
+            locations: DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
         };
         Self {
             customer_id,
@@ -315,10 +318,11 @@ impl License {
                     None => None,
                 };
 
+                // use default limits as fallback for legacy licenses
                 let limits = metadata.limits.unwrap_or(LicenseLimits {
-                    users: DEFAULT_USERS_LIMIT,
-                    devices: DEFAULT_DEVICES_LIMIT,
-                    locations: DEFAULT_LOCATIONS_LIMIT,
+                    users: DEFAULT_ENTERPRISE_USERS_LIMIT,
+                    devices: DEFAULT_ENTERPRISE_DEVICES_LIMIT,
+                    locations: DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
                 });
 
                 let license = License::new(
@@ -674,13 +678,16 @@ hw==
 mod test {
     use chrono::TimeZone;
 
-    use crate::enterprise::limits::DEFAULT_USERS_LIMIT;
+    use crate::enterprise::limits::{
+        DEFAULT_ENTERPRISE_DEVICES_LIMIT, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
+        DEFAULT_ENTERPRISE_USERS_LIMIT,
+    };
 
     use super::*;
 
     #[test]
     fn test_license() {
-        let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9BYAAoJEKiEbAECmoSEtuMEAJu+mQlHt+OsIb3DSiknwyB+Z3d/AtvaOxIrnGSgnpJ22jAwKTRfBrOJsJQr0dA9wB4yawbXGv6+m35QPABQdSM+clq7x5J2bxyhLla00O7cdf2BcdYmyBEv1D/ZIjT1XBFoYEXzwxniviNsw4ZJaRsRIylr7eWsTw1tu+8IF4/U";
         let license = License::from_base64(license).unwrap();
         assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
         assert!(!license.subscription);
@@ -697,28 +704,29 @@ mod test {
 
     #[test]
     fn test_legacy_license() {
-        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        // use license key generated before user/device/location limits were introduced
+        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGNaw1LsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3fBjAAKCRCohGwBApqEhNX+A/9dQmucvCTm5ll9h7a8f1N7d7dAOQW8/xhVA4bZP3GATIya/RxZ+cp+oHRYvHwSiRG3smGbRzti9DdHaTC/X1nqjMvZ6M4pR+aBayFH7fSUQKRj5z40juZ/HTCH/236YG3IzUZmIasLYl8Em9AY3oobkkwh1Yw+v8XYaBTUsrOv9w==";
         let license = License::from_base64(license).unwrap();
         assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
         assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 21, 10, 19, 30).unwrap()
+            Utc.with_ymd_and_hms(2025, 1, 1, 10, 26, 30).unwrap()
         );
 
         assert!(license.is_expired());
 
         // legacy license has default limits
-        assert_eq!(license.limits.users, DEFAULT_USERS_LIMIT);
-        assert_eq!(license.limits.devices, DEFAULT_DEVICES_LIMIT);
-        assert_eq!(license.limits.locations, DEFAULT_LOCATIONS_LIMIT);
+        assert_eq!(license.limits.users, DEFAULT_ENTERPRISE_USERS_LIMIT);
+        assert_eq!(license.limits.devices, DEFAULT_ENTERPRISE_DEVICES_LIMIT);
+        assert_eq!(license.limits.locations, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT);
     }
 
     #[test]
     fn test_new_license() {
         // This key has an additional test_field in the metadata that doesn't exist in the proto definition
         // It should still be able to decode the license correctly
-        let license = "Ci4KIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgR0ZXN0ErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZnvgAKCRCohGwBApqEhJJ/A/4vz8JFTR7xMUiPpj437brzVYJjbKknTTxtpWtZbMH9y3JIGnEy9j8dgYfh5nxnB7xh1DT1FbQ69wW0J38FgEvn4/ZfI6FYCUbvaqbEN1zwF7D9ui1kL9gU7wQb3z+0apWl+g64eF7apsIDeGSEQqwgFRHIhQw3iCp7zUSSaEQITg==";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9EMAAoJEKiEbAECmoSE/0kEAIb18pVTEYWQo0w6813nShJqi7++Uo/fX4pxaAzEiG9r5HGpZSbsceCarMiK1rBr93HOIMeDRsbZmJBA/MAYGi32uXgzLE8fGSd4lcUPAbpvlj7KNvQNH6sMelzQVw+AJVY+IASqO84nfy92taEVagbLqIwl/eSQUnehJBS+B5/z";
         let license = License::from_base64(license).unwrap();
 
         assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
