@@ -86,8 +86,8 @@ const Page = () => {
     if (userProfile && devicesData) {
       setPageState((s) => ({
         ...s,
-        reservedDeviceNames: [
-          ...userProfile.devices.map((d) => d.name.trim()),
+        reservedUserDeviceNames: [...userProfile.devices.map((d) => d.name.trim())],
+        reservedNetworkDeviceNames: [
           ...devicesData
             .filter((d) => d.added_by === (currentUser?.username as string))
             .map((d) => d.name.trim()),

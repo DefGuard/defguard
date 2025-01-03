@@ -67,7 +67,7 @@ const ModalContent = () => {
   const toaster = useToaster();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.id);
-  const [{ reservedDeviceNames }] = useDevicesPage();
+  const [{ reservedUserDeviceNames: reservedDeviceNames }] = useDevicesPage();
 
   const {
     network: { getNetworks },

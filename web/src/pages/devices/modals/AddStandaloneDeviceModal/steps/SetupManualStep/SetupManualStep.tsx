@@ -40,7 +40,7 @@ export const SetupManualStep = () => {
 
   const currentUserId = useAuthStore((s) => s.user?.id);
 
-  const [{ reservedDeviceNames }] = useDevicesPage();
+  const [{ reservedNetworkDeviceNames: reservedDeviceNames }] = useDevicesPage();
 
   const {
     standaloneDevice: { createManualDevice: createDevice },
