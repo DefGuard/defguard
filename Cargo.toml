@@ -28,7 +28,6 @@ chrono = { version = "0.4", default-features = false, features = [
 ] }
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = "0.15"
-ethers-core = "2.0"
 humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
@@ -52,12 +51,7 @@ rand_core = { version = "0.6", default-features = false, features = [
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
 rust-embed = { version = "8.5", features = ["include-exclude"] }
-rust-ini = "0.20"
-secp256k1 = { version = "0.29", features = [
-    "recovery",
-    "rand-std",
-    "global-context",
-] }
+rust-ini = "0.21"
 secrecy = { version = "0.8", features = ["serde"] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -79,7 +73,6 @@ tera = "1.20"
 thiserror = "1.0"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
-tiny-keccak = { version = "2.0", features = ["keccak"] }
 tokio = { version = "1", features = [
     "macros",
     "parking_lot",
@@ -99,7 +92,7 @@ trait-variant = "0.1"
 uaparser = "0.6"
 # openapi
 utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
+utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [
@@ -135,5 +128,7 @@ worker = []
 wireguard = []
 
 [profile.release]
+codegen-units = 1
+panic = "abort"
 lto = "thin"
 strip = "symbols"

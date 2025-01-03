@@ -1,9 +1,9 @@
 use std::{str::FromStr, time::Duration};
 
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use reqwest::Url;
+use reqwest::{header::AUTHORIZATION, Url};
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
 const ACCESS_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
@@ -24,6 +24,7 @@ struct Claims {
 }
 
 impl Claims {
+    #[must_use]
     fn new(iss: &str, sub: &str) -> Self {
         let now = chrono::Utc::now();
         let now_timestamp = now.timestamp();
@@ -45,7 +46,6 @@ pub struct ServiceAccountConfig {
     client_email: String,
 }
 
-#[derive(Debug)]
 pub struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
     access_token: Option<String>,
@@ -122,6 +122,7 @@ where
 }
 
 impl GoogleDirectorySync {
+    #[must_use]
     pub fn new(private_key: &str, client_email: &str, admin_email: &str) -> Self {
         Self {
             service_account_config: ServiceAccountConfig {
@@ -136,7 +137,7 @@ impl GoogleDirectorySync {
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
         let token_response = self.query_access_token().await?;
-        let expires_in = chrono::Duration::seconds(token_response.expires_in);
+        let expires_in = TimeDelta::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
         self.token_expiry = Some(Utc::now() + expires_in);
         Ok(())
@@ -144,10 +145,8 @@ impl GoogleDirectorySync {
 
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Google directory sync token is expired");
-        self.token_expiry
-            .map(|expiry| expiry < Utc::now())
-            // No token = expired token
-            .unwrap_or(true)
+        // No token = expired token
+        self.token_expiry.map_or(true, |expiry| expiry < Utc::now())
     }
 
     #[cfg(not(test))]
@@ -169,10 +168,7 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::new();
         let response = client
             .get(url)
-            .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
-            )
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
@@ -198,7 +194,7 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
-            .header("Authorization", format!("Bearer {}", access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
@@ -229,7 +225,7 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
-            .header("Authorization", format!("Bearer {}", access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
@@ -276,7 +272,7 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::builder().build()?;
         let response = client
             .get(url)
-            .header("Authorization", format!("Bearer {}", access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
@@ -296,7 +292,7 @@ impl GoogleDirectorySync {
         let client = reqwest::Client::builder().build()?;
         let result = client
             .get(url)
-            .header("Authorization", format!("Bearer {}", access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
@@ -359,7 +355,7 @@ impl DirectorySync for GoogleDirectorySync {
         debug!("Getting all users");
         let response = self.query_all_users().await?;
         debug!("Got all users response");
-        Ok(response.users.into_iter().map(|u| u.into()).collect())
+        Ok(response.users.into_iter().map(Into::into).collect())
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
@@ -522,17 +518,17 @@ mod tests {
 
         // expired token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
         assert!(dirsync.is_token_expired());
 
         // valid token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() + chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() + TimeDelta::seconds(10000));
         assert!(!dirsync.is_token_expired());
 
         // no token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - chrono::Duration::seconds(10000));
+        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
         dirsync.refresh_access_token().await.unwrap();
         assert!(!dirsync.is_token_expired());
         assert_eq!(dirsync.access_token, Some("test_token_refreshed".into()));

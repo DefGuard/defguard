@@ -243,25 +243,6 @@ const ko = extendDictionary(en, {
         success: '장치가 삭제되었습니다.',
       },
     },
-    addWallet: {
-      title: '지갑 추가',
-      infoBox: 'ETH 지갑을 추가하려면 메시지에 서명해야 합니다.',
-      form: {
-        fields: {
-          name: {
-            placeholder: '지갑 이름',
-            label: '이름',
-          },
-          address: {
-            placeholder: '지갑 주소',
-            label: '주소',
-          },
-        },
-        controls: {
-          submit: '지갑 추가',
-        },
-      },
-    },
     keyDetails: {
       title: 'YubiKey 세부 정보',
       downloadAll: '모든 키 다운로드',
@@ -617,15 +598,10 @@ const ko = extendDictionary(en, {
         default: '기본값',
         enabled: '활성화됨',
         disabled: '비활성화됨',
-        wallet: {
-          singular: '지갑',
-          plural: '지갑',
-        },
         labels: {
           totp: '시간 기반 일회용 비밀번호',
           email: '이메일',
           webauth: '보안 키',
-          wallets: '지갑',
         },
         editMode: {
           enable: '활성화',
@@ -662,32 +638,6 @@ const ko = extendDictionary(en, {
           edit: '장치 편집',
           delete: '장치 삭제',
           showConfigurations: '구성 보기',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: '주소가 복사되었습니다.',
-        duplicate: {
-          primary: '연결된 지갑이 이미 등록되어 있습니다',
-          sub: '사용되지 않은 지갑을 연결하세요.',
-        },
-      },
-      header: '사용자 지갑',
-      addWallet: '새 지갑 추가',
-      card: {
-        address: '주소',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'MFA 활성화',
-          disableMFA: 'MFA 비활성화',
-          delete: '삭제',
-          copyAddress: '주소 복사',
-        },
-        messages: {
-          deleteSuccess: '지갑이 삭제되었습니다',
-          enableMFA: '지갑 MFA가 활성화되었습니다',
-          disableMFA: '지갑 MFA가 비활성화되었습니다',
         },
       },
     },
@@ -1016,17 +966,6 @@ const ko = extendDictionary(en, {
       filterLabels: {
         grid: '그리드 보기',
         list: '목록 보기',
-      },
-    },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: '기본 서명 메시지 템플릿',
-        },
-      },
-      controls: {
-        save: '변경 사항 저장',
       },
     },
     instanceBranding: {
@@ -1593,7 +1532,6 @@ const ko = extendDictionary(en, {
       title: '이중 인증',
       controls: {
         useAuthenticator: '대신 인증 앱 사용',
-        useWallet: '대신 지갑 사용',
         useWebauthn: '대신 보안 키 사용',
         useRecoveryCode: '대신 복구 코드 사용',
         useEmail: '대신 이메일 사용',
@@ -1633,18 +1571,6 @@ const ko = extendDictionary(en, {
           controls: {
             submit: '복구 코드 사용',
           },
-        },
-      },
-      wallet: {
-        header:
-          '암호화폐 지갑을 사용하여 로그인하려면 지갑 앱 또는 확장 프로그램에서 메시지에 서명하십시오.',
-        controls: {
-          submit: '지갑 사용',
-        },
-        messages: {
-          walletError: '서명 프로세스 중 지갑 연결이 끊어졌습니다.',
-          walletErrorMfa:
-            '지갑이 MFA 로그인에 대해 승인되지 않았습니다. 승인된 지갑을 사용하십시오.',
         },
       },
       webauthn: {

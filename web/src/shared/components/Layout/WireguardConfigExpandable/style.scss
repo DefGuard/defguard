@@ -1,0 +1,18 @@
+.wireguard-config-card {
+  .expanded-content {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+
+    .config {
+      width: 100%;
+      @include typography(app-code);
+      color: var(--text-button-primary);
+
+      span {
+        @include typography(app-code);
+        color: var(--text-button-primary);
+      }
+    }
+  }
+}

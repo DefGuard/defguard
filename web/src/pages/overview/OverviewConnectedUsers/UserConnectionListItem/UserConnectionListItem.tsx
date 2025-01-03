@@ -21,7 +21,7 @@ import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layo
 import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
-import { summarizeDeviceStats } from '../../helpers/stats';
+import { summarizeDevicesStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 
 dayjs.extend(utc);
@@ -66,7 +66,7 @@ const UserRow = ({ data }: UserRowProps) => {
   }, [data]);
 
   const getSummarizedDevicesStat = useMemo(
-    () => summarizeDeviceStats(data.devices),
+    () => summarizeDevicesStats(data.devices),
     [data.devices],
   );
   const downloadSummary = getSummarizedDevicesStat.reduce((sum, e) => {

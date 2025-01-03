@@ -3,7 +3,7 @@ mod common;
 use defguard::{
     db::{
         models::{
-            device::UserDevice,
+            device::{DeviceType, UserDevice},
             wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
         },
         Device, GatewayEvent, WireguardNetwork,
@@ -66,6 +66,9 @@ async fn test_config_import() {
         "test device".into(),
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
         1,
+        DeviceType::User,
+        None,
+        true,
     )
     .save(&mut *transaction)
     .await
@@ -79,6 +82,9 @@ async fn test_config_import() {
         "another test device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         1,
+        DeviceType::User,
+        None,
+        true,
     )
     .save(&mut *transaction)
     .await

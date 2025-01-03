@@ -11,7 +11,7 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::Utc;
+use chrono::{TimeDelta, Utc};
 use openidconnect::{
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
@@ -160,7 +160,7 @@ impl Serialize for FieldResponseTypes {
 
 struct FieldResponseTypesVisitor;
 
-impl<'de> Visitor<'de> for FieldResponseTypesVisitor {
+impl Visitor<'_> for FieldResponseTypesVisitor {
     type Value = FieldResponseTypes;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -678,7 +678,7 @@ impl TokenRequest {
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
                 let timeout = server_config().session_timeout;
-                let expiration = issue_time + chrono::Duration::seconds(timeout.as_secs() as i64);
+                let expiration = issue_time + TimeDelta::seconds(timeout.as_secs() as i64);
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],

@@ -29,6 +29,9 @@ const en: BaseTranslation = {
     },
     key: 'Key',
     name: 'Name',
+    noData: 'No data',
+    unavailable: 'Unavailable',
+    notSet: 'Not set',
   },
   messages: {
     error: 'Error has occurred.',
@@ -42,14 +45,58 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    standaloneDeviceEnrollmentModal: {
+      title: 'Network device token',
+      toasters: {
+        error: 'Token generation failed.',
+      },
+    },
+    standaloneDeviceConfigModal: {
+      title: 'Network device config',
+      cardTitle: 'Config',
+      toasters: {
+        getConfig: {
+          error: 'Failed to get device config.',
+        },
+      },
+    },
+    editStandaloneModal: {
+      title: 'Edit network device',
+      toasts: {
+        success: 'Device modified',
+        failure: 'Modifying the device failed',
+      },
+    },
     deleteStandaloneDevice: {
       title: 'Delete network device',
       content: 'Device {name: string} will be deleted.',
+      messages: {
+        success: 'Device deleted',
+        error: 'Failed to remove device.',
+      },
     },
     addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Device added',
+        creationFailed: 'Device could not be added.',
+      },
       infoBox: {
         setup:
           'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+      },
+      form: {
+        submit: 'Add Device',
+        labels: {
+          deviceName: 'Device Name',
+          location: 'Location',
+          assignedAddress: 'Assigned IP',
+          description: 'Description',
+          generation: {
+            auto: 'Generate key pair',
+            manual: 'Use my own public key',
+          },
+          publicKey: 'Provide Your Public Key',
+        },
       },
       steps: {
         method: {
@@ -70,22 +117,6 @@ const en: BaseTranslation = {
         },
         manual: {
           title: 'Add new VPN device using WireGuard Client',
-          setup: {
-            form: {
-              submit: 'Add Device',
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-                generation: {
-                  auto: 'Generate key pair',
-                  manual: 'Use my own public key',
-                },
-                publicKey: 'Provide Your Public Key',
-              },
-            },
-          },
           finish: {
             messageTop:
               'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
@@ -112,12 +143,6 @@ const en: BaseTranslation = {
             stepMessage:
               'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
             form: {
-              labels: {
-                deviceName: 'Device Name',
-                location: 'Location',
-                assignedAddress: 'Assigned IP',
-                description: 'Description',
-              },
               submit: 'Add Device',
             },
           },
@@ -343,25 +368,6 @@ const en: BaseTranslation = {
       submit: 'Delete device',
       messages: {
         success: 'Device has been deleted.',
-      },
-    },
-    addWallet: {
-      title: 'Add wallet',
-      infoBox: 'In order to add a ETH wallet you will need to sign message.',
-      form: {
-        fields: {
-          name: {
-            placeholder: 'Wallet name',
-            label: 'Name',
-          },
-          address: {
-            placeholder: 'Wallet address',
-            label: 'Address',
-          },
-        },
-        controls: {
-          submit: 'Add wallet',
-        },
       },
     },
     keyDetails: {
@@ -720,15 +726,10 @@ const en: BaseTranslation = {
         default: 'default',
         enabled: 'Enabled',
         disabled: 'Disabled',
-        wallet: {
-          singular: 'Wallet',
-          plural: 'Wallets',
-        },
         labels: {
           totp: 'Time based one time passwords',
           email: 'Email',
           webauth: 'Security keys',
-          wallets: 'Wallets',
         },
         editMode: {
           enable: 'Enable',
@@ -765,32 +766,6 @@ const en: BaseTranslation = {
           edit: 'Edit device',
           delete: 'Delete device',
           showConfigurations: 'Show configuration',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: 'Address copied.',
-        duplicate: {
-          primary: 'Connected wallet is already registered',
-          sub: 'Please connect unused wallet.',
-        },
-      },
-      header: 'User wallets',
-      addWallet: 'Add new wallet',
-      card: {
-        address: 'Address',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'Enable MFA',
-          disableMFA: 'Disable MFA',
-          delete: 'Delete',
-          copyAddress: 'Copy address',
-        },
-        messages: {
-          deleteSuccess: 'Wallet deleted',
-          enableMFA: 'Wallet MFA enabled',
-          disableMFA: 'Wallet MFA disabled',
         },
       },
     },
@@ -867,6 +842,10 @@ const en: BaseTranslation = {
   },
   usersOverview: {
     pageTitle: 'Users',
+    grid: {
+      usersTitle: 'Connected Users',
+      devicesTitle: 'Connected Network Devices',
+    },
     search: {
       placeholder: 'Find users',
     },
@@ -910,6 +889,7 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
       groups: 'Groups',
+      devices: 'Network Devices',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -924,6 +904,7 @@ const en: BaseTranslation = {
       networkSettings: 'Edit Location',
       enrollment: 'Enrollment',
       support: 'Support',
+      devices: 'Network Devices',
     },
     copyright: 'Copyright ©2023-2024',
     version: {
@@ -944,6 +925,9 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
+      reservedName: 'Name is already taken.',
+      invalidIp: 'IP is invalid.',
+      reservedIp: 'IP is already in use.',
       forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
@@ -978,6 +962,14 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    standaloneDeviceTokenModalContent: {
+      headerMessage:
+        'First download defguard command line client binaries and install them on your server.',
+      downloadButton: 'Download defguard CLI Client',
+      expandableCard: {
+        title: 'Copy and paste this command in your terminal on the device',
+      },
+    },
     deviceConfigsCard: {
       cardTitle: 'WireGuard Config for location:',
       messages: {
@@ -1636,6 +1628,10 @@ const en: BaseTranslation = {
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
     },
+    cardsLabels: {
+      users: 'Connected Users',
+      devices: 'Connected Network Devices',
+    },
   },
   connectedUsersOverview: {
     pageTitle: 'Connected users',
@@ -1772,7 +1768,6 @@ const en: BaseTranslation = {
       title: 'Two-factor authentication',
       controls: {
         useAuthenticator: 'Use Authenticator app instead',
-        useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
         useEmail: 'Use E-mail instead',
@@ -1812,18 +1807,6 @@ const en: BaseTranslation = {
           controls: {
             submit: 'Use recovery code',
           },
-        },
-      },
-      wallet: {
-        header:
-          'Use your crypto wallet to sign in, please sign message in your wallet app or extension.',
-        controls: {
-          submit: 'Use your wallet',
-        },
-        messages: {
-          walletError: 'Wallet was disconnected during signing process.',
-          walletErrorMfa:
-            'Wallet is not authorized for MFA login. Please use authorized wallet.',
         },
       },
       webauthn: {
@@ -1988,7 +1971,7 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   devicesPage: {
-    title: 'Devices',
+    title: 'Network Devices',
     search: {
       placeholder: 'Find',
     },
@@ -2010,10 +1993,11 @@ Any other requests you can reach us at: support@defguard.net
           addedAt: 'Add date',
           edit: 'Edit',
         },
-        edit: {
-          actionLabels: {
-            edit: 'Edit',
-          },
+      },
+      edit: {
+        actionLabels: {
+          config: 'View config',
+          generateToken: 'Generate auth token',
         },
       },
     },
