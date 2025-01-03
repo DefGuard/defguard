@@ -14,13 +14,13 @@ export const getDeviceRow = async ({
 }) => {
   const deviceList = await page.locator('#devices-page-devices-list').first();
   const deviceRows = await deviceList.locator('.device-row').all();
-  const row = deviceRows
-    .filter(async (val) => {
-      if ((await val.innerText()) === deviceName) {
-        return val;
-      }
-    })
-    .pop();
+  const row = deviceRows.find(async (val) => {
+    if ((await val.innerText()) === deviceName) {
+      return true;
+    } else {
+      return false;
+    }
+  });
   expect(row).toBeDefined();
   return row as Locator;
 };
@@ -70,6 +70,33 @@ export const createNetworkDevice = async (
   await context.close();
 };
 
+export const startNetworkDeviceEnrollment = async (
+  browser: Browser,
+  user: User,
+  device: NetworkDeviceForm
+) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await loginBasic(page, user);
+  await page.goto(routes.base + routes.admin.devices);
+  await page.getByRole('button', { name: 'Add new' }).click();
+  const configCard = page.locator('#add-standalone-device-modal');
+  await configCard.getByRole('button', { name: 'Next' }).click();
+  const deviceNameInput = await configCard.getByTestId('field-name');
+  await deviceNameInput.fill(device.name);
+  if (device.description && device.description.length > 0) {
+    const deviceDescriptionInput = await page.getByTestId('field-description');
+    await deviceDescriptionInput.fill(device.description);
+  }
+  const responsePromise = page.waitForResponse('**/device/network');
+  await page.getByRole('button', { name: 'Add Device' }).click();
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  const tokenCommand = await page.locator('.expanded-content').innerText();
+  await context.close();
+  return tokenCommand;
+};
+
 export const editNetworkDevice = async (
   browser: Browser,
   user: User,
@@ -97,7 +124,7 @@ export const editNetworkDevice = async (
     await input.fill(device.description);
   }
   const responsePromise = page.waitForResponse('**/device/network');
-  await configCard.locator('button').filter({ hasText: 'Submit' }).first().click();
+  await configCard.locator('button').filter({ hasText: 'Submit' }).click();
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   await context.close();
