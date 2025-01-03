@@ -7,11 +7,6 @@ use super::license::get_cached_license;
 pub const DEFAULT_USERS_LIMIT: u32 = 5;
 pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
 pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
-// Limits for legacy enterprise license
-// To be used as fallback if no limits info is found in license metadata
-pub const DEFAULT_ENTERPRISE_USERS_LIMIT: u32 = 10;
-pub const DEFAULT_ENTERPRISE_DEVICES_LIMIT: u32 = 25;
-pub const DEFAULT_ENTERPRISE_LOCATIONS_LIMIT: u32 = 1;
 
 #[derive(Debug)]
 pub(crate) struct Counts {
@@ -40,7 +35,7 @@ pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
-// TODO: count network devices when implemented
+// TODO: count network devices once implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
@@ -94,10 +89,17 @@ impl Counts {
         match &*maybe_license {
             Some(license) => {
                 let limits = &license.limits;
-                self.user > limits.users
-                    || self.device > limits.devices
-                    || self.wireguard_network > limits.locations
+                match limits {
+                    Some(limits) => {
+                        self.user > limits.users
+                            || self.device > limits.devices
+                            || self.wireguard_network > limits.locations
+                    }
+                    // unlimited license
+                    None => false,
+                }
             }
+            // free tier
             None => {
                 self.user > DEFAULT_USERS_LIMIT
                     || self.device > DEFAULT_DEVICES_LIMIT
@@ -109,6 +111,12 @@ impl Counts {
 
 #[cfg(test)]
 mod test {
+    use std::u32;
+
+    use chrono::{TimeDelta, Utc};
+
+    use crate::enterprise::license::{set_cached_license, License, LicenseLimits};
+
     use super::*;
 
     #[test]
@@ -129,7 +137,7 @@ mod test {
     }
 
     #[test]
-    fn test_is_over_limit() {
+    fn test_is_over_limit_free_tier() {
         // User limit
         {
             let counts = Counts {
@@ -188,6 +196,105 @@ mod test {
             set_counts(counts);
             let counts = get_counts();
             assert!(counts.is_over_limit());
+        }
+    }
+
+    #[test]
+    fn test_is_over_limit_license_with_limits() {
+        let limits = LicenseLimits {
+            users: 15,
+            devices: 35,
+            locations: 4,
+        };
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            Some(limits),
+        );
+        set_cached_license(Some(license));
+
+        // User limit
+        {
+            let counts = Counts {
+                user: 16,
+                device: 1,
+                wireguard_network: 1,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(counts.is_over_limit());
+        }
+
+        // Device limit
+        {
+            let counts = Counts {
+                user: 1,
+                device: 36,
+                wireguard_network: 1,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(counts.is_over_limit());
+        }
+
+        // Wireguard network limit
+        {
+            let counts = Counts {
+                user: 1,
+                device: 1,
+                wireguard_network: 5,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(counts.is_over_limit());
+        }
+
+        // No limit
+        {
+            let counts = Counts {
+                user: 15,
+                device: 35,
+                wireguard_network: 4,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(!counts.is_over_limit());
+        }
+
+        // All limits
+        {
+            let counts = Counts {
+                user: 16,
+                device: 36,
+                wireguard_network: 5,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(counts.is_over_limit());
+        }
+    }
+
+    #[test]
+    fn test_is_over_limit_unlimited_license() {
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            None,
+        );
+        set_cached_license(Some(license));
+
+        // it's not possible to be over the limit
+        {
+            let counts = Counts {
+                user: u32::MAX,
+                device: u32::MAX,
+                wireguard_network: u32::MAX,
+            };
+            set_counts(counts);
+            let counts = get_counts();
+            assert!(!counts.is_over_limit());
         }
     }
 }

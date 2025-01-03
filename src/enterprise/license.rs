@@ -13,14 +13,7 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::{
-    db::Settings,
-    enterprise::limits::{
-        DEFAULT_ENTERPRISE_DEVICES_LIMIT, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
-        DEFAULT_ENTERPRISE_USERS_LIMIT,
-    },
-    server_config, VERSION,
-};
+use crate::{db::Settings, server_config, VERSION};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
@@ -209,7 +202,7 @@ pub struct License {
     pub customer_id: String,
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
-    pub limits: LicenseLimits,
+    pub limits: Option<LicenseLimits>,
 }
 
 impl License {
@@ -218,26 +211,8 @@ impl License {
         customer_id: String,
         subscription: bool,
         valid_until: Option<DateTime<Utc>>,
-        limits: LicenseLimits,
+        limits: Option<LicenseLimits>,
     ) -> Self {
-        Self {
-            customer_id,
-            subscription,
-            valid_until,
-            limits,
-        }
-    }
-
-    pub fn new_with_default_limits(
-        customer_id: String,
-        subscription: bool,
-        valid_until: Option<DateTime<Utc>>,
-    ) -> Self {
-        let limits = LicenseLimits {
-            users: DEFAULT_ENTERPRISE_USERS_LIMIT,
-            devices: DEFAULT_ENTERPRISE_DEVICES_LIMIT,
-            locations: DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
-        };
         Self {
             customer_id,
             subscription,
@@ -318,18 +293,11 @@ impl License {
                     None => None,
                 };
 
-                // use default limits as fallback for legacy licenses
-                let limits = metadata.limits.unwrap_or(LicenseLimits {
-                    users: DEFAULT_ENTERPRISE_USERS_LIMIT,
-                    devices: DEFAULT_ENTERPRISE_DEVICES_LIMIT,
-                    locations: DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
-                });
-
                 let license = License::new(
                     metadata.customer_id,
                     metadata.subscription,
                     valid_until,
-                    limits,
+                    metadata.limits,
                 );
 
                 if license.requires_renewal() {
@@ -678,11 +646,6 @@ hw==
 mod test {
     use chrono::TimeZone;
 
-    use crate::enterprise::limits::{
-        DEFAULT_ENTERPRISE_DEVICES_LIMIT, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT,
-        DEFAULT_ENTERPRISE_USERS_LIMIT,
-    };
-
     use super::*;
 
     #[test]
@@ -697,9 +660,10 @@ mod test {
         );
         assert!(license.is_expired());
 
-        assert_eq!(license.limits.users, 10);
-        assert_eq!(license.limits.devices, 100);
-        assert_eq!(license.limits.locations, 5);
+        let limits = license.limits.unwrap();
+        assert_eq!(limits.users, 10);
+        assert_eq!(limits.devices, 100);
+        assert_eq!(limits.locations, 5);
     }
 
     #[test]
@@ -716,10 +680,8 @@ mod test {
 
         assert!(license.is_expired());
 
-        // legacy license has default limits
-        assert_eq!(license.limits.users, DEFAULT_ENTERPRISE_USERS_LIMIT);
-        assert_eq!(license.limits.devices, DEFAULT_ENTERPRISE_DEVICES_LIMIT);
-        assert_eq!(license.limits.locations, DEFAULT_ENTERPRISE_LOCATIONS_LIMIT);
+        // legacy license is unlimited
+        assert!(license.limits.is_none())
     }
 
     #[test]
@@ -745,38 +707,42 @@ mod test {
         assert!(validate_license(None).is_err());
 
         // One day past the expiry date, non-subscription license
-        let license = License::new_with_default_limits(
+        let license = License::new(
             "test".to_string(),
             false,
             Some(Utc::now() - TimeDelta::days(1)),
+            None,
         );
         assert!(validate_license(Some(&license)).is_err());
 
         // One day before the expiry date, non-subscription license
-        let license = License::new_with_default_limits(
+        let license = License::new(
             "test".to_string(),
             false,
             Some(Utc::now() + TimeDelta::days(1)),
+            None,
         );
         assert!(validate_license(Some(&license)).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License::new_with_default_limits("test".to_string(), false, None);
+        let license = License::new("test".to_string(), false, None, None);
         assert!(validate_license(Some(&license)).is_ok());
 
         // One day past the maximum overdue date
-        let license = License::new_with_default_limits(
+        let license = License::new(
             "test".to_string(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+            None,
         );
         assert!(validate_license(Some(&license)).is_err());
 
         // One day before the maximum overdue date
-        let license = License::new_with_default_limits(
+        let license = License::new(
             "test".to_string(),
             true,
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            None,
         );
         assert!(validate_license(Some(&license)).is_ok());
     }
