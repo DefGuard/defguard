@@ -40,6 +40,7 @@ pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
+// TODO: count network devices when implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
