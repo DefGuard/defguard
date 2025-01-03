@@ -35,7 +35,6 @@ pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
-// TODO: count network devices once implemented
 pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
@@ -139,7 +138,7 @@ mod test {
         // User limit
         {
             let counts = Counts {
-                user: 6,
+                user: DEFAULT_USERS_LIMIT + 1,
                 device: 1,
                 wireguard_network: 1,
             };
@@ -152,7 +151,7 @@ mod test {
         {
             let counts = Counts {
                 user: 1,
-                device: 11,
+                device: DEFAULT_DEVICES_LIMIT + 1,
                 wireguard_network: 1,
             };
             set_counts(counts);
@@ -165,7 +164,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 device: 1,
-                wireguard_network: 2,
+                wireguard_network: DEFAULT_LOCATIONS_LIMIT + 1,
             };
             set_counts(counts);
             let counts = get_counts();
@@ -187,9 +186,9 @@ mod test {
         // All limits
         {
             let counts = Counts {
-                user: 6,
-                device: 11,
-                wireguard_network: 2,
+                user: DEFAULT_USERS_LIMIT + 1,
+                device: DEFAULT_DEVICES_LIMIT,
+                wireguard_network: DEFAULT_LOCATIONS_LIMIT,
             };
             set_counts(counts);
             let counts = get_counts();
@@ -199,10 +198,14 @@ mod test {
 
     #[test]
     fn test_is_over_limit_license_with_limits() {
+        let users_limit = 15;
+        let devices_limit = 35;
+        let locations_limit = 4;
+
         let limits = LicenseLimits {
-            users: 15,
-            devices: 35,
-            locations: 4,
+            users: users_limit,
+            devices: devices_limit,
+            locations: locations_limit,
         };
         let license = License::new(
             "test".to_string(),
@@ -215,7 +218,7 @@ mod test {
         // User limit
         {
             let counts = Counts {
-                user: 16,
+                user: users_limit + 1,
                 device: 1,
                 wireguard_network: 1,
             };
@@ -228,7 +231,7 @@ mod test {
         {
             let counts = Counts {
                 user: 1,
-                device: 36,
+                device: devices_limit + 1,
                 wireguard_network: 1,
             };
             set_counts(counts);
@@ -241,7 +244,7 @@ mod test {
             let counts = Counts {
                 user: 1,
                 device: 1,
-                wireguard_network: 5,
+                wireguard_network: locations_limit + 1,
             };
             set_counts(counts);
             let counts = get_counts();
@@ -251,9 +254,9 @@ mod test {
         // No limit
         {
             let counts = Counts {
-                user: 15,
-                device: 35,
-                wireguard_network: 4,
+                user: users_limit,
+                device: devices_limit,
+                wireguard_network: locations_limit,
             };
             set_counts(counts);
             let counts = get_counts();
@@ -263,9 +266,9 @@ mod test {
         // All limits
         {
             let counts = Counts {
-                user: 16,
-                device: 36,
-                wireguard_network: 5,
+                user: users_limit + 1,
+                device: devices_limit + 1,
+                wireguard_network: locations_limit + 1,
             };
             set_counts(counts);
             let counts = get_counts();
