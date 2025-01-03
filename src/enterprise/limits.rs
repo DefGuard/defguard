@@ -111,8 +111,6 @@ impl Counts {
 
 #[cfg(test)]
 mod test {
-    use std::u32;
-
     use chrono::{TimeDelta, Utc};
 
     use crate::enterprise::license::{set_cached_license, License, LicenseLimits};

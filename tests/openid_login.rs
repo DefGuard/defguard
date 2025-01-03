@@ -88,10 +88,11 @@ async fn test_openid_providers() {
     assert!(redirect_uri.is_some());
 
     // Test that the endpoint is forbidden when the license is expired
-    let new_license = License::new_with_default_limits(
+    let new_license = License::new(
         "test".to_string(),
         false,
         Some(Utc::now() - Duration::days(1)),
+        None,
     );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
