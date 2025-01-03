@@ -25,7 +25,7 @@ import {
 } from '../../types';
 
 export const SetupCliStep = () => {
-  const [{ reservedUserDeviceNames: reservedDeviceNames }] = useDevicesPage();
+  const [{ reservedDeviceNames }] = useDevicesPage();
   const { LL } = useI18nContext();
   const localLL = LL.modals.addStandaloneDevice.steps.cli.setup;
   const [formLoading, setFormLoading] = useState(false);
