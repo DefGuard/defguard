@@ -2,7 +2,6 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import ipaddr from 'ipaddr.js';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -21,7 +20,11 @@ import { QueryKeys } from '../../../shared/queries';
 import { Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import { validateIpOrDomain, validateIpOrDomainList } from '../../../shared/validators';
+import {
+  validateIpList,
+  validateIpOrDomain,
+  validateIpOrDomainList,
+} from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 type FormFields = {
@@ -148,39 +151,7 @@ export const NetworkEditForm = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine((value) => {
-            const netmaskPresent = value.split('/').length == 2;
-            if (!netmaskPresent) {
-              return false;
-            }
-            const ipValid = ipaddr.isValidCIDR(value);
-            if (!ipValid) {
-              return false;
-            }
-            const [address] = ipaddr.parseCIDR(value);
-            if (address.kind() === 'ipv6') {
-              const networkAddress = ipaddr.IPv6.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv6.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            } else {
-              const networkAddress = ipaddr.IPv4.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv4.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            }
-            return ipValid;
+            return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()

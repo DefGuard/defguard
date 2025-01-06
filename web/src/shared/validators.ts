@@ -18,7 +18,7 @@ export const validateWireguardPublicKey = (props: {
     .max(44, props.maxError)
     .regex(patternValidWireguardKey, props.validKeyError);
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpOrDomain = (
   val: string,
   allowMask = false,
@@ -31,23 +31,21 @@ export const validateIpOrDomain = (
   );
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpList = (
   val: string,
   splitWith = ',',
   allowMasks = false,
 ): boolean => {
-  const trimed = val.replace(' ', '');
-  const split = trimed.split(splitWith);
-  for (const value of split) {
-    if (!validateIPv4(value, allowMasks)) {
-      return false;
-    }
-  }
-  return true;
+  return val
+    .replace(' ', '')
+    .split(splitWith)
+    .every((el) => {
+      return validateIPv4(el, allowMasks) || validateIPv6(el, allowMasks);
+    });
 };
 
-// Returns flase when invalid
+// Returns false when invalid
 export const validateIpOrDomainList = (
   val: string,
   splitWith = ',',
@@ -72,7 +70,7 @@ export const validateIpOrDomainList = (
 export const validateIPv4 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {
-      ipaddr.IPv4.isValidCIDR(ip);
+      return ipaddr.IPv4.isValidCIDR(ip);
     }
   }
   return ipaddr.IPv4.isValid(ip);
@@ -81,7 +79,7 @@ export const validateIPv4 = (ip: string, allowMask = false): boolean => {
 export const validateIPv6 = (ip: string, allowMask = false): boolean => {
   if (allowMask) {
     if (ip.includes('/')) {
-      ipaddr.IPv6.isValidCIDR(ip);
+      return ipaddr.IPv6.isValidCIDR(ip);
     }
   }
   return ipaddr.IPv6.isValid(ip);
