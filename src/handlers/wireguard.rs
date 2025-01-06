@@ -41,10 +41,18 @@ use crate::{
     wg_config::{parse_wireguard_config, ImportedDevice},
 };
 
+/// Parse a string with comma-separated IP addresses.
+/// Invalid addresses will be silently ignored.
+pub(crate) fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
+    ips.split(',')
+        .filter_map(|ip| ip.trim().parse().ok())
+        .collect()
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
-    pub address: IpNetwork,
+    pub address: String, // comma-separated list of addresses
     pub endpoint: String,
     pub port: i32,
     pub allowed_ips: Option<String>,
@@ -57,11 +65,9 @@ pub struct WireguardNetworkData {
 
 impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
-        self.allowed_ips.as_ref().map_or(Vec::new(), |ips| {
-            ips.split(',')
-                .filter_map(|ip| ip.trim().parse().ok())
-                .collect()
-        })
+        self.allowed_ips
+            .as_ref()
+            .map_or(Vec::new(), |ips| parse_address_list(ips))
     }
 }
 
@@ -110,7 +116,7 @@ pub(crate) async fn create_network(
     let allowed_ips = data.parse_allowed_ips();
     let network = WireguardNetwork::new(
         data.name,
-        data.address,
+        parse_address_list(&data.address),
         data.port,
         data.endpoint,
         data.dns,
@@ -174,7 +180,7 @@ pub(crate) async fn modify_network(
     network.endpoint = data.endpoint;
     network.port = data.port;
     network.dns = data.dns;
-    network.address = data.address;
+    network.address = parse_address_list(&data.address);
     network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;

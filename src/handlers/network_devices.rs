@@ -191,39 +191,40 @@ pub struct AddNetworkDeviceResult {
     device: NetworkDeviceInfo,
 }
 
-/// Checks if the IP falls into the range of the network
-/// and if it is not already assigned to another device
+/// Checks if the IP address falls into the range of the network
+/// and if it is not already assigned to another device.
 async fn check_ip(
-    ip: IpAddr,
+    ip_addr: IpAddr,
     network: &WireguardNetwork<Id>,
     transaction: &mut PgConnection,
 ) -> Result<(), WebError> {
-    let network_address = network.address;
-    if !network_address.contains(ip) {
-        return Err(WebError::BadRequest(format!(
-            "Provided IP address {ip} is not in the network ({}) range {network_address}",
-            network.name,
-        )));
-    }
-    if ip == network_address.network() || ip == network_address.broadcast() {
-        return Err(WebError::BadRequest(format!(
-            "Provided IP address {ip} is network or broadcast address of network {}",
-            network.name
-        )));
-    }
-    if ip == network_address.ip() {
-        return Err(WebError::BadRequest(format!(
-            "Provided IP address {ip} may overlap with the network's gateway IP in network {}",
-            network.name
-        )));
-    }
+    if let Some(network_address) = network.address.first() {
+        if !network_address.contains(ip_addr) {
+            return Err(WebError::BadRequest(format!(
+                "Provided IP address {ip_addr} is not in the network ({}) range {network_address}",
+                network.name,
+            )));
+        }
+        if ip_addr == network_address.network() || ip_addr == network_address.broadcast() {
+            return Err(WebError::BadRequest(format!(
+                "Provided IP address {ip_addr} is network or broadcast address of network {}",
+                network.name
+            )));
+        }
+        if ip_addr == network_address.ip() {
+            return Err(WebError::BadRequest(format!(
+                "Provided IP address {ip_addr} may overlap with the network's gateway IP in network {}",
+                network.name
+            )));
+        }
 
-    let device = Device::find_by_ip(transaction, ip, network.id).await?;
-    if let Some(device) = device {
-        return Err(WebError::BadRequest(format!(
-            "Provided IP address {ip} is already assigned to device {} in network {}",
-            device.name, network.name
-        )));
+        let device = Device::find_by_ip(transaction, ip_addr, network.id).await?;
+        if let Some(device) = device {
+            return Err(WebError::BadRequest(format!(
+                "Provided IP address {ip_addr} is already assigned to device {} in network {}",
+                device.name, network.name
+            )));
+        }
     }
 
     Ok(())
@@ -248,7 +249,7 @@ pub(crate) async fn check_ip_availability(
                 "Failed to check IP availability for network with ID {network_id}, network not found",
 
             );
-            WebError::BadRequest("Failed to check IP availability, network not found".to_string())
+            WebError::BadRequest("Failed to check IP availability, network not found".into())
         })?;
 
     let Ok(ip) = IpAddr::from_str(&ip.ip) else {
@@ -263,65 +264,70 @@ pub(crate) async fn check_ip_availability(
             status: StatusCode::OK,
         });
     };
-    if !network.address.contains(ip) {
-        warn!(
-            "Provided device IP is not in the network ({}) range {}",
-            network.name, network.address
-        );
-        return Ok(ApiResponse {
-            json: json!({
-                "available": false,
-                "valid": false,
-            }),
-            status: StatusCode::OK,
-        });
+
+    if let Some(network_address) = network.address.first() {
+        if !network_address.contains(ip) {
+            warn!(
+                "Provided device IP address is not in the network ({}) range {network_address}",
+                network.name
+            );
+            return Ok(ApiResponse {
+                json: json!({
+                    "available": false,
+                    "valid": false,
+                }),
+                status: StatusCode::OK,
+            });
+        }
+        if ip == network_address.network() || ip == network_address.broadcast() {
+            warn!(
+                "Provided device IP address is network or broadcast address of network {}",
+                network.name
+            );
+            return Ok(ApiResponse {
+                json: json!({
+                    "available": false,
+                    "valid": true,
+                }),
+                status: StatusCode::OK,
+            });
+        }
+        if ip == network_address.ip() {
+            warn!(
+                "Provided device IP address may overlap with the gateway's IP address on network {}",
+                network.name
+            );
+            return Ok(ApiResponse {
+                json: json!({
+                    "available": false,
+                    "valid": true,
+                }),
+                status: StatusCode::OK,
+            });
+        }
     }
-    if ip == network.address.network() || ip == network.address.broadcast() {
-        warn!(
-            "Provided device IP is network or broadcast address of network {}",
-            network.name
-        );
-        return Ok(ApiResponse {
-            json: json!({
-                "available": false,
-                "valid": true,
-            }),
-            status: StatusCode::OK,
-        });
-    }
-    if ip == network.address.ip() {
-        warn!(
-            "Provided device IP may overlap with the network's gateway IP in network {}",
-            network.name
-        );
-        return Ok(ApiResponse {
-            json: json!({
-                "available": false,
-                "valid": true,
-            }),
-            status: StatusCode::OK,
-        });
-    }
+
     if let Some(device) = Device::find_by_ip(&mut *transaction, ip, network.id).await? {
         warn!(
             "Provided device IP is already assigned to device {} in network {}",
             device.name, network.name
         );
-        return Ok(ApiResponse {
+        Ok(ApiResponse {
             json: json!({
                 "available": false,
                 "valid": true,
             }),
             status: StatusCode::OK,
-        });
+        })
+    } else {
+        Ok(ApiResponse {
+            json: json!({
+                "available": true,
+                "valid": true,
+            }),
+            status: StatusCode::OK,
+        })
     }
-    Ok(ApiResponse {
-        json: json!({
-            "available": true,
-            "valid": true,
-        }),
-        status: StatusCode::OK,
-    })
 }
 
 pub(crate) async fn find_available_ip(
@@ -340,30 +346,33 @@ pub(crate) async fn find_available_ip(
         })?;
 
     let mut transaction = appstate.pool.begin().await?;
-    let net_ip = network.address.ip();
-    let net_network = network.address.network();
-    let net_broadcast = network.address.broadcast();
-    for ip in &network.address {
-        if ip == net_ip || ip == net_network || ip == net_broadcast {
-            continue;
-        }
+    if let Some(network_address) = network.address.first() {
+        let net_ip = network_address.ip();
+        let net_network = network_address.network();
+        let net_broadcast = network_address.broadcast();
+        for ip in network_address {
+            if ip == net_ip || ip == net_network || ip == net_broadcast {
+                continue;
+            }
 
-        // Break loop if IP is unassigned and return network device
-        if Device::find_by_ip(&mut *transaction, ip, network.id)
-            .await?
-            .is_none()
-        {
-            let (network_part, modifiable_part, network_prefix) = split_ip(&ip, &network.address);
-            transaction.commit().await?;
-            return Ok(ApiResponse {
-                json: json!({
-                   "ip": ip.to_string(),
-                   "network_part": network_part,
-                   "modifiable_part": modifiable_part,
-                   "network_prefix": network_prefix,
-                }),
-                status: StatusCode::OK,
-            });
+            // Break loop if IP is unassigned and return network device
+            if Device::find_by_ip(&mut *transaction, ip, network.id)
+                .await?
+                .is_none()
+            {
+                let (network_part, modifiable_part, network_prefix) =
+                    split_ip(&ip, &network_address);
+                transaction.commit().await?;
+                return Ok(ApiResponse {
+                    json: json!({
+                       "ip": ip.to_string(),
+                       "network_part": network_part,
+                       "modifiable_part": modifiable_part,
+                       "network_prefix": network_prefix,
+                    }),
+                    status: StatusCode::OK,
+                });
+            }
         }
     }
 
