@@ -1,9 +1,9 @@
+ALTER TABLE device DROP CONSTRAINT name_user;
+ALTER TABLE device ADD CONSTRAINT name_user UNIQUE (name, user_id);
 ALTER TABLE device DROP COLUMN device_type;
 DROP TYPE device_type;
 ALTER TABLE device DROP COLUMN description;
 ALTER TABLE device DROP COLUMN configured;
-ALTER TABLE device DROP CONSTRAINT name_user;
-ALTER TABLE device ADD CONSTRAINT name_user UNIQUE (name, user_id);
 
 ALTER TABLE token DROP CONSTRAINT enrollment_device_id_fkey;
 ALTER TABLE token DROP COLUMN device_id;
