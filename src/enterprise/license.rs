@@ -736,10 +736,7 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
         );
-        // assert!(validate_license(Some(&license), &counts).is_ok());
-        let result = validate_license(Some(&license), &counts);
-        println!("{result:#?}");
-        assert!(result.is_ok());
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
         let license = License::new("test".to_string(), false, None, None);
