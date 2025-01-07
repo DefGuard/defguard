@@ -419,7 +419,6 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
-            .route("/enterprise_status", get(check_enterprise_status))
             .route("/enterprise_info", get(check_enterprise_info))
             .route("/test_directory_sync", get(test_dirsync_connection)),
     );

@@ -132,6 +132,29 @@ impl Counts {
             || self.device > DEFAULT_DEVICES_LIMIT
             || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
     }
+
+    pub(crate) fn get_exceeded_limits(&self) -> LimitsExceeded {
+        LimitsExceeded {
+            user: self.user > DEFAULT_USERS_LIMIT,
+            device: self.device > DEFAULT_DEVICES_LIMIT,
+            wireguard_network: self.wireguard_network > DEFAULT_LOCATIONS_LIMIT,
+        }
+    }
+}
+
+// Granular exceeded limits info for the AppInfo endpoint.
+#[derive(Serialize)]
+pub(crate) struct LimitsExceeded {
+    pub user: bool,
+    pub device: bool,
+    pub wireguard_network: bool,
+}
+
+/// Returns true if any of the limits has been exceeded.
+impl LimitsExceeded {
+    pub(crate) fn any(&self) -> bool {
+        self.user || self.device || self.wireguard_network
+    }
 }
 
 #[cfg(test)]
@@ -323,5 +346,60 @@ mod test {
             let counts = get_counts();
             assert!(!counts.is_over_limit());
         }
+    }
+
+    #[test]
+    fn test_limits_exceeded() {
+        let exceed_user = DEFAULT_DEVICES_LIMIT + 5;
+        let exceed_device = DEFAULT_DEVICES_LIMIT + 5;
+        let exceed_wireguard_network = DEFAULT_LOCATIONS_LIMIT + 5;
+
+        let counts = Counts {
+            user: exceed_user,
+            device: 0,
+            wireguard_network: 0,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits();
+        assert!(exceeded.user);
+        assert!(!exceeded.device);
+        assert!(!exceeded.wireguard_network);
+        assert!(exceeded.any());
+
+        let counts = Counts {
+            user: 0,
+            device: exceed_device,
+            wireguard_network: 0,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits();
+        assert!(!exceeded.user);
+        assert!(exceeded.device);
+        assert!(!exceeded.wireguard_network);
+        assert!(exceeded.any());
+
+        let counts = Counts {
+            user: 0,
+            device: 0,
+            wireguard_network: exceed_wireguard_network,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits();
+        assert!(!exceeded.user);
+        assert!(!exceeded.device);
+        assert!(exceeded.wireguard_network);
+        assert!(exceeded.any());
+
+        let counts = Counts {
+            user: 0,
+            device: 0,
+            wireguard_network: 0,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits();
+        assert!(!exceeded.user);
+        assert!(!exceeded.device);
+        assert!(!exceeded.wireguard_network);
+        assert!(!exceeded.any());
     }
 }

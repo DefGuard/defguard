@@ -45,17 +45,6 @@ where
     }
 }
 
-/// Gets basic enterprise status.
-pub async fn check_enterprise_status() -> ApiResult {
-    let enterprise_enabled = is_enterprise_enabled();
-    Ok(ApiResponse {
-        json: serde_json::json!({
-            "enabled": enterprise_enabled,
-        }),
-        status: StatusCode::OK,
-    })
-}
-
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let enterprise_enabled = is_enterprise_enabled();
