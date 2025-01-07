@@ -58,6 +58,10 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
+    // Gateway disconnect notifications
+    pub gateway_disconnect_notifications_enabled: bool,
+    pub gateway_disconnect_notifications_inactivity_threshold: Option<i32>,
+    pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
 }
 
 impl Settings {
@@ -78,7 +82,8 @@ impl Settings {
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
-            license \
+            license, \
+            gateway_disconnect_notifications_enabled, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
