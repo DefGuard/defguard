@@ -611,7 +611,7 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
         info!("Creating test network");
         let mut network = WireguardNetwork::new(
             "TestNet".to_string(),
-            IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap(),
+            vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::new(10, 1, 1, 1)), 24).unwrap()],
             50051,
             "0.0.0.0".to_string(),
             None,
@@ -694,7 +694,7 @@ pub async fn init_vpn_location(
     // create a new network
     let network = WireguardNetwork::new(
         args.name.clone(),
-        args.address,
+        vec![args.address],
         args.port,
         args.endpoint.clone(),
         args.dns.clone(),

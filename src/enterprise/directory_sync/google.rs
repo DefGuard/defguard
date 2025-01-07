@@ -1,7 +1,7 @@
 use std::{str::FromStr, time::Duration};
 
 use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
-use chrono::{TimeDelta, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 #[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
@@ -26,11 +26,12 @@ struct Claims {
     iat: i64,
 }
 
+#[cfg(not(test))]
 impl Claims {
     #[must_use]
     #[cfg(not(test))]
     fn new(iss: &str, sub: &str) -> Self {
-        let now = chrono::Utc::now();
+        let now = Utc::now();
         let now_timestamp = now.timestamp();
         let exp = now_timestamp + 3600;
         Self {
@@ -51,16 +52,15 @@ pub struct ServiceAccountConfig {
 }
 
 #[allow(dead_code)]
-pub struct GoogleDirectorySync {
+pub(crate) struct GoogleDirectorySync {
     service_account_config: ServiceAccountConfig,
     access_token: Option<String>,
-    token_expiry: Option<chrono::DateTime<chrono::Utc>>,
+    token_expiry: Option<DateTime<Utc>>,
     admin_email: String,
 }
 
 ///
 /// Google Directory API responses
-///
 ///
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -154,7 +154,31 @@ impl GoogleDirectorySync {
         self.token_expiry.map_or(true, |expiry| expiry < Utc::now())
     }
 
-    #[cfg(not(test))]
+    async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
+        let access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
+        url.query_pairs_mut()
+            .append_pair("customer", "my_customer")
+            .append_pair("maxResults", "1")
+            .append_pair("showDeleted", "false");
+        let client = reqwest::Client::builder().build()?;
+        let result = client
+            .get(url)
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .timeout(REQUEST_TIMEOUT)
+            .send()
+            .await?;
+        let _result: UsersResponse =
+            parse_response(result, "Failed to test connection to Google API.").await?;
+        Ok(())
+    }
+}
+
+#[cfg(not(test))]
+impl GoogleDirectorySync {
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
@@ -180,7 +204,6 @@ impl GoogleDirectorySync {
         parse_response(response, "Failed to query user groups from Google API.").await
     }
 
-    #[cfg(not(test))]
     async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
@@ -206,7 +229,6 @@ impl GoogleDirectorySync {
         parse_response(response, "Failed to query groups from Google API.").await
     }
 
-    #[cfg(not(test))]
     async fn query_group_members(
         &self,
         group: &DirectoryGroup,
@@ -245,7 +267,6 @@ impl GoogleDirectorySync {
         Ok(token)
     }
 
-    #[cfg(not(test))]
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
         let mut url = Url::parse(ACCESS_TOKEN_URL).unwrap();
@@ -261,7 +282,6 @@ impl GoogleDirectorySync {
         parse_response(response, "Failed to get access token from Google API.").await
     }
 
-    #[cfg(not(test))]
     async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
@@ -283,28 +303,6 @@ impl GoogleDirectorySync {
             .send()
             .await?;
         parse_response(response, "Failed to query all users in the Google API.").await
-    }
-
-    async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
-        let access_token = self
-            .access_token
-            .as_ref()
-            .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
-        url.query_pairs_mut()
-            .append_pair("customer", "my_customer")
-            .append_pair("maxResults", "1")
-            .append_pair("showDeleted", "false");
-        let client = reqwest::Client::builder().build()?;
-        let result = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
-        let _result: UsersResponse =
-            parse_response(result, "Failed to test connection to Google API.").await?;
-        Ok(())
     }
 }
 
@@ -524,17 +522,17 @@ mod tests {
 
         // expired token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
+        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
         assert!(dirsync.is_token_expired());
 
         // valid token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() + TimeDelta::seconds(10000));
+        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
         assert!(!dirsync.is_token_expired());
 
         // no token
         dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(chrono::Utc::now() - TimeDelta::seconds(10000));
+        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
         dirsync.refresh_access_token().await.unwrap();
         assert!(!dirsync.is_token_expired());
         assert_eq!(dirsync.access_token, Some("test_token_refreshed".into()));

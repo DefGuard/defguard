@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "address: _",
-        "type_info": "Inet"
+        "type_info": "InetArray"
       },
       {
         "ordinal": 3,

@@ -696,34 +696,37 @@ impl Device<Id> {
     }
 
     // Assign IP to the device in a given network
-    pub async fn assign_next_network_ip(
+    pub(crate) async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
-        let net_ip = network.address.ip();
-        let net_network = network.address.network();
-        let net_broadcast = network.address.broadcast();
-        for ip in &network.address {
-            if ip == net_ip || ip == net_network || ip == net_broadcast {
-                continue;
-            }
-            if let Some(reserved_ips) = reserved_ips {
-                if reserved_ips.contains(&ip) {
+        if let Some(address) = network.address.first() {
+            let net_ip = address.ip();
+            let net_network = address.network();
+            let net_broadcast = address.broadcast();
+            for ip in address {
+                if ip == net_ip || ip == net_network || ip == net_broadcast {
                     continue;
                 }
-            }
+                if let Some(reserved_ips) = reserved_ips {
+                    if reserved_ips.contains(&ip) {
+                        continue;
+                    }
+                }
 
-            // Break loop if IP is unassigned and return network device
-            if Self::find_by_ip(&mut *transaction, ip, network.id)
-                .await?
-                .is_none()
-            {
-                info!("Created IP: {ip} for device: {}", self.name);
-                let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ip);
-                wireguard_network_device.insert(&mut *transaction).await?;
-                return Ok(wireguard_network_device);
+                // Break loop if IP is unassigned and return network device
+                if Self::find_by_ip(&mut *transaction, ip, network.id)
+                    .await?
+                    .is_none()
+                {
+                    info!("Assigned IP address {ip} for device: {}", self.name);
+                    let wireguard_network_device =
+                        WireguardNetworkDevice::new(network.id, self.id, ip);
+                    wireguard_network_device.insert(&mut *transaction).await?;
+                    return Ok(wireguard_network_device);
+                }
             }
         }
         Err(ModelError::CannotCreate)
@@ -735,24 +738,25 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         ip: IpAddr,
     ) -> Result<WireguardNetworkDevice, ModelError> {
-        let net_ip = network.address.ip();
-        let net_network = network.address.network();
-        let net_broadcast = network.address.broadcast();
-        if ip == net_ip || ip == net_network || ip == net_broadcast {
-            return Err(ModelError::CannotCreate);
-        }
+        if let Some(network_address) = network.address.first() {
+            let net_ip = network_address.ip();
+            let net_network = network_address.network();
+            let net_broadcast = network_address.broadcast();
+            if ip == net_ip || ip == net_network || ip == net_broadcast {
+                return Err(ModelError::CannotCreate);
+            }
 
-        if Self::find_by_ip(&mut *transaction, ip, network.id)
-            .await?
-            .is_none()
-        {
-            info!("Assigned IP: {ip} for device: {}", self.name);
-            let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ip);
-            wireguard_network_device.insert(&mut *transaction).await?;
-            Ok(wireguard_network_device)
-        } else {
-            Err(ModelError::CannotCreate)
+            if Self::find_by_ip(&mut *transaction, ip, network.id)
+                .await?
+                .is_none()
+            {
+                info!("Assigned IP: {ip} for device: {}", self.name);
+                let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ip);
+                wireguard_network_device.insert(&mut *transaction).await?;
+                return Ok(wireguard_network_device);
+            }
         }
+        Err(ModelError::CannotCreate)
     }
 
     pub async fn find_device_networks<'e, E>(
@@ -764,10 +768,10 @@ impl Device<Id> {
     {
         query_as!(
             WireguardNetwork,
-            "SELECT \
-                id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
-            FROM wireguard_network WHERE id IN (SELECT wireguard_network_id FROM wireguard_network_device where device_id = $1)",
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            FROM wireguard_network WHERE id IN \
+            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1)",
             self.id
         )
         .fetch_all(executor)
@@ -784,7 +788,7 @@ impl Device<Id> {
         Err(format!("{pubkey} is not a valid pubkey"))
     }
 
-    pub async fn find_by_type<'e, E>(
+    pub(crate) async fn find_by_type<'e, E>(
         executor: E,
         device_type: DeviceType,
     ) -> Result<Vec<Self>, SqlxError>
@@ -799,7 +803,7 @@ impl Device<Id> {
         ).fetch_all(executor).await
     }
 
-    pub async fn get_owner<'e, E>(&self, executor: E) -> Result<User<Id>, SqlxError>
+    pub(crate) async fn get_owner<'e, E>(&self, executor: E) -> Result<User<Id>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -823,36 +827,45 @@ mod test {
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network
-        pub async fn new_with_ip(
+        // TODO: merge with `assign_network_ip()`
+        pub(crate) async fn new_with_ip(
             pool: &PgPool,
             user_id: Id,
             name: String,
             pubkey: String,
             network: &WireguardNetwork<Id>,
         ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
-            let net_ip = network.address.ip();
-            let net_network = network.address.network();
-            let net_broadcast = network.address.broadcast();
-            for ip in &network.address {
-                if ip == net_ip || ip == net_network || ip == net_broadcast {
-                    continue;
-                }
-                // Break loop if IP is unassigned and return device
-                if Device::find_by_ip(pool, ip, network.id).await?.is_none() {
-                    let device =
-                        Device::new(name.clone(), pubkey, user_id, DeviceType::User, None, true)
-                            .save(pool)
-                            .await?;
-                    info!("Created device: {}", device.name);
-                    debug!("For user: {}", device.user_id);
-                    let wireguard_network_device =
-                        WireguardNetworkDevice::new(network.id, device.id, ip);
-                    wireguard_network_device.insert(pool).await?;
-                    info!(
-                        "Assigned IP: {ip} for device: {name} in network: {}",
-                        network.id
-                    );
-                    return Ok((device, wireguard_network_device));
+            if let Some(address) = network.address.first() {
+                let net_ip = address.ip();
+                let net_network = address.network();
+                let net_broadcast = address.broadcast();
+                for ip in address {
+                    if ip == net_ip || ip == net_network || ip == net_broadcast {
+                        continue;
+                    }
+                    // Break loop if IP is unassigned and return device
+                    if Self::find_by_ip(pool, ip, network.id).await?.is_none() {
+                        let device = Device::new(
+                            name.clone(),
+                            pubkey,
+                            user_id,
+                            DeviceType::User,
+                            None,
+                            true,
+                        )
+                        .save(pool)
+                        .await?;
+                        info!("Created device: {}", device.name);
+                        debug!("For user: {}", device.user_id);
+                        let wireguard_network_device =
+                            WireguardNetworkDevice::new(network.id, device.id, ip);
+                        wireguard_network_device.insert(pool).await?;
+                        info!(
+                            "Assigned IP: {ip} for device: {name} in network: {}",
+                            network.id
+                        );
+                        return Ok((device, wireguard_network_device));
+                    }
                 }
             }
             Err(ModelError::CannotCreate)

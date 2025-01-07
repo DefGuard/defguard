@@ -24,7 +24,7 @@ pub struct ImportedDevice {
 }
 
 #[derive(Debug, Error)]
-pub enum WireguardConfigParseError {
+pub(crate) enum WireguardConfigParseError {
     #[error(transparent)]
     ParseError(#[from] ini::ParseError),
     #[error("Config section not found: {0}")]
@@ -39,6 +39,8 @@ pub enum WireguardConfigParseError {
     InvalidKey(String),
     #[error("Invalid port: {0}")]
     InvalidPort(String),
+    #[error("Missing interface network address")]
+    MissingAddress,
     #[error("WireGuard network error")]
     NetworkError(#[from] WireguardNetworkError),
 }
@@ -55,7 +57,7 @@ impl From<DecodeError> for WireguardConfigParseError {
     }
 }
 
-pub fn parse_wireguard_config(
+pub(crate) fn parse_wireguard_config(
     config: &str,
 ) -> Result<(WireguardNetwork, Vec<ImportedDevice>), WireguardConfigParseError> {
     let config = ini::Ini::load_from_str(config)?;
@@ -82,11 +84,22 @@ pub fn parse_wireguard_config(
         .parse()
         .map_err(|_| WireguardConfigParseError::InvalidPort(port.to_string()))?;
     let dns = interface_section.get("DNS").map(ToString::to_string);
-    let network_address: IpNetwork = address.parse()?;
+    let mut addresses: Vec<IpNetwork> = Vec::new();
+    for addr in address.split(',') {
+        match addr.trim().parse() {
+            Ok(ip) => addresses.push(ip),
+            Err(err) => return Err(WireguardConfigParseError::InvalidIp(err)),
+        }
+    }
+    // Require at least one IP address.
+    let Some(network_address) = addresses.first() else {
+        return Err(WireguardConfigParseError::MissingAddress);
+    };
     let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix())?;
+    let network_address = *network_address;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
-        network_address,
+        addresses,
         port,
         String::new(),
         dns,
@@ -110,9 +123,9 @@ pub fn parse_wireguard_config(
         let ip = ip_network.ip();
 
         // check if assigned IP collides with gateway IP
-        let net_ip = network.address.ip();
-        let net_network = network.address.network();
-        let net_broadcast = network.address.broadcast();
+        let net_ip = network_address.ip();
+        let net_network = network_address.network();
+        let net_broadcast = network_address.broadcast();
         if ip == net_ip || ip == net_network || ip == net_broadcast {
             return Err(WireguardConfigParseError::InvalidPeerIp(ip));
         }
@@ -150,7 +163,7 @@ mod test {
         let config = "
             [Interface]
             PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
-            Address = 10.0.0.1/24
+            Address = 10.0.0.1/24, fc00::defc/64
             ListenPort = 55055
             DNS = 10.0.0.2
 
@@ -171,7 +184,13 @@ mod test {
         );
         assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
-        assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
+        assert_eq!(
+            network.address,
+            vec![
+                "10.0.0.1/24".parse().unwrap(),
+                "fc00::defc/64".parse().unwrap()
+            ]
+        );
         assert_eq!(network.port, 55055);
         assert_eq!(
             network.pubkey,

@@ -17,26 +17,11 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::json;
 
-use self::common::make_test_client;
+use self::common::{make_network, make_test_client};
 
 static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
-
-fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "mfa_enabled": false,
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
-    })
-}
 
 #[tokio::test]
 async fn test_stats() {

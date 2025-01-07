@@ -62,17 +62,7 @@ const Page = () => {
 
   const {
     standaloneDevice: { getDevicesList },
-    user: { getUser },
   } = useApi();
-
-  const { data: userProfile } = useQuery({
-    queryFn: () => getUser(currentUser?.username as string),
-    queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUser?.id],
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    refetchOnWindowFocus: true,
-    enabled: currentUser !== undefined,
-  });
 
   const { data: devicesData } = useQuery({
     queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
@@ -83,11 +73,10 @@ const Page = () => {
   });
 
   useEffect(() => {
-    if (userProfile && devicesData) {
+    if (devicesData) {
       setPageState((s) => ({
         ...s,
         reservedDeviceNames: [
-          ...userProfile.devices.map((d) => d.name.trim()),
           ...devicesData
             .filter((d) => d.added_by === (currentUser?.username as string))
             .map((d) => d.name.trim()),
@@ -96,7 +85,7 @@ const Page = () => {
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, devicesData]);
+  }, [devicesData]);
 
   return (
     <ManagementPageLayout

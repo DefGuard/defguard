@@ -7,7 +7,7 @@
       "Left": [
         "Int8",
         "Text",
-        "Inet",
+        "InetArray",
         "Int4",
         "Text",
         "Text",

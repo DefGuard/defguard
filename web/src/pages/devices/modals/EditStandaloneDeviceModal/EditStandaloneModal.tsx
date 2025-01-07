@@ -13,13 +13,13 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { Network } from '../../../../shared/types';
 import { selectifyNetworks } from '../../../../shared/utils/form/selectifyNetwork';
-import { isPresent } from '../../../../shared/utils/isPresent';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
