@@ -15,6 +15,8 @@ use tokio::time::sleep;
 
 use crate::{db::Settings, server_config, VERSION};
 
+use super::limits::Counts;
+
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
@@ -190,6 +192,10 @@ pub enum LicenseError {
     LicenseNotFound,
     #[error("License server error: {0}")]
     LicenseServerError(String),
+    #[error(
+        "License limits exceeded. To upgrade your license please contact sales<at>defguard.net"
+    )]
+    LicenseLimitsExceeded,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -493,12 +499,19 @@ async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
 /// This function checks the following two things:
 /// 1. Does the cached license exist
 /// 2. Is the cached license past its maximum expiry date
-pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
-    debug!("Validating if the license is present and not expired...");
+/// 3. Does current object count exceed license limits
+pub(crate) fn validate_license(
+    license: Option<&License>,
+    counts: &Counts,
+) -> Result<(), LicenseError> {
+    debug!("Validating if the license is present, not expired and not exceeding limits...");
     match license {
         Some(license) => {
             if license.is_max_overdue() {
                 return Err(LicenseError::LicenseExpired);
+            }
+            if !counts.validate_license_limits(license) {
+                return Err(LicenseError::LicenseLimitsExceeded);
             }
             Ok(())
         }
@@ -703,8 +716,9 @@ mod test {
     fn test_invalid_license() {
         let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
-        assert!(validate_license(Some(&license)).is_err());
-        assert!(validate_license(None).is_err());
+        let counts = Counts::default();
+        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(None, &counts).is_err());
 
         // One day past the expiry date, non-subscription license
         let license = License::new(
@@ -713,7 +727,7 @@ mod test {
             Some(Utc::now() - TimeDelta::days(1)),
             None,
         );
-        assert!(validate_license(Some(&license)).is_err());
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the expiry date, non-subscription license
         let license = License::new(
@@ -722,11 +736,11 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
         );
-        assert!(validate_license(Some(&license)).is_ok());
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
         let license = License::new("test".to_string(), false, None, None);
-        assert!(validate_license(Some(&license)).is_ok());
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
         let license = License::new(
@@ -735,7 +749,7 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
             None,
         );
-        assert!(validate_license(Some(&license)).is_err());
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the maximum overdue date
         let license = License::new(
@@ -744,6 +758,34 @@ mod test {
             Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
             None,
         );
-        assert!(validate_license(Some(&license)).is_ok());
+        assert!(validate_license(Some(&license), &counts).is_ok());
+
+        let counts = Counts::new(5, 5, 5);
+
+        // Over object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 1,
+                devices: 1,
+                locations: 1,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
+
+        // Below object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 10,
+                devices: 10,
+                locations: 10,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
     }
 }

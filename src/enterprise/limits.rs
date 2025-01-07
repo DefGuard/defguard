@@ -1,14 +1,16 @@
 use sqlx::{error::Error as SqlxError, query, PgPool};
 use std::sync::{RwLock, RwLockReadGuard};
 
+#[cfg(test)]
 use super::license::get_cached_license;
+use super::license::License;
 
 // Limits for free users
 pub const DEFAULT_USERS_LIMIT: u32 = 5;
 pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
 pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct Counts {
     user: u32,
     device: u32,
@@ -78,6 +80,16 @@ pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
 }
 
 impl Counts {
+    #[cfg(test)]
+    pub(crate) fn new(user: u32, device: u32, wireguard_network: u32) -> Self {
+        Self {
+            user,
+            device,
+            wireguard_network,
+        }
+    }
+
+    #[cfg(test)]
     pub(crate) fn is_over_limit(&self) -> bool {
         debug!("Checking if current object counts ({self:?}) exceed license limits");
 
@@ -87,24 +99,38 @@ impl Counts {
         // validate limits against license if available, use defaults otherwise
         match &*maybe_license {
             Some(license) => {
-                let limits = &license.limits;
-                match limits {
-                    Some(limits) => {
-                        self.user > limits.users
-                            || self.device > limits.devices
-                            || self.wireguard_network > limits.locations
-                    }
-                    // unlimited license
-                    None => false,
-                }
+                debug!("Cached license found. Validating license limits...");
+                self.validate_license_limits(license)
             }
             // free tier
             None => {
+                debug!("Cached license not found. Using default limits for validation...");
                 self.user > DEFAULT_USERS_LIMIT
                     || self.device > DEFAULT_DEVICES_LIMIT
                     || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
             }
         }
+    }
+
+    pub(crate) fn validate_license_limits(&self, license: &License) -> bool {
+        let limits = &license.limits;
+        match limits {
+            Some(limits) => {
+                self.user > limits.users
+                    || self.device > limits.devices
+                    || self.wireguard_network > limits.locations
+            }
+            // unlimited license
+            None => false,
+        }
+    }
+
+    /// Checks if current object count exceeds default limits
+    pub(crate) fn needs_enterprise_license(&self) -> bool {
+        debug!("Checking if current object counts ({self:?}) exceed default limits");
+        self.user > DEFAULT_USERS_LIMIT
+            || self.device > DEFAULT_DEVICES_LIMIT
+            || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
     }
 }
 
