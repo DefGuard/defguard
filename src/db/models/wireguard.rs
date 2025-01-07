@@ -10,8 +10,8 @@ use ipnetwork::{IpNetwork, IpNetworkError, NetworkSize};
 use model_derive::Model;
 use rand_core::OsRng;
 use sqlx::{
-    postgres::types::PgInterval, query, query_as, query_scalar, Error as SqlxError, FromRow,
-    PgConnection, PgExecutor, PgPool,
+    postgres::types::PgInterval, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection,
+    PgExecutor, PgPool,
 };
 use thiserror::Error;
 use utoipa::ToSchema;
@@ -638,6 +638,7 @@ impl WireguardNetwork<Id> {
         Ok(connected_at.flatten())
     }
 
+    /*
     /// Retrieves stats for all devices matching given `device_type`.
     pub(crate) async fn device_stats_for_type(
         &self,
@@ -694,6 +695,7 @@ impl WireguardNetwork<Id> {
         }
         Ok(result)
     }
+    */
 
     /// Retrieves stats for specified devices
     pub(crate) async fn device_stats(
@@ -718,8 +720,8 @@ impl WireguardNetwork<Id> {
         let query = format!(
             "SELECT device_id, device.name, device.user_id, \
             date_trunc($1, collected_at) collected_at, \
-            cast(sum(download) as bigint) download, \
-            cast(sum(upload) as bigint) upload \
+            CAST(sum(download) AS bigint) download, \
+            CAST(sum(upload) AS bigint) upload \
             FROM wireguard_peer_stats_view wpsv \
             JOIN device ON wpsv.device_id = device.id \
             WHERE device_id IN ({device_ids}) \
@@ -758,14 +760,13 @@ impl WireguardNetwork<Id> {
         Ok(result)
     }
 
-    /// Retrieves network stats grouped by currently active users since `from` timestamp.
-    pub(crate) async fn user_stats(
+    pub(crate) async fn distinct_device_stats(
         &self,
         conn: &PgPool,
         from: &NaiveDateTime,
         aggregation: &DateTimeAggregation,
-    ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
-        let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+        device_type: DeviceType,
+    ) -> Result<Vec<WireguardDeviceStatsRow>, SqlxError> {
         let oldest_handshake = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
         // Retrieve connected devices from database
         let devices = query_as!(
@@ -774,14 +775,29 @@ impl WireguardNetwork<Id> {
             d.description, d.device_type \"device_type: DeviceType\", d.configured \
             FROM device d JOIN wireguard_peer_stats s ON d.id = s.device_id \
             WHERE s.latest_handshake >= $1 AND s.network = $2 \
-            AND d.device_type = 'user'::device_type",
+            AND d.device_type = $3",
             oldest_handshake,
             self.id,
+            &device_type as &DeviceType,
         )
         .fetch_all(conn)
         .await?;
         // Retrieve data series for all active devices and assign them to users
-        let device_stats = self.device_stats(conn, &devices, from, aggregation).await?;
+        self.device_stats(conn, &devices, from, aggregation).await
+    }
+
+    /// Retrieves network stats grouped by currently active users since `from` timestamp.
+    pub(crate) async fn user_stats(
+        &self,
+        conn: &PgPool,
+        from: &NaiveDateTime,
+        aggregation: &DateTimeAggregation,
+    ) -> Result<Vec<WireguardUserStatsRow>, SqlxError> {
+        let mut user_map: HashMap<Id, Vec<WireguardDeviceStatsRow>> = HashMap::new();
+        // Retrieve data series for all active devices and assign them to users
+        let device_stats = self
+            .distinct_device_stats(conn, from, aggregation, DeviceType::User)
+            .await?;
         for stats in device_stats {
             user_map.entry(stats.user_id).or_default().push(stats);
         }

@@ -984,11 +984,8 @@ pub(crate) async fn devices_stats(
         .user_stats(&appstate.pool, &from, &aggregation)
         .await?;
     let network_devices_stats = network
-        .device_stats_for_type(&appstate.pool, DeviceType::Network, &from, &aggregation)
-        .await?
-        .into_iter()
-        .filter(|device_stats| !device_stats.stats.is_empty())
-        .collect();
+        .distinct_device_stats(&appstate.pool, &from, &aggregation, DeviceType::Network)
+        .await?;
     let response = DevicesStatsResponse {
         user_devices: user_devices_stats,
         network_devices: network_devices_stats,
