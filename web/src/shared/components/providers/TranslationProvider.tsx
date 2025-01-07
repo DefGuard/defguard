@@ -12,15 +12,15 @@ type Props = {
 };
 
 export const TranslationProvider = ({ children }: Props) => {
-  const [localeLodaded, setLocaleLoaded] = useState(false);
+  const [localeLoaded, setLocaleLoaded] = useState(false);
 
   useEffect(() => {
-    loadLocaleAsync(detectedLocale).then(() => {
+    void loadLocaleAsync(detectedLocale).then(() => {
       setLocaleLoaded(true);
     });
   }, []);
 
-  if (!localeLodaded) return null;
+  if (!localeLoaded) return null;
 
   return <TypesafeI18n locale={detectedLocale}>{children}</TypesafeI18n>;
 };

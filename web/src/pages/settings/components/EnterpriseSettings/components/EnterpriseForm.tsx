@@ -25,20 +25,20 @@ export const EnterpriseForm = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.EDIT_SETTINGS],
-    patchEnterpriseSettings,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_SETTINGS]);
-        toaster.success(LL.settingsPage.messages.editSuccess());
-      },
-      onError: (err: AxiosError) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_SETTINGS],
+    mutationFn: patchEnterpriseSettings,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_ENTERPRISE_SETTINGS],
+      });
+      toaster.success(LL.settingsPage.messages.editSuccess());
     },
-  );
+    onError: (err: AxiosError) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   if (!settings) return null;
 

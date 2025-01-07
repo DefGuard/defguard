@@ -60,7 +60,8 @@ export const AuthPage = () => {
   }, [mfaMethod, navigate, openIdParams, user]);
 
   useEffect(() => {
-    const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    const sub = loginSubject.subscribe(async ({ user, url, mfa }): Promise<void> => {
       // handle forward auth redirect
       if (redirectUrl && user) {
         setShowRedirect(true);

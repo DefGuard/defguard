@@ -33,10 +33,12 @@ export const LdapSettingsForm = () => {
 
   const toaster = useToaster();
 
-  const { isLoading, mutate } = useMutation({
+  const { isPending: isLoading, mutate } = useMutation({
     mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_SETTINGS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -140,7 +142,7 @@ export const LdapSettingsForm = () => {
           />
         </div>
       </header>
-      <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
+      <form id="ldap-settings-form" onSubmit={void handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}

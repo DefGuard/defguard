@@ -25,6 +25,7 @@ import { externalLink } from '../../../../../../shared/links';
 import { MutationKeys } from '../../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
 type FormFields = {
@@ -66,12 +67,11 @@ export const BrandingSettings = () => {
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const { mutate, isLoading } = useMutation(patchSettings, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: patchSettings,
     onSuccess: () => {
       const keys = [QueryKeys.FETCH_SETTINGS, QueryKeys.FETCH_ESSENTIAL_SETTINGS];
-      keys.forEach((key) => {
-        queryClient.invalidateQueries([key]);
-      });
+      invalidateMultipleQueries(queryClient, keys);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (err) => {
@@ -80,15 +80,13 @@ export const BrandingSettings = () => {
     },
   });
 
-  const { mutate: setDefaultBrandingMutation } = useMutation(
-    [MutationKeys.EDIT_SETTINGS],
-    setDefaultBranding,
-    {
-      onSuccess: () => {
-        toaster.success(LL.settingsPage.messages.editSuccess());
-      },
+  const { mutate: setDefaultBrandingMutation } = useMutation({
+    mutationKey: [MutationKeys.EDIT_SETTINGS],
+    mutationFn: setDefaultBranding,
+    onSuccess: () => {
+      toaster.success(LL.settingsPage.messages.editSuccess());
     },
-  );
+  });
 
   const zodSchema = useMemo(
     () =>
@@ -173,7 +171,7 @@ export const BrandingSettings = () => {
             type="submit"
           />
         </div>
-        <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
+        <form id="branding-form" onSubmit={void handleSubmit(onSubmit)}>
           <FormInput
             label={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
             controller={{ control, name: 'instance_name' }}

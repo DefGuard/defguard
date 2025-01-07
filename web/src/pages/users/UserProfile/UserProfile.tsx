@@ -53,17 +53,25 @@ export const UserProfile = () => {
     throw Error('No username found.');
   }, [currentUser?.username, paramsUsername]);
 
-  useQuery([QueryKeys.FETCH_USER_PROFILE, username], () => getUser(username), {
-    onSuccess: (userProfile) => {
-      setUserProfileState({ userProfile });
-    },
-    onError: (err) => {
-      toaster.error(LL.userPage.messages.failedToFetchUserData());
-      console.error(err);
-    },
+  const { data: userProfileData, error: fetchProfileError } = useQuery({
+    queryKey: [QueryKeys.FETCH_USER_PROFILE, username],
+    queryFn: () => getUser(username),
     refetchOnWindowFocus: true,
     enabled: !isUndefined(username),
   });
+
+  useEffect(() => {
+    if (userProfileData) {
+      setUserProfileState({ userProfile: userProfileData });
+    }
+  }, [setUserProfileState, userProfileData]);
+
+  useEffect(() => {
+    if (fetchProfileError) {
+      toaster.error(LL.userPage.messages.failedToFetchUserData());
+      console.error(fetchProfileError);
+    }
+  }, [LL.userPage.messages, fetchProfileError, toaster]);
 
   useEffect(() => {
     if (currentUser?.username === username) {

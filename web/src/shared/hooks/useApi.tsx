@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import axios, { AxiosResponse } from 'axios';
 import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import {
+  AddDeviceResponse,
   AddOpenidClientRequest,
   AddUserRequest,
   ApiError,
@@ -17,11 +19,13 @@ import {
   GetNetworkStatsRequest,
   GroupsResponse,
   LoginData,
+  LoginResponse,
   MFALoginResponse,
   Network,
   NetworkToken,
   OpenidClient,
   OpenIdProvider,
+  Provisioner,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -30,6 +34,7 @@ import {
   User,
   UserEditRequest,
   UserGroupRequest,
+  UserProfile,
   VerifyOpenidClientRequest,
   WireguardNetworkStats,
   WorkerJobRequest,
@@ -46,7 +51,7 @@ interface HookProps {
   notifyError?: boolean;
 }
 
-const envBaseUrl = import.meta.env.API_BASE_URL;
+const envBaseUrl: string | undefined = import.meta.env.VITE_API_BASE_URL;
 
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
@@ -77,7 +82,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
 
   const getUser: ApiHook['user']['getUser'] = async (username) =>
-    client.get(`/user/${username}`).then((res) => res.data);
+    client.get<UserProfile>(`/user/${username}`).then(unpackRequest);
 
   const editUser = async ({ username, data }: UserEditRequest) =>
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
@@ -105,7 +110,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
   const addDevice: ApiHook['device']['addDevice'] = async ({ username, ...rest }) =>
-    client.post(`/device/${username}`, rest).then((res) => res.data);
+    client.post<AddDeviceResponse>(`/device/${username}`, rest).then((res) => res.data);
 
   const fetchUserDevices = async (username: string) =>
     client.get<Device[]>(`/device/user/${username}`).then((res) => res.data);
@@ -137,7 +142,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
-        return response.data;
+        return response.data as LoginResponse;
       }
       if (response.status === 201) {
         return {
@@ -155,7 +160,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
-  const getWorkers = () => client.get('/worker').then((res) => res.data);
+  const getWorkers: ApiHook['provisioning']['getWorkers'] = () =>
+    client.get<Provisioner[]>('/worker').then(unpackRequest);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
     client.post<WorkerJobResponse>(`/worker/job`, data).then((response) => response.data);
@@ -271,11 +277,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
-  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
     () => client.post('/auth/webauthn/init').then(unpackRequest);
 
-  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
     async (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
 
@@ -480,7 +484,6 @@ const useApi = (props?: HookProps): ApiHook => {
     id,
   ) => client.get(`/device/network/${id}/config`).then(unpackRequest);
 
-  // eslint-disable-next-line max-len
   const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
     (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
 
@@ -489,6 +492,7 @@ const useApi = (props?: HookProps): ApiHook => {
       (res) => {
         // API sometimes returns null in optional fields.
         if (res.data) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           res.data = removeNulls(res.data);
         }
         return res;

@@ -32,35 +32,31 @@ export const MFAWebAuthN = () => {
   const toaster = useToaster();
   const webauthnAvailable = useMFAStore((state) => state.webauthn_available);
 
-  const { mutate: mfaFinish, isLoading: mfaFinishLoading } = useMutation(
-    [MutationKeys.WEBAUTHN_MFA_FINISH],
-    finish,
-    {
-      onSuccess: (data) => loginSubject.next(data),
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate: mfaFinish, isPending: mfaFinishLoading } = useMutation({
+    mutationKey: [MutationKeys.WEBAUTHN_MFA_FINISH],
+    mutationFn: finish,
+    onSuccess: (data) => loginSubject.next(data),
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
     },
-  );
+  });
 
-  const { mutate: mfaStart, isLoading: mfaStartLoading } = useMutation(
-    [MutationKeys.WEBAUTHN_MFA_START],
-    start,
-    {
-      onSuccess: async (data) => {
-        setAwaitingKey(true);
-        const parsed = parseRequestOptionsFromJSON(data);
-        get(parsed)
-          .then((response) => mfaFinish(response.toJSON()))
-          .catch((err) => {
-            toaster.error(LL.loginPage.mfa.webauthn.messages.error());
-            console.error(err);
-          })
-          .finally(() => setAwaitingKey(false));
-      },
+  const { mutate: mfaStart, isPending: mfaStartLoading } = useMutation({
+    mutationKey: [MutationKeys.WEBAUTHN_MFA_START],
+    mutationFn: start,
+    onSuccess: (data) => {
+      setAwaitingKey(true);
+      const parsed = parseRequestOptionsFromJSON(data);
+      get(parsed)
+        .then((response) => mfaFinish(response.toJSON()))
+        .catch((err) => {
+          toaster.error(LL.loginPage.mfa.webauthn.messages.error());
+          console.error(err);
+        })
+        .finally(() => setAwaitingKey(false));
     },
-  );
+  });
 
   useEffect(() => {
     if (!webauthnAvailable) {

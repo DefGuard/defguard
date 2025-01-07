@@ -8,7 +8,6 @@ import { ToastOptions } from '../../../defguard-ui/components/Layout/ToastManage
 import { useToastsStore } from '../../../defguard-ui/hooks/toasts/useToastStore';
 import { useUpdatesStore } from '../../../hooks/store/useUpdatesStore';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const VersionUpdateToast = ({ id }: ToastOptions) => {
   const removeToast = useToastsStore((s) => s.removeToast);
   const updateData = useUpdatesStore((s) => s.update);

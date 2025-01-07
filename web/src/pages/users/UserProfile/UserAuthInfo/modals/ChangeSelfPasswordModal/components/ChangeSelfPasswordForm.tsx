@@ -56,7 +56,7 @@ export const ChangeSelfPasswordForm = () => {
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: changePasswordSelf,
     onSuccess: () => {
       toaster.success(LL.modals.changePasswordSelf.messages.success());
@@ -76,7 +76,7 @@ export const ChangeSelfPasswordForm = () => {
   return (
     <form
       data-testid="change-self-password-form"
-      onSubmit={handleSubmit(handleValidSubmit)}
+      onSubmit={void handleSubmit(handleValidSubmit)}
     >
       <FormInput
         controller={{ control, name: 'old_password' }}
@@ -102,7 +102,7 @@ export const ChangeSelfPasswordForm = () => {
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.STANDARD}
           text={LL.modals.changePasswordSelf.controls.cancel()}
-          disabled={isLoading}
+          disabled={isPending}
           onClick={() => resetModal()}
         />
         <Button
@@ -111,7 +111,7 @@ export const ChangeSelfPasswordForm = () => {
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.changePasswordSelf.controls.submit()}
-          loading={isLoading}
+          loading={isPending}
         />
       </div>
     </form>

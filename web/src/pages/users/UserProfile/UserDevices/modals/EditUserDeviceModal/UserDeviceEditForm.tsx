@@ -68,21 +68,21 @@ export const EditUserDeviceForm = () => {
   const toaster = useToaster();
   const queryClient = useQueryClient();
 
-  const { isLoading: editDeviceLoading, mutate } = useMutation(
-    [MutationKeys.EDIT_USER_DEVICE],
-    editDevice,
-    {
-      onSuccess: () => {
-        toaster.success(LL.modals.editDevice.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        closeModal();
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { isPending: editDeviceLoading, mutate } = useMutation({
+    mutationKey: [MutationKeys.EDIT_USER_DEVICE],
+    mutationFn: editDevice,
+    onSuccess: () => {
+      toaster.success(LL.modals.editDevice.messages.success());
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      closeModal();
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   const onSubmitSuccess: SubmitHandler<Inputs> = (values) => {
     if (device) {
@@ -91,7 +91,7 @@ export const EditUserDeviceForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitSuccess)}>
+    <form onSubmit={void handleSubmit(onSubmitSuccess)}>
       <FormInput
         label={LL.modals.editDevice.form.fields.name.label()}
         controller={{ control, name: 'name' }}

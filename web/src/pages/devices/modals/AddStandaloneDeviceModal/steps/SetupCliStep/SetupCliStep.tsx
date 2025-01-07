@@ -14,6 +14,7 @@ import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore'
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { useDevicesPage } from '../../../../hooks/useDevicesPage';
 import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
@@ -46,12 +47,10 @@ export const SetupCliStep = () => {
     mutationFn: createCliDevice,
     onSuccess: () => {
       toast.success(LL.modals.addStandaloneDevice.toasts.deviceCreated());
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USER_PROFILE, currentUserId],
+        [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      ]);
     },
     onError: (e) => {
       toast.error(LL.modals.addStandaloneDevice.toasts.creationFailed());

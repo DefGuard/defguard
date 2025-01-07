@@ -18,6 +18,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { Network } from '../../../shared/types';
+import { invalidateMultipleQueries } from '../../../shared/utils/invalidateMultipleQueries.ts';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
 import {
@@ -55,8 +56,8 @@ const defaultValues: FormFields = {
 
 const networkToForm = (data?: Network): FormFields => {
   if (!data) return defaultValues;
-  let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
+  let omitted = omitBy<Network>(data, isNull);
+  omitted = omit(omitted, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
 
   let allowed_ips = '';
 
@@ -64,7 +65,7 @@ const networkToForm = (data?: Network): FormFields => {
     allowed_ips = data.allowed_ips.join(',');
   }
 
-  return { ...defaultValues, ...omited, allowed_ips };
+  return { ...defaultValues, ...omitted, allowed_ips };
 };
 
 export const NetworkEditForm = () => {
@@ -95,11 +96,7 @@ export const NetworkEditForm = () => {
         QueryKeys.FETCH_NETWORKS,
         QueryKeys.FETCH_NETWORK_TOKEN,
       ];
-      for (const key of keys) {
-        queryClient.refetchQueries({
-          queryKey: [key],
-        });
-      }
+      invalidateMultipleQueries(queryClient, keys);
     },
     onError: (err) => {
       setStoreState({ loading: false });
@@ -108,27 +105,39 @@ export const NetworkEditForm = () => {
     },
   });
 
-  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+  const {
+    isError: groupsError,
+    isLoading: groupsLoading,
+    data: groupsData,
+    error: fetchGroupsError,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
-      setGroupOptions(
-        res.groups.map((g) => ({
-          key: g,
-          value: g,
-          label: titleCase(g),
-        })),
-      );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
     enabled: componentMount,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: 'always',
   });
+
+  useEffect(() => {
+    if (fetchGroupsError) {
+      toaster.error(LL.messages.error());
+      console.error(fetchGroupsError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchGroupsError]);
+
+  useEffect(() => {
+    if (groupsData) {
+      setGroupOptions(
+        groupsData.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        })),
+      );
+    }
+  }, [groupsData]);
 
   const defaultFormValues = useMemo(() => {
     if (selectedNetworkId && networks) {
@@ -198,7 +207,7 @@ export const NetworkEditForm = () => {
     mode: 'all',
   });
 
-  const onValidSubmit: SubmitHandler<FormFields> = async (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     values = trimObjectStrings(values);
     setStoreState({ loading: true });
     mutate({
@@ -212,7 +221,6 @@ export const NetworkEditForm = () => {
   // reset form when network is selected
   useEffect(() => {
     reset(defaultFormValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFormValues, reset]);
 
   useEffect(() => {
@@ -227,7 +235,7 @@ export const NetworkEditForm = () => {
       <header>
         <h2>{LL.networkConfiguration.header()}</h2>
       </header>
-      <form onSubmit={handleSubmit(onValidSubmit)}>
+      <form onSubmit={void handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
           label={LL.networkConfiguration.form.fields.name.label()}
@@ -277,7 +285,7 @@ export const NetworkEditForm = () => {
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
           searchable
           searchFilter={(val, options) => {
-            const inf = options as SelectOption<string>[];
+            const inf = options;
             return inf.filter((o) => o.value.toLowerCase().includes(val.toLowerCase()));
           }}
           renderSelected={(val) => ({

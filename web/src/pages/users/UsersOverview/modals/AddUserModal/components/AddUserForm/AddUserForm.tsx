@@ -140,9 +140,12 @@ export const AddUserForm = () => {
     shallow,
   );
 
-  const addUserMutation = useMutation(addUser, {
+  const addUserMutation = useMutation({
+    mutationFn: addUser,
     onSuccess: (user) => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USERS_LIST],
+      });
       if (enableEnrollment) {
         toaster.success(LL.modals.addUser.messages.userAdded());
         setModalState({
@@ -160,10 +163,10 @@ export const AddUserForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const onSubmit: SubmitHandler<Inputs> = (data) => {
     const trimmed = trimObjectStrings(data);
     if (reservedUserNames.current.includes(trimmed.username)) {
-      trigger('username', { shouldFocus: true });
+      void trigger('username', { shouldFocus: true });
     } else {
       usernameAvailable(trimmed.username)
         .then(() => {
@@ -178,7 +181,7 @@ export const AddUserForm = () => {
         .catch(() => {
           setCheckingUsername(false);
           reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
-          trigger('username', { shouldFocus: true });
+          void trigger('username', { shouldFocus: true });
         });
     }
   };
@@ -187,7 +190,7 @@ export const AddUserForm = () => {
     <form
       id="add-user-form"
       data-testid="add-user-form"
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={void handleSubmit(onSubmit)}
     >
       <div className="checkbox-space">
         <FormCheckBox
@@ -257,7 +260,7 @@ export const AddUserForm = () => {
           onClick={() => setModalState({ visible: false })}
           tabIndex={4}
           type="button"
-          disabled={addUserMutation.isLoading || checkingUsername}
+          disabled={addUserMutation.isPending || checkingUsername}
         />
         <Button
           className="big primary"
@@ -266,7 +269,7 @@ export const AddUserForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addUser.form.submit()}
           disabled={!isValid}
-          loading={addUserMutation.isLoading || checkingUsername}
+          loading={addUserMutation.isPending || checkingUsername}
         />
       </div>
     </form>

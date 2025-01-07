@@ -195,6 +195,7 @@ export const StandaloneDeviceModalForm = ({
       }
     } catch (e) {
       toaster.error(LL.messages.error());
+      console.error(e);
     }
   };
 
@@ -202,7 +203,7 @@ export const StandaloneDeviceModalForm = ({
     (locationId: number | undefined) => {
       if (locationId !== undefined) {
         setIpIsLoading(true);
-        getAvailableIp({
+        void getAvailableIp({
           locationId,
         })
           .then((resp) => {
@@ -233,16 +234,18 @@ export const StandaloneDeviceModalForm = ({
       }
     });
     return () => sub.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitSubject]);
 
   return (
-    <form onSubmit={handleSubmit(submitHandler)} className="standalone-device-modal-form">
+    <form
+      onSubmit={void handleSubmit(submitHandler)}
+      className="standalone-device-modal-form"
+    >
       <FormInput controller={{ control, name: 'name' }} label={labels.deviceName()} />
       <div className="row">
         <FormSelect
           controller={{ control, name: 'location_id' }}
-          options={locationOptions as NonNullable<SelectOption<number>[]>}
+          options={locationOptions}
           renderSelected={renderSelectedOption}
           label={labels.location()}
           onChangeSingle={autoAssignRecommendedIp}

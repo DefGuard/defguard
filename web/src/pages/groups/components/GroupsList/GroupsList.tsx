@@ -20,6 +20,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { GroupInfo } from '../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { useAddGroupModal } from '../modals/AddGroupModal/useAddGroupModal';
 
@@ -105,16 +106,14 @@ const CustomRow = ({ group, disableDelete }: RowProps) => {
   const { LL } = useI18nContext();
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation({
+  const { mutate, isPending: isLoading } = useMutation({
     mutationFn: deleteGroup,
     onSuccess: () => {
       toaster.success(LL.messages.success());
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_GROUPS_INFO],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_GROUPS],
-      });
+      invalidateMultipleQueries(queryClient, [
+        QueryKeys.FETCH_GROUPS,
+        QueryKeys.FETCH_GROUPS_INFO,
+      ]);
       setDeleteModalOpen(false);
     },
     onError: () => {

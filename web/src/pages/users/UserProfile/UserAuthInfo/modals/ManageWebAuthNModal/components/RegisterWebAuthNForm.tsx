@@ -41,27 +41,27 @@ export const RegisterWebAuthNForm = () => {
   } = useApi();
   const queryClient = useQueryClient();
 
-  const { mutate: registerKeyFinish, isLoading: registerKeyFinishLoading } = useMutation(
-    [MutationKeys.REGISTER_SECURITY_KEY_FINISH],
-    finish,
-    {
-      onSuccess: (data) => {
-        toaster.success(LL.modals.manageWebAuthNKeys.form.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        reset();
-        if (data && data.codes) {
-          setModalState({
-            recoveryCodesModal: { visible: true, codes: data.codes },
-            manageWebAuthNKeysModal: { visible: false },
-          });
-        }
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate: registerKeyFinish, isPending: registerKeyFinishLoading } = useMutation({
+    mutationKey: [MutationKeys.REGISTER_SECURITY_KEY_FINISH],
+    mutationFn: finish,
+    onSuccess: (data) => {
+      toaster.success(LL.modals.manageWebAuthNKeys.form.messages.success());
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      reset();
+      if (data && data.codes) {
+        setModalState({
+          recoveryCodesModal: { visible: true, codes: data.codes },
+          manageWebAuthNKeysModal: { visible: false },
+        });
+      }
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   const zodSchema = useMemo(
     () =>
@@ -94,7 +94,7 @@ export const RegisterWebAuthNForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)}>
+    <form onSubmit={void handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
         disabled={registerKeyFinishLoading || waitingForSecurityKey}
@@ -115,6 +115,7 @@ export const RegisterWebAuthNForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={registerKeyFinishLoading || waitingForSecurityKey}
           text={LL.modals.manageWebAuthNKeys.form.controls.submit()}
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
           onClick={async () => {
             if (isValid) {
               setWaitingForSecurityKey(true);

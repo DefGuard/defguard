@@ -54,7 +54,8 @@ export const ChangePasswordForm = () => {
     user: { changePassword },
   } = useApi();
 
-  const changePasswordMutation = useMutation(changePassword, {
+  const changePasswordMutation = useMutation({
+    mutationFn: changePassword,
     mutationKey: [MutationKeys.CHANGE_PASSWORD],
     onSuccess: () => {
       if (modalState.user && modalState.user.username === currentUser?.username) {
@@ -97,7 +98,10 @@ export const ChangePasswordForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)} data-testid="change-password-admin-form">
+    <form
+      onSubmit={void handleSubmit(onValidSubmit)}
+      data-testid="change-password-admin-form"
+    >
       <FormInput
         label={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}
@@ -126,7 +130,7 @@ export const ChangePasswordForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"
           disabled={!isValid}
-          loading={changePasswordMutation.isLoading}
+          loading={changePasswordMutation.isPending}
           tabIndex={5}
           text={LL.modals.changeUserPassword.form.controls.submit()}
         />

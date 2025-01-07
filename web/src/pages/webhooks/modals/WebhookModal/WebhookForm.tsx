@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
@@ -96,40 +95,45 @@ export const WebhookForm = () => {
     resolver: zodResolver(zodSchema),
   });
 
-  const { mutate: addWebhookMutation, isLoading: addWebhookIsLoading } = useMutation(
-    [MutationKeys.EDIT_WEBHOOK],
-    addWebhook,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
-        toaster.success(LL.modals.webhookModal.form.messages.successAdd());
-        setModalState({ visible: false, webhook: undefined });
-      },
-      onError: (err) => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
-        toaster.error(LL.messages.error());
-        setModalState({ visible: false, webhook: undefined });
-        console.error(err);
-      },
+  const { mutate: addWebhookMutation, isPending: addWebhookIsLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_WEBHOOK],
+    mutationFn: addWebhook,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_WEBHOOKS],
+      });
+      toaster.success(LL.modals.webhookModal.form.messages.successAdd());
+      setModalState({ visible: false, webhook: undefined });
     },
-  );
-  const { mutate: editWebhookMutation, isLoading: editMutationIsLoading } = useMutation(
-    [MutationKeys.EDIT_WEBHOOK],
-    editWebhook,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
-        toaster.success(LL.modals.webhookModal.form.messages.successModify());
-        setModalState({ visible: false, webhook: undefined });
-      },
-      onError: (err) => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
-        toaster.error(LL.messages.error());
-        setModalState({ visible: false, webhook: undefined });
-        console.error(err);
-      },
+    onError: (err) => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_WEBHOOKS],
+      });
+      toaster.error(LL.messages.error());
+      setModalState({ visible: false, webhook: undefined });
+      console.error(err);
     },
-  );
+  });
+
+  const { mutate: editWebhookMutation, isPending: editMutationIsLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_WEBHOOK],
+    mutationFn: editWebhook,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_WEBHOOKS],
+      });
+      toaster.success(LL.modals.webhookModal.form.messages.successModify());
+      setModalState({ visible: false, webhook: undefined });
+    },
+    onError: (err) => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_WEBHOOKS],
+      });
+      toaster.error(LL.messages.error());
+      setModalState({ visible: false, webhook: undefined });
+      console.error(err);
+    },
+  });
 
   const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
     if (editMode) {
@@ -142,7 +146,7 @@ export const WebhookForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onValidSubmit)}>
+    <form onSubmit={void handleSubmit(onValidSubmit)}>
       <FormInput
         label={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}

@@ -35,7 +35,9 @@ export const MFATOTPAuth = () => {
   } = useApi();
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.VERIFY_TOTP], verify, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.VERIFY_TOTP],
+    mutationFn: verify,
     onSuccess: (data) => loginSubject.next(data),
     onError: (err) => {
       console.error(err);
@@ -78,7 +80,7 @@ export const MFATOTPAuth = () => {
   return (
     <>
       <p>{LL.loginPage.mfa.totp.header()}</p>
-      <form onSubmit={handleSubmit(handleValidSubmit)}>
+      <form onSubmit={void handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'code' }}
           autoComplete="one-time-code"

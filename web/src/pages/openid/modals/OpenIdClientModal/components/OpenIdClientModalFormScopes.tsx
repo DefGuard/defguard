@@ -22,7 +22,7 @@ export const OpenIdClientModalFormScopes = ({ control, disabled = false }: Props
   const handleChange = useCallback(
     (change: OpenIdClientScope, current: string[]): void => {
       if (current.includes(change)) {
-        onChange(current.filter((v) => v !== change));
+        onChange(current.filter((v) => v !== change.valueOf()));
       } else {
         onChange([...current, change]);
       }

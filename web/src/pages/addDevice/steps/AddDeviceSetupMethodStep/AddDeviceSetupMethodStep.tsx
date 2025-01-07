@@ -36,7 +36,7 @@ export const AddDeviceSetupMethodStep = () => {
     shallow,
   );
 
-  const { isLoading, mutate } = useMutation({
+  const { isPending: isLoading, mutate } = useMutation({
     mutationFn: startDesktopActivation,
     onSuccess: (resp) => {
       next({

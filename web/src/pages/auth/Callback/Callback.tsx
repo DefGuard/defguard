@@ -30,7 +30,8 @@ export const OpenIDCallback = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const callbackMutation = useMutation((data: CallbackData) => callback(data), {
+  const callbackMutation = useMutation({
+    mutationFn: callback,
     mutationKey: [MutationKeys.OPENID_CALLBACK],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
@@ -40,7 +41,7 @@ export const OpenIDCallback = () => {
       if (errorResponse.msg) {
         setError(errorResponse.msg);
       } else {
-        setError(String(error));
+        setError(JSON.stringify(error));
       }
     },
     retry: false,
@@ -51,7 +52,7 @@ export const OpenIDCallback = () => {
       // const hashFragment = window.location.search.substring(1);
       const params = new URLSearchParams(window.location.search);
 
-      // check if error occured
+      // check if error occurred
       const error = params.get('error');
 
       if (error) {

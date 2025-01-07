@@ -162,7 +162,6 @@ export const OpenIdSettingsForm = ({
       />
       <a
         href={
-          // eslint-disable-next-line max-len
           'https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers'
         }
         target="_blank"

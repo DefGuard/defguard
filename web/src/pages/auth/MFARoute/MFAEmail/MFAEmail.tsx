@@ -70,7 +70,7 @@ export const MFAEmail = () => {
     mode: 'all',
   });
 
-  const { mutate: verifyMutate, isLoading: verifyLoading } = useMutation({
+  const { mutate: verifyMutate, isPending: verifyLoading } = useMutation({
     mutationFn: verify,
     onSuccess: (data) => {
       loginSubject.next(data);
@@ -105,7 +105,7 @@ export const MFAEmail = () => {
   return (
     <>
       <p>{localLL.header()}</p>
-      <form onSubmit={handleSubmit(handleValidSubmit)}>
+      <form onSubmit={void handleSubmit(handleValidSubmit)}>
         <FormInput
           type="text"
           inputMode="numeric"
@@ -127,7 +127,9 @@ export const MFAEmail = () => {
           loading={codeLoading}
           disabled={verifyLoading || !resendEnabled}
           onClick={() => {
-            queryClient.invalidateQueries([queryKey]);
+            void queryClient.invalidateQueries({
+              queryKey: [queryKey],
+            });
             setResendEnabled(false);
             setTimeout(() => {
               setResendEnabled(true);

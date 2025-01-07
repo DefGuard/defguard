@@ -41,7 +41,7 @@ export const AddDeviceTokenStep = () => {
         disabled={isUndefined(token)}
         onClick={() => {
           if (token) {
-            writeToClipboard(token);
+            void writeToClipboard(token);
           }
         }}
         key={0}
@@ -57,7 +57,7 @@ export const AddDeviceTokenStep = () => {
         disabled={isUndefined(url)}
         onClick={() => {
           if (url) {
-            writeToClipboard(url);
+            void writeToClipboard(url);
           }
         }}
         key={0}

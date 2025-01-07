@@ -51,7 +51,9 @@ export const MFARecovery = () => {
     mode: 'all',
   });
 
-  const { mutate, isLoading } = useMutation([MutationKeys.RECOVERY_LOGIN], recovery, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.RECOVERY_LOGIN],
+    mutationFn: recovery,
     onSuccess: (data) => loginSubject.next(data),
     onError: (err) => {
       resetField('code', {
@@ -80,7 +82,7 @@ export const MFARecovery = () => {
   return (
     <>
       <p>{LL.loginPage.mfa.recoveryCode.header()}</p>
-      <form onSubmit={handleSubmit(handleValidSubmit)}>
+      <form onSubmit={void handleSubmit(handleValidSubmit)}>
         <FormInput
           placeholder={LL.loginPage.mfa.recoveryCode.form.fields.code.placeholder()}
           controller={{ control, name: 'code' }}

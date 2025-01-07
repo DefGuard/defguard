@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 // Static links to other services
 
 export const externalLink = {

@@ -19,6 +19,7 @@ import { DividerDirection } from '../../../../shared/defguard-ui/components/Layo
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface Props {
@@ -53,8 +54,10 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
         resetState();
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        invalidateMultipleQueries(queryClient, [
+          [QueryKeys.FETCH_NETWORKS],
+          [QueryKeys.FETCH_APP_INFO],
+        ]);
         navigate('/admin/overview', { replace: true });
       } else {
         next();

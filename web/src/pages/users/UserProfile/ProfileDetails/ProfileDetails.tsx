@@ -50,19 +50,19 @@ const ViewMode = () => {
 
   const toaster = useToaster();
   const queryClient = useQueryClient();
-  const { mutate: deleteTokenMutation } = useMutation(
-    [MutationKeys.REMOVE_USER_CLIENT],
-    removeUserClient,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        toaster.success(LL.userPage.userDetails.messages.deleteApp());
-      },
-      onError: () => {
-        toaster.error(LL.messages.error());
-      },
+  const { mutate: deleteTokenMutation } = useMutation({
+    mutationKey: [MutationKeys.REMOVE_USER_CLIENT],
+    mutationFn: removeUserClient,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      toaster.success(LL.userPage.userDetails.messages.deleteApp());
     },
-  );
+    onError: () => {
+      toaster.error(LL.messages.error());
+    },
+  });
   const user = useUserProfileStore((store) => store.userProfile?.user);
   const isMe = useUserProfileStore((store) => store.isMe);
 

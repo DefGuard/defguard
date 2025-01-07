@@ -84,7 +84,11 @@ export const UsersOverview = () => {
   const {
     user: { getUsers },
   } = useApi();
-  const { data: users, isLoading } = useQuery([QueryKeys.FETCH_USERS_LIST], getUsers);
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_USERS_LIST],
+    queryFn: getUsers,
+  });
 
   const [usersSearchValue, setUsersSearchValue] = useState('');
 

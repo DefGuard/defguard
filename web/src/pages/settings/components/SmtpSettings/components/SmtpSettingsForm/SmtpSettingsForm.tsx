@@ -26,6 +26,7 @@ import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { patternValidEmail } from '../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { SettingsSMTP } from '../../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { validateIpOrDomain } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
@@ -52,10 +53,13 @@ export const SmtpSettingsForm = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(patchSettings, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_APP_INFO],
+        [QueryKeys.FETCH_SETTINGS],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (err) => {
@@ -190,7 +194,7 @@ export const SmtpSettingsForm = () => {
           />
         </div>
       </header>
-      <form id="smtp-form" onSubmit={handleSubmit(onSubmit)}>
+      <form id="smtp-form" onSubmit={void handleSubmit(onSubmit)}>
         <FormInput
           label={localLL.form.fields.server.label()}
           controller={{ control, name: 'smtp_server' }}

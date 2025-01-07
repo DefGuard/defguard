@@ -22,7 +22,6 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
-import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { OpenIdLoginButton } from './components/OidcButtons';
 
@@ -78,7 +77,8 @@ export const Login = () => {
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
-  const loginMutation = useMutation((data: LoginData) => login(data), {
+  const loginMutation = useMutation({
+    mutationFn: login,
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
@@ -111,7 +111,7 @@ export const Login = () => {
   });
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-    if (!loginMutation.isLoading) {
+    if (!loginMutation.isPending) {
       loginMutation.mutate(trimObjectStrings(data));
     }
   };
@@ -121,7 +121,7 @@ export const Login = () => {
       {!enterpriseEnabled || !openIdLoading ? (
         <>
           <h1>{LL.loginPage.pageTitle()}</h1>
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={void handleSubmit(onSubmit)}>
             <FormInput
               controller={{ control, name: 'username' }}
               placeholder={LL.form.placeholders.username()}
@@ -139,7 +139,7 @@ export const Login = () => {
             />
             <Button
               type="submit"
-              loading={loginMutation.isLoading}
+              loading={loginMutation.isPending}
               size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.PRIMARY}
               text={LL.form.login()}

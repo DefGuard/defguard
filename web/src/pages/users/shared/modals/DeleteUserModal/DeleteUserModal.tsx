@@ -9,7 +9,7 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { User } from '../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 
 export const DeleteUserModal = () => {
   const {
@@ -27,13 +27,16 @@ export const DeleteUserModal = () => {
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation((user: User) => deleteUser(user), {
+  const { mutate, isPending } = useMutation({
+    mutationFn: deleteUser,
     onSuccess: (_, variables) => {
       toaster.success(
         LL.modals.deleteUser.messages.success({ username: variables.username }),
       );
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USERS_LIST],
+        [QueryKeys.FETCH_USER_PROFILE],
+      ]);
       setModalState({ visible: false, user: undefined });
       navigate('/admin/users', { replace: true });
     },
@@ -60,7 +63,7 @@ export const DeleteUserModal = () => {
           mutate(modalState.user);
         }
       }}
-      loading={isLoading}
+      loading={isPending}
     />
   );
 };

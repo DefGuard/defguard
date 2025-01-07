@@ -36,24 +36,29 @@ export const OpenIdSettingsRootForm = () => {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
   } = useApi();
 
-  const { isLoading } = useQuery({
+  const { isLoading, data: openidProvidersData } = useQuery({
     queryFn: fetchOpenIdProviders,
     queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
     refetchOnMount: true,
     refetchOnWindowFocus: false,
-    onSuccess: (provider) => {
-      setCurrentProvider(provider);
-    },
     retry: false,
     enabled: enterpriseEnabled,
   });
+
+  useEffect(() => {
+    if (openidProvidersData) {
+      setCurrentProvider(openidProvidersData);
+    }
+  }, [openidProvidersData]);
 
   const toaster = useToaster();
 
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -65,7 +70,9 @@ export const OpenIdSettingsRootForm = () => {
   const { mutate: deleteProvider } = useMutation({
     mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -168,7 +175,7 @@ export const OpenIdSettingsRootForm = () => {
   }, [currentProvider, deleteProvider]);
 
   return (
-    <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
+    <form id="root-form" onSubmit={void handleSubmit(handleValidSubmit)}>
       <div className="controls">
         <Button
           size={ButtonSize.SMALL}

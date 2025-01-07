@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import './style.scss';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';

@@ -30,7 +30,8 @@ export const SmtpTest = () => {
     mail: { sendTestMail },
   } = useApi();
 
-  const { mutate, isLoading } = useMutation([], sendTestMail, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: sendTestMail,
     onSuccess: () => {
       toaster.success(LL.settingsPage.smtp.testForm.controls.success());
     },
@@ -59,7 +60,7 @@ export const SmtpTest = () => {
     mode: 'all',
   });
 
-  const onSubmit: SubmitHandler<TestMail> = async (data) => {
+  const onSubmit: SubmitHandler<TestMail> = (data) => {
     mutate(data);
   };
 
@@ -81,7 +82,7 @@ export const SmtpTest = () => {
           }}
         />
       </header>
-      <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
+      <form id="smtp-test-form" onSubmit={void handleTestSubmit(onSubmit)}>
         <FormInput
           label={LL.settingsPage.smtp.testForm.fields.to.label()}
           controller={{ control: testControl, name: 'to' }}

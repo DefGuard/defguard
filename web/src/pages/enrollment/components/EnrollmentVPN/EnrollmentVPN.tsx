@@ -35,7 +35,9 @@ export const EnrollmentVPN = () => {
   const { mutate } = useMutation({
     mutationFn: editSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_SETTINGS],
+      });
       toaster.success(LL.enrollmentPage.messages.edit.success());
       setLoading(false);
     },
@@ -75,17 +77,21 @@ export const EnrollmentVPN = () => {
     [vpnOptionalityOptions],
   );
 
-  const handleChange = async (val: boolean) => {
-    if (!isLoading && settings) {
-      setLoading(true);
-      try {
-        mutate({ ...settings, enrollment_vpn_step_optional: val });
-      } catch (e) {
-        setLoading(false);
-        toaster.error(LL.enrollmentPage.messages.edit.error());
+  const handleChange = useCallback(
+    (val: boolean) => {
+      if (!isLoading && settings) {
+        setLoading(true);
+        try {
+          mutate({ ...settings, enrollment_vpn_step_optional: val });
+        } catch (e) {
+          setLoading(false);
+          toaster.error(LL.enrollmentPage.messages.edit.error());
+          console.error(e);
+        }
       }
-    }
-  };
+    },
+    [LL.enrollmentPage.messages.edit, isLoading, mutate, settings, toaster],
+  );
 
   return (
     <div id="enrollment-vpn-settings">
@@ -97,7 +103,7 @@ export const EnrollmentVPN = () => {
         selected={settings?.enrollment_vpn_step_optional}
         options={vpnOptionalityOptions}
         renderSelected={renderSelectedVpn}
-        onChangeSingle={(res) => handleChange(res)}
+        onChangeSingle={handleChange}
         loading={isLoading || isUndefined(settings)}
       />
     </div>

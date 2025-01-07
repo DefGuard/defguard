@@ -27,6 +27,7 @@ import {
 } from '../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../shared/queries';
 import { OAuth2AuthorizedApps } from '../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { omitNull } from '../../../../../shared/utils/omitNull';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../../shared/utils/trimObjectStrings';
@@ -121,37 +122,35 @@ export const ProfileDetailsForm = () => {
     defaultValues: formDefaultValues,
   });
 
-  const { data: availableGroups, isLoading: groupsLoading } = useQuery(
-    [QueryKeys.FETCH_GROUPS],
-    getGroups,
-    {
-      refetchOnWindowFocus: false,
-      enabled: fetchGroups && isAdmin,
-    },
-  );
+  const { data: availableGroups, isLoading: groupsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_GROUPS],
+    queryFn: getGroups,
+    refetchOnWindowFocus: false,
+    enabled: fetchGroups && isAdmin,
+  });
   const toaster = useToaster();
-  const { mutate, isLoading: userEditLoading } = useMutation(
-    [MutationKeys.EDIT_USER],
-    editUser,
-    {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        toaster.success(LL.userPage.messages.editSuccess());
-        setUserProfile({ editMode: false, loading: false });
-        // if username was changed redirect to new profile page
-        const newUsername = variables.data.username;
-        if (paramsUsername !== newUsername) {
-          navigate(`/admin/users/${variables.data.username}`, { replace: true });
-        }
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        setUserProfile({ loading: false });
-        console.error(err);
-      },
+  const { mutate, isPending: userEditLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_USER],
+    mutationFn: editUser,
+    onSuccess: (_data, variables) => {
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USER_PROFILE],
+        [QueryKeys.FETCH_USERS_LIST],
+      ]);
+      toaster.success(LL.userPage.messages.editSuccess());
+      setUserProfile({ editMode: false, loading: false });
+      // if username was changed redirect to new profile page
+      const newUsername = variables.data.username;
+      if (paramsUsername !== newUsername) {
+        navigate(`/admin/users/${variables.data.username}`, { replace: true });
+      }
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      setUserProfile({ loading: false });
+      console.error(err);
+    },
+  });
 
   const groupsOptions = useMemo(() => {
     if (availableGroups && !groupsLoading) {
@@ -221,12 +220,11 @@ export const ProfileDetailsForm = () => {
 
   useEffect(() => {
     setTimeout(() => setFetchGroups(true), 500);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <>
-      <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
+      <form onSubmit={void handleSubmit(onValidSubmit, onInvalidSubmit)}>
         <ModalWithTitle
           className="change-warning-modal"
           backdrop

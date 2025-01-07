@@ -206,10 +206,15 @@ export const DirsyncSettings = ({
                       if (file) {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                          const key = JSON.parse(e.target?.result as string);
-                          setValue('google_service_account_key', key.private_key);
-                          setValue('google_service_account_email', key.client_email);
-                          setGoogleServiceAccountFileName(file.name);
+                          if (e?.target?.result) {
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                            const key = JSON.parse(e.target?.result as string);
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                            setValue('google_service_account_key', key.private_key);
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+                            setValue('google_service_account_email', key.client_email);
+                            setGoogleServiceAccountFileName(file.name);
+                          }
                         };
                         reader.readAsText(file);
                       }
@@ -229,7 +234,7 @@ export const DirsyncSettings = ({
               <div className="test-connection">
                 <Button
                   onClick={() => {
-                    testDirsync().then((res) => {
+                    void testDirsync().then((res) => {
                       if (res.success) {
                         toaster.success(
                           localLL.form.directory_sync_settings.connectionTest.success(),

@@ -28,6 +28,7 @@ import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Settings } from '../../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
 
 type FormFields = {
@@ -50,12 +51,15 @@ export const LicenseSettings = () => {
   const queryClient = useQueryClient();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  const { mutate, isLoading } = useMutation(patchSettings, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: patchSettings,
     onSuccess: () => {
       toaster.success(LL.settingsPage.messages.editSuccess());
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_STATUS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_ENTERPRISE_INFO]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_ENTERPRISE_INFO],
+        [QueryKeys.FETCH_ENTERPRISE_STATUS],
+        [QueryKeys.FETCH_SETTINGS],
+      ]);
     },
     onError: (err: AxiosError) => {
       const errorResponse = err.response?.data as LicenseErrorResponse;
@@ -140,7 +144,7 @@ export const LicenseSettings = () => {
           </div>
         ) : (
           <div>
-            <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
+            <form id="license-form" onSubmit={void handleSubmit(onSubmit)}>
               <FormInput
                 label={LL.settingsPage.license.form.fields.key.label()}
                 controller={{ control, name: 'license' }}

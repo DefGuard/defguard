@@ -1,12 +1,7 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -27,6 +22,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { ModifyGroupsRequest } from '../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { GroupFormSelectAll } from './components/GroupFormSelectAll/GroupFormSelectAll';
 import { UserSelect } from './components/UserSelect/UserSelect';
 import { useAddGroupModal } from './useAddGroupModal';
@@ -50,11 +46,6 @@ export const AddGroupModal = () => {
 };
 
 const toInvalidate = [QueryKeys.FETCH_GROUPS, QueryKeys.FETCH_GROUPS_INFO];
-
-const invalidateQueries = (client: QueryClient, key: string) =>
-  client.invalidateQueries({
-    queryKey: [key],
-  });
 
 export type ModifyGroupFormFields = {
   name: string;
@@ -85,20 +76,20 @@ const ModalContent = () => {
     queryFn: getUsers,
   });
 
-  const { mutate: createGroupMutation, isLoading: isCreating } = useMutation({
+  const { mutate: createGroupMutation, isPending: isCreating } = useMutation({
     mutationFn: createGroup,
     onSuccess: () => {
       toaster.success(LL.messages.success());
-      toInvalidate.forEach((k) => invalidateQueries(queryClient, k));
+      invalidateMultipleQueries(queryClient, toInvalidate);
       closeModal();
     },
   });
 
-  const { mutate: editGroupMutation, isLoading: isEditing } = useMutation({
+  const { mutate: editGroupMutation, isPending: isEditing } = useMutation({
     mutationFn: editGroup,
     onSuccess: () => {
       toaster.success(LL.messages.success());
-      toInvalidate.forEach((k) => invalidateQueries(queryClient, k));
+      invalidateMultipleQueries(queryClient, toInvalidate);
       closeModal();
     },
   });
@@ -177,7 +168,7 @@ const ModalContent = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(handleValidSubmit)}>
+    <form onSubmit={void handleSubmit(handleValidSubmit)}>
       <FormInput controller={{ control, name: 'name' }} label={localLL.groupName()} />
       <div className="group-settings">
         <label>{localLL.groupSettings()}:</label>

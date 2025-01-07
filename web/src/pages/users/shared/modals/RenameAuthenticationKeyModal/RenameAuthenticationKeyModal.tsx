@@ -69,7 +69,7 @@ const ModalContent = () => {
   const queryClient = useQueryClient();
 
   const onSuccess = useCallback(() => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
     });
     toaster.success(LL.messages.success());
@@ -84,7 +84,7 @@ const ModalContent = () => {
     [LL.messages, toaster],
   );
 
-  const { mutate: renameYubiKeyMutation, isLoading: isLoadingYubikey } = useMutation({
+  const { mutate: renameYubiKeyMutation, isPending: isLoadingYubikey } = useMutation({
     mutationFn: renameYubikey,
     onSuccess,
     onError,
@@ -92,7 +92,7 @@ const ModalContent = () => {
 
   const {
     mutate: renameAuthenticationKeyMutation,
-    isLoading: isLoadingAuthenticationKey,
+    isPending: isLoadingAuthenticationKey,
   } = useMutation({
     mutationFn: renameAuthenticationKey,
     onSuccess,
@@ -144,7 +144,7 @@ const ModalContent = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(submitValid)} id="rename-authentication-key-form">
+    <form onSubmit={void handleSubmit(submitValid)} id="rename-authentication-key-form">
       <FormInput controller={{ control, name: 'name' }} label={`${LL.common.name()}`} />
       <div className="controls">
         <Button
