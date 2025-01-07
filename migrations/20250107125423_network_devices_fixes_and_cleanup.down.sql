@@ -1,19 +1,12 @@
-ALTER TABLE device
-DROP COLUMN device_type;
-
-ALTER TABLE device
-DROP COLUMN description;
-
-ALTER TABLE device
-DROP COLUMN configured;
-
-ALTER TABLE token
-DROP CONSTRAINT enrollment_device_id_fkey;
-
-ALTER TABLE token
-DROP COLUMN device_id;
-
+ALTER TABLE device DROP COLUMN device_type;
 DROP TYPE device_type;
+ALTER TABLE device DROP COLUMN description;
+ALTER TABLE device DROP COLUMN configured;
+ALTER TABLE device DROP CONSTRAINT name_user;
+ALTER TABLE device ADD CONSTRAINT name_user UNIQUE (name, user_id);
+
+ALTER TABLE token DROP CONSTRAINT enrollment_device_id_fkey;
+ALTER TABLE token DROP COLUMN device_id;
 
 ALTER TYPE mfa_method ADD VALUE 'web3';
 CREATE TABLE wallet (
@@ -43,6 +36,3 @@ CREATE OR REPLACE VIEW wireguard_peer_stats_view AS
     FROM wireguard_peer_stats;
 
 ALTER TABLE wireguard_network ALTER address TYPE inet USING address[1];
-
-ALTER TABLE device DROP CONSTRAINT name_user;
-ALTER TABLE device ADD CONSTRAINT name_user UNIQUE (name, user_id);
