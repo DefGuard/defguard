@@ -361,7 +361,7 @@ pub(crate) async fn find_available_ip(
                 .is_none()
             {
                 let (network_part, modifiable_part, network_prefix) =
-                    split_ip(&ip, &network_address);
+                    split_ip(&ip, network_address);
                 transaction.commit().await?;
                 return Ok(ApiResponse {
                     json: json!({
