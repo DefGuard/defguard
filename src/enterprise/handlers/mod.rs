@@ -48,7 +48,6 @@ where
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let enterprise_enabled = is_enterprise_enabled();
-    let needs_license = get_counts().needs_enterprise_license();
     let license = get_cached_license();
     let license_info = license.as_ref().map(|license| {
         serde_json::json!(
@@ -61,8 +60,7 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
     Ok(ApiResponse {
         json: serde_json::json!({
             "enabled": enterprise_enabled,
-            "needs_license": needs_license,
-            "license_info": license_info
+            "license_info": license_info,
         }),
         status: StatusCode::OK,
     })
