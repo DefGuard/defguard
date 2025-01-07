@@ -510,7 +510,7 @@ pub(crate) fn validate_license(
             if license.is_max_overdue() {
                 return Err(LicenseError::LicenseExpired);
             }
-            if !counts.validate_license_limits(license) {
+            if counts.is_over_license_limits(license) {
                 return Err(LicenseError::LicenseLimitsExceeded);
             }
             Ok(())
@@ -736,7 +736,10 @@ mod test {
             Some(Utc::now() + TimeDelta::days(1)),
             None,
         );
-        assert!(validate_license(Some(&license), &counts).is_ok());
+        // assert!(validate_license(Some(&license), &counts).is_ok());
+        let result = validate_license(Some(&license), &counts);
+        println!("{result:#?}");
+        assert!(result.is_ok());
 
         // No expiry date, non-subscription license
         let license = License::new("test".to_string(), false, None, None);

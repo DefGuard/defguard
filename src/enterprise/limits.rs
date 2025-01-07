@@ -100,7 +100,7 @@ impl Counts {
         match &*maybe_license {
             Some(license) => {
                 debug!("Cached license found. Validating license limits...");
-                self.validate_license_limits(license)
+                self.is_over_license_limits(license)
             }
             // free tier
             None => {
@@ -112,7 +112,7 @@ impl Counts {
         }
     }
 
-    pub(crate) fn validate_license_limits(&self, license: &License) -> bool {
+    pub(crate) fn is_over_license_limits(&self, license: &License) -> bool {
         let limits = &license.limits;
         match limits {
             Some(limits) => {
