@@ -41,7 +41,7 @@
     "@stablelib/base64": "^2.0.1",
     "@stablelib/x25519": "^2.0.1",
     "@tanstack/query-core": "^5.62.16",
-    "@tanstack/react-query": "^5.62.16",
+    "@tanstack/react-query": "^5.63.0",
     "@tanstack/react-virtual": "3.0.0-beta.9",
     "@tanstack/virtual-core": "3.0.0-beta.9",
     "axios": "^1.7.9",
@@ -53,7 +53,7 @@
     "events": "^3.3.0",
     "fast-deep-equal": "^3.1.3",
     "file-saver": "^2.0.5",
-    "framer-motion": "^11.16.0",
+    "framer-motion": "^11.16.1",
     "get-text-width": "^1.0.3",
     "hex-rgb": "^5.0.0",
     "html-react-parser": "^5.2.2",
@@ -87,7 +87,7 @@
     "typesafe-i18n": "^5.26.2",
     "use-breakpoint": "^4.0.5",
     "zod": "^3.24.1",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
@@ -96,7 +96,7 @@
     "@eslint/js": "^9.17.0",
     "@hookform/devtools": "^4.3.3",
     "@stylistic/eslint-plugin-ts": "^2.12.1",
-    "@tanstack/react-query-devtools": "^5.62.16",
+    "@tanstack/react-query-devtools": "^5.63.0",
     "@types/byte-size": "^8.1.2",
     "@types/file-saver": "^2.0.7",
     "@types/humanize-duration": "^3.27.4",
