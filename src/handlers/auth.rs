@@ -81,7 +81,7 @@ pub(crate) async fn create_session(
             "User {} has MFA enabled, sending MFA info for further authentication.",
             user.username
         );
-        if let Some(mfa_info) = MFAInfo::for_user(pool, &user).await? {
+        if let Some(mfa_info) = MFAInfo::for_user(pool, user).await? {
             check_new_device_login(
                 pool,
                 mail_tx,

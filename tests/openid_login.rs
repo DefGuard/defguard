@@ -11,7 +11,7 @@ use defguard::{
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 
-mod common;
+pub mod common;
 use self::common::client::TestClient;
 
 async fn make_client() -> TestClient {
@@ -87,11 +87,12 @@ async fn test_openid_providers() {
     assert!(redirect_uri.is_some());
 
     // Test that the endpoint is forbidden when the license is expired
-    let new_license = License {
-        customer_id: "test".to_string(),
-        subscription: false,
-        valid_until: Some(Utc::now() - Duration::days(1)),
-    };
+    let new_license = License::new(
+        "test".to_string(),
+        false,
+        Some(Utc::now() - Duration::days(1)),
+        None,
+    );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
