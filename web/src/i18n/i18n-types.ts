@@ -2997,7 +2997,7 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * N​o​ ​l​i​c​e​n​s​e
+				 * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
 				 */
 				noLicense: string
 				/**
@@ -7661,7 +7661,7 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * No license
+				 * No valid license
 				 */
 				noLicense: () => LocalizedString
 				/**
