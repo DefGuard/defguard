@@ -1,6 +1,6 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
-    enterprise::{get_counts, validate_license},
+    enterprise::get_counts,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -49,13 +49,14 @@ where
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
     let license = get_cached_license();
-    let counts = get_counts();
     let license_info = license.as_ref().map(|license| {
+        let counts = get_counts();
         serde_json::json!(
             {
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
-                "valid": validate_license(Some(license), &counts).is_ok(),
+                "expired": license.is_max_overdue(),
+                "limits_exceeded": counts.validate_license_limits(license)
             }
         )
     });
