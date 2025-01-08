@@ -13,7 +13,7 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
-    check_enterprise_info, check_enterprise_status,
+    check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
     openid_providers::{
