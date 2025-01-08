@@ -15,6 +15,7 @@ pub struct EnterpriseSettings {
 }
 
 // We want to be conscious of what the defaults are here
+#[allow(clippy::derivable_impls)]
 impl Default for EnterpriseSettings {
     fn default() -> Self {
         Self {

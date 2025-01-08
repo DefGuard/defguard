@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{

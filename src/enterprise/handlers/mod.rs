@@ -1,5 +1,6 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
+    enterprise::{get_counts, validate_license},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -15,7 +16,7 @@ use axum::{
 
 use super::{
     db::models::enterprise_settings::EnterpriseSettings, is_enterprise_enabled,
-    license::get_cached_license, needs_enterprise_license,
+    license::get_cached_license,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -45,36 +46,25 @@ where
     }
 }
 
-/// Gets basic enterprise status.
-pub async fn check_enterprise_status() -> ApiResult {
-    let enterprise_enabled = is_enterprise_enabled();
-    Ok(ApiResponse {
-        json: serde_json::json!({
-            "enabled": enterprise_enabled,
-        }),
-        status: StatusCode::OK,
-    })
-}
-
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
-    let enterprise_enabled = is_enterprise_enabled();
-    let needs_license = needs_enterprise_license();
     let license = get_cached_license();
+    let counts = get_counts();
     let license_info = license.as_ref().map(|license| {
         serde_json::json!(
             {
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
+                "valid": validate_license(Some(license), &counts).is_ok(),
             }
         )
     });
     Ok(ApiResponse {
-        json: serde_json::json!({
-            "enabled": enterprise_enabled,
-            "needs_license": needs_license,
-            "license_info": license_info
-        }),
+        json: serde_json::json!(
+            {
+                "license_info": license_info,
+            }
+        ),
         status: StatusCode::OK,
     })
 }

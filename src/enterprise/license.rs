@@ -15,6 +15,8 @@ use tokio::time::sleep;
 
 use crate::{db::Settings, server_config, VERSION};
 
+use super::limits::Counts;
+
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
 static LICENSE: RwLock<Option<License>> = RwLock::new(None);
@@ -190,6 +192,10 @@ pub enum LicenseError {
     LicenseNotFound,
     #[error("License server error: {0}")]
     LicenseServerError(String),
+    #[error(
+        "License limits exceeded. To upgrade your license please contact sales<at>defguard.net"
+    )]
+    LicenseLimitsExceeded,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -202,6 +208,7 @@ pub struct License {
     pub customer_id: String,
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
+    pub limits: Option<LicenseLimits>,
 }
 
 impl License {
@@ -210,11 +217,13 @@ impl License {
         customer_id: String,
         subscription: bool,
         valid_until: Option<DateTime<Utc>>,
+        limits: Option<LicenseLimits>,
     ) -> Self {
         Self {
             customer_id,
             subscription,
             valid_until,
+            limits,
         }
     }
 
@@ -290,8 +299,12 @@ impl License {
                     None => None,
                 };
 
-                let license =
-                    License::new(metadata.customer_id, metadata.subscription, valid_until);
+                let license = License::new(
+                    metadata.customer_id,
+                    metadata.subscription,
+                    valid_until,
+                    metadata.limits,
+                );
 
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
@@ -486,12 +499,19 @@ async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
 /// This function checks the following two things:
 /// 1. Does the cached license exist
 /// 2. Is the cached license past its maximum expiry date
-pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
-    debug!("Validating if the license is present and not expired...");
+/// 3. Does current object count exceed license limits
+pub(crate) fn validate_license(
+    license: Option<&License>,
+    counts: &Counts,
+) -> Result<(), LicenseError> {
+    debug!("Validating if the license is present, not expired and not exceeding limits...");
     match license {
         Some(license) => {
             if license.is_max_overdue() {
                 return Err(LicenseError::LicenseExpired);
+            }
+            if !counts.validate_license_limits(license) {
+                return Err(LicenseError::LicenseLimitsExceeded);
             }
             Ok(())
         }
@@ -643,7 +663,7 @@ mod test {
 
     #[test]
     fn test_license() {
-        let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9BYAAoJEKiEbAECmoSEtuMEAJu+mQlHt+OsIb3DSiknwyB+Z3d/AtvaOxIrnGSgnpJ22jAwKTRfBrOJsJQr0dA9wB4yawbXGv6+m35QPABQdSM+clq7x5J2bxyhLla00O7cdf2BcdYmyBEv1D/ZIjT1XBFoYEXzwxniviNsw4ZJaRsRIylr7eWsTw1tu+8IF4/U";
         let license = License::from_base64(license).unwrap();
         assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
         assert!(!license.subscription);
@@ -652,13 +672,36 @@ mod test {
             Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
         assert!(license.is_expired());
+
+        let limits = license.limits.unwrap();
+        assert_eq!(limits.users, 10);
+        assert_eq!(limits.devices, 100);
+        assert_eq!(limits.locations, 5);
+    }
+
+    #[test]
+    fn test_legacy_license() {
+        // use license key generated before user/device/location limits were introduced
+        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGNaw1LsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3fBjAAKCRCohGwBApqEhNX+A/9dQmucvCTm5ll9h7a8f1N7d7dAOQW8/xhVA4bZP3GATIya/RxZ+cp+oHRYvHwSiRG3smGbRzti9DdHaTC/X1nqjMvZ6M4pR+aBayFH7fSUQKRj5z40juZ/HTCH/236YG3IzUZmIasLYl8Em9AY3oobkkwh1Yw+v8XYaBTUsrOv9w==";
+        let license = License::from_base64(license).unwrap();
+        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert!(!license.subscription);
+        assert_eq!(
+            license.valid_until.unwrap(),
+            Utc.with_ymd_and_hms(2025, 1, 1, 10, 26, 30).unwrap()
+        );
+
+        assert!(license.is_expired());
+
+        // legacy license is unlimited
+        assert!(license.limits.is_none())
     }
 
     #[test]
     fn test_new_license() {
         // This key has an additional test_field in the metadata that doesn't exist in the proto definition
         // It should still be able to decode the license correctly
-        let license = "Ci4KIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgR0ZXN0ErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZnvgAKCRCohGwBApqEhJJ/A/4vz8JFTR7xMUiPpj437brzVYJjbKknTTxtpWtZbMH9y3JIGnEy9j8dgYfh5nxnB7xh1DT1FbQ69wW0J38FgEvn4/ZfI6FYCUbvaqbEN1zwF7D9ui1kL9gU7wQb3z+0apWl+g64eF7apsIDeGSEQqwgFRHIhQw3iCp7zUSSaEQITg==";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9EMAAoJEKiEbAECmoSE/0kEAIb18pVTEYWQo0w6813nShJqi7++Uo/fX4pxaAzEiG9r5HGpZSbsceCarMiK1rBr93HOIMeDRsbZmJBA/MAYGi32uXgzLE8fGSd4lcUPAbpvlj7KNvQNH6sMelzQVw+AJVY+IASqO84nfy92taEVagbLqIwl/eSQUnehJBS+B5/z";
         let license = License::from_base64(license).unwrap();
 
         assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
@@ -673,47 +716,76 @@ mod test {
     fn test_invalid_license() {
         let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
-        assert!(validate_license(Some(&license)).is_err());
-        assert!(validate_license(None).is_err());
+        let counts = Counts::default();
+        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(None, &counts).is_err());
 
         // One day past the expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: Some(Utc::now() - TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_err());
+        let license = License::new(
+            "test".to_string(),
+            false,
+            Some(Utc::now() - TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: Some(Utc::now() + TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new(
+            "test".to_string(),
+            false,
+            Some(Utc::now() + TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: None,
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new("test".to_string(), false, None, None);
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: true,
-            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_err());
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the maximum overdue date
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: true,
-            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
+
+        let counts = Counts::new(5, 5, 5);
+
+        // Over object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 1,
+                devices: 1,
+                locations: 1,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
+
+        // Below object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 10,
+                devices: 10,
+                locations: 10,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
     }
 }

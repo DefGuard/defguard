@@ -1240,7 +1240,7 @@ const en: BaseTranslation = {
       },
       licenseInfo: {
         title: 'License information',
-        noLicense: 'No license',
+        noLicense: 'No valid license',
         licenseNotRequired:
           "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {
