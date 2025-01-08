@@ -128,7 +128,10 @@ impl Settings {
             ldap_group_member_attr = $30, \
             ldap_member_attr = $31, \
             openid_create_account = $32, \
-            license = $33 \
+            license = $33, \
+            gateway_disconnect_notifications_enabled = $34, \
+            gateway_disconnect_notifications_inactivity_threshold = $35, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $36 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -162,7 +165,10 @@ impl Settings {
             self.ldap_group_member_attr,
             self.ldap_member_attr,
             self.openid_create_account,
-            self.license
+            self.license,
+            self.gateway_disconnect_notifications_enabled,
+            self.gateway_disconnect_notifications_inactivity_threshold,
+            self.gateway_disconnect_notifications_reconnect_notification_enabled
         )
         .execute(executor)
         .await?;
