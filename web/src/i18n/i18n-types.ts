@@ -172,7 +172,7 @@ type RootTranslation = {
 				title: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
+			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​u​s​e​r​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
 			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				subTitle: string
@@ -3042,10 +3042,24 @@ type RootTranslation = {
 				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
 				 */
 				title: string
-				/**
-				 * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
-				 */
-				noLicense: string
+				status: {
+					/**
+					 * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
+					 */
+					noLicense: string
+					/**
+					 * E​x​p​i​r​e​d
+					 */
+					expired: string
+					/**
+					 * L​i​m​i​t​s​ ​E​x​c​e​e​d​e​d
+					 */
+					limitsExceeded: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+				}
 				/**
 				 * <​p​>​Y​o​u​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​,​ ​a​s​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​e​x​c​e​e​d​e​d​ ​a​n​y​ ​o​f​ ​t​h​e​ ​u​s​a​g​e​ ​l​i​m​i​t​s​ ​y​e​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​'​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​'​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​.​<​/​p​>
 				 */
@@ -4910,7 +4924,7 @@ export type TranslationFunctions = {
 				title: () => LocalizedString
 				/**
 				 * 
-			        You have **reached the limit** of this functionality. To **[ manage more locations/devices ]** purchase of the Enterprise license is required.
+			        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
 			        
 				 */
 				subTitle: () => LocalizedString
@@ -7752,10 +7766,24 @@ export type TranslationFunctions = {
 				 * License information
 				 */
 				title: () => LocalizedString
-				/**
-				 * No valid license
-				 */
-				noLicense: () => LocalizedString
+				status: {
+					/**
+					 * No valid license
+					 */
+					noLicense: () => LocalizedString
+					/**
+					 * Expired
+					 */
+					expired: () => LocalizedString
+					/**
+					 * Limits Exceeded
+					 */
+					limitsExceeded: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+				}
 				/**
 				 * <p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>
 				 */

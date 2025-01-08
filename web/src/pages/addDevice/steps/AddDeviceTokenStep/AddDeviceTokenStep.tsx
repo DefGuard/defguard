@@ -7,12 +7,16 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
+import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
@@ -21,6 +25,9 @@ export const AddDeviceTokenStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.copyToken;
   const navigate = useNavigate();
+  const { getAppInfo } = useApi();
+  const setAppStore = useAppStore((s) => s.setState, shallow);
+  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
 
   const userData = useAddDevicePageStore((state) => state.userData);
 
@@ -69,6 +76,18 @@ export const AddDeviceTokenStep = () => {
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (userData) {
+        void getAppInfo().then((response) => {
+          setAppStore({
+            appInfo: response,
+          });
+          if (response.license_info.limits_exceeded.device) {
+            openUpgradeLicenseModal({
+              modalVariant: response.license_info.enterprise
+                ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+                : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+            });
+          }
+        });
         setTimeout(() => {
           resetPage();
         }, 1000);
@@ -78,7 +97,8 @@ export const AddDeviceTokenStep = () => {
     return () => {
       sub.unsubscribe();
     };
-  }, [resetPage, nextSubject, navigate, userData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextSubject, userData]);
 
   return (
     <>

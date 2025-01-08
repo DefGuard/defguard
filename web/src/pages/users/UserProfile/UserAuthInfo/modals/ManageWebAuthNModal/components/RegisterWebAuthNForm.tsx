@@ -115,7 +115,6 @@ export const RegisterWebAuthNForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={registerKeyFinishLoading || waitingForSecurityKey}
           text={LL.modals.manageWebAuthNKeys.form.controls.submit()}
-           
           onClick={async () => {
             if (isValid) {
               setWaitingForSecurityKey(true);

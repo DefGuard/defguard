@@ -54,7 +54,7 @@ const en: BaseTranslation = {
         title: 'Upgrade',
         //md
         subTitle: `
-        You have **reached the limit** of this functionality. To **[ manage more locations/devices ]** purchase of the Enterprise license is required.
+        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
         `,
       },
       //md
@@ -1268,7 +1268,12 @@ Licensing information: https://docs.defguard.net/enterprise/license
       },
       licenseInfo: {
         title: 'License information',
-        noLicense: 'No valid license',
+        status: {
+          noLicense: 'No valid license',
+          expired: 'Expired',
+          limitsExceeded: 'Limits Exceeded',
+          active: 'Active',
+        },
         licenseNotRequired:
           "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {

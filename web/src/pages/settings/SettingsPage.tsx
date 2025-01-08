@@ -1,15 +1,18 @@
 import './style.scss';
 
-import { useQuery } from '@tanstack/react-query';
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { useUpgradeLicenseModal } from '../../shared/components/Layout/UpgradeLicenseModal/store';
+import { UpgradeLicenseModalVariant } from '../../shared/components/Layout/UpgradeLicenseModal/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { CardTabs } from '../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../shared/defguard-ui/components/Layout/CardTabs/types';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { EnterpriseSettings } from './components/EnterpriseSettings/EnterpriseSettings';
@@ -27,13 +30,19 @@ const tabsContent: ReactNode[] = [
   <EnterpriseSettings key={4} />,
 ];
 
+const enterpriseTabs: number[] = [3, 4];
+
 export const SettingsPage = () => {
   const { LL } = useI18nContext();
   const {
+    getEnterpriseInfo,
     settings: { getSettings },
   } = useApi();
 
   const [activeCard, setActiveCard] = useState(0);
+  const queryClient = useQueryClient();
+  const appInfo = useAppStore((s) => s.appInfo);
+  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
 
   const [setPageState, resetPageState] = useSettingsPage(
     (state) => [state.setState, state.reset],
@@ -42,12 +51,40 @@ export const SettingsPage = () => {
 
   const settings = useSettingsPage((state) => state.settings);
 
-  const { data: settingsData, isLoading } = useQuery({
+  const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryFn: getSettings,
     queryKey: [QueryKeys.FETCH_SETTINGS],
     refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
+
+  const { data: enterpriseInfo, isLoading: enterpriseInfoLoading } = useQuery({
+    queryFn: getEnterpriseInfo,
+    queryKey: [QueryKeys.FETCH_ENTERPRISE_INFO],
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+
+  const handleTabClick = useCallback(
+    (tabIndex: number) => {
+      if (appInfo) {
+        if (
+          enterpriseTabs.includes(tabIndex) &&
+          appInfo.license_info.any_limit_exceeded
+        ) {
+          openUpgradeLicenseModal({
+            modalVariant: appInfo.license_info.enterprise
+              ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+              : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+            force: true,
+          });
+        } else {
+          setActiveCard(tabIndex);
+        }
+      }
+    },
+    [appInfo, openUpgradeLicenseModal],
+  );
 
   const tabs = useMemo(
     (): CardTabsData[] => [
@@ -55,55 +92,77 @@ export const SettingsPage = () => {
         key: 0,
         content: LL.settingsPage.tabs.global(),
         active: activeCard === 0,
-        onClick: () => setActiveCard(0),
+        onClick: () => handleTabClick(0),
       },
       {
         key: 1,
         content: LL.settingsPage.tabs.smtp(),
         active: activeCard === 1,
-        onClick: () => setActiveCard(1),
+        onClick: () => handleTabClick(1),
       },
       {
         key: 2,
         content: LL.settingsPage.tabs.ldap(),
         active: activeCard === 2,
-        onClick: () => setActiveCard(2),
+        onClick: () => handleTabClick(2),
       },
       {
         key: 3,
         content: LL.settingsPage.tabs.openid(),
         active: activeCard === 3,
-        onClick: () => setActiveCard(3),
+        onClick: () => handleTabClick(3),
       },
       {
         key: 4,
         content: LL.settingsPage.tabs.enterprise(),
         active: activeCard === 4,
-        onClick: () => setActiveCard(4),
+        onClick: () => handleTabClick(4),
       },
     ],
-    [LL.settingsPage.tabs, activeCard],
+    [LL.settingsPage.tabs, activeCard, handleTabClick],
   );
 
   // set store
   useEffect(() => {
-    if (settingsData) {
-      setPageState({ settings: settingsData });
-    }
-  }, [settingsData, setPageState]);
+    setPageState({
+      settings: settingsData,
+      enterpriseInfo: enterpriseInfo?.license_info,
+    });
+  }, [settingsData, setPageState, enterpriseInfo?.license_info]);
 
   useEffect(() => {
+    void queryClient.invalidateQueries({
+      queryKey: [QueryKeys.FETCH_APP_INFO],
+    });
     return () => {
       resetPageState?.();
     };
     // eslint-disable-next-line
   }, []);
 
+  // if appinfo changes and license is not enterprise anymore then change active tab to global
+  // this can happen when admin is on enterprise tab but limits are exceeded in the mean time
+  useEffect(() => {
+    if (
+      appInfo &&
+      appInfo.license_info.any_limit_exceeded &&
+      enterpriseTabs.includes(activeCard)
+    ) {
+      setActiveCard(0);
+      openUpgradeLicenseModal({
+        modalVariant: appInfo.license_info.enterprise
+          ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+          : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+        force: true,
+      });
+    }
+  }, [activeCard, appInfo, openUpgradeLicenseModal]);
+
   return (
     <PageContainer id="settings-page">
       <h1>{LL.settingsPage.title()}</h1>
-      {!settingsData && isLoading && <LoaderSpinner size={250} />}
-      {settings && (
+      {(settingsLoading || enterpriseInfoLoading) && <LoaderSpinner size={250} />}
+      {settings && !enterpriseInfoLoading && !settingsLoading && (
         <>
           <CardTabs tabs={tabs} />
           <Card className="settings-card" hideMobile shaded>

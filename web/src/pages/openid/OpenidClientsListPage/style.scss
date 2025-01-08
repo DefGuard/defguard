@@ -12,13 +12,13 @@
     }
   }
 
-  &>* {
+  & > * {
     grid-row: 1;
   }
 }
 
 #openid-clients-list {
-  &>.page-content {
+  & > .page-content {
     position: relative;
     overflow: hidden;
     min-height: 100%;
@@ -162,7 +162,7 @@
         }
       }
 
-      &>.controls {
+      & > .controls {
         display: flex;
         flex-direction: row;
         align-content: center;
@@ -170,13 +170,12 @@
         justify-content: center;
         margin-left: auto;
 
-        &>.select {
+        & > .select {
           height: 40px;
         }
 
-        &>button {
+        & > button {
           svg {
-
             g,
             path,
             rect {
@@ -188,7 +187,7 @@
         @include media-breakpoint-down(lg) {
           column-gap: 1rem;
 
-          &>button {
+          & > button {
             width: 40px;
             height: 40px;
             padding: 0;
@@ -198,7 +197,7 @@
             }
           }
 
-          &>.add-user {
+          & > .add-user {
             min-width: 0;
             padding: 0;
             width: 40px;
@@ -209,7 +208,7 @@
         @include media-breakpoint-up(lg) {
           gap: 2rem;
 
-          &>div {
+          & > div {
             width: 180px;
           }
 
@@ -305,7 +304,7 @@
           justify-content: flex-start;
         }
 
-        &>div {
+        & > div {
           display: flex;
           flex-flow: row nowrap;
           align-items: center;

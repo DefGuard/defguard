@@ -29,7 +29,6 @@ export const AppLoader = () => {
     getAppInfo,
     getNewVersion,
     user: { getMe },
-    getEnterpriseStatus,
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
   const { setLocale } = useI18nContext();
@@ -68,8 +67,8 @@ export const AppLoader = () => {
   const { data: appInfoData, error: appInfoError } = useQuery({
     queryFn: getAppInfo,
     queryKey: [QueryKeys.FETCH_APP_INFO],
-    refetchOnWindowFocus: false,
-    retry: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     enabled: !isUndefined(currentUser),
   });
 
@@ -104,29 +103,6 @@ export const AppLoader = () => {
   useEffect(() => {
     setAppStore({ enterprise_settings: enterpriseSettingsData });
   }, [setAppStore, enterpriseSettingsData]);
-
-  const { data: enterpriseStatus, error: enterpriseStatusError } = useQuery({
-    queryFn: getEnterpriseStatus,
-    queryKey: [QueryKeys.FETCH_ENTERPRISE_STATUS],
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (enterpriseStatus) {
-      setAppStore({
-        enterprise_status: enterpriseStatus,
-      });
-    }
-  }, [enterpriseStatus, setAppStore]);
-
-  useEffect(() => {
-    if (enterpriseStatusError) {
-      toaster.error(LL.messages.errorVersion());
-      console.error(enterpriseStatusError);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enterpriseStatusError]);
 
   const { isLoading: settingsLoading, data: essentialSettings } = useQuery({
     queryFn: getEssentialSettings,

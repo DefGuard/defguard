@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
+import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import DefguardNoIcon from '../../../../shared/components/svg/DefguardNoIcon';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
@@ -17,6 +19,7 @@ import {
 import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { DividerDirection } from '../../../../shared/defguard-ui/components/Layout/Divider/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
@@ -29,6 +32,9 @@ interface Props {
 }
 
 export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
+  const { getAppInfo } = useApi();
+  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
+  const setAppState = useAppStore((s) => s.setState, shallow);
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -54,26 +60,25 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
         resetState();
-        invalidateMultipleQueries(queryClient, [
-          [QueryKeys.FETCH_NETWORKS],
-          [QueryKeys.FETCH_APP_INFO],
-        ]);
+        invalidateMultipleQueries(queryClient, [[QueryKeys.FETCH_NETWORKS]]);
+        void getAppInfo().then((response) => {
+          setAppState({ appInfo: response });
+          if (response.license_info.limits_exceeded.wireguard_network) {
+            openUpgradeLicenseModal({
+              modalVariant: response.license_info.enterprise
+                ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+                : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+            });
+          }
+        });
         navigate('/admin/overview', { replace: true });
       } else {
         next();
       }
     });
     return () => sub?.unsubscribe();
-  }, [
-    LL.wizard,
-    lastStep,
-    navigate,
-    next,
-    nextSubject,
-    queryClient,
-    resetState,
-    toaster,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [LL.wizard, lastStep]);
 
   if (!networkPresent && currentStep === 0) return null;
 

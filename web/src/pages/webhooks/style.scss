@@ -7,18 +7,18 @@
   }
 
   @for $i from 1 through 4 {
-    &> :nth-child(#{$i}) {
+    & > :nth-child(#{$i}) {
       grid-column: $i;
     }
   }
 
-  &>* {
+  & > * {
     grid-row: 1;
   }
 }
 
 #webhooks-list-page {
-  &>.page-content {
+  & > .page-content {
     position: relative;
     overflow: hidden;
     display: grid;
@@ -165,16 +165,15 @@
         justify-content: center;
         margin-left: auto;
 
-        &>.select {
+        & > .select {
           height: 40px;
         }
 
-        &>.add-item {
+        & > .add-item {
           min-width: 110px;
           width: auto;
 
           svg {
-
             rect,
             g {
               fill: var(--white);
@@ -185,7 +184,7 @@
         @include media-breakpoint-down(lg) {
           column-gap: 1rem;
 
-          &>button {
+          & > button {
             width: 40px;
             height: 40px;
 
@@ -194,7 +193,7 @@
             }
           }
 
-          &>.add-item {
+          & > .add-item {
             min-width: 0;
             padding: 0;
             width: 40px;
@@ -205,7 +204,7 @@
         @include media-breakpoint-up(lg) {
           gap: 2rem;
 
-          &>div {
+          & > div {
             width: 180px;
           }
 
@@ -288,11 +287,11 @@
           @include list-text;
         }
 
-        &> :nth-child(1) {
+        & > :nth-child(1) {
           user-select: text;
         }
 
-        &> :nth-child(3) {
+        & > :nth-child(3) {
           display: flex;
           flex-flow: row nowrap;
           align-items: center;
@@ -301,7 +300,7 @@
           column-gap: 1rem;
         }
 
-        &> :nth-child(4) {
+        & > :nth-child(4) {
           button {
             width: 100%;
           }

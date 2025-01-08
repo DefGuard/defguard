@@ -323,8 +323,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const editSettings = async (settings: Settings) =>
     client.put('/settings', settings).then(unpackRequest);
 
-  const getEnterpriseStatus = () => client.get('/enterprise_status').then(unpackRequest);
-
   const getEnterpriseInfo = () => client.get('/enterprise_info').then(unpackRequest);
 
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
@@ -518,7 +516,6 @@ const useApi = (props?: HookProps): ApiHook => {
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
-    getEnterpriseStatus,
     getEnterpriseInfo,
     oAuth: {
       consent: oAuthConsent,
