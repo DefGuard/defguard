@@ -136,7 +136,7 @@ pub(crate) async fn list_groups_info(
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
-        "SELECT g.name name, \
+        "SELECT g.name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
         COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
         is_admin \
