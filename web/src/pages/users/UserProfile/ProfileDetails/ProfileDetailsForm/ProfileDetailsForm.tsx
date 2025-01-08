@@ -224,7 +224,7 @@ export const ProfileDetailsForm = () => {
 
   return (
     <>
-      <form onSubmit={void handleSubmit(onValidSubmit, onInvalidSubmit)}>
+      <form onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)}>
         <ModalWithTitle
           className="change-warning-modal"
           backdrop

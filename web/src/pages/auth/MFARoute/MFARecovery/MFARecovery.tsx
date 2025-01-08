@@ -82,7 +82,7 @@ export const MFARecovery = () => {
   return (
     <>
       <p>{LL.loginPage.mfa.recoveryCode.header()}</p>
-      <form onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           placeholder={LL.loginPage.mfa.recoveryCode.form.fields.code.placeholder()}
           controller={{ control, name: 'code' }}

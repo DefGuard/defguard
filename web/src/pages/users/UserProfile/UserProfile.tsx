@@ -119,6 +119,7 @@ const ViewModeControls = () => {
           data-testid="edit-user"
           text={breakpoint === 'desktop' ? LL.userPage.controls.editButton() : undefined}
           icon={<IconEdit />}
+          size={ButtonSize.SMALL}
           styleVariant={
             breakpoint === 'desktop'
               ? ButtonStyleVariant.STANDARD

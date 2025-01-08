@@ -142,7 +142,7 @@ export const LdapSettingsForm = () => {
           />
         </div>
       </header>
-      <form id="ldap-settings-form" onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}

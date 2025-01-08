@@ -115,7 +115,7 @@ export const RegisterMFAEmailForm = () => {
 
   return (
     <>
-      <form id="register-mfa-email-form" onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form id="register-mfa-email-form" onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           type="text"
           inputMode="numeric"

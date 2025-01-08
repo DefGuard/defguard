@@ -98,7 +98,7 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
 
   return (
     <form
-      onSubmit={void handleSubmit(handleValidSubmit)}
+      onSubmit={handleSubmit(handleValidSubmit)}
       id="add-authentication-key-modal-form"
     >
       <FormInput

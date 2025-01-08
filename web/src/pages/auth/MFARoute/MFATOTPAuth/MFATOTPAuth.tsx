@@ -80,7 +80,7 @@ export const MFATOTPAuth = () => {
   return (
     <>
       <p>{LL.loginPage.mfa.totp.header()}</p>
-      <form onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'code' }}
           autoComplete="one-time-code"

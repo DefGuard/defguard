@@ -76,7 +76,7 @@ export const ChangeSelfPasswordForm = () => {
   return (
     <form
       data-testid="change-self-password-form"
-      onSubmit={void handleSubmit(handleValidSubmit)}
+      onSubmit={handleSubmit(handleValidSubmit)}
     >
       <FormInput
         controller={{ control, name: 'old_password' }}

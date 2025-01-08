@@ -175,7 +175,7 @@ export const OpenIdSettingsRootForm = () => {
   }, [currentProvider, deleteProvider]);
 
   return (
-    <form id="root-form" onSubmit={void handleSubmit(handleValidSubmit)}>
+    <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
       <div className="controls">
         <Button
           size={ButtonSize.SMALL}

@@ -105,7 +105,7 @@ export const MFAEmail = () => {
   return (
     <>
       <p>{localLL.header()}</p>
-      <form onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           type="text"
           inputMode="numeric"

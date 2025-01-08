@@ -14,7 +14,7 @@
       overflow: auto;
     }
 
-    & > .mobile-options {
+    &>.mobile-options {
       display: flex;
       flex-direction: column;
       row-gap: 1.5rem;
@@ -23,7 +23,7 @@
       margin-bottom: 3rem;
       align-items: flex-end;
 
-      & > .top-row {
+      &>.top-row {
         width: 100%;
         display: flex;
         flex-flow: row wrap-reverse;
@@ -31,7 +31,7 @@
         justify-content: flex-start;
         row-gap: 10px;
 
-        & > .btn {
+        &>.btn {
           margin-left: auto;
 
           .content {
@@ -41,21 +41,21 @@
           }
         }
 
-        & > .network-gateways-connection {
+        &>.network-gateways-connection {
           width: auto;
         }
       }
 
-      & > .select {
+      &>.select {
         width: 100%;
 
         .select-container {
-          height: 40px;
+          min-height: 40px;
         }
       }
     }
 
-    & > .network-gateways-connection {
+    &>.network-gateways-connection {
       box-sizing: border-box;
       padding: 0 15px;
       margin-bottom: 20px;
@@ -71,7 +71,7 @@
       }
     }
 
-    & > header {
+    &>header {
       box-sizing: border-box;
       margin-bottom: 10px;
 
@@ -104,7 +104,7 @@
         grid-row: 1;
       }
 
-      & > .controls {
+      &>.controls {
         @include media-breakpoint-up(lg) {
           display: flex;
           flex-flow: row nowrap;
@@ -122,30 +122,30 @@
           grid-column: 2;
         }
 
-        & > .select {
+        &>.select {
           min-width: 200px;
 
           .select-container {
-            height: 40px;
+            min-height: 40px;
           }
         }
 
-        & > button {
+        &>button {
           margin-left: auto;
         }
 
-        & > .select-skeleton {
+        &>.select-skeleton {
           width: 200px;
           height: 40px;
 
-          & > span {
+          &>span {
             height: 100%;
           }
         }
       }
     }
 
-    & > .overview-network-stats {
+    &>.overview-network-stats {
       @include media-breakpoint-down(xl) {
         margin-bottom: 1.5rem;
       }
@@ -162,7 +162,7 @@
       box-sizing: border-box;
       padding: 0 50px 40px 60px;
 
-      & > .no-data {
+      &>.no-data {
         width: 100%;
         padding-top: 20px;
         text-align: center;

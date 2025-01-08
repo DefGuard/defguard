@@ -171,7 +171,7 @@ export const BrandingSettings = () => {
             type="submit"
           />
         </div>
-        <form id="branding-form" onSubmit={void handleSubmit(onSubmit)}>
+        <form id="branding-form" onSubmit={handleSubmit(onSubmit)}>
           <FormInput
             label={LL.settingsPage.instanceBranding.form.fields.instanceName.label()}
             controller={{ control, name: 'instance_name' }}

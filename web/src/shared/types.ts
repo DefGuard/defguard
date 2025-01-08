@@ -328,6 +328,7 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  license_info: LicenseInfo;
 }
 
 export type GetDeviceConfigRequest = {
@@ -837,7 +838,7 @@ export type SettingsEnterprise = {
   only_client_activation: boolean;
 };
 
-export type LicenseInfo = {
+export type EnterpriseLicenseInfo = {
   valid_until?: string;
   subscription: boolean;
 };
@@ -849,7 +850,7 @@ export type EnterpriseStatus = {
 export type EnterpriseInfo = {
   enabled: boolean;
   // If there is no license, there is no license info
-  license_info?: LicenseInfo;
+  license_info?: EnterpriseLicenseInfo;
   needs_license: boolean;
 };
 
@@ -1097,4 +1098,16 @@ export type StandaloneDeviceEditRequest = {
   assigned_ip: string;
   description?: string;
   name: string;
+};
+
+export type LicenseLimits = {
+  user: boolean;
+  device: boolean;
+  wireguard_network: boolean;
+};
+
+export type LicenseInfo = {
+  enterprise: boolean;
+  limits_exceeded: LicenseLimits;
+  any_limit_exceeded: boolean;
 };

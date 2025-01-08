@@ -44,6 +44,34 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    upgradeLicenseModal: {
+      enterprise: {
+        title: 'Upgrade to Enterprise',
+        //md
+        subTitle: `This functionality is an **enterprise feature** and requires purchasing a license to enable it.`,
+      },
+      limit: {
+        title: 'Upgrade',
+        //md
+        subTitle: `
+        You have **reached the limit** of this functionality. To **[ manage more locations/devices ]** purchase of the Enterprise license is required.
+        `,
+      },
+      //md
+      content: `
+You can find out more about features like:
+- Real time and automatic client synchronization
+- External SSO
+- Controlling VPN clients behavior
+
+Full enterprise feature list: https://docs.defguard.net/enterprise/all-enteprise-features</br>
+Licensing information: https://docs.defguard.net/enterprise/license
+      `,
+      controls: {
+        cancel: 'Maybe later',
+        confirm: 'See all Enterprise plans',
+      },
+    },
     standaloneDeviceEnrollmentModal: {
       title: 'Network device token',
       toasters: {

@@ -82,7 +82,7 @@ export const SmtpTest = () => {
           }}
         />
       </header>
-      <form id="smtp-test-form" onSubmit={void handleTestSubmit(onSubmit)}>
+      <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
         <FormInput
           label={LL.settingsPage.smtp.testForm.fields.to.label()}
           controller={{ control: testControl, name: 'to' }}

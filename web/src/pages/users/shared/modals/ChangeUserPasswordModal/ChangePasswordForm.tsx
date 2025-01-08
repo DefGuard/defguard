@@ -98,10 +98,7 @@ export const ChangePasswordForm = () => {
   };
 
   return (
-    <form
-      onSubmit={void handleSubmit(onValidSubmit)}
-      data-testid="change-password-admin-form"
-    >
+    <form onSubmit={handleSubmit(onValidSubmit)} data-testid="change-password-admin-form">
       <FormInput
         label={LL.modals.changeUserPassword.form.fields.newPassword.label()}
         controller={{ control, name: 'new_password' }}

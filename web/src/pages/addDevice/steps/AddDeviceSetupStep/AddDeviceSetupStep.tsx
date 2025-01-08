@@ -194,7 +194,7 @@ export const AddDeviceSetupStep = () => {
           }),
         )}
       </MessageBox>
-      <form onSubmit={void handleSubmit(validSubmitHandler)}>
+      <form onSubmit={handleSubmit(validSubmitHandler)}>
         <FormInput
           label={localLL.form.fields.name.label()}
           controller={{ control, name: 'name' }}

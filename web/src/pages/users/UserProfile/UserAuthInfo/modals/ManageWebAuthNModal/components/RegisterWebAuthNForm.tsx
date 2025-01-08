@@ -94,7 +94,7 @@ export const RegisterWebAuthNForm = () => {
   };
 
   return (
-    <form onSubmit={void handleSubmit(onValidSubmit)}>
+    <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'name' }}
         disabled={registerKeyFinishLoading || waitingForSecurityKey}
@@ -115,7 +115,7 @@ export const RegisterWebAuthNForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           loading={registerKeyFinishLoading || waitingForSecurityKey}
           text={LL.modals.manageWebAuthNKeys.form.controls.submit()}
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+           
           onClick={async () => {
             if (isValid) {
               setWaitingForSecurityKey(true);

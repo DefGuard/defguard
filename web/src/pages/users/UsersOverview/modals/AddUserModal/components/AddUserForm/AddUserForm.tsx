@@ -190,7 +190,7 @@ export const AddUserForm = () => {
     <form
       id="add-user-form"
       data-testid="add-user-form"
-      onSubmit={void handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit)}
     >
       <div className="checkbox-space">
         <FormCheckBox

@@ -195,7 +195,7 @@ export const WizardNetworkImport = () => {
 
   return (
     <Card id="wizard-network-import" shaded>
-      <form onSubmit={void handleSubmit(onValidSubmit)}>
+      <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
           label={LL.networkConfiguration.form.fields.name.label()}

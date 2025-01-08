@@ -174,7 +174,7 @@ export const WizardMapDevices = () => {
 
   return (
     <Card id="wizard-map-devices" shaded>
-      <form onSubmit={void handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
+      <form onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
         <VirtualizedList<DeviceRowData>
           customRowRender={renderRow}
           data={devicesList}

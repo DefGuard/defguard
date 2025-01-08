@@ -144,7 +144,7 @@ export const LicenseSettings = () => {
           </div>
         ) : (
           <div>
-            <form id="license-form" onSubmit={void handleSubmit(onSubmit)}>
+            <form id="license-form" onSubmit={handleSubmit(onSubmit)}>
               <FormInput
                 label={LL.settingsPage.license.form.fields.key.label()}
                 controller={{ control, name: 'license' }}

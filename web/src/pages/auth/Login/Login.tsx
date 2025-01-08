@@ -121,7 +121,7 @@ export const Login = () => {
       {!enterpriseEnabled || !openIdLoading ? (
         <>
           <h1>{LL.loginPage.pageTitle()}</h1>
-          <form onSubmit={void handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <FormInput
               controller={{ control, name: 'username' }}
               placeholder={LL.form.placeholders.username()}

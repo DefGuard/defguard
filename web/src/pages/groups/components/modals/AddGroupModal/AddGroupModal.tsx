@@ -168,7 +168,7 @@ const ModalContent = () => {
   };
 
   return (
-    <form onSubmit={void handleSubmit(handleValidSubmit)}>
+    <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput controller={{ control, name: 'name' }} label={localLL.groupName()} />
       <div className="group-settings">
         <label>{localLL.groupSettings()}:</label>

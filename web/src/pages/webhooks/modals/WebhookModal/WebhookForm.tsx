@@ -146,7 +146,7 @@ export const WebhookForm = () => {
   };
 
   return (
-    <form onSubmit={void handleSubmit(onValidSubmit)}>
+    <form onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         label={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}

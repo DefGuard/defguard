@@ -154,6 +154,52 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * U​p​g​r​a​d​e​ ​t​o​ ​E​n​t​e​r​p​r​i​s​e
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​r​e​q​u​i​r​e​s​ ​p​u​r​c​h​a​s​i​n​g​ ​a​ ​l​i​c​e​n​s​e​ ​t​o​ ​e​n​a​b​l​e​ ​i​t​.
+				 */
+				subTitle: string
+			}
+			limit: {
+				/**
+				 * U​p​g​r​a​d​e
+				 */
+				title: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				subTitle: string
+			}
+			/**
+			 * 
+		​Y​o​u​ ​c​a​n​ ​f​i​n​d​ ​o​u​t​ ​m​o​r​e​ ​a​b​o​u​t​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​:​
+		​-​ ​R​e​a​l​ ​t​i​m​e​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​c​l​i​e​n​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​
+		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
+		​-​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
+		​
+		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​<​/​b​r​>​
+		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​
+		​ ​ ​ ​ ​ ​ 
+			 */
+			content: string
+			controls: {
+				/**
+				 * M​a​y​b​e​ ​l​a​t​e​r
+				 */
+				cancel: string
+				/**
+				 * S​e​e​ ​a​l​l​ ​E​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+				 */
+				confirm: string
+			}
+		}
 		standaloneDeviceEnrollmentModal: {
 			/**
 			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​t​o​k​e​n
@@ -4846,6 +4892,52 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * Upgrade to Enterprise
+				 */
+				title: () => LocalizedString
+				/**
+				 * This functionality is an **enterprise feature** and requires purchasing a license to enable it.
+				 */
+				subTitle: () => LocalizedString
+			}
+			limit: {
+				/**
+				 * Upgrade
+				 */
+				title: () => LocalizedString
+				/**
+				 * 
+			        You have **reached the limit** of this functionality. To **[ manage more locations/devices ]** purchase of the Enterprise license is required.
+			        
+				 */
+				subTitle: () => LocalizedString
+			}
+			/**
+			 * 
+		You can find out more about features like:
+		- Real time and automatic client synchronization
+		- External SSO
+		- Controlling VPN clients behavior
+	
+		Full enterprise feature list: https://docs.defguard.net/enterprise/all-enteprise-features</br>
+		Licensing information: https://docs.defguard.net/enterprise/license
+		      
+			 */
+			content: () => LocalizedString
+			controls: {
+				/**
+				 * Maybe later
+				 */
+				cancel: () => LocalizedString
+				/**
+				 * See all Enterprise plans
+				 */
+				confirm: () => LocalizedString
+			}
+		}
 		standaloneDeviceEnrollmentModal: {
 			/**
 			 * Network device token

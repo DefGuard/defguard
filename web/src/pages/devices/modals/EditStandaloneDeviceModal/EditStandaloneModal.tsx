@@ -164,7 +164,7 @@ const ModalContent = () => {
           defaults={defaultValues}
           locationOptions={locationOptions}
           onLoadingChange={setFormLoading}
-          onSubmit={void handleSubmit}
+          onSubmit={handleSubmit}
           submitSubject={submitSubject}
           reservedNames={reservedDeviceNames}
           initialIpRecommendation={availableIpResponse}

@@ -237,10 +237,7 @@ export const StandaloneDeviceModalForm = ({
   }, [submitSubject]);
 
   return (
-    <form
-      onSubmit={void handleSubmit(submitHandler)}
-      className="standalone-device-modal-form"
-    >
+    <form onSubmit={handleSubmit(submitHandler)} className="standalone-device-modal-form">
       <FormInput controller={{ control, name: 'name' }} label={labels.deviceName()} />
       <div className="row">
         <FormSelect

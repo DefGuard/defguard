@@ -235,7 +235,7 @@ export const NetworkEditForm = () => {
       <header>
         <h2>{LL.networkConfiguration.header()}</h2>
       </header>
-      <form onSubmit={void handleSubmit(onValidSubmit)}>
+      <form onSubmit={handleSubmit(onValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
           label={LL.networkConfiguration.form.fields.name.label()}

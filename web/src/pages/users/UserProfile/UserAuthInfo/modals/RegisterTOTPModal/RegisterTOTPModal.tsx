@@ -177,7 +177,7 @@ const TOTPRegisterForm = () => {
     });
   };
   return (
-    <form data-testid="register-totp-form" onSubmit={void handleSubmit(onValidSubmit)}>
+    <form data-testid="register-totp-form" onSubmit={handleSubmit(onValidSubmit)}>
       <FormInput
         controller={{ control, name: 'code' }}
         label={LL.modals.registerTOTP.form.fields.code.label()}

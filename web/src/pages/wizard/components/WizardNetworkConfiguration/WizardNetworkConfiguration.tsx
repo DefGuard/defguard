@@ -166,7 +166,7 @@ export const WizardNetworkConfiguration = () => {
 
   return (
     <Card id="wizard-manual-network-configuration" shaded>
-      <form onSubmit={void handleSubmit(handleValidSubmit)}>
+      <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
           controller={{ control, name: 'name' }}
           label={LL.networkConfiguration.form.fields.name.label()}

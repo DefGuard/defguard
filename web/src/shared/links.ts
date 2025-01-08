@@ -14,6 +14,7 @@ export const externalLink = {
     },
   },
   defguardSite: 'https://defguard.net',
+  defguardPricing: 'https://defguard.net/pricing',
   wireguard: {
     download: 'https://www.wireguard.com/install/',
   },

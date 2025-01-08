@@ -144,7 +144,7 @@ const ModalContent = () => {
   };
 
   return (
-    <form onSubmit={void handleSubmit(submitValid)} id="rename-authentication-key-form">
+    <form onSubmit={handleSubmit(submitValid)} id="rename-authentication-key-form">
       <FormInput controller={{ control, name: 'name' }} label={`${LL.common.name()}`} />
       <div className="controls">
         <Button

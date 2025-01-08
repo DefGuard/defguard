@@ -158,7 +158,7 @@ export const OpenIdClientModalForm = () => {
   );
 
   return (
-    <form onSubmit={void handleSubmit(onValidSubmit)} data-testid="openid-client-form">
+    <form onSubmit={handleSubmit(onValidSubmit)} data-testid="openid-client-form">
       <FormInput
         controller={{ control, name: 'name' }}
         label={LL.openidOverview.modals.openidClientModal.form.fields.name.label()}

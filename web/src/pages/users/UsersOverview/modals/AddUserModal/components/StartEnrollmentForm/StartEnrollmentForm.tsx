@@ -172,7 +172,7 @@ export const StartEnrollmentForm = () => {
     <form
       id="enrollment-start-form"
       data-testid="start-enrollment-form"
-      onSubmit={void handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit)}
     >
       {!smtpEnabled && (
         <MessageBox

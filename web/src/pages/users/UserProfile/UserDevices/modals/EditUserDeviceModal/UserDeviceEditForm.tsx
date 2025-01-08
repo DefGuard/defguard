@@ -91,7 +91,7 @@ export const EditUserDeviceForm = () => {
   };
 
   return (
-    <form onSubmit={void handleSubmit(onSubmitSuccess)}>
+    <form onSubmit={handleSubmit(onSubmitSuccess)}>
       <FormInput
         label={LL.modals.editDevice.form.fields.name.label()}
         controller={{ control, name: 'name' }}

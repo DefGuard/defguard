@@ -194,7 +194,7 @@ export const SmtpSettingsForm = () => {
           />
         </div>
       </header>
-      <form id="smtp-form" onSubmit={void handleSubmit(onSubmit)}>
+      <form id="smtp-form" onSubmit={handleSubmit(onSubmit)}>
         <FormInput
           label={localLL.form.fields.server.label()}
           controller={{ control, name: 'smtp_server' }}
