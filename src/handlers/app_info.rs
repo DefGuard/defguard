@@ -7,7 +7,7 @@ use crate::{
     auth::SessionInfo,
     db::{Settings, WireguardNetwork},
     enterprise::{
-        is_enterprise_enabled,
+        is_enterprise_enabled, is_enterprise_free,
         limits::{get_counts, LimitsExceeded},
     },
 };
@@ -20,6 +20,8 @@ struct LicenseInfo {
     limits_exceeded: LimitsExceeded,
     /// Is any of the limits exceeded.
     any_limit_exceeded: bool,
+    /// Whether the enterprise features are used for free.
+    is_enterprise_free: bool,
 }
 
 /// Additional information about core state.
@@ -48,6 +50,7 @@ pub(crate) async fn get_app_info(
             enterprise,
             limits_exceeded,
             any_limit_exceeded,
+            is_enterprise_free: is_enterprise_free(),
         },
     };
 
