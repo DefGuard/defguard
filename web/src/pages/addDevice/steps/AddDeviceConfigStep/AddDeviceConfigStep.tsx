@@ -7,11 +7,16 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
+import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { DeviceConfigsCard } from '../../../../shared/components/network/DeviceConfigsCard/DeviceConfigsCard';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Input } from '../../../../shared/defguard-ui/components/Layout/Input/Input';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import useApi from '../../../../shared/hooks/useApi';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
 enum SetupMode {
@@ -23,6 +28,10 @@ export const AddDeviceConfigStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.configDevice;
   const navigate = useNavigate();
+  const { getAppInfo } = useApi();
+  const isAdmin = useAuthStore((s) => s.user?.is_admin);
+  const setAppStore = useAppStore((s) => s.setState);
+  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
 
   const [userData, device, publicKey, privateKey, networks] = useAddDevicePageStore(
     (state) => [
@@ -50,6 +59,16 @@ export const AddDeviceConfigStep = () => {
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (userData) {
+        if (isAdmin) {
+          void getAppInfo().then((response) => {
+            setAppStore({ appInfo: response });
+            if (response.license_info.limits_exceeded.device) {
+              openUpgradeLicenseModal({
+                modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
+              });
+            }
+          });
+        }
         navigate(userData.originRoutePath, { replace: true });
         setTimeout(() => {
           resetPageState();
@@ -59,7 +78,8 @@ export const AddDeviceConfigStep = () => {
     return () => {
       sub.unsubscribe();
     };
-  }, [navigate, nextSubject, resetPageState, userData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, nextSubject, userData]);
 
   if (!device || !userData || !publicKey || !networks) return null;
 

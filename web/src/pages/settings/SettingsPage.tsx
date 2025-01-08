@@ -73,10 +73,7 @@ export const SettingsPage = () => {
           appInfo.license_info.any_limit_exceeded
         ) {
           openUpgradeLicenseModal({
-            modalVariant: appInfo.license_info.enterprise
-              ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-              : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
-            force: true,
+            modalVariant: UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
           });
         } else {
           setActiveCard(tabIndex);
@@ -150,10 +147,7 @@ export const SettingsPage = () => {
     ) {
       setActiveCard(0);
       openUpgradeLicenseModal({
-        modalVariant: appInfo.license_info.enterprise
-          ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-          : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
-        force: true,
+        modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
       });
     }
   }, [activeCard, appInfo, openUpgradeLicenseModal]);

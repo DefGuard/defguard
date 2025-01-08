@@ -10,6 +10,7 @@ import {
   ButtonStyleVariant,
 } from '../../../defguard-ui/components/Layout/Button/types';
 import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
+import { useAuthStore } from '../../../hooks/store/useAuthStore';
 import { externalLink } from '../../../links';
 import { RenderMarkdown } from '../RenderMarkdown/RenderMarkdown';
 import checkboxUrl from './checkbox.svg?url';
@@ -17,12 +18,13 @@ import { useUpgradeLicenseModal } from './store';
 import { UpgradeLicenseModalVariant } from './types';
 
 export const UpgradeLicenseModal = () => {
+  const isAdmin = useAuthStore((s) => s.user?.is_admin ?? false);
   const isOpen = useUpgradeLicenseModal((s) => s.visible);
   const [close, reset] = useUpgradeLicenseModal((s) => [s.close, s.reset], shallow);
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && isAdmin}
       onClose={close}
       afterClose={reset}
       id="upgrade-license-modal-content"

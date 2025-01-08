@@ -138,8 +138,6 @@ export const AddUserForm = () => {
 
   const queryClient = useQueryClient();
 
-  const appInfo = useAppStore((s) => s.appInfo?.license_info);
-
   const setAppStore = useAppStore((s) => s.setState, shallow);
 
   const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
@@ -155,29 +153,18 @@ export const AddUserForm = () => {
     mutationFn: addUser,
     onSuccess: (user) => {
       // check license limits
-      if (appInfo && appInfo.limits_exceeded.user) {
-        openUpgradeLicenseModal({
-          modalVariant: appInfo.enterprise
-            ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-            : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+      void getAppInfo().then((response) => {
+        setAppStore({
+          appInfo: response,
         });
-        void queryClient.invalidateQueries({
-          queryKey: [QueryKeys.FETCH_APP_INFO],
-        });
-      } else {
-        void getAppInfo().then((response) => {
-          setAppStore({
-            appInfo: response,
+        if (response.license_info.limits_exceeded.user) {
+          openUpgradeLicenseModal({
+            modalVariant: response.license_info.enterprise
+              ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+              : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
           });
-          if (response.license_info.limits_exceeded.user) {
-            openUpgradeLicenseModal({
-              modalVariant: response.license_info.enterprise
-                ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-                : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
-            });
-          }
-        });
-      }
+        }
+      });
 
       invalidateMultipleQueries(queryClient, [QueryKeys.FETCH_USERS_LIST]);
 

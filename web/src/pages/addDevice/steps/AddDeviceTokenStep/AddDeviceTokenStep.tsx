@@ -16,6 +16,7 @@ import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
@@ -28,6 +29,7 @@ export const AddDeviceTokenStep = () => {
   const { getAppInfo } = useApi();
   const setAppStore = useAppStore((s) => s.setState, shallow);
   const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
+  const isAdmin = useAuthStore((s) => s.user?.is_admin);
 
   const userData = useAddDevicePageStore((state) => state.userData);
 
@@ -76,18 +78,18 @@ export const AddDeviceTokenStep = () => {
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (userData) {
-        void getAppInfo().then((response) => {
-          setAppStore({
-            appInfo: response,
-          });
-          if (response.license_info.limits_exceeded.device) {
-            openUpgradeLicenseModal({
-              modalVariant: response.license_info.enterprise
-                ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-                : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+        if (isAdmin) {
+          void getAppInfo().then((response) => {
+            setAppStore({
+              appInfo: response,
             });
-          }
-        });
+            if (response.license_info.limits_exceeded.device) {
+              openUpgradeLicenseModal({
+                modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
+              });
+            }
+          });
+        }
         setTimeout(() => {
           resetPage();
         }, 1000);

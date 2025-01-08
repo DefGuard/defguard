@@ -65,9 +65,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
           setAppState({ appInfo: response });
           if (response.license_info.limits_exceeded.wireguard_network) {
             openUpgradeLicenseModal({
-              modalVariant: response.license_info.enterprise
-                ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-                : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+              modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
             });
           }
         });
