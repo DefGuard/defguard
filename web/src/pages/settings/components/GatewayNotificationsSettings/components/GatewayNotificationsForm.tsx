@@ -20,6 +20,7 @@ import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/La
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
+import { ApiError } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
 type FormFields = {
@@ -47,8 +48,8 @@ export const GatewayNotificationsForm = () => {
       queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
+    onError: (err: ApiError) => {
+      toaster.error(err.response?.data.msg || LL.messages.error());
       console.error(err);
     },
   });

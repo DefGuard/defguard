@@ -2,8 +2,15 @@ use std::collections::HashMap;
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
+use thiserror::Error;
 
 use crate::secret::SecretString;
+
+#[derive(Error, Debug)]
+pub enum SettingsValidationError {
+    #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
+    CannotEnableGatewayNotifications,
+}
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
@@ -88,6 +95,18 @@ impl Settings {
         )
         .fetch_optional(executor)
         .await
+    }
+
+    /// Checks if given settings are correct
+    pub fn validate(&self) -> Result<(), SettingsValidationError> {
+        debug!("Validating settings: {self:#?}");
+        // check if gateway disconnect notifications can be enabled, since it requires SMTP to be configured
+        if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
+            warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
+            return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        };
+
+        Ok(())
     }
 
     pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>

@@ -51,6 +51,7 @@ pub async fn update_settings(
     debug!("User {} updating settings", session.user.username);
 
     update_cached_license(data.license.as_deref())?;
+    data.validate()?;
     data.save(&appstate.pool).await?;
 
     info!("User {} updated settings", session.user.username);
@@ -122,6 +123,7 @@ pub async fn patch_settings(
     };
 
     settings.apply(data);
+    settings.validate()?;
     settings.save(&appstate.pool).await?;
     info!("Admin {} patched settings.", session.user.username);
     Ok(ApiResponse::default())
