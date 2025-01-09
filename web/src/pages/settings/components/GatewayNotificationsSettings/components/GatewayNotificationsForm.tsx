@@ -145,12 +145,14 @@ export const GatewayNotificationsForm = () => {
             value={
               settings.gateway_disconnect_notifications_reconnect_notification_enabled
             }
+            /* eslint-disable max-len */
             onChange={() =>
               mutate({
                 gateway_disconnect_notifications_reconnect_notification_enabled:
                   !settings.gateway_disconnect_notifications_reconnect_notification_enabled,
               })
             }
+            /* eslint-enable max-len */
           />
           <Helper>
             {parse(localLL.form.fields.reconnectNotificationsEnabled.help())}
