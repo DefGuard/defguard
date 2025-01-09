@@ -59,7 +59,7 @@ use crate::{
         handlers::openid_login::{make_oidc_client, user_from_claims},
         is_enterprise_enabled,
     },
-    handlers::mail::send_gateway_disconnected_email,
+    handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
 };
@@ -388,7 +388,21 @@ impl GatewayState {
     /// Sends notification only if last notification time is bigger than specified in config
     fn send_reconnect_notification(&mut self, pool: &PgPool) {
         debug!("Sending gateway reconnect email notification");
-        unimplemented!()
+        // Clone here because self doesn't live long enough
+        let name = self.name.clone();
+        let mail_tx = self.mail_tx.clone();
+        let pool = pool.clone();
+        let hostname = self.hostname.clone();
+        let network_name = self.network_name.clone();
+        tokio::spawn(async move {
+            if let Err(e) =
+                send_gateway_reconnected_email(name, network_name, &hostname, &mail_tx, &pool).await
+            {
+                error!("Failed to send gateway disconnect notification: {e}");
+            } else {
+                info!("Gateway {hostname} disconnected. Email notification sent",);
+            }
+        });
     }
 
     /// Cancels disconnect notification if one is scheduled to be sent
