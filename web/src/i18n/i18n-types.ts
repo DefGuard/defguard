@@ -2464,6 +2464,10 @@ type RootTranslation = {
 			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
 			 */
 			enterprise: string
+			/**
+			 * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			gatewayNotifications: string
 		}
 		messages: {
 			/**
@@ -3314,6 +3318,54 @@ type RootTranslation = {
 					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
 					 */
 					helper: string
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.​<​/​p​>
+			 */
+			helper: string
+			form: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​d​i​s​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
+					inactivityThreshold: {
+						/**
+						 * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e
+						 */
+						label: string
+						/**
+						 * T​i​m​e​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
+						 */
+						help: string
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​r​e​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​r​e​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
 				}
 			}
 		}
@@ -7131,6 +7183,10 @@ export type TranslationFunctions = {
 			 * Enterprise features
 			 */
 			enterprise: () => LocalizedString
+			/**
+			 * Gateway notifications
+			 */
+			gatewayNotifications: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -7978,6 +8034,54 @@ export type TranslationFunctions = {
 					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
 					 */
 					helper: () => LocalizedString
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * Gateway disconnect notifications
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can enable gateway disconnect notifications.</p>
+			 */
+			helper: () => LocalizedString
+			form: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway disconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is disconnected
+						 */
+						help: () => LocalizedString
+					}
+					inactivityThreshold: {
+						/**
+						 * Gateway inactivity time
+						 */
+						label: () => LocalizedString
+						/**
+						 * Time that a gateway needs to stay disconnected before a notification is sent
+						 */
+						help: () => LocalizedString
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway reconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is reconnected
+						 */
+						help: () => LocalizedString
+					}
 				}
 			}
 		}

@@ -13,6 +13,7 @@ import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/Loader
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { EnterpriseSettings } from './components/EnterpriseSettings/EnterpriseSettings';
+import { GatewayNotificationsSettings } from './components/GatewayNotificationsSettings/GatewayNotificationsSettings';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
@@ -25,6 +26,7 @@ const tabsContent: ReactNode[] = [
   <LdapSettings key={2} />,
   <OpenIdSettings key={3} />,
   <EnterpriseSettings key={4} />,
+  <GatewayNotificationsSettings key={5} />,
 ];
 
 export const SettingsPage = () => {
@@ -80,6 +82,12 @@ export const SettingsPage = () => {
         content: LL.settingsPage.tabs.enterprise(),
         active: activeCard === 4,
         onClick: () => setActiveCard(4),
+      },
+      {
+        key: 5,
+        content: LL.settingsPage.tabs.gatewayNotifications(),
+        active: activeCard === 5,
+        onClick: () => setActiveCard(5),
       },
     ],
     [LL.settingsPage.tabs, activeCard],

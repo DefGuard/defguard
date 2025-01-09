@@ -1266,6 +1266,27 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
     },
+    gatewayNotifications: {
+      header: 'Powiadomienia Gateway',
+      helper: "<p>Tutaj możesz włączyć powiadomienia o rozłączeniu się Gateway'a.</p>",
+      form: {
+        submit: 'Zapisz zmiany',
+        fields: {
+          disconnectNotificationsEnabled: {
+            label: 'Włącz powiadomienia o rozłączeniu',
+            help: "Wyślij powiadomienie do administratorów po rozłączeniu się Gateway'a",
+          },
+          inactivityThreshold: {
+            label: 'Czas nieaktywności',
+            help: 'Czas który musi upłynąć od rozłączenia zanim zostanie wysłane powiadomienie',
+          },
+          reconnectNotificationsEnabled: {
+            label: 'Włącz powiadomienia o ponownym połączeniu',
+            help: "Wyślij powiadomienie do administratorów po ponownym nawiązaniu połączenia z Gateway'em",
+          },
+        },
+      },
+    },
   },
   openidOverview: {
     pageTitle: 'Aplikacje OpenID',
