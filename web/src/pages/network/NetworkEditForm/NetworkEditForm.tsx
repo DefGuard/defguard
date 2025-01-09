@@ -56,15 +56,27 @@ const defaultValues: FormFields = {
 const networkToForm = (data?: Network): FormFields => {
   if (!data) return defaultValues;
   let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
+  omited = omit(omited, [
+    'id',
+    'connected_at',
+    'connected',
+    'allowed_ips',
+    'gateways',
+    'address',
+  ]);
 
   let allowed_ips = '';
+  let address = '';
 
   if (Array.isArray(data.allowed_ips)) {
     allowed_ips = data.allowed_ips.join(',');
   }
 
-  return { ...defaultValues, ...omited, allowed_ips };
+  if (Array.isArray(data.address)) {
+    address = data.address.join(',');
+  }
+
+  return { ...defaultValues, ...omited, allowed_ips, address };
 };
 
 export const NetworkEditForm = () => {
