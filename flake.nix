@@ -36,6 +36,7 @@
         packages = with pkgs; [
           sqlx-cli
           just
+          vtsls
         ];
 
         # Specify the rust-src path (many editors rely on this)
