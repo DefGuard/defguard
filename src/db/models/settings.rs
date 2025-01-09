@@ -60,7 +60,7 @@ pub struct Settings {
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
-    pub gateway_disconnect_notifications_inactivity_threshold: Option<i32>,
+    pub gateway_disconnect_notifications_inactivity_threshold: i32,
     pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
 }
 

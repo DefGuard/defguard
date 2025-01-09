@@ -17,6 +17,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
+    runtime::Handle,
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
@@ -24,6 +25,7 @@ use tokio::{
     time::sleep,
 };
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_util::sync::CancellationToken;
 use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
@@ -103,6 +105,8 @@ pub enum GatewayMapError {
     RemoveActive(Uuid),
     #[error("Config missing")]
     ConfigError,
+    #[error("Failed to get current settings")]
+    SettingsError,
 }
 
 impl GatewayMap {
@@ -173,6 +177,7 @@ impl GatewayMap {
         &mut self,
         network_id: Id,
         hostname: &str,
+        pool: &PgPool,
     ) -> Result<(), GatewayMapError> {
         debug!("Connecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
@@ -180,6 +185,8 @@ impl GatewayMap {
                 state.connected = true;
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
+                state.cancel_pending_disconnect_notification();
+                state.handle_reconnect_notification(pool)?;
                 debug!(
                     "Gateway {hostname} found in gateway map, current state: {:#?}",
                     state
@@ -209,7 +216,7 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.send_disconnect_notification(pool);
+                state.handle_disconnect_notification(pool)?;
                 debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
@@ -276,6 +283,8 @@ pub struct GatewayState {
     pub mail_tx: UnboundedSender<Mail>,
     #[serde(skip)]
     pub last_email_notification: Option<NaiveDateTime>,
+    #[serde(skip)]
+    pub pending_notification_cancel_token: Option<CancellationToken>,
 }
 
 impl GatewayState {
@@ -298,19 +307,40 @@ impl GatewayState {
             disconnected_at: None,
             mail_tx,
             last_email_notification: None,
+            pending_notification_cancel_token: None,
         }
+    }
+
+    /// Checks if gateway disconnect notification should be sent.
+    fn handle_disconnect_notification(&mut self, pool: &PgPool) -> Result<(), GatewayMapError> {
+        debug!("Checking if gateway disconnect notification needs to be sent");
+        let runtime_handle = Handle::current();
+        let settings = runtime_handle.block_on(async {
+            Settings::get_settings(pool).await.map_err(|err| {
+                error!("Failed to get settings: {err}");
+                GatewayMapError::SettingsError
+            })
+        })?;
+        if settings.gateway_disconnect_notifications_enabled {
+            self.send_disconnect_notification(
+                pool,
+                settings.gateway_disconnect_notifications_inactivity_threshold as u64,
+            );
+        };
+        Ok(())
     }
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &PgPool) {
-        debug!("Sending gateway disconnect email notification");
+    fn send_disconnect_notification(&mut self, pool: &PgPool, delay_minutes: u64) {
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
         let mail_tx = self.mail_tx.clone();
         let pool = pool.clone();
         let hostname = self.hostname.clone();
         let network_name = self.network_name.clone();
+
+        // Check if enough time has passed since last notification was sent
         let send_email = if let Some(last_notification_time) = self.last_email_notification {
             Utc::now().naive_utc() - last_notification_time
                 > TimeDelta::from_std(*server_config().gateway_disconnection_notification_timeout)
@@ -319,17 +349,34 @@ impl GatewayState {
             true
         };
         if send_email {
+            debug!("Scheduling gateway disconnect email notification for {hostname} to be sent in {delay_minutes} minutes");
+            // use cancellation token to abort sending if gateway reconnects during the delay
+            // we should never need to cancel a previous token since that would've been done on reconnect
+            assert!(self.pending_notification_cancel_token.is_none());
+            let cancellation_token = CancellationToken::new();
+            self.pending_notification_cancel_token = Some(cancellation_token.clone());
             self.last_email_notification = Some(Utc::now().naive_utc());
-            // FIXME: Try to get rid of spawn and use something like block_on
-            // To return result instead of logging
+
+            // notification is not supposed to be sent immediately, so we instead schedule a
+            // background task with a configured delay
             tokio::spawn(async move {
-                if let Err(e) =
-                    send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
+                tokio::select! {
+                    _ = async {
+                        sleep(Duration::from_secs(delay_minutes * 60)).await;
+                        debug!("Gateway disconnect notification delay has passed. Trying to send email...");
+                        if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
                         .await
-                {
-                    error!("Failed to send gateway disconnect notification: {e}");
-                } else {
-                    info!("Gateway {hostname} disconnected. Email notification sent",);
+                        {
+                            error!("Failed to send gateway disconnect notification: {e}");
+                        } else {
+                            info!("Gateway {hostname} disconnected. Email notification sent",);
+                        }
+                    } => {
+                            debug!("Scheduled gateway disconnect notification for {hostname} has been sent")
+                    },
+                    _ = cancellation_token.cancelled() => {
+                        info!("Scheduled gateway disconnect notification for {hostname} cancelled")
+                    }
                 }
             });
         } else {
@@ -338,6 +385,42 @@ impl GatewayState {
                 self.last_email_notification
             );
         };
+    }
+
+    /// Checks if gateway disconnect notification should be sent.
+    fn handle_reconnect_notification(&mut self, pool: &PgPool) -> Result<(), GatewayMapError> {
+        debug!("Checking if gateway reconnect notification needs to be sent");
+        let runtime_handle = Handle::current();
+        let settings = runtime_handle.block_on(async {
+            Settings::get_settings(pool).await.map_err(|err| {
+                error!("Failed to get settings: {err}");
+                GatewayMapError::SettingsError
+            })
+        })?;
+        if settings.gateway_disconnect_notifications_reconnect_notification_enabled {
+            self.send_reconnect_notification(pool);
+        };
+        Ok(())
+    }
+
+    /// Send gateway disconnected notification
+    /// Sends notification only if last notification time is bigger than specified in config
+    fn send_reconnect_notification(&mut self, pool: &PgPool) {
+        debug!("Sending gateway reconnect email notification");
+        unimplemented!()
+    }
+
+    /// Cancels disconnect notification if one is scheduled to be sent
+    fn cancel_pending_disconnect_notification(&mut self) {
+        debug!("Checking if there's a gateway disconnect notification for {} pending which needs to be cancelled", self.hostname);
+        if let Some(token) = &self.pending_notification_cancel_token {
+            debug!(
+                "Cancelling pending gateway disconnect notification for {}",
+                self.hostname
+            );
+            token.cancel();
+            self.pending_notification_cancel_token = None;
+        }
     }
 }
 

@@ -112,6 +112,7 @@ impl From<GatewayMapError> for WebError {
             | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
             GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
             GatewayMapError::ConfigError => Self::ServerConfigMissing,
+            GatewayMapError::SettingsError => Self::DbError(error.to_string()),
         }
     }
 }
