@@ -3967,7 +3967,7 @@ type RootTranslation = {
 		form: {
 			helpers: {
 				/**
-				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
+				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)​.​ ​Y​o​u​ ​c​a​n​ ​o​p​t​i​o​n​a​l​l​y​ ​s​p​e​c​i​f​y​ ​m​u​l​t​i​p​l​e​ ​a​d​d​r​e​s​s​e​s​ ​s​e​p​a​r​a​t​e​d​ ​b​y​ ​a​ ​c​o​m​m​a​.​ ​T​h​e​ ​f​i​r​s​t​ ​a​d​d​r​e​s​s​ ​i​s​ ​t​h​e​ ​p​r​i​m​a​r​y​ ​a​d​d​r​e​s​s​,​ ​a​n​d​ ​t​h​i​s​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​s​s​i​g​n​m​e​n​t​ ​f​o​r​ ​d​e​v​i​c​e​s​.​ ​T​h​e​ ​o​t​h​e​r​ ​I​P​ ​a​d​d​r​e​s​s​e​s​ ​a​r​e​ ​a​u​x​i​l​i​a​r​y​ ​a​n​d​ ​a​r​e​ ​n​o​t​ ​m​a​n​a​g​e​d​ ​b​y​ ​D​e​f​g​u​a​r​d​.
 				 */
 				address: string
 				/**
@@ -8624,7 +8624,7 @@ export type TranslationFunctions = {
 		form: {
 			helpers: {
 				/**
-				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
+				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.
 				 */
 				address: () => LocalizedString
 				/**
