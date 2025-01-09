@@ -9,7 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use chrono::{NaiveDateTime, TimeDelta, Utc};
+use chrono::{NaiveDateTime, Utc};
 use openidconnect::{core::CoreAuthenticationFlow, AuthorizationCode, CsrfToken, Nonce, Scope};
 use reqwest::Url;
 use serde::Serialize;
@@ -282,8 +282,6 @@ pub struct GatewayState {
     #[serde(skip)]
     pub mail_tx: UnboundedSender<Mail>,
     #[serde(skip)]
-    pub last_email_notification: Option<NaiveDateTime>,
-    #[serde(skip)]
     pub pending_notification_cancel_token: Option<CancellationToken>,
 }
 
@@ -306,7 +304,6 @@ impl GatewayState {
             connected_at: None,
             disconnected_at: None,
             mail_tx,
-            last_email_notification: None,
             pending_notification_cancel_token: None,
         }
     }
@@ -340,51 +337,35 @@ impl GatewayState {
         let hostname = self.hostname.clone();
         let network_name = self.network_name.clone();
 
-        // Check if enough time has passed since last notification was sent
-        let send_email = if let Some(last_notification_time) = self.last_email_notification {
-            Utc::now().naive_utc() - last_notification_time
-                > TimeDelta::from_std(*server_config().gateway_disconnection_notification_timeout)
-                    .expect("Failed to parse duration")
-        } else {
-            true
-        };
-        if send_email {
-            debug!("Scheduling gateway disconnect email notification for {hostname} to be sent in {delay_minutes} minutes");
-            // use cancellation token to abort sending if gateway reconnects during the delay
-            // we should never need to cancel a previous token since that would've been done on reconnect
-            assert!(self.pending_notification_cancel_token.is_none());
-            let cancellation_token = CancellationToken::new();
-            self.pending_notification_cancel_token = Some(cancellation_token.clone());
-            self.last_email_notification = Some(Utc::now().naive_utc());
+        debug!("Scheduling gateway disconnect email notification for {hostname} to be sent in {delay_minutes} minutes");
+        // use cancellation token to abort sending if gateway reconnects during the delay
+        // we should never need to cancel a previous token since that would've been done on reconnect
+        assert!(self.pending_notification_cancel_token.is_none());
+        let cancellation_token = CancellationToken::new();
+        self.pending_notification_cancel_token = Some(cancellation_token.clone());
 
-            // notification is not supposed to be sent immediately, so we instead schedule a
-            // background task with a configured delay
-            tokio::spawn(async move {
-                tokio::select! {
-                    _ = async {
-                        sleep(Duration::from_secs(delay_minutes * 60)).await;
-                        debug!("Gateway disconnect notification delay has passed. Trying to send email...");
-                        if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
-                        .await
-                        {
-                            error!("Failed to send gateway disconnect notification: {e}");
-                        } else {
-                            info!("Gateway {hostname} disconnected. Email notification sent",);
-                        }
-                    } => {
-                            debug!("Scheduled gateway disconnect notification for {hostname} has been sent")
-                    },
-                    _ = cancellation_token.cancelled() => {
-                        info!("Scheduled gateway disconnect notification for {hostname} cancelled")
+        // notification is not supposed to be sent immediately, so we instead schedule a
+        // background task with a configured delay
+        tokio::spawn(async move {
+            tokio::select! {
+                _ = async {
+                    sleep(Duration::from_secs(delay_minutes * 60)).await;
+                    debug!("Gateway disconnect notification delay has passed. Trying to send email...");
+                    if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
+                    .await
+                    {
+                        error!("Failed to send gateway disconnect notification: {e}");
+                    } else {
+                        info!("Gateway {hostname} disconnected. Email notification sent",);
                     }
+                } => {
+                        debug!("Scheduled gateway disconnect notification for {hostname} has been sent")
+                },
+                _ = cancellation_token.cancelled() => {
+                    info!("Scheduled gateway disconnect notification for {hostname} cancelled")
                 }
-            });
-        } else {
-            info!(
-                "Gateway {hostname} disconnected. Email notification not sent. Last notification was at {:?}",
-                self.last_email_notification
-            );
-        };
+            }
+        });
     }
 
     /// Checks if gateway disconnect notification should be sent.

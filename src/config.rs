@@ -142,14 +142,6 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_PROXY_GRPC_CA")]
     pub proxy_grpc_ca: Option<String>,
 
-    #[arg(
-        long,
-        env = "DEFGUARD_GATEWAY_DISCONNECTION_NOTIFICATION_TIMEOUT",
-        default_value = "10m"
-    )]
-    #[serde(skip_serializing)]
-    pub gateway_disconnection_notification_timeout: Duration,
-
     #[command(subcommand)]
     #[serde(skip_serializing)]
     pub cmd: Option<Command>,
