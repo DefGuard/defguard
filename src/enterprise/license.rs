@@ -510,7 +510,7 @@ pub(crate) fn validate_license(
             if license.is_max_overdue() {
                 return Err(LicenseError::LicenseExpired);
             }
-            if !counts.validate_license_limits(license) {
+            if counts.is_over_license_limits(license) {
                 return Err(LicenseError::LicenseLimitsExceeded);
             }
             Ok(())
