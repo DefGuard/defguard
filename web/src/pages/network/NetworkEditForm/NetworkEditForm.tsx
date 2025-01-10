@@ -18,7 +18,6 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { Network } from '../../../shared/types';
-import { invalidateMultipleQueries } from '../../../shared/utils/invalidateMultipleQueries.ts';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
 import {
@@ -56,16 +55,28 @@ const defaultValues: FormFields = {
 
 const networkToForm = (data?: Network): FormFields => {
   if (!data) return defaultValues;
-  let omitted = omitBy<Network>(data, isNull);
-  omitted = omit(omitted, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
+  let omited = omitBy<Network>(data, isNull);
+  omited = omit(omited, [
+    'id',
+    'connected_at',
+    'connected',
+    'allowed_ips',
+    'gateways',
+    'address',
+  ]);
 
   let allowed_ips = '';
+  let address = '';
 
   if (Array.isArray(data.allowed_ips)) {
     allowed_ips = data.allowed_ips.join(',');
   }
 
-  return { ...defaultValues, ...omitted, allowed_ips };
+  if (Array.isArray(data.address)) {
+    address = data.address.join(',');
+  }
+
+  return { ...defaultValues, ...omited, allowed_ips, address };
 };
 
 export const NetworkEditForm = () => {
@@ -96,7 +107,11 @@ export const NetworkEditForm = () => {
         QueryKeys.FETCH_NETWORKS,
         QueryKeys.FETCH_NETWORK_TOKEN,
       ];
-      invalidateMultipleQueries(queryClient, keys);
+      for (const key of keys) {
+        void queryClient.refetchQueries({
+          queryKey: [key],
+        });
+      }
     },
     onError: (err) => {
       setStoreState({ loading: false });
@@ -106,10 +121,10 @@ export const NetworkEditForm = () => {
   });
 
   const {
+    error: groupsFetchError,
     isError: groupsError,
     isLoading: groupsLoading,
     data: groupsData,
-    error: fetchGroupsError,
   } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
@@ -120,12 +135,11 @@ export const NetworkEditForm = () => {
   });
 
   useEffect(() => {
-    if (fetchGroupsError) {
+    if (groupsFetchError) {
       toaster.error(LL.messages.error());
-      console.error(fetchGroupsError);
+      console.error(groupsFetchError);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchGroupsError]);
+  }, [LL.messages, groupsFetchError, toaster]);
 
   useEffect(() => {
     if (groupsData) {
