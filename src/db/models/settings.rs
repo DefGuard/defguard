@@ -99,7 +99,7 @@ impl Settings {
 
     /// Checks if given settings are correct
     pub fn validate(&self) -> Result<(), SettingsValidationError> {
-        debug!("Validating settings: {self:#?}");
+        debug!("Validating settings: {self:?}");
         // check if gateway disconnect notifications can be enabled, since it requires SMTP to be configured
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");

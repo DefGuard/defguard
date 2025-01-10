@@ -188,7 +188,7 @@ impl GatewayMap {
                 state.cancel_pending_disconnect_notification();
                 state.handle_reconnect_notification(pool)?;
                 debug!(
-                    "Gateway {hostname} found in gateway map, current state: {:#?}",
+                    "Gateway {hostname} found in gateway map, current state: {:?}",
                     state
                 );
             } else {
@@ -217,7 +217,7 @@ impl GatewayMap {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
                 state.handle_disconnect_notification(pool)?;
-                debug!("Gateway {hostname} found in gateway map, current state: {state:#?}");
+                debug!("Gateway {hostname} found in gateway map, current state: {state:?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
             };
