@@ -6,7 +6,10 @@ use std::{
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
-    db::{init_db, AppEvent, GatewayEvent, Settings, User},
+    db::{
+        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Settings,
+        User,
+    },
     enterprise::{
         license::{run_periodic_license_check, set_cached_license, License},
         limits::update_counts,
@@ -88,6 +91,8 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // initialize default settings
     Settings::init_defaults(&pool).await?;
+    // initialize global settings struct
+    initialize_current_settings(&pool).await?;
 
     // read grpc TLS cert and key
     let grpc_cert = config

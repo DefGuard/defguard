@@ -251,7 +251,7 @@ impl PasswordResetServer {
         })?;
 
         // if self.ldap_feature_active {
-        let _ = ldap_change_password(&self.pool, &user.username, &request.password).await;
+        let _ = ldap_change_password(&user.username, &request.password).await;
         // };
 
         transaction.commit().await.map_err(|_| {

@@ -336,7 +336,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        let _result = ldap_add_user(&appstate.pool, &user, &password).await;
+        let _result = ldap_add_user(&user, &password).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -674,7 +674,7 @@ pub async fn modify_user(
     user.save(&mut *transaction).await?;
 
     // TODO: Reflect user status (active/disabled) modification in ldap
-    let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
+    let _result = ldap_modify_user(&username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
 
@@ -737,7 +737,7 @@ pub async fn delete_user(
         debug!("Devices of user {username} purged from networks.");
 
         user.delete(&mut *transaction).await?;
-        let _result = ldap_delete_user(&mut *transaction, &username).await;
+        let _result = ldap_delete_user(&username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
@@ -794,7 +794,7 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    let _ = ldap_change_password(&appstate.pool, &user.username, &data.new_password).await;
+    let _ = ldap_change_password(&user.username, &data.new_password).await;
 
     info!("User {} changed his password.", &user.username);
 
@@ -868,7 +868,7 @@ pub async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        let _ = ldap_change_password(&appstate.pool, &username, &data.new_password).await;
+        let _ = ldap_change_password(&username, &data.new_password).await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username

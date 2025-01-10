@@ -24,7 +24,7 @@ pub(crate) async fn get_app_info(
     _session: SessionInfo,
 ) -> ApiResult {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
-    let settings = Settings::get_settings(&appstate.pool).await?;
+    let settings = Settings::get_current_settings();
     let enterprise = is_enterprise_enabled();
     let res = AppInfo {
         network_present: !networks.is_empty(),

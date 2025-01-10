@@ -17,7 +17,6 @@ use serde::Serialize;
 use sqlx::PgPool;
 use thiserror::Error;
 use tokio::{
-    runtime::Handle,
     sync::{
         broadcast::Sender,
         mpsc::{self, UnboundedSender},
@@ -186,7 +185,7 @@ impl GatewayMap {
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
                 state.cancel_pending_disconnect_notification();
-                state.handle_reconnect_notification(pool)?;
+                state.handle_reconnect_notification(pool);
                 debug!(
                     "Gateway {hostname} found in gateway map, current state: {:?}",
                     state
@@ -216,7 +215,7 @@ impl GatewayMap {
             if let Some(state) = network_gateway_map.get_mut(&hostname) {
                 state.connected = false;
                 state.disconnected_at = Some(Utc::now().naive_utc());
-                state.handle_disconnect_notification(pool)?;
+                state.handle_disconnect_notification(pool);
                 debug!("Gateway {hostname} found in gateway map, current state: {state:?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
@@ -309,22 +308,15 @@ impl GatewayState {
     }
 
     /// Checks if gateway disconnect notification should be sent.
-    fn handle_disconnect_notification(&mut self, pool: &PgPool) -> Result<(), GatewayMapError> {
+    fn handle_disconnect_notification(&mut self, pool: &PgPool) {
         debug!("Checking if gateway disconnect notification needs to be sent");
-        let runtime_handle = Handle::current();
-        let settings = runtime_handle.block_on(async {
-            Settings::get_settings(pool).await.map_err(|err| {
-                error!("Failed to get settings: {err}");
-                GatewayMapError::SettingsError
-            })
-        })?;
+        let settings = Settings::get_current_settings();
         if settings.gateway_disconnect_notifications_enabled {
             self.send_disconnect_notification(
                 pool,
                 settings.gateway_disconnect_notifications_inactivity_threshold as u64,
             );
         };
-        Ok(())
     }
 
     /// Send gateway disconnected notification
@@ -369,19 +361,12 @@ impl GatewayState {
     }
 
     /// Checks if gateway disconnect notification should be sent.
-    fn handle_reconnect_notification(&mut self, pool: &PgPool) -> Result<(), GatewayMapError> {
+    fn handle_reconnect_notification(&mut self, pool: &PgPool) {
         debug!("Checking if gateway reconnect notification needs to be sent");
-        let runtime_handle = Handle::current();
-        let settings = runtime_handle.block_on(async {
-            Settings::get_settings(pool).await.map_err(|err| {
-                error!("Failed to get settings: {err}");
-                GatewayMapError::SettingsError
-            })
-        })?;
+        let settings = Settings::get_current_settings();
         if settings.gateway_disconnect_notifications_reconnect_notification_enabled {
             self.send_reconnect_notification(pool);
         };
-        Ok(())
     }
 
     /// Send gateway disconnected notification

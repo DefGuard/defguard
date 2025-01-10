@@ -185,7 +185,7 @@ pub(crate) async fn user_from_claims(
     let sub = token_claims.subject().to_string();
 
     // Handle logging in or creating user.
-    let settings = Settings::get_settings(pool).await?;
+    let settings = Settings::get_current_settings();
     let user = match User::find_by_sub(pool, &sub)
         .await
         .map_err(|err| WebError::Authorization(err.to_string()))?

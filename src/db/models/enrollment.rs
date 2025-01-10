@@ -352,7 +352,7 @@ impl Token {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<String, TokenError> {
-        let settings = Settings::get_settings(&mut *transaction).await?;
+        let settings = Settings::get_current_settings();
 
         // load configured content as template
         let mut tera = Tera::default();
@@ -370,7 +370,7 @@ impl Token {
         ip_address: &str,
         device_info: Option<&str>,
     ) -> Result<String, TokenError> {
-        let settings = Settings::get_settings(&mut *transaction).await?;
+        let settings = Settings::get_current_settings();
 
         // load configured content as template
         let mut tera = Tera::default();

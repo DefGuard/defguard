@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{RwLock, RwLockReadGuard},
+};
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
@@ -6,21 +9,63 @@ use thiserror::Error;
 
 use crate::secret::SecretString;
 
+// wrap in `Option` since a static cannot be initialized with a non-const function
+static SETTINGS: RwLock<Option<Settings>> = RwLock::new(None);
+
+pub(crate) fn set_settings(new_settings: Settings) {
+    *SETTINGS
+        .write()
+        .expect("Failed to acquire lock on current settings.") = Some(new_settings);
+}
+
+pub(crate) fn get_settings() -> RwLockReadGuard<'static, Option<Settings>> {
+    SETTINGS
+        .read()
+        .expect("Failed to acquire lock on current settings.")
+}
+
+/// Initializes global `SETTINGS` struct at program startup
+pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
+    debug!("Initializing global settings strut");
+    match Settings::get(pool).await? {
+        Some(settings) => {
+            set_settings(settings);
+        }
+        None => {
+            debug!("Settings not found in DB. Using default values to initialize global settings struct");
+            set_settings(Settings::default());
+        }
+    }
+    Ok(())
+}
+
+/// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
+pub async fn update_current_settings(
+    pool: &PgPool,
+    new_settings: Settings,
+) -> Result<(), sqlx::Error> {
+    debug!("Updating current settings to: {new_settings:?}");
+    new_settings.save(pool).await?;
+    set_settings(new_settings);
+    Ok(())
+}
+
 #[derive(Error, Debug)]
 pub enum SettingsValidationError {
     #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
     CannotEnableGatewayNotifications,
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
+    #[default]
     None,
     StartTls,
     ImplicitTls,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize)))]
 pub struct Settings {
     // Modules
@@ -195,27 +240,12 @@ impl Settings {
         Ok(())
     }
 
-    pub(crate) async fn save_license<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        query!(
-            "UPDATE \"settings\" SET license = $1 WHERE id = 1",
-            self.license,
-        )
-        .execute(executor)
-        .await?;
+    pub fn get_current_settings() -> Self {
+        // fetch global settings
+        let maybe_settings = get_settings().clone();
 
-        Ok(())
-    }
-
-    pub async fn get_settings<'e, E>(executor: E) -> Result<Self, sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        let settings = Settings::get(executor).await?;
-
-        Ok(settings.expect("Settings not found"))
+        // panic if settings have not been initialized, since it should happen at startup
+        maybe_settings.expect("Global settings have not been initialized")
     }
 
     // Set default values for settings if not set yet.

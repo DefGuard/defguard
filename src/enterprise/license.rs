@@ -13,7 +13,10 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::{db::Settings, server_config, VERSION};
+use crate::{
+    db::{models::settings::update_current_settings, Settings},
+    server_config, VERSION,
+};
 
 use super::limits::Counts;
 
@@ -325,8 +328,8 @@ impl License {
     }
 
     /// Get the key from the database
-    async fn get_key(pool: &PgPool) -> Result<Option<String>, LicenseError> {
-        let settings = Settings::get_settings(pool).await?;
+    async fn get_key() -> Result<Option<String>, LicenseError> {
+        let settings = Settings::get_current_settings();
         match settings.license {
             Some(key) => {
                 if key.is_empty() {
@@ -341,8 +344,8 @@ impl License {
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub async fn load(pool: &PgPool) -> Result<Option<License>, LicenseError> {
-        if let Some(key) = Self::get_key(pool).await? {
+    pub async fn load() -> Result<Option<License>, LicenseError> {
+        if let Some(key) = Self::get_key().await? {
             Ok(Some(Self::from_base64(&key)?))
         } else {
             debug!("No license key found in the database");
@@ -353,14 +356,14 @@ impl License {
     /// Try to load the license from the database, if the license requires a renewal, try to renew it.
     /// If the renewal fails, it will return the old license for the renewal service to renew it later.
     pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
-        match Self::load(pool).await? {
+        match Self::load().await? {
             Some(license) => {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
                         Err(LicenseError::LicenseExpired)
                     } else {
                         info!("License requires renewal, trying to renew it...");
-                        match renew_license(pool).await {
+                        match renew_license().await {
                             Ok(new_key) => {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
@@ -446,9 +449,9 @@ impl License {
 /// Exchange the currently stored key for a new one from the license server.
 ///
 /// Doesn't update the cached license, nor does it save the new key in the database.
-async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
+async fn renew_license() -> Result<String, LicenseError> {
     debug!("Exchanging license for a new one...");
-    let Some(old_license_key) = Settings::get_settings(db_pool).await?.license else {
+    let Some(old_license_key) = Settings::get_current_settings().license else {
         return Err(LicenseError::LicenseNotFound);
     };
 
@@ -522,9 +525,9 @@ pub(crate) fn validate_license(
 /// Helper function to save the license key string in the database
 async fn save_license_key(pool: &PgPool, key: &str) -> Result<(), LicenseError> {
     debug!("Saving the license key to the database...");
-    let mut settings = Settings::get_settings(pool).await?;
+    let mut settings = Settings::get_current_settings();
     settings.license = Some(key.to_string());
-    settings.save_license(pool).await?;
+    update_current_settings(pool, settings).await?;
 
     info!("Successfully saved license key to the database.");
 
@@ -613,7 +616,7 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
             info!("License requires renewal, renewing license...");
             check_period = *config.check_period_renewal_window;
             debug!("Changing check period to {}", format_duration(check_period));
-            match renew_license(pool).await {
+            match renew_license().await {
                 Ok(new_license_key) => match save_license_key(pool, &new_license_key).await {
                     Ok(()) => {
                         update_cached_license(Some(&new_license_key))?;
