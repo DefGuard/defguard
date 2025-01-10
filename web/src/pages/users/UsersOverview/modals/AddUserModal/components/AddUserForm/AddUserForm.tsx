@@ -157,7 +157,7 @@ export const AddUserForm = () => {
         setAppStore({
           appInfo: response,
         });
-        if (response.license_info.limits_exceeded.user) {
+        if (response.license_info.any_limit_exceeded) {
           openUpgradeLicenseModal({
             modalVariant: response.license_info.enterprise
               ? UpgradeLicenseModalVariant.LICENSE_LIMIT

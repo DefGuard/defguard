@@ -83,7 +83,7 @@ export const AddDeviceTokenStep = () => {
             setAppStore({
               appInfo: response,
             });
-            if (response.license_info.limits_exceeded.device) {
+            if (response.license_info.any_limit_exceeded) {
               openUpgradeLicenseModal({
                 modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
               });

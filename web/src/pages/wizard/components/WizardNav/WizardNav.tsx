@@ -63,7 +63,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
         invalidateMultipleQueries(queryClient, [[QueryKeys.FETCH_NETWORKS]]);
         void getAppInfo().then((response) => {
           setAppState({ appInfo: response });
-          if (response.license_info.limits_exceeded.wireguard_network) {
+          if (response.license_info.any_limit_exceeded) {
             openUpgradeLicenseModal({
               modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
             });
