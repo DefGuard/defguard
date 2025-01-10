@@ -54,7 +54,8 @@ export const ChangePasswordForm = () => {
     user: { changePassword },
   } = useApi();
 
-  const changePasswordMutation = useMutation(changePassword, {
+  const changePasswordMutation = useMutation({
+    mutationFn: changePassword,
     mutationKey: [MutationKeys.CHANGE_PASSWORD],
     onSuccess: () => {
       if (modalState.user && modalState.user.username === currentUser?.username) {
@@ -126,7 +127,7 @@ export const ChangePasswordForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"
           disabled={!isValid}
-          loading={changePasswordMutation.isLoading}
+          loading={changePasswordMutation.isPending}
           tabIndex={5}
           text={LL.modals.changeUserPassword.form.controls.submit()}
         />

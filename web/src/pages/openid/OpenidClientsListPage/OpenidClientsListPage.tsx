@@ -81,50 +81,51 @@ export const OpenidClientsListPage = () => {
 
   const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
 
-  const { mutate: deleteClientMutation, isLoading: deleteClientLoading } = useMutation(
-    [MutationKeys.DELETE_OPENID_CLIENT],
-    deleteOpenidClient,
-    {
-      onSuccess: () => {
-        toaster.success(LL.openidOverview.deleteApp.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-        setDeleteClientModalOpen(false);
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        setDeleteClientModalOpen(false);
-        console.error(err);
-      },
+  const { mutate: deleteClientMutation, isPending: deleteClientLoading } = useMutation({
+    mutationKey: [MutationKeys.DELETE_OPENID_CLIENT],
+    mutationFn: deleteOpenidClient,
+    onSuccess: () => {
+      toaster.success(LL.openidOverview.deleteApp.messages.success());
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_CLIENTS],
+      });
+      setDeleteClientModalOpen(false);
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      setDeleteClientModalOpen(false);
+      console.error(err);
+    },
+  });
 
-  const { mutate: editClientStatusMutation } = useMutation(
-    (client: OpenidClient) =>
+  const { mutate: editClientStatusMutation } = useMutation({
+    mutationFn: (client: OpenidClient) =>
       changeOpenidClientState({
         clientId: client.client_id,
         enabled: !client.enabled,
       }),
-    {
-      onSuccess: (_, client) => {
-        if (client.enabled) {
-          toaster.success(LL.openidOverview.disableApp.messages.success());
-        } else {
-          toaster.success(LL.openidOverview.enableApp.messages.success());
-        }
-        queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+    onSuccess: (_, client) => {
+      if (client.enabled) {
+        toaster.success(LL.openidOverview.disableApp.messages.success());
+      } else {
+        toaster.success(LL.openidOverview.enableApp.messages.success());
+      }
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_CLIENTS],
+      });
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
-  const { data: clients, isLoading } = useQuery(
-    [QueryKeys.FETCH_CLIENTS],
-    getOpenidClients,
-    { refetchOnWindowFocus: false, refetchInterval: 15000 },
-  );
+  const { data: clients, isLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_CLIENTS],
+    queryFn: getOpenidClients,
+    refetchOnWindowFocus: false,
+    refetchInterval: 15000,
+  });
 
   const filteredClients = useMemo(() => {
     if (!clients || (clients && clients.length === 0)) return [];
@@ -210,7 +211,7 @@ export const OpenidClientsListPage = () => {
               data-testid="copy-openid-client-id"
               text={LL.openidOverview.list.editButton.copy()}
               onClick={() => {
-                writeToClipboard(
+                void writeToClipboard(
                   client.client_id,
                   LL.openidOverview.messages.copySuccess(),
                 );

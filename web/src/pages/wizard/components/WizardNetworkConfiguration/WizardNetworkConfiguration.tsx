@@ -44,7 +44,8 @@ export const WizardNetworkConfiguration = () => {
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
-  const { mutate: addNetworkMutation, isLoading } = useMutation(addNetwork, {
+  const { mutate: addNetworkMutation, isPending } = useMutation({
+    mutationFn: addNetwork,
     onSuccess: () => {
       setWizardState({ loading: false });
       toaster.success(LL.wizard.configuration.successMessage());
@@ -57,27 +58,39 @@ export const WizardNetworkConfiguration = () => {
     },
   });
 
-  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+  const {
+    isError: isFetchGroupsError,
+    error: fetchGroupsError,
+    isLoading: groupsLoading,
+    data: fetchGroupsData,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
-      setGroupOptions(
-        res.groups.map((g) => ({
-          key: g,
-          value: g,
-          label: titleCase(g),
-        })),
-      );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
     enabled: componentMount,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: 'always',
   });
+
+  useEffect(() => {
+    if (fetchGroupsError) {
+      toaster.error(LL.messages.error());
+      console.error(fetchGroupsError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchGroupsError]);
+
+  useEffect(() => {
+    if (fetchGroupsData) {
+      setGroupOptions(
+        fetchGroupsData.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        })),
+      );
+    }
+  }, [fetchGroupsData]);
 
   const zodSchema = useMemo(
     () =>
@@ -134,7 +147,7 @@ export const WizardNetworkConfiguration = () => {
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     const trimmed = trimObjectStrings(values);
-    if (!isLoading) {
+    if (!isPending) {
       setWizardState({ loading: true });
       addNetworkMutation(trimmed);
     }
@@ -198,7 +211,7 @@ export const WizardNetworkConfiguration = () => {
           controller={{ control, name: 'allowed_groups' }}
           label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
-          disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
+          disabled={isFetchGroupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
           renderSelected={(group) => ({

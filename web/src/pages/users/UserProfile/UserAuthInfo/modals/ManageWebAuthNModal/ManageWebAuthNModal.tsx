@@ -31,20 +31,20 @@ export const ManageWebAuthNKeysModal = () => {
   } = useApi();
   const toaster = useToaster();
   const queryClient = useQueryClient();
-  const { mutate: deleteKeyMutation, isLoading: deleteKeyLoading } = useMutation(
-    [MutationKeys.WEBUAUTHN_DELETE_KEY],
-    deleteKey,
-    {
-      onSuccess: () => {
-        toaster.success(LL.modals.manageWebAuthNKeys.messages.deleted());
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate: deleteKeyMutation, isPending: deleteKeyLoading } = useMutation({
+    mutationKey: [MutationKeys.WEBUAUTHN_DELETE_KEY],
+    mutationFn: deleteKey,
+    onSuccess: () => {
+      toaster.success(LL.modals.manageWebAuthNKeys.messages.deleted());
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   return (
     <ModalWithTitle

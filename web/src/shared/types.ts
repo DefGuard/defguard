@@ -328,6 +328,7 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  license_info: LicenseInfo;
 }
 
 export type GetDeviceConfigRequest = {
@@ -402,12 +403,15 @@ export type AuthenticationKey = {
   key: string;
 };
 
+export type EnterpriseInfoResponse = {
+  license_info?: EnterpriseInfo;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
-  getEnterpriseStatus: () => Promise<EnterpriseStatus>;
-  getEnterpriseInfo: () => Promise<EnterpriseInfo>;
+  getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -837,7 +841,7 @@ export type SettingsEnterprise = {
   only_client_activation: boolean;
 };
 
-export type LicenseInfo = {
+export type EnterpriseLicenseInfo = {
   valid_until?: string;
   subscription: boolean;
 };
@@ -847,10 +851,11 @@ export type EnterpriseStatus = {
 };
 
 export type EnterpriseInfo = {
-  enabled: boolean;
-  // If there is no license, there is no license info
-  license_info?: LicenseInfo;
-  needs_license: boolean;
+  expired: boolean;
+  limits_exceeded: boolean;
+  subscription: boolean;
+  // iso utc date
+  valid_until: string;
 };
 
 export interface Webhook {
@@ -1097,4 +1102,17 @@ export type StandaloneDeviceEditRequest = {
   assigned_ip: string;
   description?: string;
   name: string;
+};
+
+export type LicenseLimits = {
+  user: boolean;
+  device: boolean;
+  wireguard_network: boolean;
+};
+
+export type LicenseInfo = {
+  enterprise: boolean;
+  limits_exceeded: LicenseLimits;
+  any_limit_exceeded: boolean;
+  is_enterprise_free: boolean;
 };

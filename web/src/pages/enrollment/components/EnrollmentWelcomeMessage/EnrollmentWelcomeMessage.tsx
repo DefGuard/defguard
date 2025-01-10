@@ -31,10 +31,12 @@ export const EnrollmentWelcomeMessage = () => {
   const queryClient = useQueryClient();
   const toaster = useToaster();
 
-  const { isLoading, mutate } = useMutation({
+  const { isPending: isLoading, mutate } = useMutation({
     mutationFn: editSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_SETTINGS],
+      });
       toaster.success(LL.enrollmentPage.messages.edit.success());
     },
     onError: (e) => {

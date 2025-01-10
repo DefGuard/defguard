@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import en from '../en';
 import { extendDictionary } from '../i18n-util';
 
@@ -1105,7 +1104,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       licenseInfo: {
         title: 'Informacje o licencji',
-        noLicense: 'Brak licencji',
+        noLicense: 'Brak ważnej licencji',
         licenseNotRequired:
           "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {

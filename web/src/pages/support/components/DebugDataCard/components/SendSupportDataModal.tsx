@@ -19,7 +19,8 @@ export const SendSupportDataModal = ({ isOpen, onOpenChange }: Props) => {
   } = useApi();
   const toaster = useToaster();
 
-  const { mutate: sendMail, isLoading: mailLoading } = useMutation([], sendSupportMail, {
+  const { mutate: sendMail, isPending: mailLoading } = useMutation({
+    mutationFn: sendSupportMail,
     onSuccess: () => {
       toaster.success(LL.supportPage.debugDataCard.mailSent());
       onOpenChange(false);

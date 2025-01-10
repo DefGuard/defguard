@@ -9,7 +9,10 @@ import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatu
 import IconEditNetwork from '../../../shared/components/svg/IconEditNetwork';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { OverviewStatsFilterSelect } from '../OverviewStatsFilterSelect/OverviewStatsFilterSelect';
@@ -50,6 +53,7 @@ export const OverviewHeader = ({ loading = false }: Props) => {
           icon={<IconEditNetwork />}
           loading={loading || isUndefined(selectedNetwork)}
           onClick={handleNetworkAction}
+          size={ButtonSize.SMALL}
         />
       </>
     );

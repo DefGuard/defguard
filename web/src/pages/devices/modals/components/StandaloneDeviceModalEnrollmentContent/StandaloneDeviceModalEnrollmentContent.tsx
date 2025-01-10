@@ -57,7 +57,7 @@ export const StandaloneDeviceModalEnrollmentContent = ({
           <ActionButton
             variant={ActionButtonVariant.COPY}
             onClick={() => {
-              writeToClipboard(commandToCopy);
+              void writeToClipboard(commandToCopy);
             }}
             key={0}
           />,

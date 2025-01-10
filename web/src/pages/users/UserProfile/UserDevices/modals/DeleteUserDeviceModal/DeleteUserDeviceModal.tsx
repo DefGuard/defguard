@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { isUndefined } from 'lodash-es';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -28,21 +27,21 @@ export const DeleteUserDeviceModal = () => {
   } = useApi();
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(
-    [MutationKeys.DELETE_USER_DEVICE],
-    deleteDevice,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        toaster.success(LL.modals.deleteDevice.messages.success());
-        closeModal();
-      },
-      onError: (err: AxiosError) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate, isPending } = useMutation({
+    mutationKey: [MutationKeys.DELETE_USER_DEVICE],
+    mutationFn: deleteDevice,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      toaster.success(LL.modals.deleteDevice.messages.success());
+      closeModal();
     },
-  );
+    onError: (err: AxiosError) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
   return (
     <ConfirmModal
@@ -53,7 +52,7 @@ export const DeleteUserDeviceModal = () => {
       })}
       cancelText={LL.form.cancel()}
       submitText={LL.modals.deleteDevice.submit()}
-      loading={isLoading || isUndefined(device)}
+      loading={isPending || device === undefined}
       isOpen={visible}
       setIsOpen={(visibility) => setModalState({ visible: visibility })}
       onSubmit={() => {

@@ -11,6 +11,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../../shared/mutations';
 import { QueryKeys } from '../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
 export const OpenIdGeneralSettings = () => {
@@ -26,10 +27,14 @@ export const OpenIdGeneralSettings = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.EDIT_SETTINGS], patchSettings, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_SETTINGS],
+    mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_ESSENTIAL_SETTINGS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_SETTINGS],
+        [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: () => {

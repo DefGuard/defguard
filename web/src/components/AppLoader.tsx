@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { lazy, Suspense, useEffect, useState } from 'react';
-// eslint-disable-next-line import/no-unresolved
+import { lazy, Suspense, useEffect } from 'react';
 import { navigatorDetector } from 'typesafe-i18n/detectors';
 import { shallow } from 'zustand/shallow';
 
@@ -30,81 +29,86 @@ export const AppLoader = () => {
     getAppInfo,
     getNewVersion,
     user: { getMe },
-    getEnterpriseStatus,
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
-  const [userLoading, setUserLoading] = useState(true);
   const { setLocale } = useI18nContext();
   const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
   const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
-  const clearUpdate = useUpdatesStore((s) => s.clearUpdate);
 
-  useQuery([QueryKeys.FETCH_ME], getMe, {
-    onSuccess: async (user) => {
-      setAuthState({ user });
-      setUserLoading(false);
-    },
-    onError: () => {
-      if (currentUser) {
-        resetAuthState();
-      }
-      setUserLoading(false);
-    },
+  const {
+    data: meData,
+    isLoading: userLoading,
+    error: meFetchError,
+  } = useQuery({
+    queryFn: getMe,
+    queryKey: [QueryKeys.FETCH_ME],
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     retry: false,
   });
 
-  useQuery([QueryKeys.FETCH_APP_INFO], getAppInfo, {
-    onSuccess: (data) => {
-      setAppStore({ appInfo: data });
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.errorVersion());
-      console.error(err);
-    },
-    refetchOnWindowFocus: false,
-    retry: false,
+  useEffect(() => {
+    if (meFetchError && currentUser) {
+      if (currentUser) {
+        resetAuthState();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meFetchError]);
+
+  useEffect(() => {
+    if (meData) {
+      setAuthState({ user: meData });
+    }
+  }, [meData, setAuthState]);
+
+  const { data: appInfoData, error: appInfoError } = useQuery({
+    queryFn: getAppInfo,
+    queryKey: [QueryKeys.FETCH_APP_INFO],
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     enabled: !isUndefined(currentUser),
   });
 
-  useQuery([QueryKeys.FETCH_ENTERPRISE_SETTINGS], getEnterpriseSettings, {
-    onSuccess: (settings) => {
-      setAppStore({ enterprise_settings: settings });
-    },
-    onError: (err) => {
-      console.error(err);
-    },
+  useEffect(() => {
+    if (appInfoError) {
+      toaster.error(LL.messages.errorVersion());
+      console.error(appInfoError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appInfoError]);
+
+  useEffect(() => {
+    if (appInfoData) {
+      setAppStore({ appInfo: appInfoData });
+    }
+  }, [appInfoData, setAppStore]);
+
+  const { data: enterpriseSettingsData, error: enterpriseSettingsError } = useQuery({
+    queryFn: getEnterpriseSettings,
+    queryKey: [QueryKeys.FETCH_ENTERPRISE_SETTINGS],
     refetchOnWindowFocus: true,
     retry: false,
     enabled: !isUndefined(currentUser),
   });
 
-  useQuery([QueryKeys.FETCH_ENTERPRISE_STATUS], getEnterpriseStatus, {
-    onSuccess: (status) => {
-      setAppStore({
-        enterprise_status: status,
-      });
-    },
-    onError: (err) => {
-      // FIXME: Add a proper error message
-      toaster.error(LL.messages.errorVersion());
-      console.error(err);
-    },
-    refetchOnWindowFocus: false,
-    retry: false,
-  });
+  useEffect(() => {
+    if (enterpriseSettingsError) {
+      console.error(enterpriseSettingsError);
+    }
+  }, [enterpriseSettingsError]);
 
-  const { isLoading: settingsLoading, data: essentialSettings } = useQuery(
-    [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
-    getEssentialSettings,
-    {
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-    },
-  );
+  useEffect(() => {
+    setAppStore({ enterprise_settings: enterpriseSettingsData });
+  }, [setAppStore, enterpriseSettingsData]);
+
+  const { isLoading: settingsLoading, data: essentialSettings } = useQuery({
+    queryFn: getEssentialSettings,
+    queryKey: [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
+    refetchOnMount: true,
+  });
 
   useEffect(() => {
     if (!activeLanguage) {
@@ -115,10 +119,14 @@ export const AppLoader = () => {
       setAppStore({ language: lang });
     } else {
       if (locales.includes(activeLanguage)) {
-        loadLocaleAsync(activeLanguage).then(() => {
-          setLocale(activeLanguage);
-          document.documentElement.setAttribute('lang', activeLanguage);
-        });
+        loadLocaleAsync(activeLanguage)
+          .then(() => {
+            setLocale(activeLanguage);
+            document.documentElement.setAttribute('lang', activeLanguage);
+          })
+          .catch((e) => {
+            console.error(e);
+          });
       } else {
         setAppStore({ language: baseLocale });
       }
@@ -136,22 +144,25 @@ export const AppLoader = () => {
     }
   }, [essentialSettings, setAppStore]);
 
-  useQuery([QueryKeys.FETCH_NEW_VERSION], getNewVersion, {
-    onSuccess: (data) => {
-      if (!data) {
-        clearUpdate();
-      } else {
-        setUpdateStore(data);
-      }
-    },
-    onError: (err) => {
-      console.error(err);
-    },
+  const { data: newVersionData, error: newVersionError } = useQuery({
+    queryFn: getNewVersion,
+    queryKey: [QueryKeys.FETCH_NEW_VERSION],
     refetchOnWindowFocus: false,
-    retry: false,
-    staleTime: Infinity,
+    refetchOnMount: true,
     enabled: !isUndefined(currentUser) && currentUser.is_admin,
   });
+
+  useEffect(() => {
+    if (newVersionError) {
+      console.error(newVersionError);
+    }
+  }, [newVersionError]);
+
+  useEffect(() => {
+    if (newVersionData) {
+      setUpdateStore(newVersionData);
+    }
+  }, [newVersionData, setUpdateStore]);
 
   if (userLoading || (settingsLoading && isUndefined(appSettings))) {
     return <LoaderPage />;

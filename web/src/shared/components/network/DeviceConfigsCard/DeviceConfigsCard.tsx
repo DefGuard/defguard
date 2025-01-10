@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'react-qr-code';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -59,21 +59,22 @@ export const DeviceConfigsCard = ({
     };
   }, [selectedNetwork, deviceId, userId]);
 
-  const { isLoading: loadingConfig } = useQuery(
-    [QueryKeys.FETCH_DEVICE_CONFIG, queryParams],
-    () =>
+  const { isLoading: loadingConfig, data: deviceConfigData } = useQuery({
+    queryFn: () =>
       downloadDeviceConfig({
         network_id: queryParams.network_id,
         device_id: queryParams.device_id,
       }),
-    {
-      enabled: !!queryParams,
-      refetchOnMount: true,
-      onSuccess: (res) => {
-        setSelectedConfig(res);
-      },
-    },
-  );
+    queryKey: [QueryKeys.FETCH_DEVICE_CONFIG, queryParams],
+    enabled: !!queryParams,
+    refetchOnMount: true,
+  });
+
+  useEffect(() => {
+    if (deviceConfigData) {
+      setSelectedConfig(deviceConfigData);
+    }
+  }, [deviceConfigData]);
 
   const getSelectOptions = useMemo((): SelectOption<number>[] => {
     return networks.map((n) => ({
@@ -140,7 +141,7 @@ export const DeviceConfigsCard = ({
         disabled={isUndefined(getConfigExport)}
         onClick={() => {
           if (getConfigExport) {
-            writeToClipboard(
+            void writeToClipboard(
               getConfigExport,
               LL.components.deviceConfigsCard.messages.copyConfig(),
             );

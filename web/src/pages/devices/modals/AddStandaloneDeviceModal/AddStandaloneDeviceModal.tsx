@@ -30,7 +30,7 @@ export const AddStandaloneDeviceModal = () => {
   const [close, reset] = useAddStandaloneDeviceModal((s) => [s.close, s.reset], shallow);
 
   const getTitle = useMemo(() => {
-    switch (currentStep) {
+    switch (currentStep.valueOf()) {
       case 0:
         return localLL.steps.method.title();
       case 1:

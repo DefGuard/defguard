@@ -20,6 +20,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
 import { Network } from '../../../../shared/types';
 import { selectifyNetworks } from '../../../../shared/utils/form/selectifyNetwork';
+import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
 import {
@@ -78,12 +79,10 @@ const ModalContent = () => {
     mutationFn: editDevice,
     onSuccess: () => {
       toaster.success(localLL.toasts.success());
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USER_PROFILE, currentUserId],
+        [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      ]);
       closeModal();
     },
     onError: (e) => {

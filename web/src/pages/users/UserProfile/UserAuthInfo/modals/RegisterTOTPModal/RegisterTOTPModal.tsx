@@ -1,10 +1,10 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import parse from 'html-react-parser';
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import QRCode from 'react-qr-code';
 import { z } from 'zod';
@@ -70,15 +70,23 @@ const TOTPRegisterQRCode = () => {
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
-  const { data, isLoading } = useQuery([MutationKeys.ENABLE_TOTP_INIT], init, {
-    suspense: true,
+  const {
+    data,
+    isLoading,
+    error: totpInitError,
+  } = useSuspenseQuery({
+    queryKey: [MutationKeys.ENABLE_TOTP_INIT],
+    queryFn: init,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
   });
+  useEffect(() => {
+    if (totpInitError) {
+      toaster.error(LL.messages.error());
+      console.error(totpInitError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totpInitError]);
 
   const qrData = useMemo(
     () => (data ? `otpauth://totp/Defguard?secret=${data.secret}` : undefined),
@@ -87,7 +95,7 @@ const TOTPRegisterQRCode = () => {
 
   const handleCopy = () => {
     if (data && data.secret) {
-      writeToClipboard(data.secret, LL.modals.registerTOTP.messages.totpCopied());
+      void writeToClipboard(data.secret, LL.modals.registerTOTP.messages.totpCopied());
     }
   };
 
@@ -133,10 +141,14 @@ const TOTPRegisterForm = () => {
       }),
     [LL.form.error],
   );
-  const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_TOTP_FINISH], enable, {
+  const { mutate, isPending } = useMutation({
+    mutationKey: [MutationKeys.ENABLE_TOTP_FINISH],
+    mutationFn: enable,
     onSuccess: (data) => {
       toaster.success(LL.modals.registerTOTP.messages.success());
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
       if (data && data.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: data.codes },
@@ -182,7 +194,7 @@ const TOTPRegisterForm = () => {
         />
         <Button
           styleVariant={ButtonStyleVariant.PRIMARY}
-          loading={isLoading}
+          loading={isPending}
           size={ButtonSize.LARGE}
           type="submit"
           text={LL.modals.registerTOTP.form.controls.submit()}

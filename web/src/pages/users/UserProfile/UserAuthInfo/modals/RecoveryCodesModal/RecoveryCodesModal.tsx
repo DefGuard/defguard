@@ -51,7 +51,9 @@ const ModalContent = () => {
     },
   } = useApi();
   const logOut = useAuthStore((state) => state.resetState);
-  const { mutate, isLoading } = useMutation([MutationKeys.ENABLE_MFA], enable, {
+  const { mutate, isPending } = useMutation({
+    mutationKey: [MutationKeys.ENABLE_MFA],
+    mutationFn: enable,
     onSuccess: () => {
       setModalState({ visible: false, codes: undefined });
       logOut();
@@ -93,7 +95,7 @@ const ModalContent = () => {
           text={LL.form.copy()}
           onClick={() => {
             if (codes) {
-              writeToClipboard(
+              void writeToClipboard(
                 codes.join('\n'),
                 LL.modals.recoveryCodes.messages.copied(),
               );
@@ -108,7 +110,7 @@ const ModalContent = () => {
           onClick={() => mutate()}
           styleVariant={ButtonStyleVariant.CONFIRM}
           size={ButtonSize.LARGE}
-          loading={isLoading}
+          loading={isPending}
         />
       </div>
     </>

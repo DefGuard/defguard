@@ -1,6 +1,7 @@
 @mixin list-layout {
   display: inline-grid;
   grid-template-columns: 1fr 40px;
+
   @include media-breakpoint-up(lg) {
     grid-template-columns: minmax(150px, 25%) 1fr 1fr 60px;
   }
@@ -46,6 +47,7 @@
       box-sizing: border-box;
       width: 100%;
       padding: 0 2rem;
+
       @include media-breakpoint-up(lg) {
         display: flex;
         flex-flow: row;
@@ -59,6 +61,7 @@
 
       h1 {
         display: none;
+
         @include media-breakpoint-up(lg) {
           display: block;
           font-size: 4.1rem;
@@ -72,6 +75,7 @@
       .search {
         width: 100%;
         height: 40px;
+
         @include media-breakpoint-up(lg) {
           width: 400px;
         }
@@ -92,7 +96,7 @@
       justify-content: flex-start;
 
       .select-container {
-        height: 40px;
+        min-height: 40px;
       }
 
       @include media-breakpoint-up(lg) {
@@ -115,11 +119,13 @@
           @include poppins;
 
           color: var(--text-main);
+
           @include media-breakpoint-down(lg) {
             font-size: 1.5rem;
             line-height: 2.1rem;
             text-transform: uppercase;
           }
+
           @include media-breakpoint-up(lg) {
             font-size: 2rem;
             line-height: 3rem;
@@ -194,6 +200,7 @@
             height: 40px;
           }
         }
+
         @include media-breakpoint-up(lg) {
           gap: 2rem;
 
@@ -241,6 +248,7 @@
 
       .headers {
         display: none;
+
         @include media-breakpoint-up(lg) {
           @include list-layout;
 
@@ -270,6 +278,7 @@
         grid-template-rows: 1fr;
         height: 60px;
         padding: 0 1.5rem;
+
         @include media-breakpoint-up(lg) {
           padding: 0 1.5rem 0 5rem;
         }

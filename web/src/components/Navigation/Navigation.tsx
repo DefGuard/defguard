@@ -24,6 +24,7 @@ import { useUserProfileStore } from '../../shared/hooks/store/useUserProfileStor
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { User } from '../../shared/types';
+import { invalidateMultipleQueries } from '../../shared/utils/invalidateMultipleQueries';
 import { DevicePageNavigationIcon } from './components/DevicesPageNavigationIcon';
 import { NavigationDesktop } from './components/NavigationDesktop/NavigationDesktop';
 import { NavigationMobile } from './components/NavigationMobile/NavigationMobile';
@@ -47,7 +48,8 @@ export const Navigation = () => {
     auth: { logout },
   } = useApi();
 
-  const { mutate: logOutMutation } = useMutation(logout, {
+  const { mutate: logOutMutation } = useMutation({
+    mutationFn: logout,
     onSuccess: () => {
       resetAuthStore();
       resetUserProfile();
@@ -150,8 +152,10 @@ export const Navigation = () => {
         enabled: true,
         onClick: () => {
           resetUserProfile();
-          queryClient.invalidateQueries([QueryKeys.FETCH_ME]);
-          queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+          invalidateMultipleQueries(queryClient, [
+            [QueryKeys.FETCH_ME],
+            [QueryKeys.FETCH_USER_PROFILE],
+          ]);
         },
       },
     ];

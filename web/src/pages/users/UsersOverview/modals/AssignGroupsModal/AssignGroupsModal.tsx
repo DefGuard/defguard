@@ -1,11 +1,6 @@
 import './style.scss';
 
-import {
-  QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { useCallback, useMemo, useState } from 'react';
 import { shallow } from 'zustand/shallow';
@@ -23,6 +18,7 @@ import { SelectRow } from '../../../../../shared/defguard-ui/components/Layout/S
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useAssignGroupsModal } from './store';
 
 export const AssignGroupsModal = () => {
@@ -47,14 +43,6 @@ const toInvalidate = [
   QueryKeys.FETCH_USERS_LIST,
 ];
 
-const invalidateQueries = (client: QueryClient, queries: string[]) => {
-  queries.forEach((q) =>
-    client.invalidateQueries({
-      queryKey: [q],
-    }),
-  );
-};
-
 const ModalContent = () => {
   const [search, setSearch] = useState<string>('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -74,10 +62,10 @@ const ModalContent = () => {
     queryFn: async () => getGroups().then((res) => res.groups),
   });
 
-  const { mutate, isLoading } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: addUsersToGroup,
     onSuccess: () => {
-      invalidateQueries(queryClient, toInvalidate);
+      invalidateMultipleQueries(queryClient, toInvalidate);
       toaster.success(LL.messages.success());
       successSubject.next();
       closeModal();
@@ -117,13 +105,13 @@ const ModalContent = () => {
   }, [groups, selected.length]);
 
   const handleSubmit = useCallback(() => {
-    if (!isLoading) {
+    if (!isPending) {
       mutate({
         groups: selected,
         users,
       });
     }
-  }, [isLoading, mutate, selected, users]);
+  }, [isPending, mutate, selected, users]);
 
   return (
     <>
@@ -167,7 +155,7 @@ const ModalContent = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text="Assign groups"
           disabled={selected.length === 0}
-          loading={isLoading}
+          loading={isPending}
           onClick={() => handleSubmit()}
         />
       </div>

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "useDefineForClassFields": true,
     "lib": [
       "ESNext",
@@ -27,6 +27,9 @@
         "name": "typescript-eslint-language-service",
       },
     ],
+    "types": [
+      "vite/client"
+    ]
   },
   "include": [
     "src"

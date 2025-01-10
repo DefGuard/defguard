@@ -14,6 +14,7 @@ import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore'
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
+import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { useDevicesPage } from '../../../../hooks/useDevicesPage';
 import { StandaloneDeviceModalForm } from '../../../components/StandaloneDeviceModalForm/StandaloneDeviceModalForm';
 import { StandaloneDeviceModalFormMode } from '../../../components/types';
@@ -49,12 +50,10 @@ export const SetupManualStep = () => {
   const { mutateAsync } = useMutation({
     mutationFn: createDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_USER_PROFILE, currentUserId],
-      });
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USER_PROFILE, currentUserId],
+        [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
+      ]);
     },
   });
 

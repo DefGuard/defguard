@@ -67,11 +67,13 @@ export const RegisterMFAEmailForm = () => {
     resolver: zodResolver(schema),
   });
 
-  const { mutate: mutateFinish, isLoading: finishLoading } = useMutation({
+  const { mutate: mutateFinish, isPending: finishLoading } = useMutation({
     mutationFn: finish,
     onSuccess: (res) => {
       toaster.success(localLL.messages.success());
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
       if (res && res.codes) {
         setModalsState({
           recoveryCodesModal: { visible: true, codes: res.codes },
@@ -100,7 +102,7 @@ export const RegisterMFAEmailForm = () => {
     refetchOnMount: true,
   });
 
-  const { mutateAsync: mutateStart, isLoading: startLodaing } = useMutation({
+  const { mutateAsync: mutateStart, isPending: startLoading } = useMutation({
     mutationFn: start,
   });
 
@@ -125,11 +127,11 @@ export const RegisterMFAEmailForm = () => {
             className="resend"
             size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.LINK}
-            loading={startLodaing || initStartLoading}
+            loading={startLoading || initStartLoading}
             disabled={disableResend}
             text={localLL.form.controls.resend()}
             onClick={() => {
-              mutateStart().then(() => {
+              void mutateStart().then(() => {
                 toaster.success(localLL.messages.resend());
               });
               setDisableResend(true);
@@ -154,7 +156,7 @@ export const RegisterMFAEmailForm = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             className="submit"
             text={localLL.form.controls.submit()}
-            loading={finishLoading || startLodaing || initStartLoading}
+            loading={finishLoading || startLoading || initStartLoading}
           />
         </div>
       </form>
