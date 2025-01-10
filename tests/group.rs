@@ -16,7 +16,7 @@ async fn test_create_group() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new(), false);
+    let data = GroupInfo::new("hogwarts", vec!["hpotter".into()], Vec::new(), false);
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
@@ -25,11 +25,11 @@ async fn test_create_group() {
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
     // Delete the group.
-    let response = client.delete("/api/v1/group/hogwards").send().await;
+    let response = client.delete("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Try to delete again.
-    let response = client.delete("/api/v1/group/hogwards").send().await;
+    let response = client.delete("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
@@ -43,21 +43,21 @@ async fn test_modify_group() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new(), false);
+    let data = GroupInfo::new("hogwarts", vec!["hpotter".into()], Vec::new(), false);
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Rename group.
     let data = GroupInfo::new("gryffindor", Vec::new(), Vec::new(), false);
     let response = client
-        .put("/api/v1/group/hogwards")
+        .put("/api/v1/group/hogwarts")
         .json(&data)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Try to get the group by its old name.
-    let response = client.get("/api/v1/group/hogwards").send().await;
+    let response = client.get("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // Get group info.
@@ -77,27 +77,27 @@ async fn test_modify_group_members() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Create new group.
-    let data = GroupInfo::new("hogwards", vec!["hpotter".into()], Vec::new(), false);
+    let data = GroupInfo::new("hogwarts", vec!["hpotter".into()], Vec::new(), false);
     let response = client.post("/api/v1/group").json(&data).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Get group info.
-    let response = client.get("/api/v1/group/hogwards").send().await;
+    let response = client.get("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
     assert_eq!(group_info.members, vec!["hpotter".to_string()]);
 
     // Change group members.
-    let data = GroupInfo::new("hogwards", Vec::new(), Vec::new(), false);
+    let data = GroupInfo::new("hogwarts", Vec::new(), Vec::new(), false);
     let response = client
-        .put("/api/v1/group/hogwards")
+        .put("/api/v1/group/hogwarts")
         .json(&data)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Get group info.
-    let response = client.get("/api/v1/group/hogwards").send().await;
+    let response = client.get("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let group_info: GroupInfo = response.json().await;
     assert!(group_info.members.is_empty());
@@ -114,7 +114,7 @@ async fn test_modify_group_no_locations_in_request() {
 
     // Create new group.
     let data = json!({
-        "name": "hogwards",
+        "name": "hogwarts",
         "members": [
             "hpotter",
             "admin"
@@ -133,14 +133,14 @@ async fn test_modify_group_no_locations_in_request() {
         "is_admin": false
     });
     let response = client
-        .put("/api/v1/group/hogwards")
+        .put("/api/v1/group/hogwarts")
         .json(&data)
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
 
     // Try to get the group by its old name.
-    let response = client.get("/api/v1/group/hogwards").send().await;
+    let response = client.get("/api/v1/group/hogwarts").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // Get group info.

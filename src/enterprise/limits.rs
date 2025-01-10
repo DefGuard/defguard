@@ -133,11 +133,31 @@ impl Counts {
             || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
     }
 
-    pub(crate) fn get_exceeded_limits(&self) -> LimitsExceeded {
-        LimitsExceeded {
-            user: self.user > DEFAULT_USERS_LIMIT,
-            device: self.device > DEFAULT_DEVICES_LIMIT,
-            wireguard_network: self.wireguard_network > DEFAULT_LOCATIONS_LIMIT,
+    pub(crate) fn get_exceeded_limits(&self, license: Option<&License>) -> LimitsExceeded {
+        if let Some(license) = license {
+            LimitsExceeded {
+                user: self.user
+                    > license
+                        .limits
+                        .as_ref()
+                        .map_or(DEFAULT_USERS_LIMIT, |l| l.users),
+                device: self.device
+                    > license
+                        .limits
+                        .as_ref()
+                        .map_or(DEFAULT_DEVICES_LIMIT, |l| l.devices),
+                wireguard_network: self.wireguard_network
+                    > license
+                        .limits
+                        .as_ref()
+                        .map_or(DEFAULT_LOCATIONS_LIMIT, |l| l.locations),
+            }
+        } else {
+            LimitsExceeded {
+                user: self.user > DEFAULT_DEVICES_LIMIT,
+                device: self.device > DEFAULT_DEVICES_LIMIT,
+                wireguard_network: self.wireguard_network > DEFAULT_LOCATIONS_LIMIT,
+            }
         }
     }
 }
@@ -360,7 +380,7 @@ mod test {
             wireguard_network: 0,
         };
         set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits();
+        let exceeded = get_counts().get_exceeded_limits(None);
         assert!(exceeded.user);
         assert!(!exceeded.device);
         assert!(!exceeded.wireguard_network);
@@ -372,7 +392,7 @@ mod test {
             wireguard_network: 0,
         };
         set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits();
+        let exceeded = get_counts().get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(exceeded.device);
         assert!(!exceeded.wireguard_network);
@@ -384,7 +404,7 @@ mod test {
             wireguard_network: exceed_wireguard_network,
         };
         set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits();
+        let exceeded = get_counts().get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(!exceeded.device);
         assert!(exceeded.wireguard_network);
@@ -396,10 +416,32 @@ mod test {
             wireguard_network: 0,
         };
         set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits();
+        let exceeded = get_counts().get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(!exceeded.device);
         assert!(!exceeded.wireguard_network);
         assert!(!exceeded.any());
+
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 2,
+                devices: 2,
+                locations: 2,
+            }),
+        );
+        let counts = Counts {
+            user: 3,
+            device: 3,
+            wireguard_network: 3,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits(Some(&license));
+        assert!(exceeded.user);
+        assert!(exceeded.device);
+        assert!(exceeded.wireguard_network);
+        assert!(exceeded.any());
     }
 }

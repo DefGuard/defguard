@@ -8,6 +8,7 @@ use crate::{
     db::{Settings, WireguardNetwork},
     enterprise::{
         is_enterprise_enabled, is_enterprise_free,
+        license::get_cached_license,
         limits::{get_counts, LimitsExceeded},
     },
 };
@@ -40,7 +41,8 @@ pub(crate) async fn get_app_info(
     let networks = WireguardNetwork::all(&appstate.pool).await?;
     let settings = Settings::get_settings(&appstate.pool).await?;
     let enterprise = is_enterprise_enabled();
-    let limits_exceeded = get_counts().get_exceeded_limits();
+    let license = get_cached_license();
+    let limits_exceeded = get_counts().get_exceeded_limits(license.as_ref());
     let any_limit_exceeded = limits_exceeded.any();
     let res = AppInfo {
         network_present: !networks.is_empty(),
