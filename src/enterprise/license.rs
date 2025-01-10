@@ -357,7 +357,9 @@ impl License {
             Some(license) => {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
-                        Err(LicenseError::LicenseExpired)
+                        warn!("License has reached its maximum overdue time and can't be renewed automatically. \
+                        A new license key is required. Contact sales<at>defguard.net if you need assistance.");
+                        Ok(Some(license))
                     } else {
                         info!("License requires renewal, trying to renew it...");
                         match renew_license(pool).await {
