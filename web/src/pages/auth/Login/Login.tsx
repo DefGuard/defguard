@@ -40,7 +40,7 @@ export const Login = () => {
   } = useApi();
   const toaster = useToaster();
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
@@ -145,7 +145,7 @@ export const Login = () => {
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {enterpriseEnabled && openIdInfo && (
+            {openIdInfo && (
               <OpenIdLoginButton
                 url={openIdInfo.url}
                 display_name={openIdInfo?.button_display_name}

@@ -31,7 +31,7 @@ export const DirsyncSettings = ({
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const [googleServiceAccountFileName, setGoogleServiceAccountFileName] = useState<
     string | null
   >(null);
