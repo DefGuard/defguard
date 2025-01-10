@@ -21,6 +21,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { ApiError } from '../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
 type FormFields = {
@@ -42,10 +43,13 @@ export const GatewayNotificationsForm = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(patchSettings, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_APP_INFO],
+        [QueryKeys.FETCH_SETTINGS],
+      ]);
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (err: ApiError) => {
@@ -145,14 +149,12 @@ export const GatewayNotificationsForm = () => {
             value={
               settings.gateway_disconnect_notifications_reconnect_notification_enabled
             }
-            /* eslint-disable max-len */
             onChange={() =>
               mutate({
                 gateway_disconnect_notifications_reconnect_notification_enabled:
                   !settings.gateway_disconnect_notifications_reconnect_notification_enabled,
               })
             }
-            /* eslint-enable max-len */
           />
           <Helper>
             {parse(localLL.form.fields.reconnectNotificationsEnabled.help())}
