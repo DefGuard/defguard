@@ -30,7 +30,7 @@ export const OpenIdSettingsRootForm = () => {
   const localLL = LL.settingsPage.openIdSettings;
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
   const queryClient = useQueryClient();
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },

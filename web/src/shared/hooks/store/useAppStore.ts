@@ -14,7 +14,6 @@ const defaultValues: StoreValues = {
   settings: undefined,
   language: undefined,
   appInfo: undefined,
-  enterprise_status: undefined,
   enterprise_settings: undefined,
 };
 
@@ -42,7 +41,6 @@ type StoreValues = {
   settings?: SettingsEssentials;
   language?: Locales;
   appInfo?: AppInfo;
-  enterprise_status?: EnterpriseStatus;
   enterprise_settings?: SettingsEnterprise;
 };
 

@@ -48,7 +48,7 @@ export const AuthPage = () => {
 
   const setAppStore = useAppStore((state) => state.setState);
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');

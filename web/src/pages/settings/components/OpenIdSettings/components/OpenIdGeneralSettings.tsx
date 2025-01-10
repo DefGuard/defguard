@@ -23,7 +23,7 @@ export const OpenIdGeneralSettings = () => {
   } = useApi();
 
   const settings = useSettingsPage((state) => state.settings);
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const queryClient = useQueryClient();
 

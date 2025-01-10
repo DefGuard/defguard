@@ -27,7 +27,7 @@ export const OpenIdSettingsForm = ({
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const { control } = formControl;
 
   const options: SelectOption<string>[] = useMemo(
