@@ -67,14 +67,12 @@ export const ProvisionersPage = () => {
     provisioning: { getWorkers },
   } = useApi();
 
-  const { data: provisioners, isLoading } = useQuery(
-    [QueryKeys.FETCH_WORKERS],
-    getWorkers,
-    {
-      refetchOnWindowFocus: false,
-      refetchInterval: 5000,
-    },
-  );
+  const { data: provisioners, isLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_WORKERS],
+    queryFn: getWorkers,
+    refetchOnWindowFocus: false,
+    refetchInterval: 5000,
+  });
 
   const filteredProvisioners = useMemo(() => {
     let res = orderBy(provisioners, ['id'], ['desc']);

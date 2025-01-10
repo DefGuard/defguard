@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 // Static links to other services
 
 export const externalLink = {
@@ -15,6 +14,7 @@ export const externalLink = {
     },
   },
   defguardSite: 'https://defguard.net',
+  defguardPricing: 'https://defguard.net/pricing',
   wireguard: {
     download: 'https://www.wireguard.com/install/',
   },

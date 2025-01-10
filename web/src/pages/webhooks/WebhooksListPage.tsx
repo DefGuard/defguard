@@ -90,12 +90,16 @@ export const WebhooksListPage = () => {
     [filterOptions],
   );
   const [selectedFilter, setSelectedFilter] = useState(FilterOption.ALL);
-  const { mutate: deleteWebhookMutation, isLoading: deleteWebhookIsLoading } =
-    useMutation([MutationKeys.DELETE_WEBHOOK], deleteWebhook, {
+  const { mutate: deleteWebhookMutation, isPending: deleteWebhookIsLoading } =
+    useMutation({
+      mutationKey: [MutationKeys.DELETE_WEBHOOK],
+      mutationFn: deleteWebhook,
       onSuccess: () => {
         toaster.success(LL.modals.deleteWebhook.messages.success());
         setDeleteModalOpen(false);
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
+        void queryClient.invalidateQueries({
+          queryKey: [QueryKeys.FETCH_WEBHOOKS],
+        });
       },
       onError: (err) => {
         toaster.error(LL.messages.error());
@@ -104,11 +108,15 @@ export const WebhooksListPage = () => {
       },
     });
 
-  const { mutate: changeWebhookMutation, isLoading: changeWebhookIsLoading } =
-    useMutation([MutationKeys.CHANGE_WEBHOOK_STATE], changeWebhookState, {
+  const { mutate: changeWebhookMutation, isPending: changeWebhookIsLoading } =
+    useMutation({
+      mutationKey: [MutationKeys.CHANGE_WEBHOOK_STATE],
+      mutationFn: changeWebhookState,
       onSuccess: () => {
         toaster.success(LL.modals.changeWebhook.messages.success());
-        queryClient.invalidateQueries([QueryKeys.FETCH_WEBHOOKS]);
+        void queryClient.invalidateQueries({
+          queryKey: [QueryKeys.FETCH_WEBHOOKS],
+        });
       },
       onError: (err) => {
         toaster.error(LL.messages.error());

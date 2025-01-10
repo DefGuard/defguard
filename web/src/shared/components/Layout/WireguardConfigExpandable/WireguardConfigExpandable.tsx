@@ -62,7 +62,7 @@ export const WireguardConfigExpandable = ({
   };
 
   const handleConfigCopy = useCallback(() => {
-    writeToClipboard(
+    void writeToClipboard(
       configForExport,
       LL.components.deviceConfigsCard.messages.copyConfig(),
     );

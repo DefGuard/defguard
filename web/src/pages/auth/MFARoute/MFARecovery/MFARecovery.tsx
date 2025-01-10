@@ -51,7 +51,9 @@ export const MFARecovery = () => {
     mode: 'all',
   });
 
-  const { mutate, isLoading } = useMutation([MutationKeys.RECOVERY_LOGIN], recovery, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.RECOVERY_LOGIN],
+    mutationFn: recovery,
     onSuccess: (data) => loginSubject.next(data),
     onError: (err) => {
       resetField('code', {

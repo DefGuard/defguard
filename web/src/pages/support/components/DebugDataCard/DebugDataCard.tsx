@@ -27,7 +27,7 @@ export const DebugDataCard = () => {
     settings: { getSettings },
   } = useApi();
 
-  const { isLoading: logsLoading, mutate: logsMutate } = useMutation({
+  const { isPending: logsLoading, mutate: logsMutate } = useMutation({
     mutationFn: downloadLogs,
     onSuccess: (res) => {
       const content = new Blob([res], { type: 'text/plain;charset=utf-8' });
@@ -36,7 +36,7 @@ export const DebugDataCard = () => {
     },
   });
 
-  const { isLoading: configLoading, mutate: configMutate } = useMutation({
+  const { isPending: configLoading, mutate: configMutate } = useMutation({
     mutationFn: downloadSupportData,
     onSuccess: (res) => {
       const content = new Blob([JSON.stringify(res, null, 2)], {

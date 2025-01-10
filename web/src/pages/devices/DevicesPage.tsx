@@ -6,7 +6,10 @@ import { PropsWithChildren, useEffect } from 'react';
 import { useI18nContext } from '../../i18n/i18n-react';
 import { ManagementPageLayout } from '../../shared/components/Layout/ManagementPageLayout/ManagementPageLayout';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../shared/defguard-ui/components/Layout/Button/types';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
@@ -45,6 +48,7 @@ const PageActions = () => {
   return (
     <>
       <Button
+        size={ButtonSize.SMALL}
         styleVariant={ButtonStyleVariant.PRIMARY}
         text={localLL.addNewDevice()}
         icon={<AddDeviceIcon />}

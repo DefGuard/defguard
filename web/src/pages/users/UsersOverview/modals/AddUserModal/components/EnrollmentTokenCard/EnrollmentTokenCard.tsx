@@ -29,7 +29,7 @@ export const EnrollmentTokenCard = () => {
         disabled={isUndefined(tokenResponse)}
         onClick={() => {
           if (tokenResponse) {
-            writeToClipboard(tokenResponse.enrollment_token);
+            void writeToClipboard(tokenResponse.enrollment_token);
           }
         }}
         key={0}
@@ -46,7 +46,7 @@ export const EnrollmentTokenCard = () => {
         disabled={!tokenResponse}
         onClick={() => {
           if (tokenResponse) {
-            writeToClipboard(tokenResponse.enrollment_url);
+            void writeToClipboard(tokenResponse.enrollment_url);
           }
         }}
         key={0}

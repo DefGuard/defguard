@@ -68,7 +68,7 @@ export const AuthenticationKeyItemYubikey = ({ yubikey, keys }: Props) => {
     (keyType: AuthenticationKeyType) => {
       const key = keys.find((k) => k.key_type === keyType);
       if (key) {
-        writeToClipboard(key.key);
+        void writeToClipboard(key.key);
       }
     },
     [keys, writeToClipboard],

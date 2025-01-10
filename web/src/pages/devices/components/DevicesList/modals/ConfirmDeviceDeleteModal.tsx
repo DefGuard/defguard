@@ -27,10 +27,10 @@ export const ConfirmDeviceDeleteModal = () => {
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation({
+  const { mutate, isPending: isLoading } = useMutation({
     mutationFn: deleteDevice,
     onSuccess: () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
       });
       close();

@@ -124,7 +124,7 @@ pub async fn get_current_openid_provider(
         }
         None => Ok(ApiResponse {
             json: json!({}),
-            status: StatusCode::NOT_FOUND,
+            status: StatusCode::NO_CONTENT,
         }),
     }
 }

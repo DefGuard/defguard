@@ -5,6 +5,7 @@ export const trimObjectStrings = <T extends object>(obj: T): T => {
   }
 
   if (Array.isArray(obj)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return obj.map((item) => trimObjectStrings(item)) as unknown as T;
   }
 

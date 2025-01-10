@@ -120,7 +120,7 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
     standaloneDevice: { getDeviceConfig, generateAuthToken },
   } = useApi();
   const toaster = useToaster();
-  const { mutateAsync, isLoading: deviceConfigLoading } = useMutation({
+  const { mutateAsync, isPending: deviceConfigLoading } = useMutation({
     mutationFn: getDeviceConfig,
     onError: (e) => {
       toaster.error(LL.modals.standaloneDeviceConfigModal.toasters.getConfig.error());
@@ -128,7 +128,7 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
     },
   });
 
-  const { mutateAsync: mutateTokenGen, isLoading: deviceTokenLoading } = useMutation({
+  const { mutateAsync: mutateTokenGen, isPending: deviceTokenLoading } = useMutation({
     mutationFn: generateAuthToken,
     onError: (e) => {
       toaster.error(LL.modals.standaloneDeviceEnrollmentModal.toasters.error());
@@ -142,7 +142,7 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
   const openEnrollment = useStandaloneDeviceEnrollmentModal((s) => s.open);
 
   const handleOpenConfig = useCallback(() => {
-    mutateAsync(props.data.id).then((config) => {
+    void mutateAsync(props.data.id).then((config) => {
       openConfig({
         device: props.data,
         config,
@@ -151,7 +151,7 @@ const DeviceRowEditButton = (props: { data: StandaloneDevice }) => {
   }, [mutateAsync, openConfig, props.data]);
 
   const handleTokenGen = useCallback(() => {
-    mutateTokenGen(props.data.id).then((res) => {
+    void mutateTokenGen(props.data.id).then((res) => {
       openEnrollment({
         device: props.data,
         enrollment: res,

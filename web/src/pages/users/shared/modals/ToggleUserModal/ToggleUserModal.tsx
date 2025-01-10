@@ -10,6 +10,7 @@ import { useModalStore } from '../../../../../shared/hooks/store/useModalStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 
 export const ToggleUserModal = () => {
   const {
@@ -27,7 +28,8 @@ export const ToggleUserModal = () => {
 
   const toaster = useToaster();
 
-  const { mutate, isLoading } = useMutation(editUser, {
+  const { mutate, isPending } = useMutation({
+    mutationFn: editUser,
     onSuccess: (_, variables) => {
       toaster.success(
         variables.data.is_active
@@ -38,8 +40,10 @@ export const ToggleUserModal = () => {
               username: variables.username,
             }),
       );
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+      invalidateMultipleQueries(queryClient, [
+        [QueryKeys.FETCH_USER_PROFILE],
+        [QueryKeys.FETCH_USERS_LIST],
+      ]);
       setModalState({ visible: false, user: undefined });
       navigate('/admin/users', { replace: true });
     },
@@ -91,7 +95,7 @@ export const ToggleUserModal = () => {
       onSubmit={() => {
         toggleUserState();
       }}
-      loading={isLoading}
+      loading={isPending}
     />
   );
 };

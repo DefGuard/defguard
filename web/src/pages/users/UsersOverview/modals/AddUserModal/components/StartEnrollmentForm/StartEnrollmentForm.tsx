@@ -92,27 +92,26 @@ export const StartEnrollmentForm = () => {
 
   const toaster = useToaster();
 
-  const { mutate: startDesktopMutate, isLoading: startDesktopLoading } = useMutation(
-    startDesktopActivation,
-    {
-      onSuccess: (res) => {
-        toaster.success(LL.modals.startEnrollment.messages.successDesktop());
-        if (choiceValue === EnrollmentMode.EMAIL) {
-          closeModal();
-        } else {
-          setModalState({ tokenResponse: res });
-          nextStep();
-        }
-      },
-      onError: (err) => {
-        console.error(err);
-        toaster.error(LL.modals.startEnrollment.messages.errorDesktop());
-      },
+  const { mutate: startDesktopMutate, isPending: startDesktopLoading } = useMutation({
+    mutationFn: startDesktopActivation,
+    onSuccess: (res) => {
+      toaster.success(LL.modals.startEnrollment.messages.successDesktop());
+      if (choiceValue === EnrollmentMode.EMAIL) {
+        closeModal();
+      } else {
+        setModalState({ tokenResponse: res });
+        nextStep();
+      }
     },
-  );
+    onError: (err) => {
+      console.error(err);
+      toaster.error(LL.modals.startEnrollment.messages.errorDesktop());
+    },
+  });
 
-  const { mutate: startEnrollmentMutate, isLoading: startEnrollmentLoading } =
-    useMutation(startEnrollment, {
+  const { mutate: startEnrollmentMutate, isPending: startEnrollmentLoading } =
+    useMutation({
+      mutationFn: startEnrollment,
       onSuccess: (res) => {
         toaster.success(LL.modals.startEnrollment.messages.success());
         if (choiceValue === EnrollmentMode.EMAIL) {
@@ -128,7 +127,7 @@ export const StartEnrollmentForm = () => {
       },
     });
 
-  const onSubmit: SubmitHandler<FormFields> = async (data) => {
+  const onSubmit: SubmitHandler<FormFields> = (data) => {
     if (user) {
       const requestData: StartEnrollmentRequest = {
         username: user.username,
@@ -161,7 +160,7 @@ export const StartEnrollmentForm = () => {
   useEffect(() => {
     const sub = watch((_, { name }) => {
       if (name === 'mode') {
-        trigger('email');
+        void trigger('email');
       }
     });
     return () => {

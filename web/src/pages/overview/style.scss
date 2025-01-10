@@ -50,7 +50,7 @@
         width: 100%;
 
         .select-container {
-          height: 40px;
+          min-height: 40px;
         }
       }
     }
@@ -126,7 +126,7 @@
           min-width: 200px;
 
           .select-container {
-            height: 40px;
+            min-height: 40px;
           }
         }
 

@@ -48,11 +48,11 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
   const user = useAddAuthorizationKeyModal((s) => s.user);
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: addAuthenticationKey,
     onSuccess: () => {
       toaster.success(LL.messages.success());
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
       });
       closeModal();
@@ -131,7 +131,7 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={localLL.submit({ name: keyType.valueOf().toUpperCase() })}
-          loading={isLoading}
+          loading={isPending}
         />
       </div>
     </form>

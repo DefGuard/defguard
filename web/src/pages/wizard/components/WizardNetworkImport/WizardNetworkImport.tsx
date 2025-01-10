@@ -25,6 +25,7 @@ import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
 import { ImportNetworkRequest } from '../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { validateIpOrDomain } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
@@ -85,17 +86,21 @@ export const WizardNetworkImport = () => {
 
   const {
     mutate: importNetworkMutation,
-    isLoading,
+    isPending,
     data,
-  } = useMutation([MutationKeys.IMPORT_NETWORK], importNetwork, {
-    onSuccess: async (response) => {
+  } = useMutation({
+    mutationFn: importNetwork,
+    mutationKey: [MutationKeys.IMPORT_NETWORK],
+    onSuccess: (response) => {
       toaster.success(LL.networkConfiguration.form.messages.networkCreated());
       // complete wizard if there is no devices to map
       if (response.devices.length === 0) {
         toaster.success(LL.wizard.completed());
         resetWizard();
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        invalidateMultipleQueries(queryClient, [
+          [QueryKeys.FETCH_NETWORKS],
+          [QueryKeys.FETCH_APP_INFO],
+        ]);
         navigate('/admin/overview', { replace: true });
       } else {
         setWizardState({
@@ -117,12 +122,12 @@ export const WizardNetworkImport = () => {
 
   const onValidSubmit: SubmitHandler<FormInputs> = useCallback(
     (data) => {
-      if (!isLoading) {
+      if (!isPending) {
         setWizardState({ loading: true });
         importNetworkMutation(data);
       }
     },
-    [importNetworkMutation, isLoading, setWizardState],
+    [importNetworkMutation, isPending, setWizardState],
   );
 
   const handleConfigUpload = () => {
@@ -159,23 +164,34 @@ export const WizardNetworkImport = () => {
     return () => sub?.unsubscribe();
   }, [submitSubject]);
 
-  const { isLoading: groupsLoading } = useQuery({
+  const {
+    isLoading: groupsLoading,
+    data: fetchGroupsData,
+    error: fetchGroupsError,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
+  });
+
+  useEffect(() => {
+    if (fetchGroupsError) {
+      toaster.error(LL.messages.error());
+      console.error(fetchGroupsError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchGroupsError]);
+
+  useEffect(() => {
+    if (fetchGroupsData) {
       setGroupOptions(
-        res.groups.map((g) => ({
+        fetchGroupsData.groups.map((g) => ({
           key: g,
           value: g,
           label: titleCase(g),
         })),
       );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
-  });
+    }
+  }, [fetchGroupsData]);
 
   return (
     <Card id="wizard-network-import" shaded>

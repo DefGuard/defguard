@@ -21,6 +21,7 @@ import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { Provisioner, WorkerJobStatus } from '../../../../../../../shared/types';
+import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
 import { useAddAuthorizationKeyModal } from '../../useAddAuthorizationKeyModal';
 import { ProvisionerRow } from './components/ProvisionerRow';
 
@@ -114,11 +115,7 @@ export const AddAuthenticationKeyYubikey = () => {
             QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO,
             QueryKeys.FETCH_USER_PROFILE,
           ];
-          invalidate.forEach((k) =>
-            queryClient.invalidateQueries({
-              queryKey: [k],
-            }),
-          );
+          invalidateMultipleQueries(queryClient, invalidate);
           closeModal();
         }
         if (jobStatus.errorMessage) {

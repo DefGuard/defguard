@@ -35,9 +35,7 @@ export const FinishManualStep = () => {
         dismissId="add-standalone-device-modal-manual-finish-header-info"
       />
       <div className="device-name">
-        <p className="label">
-          {LL.modals.addStandaloneDevice.steps.manual.setup.form.labels.deviceName()}:
-        </p>
+        <p className="label">{LL.modals.addStandaloneDevice.form.labels.deviceName()}:</p>
         <p className="name">{manual?.device.name}</p>
       </div>
       <div className="cta">
@@ -120,7 +118,7 @@ const DeviceConfigCard = ({
   };
 
   const handleConfigCopy = useCallback(() => {
-    writeToClipboard(
+    void writeToClipboard(
       configForExport,
       LL.components.deviceConfigsCard.messages.copyConfig(),
     );

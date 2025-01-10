@@ -26,10 +26,13 @@ export const DeleteProvisionerModal = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutate, isLoading } = useMutation(deleteWorker, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: deleteWorker,
     mutationKey: [MutationKeys.DELETE_WORKER],
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_WORKERS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_WORKERS],
+      });
       toaster.success(
         LL.modals.deleteProvisioner.messages.success({
           provisioner: targetId ?? '',

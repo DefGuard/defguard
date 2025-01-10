@@ -41,56 +41,54 @@ export const OverviewPage = () => {
     network: { getNetworks, getOverviewStats, getNetworkStats },
   } = useApi();
 
-  const { isLoading: networksLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORKS],
-    getNetworks,
-    {
-      onSuccess: (res) => {
-        if (!res.length) {
-          resetWizard();
-          navigate('/admin/wizard', { replace: true });
-        } else {
-          setOverViewStore({ networks: res });
-          const ids = res.map((n) => n.id);
-          if (
-            isUndefined(selectedNetworkId) ||
-            (!isUndefined(selectedNetworkId) && !ids.includes(selectedNetworkId))
-          ) {
-            const oldestNetwork = orderBy(res, ['id'], ['asc'])[0];
-            setOverViewStore({ selectedNetworkId: oldestNetwork.id });
-          }
-        }
-      },
-    },
-  );
+  const { isLoading: networksLoading, data: fetchNetworksData } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORKS],
+    queryFn: getNetworks,
+  });
 
-  const { data: networkStats } = useQuery(
-    [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
-    () =>
+  useEffect(() => {
+    if (fetchNetworksData) {
+      if (!fetchNetworksData.length) {
+        resetWizard();
+        navigate('/admin/wizard', { replace: true });
+      } else {
+        setOverViewStore({ networks: fetchNetworksData });
+        const ids = fetchNetworksData.map((n) => n.id);
+        if (
+          isUndefined(selectedNetworkId) ||
+          (!isUndefined(selectedNetworkId) && !ids.includes(selectedNetworkId))
+        ) {
+          const oldestNetwork = orderBy(fetchNetworksData, ['id'], ['asc'])[0];
+          setOverViewStore({ selectedNetworkId: oldestNetwork.id });
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchNetworksData]);
+
+  const { data: networkStats } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
+    queryFn: () =>
       getNetworkStats({
         from: getNetworkStatsFilterValue(statsFilter),
         id: selectedNetworkId as number,
       }),
-    {
-      refetchOnWindowFocus: false,
-      refetchInterval: STATUS_REFETCH_TIMEOUT,
-      enabled: !isUndefined(selectedNetworkId),
-    },
-  );
+    refetchOnWindowFocus: false,
+    refetchInterval: STATUS_REFETCH_TIMEOUT,
+    enabled: !isUndefined(selectedNetworkId),
+  });
 
-  const { data: overviewStats, isLoading: userStatsLoading } = useQuery(
-    [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
-    () =>
+  const { data: overviewStats, isLoading: userStatsLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
+    queryFn: () =>
       getOverviewStats({
         from: getNetworkStatsFilterValue(statsFilter),
         id: selectedNetworkId as number,
       }),
-    {
-      enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
-      refetchOnWindowFocus: false,
-      refetchInterval: STATUS_REFETCH_TIMEOUT,
-    },
-  );
+    enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
+    refetchOnWindowFocus: false,
+    refetchInterval: STATUS_REFETCH_TIMEOUT,
+  });
 
   const getNetworkUsers = useMemo(() => {
     if (overviewStats !== undefined) {

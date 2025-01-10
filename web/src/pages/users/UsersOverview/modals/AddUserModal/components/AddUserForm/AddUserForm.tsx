@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
+import { useUpgradeLicenseModal } from '../../../../../../../shared/components/Layout/UpgradeLicenseModal/store';
+import { UpgradeLicenseModalVariant } from '../../../../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { FormCheckBox } from '../../../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -17,6 +19,7 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { useAppStore } from '../../../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
@@ -24,6 +27,7 @@ import {
   patternValidPhoneNumber,
 } from '../../../../../../../shared/patterns';
 import { QueryKeys } from '../../../../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../../../../shared/utils/invalidateMultipleQueries';
 import { trimObjectStrings } from '../../../../../../../shared/utils/trimObjectStrings';
 import { passwordValidator } from '../../../../../../../shared/validators/password';
 import { useAddUserModal } from '../../hooks/useAddUserModal';
@@ -43,6 +47,7 @@ export const AddUserForm = () => {
   const { LL } = useI18nContext();
   const {
     user: { addUser, usernameAvailable },
+    getAppInfo,
   } = useApi();
 
   const reservedUserNames = useRef<string[]>([]);
@@ -133,6 +138,10 @@ export const AddUserForm = () => {
 
   const queryClient = useQueryClient();
 
+  const setAppStore = useAppStore((s) => s.setState, shallow);
+
+  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
+
   const toaster = useToaster();
 
   const [setModalState, nextStep, close] = useAddUserModal(
@@ -140,9 +149,25 @@ export const AddUserForm = () => {
     shallow,
   );
 
-  const addUserMutation = useMutation(addUser, {
+  const addUserMutation = useMutation({
+    mutationFn: addUser,
     onSuccess: (user) => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_USERS_LIST]);
+      // check license limits
+      void getAppInfo().then((response) => {
+        setAppStore({
+          appInfo: response,
+        });
+        if (response.license_info.any_limit_exceeded) {
+          openUpgradeLicenseModal({
+            modalVariant: response.license_info.enterprise
+              ? UpgradeLicenseModalVariant.LICENSE_LIMIT
+              : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
+          });
+        }
+      });
+
+      invalidateMultipleQueries(queryClient, [QueryKeys.FETCH_USERS_LIST]);
+
       if (enableEnrollment) {
         toaster.success(LL.modals.addUser.messages.userAdded());
         setModalState({
@@ -160,10 +185,10 @@ export const AddUserForm = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  const onSubmit: SubmitHandler<Inputs> = (data) => {
     const trimmed = trimObjectStrings(data);
     if (reservedUserNames.current.includes(trimmed.username)) {
-      trigger('username', { shouldFocus: true });
+      void trigger('username', { shouldFocus: true });
     } else {
       usernameAvailable(trimmed.username)
         .then(() => {
@@ -178,7 +203,7 @@ export const AddUserForm = () => {
         .catch(() => {
           setCheckingUsername(false);
           reservedUserNames.current = [...reservedUserNames.current, trimmed.username];
-          trigger('username', { shouldFocus: true });
+          void trigger('username', { shouldFocus: true });
         });
     }
   };
@@ -257,7 +282,7 @@ export const AddUserForm = () => {
           onClick={() => setModalState({ visible: false })}
           tabIndex={4}
           type="button"
-          disabled={addUserMutation.isLoading || checkingUsername}
+          disabled={addUserMutation.isPending || checkingUsername}
         />
         <Button
           className="big primary"
@@ -266,7 +291,7 @@ export const AddUserForm = () => {
           styleVariant={ButtonStyleVariant.PRIMARY}
           text={LL.modals.addUser.form.submit()}
           disabled={!isValid}
-          loading={addUserMutation.isLoading || checkingUsername}
+          loading={addUserMutation.isPending || checkingUsername}
         />
       </div>
     </form>

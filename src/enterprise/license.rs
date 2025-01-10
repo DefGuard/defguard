@@ -534,7 +534,7 @@ async fn save_license_key(pool: &PgPool, key: &str) -> Result<(), LicenseError> 
     Ok(())
 }
 
-/// Helper function to update the cached license mutex. The mutex is used mainly in the appstate.
+/// Helper function to update the in-memory cached license mutex.
 pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
     debug!("Updating the cached license information with the provided key...");
     let license = if let Some(key) = key {

@@ -62,7 +62,7 @@ export const NetworkControls = () => {
 
   const selectedNetwork = networks.find((n) => n.id === selectedNetworkId);
 
-  const { isLoading, mutate: deleteNetworkMutate } = useMutation({
+  const { isPending: isLoading, mutate: deleteNetworkMutate } = useMutation({
     mutationFn: deleteNetwork,
     onSuccess: () => {
       toaster.success(LL.networkConfiguration.messages.delete.success());

@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
@@ -45,6 +44,34 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    upgradeLicenseModal: {
+      enterprise: {
+        title: 'Upgrade to Enterprise',
+        //md
+        subTitle: `This functionality is an **enterprise feature** and requires purchasing a license to enable it.`,
+      },
+      limit: {
+        title: 'Upgrade',
+        //md
+        subTitle: `
+        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
+        `,
+      },
+      //md
+      content: `
+You can find out more about features like:
+- Real time and automatic client synchronization
+- External SSO
+- Controlling VPN clients behavior
+
+Full enterprise feature list: https://docs.defguard.net/enterprise/all-enteprise-features</br>
+Licensing information: https://docs.defguard.net/enterprise/license
+      `,
+      controls: {
+        cancel: 'Maybe later',
+        confirm: 'See all Enterprise plans',
+      },
+    },
     standaloneDeviceEnrollmentModal: {
       title: 'Network device token',
       toasters: {
@@ -1242,7 +1269,12 @@ const en: BaseTranslation = {
       },
       licenseInfo: {
         title: 'License information',
-        noLicense: 'No license',
+        status: {
+          noLicense: 'No valid license',
+          expired: 'Expired',
+          limitsExceeded: 'Limits Exceeded',
+          active: 'Active',
+        },
         licenseNotRequired:
           "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {
@@ -1691,7 +1723,7 @@ const en: BaseTranslation = {
     form: {
       helpers: {
         address:
-          'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)',
+          'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:

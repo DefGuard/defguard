@@ -56,15 +56,27 @@ const defaultValues: FormFields = {
 const networkToForm = (data?: Network): FormFields => {
   if (!data) return defaultValues;
   let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
+  omited = omit(omited, [
+    'id',
+    'connected_at',
+    'connected',
+    'allowed_ips',
+    'gateways',
+    'address',
+  ]);
 
   let allowed_ips = '';
+  let address = '';
 
   if (Array.isArray(data.allowed_ips)) {
     allowed_ips = data.allowed_ips.join(',');
   }
 
-  return { ...defaultValues, ...omited, allowed_ips };
+  if (Array.isArray(data.address)) {
+    address = data.address.join(',');
+  }
+
+  return { ...defaultValues, ...omited, allowed_ips, address };
 };
 
 export const NetworkEditForm = () => {
@@ -96,7 +108,7 @@ export const NetworkEditForm = () => {
         QueryKeys.FETCH_NETWORK_TOKEN,
       ];
       for (const key of keys) {
-        queryClient.refetchQueries({
+        void queryClient.refetchQueries({
           queryKey: [key],
         });
       }
@@ -108,27 +120,38 @@ export const NetworkEditForm = () => {
     },
   });
 
-  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+  const {
+    error: groupsFetchError,
+    isError: groupsError,
+    isLoading: groupsLoading,
+    data: groupsData,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
-      setGroupOptions(
-        res.groups.map((g) => ({
-          key: g,
-          value: g,
-          label: titleCase(g),
-        })),
-      );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
     enabled: componentMount,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: 'always',
   });
+
+  useEffect(() => {
+    if (groupsFetchError) {
+      toaster.error(LL.messages.error());
+      console.error(groupsFetchError);
+    }
+  }, [LL.messages, groupsFetchError, toaster]);
+
+  useEffect(() => {
+    if (groupsData) {
+      setGroupOptions(
+        groupsData.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        })),
+      );
+    }
+  }, [groupsData]);
 
   const defaultFormValues = useMemo(() => {
     if (selectedNetworkId && networks) {
@@ -198,7 +221,7 @@ export const NetworkEditForm = () => {
     mode: 'all',
   });
 
-  const onValidSubmit: SubmitHandler<FormFields> = async (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     values = trimObjectStrings(values);
     setStoreState({ loading: true });
     mutate({
@@ -212,7 +235,6 @@ export const NetworkEditForm = () => {
   // reset form when network is selected
   useEffect(() => {
     reset(defaultFormValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFormValues, reset]);
 
   useEffect(() => {
@@ -277,7 +299,7 @@ export const NetworkEditForm = () => {
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
           searchable
           searchFilter={(val, options) => {
-            const inf = options as SelectOption<string>[];
+            const inf = options;
             return inf.filter((o) => o.value.toLowerCase().includes(val.toLowerCase()));
           }}
           renderSelected={(val) => ({

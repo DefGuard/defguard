@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import en from '../en';
 import { extendDictionary } from '../i18n-util';
 
@@ -1105,7 +1104,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       licenseInfo: {
         title: 'Informacje o licencji',
-        noLicense: 'Brak licencji',
+        noLicense: 'Brak ważnej licencji',
         licenseNotRequired:
           "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
@@ -1549,7 +1548,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     form: {
       helpers: {
         address:
-          'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
+          'Na podstawie tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN: 10.10.10.0/24). Opcjonalnie możesz podać wiele adresów, oddzielając je przecinkiem. Pierwszy adres będzie adresem głównym i zostanie użyty do przypisywania adresów IP urządzeniom. Pozostałe adresy są dodatkowe i nie będą zarządzane przez Defguarda.',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs WireGuard jest aktywny.',

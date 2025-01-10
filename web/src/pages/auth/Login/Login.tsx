@@ -22,7 +22,6 @@ import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
 import { patternSafeUsernameCharacters } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
-import { LoginData } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { OpenIdLoginButton } from './components/OidcButtons';
 
@@ -41,7 +40,7 @@ export const Login = () => {
   } = useApi();
   const toaster = useToaster();
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const { data: openIdInfo, isLoading: openIdLoading } = useQuery({
     enabled: enterpriseEnabled,
     queryKey: [QueryKeys.FETCH_OPENID_INFO],
@@ -78,7 +77,8 @@ export const Login = () => {
 
   const loginSubject = useAuthStore((state) => state.loginSubject);
 
-  const loginMutation = useMutation((data: LoginData) => login(data), {
+  const loginMutation = useMutation({
+    mutationFn: login,
     mutationKey: [MutationKeys.LOG_IN],
     onSuccess: (data) => loginSubject.next(data),
     onError: (error: AxiosError) => {
@@ -111,7 +111,7 @@ export const Login = () => {
   });
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-    if (!loginMutation.isLoading) {
+    if (!loginMutation.isPending) {
       loginMutation.mutate(trimObjectStrings(data));
     }
   };
@@ -139,13 +139,13 @@ export const Login = () => {
             />
             <Button
               type="submit"
-              loading={loginMutation.isLoading}
+              loading={loginMutation.isPending}
               size={ButtonSize.LARGE}
               styleVariant={ButtonStyleVariant.PRIMARY}
               text={LL.form.login()}
               data-testid="login-form-submit"
             />
-            {enterpriseEnabled && openIdInfo && (
+            {openIdInfo && (
               <OpenIdLoginButton
                 url={openIdInfo.url}
                 display_name={openIdInfo?.button_display_name}

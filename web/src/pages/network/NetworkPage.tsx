@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -23,14 +24,17 @@ export const NetworkPage = () => {
   const setPageStore = useNetworkPageStore((state) => state.setState);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
-  useQuery({
+  const { data: networksData } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORKS],
     queryFn: getNetworks,
-    onSuccess: (res) => {
-      setPageStore({ networks: res });
-    },
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    if (networksData) {
+      setPageStore({ networks: networksData });
+    }
+  }, [networksData, setPageStore]);
 
   return (
     <PageContainer id="network-page">

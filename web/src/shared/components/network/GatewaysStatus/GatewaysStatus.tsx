@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import classNames from 'classnames';
 import { AnimatePresence, motion, TargetAndTransition } from 'framer-motion';
 import { isUndefined } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ClickAwayListener from 'react-click-away-listener';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -50,23 +50,28 @@ export const GatewaysStatus = ({ networkId }: Props) => {
   const {
     data,
     isError,
+    error: fetchError,
     isLoading: queryLoading,
-  } = useQuery(
-    [QueryKeys.FETCH_NETWORK_GATEWAYS_STATUS, networkId],
-    () => getGatewaysStatus(networkId),
-    {
-      refetchInterval: REFETCH_INTERVAL,
-      onError: () => {
-        toaster.error(LL.components.gatewaysStatus.messages.error());
-      },
-      enabled: !isUndefined(networkId),
-    },
-  );
+  } = useQuery({
+    queryFn: () => getGatewaysStatus(networkId),
+    queryKey: [QueryKeys.FETCH_NETWORK_GATEWAYS_STATUS, networkId],
+    refetchInterval: REFETCH_INTERVAL,
+    enabled: !isUndefined(networkId),
+  });
+
+  useEffect(() => {
+    if (fetchError) {
+      toaster.error(LL.components.gatewaysStatus.messages.error());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchError]);
 
   const { mutate: deleteGatewayMutation } = useMutation({
     mutationFn: deleteGateway,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_NETWORK_GATEWAYS_STATUS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_NETWORK_GATEWAYS_STATUS],
+      });
     },
     onError: (err) => {
       toaster.error(LL.components.gatewaysStatus.messages.deleteError());

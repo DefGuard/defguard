@@ -145,7 +145,7 @@ export const MethodStep = () => {
             if (availableIpResponse) {
               handleNext();
             } else {
-              refetchAvailableIp();
+              void refetchAvailableIp();
             }
           }}
         />

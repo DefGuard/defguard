@@ -19,7 +19,7 @@ export const LdapConnectionTest = () => {
 
   const toaster = useToaster();
 
-  const { isLoading, mutate } = useMutation({
+  const { isPending: isLoading, mutate } = useMutation({
     mutationFn: testLdapSettings,
     onSuccess: () => {
       toaster.success(localLL.messages.success());
