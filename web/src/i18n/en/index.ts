@@ -64,8 +64,8 @@ You can find out more about features like:
 - External SSO
 - Controlling VPN clients behavior
 
-Full enterprise feature list: https://docs.defguard.net/enterprise/all-enteprise-features</br>
-Licensing information: https://docs.defguard.net/enterprise/license
+Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
       `,
       controls: {
         cancel: 'Maybe later',
