@@ -184,8 +184,8 @@ type RootTranslation = {
 		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
 		​-​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
 		​
-		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​<​/​b​r​>​
-		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​
+		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
+		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
 		​ ​ ​ ​ ​ ​ 
 			 */
 			content: string
@@ -4936,8 +4936,8 @@ export type TranslationFunctions = {
 		- External SSO
 		- Controlling VPN clients behavior
 	
-		Full enterprise feature list: https://docs.defguard.net/enterprise/all-enteprise-features</br>
-		Licensing information: https://docs.defguard.net/enterprise/license
+		Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+		Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
 		      
 			 */
 			content: () => LocalizedString
