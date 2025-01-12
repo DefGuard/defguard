@@ -1,7 +1,8 @@
-import en from '../en';
-import { extendDictionary } from '../i18n-util';
+import { deepmerge } from 'deepmerge-ts';
 
-const ko = extendDictionary(en, {
+import en from '../en';
+
+const ko = deepmerge(en, {
   common: {
     conditions: {
       or: '또는',

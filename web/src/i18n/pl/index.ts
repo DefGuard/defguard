@@ -1,7 +1,8 @@
-import en from '../en';
-import { extendDictionary } from '../i18n-util';
+import { deepmerge } from 'deepmerge-ts';
 
-const pl = extendDictionary(en, {
+import en from '../en';
+
+const pl = deepmerge(en, {
   common: {
     controls: {
       back: 'Wróć',
