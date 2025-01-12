@@ -985,7 +985,9 @@ impl User<Id> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+    use crate::{
+        config::DefGuardConfig, db::models::settings::initialize_current_settings, SERVER_CONFIG,
+    };
 
     #[sqlx::test]
     async fn test_mfa_code(pool: PgPool) {
