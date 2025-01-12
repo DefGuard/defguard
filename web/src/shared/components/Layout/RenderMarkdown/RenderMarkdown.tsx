@@ -1,4 +1,5 @@
 import Markdown from 'react-markdown';
+import rehypeExternalLinks from 'rehype-external-links';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 
@@ -39,7 +40,19 @@ export const RenderMarkdown = ({ content }: Props) => {
     return processedLines.join('\n');
   };
   return (
-    <Markdown rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}>
+    <Markdown
+      rehypePlugins={[
+        rehypeRaw,
+        [rehypeSanitize, sanitizeSchema],
+        [
+          rehypeExternalLinks,
+          {
+            target: '_blank',
+            rel: ['nofollow', 'noreferrer', 'noopener'],
+          },
+        ],
+      ]}
+    >
       {parse()}
     </Markdown>
   );

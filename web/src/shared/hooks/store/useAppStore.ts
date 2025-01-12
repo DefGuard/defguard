@@ -22,7 +22,7 @@ export const useAppStore = createWithEqualityFn<Store>()(
     }),
     {
       name: 'app-store',
-      version: 0.2,
+      version: 1,
       partialize: (store) => pick(store, persistKeys),
       storage: createJSONStorage(() => sessionStorage),
     },
