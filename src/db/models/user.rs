@@ -991,6 +991,7 @@ mod test {
     async fn test_mfa_code(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
 
         let mut user = User::new(
             "hpotter",
