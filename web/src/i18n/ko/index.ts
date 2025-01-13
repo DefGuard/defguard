@@ -1,8 +1,9 @@
 import { deepmerge } from 'deepmerge-ts';
 
 import en from '../en';
+import { Translation } from '../i18n-types';
 
-const ko = deepmerge(en, {
+const translation: Translation = {
   common: {
     conditions: {
       or: '또는',
@@ -1734,6 +1735,8 @@ GitHub에 문의하거나 문제를 제출하기 전에 [docs.defguard.net](http
 `,
     },
   },
-});
+};
+
+const ko = deepmerge(en, translation);
 
 export default ko;
