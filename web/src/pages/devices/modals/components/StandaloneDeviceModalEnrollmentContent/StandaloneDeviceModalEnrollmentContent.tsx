@@ -27,7 +27,7 @@ export const StandaloneDeviceModalEnrollmentContent = ({
   const localLL = LL.components.standaloneDeviceTokenModalContent;
   const { writeToClipboard } = useClipboard();
   const commandToCopy = useMemo(() => {
-    return `defguard -u ${enrollment_url} -t ${enrollment_token}`;
+    return `dg enroll -u ${enrollment_url} -t ${enrollment_token}`;
   }, [enrollment_token, enrollment_url]);
 
   return (
