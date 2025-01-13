@@ -126,5 +126,13 @@
   .license-not-required-container {
     grid-column: 1 / -1;
     width: 100%;
+
+    @include media-breakpoint-down(xxl) {
+      margin-bottom: 26px;
+    }
+
+    @include media-breakpoint-down(xl) {
+      margin-top: 26px;
+    }
   }
 }
