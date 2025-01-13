@@ -37,6 +37,7 @@ static EMAIL_MFA_ACTIVATION_EMAIL_SUBJECT: &str = "Your Multi-Factor Authenticat
 static EMAIL_MFA_CODE_EMAIL_SUBJECT: &str = "Your Multi-Factor Authentication Code for Login";
 
 static GATEWAY_DISCONNECTED: &str = "Defguard: Gateway disconnected";
+static GATEWAY_RECONNECTED: &str = "Defguard: Gateway reconnected";
 
 pub static EMAIL_PASSOWRD_RESET_START_SUBJECT: &str = "Defguard: Password reset";
 pub static EMAIL_PASSOWRD_RESET_SUCCESS_SUBJECT: &str = "Defguard: Password reset success";
@@ -239,6 +240,44 @@ pub async fn send_gateway_disconnected_email(
             Err(err) => {
                 error!(
                     "Sending gateway disconnected notification to {to} failed with error:\n{err}"
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+pub async fn send_gateway_reconnected_email(
+    gateway_name: Option<String>,
+    network_name: String,
+    gateway_adress: &str,
+    mail_tx: &UnboundedSender<Mail>,
+    pool: &PgPool,
+) -> Result<(), WebError> {
+    debug!("Sending gateway reconnect mail to all admin users");
+    let admin_users = User::find_admins(pool).await?;
+    let gateway_name = gateway_name.unwrap_or_default();
+    for user in admin_users {
+        let mail = Mail {
+            to: user.email,
+            subject: GATEWAY_RECONNECTED.to_string(),
+            content: templates::gateway_reconnected_mail(
+                &gateway_name,
+                gateway_adress,
+                &network_name,
+            )?,
+            attachments: Vec::new(),
+            result_tx: None,
+        };
+        let to = mail.to.clone();
+
+        match mail_tx.send(mail) {
+            Ok(()) => {
+                info!("Sent gateway reconnected notification to {to}");
+            }
+            Err(err) => {
+                error!(
+                    "Sending gateway reconnected notification to {to} failed with error:\n{err}"
                 );
             }
         }

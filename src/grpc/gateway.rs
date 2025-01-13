@@ -621,7 +621,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
         state
-            .connect_gateway(gateway_network_id, &hostname)
+            .connect_gateway(gateway_network_id, &hostname, &self.pool)
             .map_err(|err| {
                 error!("Failed to connect gateway on network {gateway_network_id}: {err}");
                 Status::new(

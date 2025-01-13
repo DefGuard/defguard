@@ -1,20 +1,73 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    str::FromStr,
+    sync::{RwLock, RwLockReadGuard},
+};
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
+use thiserror::Error;
 
 use crate::secret::SecretString;
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug)]
+// wrap in `Option` since a static cannot be initialized with a non-const function
+static SETTINGS: RwLock<Option<Settings>> = RwLock::new(None);
+
+pub(crate) fn set_settings(new_settings: Settings) {
+    *SETTINGS
+        .write()
+        .expect("Failed to acquire lock on current settings.") = Some(new_settings);
+}
+
+pub(crate) fn get_settings() -> RwLockReadGuard<'static, Option<Settings>> {
+    SETTINGS
+        .read()
+        .expect("Failed to acquire lock on current settings.")
+}
+
+/// Initializes global `SETTINGS` struct at program startup
+pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
+    debug!("Initializing global settings strut");
+    match Settings::get(pool).await? {
+        Some(settings) => {
+            set_settings(settings);
+        }
+        None => {
+            debug!("Settings not found in DB. Using default values to initialize global settings struct");
+            set_settings(Settings::default());
+        }
+    }
+    Ok(())
+}
+
+/// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
+pub async fn update_current_settings(
+    pool: &PgPool,
+    new_settings: Settings,
+) -> Result<(), sqlx::Error> {
+    debug!("Updating current settings to: {new_settings:?}");
+    new_settings.save(pool).await?;
+    set_settings(new_settings);
+    Ok(())
+}
+
+#[derive(Error, Debug)]
+pub enum SettingsValidationError {
+    #[error("Cannot enable gateway disconnect notifications. SMTP is not configured")]
+    CannotEnableGatewayNotifications,
+}
+
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default)]
 #[sqlx(type_name = "smtp_encryption", rename_all = "lowercase")]
 pub enum SmtpEncryption {
+    #[default]
     None,
     StartTls,
     ImplicitTls,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize)]
-#[patch(attribute(derive(Deserialize, Serialize)))]
+#[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
+#[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
     // Modules
     pub openid_enabled: bool,
@@ -58,6 +111,10 @@ pub struct Settings {
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
+    // Gateway disconnect notifications
+    pub gateway_disconnect_notifications_enabled: bool,
+    pub gateway_disconnect_notifications_inactivity_threshold: i32,
+    pub gateway_disconnect_notifications_reconnect_notification_enabled: bool,
 }
 
 impl Settings {
@@ -78,11 +135,24 @@ impl Settings {
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
-            license \
+            license, \
+            gateway_disconnect_notifications_enabled, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
         .await
+    }
+
+    /// Checks if given settings are correct
+    pub fn validate(&self) -> Result<(), SettingsValidationError> {
+        debug!("Validating settings: {self:?}");
+        // check if gateway disconnect notifications can be enabled, since it requires SMTP to be configured
+        if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
+            warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
+            return Err(SettingsValidationError::CannotEnableGatewayNotifications);
+        };
+
+        Ok(())
     }
 
     pub async fn save<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
@@ -123,7 +193,10 @@ impl Settings {
             ldap_group_member_attr = $30, \
             ldap_member_attr = $31, \
             openid_create_account = $32, \
-            license = $33 \
+            license = $33, \
+            gateway_disconnect_notifications_enabled = $34, \
+            gateway_disconnect_notifications_inactivity_threshold = $35, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $36 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -157,21 +230,10 @@ impl Settings {
             self.ldap_group_member_attr,
             self.ldap_member_attr,
             self.openid_create_account,
-            self.license
-        )
-        .execute(executor)
-        .await?;
-
-        Ok(())
-    }
-
-    pub(crate) async fn save_license<'e, E>(&self, executor: E) -> Result<(), sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        query!(
-            "UPDATE \"settings\" SET license = $1 WHERE id = 1",
             self.license,
+            self.gateway_disconnect_notifications_enabled,
+            self.gateway_disconnect_notifications_inactivity_threshold,
+            self.gateway_disconnect_notifications_reconnect_notification_enabled
         )
         .execute(executor)
         .await?;
@@ -179,13 +241,12 @@ impl Settings {
         Ok(())
     }
 
-    pub async fn get_settings<'e, E>(executor: E) -> Result<Self, sqlx::Error>
-    where
-        E: PgExecutor<'e>,
-    {
-        let settings = Settings::get(executor).await?;
+    pub fn get_current_settings() -> Self {
+        // fetch global settings
+        let maybe_settings = get_settings().clone();
 
-        Ok(settings.expect("Settings not found"))
+        // panic if settings have not been initialized, since it should happen at startup
+        maybe_settings.expect("Global settings have not been initialized")
     }
 
     // Set default values for settings if not set yet.
@@ -221,6 +282,11 @@ impl Settings {
             && self.smtp_user.is_some()
             && self.smtp_password.is_some()
             && self.smtp_sender.is_some()
+            && self.smtp_server != Some("".to_string())
+            && self.smtp_user != Some("".to_string())
+            && self.smtp_password
+                != Some(SecretString::from_str("").expect("Failed to convert empty string"))
+            && self.smtp_sender != Some("".to_string())
     }
 }
 

@@ -82,6 +82,7 @@ tokio = { version = "1", features = [
     "time",
 ] }
 tokio-stream = "0.1"
+tokio-util = "0.7"
 tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
 tonic-health = "0.11"
 totp-lite = { version = "2.0" }

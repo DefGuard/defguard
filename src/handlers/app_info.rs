@@ -39,7 +39,7 @@ pub(crate) async fn get_app_info(
     _session: SessionInfo,
 ) -> ApiResult {
     let networks = WireguardNetwork::all(&appstate.pool).await?;
-    let settings = Settings::get_settings(&appstate.pool).await?;
+    let settings = Settings::get_current_settings();
     let enterprise = is_enterprise_enabled();
     let license = get_cached_license();
     let limits_exceeded = get_counts().get_exceeded_limits(license.as_ref());

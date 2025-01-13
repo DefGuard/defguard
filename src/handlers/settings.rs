@@ -9,7 +9,7 @@ use super::{ApiResponse, ApiResult};
 use crate::{
     auth::{AdminRole, SessionInfo},
     db::{
-        models::settings::{SettingsEssentials, SettingsPatch},
+        models::settings::{update_current_settings, SettingsEssentials, SettingsPatch},
         Settings,
     },
     enterprise::license::update_cached_license,
@@ -51,7 +51,8 @@ pub async fn update_settings(
     debug!("User {} updating settings", session.user.username);
 
     update_cached_license(data.license.as_deref())?;
-    data.save(&appstate.pool).await?;
+    data.validate()?;
+    update_current_settings(&appstate.pool, data).await?;
 
     info!("User {} updated settings", session.user.username);
 
@@ -92,7 +93,7 @@ pub async fn set_default_branding(
             settings.instance_name = "Defguard".into();
             settings.nav_logo_url = DEFAULT_NAV_LOGO_URL.into();
             settings.main_logo_url = DEFAULT_MAIN_LOGO_URL.into();
-            settings.save(&appstate.pool).await?;
+            update_current_settings(&appstate.pool, settings.clone()).await?;
             info!(
                 "User {} restored default branding settings",
                 session.user.username
@@ -112,8 +113,11 @@ pub async fn patch_settings(
     session: SessionInfo,
     Json(data): Json<SettingsPatch>,
 ) -> ApiResult {
-    debug!("Admin {} patching settings.", session.user.username);
-    let mut settings = Settings::get_settings(&appstate.pool).await?;
+    debug!(
+        "Admin {} patching settings with {data:?}",
+        session.user.username
+    );
+    let mut settings = Settings::get_current_settings();
 
     // Handle updating the cached license
     if let Some(license_key) = &data.license {
@@ -122,14 +126,16 @@ pub async fn patch_settings(
     };
 
     settings.apply(data);
-    settings.save(&appstate.pool).await?;
+    settings.validate()?;
+    update_current_settings(&appstate.pool, settings).await?;
+
     info!("Admin {} patched settings.", session.user.username);
     Ok(ApiResponse::default())
 }
 
-pub async fn test_ldap_settings(_admin: AdminRole, State(appstate): State<AppState>) -> ApiResult {
+pub async fn test_ldap_settings(_admin: AdminRole) -> ApiResult {
     debug!("Testing LDAP connection");
-    if LDAPConnection::create(&appstate.pool).await.is_ok() {
+    if LDAPConnection::create().await.is_ok() {
         debug!("LDAP connected successfully");
         Ok(ApiResponse {
             json: json!({}),

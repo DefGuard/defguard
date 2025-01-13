@@ -1032,6 +1032,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       ldap: 'LDAP',
       openid: 'OpenID',
       enterprise: 'Enterprise features',
+      gatewayNotifications: 'Gateway notifications',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1433,6 +1434,29 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
             "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
+        },
+      },
+    },
+    gatewayNotifications: {
+      smtpWarning:
+        'To enable gateway disconnect notifications you must first configure an SMTP server',
+      header: 'Gateway disconnect notifications',
+      helper: '<p>Here you can enable gateway disconnect notifications.</p>',
+      form: {
+        submit: 'Save changes',
+        fields: {
+          disconnectNotificationsEnabled: {
+            label: 'Enable gateway disconnect notifications',
+            help: 'Send email notification to admin users once a gateway is disconnected',
+          },
+          inactivityThreshold: {
+            label: 'Gateway inactivity time [minutes]',
+            help: 'Time (in minutes) that a gateway needs to stay disconnected before a notification is sent',
+          },
+          reconnectNotificationsEnabled: {
+            label: 'Enable gateway reconnect notifications',
+            help: 'Send email notification to admin users once a gateway is reconnected',
+          },
         },
       },
     },

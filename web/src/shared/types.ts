@@ -778,7 +778,8 @@ export type Settings = SettingsModules &
   SettingsBranding &
   SettingsLDAP &
   SettingsOpenID &
-  SettingsLicense;
+  SettingsLicense &
+  SettingsGatewayNotifications;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -833,6 +834,12 @@ export type SettingsOpenID = {
 
 export type SettingsLicense = {
   license: string;
+};
+
+export type SettingsGatewayNotifications = {
+  gateway_disconnect_notifications_enabled: boolean;
+  gateway_disconnect_notifications_inactivity_threshold: number;
+  gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 };
 
 export type SettingsEnterprise = {

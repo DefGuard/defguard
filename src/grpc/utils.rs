@@ -64,10 +64,7 @@ pub(crate) async fn build_device_config_response(
     device: Device<Id>,
     token: Option<String>,
 ) -> Result<DeviceConfigResponse, Status> {
-    let settings = Settings::get_settings(pool).await.map_err(|_| {
-        error!("Failed to get settings");
-        Status::internal("unexpected error")
-    })?;
+    let settings = Settings::get_current_settings();
 
     let networks = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");

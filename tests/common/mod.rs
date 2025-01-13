@@ -9,7 +9,10 @@ use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
-    db::{init_db, AppEvent, GatewayEvent, Id, User, UserDetails},
+    db::{
+        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Id, User,
+        UserDetails,
+    },
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
     handlers::Auth,
@@ -200,6 +203,9 @@ pub(crate) async fn make_test_client() -> (TestClient, ClientState) {
         .expect("Could not bind ephemeral socket");
     let config = init_config(None);
     let pool = init_test_db(&config).await;
+    initialize_current_settings(&pool)
+        .await
+        .expect("Could not initialize settings");
     make_base_client(pool, config, listener).await
 }
 

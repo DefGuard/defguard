@@ -150,12 +150,7 @@ impl EnrollmentServer {
                 "Retrieving settings for enrollment of user {}({:?}).",
                 user.username, user.id
             );
-            let settings = Settings::get_settings(&mut *transaction)
-                .await
-                .map_err(|err| {
-                    error!("Failed to get settings: {err}");
-                    Status::internal("unexpected error")
-                })?;
+            let settings = Settings::get_current_settings();
             debug!("Settings: {settings:?}");
 
             debug!(
@@ -308,16 +303,11 @@ impl EnrollmentServer {
         debug!("Add user to ldap: {}.", self.ldap_feature_active);
         if self.ldap_feature_active {
             debug!("Syncing with LDAP.");
-            let _result = ldap_add_user(&self.pool, &user, &request.password).await;
+            let _result = ldap_add_user(&user, &request.password).await;
         };
 
         debug!("Retriving settings to send welcome email...");
-        let settings = Settings::get_settings(&mut *transaction)
-            .await
-            .map_err(|err| {
-                error!("Failed to get settings: {err}");
-                Status::internal("unexpected error")
-            })?;
+        let settings = Settings::get_current_settings();
         debug!("Successfully retrived settings.");
 
         // send welcome email
@@ -590,15 +580,7 @@ impl EnrollmentServer {
             "Fetching settings for device {} creation process for user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        let settings = Settings::get_settings(&mut *transaction)
-            .await
-            .map_err(|err| {
-                error!(
-            "Failed to fetch settings for device {} creation process for user {}({:?}): {err}",
-            device.wireguard_pubkey, user.username, user.id,
-                );
-                Status::internal("unexpected error")
-            })?;
+        let settings = Settings::get_current_settings();
         debug!("Settings: {settings:?}");
 
         debug!(
