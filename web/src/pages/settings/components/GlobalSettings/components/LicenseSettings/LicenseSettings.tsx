@@ -57,7 +57,7 @@ export const LicenseSettings = () => {
   const licenseIconVariant = useMemo(() => {
     if (
       isPresent(enterpriseInfo) &&
-      !appInfo?.license_info.any_limit_exceeded &&
+      !enterpriseInfo.limits_exceeded &&
       !enterpriseInfo.expired
     ) {
       return ActivityIconVariant.CONNECTED;
