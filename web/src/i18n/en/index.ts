@@ -1438,7 +1438,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
     },
     gatewayNotifications: {
-      smtpWarning: 'To enable gateway disconnect notifications you must first configure an SMTP server',
+      smtpWarning:
+        'To enable gateway disconnect notifications you must first configure an SMTP server',
       header: 'Gateway disconnect notifications',
       helper: '<p>Here you can enable gateway disconnect notifications.</p>',
       form: {

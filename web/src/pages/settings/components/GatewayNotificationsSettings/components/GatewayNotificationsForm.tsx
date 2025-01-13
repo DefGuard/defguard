@@ -17,13 +17,13 @@ import {
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { ApiError } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 type FormFields = {
   gateway_disconnect_notifications_enabled: boolean;
@@ -149,12 +149,16 @@ export const GatewayNotificationsForm = () => {
           labelExtras={
             <Helper>{parse(localLL.form.fields.inactivityThreshold.help())}</Helper>
           }
-          disabled={isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured}
+          disabled={
+            isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured
+          }
           required
         />
         <div className="checkbox-row">
           <LabeledCheckbox
-            disabled={isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured}
+            disabled={
+              isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured
+            }
             label={localLL.form.fields.reconnectNotificationsEnabled.label()}
             value={gatewayDisconnectNotificationsReconnectNotificationEnabled}
             onChange={() =>

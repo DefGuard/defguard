@@ -1,8 +1,9 @@
 import parse from 'html-react-parser';
+
+import { useI18nContext } from '../../../../i18n/i18n-react';
 import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/BigInfoBox/BigInfoBox';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { GatewayNotificationsForm } from './components/GatewayNotificationsForm';
-import { useI18nContext } from '../../../../i18n/i18n-react';
 
 export const GatewayNotificationsSettings = () => {
   const { LL } = useI18nContext();
