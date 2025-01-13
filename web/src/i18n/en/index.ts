@@ -1448,8 +1448,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             help: 'Send email notification to admin users once a gateway is disconnected',
           },
           inactivityThreshold: {
-            label: 'Gateway inactivity time',
-            help: 'Time that a gateway needs to stay disconnected before a notification is sent',
+            label: 'Gateway inactivity time [minutes]',
+            help: 'Time (in minutes) that a gateway needs to stay disconnected before a notification is sent',
           },
           reconnectNotificationsEnabled: {
             label: 'Enable gateway reconnect notifications',

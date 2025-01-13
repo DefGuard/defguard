@@ -1277,8 +1277,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             help: "Wyślij powiadomienie do administratorów po rozłączeniu się Gateway'a",
           },
           inactivityThreshold: {
-            label: 'Czas nieaktywności',
-            help: 'Czas który musi upłynąć od rozłączenia zanim zostanie wysłane powiadomienie',
+            label: 'Czas nieaktywności [minuty]',
+            help: 'Czas (w minutach), który musi upłynąć od rozłączenia zanim zostanie wysłane powiadomienie',
           },
           reconnectNotificationsEnabled: {
             label: 'Włącz powiadomienia o ponownym połączeniu',

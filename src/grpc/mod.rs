@@ -181,11 +181,16 @@ impl GatewayMap {
         debug!("Connecting gateway {hostname} in network {network_id}");
         if let Some(network_gateway_map) = self.0.get_mut(&network_id) {
             if let Some(state) = network_gateway_map.get_mut(hostname) {
+                // check if a gateway is reconnecting to avoid sending notifications on initial
+                // connection
+                let is_reconnecting = state.disconnected_at.is_some();
                 state.connected = true;
                 state.disconnected_at = None;
                 state.connected_at = Some(Utc::now().naive_utc());
                 state.cancel_pending_disconnect_notification();
-                state.handle_reconnect_notification(pool);
+                if is_reconnecting {
+                    state.handle_reconnect_notification(pool);
+                }
                 debug!(
                     "Gateway {hostname} found in gateway map, current state: {:?}",
                     state
@@ -312,16 +317,16 @@ impl GatewayState {
         debug!("Checking if gateway disconnect notification needs to be sent");
         let settings = Settings::get_current_settings();
         if settings.gateway_disconnect_notifications_enabled {
-            self.send_disconnect_notification(
-                pool,
-                settings.gateway_disconnect_notifications_inactivity_threshold as u64,
+            let delay = Duration::from_secs(
+                60 * settings.gateway_disconnect_notifications_inactivity_threshold as u64,
             );
+            self.send_disconnect_notification(pool, delay);
         };
     }
 
     /// Send gateway disconnected notification
     /// Sends notification only if last notification time is bigger than specified in config
-    fn send_disconnect_notification(&mut self, pool: &PgPool, delay_minutes: u64) {
+    fn send_disconnect_notification(&mut self, pool: &PgPool, delay: Duration) {
         // Clone here because self doesn't live long enough
         let name = self.name.clone();
         let mail_tx = self.mail_tx.clone();
@@ -329,7 +334,9 @@ impl GatewayState {
         let hostname = self.hostname.clone();
         let network_name = self.network_name.clone();
 
-        debug!("Scheduling gateway disconnect email notification for {hostname} to be sent in {delay_minutes} minutes");
+        debug!(
+            "Scheduling gateway disconnect email notification for {hostname} to be sent in {delay:?}"
+        );
         // use cancellation token to abort sending if gateway reconnects during the delay
         // we should never need to cancel a previous token since that would've been done on reconnect
         assert!(self.pending_notification_cancel_token.is_none());
@@ -341,7 +348,7 @@ impl GatewayState {
         tokio::spawn(async move {
             tokio::select! {
                 _ = async {
-                    sleep(Duration::from_secs(delay_minutes * 60)).await;
+                    sleep(delay).await;
                     debug!("Gateway disconnect notification delay has passed. Trying to send email...");
                     if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
                     .await
@@ -383,9 +390,9 @@ impl GatewayState {
             if let Err(e) =
                 send_gateway_reconnected_email(name, network_name, &hostname, &mail_tx, &pool).await
             {
-                error!("Failed to send gateway disconnect notification: {e}");
+                error!("Failed to send gateway reconnect notification: {e}");
             } else {
-                info!("Gateway {hostname} disconnected. Email notification sent",);
+                info!("Gateway {hostname} reconnected. Email notification sent",);
             }
         });
     }

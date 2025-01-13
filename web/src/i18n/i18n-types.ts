@@ -3408,11 +3408,11 @@ type RootTranslation = {
 					}
 					inactivityThreshold: {
 						/**
-						 * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e
+						 * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e​ ​[​m​i​n​u​t​e​s​]
 						 */
 						label: string
 						/**
-						 * T​i​m​e​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
+						 * T​i​m​e​ ​(​i​n​ ​m​i​n​u​t​e​s​)​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
 						 */
 						help: string
 					}
@@ -8184,11 +8184,11 @@ export type TranslationFunctions = {
 					}
 					inactivityThreshold: {
 						/**
-						 * Gateway inactivity time
+						 * Gateway inactivity time [minutes]
 						 */
 						label: () => LocalizedString
 						/**
-						 * Time that a gateway needs to stay disconnected before a notification is sent
+						 * Time (in minutes) that a gateway needs to stay disconnected before a notification is sent
 						 */
 						help: () => LocalizedString
 					}

@@ -83,11 +83,17 @@ export const GatewayNotificationsForm = () => {
     return res;
   }, [settings]);
 
-  const { control, handleSubmit } = useForm<FormFields>({
+  const { control, handleSubmit, setValue, watch } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
+  const gatewayDisconnectNotificationsEnabled = watch(
+    'gateway_disconnect_notifications_enabled',
+  );
+  const gatewayDisconnectNotificationsReconnectNotificationEnabled = watch(
+    'gateway_disconnect_notifications_reconnect_notification_enabled',
+  );
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
     mutate(data);
@@ -117,12 +123,12 @@ export const GatewayNotificationsForm = () => {
           <LabeledCheckbox
             disabled={isLoading}
             label={localLL.form.fields.disconnectNotificationsEnabled.label()}
-            value={settings.gateway_disconnect_notifications_enabled}
+            value={gatewayDisconnectNotificationsEnabled}
             onChange={() =>
-              mutate({
-                gateway_disconnect_notifications_enabled:
-                  !settings.gateway_disconnect_notifications_enabled,
-              })
+              setValue(
+                'gateway_disconnect_notifications_enabled',
+                !gatewayDisconnectNotificationsEnabled,
+              )
             }
           />
           <Helper>
@@ -139,21 +145,19 @@ export const GatewayNotificationsForm = () => {
           labelExtras={
             <Helper>{parse(localLL.form.fields.inactivityThreshold.help())}</Helper>
           }
-          disabled={isLoading || !settings.gateway_disconnect_notifications_enabled}
+          disabled={isLoading || !gatewayDisconnectNotificationsEnabled}
           required
         />
         <div className="checkbox-row">
           <LabeledCheckbox
-            disabled={isLoading || !settings.gateway_disconnect_notifications_enabled}
+            disabled={isLoading || !gatewayDisconnectNotificationsEnabled}
             label={localLL.form.fields.reconnectNotificationsEnabled.label()}
-            value={
-              settings.gateway_disconnect_notifications_reconnect_notification_enabled
-            }
+            value={gatewayDisconnectNotificationsReconnectNotificationEnabled}
             onChange={() =>
-              mutate({
-                gateway_disconnect_notifications_reconnect_notification_enabled:
-                  !settings.gateway_disconnect_notifications_reconnect_notification_enabled,
-              })
+              setValue(
+                'gateway_disconnect_notifications_reconnect_notification_enabled',
+                !gatewayDisconnectNotificationsReconnectNotificationEnabled,
+              )
             }
           />
           <Helper>

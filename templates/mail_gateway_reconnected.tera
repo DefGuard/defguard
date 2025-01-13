@@ -8,6 +8,7 @@ network_name ->  name of network
 {% import "macros.tera" as macros %}
 {% block mail_content %}
 {% set section_content = [
-macros::paragraph(content="Your gateway: " ~ gateway_name ~ " (IP: " ~ gateway_ip ~ ") for VPN Location: " ~ network_name ~ " has just reconnected."),
+macros::paragraph(content="Your gateway: " ~ gateway_name ~ " (IP: " ~ gateway_ip ~ ") for VPN Location: " ~ network_name ~ " has just reconnected.")
+] %}
 {{ macros::text_section(content_array=section_content) }}
 {% endblock %}
