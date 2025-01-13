@@ -1,8 +1,9 @@
 import { deepmerge } from 'deepmerge-ts';
 
 import en from '../en';
+import { Translation } from '../i18n-types';
 
-const pl = deepmerge(en, {
+const translation: Translation = {
   common: {
     controls: {
       back: 'Wróć',
@@ -1610,8 +1611,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         nie ma potrzeby wykonywania dalszych kroków.`,
       fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,
-      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
-        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
+      authToken: `Poniższy token jest wymagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
+        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurować serwer gateway.
         Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
       dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze.
         Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
@@ -1831,6 +1832,8 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
 `,
     },
   },
-});
+};
+
+const pl = deepmerge(en, translation);
 
 export default pl;
