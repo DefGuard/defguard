@@ -1267,6 +1267,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
     },
     gatewayNotifications: {
+      smtpWarning: 'Aby włączyć powiadomienia o rozłączeniu należy najpierw skonfigurować serwer SMTP',
       header: 'Powiadomienia Gateway',
       helper: "<p>Tutaj możesz włączyć powiadomienia o rozłączeniu się Gateway'a.</p>",
       form: {

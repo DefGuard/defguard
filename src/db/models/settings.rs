@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    str::FromStr,
     sync::{RwLock, RwLockReadGuard},
 };
 
@@ -66,7 +67,7 @@ pub enum SmtpEncryption {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
-#[patch(attribute(derive(Deserialize, Serialize)))]
+#[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
     // Modules
     pub openid_enabled: bool,
@@ -281,6 +282,11 @@ impl Settings {
             && self.smtp_user.is_some()
             && self.smtp_password.is_some()
             && self.smtp_sender.is_some()
+            && self.smtp_server != Some("".to_string())
+            && self.smtp_user != Some("".to_string())
+            && self.smtp_password
+                != Some(SecretString::from_str("").expect("Failed to convert empty string"))
+            && self.smtp_sender != Some("".to_string())
     }
 }
 

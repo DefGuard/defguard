@@ -23,6 +23,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { ApiError } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 
 type FormFields = {
   gateway_disconnect_notifications_enabled: boolean;
@@ -40,6 +41,8 @@ export const GatewayNotificationsForm = () => {
   const {
     settings: { patchSettings },
   } = useApi();
+
+  const smtpConfigured = useAppStore((s) => Boolean(s.appInfo?.smtp_enabled));
 
   const queryClient = useQueryClient();
 
@@ -114,6 +117,7 @@ export const GatewayNotificationsForm = () => {
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.SAVE}
             loading={isLoading}
+            disabled={!smtpConfigured}
             type="submit"
           />
         </div>
@@ -121,7 +125,7 @@ export const GatewayNotificationsForm = () => {
       <form id="gateway-notifications-form" onSubmit={handleSubmit(onSubmit)}>
         <div className="checkbox-row">
           <LabeledCheckbox
-            disabled={isLoading}
+            disabled={isLoading || !smtpConfigured}
             label={localLL.form.fields.disconnectNotificationsEnabled.label()}
             value={gatewayDisconnectNotificationsEnabled}
             onChange={() =>
@@ -145,12 +149,12 @@ export const GatewayNotificationsForm = () => {
           labelExtras={
             <Helper>{parse(localLL.form.fields.inactivityThreshold.help())}</Helper>
           }
-          disabled={isLoading || !gatewayDisconnectNotificationsEnabled}
+          disabled={isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured}
           required
         />
         <div className="checkbox-row">
           <LabeledCheckbox
-            disabled={isLoading || !gatewayDisconnectNotificationsEnabled}
+            disabled={isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured}
             label={localLL.form.fields.reconnectNotificationsEnabled.label()}
             value={gatewayDisconnectNotificationsReconnectNotificationEnabled}
             onChange={() =>

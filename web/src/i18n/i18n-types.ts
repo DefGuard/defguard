@@ -3383,6 +3383,10 @@ type RootTranslation = {
 		}
 		gatewayNotifications: {
 			/**
+			 * T​o​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
+			 */
+			smtpWarning: string
+			/**
 			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
 			 */
 			header: string
@@ -8158,6 +8162,10 @@ export type TranslationFunctions = {
 			}
 		}
 		gatewayNotifications: {
+			/**
+			 * To enable gateway disconnect notifications you must first configure an SMTP server
+			 */
+			smtpWarning: () => LocalizedString
 			/**
 			 * Gateway disconnect notifications
 			 */
