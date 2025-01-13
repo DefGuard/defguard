@@ -55,7 +55,11 @@ export const LicenseSettings = () => {
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const licenseIconVariant = useMemo(() => {
-    if (isPresent(enterpriseInfo) && !appInfo?.license_info.any_limit_exceeded) {
+    if (
+      isPresent(enterpriseInfo) &&
+      !appInfo?.license_info.any_limit_exceeded &&
+      !enterpriseInfo.expired
+    ) {
       return ActivityIconVariant.CONNECTED;
     }
     return ActivityIconVariant.ERROR;
