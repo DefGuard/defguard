@@ -621,21 +621,33 @@ impl WireguardNetwork<Id> {
         conn: &PgPool,
         device_id: Id,
     ) -> Result<Option<NaiveDateTime>, SqlxError> {
+        // Find a first handshake gap longer than WIREGUARD_MAX_HANDSHAKE.
+        // We assume that this gap indicates a time when the device was not connected.
+        // So, the handshake after this gap is the moment the last connection was established.
+        // If no such gap is found, the device may be connected from the beginning, return the first handshake in this case.
         let connected_at = query_scalar!(
-            "SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
-            FROM wireguard_peer_stats_view \
-            WHERE device_id = $1 AND network = $2 \
-            AND (latest_handshake_diff > $3 \
-            OR latest_handshake_diff = interval '0') \
-            ORDER BY collected_at DESC LIMIT 1",
+            "WITH stats AS (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) \
+            SELECT \
+                COALESCE( \
+                    ( \
+                        SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
+                        FROM stats WHERE latest_handshake_diff > $3 \
+                        ORDER BY collected_at DESC LIMIT 1 \
+                    ), \
+                    ( \
+                        SELECT latest_handshake \"latest_handshake: NaiveDateTime\" \
+                        FROM stats ORDER BY collected_at LIMIT 1 \
+                    ) \
+                ) \
+            AS latest_handshake",
             device_id,
             self.id,
             PgInterval::try_from(WIREGUARD_MAX_HANDSHAKE).unwrap()
         )
-        .fetch_optional(conn)
+        .fetch_one(conn)
         .await?;
 
-        Ok(connected_at.flatten())
+        Ok(connected_at)
     }
 
     /*
