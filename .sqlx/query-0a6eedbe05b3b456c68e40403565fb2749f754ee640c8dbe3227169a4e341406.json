@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH stats AS (SELECT * FROM wireguard_peer_stats_view WHERE device_id = $1 AND network = $2) SELECT COALESCE( ( SELECT latest_handshake \"latest_handshake: NaiveDateTime\" FROM stats WHERE latest_handshake_diff > $3 ORDER BY collected_at DESC LIMIT 1 ), ( SELECT latest_handshake \"latest_handshake: NaiveDateTime\" FROM stats ORDER BY collected_at LIMIT 1 ) ) AS latest_handshake",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "latest_handshake",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0a6eedbe05b3b456c68e40403565fb2749f754ee640c8dbe3227169a4e341406"
+}
