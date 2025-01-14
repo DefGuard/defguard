@@ -107,7 +107,6 @@ export const MFAEmail = () => {
       <p>{localLL.header()}</p>
       <form onSubmit={handleSubmit(handleValidSubmit)}>
         <FormInput
-          type="number"
           controller={{ control, name: 'code' }}
           placeholder={localLL.form.labels.code()}
           required
