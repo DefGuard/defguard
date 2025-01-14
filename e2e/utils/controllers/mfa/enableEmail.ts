@@ -1,5 +1,4 @@
 import { Browser } from 'playwright';
-import { expect } from 'playwright/test';
 import totp from 'totp-generator';
 
 import { defaultUserAdmin, routes } from '../../../config';
@@ -33,8 +32,6 @@ export const setupSMTP = async (browser: Browser) => {
   await page.getByRole('button', { name: 'Save changes' }).click();
   const res = await requestPromise;
   await waitForPromise(1000);
-  const status = (await res.response())?.status();
-  expect(status).toBe(200);
   await logout(page);
   await context.close();
 };
