@@ -30,7 +30,7 @@ export const setupSMTP = async (browser: Browser) => {
   await page.getByTestId('field-smtp_sender').fill('test@test.com');
   const requestPromise = page.waitForRequest('**/settings');
   await page.getByRole('button', { name: 'Save changes' }).click();
-  const res = await requestPromise;
+  await requestPromise;
   await waitForPromise(1000);
   await logout(page);
   await context.close();
