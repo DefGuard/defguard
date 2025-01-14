@@ -1,30 +1,54 @@
 import { Browser } from 'playwright';
+import { expect } from 'playwright/test';
 import totp from 'totp-generator';
 
-import { routes } from '../../../config';
+import { defaultUserAdmin, routes } from '../../../config';
 import { User } from '../../../types';
 import { extractEmailSecret } from '../../db/extractEmailSecret';
-import { initSmtpSettings } from '../../db/initSmtpSettings';
 import { waitForBase } from '../../waitForBase';
 import { waitForPromise } from '../../waitForPromise';
 import { acceptRecovery } from '../acceptRecovery';
 import { loginBasic } from '../login';
+import { logout } from '../logout';
 
 export type EnableEmailResult = {
   secret: string;
   recoveryCodes?: string[];
 };
 
+export const setupSMTP = async (browser: Browser) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await waitForBase(page);
+  await waitForPromise(5000);
+  await loginBasic(page, defaultUserAdmin);
+  await page.goto(routes.base + routes.admin.settings);
+  await page.getByRole('button', { name: 'SMTP' }).click();
+  await page.getByTestId('field-smtp_server').fill('testServer.com');
+  await page.getByTestId('field-smtp_port').fill('543');
+  await page.getByTestId('field-smtp_user').fill('testuser');
+  await page.getByTestId('field-smtp_password').fill('test');
+  await page.getByTestId('field-smtp_sender').fill('test@test.com');
+  const requestPromise = page.waitForRequest('**/settings');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  const res = await requestPromise;
+  await waitForPromise(1000);
+  const status = (await res.response())?.status();
+  expect(status).toBe(200);
+  await logout(page);
+  await context.close();
+};
+
 export const enableEmailMFA = async (
   browser: Browser,
   user: User
 ): Promise<EnableEmailResult> => {
+  await setupSMTP(browser);
   const context = await browser.newContext();
   const page = await context.newPage();
   await waitForBase(page);
   // make so app info will allow email mfa to be enabled for user
   await waitForPromise(5000);
-  await initSmtpSettings();
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await page.getByTestId('edit-user').click();
