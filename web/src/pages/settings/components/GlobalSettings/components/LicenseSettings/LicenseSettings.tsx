@@ -63,7 +63,7 @@ export const LicenseSettings = () => {
       return ActivityIconVariant.CONNECTED;
     }
     return ActivityIconVariant.ERROR;
-  }, [appInfo?.license_info.any_limit_exceeded, enterpriseInfo]);
+  }, [enterpriseInfo]);
 
   const statusText = useMemo(() => {
     if (!isPresent(enterpriseInfo)) {
