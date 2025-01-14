@@ -135,22 +135,18 @@ impl Counts {
 
     pub(crate) fn get_exceeded_limits(&self, license: Option<&License>) -> LimitsExceeded {
         if let Some(license) = license {
-            LimitsExceeded {
-                user: self.user
-                    > license
-                        .limits
-                        .as_ref()
-                        .map_or(DEFAULT_USERS_LIMIT, |l| l.users),
-                device: self.device
-                    > license
-                        .limits
-                        .as_ref()
-                        .map_or(DEFAULT_DEVICES_LIMIT, |l| l.devices),
-                wireguard_network: self.wireguard_network
-                    > license
-                        .limits
-                        .as_ref()
-                        .map_or(DEFAULT_LOCATIONS_LIMIT, |l| l.locations),
+            if let Some(limits) = &license.limits {
+                LimitsExceeded {
+                    user: self.user > limits.users,
+                    device: self.device > limits.devices,
+                    wireguard_network: self.wireguard_network > limits.locations,
+                }
+            } else {
+                LimitsExceeded {
+                    user: false,
+                    device: false,
+                    wireguard_network: false,
+                }
             }
         } else {
             LimitsExceeded {
@@ -443,5 +439,23 @@ mod test {
         assert!(exceeded.device);
         assert!(exceeded.wireguard_network);
         assert!(exceeded.any());
+
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() + TimeDelta::days(1)),
+            None,
+        );
+        let counts = Counts {
+            user: 300,
+            device: 300,
+            wireguard_network: 300,
+        };
+        set_counts(counts);
+        let exceeded = get_counts().get_exceeded_limits(Some(&license));
+        assert!(!exceeded.user);
+        assert!(!exceeded.device);
+        assert!(!exceeded.wireguard_network);
+        assert!(!exceeded.any());
     }
 }

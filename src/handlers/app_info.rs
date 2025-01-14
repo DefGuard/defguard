@@ -42,7 +42,8 @@ pub(crate) async fn get_app_info(
     let settings = Settings::get_current_settings();
     let enterprise = is_enterprise_enabled();
     let license = get_cached_license();
-    let limits_exceeded = get_counts().get_exceeded_limits(license.as_ref());
+    let counts = get_counts();
+    let limits_exceeded = counts.get_exceeded_limits(license.as_ref());
     let any_limit_exceeded = limits_exceeded.any();
     let res = AppInfo {
         network_present: !networks.is_empty(),
