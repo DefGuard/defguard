@@ -1,16 +1,15 @@
-use std::{
-    env,
-    sync::{RwLock, RwLockReadGuard},
-};
+use std::env;
 
 use chrono::NaiveDate;
 use semver::Version;
+
+use crate::global_value;
 
 const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://update-service-dev.defguard.net/api/update/check";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Update {
     version: String,
     release_date: NaiveDate,
@@ -20,19 +19,7 @@ pub struct Update {
     notes: String,
 }
 
-static NEW_UPDATE: RwLock<Option<Update>> = RwLock::new(None);
-
-fn set_update(update: Update) {
-    *NEW_UPDATE
-        .write()
-        .expect("Failed to acquire lock on the update.") = Some(update);
-}
-
-pub fn get_update() -> RwLockReadGuard<'static, Option<Update>> {
-    NEW_UPDATE
-        .read()
-        .expect("Failed to acquire lock on the update.")
-}
+global_value!(NEW_UPDATE, Option<Update>, None, set_update, get_update);
 
 async fn fetch_update() -> Result<Update, anyhow::Error> {
     let body = serde_json::json!({
@@ -63,7 +50,7 @@ pub(crate) async fn do_new_version_check() -> Result<(), anyhow::Error> {
                 update.version, update.release_date
             );
         }
-        set_update(update);
+        set_update(Some(update));
     } else {
         debug!("New version check done. You are using the latest version of Defguard.");
     }

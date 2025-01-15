@@ -263,7 +263,6 @@ pub fn gateway_reconnected_mail(
     context.insert("gateway_ip", gateway_ip);
     context.insert("network_name", network_name);
     tera.add_raw_template("mail_gateway_reconnected", MAIL_GATEWAY_RECONNECTED)?;
-    println!("dupa");
     Ok(tera.render("mail_gateway_reconnected", &context)?)
 }
 
