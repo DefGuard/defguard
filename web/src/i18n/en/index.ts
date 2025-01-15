@@ -48,7 +48,7 @@ const en: BaseTranslation = {
       enterprise: {
         title: 'Upgrade to Enterprise',
         //md
-        subTitle: `This functionality is an **enterprise feature** and requires purchasing a license to enable it.`,
+        subTitle: `This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.`,
       },
       limit: {
         title: 'Upgrade',

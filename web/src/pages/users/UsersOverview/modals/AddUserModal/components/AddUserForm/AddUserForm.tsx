@@ -10,8 +10,6 @@ import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { useUpgradeLicenseModal } from '../../../../../../../shared/components/Layout/UpgradeLicenseModal/store';
-import { UpgradeLicenseModalVariant } from '../../../../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { FormCheckBox } from '../../../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -20,6 +18,7 @@ import {
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { useAppStore } from '../../../../../../../shared/hooks/store/useAppStore';
+import { useEnterpriseUpgradeStore } from '../../../../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import {
@@ -140,7 +139,7 @@ export const AddUserForm = () => {
 
   const setAppStore = useAppStore((s) => s.setState, shallow);
 
-  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
 
   const toaster = useToaster();
 
@@ -158,11 +157,7 @@ export const AddUserForm = () => {
           appInfo: response,
         });
         if (response.license_info.any_limit_exceeded) {
-          openUpgradeLicenseModal({
-            modalVariant: response.license_info.enterprise
-              ? UpgradeLicenseModalVariant.LICENSE_LIMIT
-              : UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
-          });
+          showUpgradeToast();
         }
       });
 

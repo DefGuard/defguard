@@ -161,7 +161,7 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​r​e​q​u​i​r​e​s​ ​p​u​r​c​h​a​s​i​n​g​ ​a​ ​l​i​c​e​n​s​e​ ​t​o​ ​e​n​a​b​l​e​ ​i​t​.
+				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
 				 */
 				subTitle: string
 			}
@@ -4969,7 +4969,7 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * This functionality is an **enterprise feature** and requires purchasing a license to enable it.
+				 * This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
 				 */
 				subTitle: () => LocalizedString
 			}
