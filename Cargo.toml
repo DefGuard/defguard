@@ -41,7 +41,7 @@ openidconnect = { version = "3.5", default-features = false, optional = true, fe
     "reqwest",
 ] }
 pgp = "0.14"
-prost = "0.12"
+prost = "0.13"
 pulldown-cmark = "0.12"
 rand = "0.8"
 rand_core = { version = "0.6", default-features = false, features = [
@@ -83,10 +83,10 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tokio-util = "0.7"
-tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
-tonic-health = "0.11"
+tonic = { version = "0.12", features = ["gzip", "tls", "tls-roots"] }
+tonic-health = "0.12"
 totp-lite = { version = "2.0" }
-tower-http = { version = "0.5", features = ["fs", "trace"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
@@ -104,7 +104,7 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
 bytes = "1.6"
-claims = "0.7"
+claims = "0.8"
 matches = "0.1"
 regex = "1.10"
 reqwest = { version = "0.11", features = [
@@ -118,8 +118,8 @@ serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
-prost-build = "0.12"
-tonic-build = "0.11"
+prost-build = "0.13"
+tonic-build = "0.12"
 vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]

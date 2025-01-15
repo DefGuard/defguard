@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "license.LicenseLimits",
         "#[derive(serde::Serialize, serde::Deserialize)]",
     );
-    tonic_build::configure().compile_with_config(
+    tonic_build::configure().compile_protos_with_config(
         config,
         &[
             "proto/core/auth.proto",
