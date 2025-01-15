@@ -10,12 +10,11 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
+use super::limits::Counts;
 use crate::{
     db::{models::settings::update_current_settings, Settings},
     global_value, server_config, VERSION,
 };
-
-use super::limits::Counts;
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 

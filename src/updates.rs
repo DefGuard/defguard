@@ -9,7 +9,8 @@ const PRODUCT_NAME: &str = "Defguard";
 const UPDATES_URL: &str = "https://update-service-dev.defguard.net/api/update/check";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
+#[derive(Deserialize, Debug, Serialize)]
+#[cfg_attr(test, derive(Clone))]
 pub struct Update {
     version: String,
     release_date: NaiveDate,

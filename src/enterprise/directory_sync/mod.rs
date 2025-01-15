@@ -1,17 +1,16 @@
 use std::collections::{HashMap, HashSet};
 
-use sqlx::PgPool;
-
-use crate::{
-    db::{Group, Id, User},
-    enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
-};
 use sqlx::error::Error as SqlxError;
+use sqlx::PgPool;
 use thiserror::Error;
 
 use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
 #[cfg(not(test))]
 use super::is_enterprise_enabled;
+use crate::{
+    db::{Group, Id, User},
+    enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
+};
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {
@@ -600,12 +599,13 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
 
 #[cfg(test)]
 mod test {
+    use secrecy::ExposeSecret;
+
     use super::*;
     use crate::{
         config::DefGuardConfig, enterprise::db::models::openid_provider::DirectorySyncTarget,
         SERVER_CONFIG,
     };
-    use secrecy::ExposeSecret;
 
     async fn make_test_provider(
         pool: &PgPool,

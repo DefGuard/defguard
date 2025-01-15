@@ -1,10 +1,11 @@
 use std::{str::FromStr, time::Duration};
 
-use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 use chrono::{DateTime, TimeDelta, Utc};
 #[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
+
+use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 
 #[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
