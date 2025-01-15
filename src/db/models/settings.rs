@@ -1,40 +1,23 @@
-use std::{
-    collections::HashMap,
-    str::FromStr,
-    sync::{RwLock, RwLockReadGuard},
-};
+use std::{collections::HashMap, str::FromStr};
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 use thiserror::Error;
 
-use crate::secret::SecretString;
+use crate::{global_value, secret::SecretString};
 
-// wrap in `Option` since a static cannot be initialized with a non-const function
-static SETTINGS: RwLock<Option<Settings>> = RwLock::new(None);
-
-pub(crate) fn set_settings(new_settings: Settings) {
-    *SETTINGS
-        .write()
-        .expect("Failed to acquire lock on current settings.") = Some(new_settings);
-}
-
-pub(crate) fn get_settings() -> RwLockReadGuard<'static, Option<Settings>> {
-    SETTINGS
-        .read()
-        .expect("Failed to acquire lock on current settings.")
-}
+global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
 /// Initializes global `SETTINGS` struct at program startup
 pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
     debug!("Initializing global settings strut");
     match Settings::get(pool).await? {
         Some(settings) => {
-            set_settings(settings);
+            set_settings(Some(settings));
         }
         None => {
             debug!("Settings not found in DB. Using default values to initialize global settings struct");
-            set_settings(Settings::default());
+            set_settings(Some(Settings::default()));
         }
     }
     Ok(())
@@ -47,7 +30,7 @@ pub async fn update_current_settings(
 ) -> Result<(), sqlx::Error> {
     debug!("Updating current settings to: {new_settings:?}");
     new_settings.save(pool).await?;
-    set_settings(new_settings);
+    set_settings(Some(new_settings));
     Ok(())
 }
 

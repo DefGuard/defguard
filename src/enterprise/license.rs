@@ -1,7 +1,4 @@
-use std::{
-    sync::{RwLock, RwLockReadGuard},
-    time::Duration,
-};
+use std::time::Duration;
 
 use anyhow::Result;
 use base64::prelude::*;
@@ -13,28 +10,21 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
+use super::limits::Counts;
 use crate::{
     db::{models::settings::update_current_settings, Settings},
-    server_config, VERSION,
+    global_value, server_config, VERSION,
 };
-
-use super::limits::Counts;
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
-static LICENSE: RwLock<Option<License>> = RwLock::new(None);
-
-pub fn set_cached_license(license: Option<License>) {
-    *LICENSE
-        .write()
-        .expect("Failed to acquire lock on the license mutex.") = license;
-}
-
-pub fn get_cached_license() -> RwLockReadGuard<'static, Option<License>> {
-    LICENSE
-        .read()
-        .expect("Failed to acquire lock on the license mutex.")
-}
+global_value!(
+    LICENSE,
+    Option<License>,
+    None,
+    set_cached_license,
+    get_cached_license
+);
 
 tonic::include_proto!("license");
 
@@ -584,7 +574,7 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
 
-            if let Some(license) = &*license {
+            if let Some(license) = license.as_ref() {
                 if license.requires_renewal() {
                     // check if we are pass the maximum expiration date, after which we don't
                     // want to try to renew the license anymore
