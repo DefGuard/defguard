@@ -27,6 +27,7 @@ import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
+import { LimitedText } from '../../../../../shared/defguard-ui/components/Layout/LimitedText/LimitedText';
 
 dayjs.extend(utc);
 
@@ -107,21 +108,22 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <h3 data-testid="device-name">{device.name}</h3>
         </header>
         <div className="section-content">
-          <div>
+          <div className="limited">
             <Label>{LL.userPage.devices.card.labels.publicIP()}</Label>
             {latestLocation?.last_connected_ip && (
-              <p data-testid="device-last-connected-from">
-                {latestLocation.last_connected_ip}
-              </p>
+              <LimitedText
+                text={latestLocation.last_connected_ip}
+                testId="device-last-connected-from"
+              />
             )}
             {!latestLocation?.last_connected_ip && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
             )}
           </div>
-          <div>
+          <div className="limited">
             <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
             {latestLocation && latestLocation.last_connected_at && (
-              <p>{latestLocation?.network_name}</p>
+              <LimitedText text={latestLocation?.network_name} />
             )}
             {!latestLocation?.last_connected_at && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -220,10 +222,10 @@ const DeviceLocation = ({
         </div>
       </header>
       <div className="section-content">
-        <div>
+        <div className="limited">
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
           {last_connected_ip && (
-            <p data-testid="device-last-connected-from">{last_connected_ip}</p>
+            <LimitedText text={last_connected_ip} testId="device-last-connected-from" />
           )}
           {!last_connected_ip && (
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -238,9 +240,9 @@ const DeviceLocation = ({
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
           )}
         </div>
-        <div>
+        <div className="limited">
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <p data-testid="device-assigned-ip">{device_wireguard_ip}</p>
+          <LimitedText text={device_wireguard_ip} testId="device-assigned-ip" />
         </div>
       </div>
     </div>
