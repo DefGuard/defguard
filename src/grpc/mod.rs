@@ -335,7 +335,8 @@ impl GatewayState {
         let network_name = self.network_name.clone();
 
         debug!(
-            "Scheduling gateway disconnect email notification for {hostname} to be sent in {delay:?}"
+            "Scheduling gateway disconnect email notification for {hostname} to be sent in \
+            {delay:?}"
         );
         // use cancellation token to abort sending if gateway reconnects during the delay
         // we should never need to cancel a previous token since that would've been done on reconnect
@@ -349,8 +350,10 @@ impl GatewayState {
             tokio::select! {
                 _ = async {
                     sleep(delay).await;
-                    debug!("Gateway disconnect notification delay has passed. Trying to send email...");
-                    if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname, &mail_tx, &pool)
+                    debug!("Gateway disconnect notification delay has passed. \
+                        Trying to send email...");
+                    if let Err(e) = send_gateway_disconnected_email(name, network_name, &hostname,
+                        &mail_tx, &pool)
                     .await
                     {
                         error!("Failed to send gateway disconnect notification: {e}");
@@ -358,10 +361,11 @@ impl GatewayState {
                         info!("Gateway {hostname} disconnected. Email notification sent",);
                     }
                 } => {
-                        debug!("Scheduled gateway disconnect notification for {hostname} has been sent")
+                    debug!("Scheduled gateway disconnect notification for {hostname} has been \
+                        sent");
                 },
                 _ = cancellation_token.cancelled() => {
-                    info!("Scheduled gateway disconnect notification for {hostname} cancelled")
+                    info!("Scheduled gateway disconnect notification for {hostname} cancelled");
                 }
             }
         });
@@ -399,7 +403,11 @@ impl GatewayState {
 
     /// Cancels disconnect notification if one is scheduled to be sent
     fn cancel_pending_disconnect_notification(&mut self) {
-        debug!("Checking if there's a gateway disconnect notification for {} pending which needs to be cancelled", self.hostname);
+        debug!(
+            "Checking if there's a gateway disconnect notification for {} pending which needs \
+            to be cancelled",
+            self.hostname
+        );
         if let Some(token) = &self.pending_notification_cancel_token {
             debug!(
                 "Cancelling pending gateway disconnect notification for {}",

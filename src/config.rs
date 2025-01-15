@@ -9,7 +9,7 @@ use rsa::{
     traits::PublicKeyParts,
     RsaPrivateKey,
 };
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
@@ -27,7 +27,7 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_SECRET_KEY")]
     #[serde(skip_serializing)]
-    pub secret_key: Secret<String>,
+    pub secret_key: SecretString,
 
     #[arg(long, env = "DEFGUARD_DB_HOST", default_value = "localhost")]
     pub database_host: String,
@@ -43,7 +43,7 @@ pub struct DefGuardConfig {
 
     #[arg(long, env = "DEFGUARD_DB_PASSWORD", default_value = "")]
     #[serde(skip_serializing)]
-    pub database_password: Secret<String>,
+    pub database_password: SecretString,
 
     #[arg(long, env = "DEFGUARD_HTTP_PORT", default_value_t = 8000)]
     pub http_port: u16,
@@ -63,7 +63,7 @@ pub struct DefGuardConfig {
         default_value = "pass123"
     )]
     #[serde(skip_serializing)]
-    pub default_admin_password: Secret<String>,
+    pub default_admin_password: SecretString,
 
     #[arg(long, env = "DEFGUARD_OPENID_KEY", value_parser = Self::parse_openid_key)]
     #[serde(skip_serializing)]

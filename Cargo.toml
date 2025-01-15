@@ -52,7 +52,7 @@ reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
 rust-embed = { version = "8.5", features = ["include-exclude"] }
 rust-ini = "0.21"
-secrecy = { version = "0.8", features = ["serde"] }
+secrecy = { version = "0.10", features = ["serde"] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
@@ -70,7 +70,7 @@ sqlx = { version = "0.8", features = [
 ssh-key = "0.6"
 struct-patch = "0.8"
 tera = "1.20"
-thiserror = "1.0"
+thiserror = "2.0"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
 tokio = { version = "1", features = [

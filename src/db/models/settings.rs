@@ -8,7 +8,7 @@ use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 use thiserror::Error;
 
-use crate::secret::SecretString;
+use crate::secret::SecretStringWrapper;
 
 // wrap in `Option` since a static cannot be initialized with a non-const function
 static SETTINGS: RwLock<Option<Settings>> = RwLock::new(None);
@@ -85,7 +85,7 @@ pub struct Settings {
     pub smtp_port: Option<i32>,
     pub smtp_encryption: SmtpEncryption,
     pub smtp_user: Option<String>,
-    pub smtp_password: Option<SecretString>,
+    pub smtp_password: Option<SecretStringWrapper>,
     pub smtp_sender: Option<String>,
     // Enrollment
     pub enrollment_vpn_step_optional: bool,
@@ -99,7 +99,7 @@ pub struct Settings {
     // LDAP
     pub ldap_url: Option<String>,
     pub ldap_bind_username: Option<String>,
-    pub ldap_bind_password: Option<SecretString>,
+    pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
     pub ldap_user_obj_class: Option<String>,
@@ -127,16 +127,17 @@ impl Settings {
             "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, \
             worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, \
             smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
-            smtp_password \"smtp_password?: SecretString\", smtp_sender, \
+            smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
             enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, \
-            ldap_bind_password \"ldap_bind_password?: SecretString\", \
+            ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
             ldap_group_member_attr, ldap_member_attr, openid_create_account, \
-            license, \
-            gateway_disconnect_notifications_enabled, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled \
+            license, gateway_disconnect_notifications_enabled, \
+            gateway_disconnect_notifications_inactivity_threshold, \
+            gateway_disconnect_notifications_reconnect_notification_enabled \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -210,7 +211,7 @@ impl Settings {
             self.smtp_port,
             &self.smtp_encryption as &SmtpEncryption,
             self.smtp_user,
-            &self.smtp_password as &Option<SecretString>,
+            &self.smtp_password as &Option<SecretStringWrapper>,
             self.smtp_sender,
             self.enrollment_vpn_step_optional,
             self.enrollment_welcome_message,
@@ -220,7 +221,7 @@ impl Settings {
             self.uuid,
             self.ldap_url,
             self.ldap_bind_username,
-            &self.ldap_bind_password as &Option<SecretString>,
+            &self.ldap_bind_password as &Option<SecretStringWrapper>,
             self.ldap_group_search_base,
             self.ldap_user_search_base,
             self.ldap_user_obj_class,
@@ -285,7 +286,7 @@ impl Settings {
             && self.smtp_server != Some("".to_string())
             && self.smtp_user != Some("".to_string())
             && self.smtp_password
-                != Some(SecretString::from_str("").expect("Failed to convert empty string"))
+                != Some(SecretStringWrapper::from_str("").expect("Failed to convert empty string"))
             && self.smtp_sender != Some("".to_string())
     }
 }
