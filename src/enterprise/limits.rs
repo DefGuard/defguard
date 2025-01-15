@@ -1,39 +1,24 @@
 use sqlx::{error::Error as SqlxError, query, PgPool};
-use std::sync::{RwLock, RwLockReadGuard};
 
 #[cfg(test)]
 use super::license::get_cached_license;
 use super::license::License;
+use crate::global_value;
 
 // Limits for free users
 pub const DEFAULT_USERS_LIMIT: u32 = 5;
 pub const DEFAULT_DEVICES_LIMIT: u32 = 10;
 pub const DEFAULT_LOCATIONS_LIMIT: u32 = 1;
 
-#[derive(Debug, Default)]
-pub(crate) struct Counts {
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
+pub struct Counts {
     user: u32,
     device: u32,
     wireguard_network: u32,
 }
 
-static COUNTS: RwLock<Counts> = RwLock::new(Counts {
-    user: 0,
-    device: 0,
-    wireguard_network: 0,
-});
-
-fn set_counts(new_counts: Counts) {
-    *COUNTS
-        .write()
-        .expect("Failed to acquire lock on the enterprise limit counts.") = new_counts;
-}
-
-pub(crate) fn get_counts() -> RwLockReadGuard<'static, Counts> {
-    COUNTS
-        .read()
-        .expect("Failed to acquire lock on the enterprise limit counts.")
-}
+global_value!(COUNTS, Counts, Counts::default(), set_counts, get_counts);
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
@@ -80,6 +65,14 @@ pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
 }
 
 impl Counts {
+    pub(crate) const fn default() -> Self {
+        Self {
+            user: 0,
+            device: 0,
+            wireguard_network: 0,
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn new(user: u32, device: u32, wireguard_network: u32) -> Self {
         Self {
@@ -97,7 +90,7 @@ impl Counts {
         let maybe_license = get_cached_license();
 
         // validate limits against license if available, use defaults otherwise
-        match &*maybe_license {
+        match &maybe_license {
             Some(license) => {
                 debug!("Cached license found. Validating license limits...");
                 self.is_over_license_limits(license)
@@ -177,9 +170,8 @@ impl LimitsExceeded {
 mod test {
     use chrono::{TimeDelta, Utc};
 
-    use crate::enterprise::license::{set_cached_license, License, LicenseLimits};
-
     use super::*;
+    use crate::enterprise::license::{set_cached_license, License, LicenseLimits};
 
     #[test]
     fn test_counts() {

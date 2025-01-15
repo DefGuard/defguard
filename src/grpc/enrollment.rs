@@ -444,10 +444,12 @@ impl EnrollmentServer {
 
         let (device, network_info, configs) = if let Some(device_id) = enrollment_token.device_id {
             debug!(
-                "A device with ID {device_id} is attached to a received enrollment token, trying to finish its configuration instead of creating a new one."
+                "A device with ID {device_id} is attached to a received enrollment token, trying \
+                to finish its configuration instead of creating a new one."
             );
             let mut device = Device::find_by_id(&mut *transaction, device_id)
-                .await.map_err(|err| {
+                .await
+                .map_err(|err| {
                     error!(
                         "Failed to find device with ID {device_id} for user {}({:?}): {err}",
                         user.username, user.id
@@ -456,7 +458,8 @@ impl EnrollmentServer {
                 })?
                 .ok_or_else(|| {
                     error!(
-                        "Device with ID {device_id} not found for user {}({:?}). Aborting device configuration process.",
+                        "Device with ID {device_id} not found for user {}({:?}). Aborting device \
+                        configuration process.",
                         user.username, user.id
                     );
                     Status::not_found("device not found")
@@ -465,13 +468,14 @@ impl EnrollmentServer {
             // Currently not supported
             if device.device_type != DeviceType::Network {
                 error!(
-                    "Device {} added by user {}({:?}) is not a network device. Partial device configuration using a token is not supported for non-network devices.",
+                    "Device {} added by user {}({:?}) is not a network device. Partial device \
+                    configuration using a token is not supported for non-network devices.",
                     device.name, user.username, user.id
                 );
                 return Err(Status::invalid_argument("invalid device type"));
             }
 
-            device.wireguard_pubkey = request.pubkey.clone();
+            device.wireguard_pubkey.clone_from(&request.pubkey);
             device.configured = true;
 
             device.save(&mut *transaction).await.map_err(|err| {
@@ -495,7 +499,8 @@ impl EnrollmentServer {
 
             let Some(network) = networks.pop() else {
                 error!(
-                    "Network device {} added by user {}({:?}) is not assigned to any networks. Aborting partial device configuration process.",
+                    "Network device {} added by user {}({:?}) is not assigned to any networks. \
+                    Aborting partial device configuration process.",
                     device.name, user.username, user.id
                 );
                 return Err(Status::not_found("network not found"));
@@ -503,7 +508,8 @@ impl EnrollmentServer {
             // We popped the last network, there should be 0 left.
             if !networks.is_empty() {
                 warn!(
-                    "Network device {} added by user {}({:?}) is assigned to more than one network. Using the last network as a fallback.",
+                    "Network device {} added by user {}({:?}) is assigned to more than one \
+                    network. Using the last network as a fallback.",
                     device.name, user.username, user.id
                 );
             }
@@ -587,15 +593,17 @@ impl EnrollmentServer {
             "Fetching enterprise settings for device {} creation process for user {}({:?})",
             device.wireguard_pubkey, user.username, user.id,
         );
-        let enterprise_settings = EnterpriseSettings::get(&mut *transaction)
-            .await
-            .map_err(|err| {
-                error!(
-            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): {err}",
+        let enterprise_settings =
+            EnterpriseSettings::get(&mut *transaction)
+                .await
+                .map_err(|err| {
+                    error!(
+            "Failed to fetch enterprise settings for device {} creation process for user {}({:?}): \
+            {err}",
             device.wireguard_pubkey, user.username, user.id,
         );
-                Status::internal("unexpected error")
-            })?;
+                    Status::internal("unexpected error")
+                })?;
         debug!("Enterprise settings: {enterprise_settings:?}");
 
         // create polling token for further client communication

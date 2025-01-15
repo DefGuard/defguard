@@ -105,7 +105,7 @@ pub(crate) async fn build_device_config_response(
                 .collect::<Vec<String>>()
                 .join(",");
             let config = ProtoDeviceConfig {
-                config: device.create_config(&network, &wireguard_network_device),
+                config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
                 network_name: network.name,
                 assigned_ip: wireguard_network_device.wireguard_ip.to_string(),

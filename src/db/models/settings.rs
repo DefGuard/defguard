@@ -1,41 +1,23 @@
-use std::{
-    collections::HashMap,
-    str::FromStr,
-    sync::{RwLock, RwLockReadGuard},
-};
+use std::{collections::HashMap, str::FromStr};
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 use thiserror::Error;
 
-use crate::secret::SecretStringWrapper;
+use crate::{global_value, secret::SecretStringWrapper};
 
-// wrap in `Option` since a static cannot be initialized with a non-const function
-static SETTINGS: RwLock<Option<Settings>> = RwLock::new(None);
-
-pub(crate) fn set_settings(new_settings: Settings) {
-    *SETTINGS
-        .write()
-        .expect("Failed to acquire lock on current settings.") = Some(new_settings);
-}
-
-pub(crate) fn get_settings() -> RwLockReadGuard<'static, Option<Settings>> {
-    SETTINGS
-        .read()
-        .expect("Failed to acquire lock on current settings.")
-}
+global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
 /// Initializes global `SETTINGS` struct at program startup
 pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Error> {
     debug!("Initializing global settings strut");
-    match Settings::get(pool).await? {
-        Some(settings) => {
-            set_settings(settings);
-        }
-        None => {
-            debug!("Settings not found in DB. Using default values to initialize global settings struct");
-            set_settings(Settings::default());
-        }
+    if let Some(settings) = Settings::get(pool).await? {
+        set_settings(Some(settings));
+    } else {
+        debug!(
+            "Settings not found in DB. Using default values to initialize global settings struct"
+        );
+        set_settings(Some(Settings::default()));
     }
     Ok(())
 }
@@ -47,7 +29,7 @@ pub async fn update_current_settings(
 ) -> Result<(), sqlx::Error> {
     debug!("Updating current settings to: {new_settings:?}");
     new_settings.save(pool).await?;
-    set_settings(new_settings);
+    set_settings(Some(new_settings));
     Ok(())
 }
 
@@ -242,6 +224,7 @@ impl Settings {
         Ok(())
     }
 
+    #[must_use]
     pub fn get_current_settings() -> Self {
         // fetch global settings
         let maybe_settings = get_settings().clone();
@@ -283,11 +266,11 @@ impl Settings {
             && self.smtp_user.is_some()
             && self.smtp_password.is_some()
             && self.smtp_sender.is_some()
-            && self.smtp_server != Some("".to_string())
-            && self.smtp_user != Some("".to_string())
+            && self.smtp_server != Some(String::new())
+            && self.smtp_user != Some(String::new())
             && self.smtp_password
                 != Some(SecretStringWrapper::from_str("").expect("Failed to convert empty string"))
-            && self.smtp_sender != Some("".to_string())
+            && self.smtp_sender != Some(String::new())
     }
 }
 

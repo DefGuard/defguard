@@ -130,6 +130,7 @@ pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
+pub mod globals;
 pub mod grpc;
 pub mod handlers;
 pub mod headers;

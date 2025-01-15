@@ -891,7 +891,7 @@ pub(crate) async fn download_config(
         WireguardNetworkDevice::find(&appstate.pool, device_id, network_id).await?;
     if let Some(wireguard_network_device) = wireguard_network_device {
         info!("Created config for device {}({device_id})", device.name);
-        Ok(device.create_config(&network, &wireguard_network_device))
+        Ok(Device::create_config(&network, &wireguard_network_device))
     } else {
         error!(
             "Failed to create config, no IP address found for device: {}({})",

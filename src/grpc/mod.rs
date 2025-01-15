@@ -348,7 +348,7 @@ impl GatewayState {
         // background task with a configured delay
         tokio::spawn(async move {
             tokio::select! {
-                _ = async {
+                () = async {
                     sleep(delay).await;
                     debug!("Gateway disconnect notification delay has passed. \
                         Trying to send email...");
@@ -364,7 +364,7 @@ impl GatewayState {
                     debug!("Scheduled gateway disconnect notification for {hostname} has been \
                         sent");
                 },
-                _ = cancellation_token.cancelled() => {
+                () = cancellation_token.cancelled() => {
                     info!("Scheduled gateway disconnect notification for {hostname} cancelled");
                 }
             }

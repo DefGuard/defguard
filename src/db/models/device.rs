@@ -422,7 +422,6 @@ impl Device<Id> {
     /// Create WireGuard config for device.
     #[must_use]
     pub(crate) fn create_config(
-        &self,
         network: &WireguardNetwork<Id>,
         wireguard_network_device: &WireguardNetworkDevice,
     ) -> String {
@@ -556,7 +555,7 @@ impl Device<Id> {
             is_authorized: wireguard_network_device.is_authorized,
         };
 
-        let config = self.create_config(network, &wireguard_network_device);
+        let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -589,7 +588,7 @@ impl Device<Id> {
             is_authorized: wireguard_network_device.is_authorized,
         };
 
-        let config = self.create_config(network, &wireguard_network_device);
+        let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -649,7 +648,7 @@ impl Device<Id> {
                 };
                 network_info.push(device_network_info);
 
-                let config = self.create_config(&network, &wireguard_network_device);
+                let config = Self::create_config(&network, &wireguard_network_device);
                 configs.push(DeviceConfig {
                     network_id: network.id,
                     network_name: network.name,

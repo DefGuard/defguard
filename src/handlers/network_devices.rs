@@ -113,7 +113,7 @@ pub async fn download_network_device_config(
         "Created a WireGuard config for network device {device_id} in network {}.",
         network.name
     );
-    Ok(device.create_config(&network, &network_device))
+    Ok(Device::create_config(&network, &network_device))
 }
 
 pub async fn get_network_device(
