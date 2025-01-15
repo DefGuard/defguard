@@ -201,64 +201,44 @@ mod test {
     #[test]
     fn test_is_over_limit_free_tier() {
         // User limit
-        {
-            let counts = Counts {
-                user: DEFAULT_USERS_LIMIT + 1,
-                device: 1,
-                wireguard_network: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: DEFAULT_USERS_LIMIT + 1,
+            device: 1,
+            wireguard_network: 1,
+        };
+        assert!(counts.is_over_limit());
 
         // Device limit
-        {
-            let counts = Counts {
-                user: 1,
-                device: DEFAULT_DEVICES_LIMIT + 1,
-                wireguard_network: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: 1,
+            device: DEFAULT_DEVICES_LIMIT + 1,
+            wireguard_network: 1,
+        };
+        assert!(counts.is_over_limit());
 
         // Wireguard network limit
-        {
-            let counts = Counts {
-                user: 1,
-                device: 1,
-                wireguard_network: DEFAULT_LOCATIONS_LIMIT + 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: 1,
+            device: 1,
+            wireguard_network: DEFAULT_LOCATIONS_LIMIT + 1,
+        };
+        assert!(counts.is_over_limit());
 
         // No limit
-        {
-            let counts = Counts {
-                user: 1,
-                device: 1,
-                wireguard_network: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(!counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: 1,
+            device: 1,
+            wireguard_network: 1,
+        };
+        assert!(!counts.is_over_limit());
 
         // All limits
-        {
-            let counts = Counts {
-                user: DEFAULT_USERS_LIMIT + 1,
-                device: DEFAULT_DEVICES_LIMIT,
-                wireguard_network: DEFAULT_LOCATIONS_LIMIT,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: DEFAULT_USERS_LIMIT + 1,
+            device: DEFAULT_DEVICES_LIMIT,
+            wireguard_network: DEFAULT_LOCATIONS_LIMIT,
+        };
+        assert!(counts.is_over_limit());
     }
 
     #[test]
@@ -281,64 +261,44 @@ mod test {
         set_cached_license(Some(license));
 
         // User limit
-        {
-            let counts = Counts {
-                user: users_limit + 1,
-                device: 1,
-                wireguard_network: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: users_limit + 1,
+            device: 1,
+            wireguard_network: 1,
+        };
+        assert!(counts.is_over_limit());
 
         // Device limit
-        {
-            let counts = Counts {
-                user: 1,
-                device: devices_limit + 1,
-                wireguard_network: 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: 1,
+            device: devices_limit + 1,
+            wireguard_network: 1,
+        };
+        assert!(counts.is_over_limit());
 
         // Wireguard network limit
-        {
-            let counts = Counts {
-                user: 1,
-                device: 1,
-                wireguard_network: locations_limit + 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: 1,
+            device: 1,
+            wireguard_network: locations_limit + 1,
+        };
+        assert!(counts.is_over_limit());
 
         // No limit
-        {
-            let counts = Counts {
-                user: users_limit,
-                device: devices_limit,
-                wireguard_network: locations_limit,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(!counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: users_limit,
+            device: devices_limit,
+            wireguard_network: locations_limit,
+        };
+        assert!(!counts.is_over_limit());
 
         // All limits
-        {
-            let counts = Counts {
-                user: users_limit + 1,
-                device: devices_limit + 1,
-                wireguard_network: locations_limit + 1,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: users_limit + 1,
+            device: devices_limit + 1,
+            wireguard_network: locations_limit + 1,
+        };
+        assert!(counts.is_over_limit());
     }
 
     #[test]
@@ -352,16 +312,12 @@ mod test {
         set_cached_license(Some(license));
 
         // it's not possible to be over the limit
-        {
-            let counts = Counts {
-                user: u32::MAX,
-                device: u32::MAX,
-                wireguard_network: u32::MAX,
-            };
-            set_counts(counts);
-            let counts = get_counts();
-            assert!(!counts.is_over_limit());
-        }
+        let counts = Counts {
+            user: u32::MAX,
+            device: u32::MAX,
+            wireguard_network: u32::MAX,
+        };
+        assert!(!counts.is_over_limit());
     }
 
     #[test]
@@ -375,8 +331,7 @@ mod test {
             device: 0,
             wireguard_network: 0,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
+        let exceeded = counts.get_exceeded_limits(None);
         assert!(exceeded.user);
         assert!(!exceeded.device);
         assert!(!exceeded.wireguard_network);
@@ -387,8 +342,7 @@ mod test {
             device: exceed_device,
             wireguard_network: 0,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
+        let exceeded = counts.get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(exceeded.device);
         assert!(!exceeded.wireguard_network);
@@ -399,8 +353,7 @@ mod test {
             device: 0,
             wireguard_network: exceed_wireguard_network,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
+        let exceeded = counts.get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(!exceeded.device);
         assert!(exceeded.wireguard_network);
@@ -411,8 +364,7 @@ mod test {
             device: 0,
             wireguard_network: 0,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(None);
+        let exceeded = counts.get_exceeded_limits(None);
         assert!(!exceeded.user);
         assert!(!exceeded.device);
         assert!(!exceeded.wireguard_network);
@@ -433,8 +385,7 @@ mod test {
             device: 3,
             wireguard_network: 3,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(Some(&license));
+        let exceeded = counts.get_exceeded_limits(Some(&license));
         assert!(exceeded.user);
         assert!(exceeded.device);
         assert!(exceeded.wireguard_network);
@@ -451,8 +402,7 @@ mod test {
             device: 300,
             wireguard_network: 300,
         };
-        set_counts(counts);
-        let exceeded = get_counts().get_exceeded_limits(Some(&license));
+        let exceeded = counts.get_exceeded_limits(Some(&license));
         assert!(!exceeded.user);
         assert!(!exceeded.device);
         assert!(!exceeded.wireguard_network);
