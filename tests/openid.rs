@@ -222,7 +222,7 @@ async fn test_openid_flow() {
         ))
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // exchange correct code for token
     let response = client

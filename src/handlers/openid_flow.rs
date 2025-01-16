@@ -113,13 +113,10 @@ where
         if let Some(basic_auth) = parts.headers.get(AUTHORIZATION).and_then(|value| {
             if let Ok(value) = value.to_str() {
                 if value.starts_with("Basic ") {
-                    value.get(6..)
-                } else {
-                    None
+                    return value.get(6..);
                 }
-            } else {
-                None
             }
+            None
         }) {
             if let Ok(decoded) = BASE64_STANDARD.decode(basic_auth) {
                 if let Ok(auth_pair) = String::from_utf8(decoded) {
@@ -135,8 +132,10 @@ where
                     }
                 }
             }
+            Err(WebError::Authorization("Invalid credentials".into()))
+        } else {
+            Ok(None)
         }
-        Err(WebError::Authorization("Invalid credentials".into()))
     }
 }
 
