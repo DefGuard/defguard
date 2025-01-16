@@ -87,14 +87,13 @@
     align-items: left;
     justify-content: space-between;
     width: 100%;
-    @include typography(app-modal-4);
+    @include typography(app-copyright);
 
     .upgrade-link-container {
       display: flex;
       width: 100%;
       margin-top: 8px;
       justify-content: right;
-      @include typography(app-copyright);
     }
   }
 }
