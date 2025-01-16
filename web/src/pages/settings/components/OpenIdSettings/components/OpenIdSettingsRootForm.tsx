@@ -100,6 +100,7 @@ export const OpenIdSettingsRootForm = () => {
         directory_sync_user_behavior: z.string(),
         directory_sync_admin_behavior: z.string(),
         directory_sync_target: z.string(),
+        create_account: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -122,6 +123,7 @@ export const OpenIdSettingsRootForm = () => {
       directory_sync_admin_behavior:
         currentProvider?.directory_sync_admin_behavior ?? 'keep',
       directory_sync_target: currentProvider?.directory_sync_target ?? 'all',
+      create_account: currentProvider?.create_account ?? false,
     }),
     [currentProvider],
   );
@@ -212,7 +214,7 @@ export const OpenIdSettingsRootForm = () => {
             />
           </div>
           <div className="right">
-            <OpenIdGeneralSettings />
+            <OpenIdGeneralSettings formControl={formControl} />
             <DirsyncSettings
               currentProvider={currentProvider}
               formControl={formControl}

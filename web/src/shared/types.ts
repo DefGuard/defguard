@@ -902,6 +902,7 @@ export interface OpenIdProvider {
   directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_target: 'all' | 'users' | 'groups';
+  create_account: boolean;
 }
 
 export interface EditOpenidClientRequest {

@@ -10,6 +10,7 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
+    db::{models::settings::update_current_settings, Settings},
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
@@ -31,6 +32,7 @@ pub struct AddProviderData {
     pub directory_sync_user_behavior: String,
     pub directory_sync_admin_behavior: String,
     pub directory_sync_target: String,
+    pub create_account: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -75,6 +77,10 @@ pub async fn add_openid_provider(
         None => None,
     };
 
+    let mut settings = Settings::get_current_settings();
+    settings.openid_create_account = provider_data.create_account;
+    update_current_settings(&appstate.pool, settings).await?;
+
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
@@ -117,8 +123,13 @@ pub async fn get_current_openid_provider(
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
+            let settings = Settings::get_current_settings();
+            let create_account = settings.openid_create_account;
             Ok(ApiResponse {
-                json: json!(provider),
+                json: json!({
+                    "provider": json!(provider),
+                    "settings": json!({ "create_account": create_account }),
+                }),
                 status: StatusCode::OK,
             })
         }
