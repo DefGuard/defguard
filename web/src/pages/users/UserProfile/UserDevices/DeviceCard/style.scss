@@ -32,13 +32,6 @@
       max-width: 120px;
     }
 
-    .copy {
-      background-color: transparent;
-      border: 0;
-      cursor: pointer;
-      padding: 0;
-    }
-
     .main-info {
       & > header {
         grid-template-rows: 40px;
@@ -164,4 +157,12 @@
       grid-template-rows: auto auto;
     }
   }
+}
+
+.copy {
+  background-color: transparent;
+  border: 0 solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }

@@ -6,6 +6,7 @@ import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import SvgIconCopy from '../../../../shared/components/svg/IconCopy';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
@@ -17,6 +18,7 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { VirtualizedList } from '../../../../shared/defguard-ui/components/Layout/VirtualizedList/VirtualizedList';
 import useApi from '../../../../shared/hooks/useApi';
+import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { StandaloneDevice } from '../../../../shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
@@ -86,6 +88,7 @@ const DeviceRow = (props: StandaloneDevice) => {
     const day = dayjs(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
   }, [added_date]);
+  const { writeToClipboard } = useClipboard();
   return (
     <div className="device-row">
       <div className="cell-1">
@@ -93,10 +96,36 @@ const DeviceRow = (props: StandaloneDevice) => {
         <LimitedText floatingClassName="device-item-floating" text={name} />
       </div>
       <div className="cell-2">
-        <LimitedText floatingClassName="device-item-floating" text={location.name} />
+        <LimitedText
+          floatingClassName="device-item-floating"
+          text={location.name}
+          otherContent={
+            <button
+              className="copy"
+              onClick={() => {
+                void writeToClipboard(location.name);
+              }}
+            >
+              <SvgIconCopy />
+            </button>
+          }
+        />
       </div>
       <div className="cell-3">
-        <span>{assigned_ip}</span>
+        <LimitedText
+          floatingClassName="device-item-floating"
+          text={assigned_ip}
+          otherContent={
+            <button
+              className="copy"
+              onClick={() => {
+                void writeToClipboard(assigned_ip);
+              }}
+            >
+              <SvgIconCopy />
+            </button>
+          }
+        />
       </div>
       <div className="cell-4">
         <LimitedText floatingClassName="device-item-floating" text={description ?? ''} />

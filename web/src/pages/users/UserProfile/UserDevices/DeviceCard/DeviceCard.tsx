@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
+import SvgIconCopy from '../../../../../shared/components/svg/IconCopy';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
 import { Badge } from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
@@ -113,19 +114,22 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <div className="limited">
             <Label>{LL.userPage.devices.card.labels.publicIP()}</Label>
             {latestLocation?.last_connected_ip && (
-              <button
-                className="copy"
-                onClick={() => {
-                  if (latestLocation.last_connected_ip) {
-                    void writeToClipboard(latestLocation.last_connected_ip);
-                  }
-                }}
-              >
-                <LimitedText
-                  text={latestLocation.last_connected_ip}
-                  testId="device-last-connected-from"
-                />
-              </button>
+              <LimitedText
+                text={latestLocation.last_connected_ip}
+                testId="device-last-connected-from"
+                otherContent={
+                  <button
+                    className="copy"
+                    onClick={() => {
+                      if (latestLocation.last_connected_ip) {
+                        void writeToClipboard(latestLocation.last_connected_ip);
+                      }
+                    }}
+                  >
+                    <SvgIconCopy />
+                  </button>
+                }
+              />
             )}
             {!latestLocation?.last_connected_ip && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -134,14 +138,21 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <div className="limited">
             <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
             {latestLocation && latestLocation.last_connected_at && (
-              <button
-                className="copy"
-                onClick={() => {
-                  void writeToClipboard(latestLocation.network_name);
-                }}
-              >
-                <LimitedText text={latestLocation?.network_name} />
-              </button>
+              <LimitedText
+                text={latestLocation?.network_name}
+                otherContent={
+                  <button
+                    className="copy"
+                    onClick={() => {
+                      if (latestLocation.network_name) {
+                        void writeToClipboard(latestLocation.network_name);
+                      }
+                    }}
+                  >
+                    <SvgIconCopy />
+                  </button>
+                }
+              />
             )}
             {!latestLocation?.last_connected_at && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -244,14 +255,20 @@ const DeviceLocation = ({
         <div className="limited">
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
           {last_connected_ip && (
-            <button
-              className="copy"
-              onClick={() => {
-                void writeToClipboard(last_connected_ip);
-              }}
-            >
-              <LimitedText text={last_connected_ip} testId="device-last-connected-from" />
-            </button>
+            <LimitedText
+              text={last_connected_ip}
+              testId="device-last-connected-from"
+              otherContent={
+                <button
+                  className="copy"
+                  onClick={() => {
+                    void writeToClipboard(last_connected_ip);
+                  }}
+                >
+                  <SvgIconCopy />
+                </button>
+              }
+            />
           )}
           {!last_connected_ip && (
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -268,14 +285,20 @@ const DeviceLocation = ({
         </div>
         <div className="limited">
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <button
-            className="copy"
-            onClick={() => {
-              void writeToClipboard(device_wireguard_ip);
-            }}
-          >
-            <LimitedText text={device_wireguard_ip} testId="device-assigned-ip" />
-          </button>
+          <LimitedText
+            text={device_wireguard_ip}
+            testId="device-assigned-ip"
+            otherContent={
+              <button
+                className="copy"
+                onClick={() => {
+                  void writeToClipboard(device_wireguard_ip);
+                }}
+              >
+                <SvgIconCopy />
+              </button>
+            }
+          />
         </div>
       </div>
     </div>
