@@ -23,6 +23,7 @@ import { LimitedText } from '../../../../../shared/defguard-ui/components/Layout
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
+import { useClipboard } from '../../../../../shared/hooks/useClipboard';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
@@ -51,6 +52,7 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
   const openDeviceConfigModal = useDeviceConfigModal((state) => state.open);
   const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
+  const { writeToClipboard } = useClipboard();
 
   const cn = useMemo(
     () =>
@@ -111,10 +113,19 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <div className="limited">
             <Label>{LL.userPage.devices.card.labels.publicIP()}</Label>
             {latestLocation?.last_connected_ip && (
-              <LimitedText
-                text={latestLocation.last_connected_ip}
-                testId="device-last-connected-from"
-              />
+              <button
+                className="copy"
+                onClick={() => {
+                  if (latestLocation.last_connected_ip) {
+                    void writeToClipboard(latestLocation.last_connected_ip);
+                  }
+                }}
+              >
+                <LimitedText
+                  text={latestLocation.last_connected_ip}
+                  testId="device-last-connected-from"
+                />
+              </button>
             )}
             {!latestLocation?.last_connected_ip && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -123,7 +134,14 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <div className="limited">
             <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
             {latestLocation && latestLocation.last_connected_at && (
-              <LimitedText text={latestLocation?.network_name} />
+              <button
+                className="copy"
+                onClick={() => {
+                  void writeToClipboard(latestLocation.network_name);
+                }}
+              >
+                <LimitedText text={latestLocation?.network_name} />
+              </button>
             )}
             {!latestLocation?.last_connected_at && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -212,6 +230,7 @@ const DeviceLocation = ({
   },
 }: DeviceLocationProps) => {
   const { LL } = useI18nContext();
+  const { writeToClipboard } = useClipboard();
   return (
     <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
@@ -225,7 +244,14 @@ const DeviceLocation = ({
         <div className="limited">
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
           {last_connected_ip && (
-            <LimitedText text={last_connected_ip} testId="device-last-connected-from" />
+            <button
+              className="copy"
+              onClick={() => {
+                void writeToClipboard(last_connected_ip);
+              }}
+            >
+              <LimitedText text={last_connected_ip} testId="device-last-connected-from" />
+            </button>
           )}
           {!last_connected_ip && (
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -242,7 +268,14 @@ const DeviceLocation = ({
         </div>
         <div className="limited">
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <LimitedText text={device_wireguard_ip} testId="device-assigned-ip" />
+          <button
+            className="copy"
+            onClick={() => {
+              void writeToClipboard(device_wireguard_ip);
+            }}
+          >
+            <LimitedText text={device_wireguard_ip} testId="device-assigned-ip" />
+          </button>
         </div>
       </div>
     </div>
