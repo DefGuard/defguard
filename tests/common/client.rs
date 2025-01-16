@@ -19,7 +19,7 @@ pub struct TestClient {
 #[allow(dead_code)]
 impl TestClient {
     #[must_use]
-    pub async fn new(app: Router, listener: TcpListener) -> Self {
+    pub fn new(app: Router, listener: TcpListener) -> Self {
         let port = listener.local_addr().unwrap().port();
 
         tokio::spawn(async move {

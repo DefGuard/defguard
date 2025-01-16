@@ -187,13 +187,13 @@ pub(crate) async fn make_base_client(
         failed_logins,
     );
 
-    (TestClient::new(webapp, listener).await, client_state)
+    (TestClient::new(webapp, listener), client_state)
 }
 
 /// Make an instance url based on the listener
 fn get_test_url(listener: &TcpListener) -> String {
     let port = listener.local_addr().unwrap().port();
-    format!("http://localhost:{}", port)
+    format!("http://localhost:{port}")
 }
 
 #[allow(dead_code)]

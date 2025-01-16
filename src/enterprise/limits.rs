@@ -90,18 +90,16 @@ impl Counts {
         let maybe_license = get_cached_license();
 
         // validate limits against license if available, use defaults otherwise
-        match &maybe_license {
-            Some(license) => {
-                debug!("Cached license found. Validating license limits...");
-                self.is_over_license_limits(license)
-            }
-            // free tier
-            None => {
-                debug!("Cached license not found. Using default limits for validation...");
-                self.user > DEFAULT_USERS_LIMIT
-                    || self.device > DEFAULT_DEVICES_LIMIT
-                    || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
-            }
+        if let Some(license) = &maybe_license {
+            debug!("Cached license found. Validating license limits...");
+            self.is_over_license_limits(license)
+        }
+        // free tier
+        else {
+            debug!("Cached license not found. Using default limits for validation...");
+            self.user > DEFAULT_USERS_LIMIT
+                || self.device > DEFAULT_DEVICES_LIMIT
+                || self.wireguard_network > DEFAULT_LOCATIONS_LIMIT
         }
     }
 

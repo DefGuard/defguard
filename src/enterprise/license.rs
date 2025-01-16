@@ -681,7 +681,7 @@ mod test {
         assert!(license.is_expired());
 
         // legacy license is unlimited
-        assert!(license.limits.is_none())
+        assert!(license.limits.is_none());
     }
 
     #[test]

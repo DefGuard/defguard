@@ -44,6 +44,12 @@ fn make_second_network() -> Value {
     })
 }
 
+#[derive(Deserialize)]
+struct IpCheckRes {
+    available: bool,
+    valid: bool,
+}
+
 #[tokio::test]
 async fn test_network_devices() {
     let (client, client_state) = make_test_client().await;
@@ -86,12 +92,7 @@ async fn test_network_devices() {
     let network_range = IpNetwork::new(net_ip, 24).unwrap();
     assert!(network_range.contains(ip));
 
-    // checking whether ip is valid/availble
-    #[derive(Deserialize)]
-    struct IpCheckRes {
-        available: bool,
-        valid: bool,
-    }
+    // checking whether ip is valid/available
     let ip_check = json!(
         {
             "ip": "10.1.1.2".to_string(),
@@ -187,7 +188,7 @@ async fn test_network_devices() {
         "assigned_ip": "10.1.1.3"
     });
     let response = client
-        .put(format!("/api/v1/device/network/{}", device_id))
+        .put(format!("/api/v1/device/network/{device_id}"))
         .json(&modify_device)
         .send()
         .await;
@@ -200,7 +201,7 @@ async fn test_network_devices() {
         assigned_ip,
         IpAddr::from_str("10.1.1.3").unwrap().to_string()
     );
-    let device = Device::find_by_id(&client_state.pool, device_id as i64)
+    let device = Device::find_by_id(&client_state.pool, device_id)
         .await
         .unwrap()
         .unwrap();
@@ -264,11 +265,11 @@ async fn test_network_devices() {
 
     // Deleting the device
     let response = client
-        .delete(format!("/api/v1/device/network/{}", device_id))
+        .delete(format!("/api/v1/device/network/{device_id}"))
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let device = Device::find_by_id(&client_state.pool, device_id as i64)
+    let device = Device::find_by_id(&client_state.pool, device_id)
         .await
         .unwrap();
     assert!(device.is_none());

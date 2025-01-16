@@ -25,6 +25,11 @@ async fn make_client() -> TestClient {
 //     client
 // }
 
+#[derive(Deserialize)]
+struct UrlResponse {
+    url: String,
+}
+
 #[tokio::test]
 async fn test_openid_providers() {
     let client = make_client().await;
@@ -62,11 +67,6 @@ async fn test_openid_providers() {
     let response = client.get("/api/v1/openid/auth_info").send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
-
-    #[derive(Deserialize)]
-    struct UrlResponse {
-        url: String,
-    }
 
     let provider: UrlResponse = response.json().await;
 
