@@ -43,6 +43,7 @@ struct NetworkDeviceInfo {
     location: NetworkDeviceLocation,
     wireguard_pubkey: String,
     configured: bool,
+    split_ip: SplitIP,
 }
 
 impl NetworkDeviceInfo {
@@ -66,6 +67,14 @@ impl NetworkDeviceInfo {
                     device.name, network.name
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
+        let net_addr = network
+            .address
+            .first()
+            .ok_or(WebError::ObjectNotFound(format!(
+                "Failed to find the network address for network {}",
+                network.name
+            )))?;
+        let split_ip = split_ip(&wireguard_device.wireguard_ip, net_addr);
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
@@ -79,6 +88,7 @@ impl NetworkDeviceInfo {
                 name: network.name,
             },
             configured: device.configured,
+            split_ip,
         })
     }
 }
@@ -360,16 +370,10 @@ pub(crate) async fn find_available_ip(
                 .await?
                 .is_none()
             {
-                let (network_part, modifiable_part, network_prefix) =
-                    split_ip(&ip, network_address);
+                let split_ip = split_ip(&ip, network_address);
                 transaction.commit().await?;
                 return Ok(ApiResponse {
-                    json: json!({
-                       "ip": ip.to_string(),
-                       "network_part": network_part,
-                       "modifiable_part": modifiable_part,
-                       "network_prefix": network_prefix,
-                    }),
+                    json: json!(split_ip),
                     status: StatusCode::OK,
                 });
             }
@@ -719,6 +723,13 @@ pub async fn modify_network_device(
     })
 }
 
+#[derive(Debug, Serialize)]
+struct SplitIP {
+    network_part: String,
+    modifiable_part: String,
+    network_prefix: String,
+}
+
 /// Splits the IP address (IPv4 or IPv6) into three parts: network part, modifiable part and prefix
 /// The network part is the part that can't be changed by the user.
 /// This is to display an IP address in the UI like this: 192.168.(1.1)/16, where the part in the parenthesis can be changed by the user.
@@ -728,7 +739,7 @@ pub async fn modify_network_device(
 //    If they are not equal, we found the first modifiable segment (one of the segments of an address that may change between hosts in the same network),
 //    append the rest of the segments to the modifiable part.
 // 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
-fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
+fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIP {
     let network_addr = network.network();
     let network_prefix = network.prefix();
 
@@ -786,7 +797,11 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> (String, String, String) {
         network_part.push_str(&format!("{formatted}{delimiter}"));
     }
 
-    (network_part, modifiable_part, network_prefix.to_string())
+    SplitIP {
+        network_part,
+        modifiable_part,
+        network_prefix: network_prefix.to_string(),
+    }
 }
 
 #[cfg(test)]
@@ -800,35 +815,35 @@ mod test {
             &IpNetwork::from_str("192.168.3.1/30").unwrap(),
         );
 
-        assert_eq!(net.0, "192.168.3.");
-        assert_eq!(net.1, "1");
-        assert_eq!(net.2, "30");
+        assert_eq!(net.network_part, "192.168.3.");
+        assert_eq!(net.modifiable_part, "1");
+        assert_eq!(net.network_prefix, "30");
 
         let net = split_ip(
             &IpAddr::from_str("192.168.5.7").unwrap(),
             &IpNetwork::from_str("192.168.3.1/24").unwrap(),
         );
 
-        assert_eq!(net.0, "192.168.5.");
-        assert_eq!(net.1, "7");
-        assert_eq!(net.2, "24");
+        assert_eq!(net.network_part, "192.168.5.");
+        assert_eq!(net.modifiable_part, "7");
+        assert_eq!(net.network_prefix, "24");
 
         let net = split_ip(
             &IpAddr::from_str("2001:0db8:85a3::8a2e:0370:7334").unwrap(),
             &IpNetwork::from_str("2001:0db8:85a3::8a2e:0370:7334/64").unwrap(),
         );
 
-        assert_eq!(net.0, "2001:0db8:85a3:0000:");
-        assert_eq!(net.1, "0000:8a2e:0370:7334");
-        assert_eq!(net.2, "64");
+        assert_eq!(net.network_part, "2001:0db8:85a3:0000:");
+        assert_eq!(net.modifiable_part, "0000:8a2e:0370:7334");
+        assert_eq!(net.network_prefix, "64");
 
         let net = split_ip(
             &IpAddr::from_str("2001:0db8::0010:8a2e:0370:aaaa").unwrap(),
             &IpNetwork::from_str("2001:db8::10:8a2e:370:aaa8/125").unwrap(),
         );
 
-        assert_eq!(net.0, "2001:0db8:0000:0000:0010:8a2e:0370:");
-        assert_eq!(net.1, "aaaa");
-        assert_eq!(net.2, "125");
+        assert_eq!(net.network_part, "2001:0db8:0000:0000:0010:8a2e:0370:");
+        assert_eq!(net.modifiable_part, "aaaa");
+        assert_eq!(net.network_prefix, "125");
     }
 }

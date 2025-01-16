@@ -1085,6 +1085,11 @@ export type StandaloneDevice = {
     id: number;
     name: string;
   };
+  split_ip: {
+    network_part: string;
+    modifiable_part: string;
+    network_prefix: string;
+  };
 };
 
 export type DeviceConfigurationResponse = {

@@ -201,7 +201,7 @@ export const StandaloneDeviceModalForm = ({
 
   const autoAssignRecommendedIp = useCallback(
     (locationId: number | undefined) => {
-      if (locationId !== undefined) {
+      if (locationId !== undefined && mode !== StandaloneDeviceModalFormMode.EDIT) {
         setIpIsLoading(true);
         void getAvailableIp({
           locationId,
@@ -217,7 +217,7 @@ export const StandaloneDeviceModalForm = ({
           });
       }
     },
-    [getAvailableIp, resetField],
+    [getAvailableIp, resetField, mode],
   );
 
   // inform parent that form is processing stuff
