@@ -58,7 +58,7 @@ const App = () => {
               <Route
                 path="groups/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <GroupsPage />
                   </ProtectedRoute>
                 }
@@ -66,7 +66,7 @@ const App = () => {
               <Route
                 path="enrollment/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <EnrollmentPage />
                   </ProtectedRoute>
                 }
@@ -74,10 +74,7 @@ const App = () => {
               <Route
                 path="network/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="wireguard_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <NetworkPage />
                   </ProtectedRoute>
                 }
@@ -85,7 +82,7 @@ const App = () => {
               <Route
                 path="wizard/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <WizardPage />
                   </ProtectedRoute>
                 }
@@ -93,10 +90,7 @@ const App = () => {
               <Route
                 path="overview/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="wireguard_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <OverviewPage />
                   </ProtectedRoute>
                 }
@@ -104,7 +98,7 @@ const App = () => {
               <Route
                 path="users/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <UsersPage />
                   </ProtectedRoute>
                 }
@@ -112,10 +106,7 @@ const App = () => {
               <Route
                 path="provisioners/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="worker_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="worker_enabled">
                     <ProvisionersPage />
                   </ProtectedRoute>
                 }
@@ -123,10 +114,7 @@ const App = () => {
               <Route
                 path="webhooks/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="webhooks_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="webhooks_enabled">
                     <WebhooksListPage />
                   </ProtectedRoute>
                 }
@@ -134,10 +122,7 @@ const App = () => {
               <Route
                 path="openid/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="openid_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="openid_enabled">
                     <OpenidClientsListPage />
                   </ProtectedRoute>
                 }
@@ -145,7 +130,7 @@ const App = () => {
               <Route
                 path="settings/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <SettingsPage />
                   </ProtectedRoute>
                 }
@@ -153,7 +138,7 @@ const App = () => {
               <Route
                 path="devices/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <DevicesPage />
                   </ProtectedRoute>
                 }

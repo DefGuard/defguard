@@ -11,6 +11,7 @@ interface Props {
   allowedGroups?: string[];
   moduleRequired?: Setting;
   allowUnauthorized?: boolean;
+  adminRequired?: boolean;
 }
 
 type Setting = keyof SettingsModules;
@@ -19,6 +20,7 @@ export const ProtectedRoute = ({
   children,
   allowedGroups,
   moduleRequired,
+  adminRequired,
   allowUnauthorized = false,
 }: Props) => {
   const currentUser = useAuthStore((state) => state.user);
@@ -28,6 +30,12 @@ export const ProtectedRoute = ({
   if (isUndefined(currentUser) && !allowUnauthorized) {
     console.warn('[GUARD] Not authorized to navigate.');
     return <Navigate replace to="/auth/login" />;
+  }
+
+  // admin required
+  if (adminRequired && currentUser && !currentUser.is_admin) {
+    console.warn('[GUARD] Not authorized to navigate.');
+    return <Navigate to="/me" replace />;
   }
 
   // have group
@@ -40,7 +48,7 @@ export const ProtectedRoute = ({
     }
 
     if (!allowed) {
-      if (currentUser.groups.includes('admin')) {
+      if (currentUser?.is_admin) {
         return <Navigate to="/admin/users" replace />;
       } else {
         return <Navigate to="/me" replace />;
@@ -49,7 +57,7 @@ export const ProtectedRoute = ({
   }
 
   if (isUndefined(settings) && moduleRequired) {
-    if (currentUser?.groups.includes('admin')) {
+    if (currentUser?.is_admin) {
       return <Navigate to="/admin/users" replace />;
     }
     return <Navigate to="/me" replace />;
@@ -59,7 +67,7 @@ export const ProtectedRoute = ({
   if (settings !== undefined && moduleRequired !== undefined) {
     if (!settings[moduleRequired]) {
       console.warn('[GUARD] Not authorized to navigate.');
-      if (currentUser?.groups.includes('admin')) {
+      if (currentUser?.is_admin) {
         return <Navigate to="/admin/users" replace />;
       }
       return <Navigate to="/me" replace />;
