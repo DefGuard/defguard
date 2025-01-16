@@ -318,24 +318,15 @@ impl License {
     }
 
     /// Get the key from the database
-    async fn get_key() -> Result<Option<String>, LicenseError> {
+    fn get_key() -> Option<String> {
         let settings = Settings::get_current_settings();
-        match settings.license {
-            Some(key) => {
-                if key.is_empty() {
-                    Ok(None)
-                } else {
-                    Ok(Some(key))
-                }
-            }
-            None => Ok(None),
-        }
+        settings.license.filter(|key| !key.is_empty())
     }
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub async fn load() -> Result<Option<License>, LicenseError> {
-        if let Some(key) = Self::get_key().await? {
+    pub fn load() -> Result<Option<License>, LicenseError> {
+        if let Some(key) = Self::get_key() {
             Ok(Some(Self::from_base64(&key)?))
         } else {
             debug!("No license key found in the database");
@@ -346,7 +337,7 @@ impl License {
     /// Try to load the license from the database, if the license requires a renewal, try to renew it.
     /// If the renewal fails, it will return the old license for the renewal service to renew it later.
     pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
-        match Self::load().await? {
+        match Self::load()? {
             Some(license) => {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
@@ -451,34 +442,37 @@ async fn renew_license() -> Result<String, LicenseError> {
         key: old_license_key,
     };
 
-    let new_license_key = match client
-        .post(LICENSE_SERVER_URL)
-        .json(&request_body)
-        .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
-        .timeout(Duration::from_secs(10))
-        .send()
-        .await
-    {
-        Ok(response) => match response.status() {
-            reqwest::StatusCode::OK => {
-                let response: RefreshRequestResponse = response.json().await.map_err(|err| {
-                    error!("Failed to parse the response from the license server while trying to renew the license: {err:?}");
+    let new_license_key =
+        match client
+            .post(LICENSE_SERVER_URL)
+            .json(&request_body)
+            .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+        {
+            Ok(response) => match response.status() {
+                reqwest::StatusCode::OK => {
+                    let response: RefreshRequestResponse = response.json().await.map_err(|err| {
+                    error!("Failed to parse the response from the license server while trying to \
+                        renew the license: {err:?}");
                     LicenseError::LicenseServerError(err.to_string())
                 })?;
-                response.key
+                    response.key
+                }
+                status => {
+                    let status_message = response.text().await.unwrap_or_default();
+                    let message = format!(
+                        "Failed to renew the license, the license server returned a status code \
+                    {status} with error: {status_message}"
+                    );
+                    return Err(LicenseError::LicenseServerError(message));
+                }
+            },
+            Err(err) => {
+                return Err(LicenseError::LicenseServerError(err.to_string()));
             }
-            status => {
-                let status_message = response.text().await.unwrap_or_default();
-                let message = format!(
-                    "Failed to renew the license, the license server returned a status code {status} with error: {status_message}"
-                );
-                return Err(LicenseError::LicenseServerError(message));
-            }
-        },
-        Err(err) => {
-            return Err(LicenseError::LicenseServerError(err.to_string()));
-        }
-    };
+        };
 
     info!("Successfully exchanged the license for a new one");
 

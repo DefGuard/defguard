@@ -107,14 +107,18 @@ pub struct DeviceNetworkInfo {
 }
 
 impl DeviceInfo {
-    pub async fn from_device<'e, E>(executor: E, device: Device<Id>) -> Result<Self, ModelError>
+    pub(crate) async fn from_device<'e, E>(
+        executor: E,
+        device: Device<Id>,
+    ) -> Result<Self, ModelError>
     where
         E: PgExecutor<'e>,
     {
         debug!("Generating device info for {device}");
         let network_info = query_as!(
             DeviceNetworkInfo,
-            "SELECT wireguard_network_id network_id, wireguard_ip \"device_wireguard_ip: IpAddr\", preshared_key, is_authorized \
+            "SELECT wireguard_network_id network_id, wireguard_ip \"device_wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
             device.id
@@ -232,7 +236,7 @@ pub struct ModifyDevice {
 
 impl WireguardNetworkDevice {
     #[must_use]
-    pub fn new(network_id: Id, device_id: Id, wireguard_ip: IpAddr) -> Self {
+    pub(crate) fn new(network_id: Id, device_id: Id, wireguard_ip: IpAddr) -> Self {
         Self {
             wireguard_network_id: network_id,
             wireguard_ip,
@@ -243,16 +247,17 @@ impl WireguardNetworkDevice {
         }
     }
 
-    pub async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub(crate) async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query!(
             "INSERT INTO wireguard_network_device \
-                (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, preshared_key) \
-                VALUES ($1, $2, $3, $4, $5, $6) \
-                ON CONFLICT ON CONSTRAINT device_network \
-                DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
+            (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, \
+            preshared_key) \
+            VALUES ($1, $2, $3, $4, $5, $6) \
+            ON CONFLICT ON CONSTRAINT device_network \
+            DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             IpNetwork::from(self.wireguard_ip.clone()),
@@ -266,7 +271,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub(crate) async fn update<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -287,7 +292,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    pub(crate) async fn delete<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -303,7 +308,7 @@ impl WireguardNetworkDevice {
         Ok(())
     }
 
-    pub async fn find<'e, E>(
+    pub(crate) async fn find<'e, E>(
         executor: E,
         device_id: Id,
         network_id: Id,
@@ -313,7 +318,8 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
@@ -334,7 +340,8 @@ impl WireguardNetworkDevice {
     {
         let result = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -348,13 +355,17 @@ impl WireguardNetworkDevice {
         })
     }
 
-    pub async fn all_for_network<'e, E>(executor: E, network_id: Id) -> Result<Vec<Self>, SqlxError>
+    pub(crate) async fn all_for_network<'e, E>(
+        executor: E,
+        network_id: Id,
+    ) -> Result<Vec<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
@@ -402,7 +413,7 @@ impl Device {
 }
 
 impl Device<Id> {
-    pub fn update_from(&mut self, other: ModifyDevice) {
+    pub(crate) fn update_from(&mut self, other: ModifyDevice) {
         self.name = other.name;
         self.wireguard_pubkey = other.wireguard_pubkey;
         self.description = other.description;
@@ -410,8 +421,7 @@ impl Device<Id> {
 
     /// Create WireGuard config for device.
     #[must_use]
-    pub fn create_config(
-        &self,
+    pub(crate) fn create_config(
         network: &WireguardNetwork<Id>,
         wireguard_network_device: &WireguardNetworkDevice,
     ) -> String {
@@ -455,7 +465,7 @@ impl Device<Id> {
         )
     }
 
-    pub async fn find_by_ip<'e, E>(
+    pub(crate) async fn find_by_ip<'e, E>(
         executor: E,
         ip: IpAddr,
         network_id: Id,
@@ -477,7 +487,10 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn find_by_pubkey<'e, E>(executor: E, pubkey: &str) -> Result<Option<Self>, SqlxError>
+    pub(crate) async fn find_by_pubkey<'e, E>(
+        executor: E,
+        pubkey: &str,
+    ) -> Result<Option<Self>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -492,7 +505,7 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn find_by_id_and_username(
+    pub(crate) async fn find_by_id_and_username(
         pool: &PgPool,
         id: Id,
         username: &str,
@@ -510,39 +523,10 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn find_by_id_and_user_id(
+    pub(crate) async fn all_for_username(
         pool: &PgPool,
-        id: Id,
-        user_id: Id,
-    ) -> Result<Option<Self>, SqlxError> {
-        query_as!(
-            Self,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
-            device_type \"device_type: DeviceType\", configured \
-            FROM device JOIN \"user\" ON device.user_id = \"user\".id \
-            WHERE device.id = $1 AND \"user\".id = $2",
-            id,
-            user_id
-        )
-        .fetch_optional(pool)
-        .await
-    }
-
-    pub async fn get_ip(&self, pool: &PgPool, network_id: Id) -> Result<Option<String>, SqlxError> {
-        let result = query!(
-            "SELECT wireguard_ip \
-            FROM wireguard_network_device \
-            WHERE device_id = $1 AND wireguard_network_id = $2",
-            self.id,
-            network_id
-        )
-        .fetch_one(pool)
-        .await?;
-
-        Ok(Some(result.wireguard_ip.to_string()))
-    }
-
-    pub async fn all_for_username(pool: &PgPool, username: &str) -> Result<Vec<Self>, SqlxError> {
+        username: &str,
+    ) -> Result<Vec<Self>, SqlxError> {
         query_as!(
             Self,
             "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
@@ -555,7 +539,7 @@ impl Device<Id> {
         .await
     }
 
-    pub async fn get_network_configs(
+    pub(crate) async fn get_network_configs(
         &self,
         network: &WireguardNetwork<Id>,
         transaction: &mut PgConnection,
@@ -571,7 +555,7 @@ impl Device<Id> {
             is_authorized: wireguard_network_device.is_authorized,
         };
 
-        let config = self.create_config(network, &wireguard_network_device);
+        let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -588,7 +572,7 @@ impl Device<Id> {
         Ok((device_network_info, device_config))
     }
 
-    pub async fn add_to_network(
+    pub(crate) async fn add_to_network(
         &self,
         network: &WireguardNetwork<Id>,
         ip: IpAddr,
@@ -604,7 +588,7 @@ impl Device<Id> {
             is_authorized: wireguard_network_device.is_authorized,
         };
 
-        let config = self.create_config(network, &wireguard_network_device);
+        let config = Self::create_config(network, &wireguard_network_device);
         let device_config = DeviceConfig {
             network_id: network.id,
             network_name: network.name.clone(),
@@ -619,19 +603,6 @@ impl Device<Id> {
         };
 
         Ok((device_network_info, device_config))
-    }
-
-    pub async fn remove_from_network(
-        &self,
-        network: &WireguardNetwork<Id>,
-        transaction: &mut PgConnection,
-    ) -> Result<(), DeviceError> {
-        let wireguard_network_device =
-            WireguardNetworkDevice::find(&mut *transaction, self.id, network.id)
-                .await?
-                .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
-        wireguard_network_device.delete(&mut *transaction).await?;
-        Ok(())
     }
 
     // Add device to all existing networks
@@ -677,7 +648,7 @@ impl Device<Id> {
                 };
                 network_info.push(device_network_info);
 
-                let config = self.create_config(&network, &wireguard_network_device);
+                let config = Self::create_config(&network, &wireguard_network_device);
                 configs.push(DeviceConfig {
                     network_id: network.id,
                     network_name: network.name,
@@ -732,7 +703,7 @@ impl Device<Id> {
         Err(ModelError::CannotCreate)
     }
 
-    pub async fn assign_network_ip(
+    pub(crate) async fn assign_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,

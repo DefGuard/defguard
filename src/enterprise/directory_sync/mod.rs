@@ -123,7 +123,7 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
-    for current_group in current_groups.iter() {
+    for current_group in &current_groups {
         if !directory_group_names.contains(&current_group.name.as_str()) {
             debug!(
                 "Removing user {} from group {} as they are not a member of it in the directory",
@@ -265,7 +265,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
     let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
-    for (user, groups) in user_group_map.into_iter() {
+    for (user, groups) in user_group_map {
         debug!("Syncing groups for user {user}");
         let Some(user) = User::find_by_email(pool, &user).await? else {
             debug!("User {user} not found in the database, skipping group sync");
