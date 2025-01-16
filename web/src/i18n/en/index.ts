@@ -182,6 +182,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         more: "See what's new",
       },
     },
+    enterpriseUpgradeToaster: {
+      title: `You've reached the enterprise functionality limit.`,
+      message: `You've exceeded the limit of your current Defguard plan and the enterprise
+          features will be disabled. Purchase an enterprise license or upgrade your
+          exsiting one to continue using these features.`,
+      link: 'See all enterprise plans',
+    },
     updatesNotification: {
       header: {
         title: 'Update Available',

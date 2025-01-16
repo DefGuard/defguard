@@ -15,7 +15,6 @@ import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/Mes
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
-import { useEnterpriseUpgradeStore } from '../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
@@ -27,7 +26,6 @@ export const AddDeviceTokenStep = () => {
   const navigate = useNavigate();
   const { getAppInfo } = useApi();
   const setAppStore = useAppStore((s) => s.setState, shallow);
-  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
   const isAdmin = useAuthStore((s) => s.user?.is_admin);
 
   const userData = useAddDevicePageStore((state) => state.userData);
@@ -82,9 +80,6 @@ export const AddDeviceTokenStep = () => {
             setAppStore({
               appInfo: response,
             });
-            if (response.license_info.any_limit_exceeded) {
-              showUpgradeToast();
-            }
           });
         }
         setTimeout(() => {

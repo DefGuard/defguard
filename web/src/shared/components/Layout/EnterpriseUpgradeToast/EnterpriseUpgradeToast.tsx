@@ -51,18 +51,14 @@ export const EnterpriseUpgradeToast = ({ id }: ToastOptions) => {
             }
             className="toaster-badge"
           />
-          <p>You've reached the enterprise functionality limit.</p>
+          <p>{LL.modals.enterpriseUpgradeToaster.title()}</p>
         </div>
         <button className="dismiss" onClick={handleDismiss}>
           <SvgIconX width={14} height={14} />
         </button>
       </div>
       <div className="bottom">
-        <p>
-          You have exceeded the limit of your current Defguard plan and the enterprise
-          features will be disabled. Purchase an enterprise license or upgrade your
-          exsiting one to continue using these features.
-        </p>
+        <p>{LL.modals.enterpriseUpgradeToaster.message()}</p>
         <div className="upgrade-link-container">
           <a
             href="https://defguard.net/pricing/"
@@ -70,7 +66,7 @@ export const EnterpriseUpgradeToast = ({ id }: ToastOptions) => {
             rel="noreferrer noopener"
             className="upgrade-link"
           >
-            See all enterprise plans
+            {LL.modals.enterpriseUpgradeToaster.link()}
           </a>
         </div>
       </div>

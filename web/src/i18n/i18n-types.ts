@@ -430,6 +430,22 @@ type RootTranslation = {
 				more: string
 			}
 		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​l​i​m​i​t​.
+			 */
+			title: string
+			/**
+			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+			 */
+			message: string
+			/**
+			 * S​e​e​ ​a​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+			 */
+			link: string
+		}
 		updatesNotification: {
 			header: {
 				/**
@@ -5235,6 +5251,22 @@ export type TranslationFunctions = {
 				 */
 				more: () => LocalizedString
 			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * You've reached the enterprise functionality limit.
+			 */
+			title: () => LocalizedString
+			/**
+			 * You've exceeded the limit of your current Defguard plan and the enterprise
+		          features will be disabled. Purchase an enterprise license or upgrade your
+		          exsiting one to continue using these features.
+			 */
+			message: () => LocalizedString
+			/**
+			 * See all enterprise plans
+			 */
+			link: () => LocalizedString
 		}
 		updatesNotification: {
 			header: {
