@@ -161,7 +161,7 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​r​e​q​u​i​r​e​s​ ​p​u​r​c​h​a​s​i​n​g​ ​a​ ​l​i​c​e​n​s​e​ ​t​o​ ​e​n​a​b​l​e​ ​i​t​.
+				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
 				 */
 				subTitle: string
 			}
@@ -429,6 +429,22 @@ type RootTranslation = {
 				 */
 				more: string
 			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​l​i​m​i​t​.
+			 */
+			title: string
+			/**
+			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+			 */
+			message: string
+			/**
+			 * S​e​e​ ​a​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+			 */
+			link: string
 		}
 		updatesNotification: {
 			header: {
@@ -4969,7 +4985,7 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 * This functionality is an **enterprise feature** and requires purchasing a license to enable it.
+				 * This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
 				 */
 				subTitle: () => LocalizedString
 			}
@@ -5235,6 +5251,22 @@ export type TranslationFunctions = {
 				 */
 				more: () => LocalizedString
 			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * You've reached the enterprise functionality limit.
+			 */
+			title: () => LocalizedString
+			/**
+			 * You've exceeded the limit of your current Defguard plan and the enterprise
+		          features will be disabled. Purchase an enterprise license or upgrade your
+		          exsiting one to continue using these features.
+			 */
+			message: () => LocalizedString
+			/**
+			 * See all enterprise plans
+			 */
+			link: () => LocalizedString
 		}
 		updatesNotification: {
 			header: {

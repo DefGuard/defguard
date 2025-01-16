@@ -28,6 +28,10 @@
       max-width: 100%;
     }
 
+    .limited {
+      max-width: 120px;
+    }
+
     .main-info {
       & > header {
         grid-template-rows: 40px;

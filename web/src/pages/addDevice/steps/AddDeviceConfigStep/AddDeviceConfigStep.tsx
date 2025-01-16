@@ -7,8 +7,6 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
-import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { DeviceConfigsCard } from '../../../../shared/components/network/DeviceConfigsCard/DeviceConfigsCard';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Input } from '../../../../shared/defguard-ui/components/Layout/Input/Input';
@@ -16,6 +14,7 @@ import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/Mes
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import { useEnterpriseUpgradeStore } from '../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
@@ -31,7 +30,7 @@ export const AddDeviceConfigStep = () => {
   const { getAppInfo } = useApi();
   const isAdmin = useAuthStore((s) => s.user?.is_admin);
   const setAppStore = useAppStore((s) => s.setState);
-  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
 
   const [userData, device, publicKey, privateKey, networks] = useAddDevicePageStore(
     (state) => [
@@ -63,9 +62,7 @@ export const AddDeviceConfigStep = () => {
           void getAppInfo().then((response) => {
             setAppStore({ appInfo: response });
             if (response.license_info.any_limit_exceeded) {
-              openUpgradeLicenseModal({
-                modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
-              });
+              showUpgradeToast();
             }
           });
         }

@@ -7,8 +7,6 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
-import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { ActionButton } from '../../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
@@ -28,7 +26,6 @@ export const AddDeviceTokenStep = () => {
   const navigate = useNavigate();
   const { getAppInfo } = useApi();
   const setAppStore = useAppStore((s) => s.setState, shallow);
-  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
   const isAdmin = useAuthStore((s) => s.user?.is_admin);
 
   const userData = useAddDevicePageStore((state) => state.userData);
@@ -83,11 +80,6 @@ export const AddDeviceTokenStep = () => {
             setAppStore({
               appInfo: response,
             });
-            if (response.license_info.any_limit_exceeded) {
-              openUpgradeLicenseModal({
-                modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
-              });
-            }
           });
         }
         setTimeout(() => {

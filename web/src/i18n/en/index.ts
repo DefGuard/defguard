@@ -48,7 +48,7 @@ const en: BaseTranslation = {
       enterprise: {
         title: 'Upgrade to Enterprise',
         //md
-        subTitle: `This functionality is an **enterprise feature** and requires purchasing a license to enable it.`,
+        subTitle: `This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.`,
       },
       limit: {
         title: 'Upgrade',
@@ -181,6 +181,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       controls: {
         more: "See what's new",
       },
+    },
+    enterpriseUpgradeToaster: {
+      title: `You've reached the enterprise functionality limit.`,
+      message: `You've exceeded the limit of your current Defguard plan and the enterprise
+          features will be disabled. Purchase an enterprise license or upgrade your
+          exsiting one to continue using these features.`,
+      link: 'See all enterprise plans',
     },
     updatesNotification: {
       header: {

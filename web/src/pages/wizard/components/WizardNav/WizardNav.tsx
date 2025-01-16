@@ -6,8 +6,6 @@ import { useNavigate } from 'react-router';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
-import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import DefguardNoIcon from '../../../../shared/components/svg/DefguardNoIcon';
 import SvgIconArrowGrayLeft from '../../../../shared/components/svg/IconArrowGrayLeft';
 import SvgIconArrowGrayRight from '../../../../shared/components/svg/IconArrowGrayRight';
@@ -19,6 +17,7 @@ import {
 import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { DividerDirection } from '../../../../shared/defguard-ui/components/Layout/Divider/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useEnterpriseUpgradeStore } from '../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -33,7 +32,6 @@ interface Props {
 
 export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
   const { getAppInfo } = useApi();
-  const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
   const setAppState = useAppStore((s) => s.setState, shallow);
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
@@ -54,6 +52,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
     ],
     shallow,
   );
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
 
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
@@ -64,9 +63,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
         void getAppInfo().then((response) => {
           setAppState({ appInfo: response });
           if (response.license_info.any_limit_exceeded) {
-            openUpgradeLicenseModal({
-              modalVariant: UpgradeLicenseModalVariant.LICENSE_LIMIT,
-            });
+            showUpgradeToast();
           }
         });
         navigate('/admin/overview', { replace: true });
