@@ -103,7 +103,7 @@ user_agent_parsers:
       RSS|Twitterbot|WhatsApp|URL2PNG|Vagabondo|VoilaBot|^vortex|Votay bot|^voyager|WASALive.Bot|Web-sniffer|WebThumb|WeSEE:[A-z]{1,30}|WhatWeb|WIRE|WordPress|Wotbox|www\.almaden\.ibm\.com|Xenu(?:.s|)
       Link Sleuth|Xerka [A-z]{1,30}Bot|yacy(?:bot|)|YahooSeeker|Yahoo! Slurp|Yandex\w{1,30}|YodaoBot(?:-[A-z]{1,30}|)|YottaaMonitor|Yowedo|^Zao|^Zao-Crawler|ZeBot_www\.ze\.bz|ZooShot|ZyBorg|ArcGIS
       Hub Indexer)(?:[ /]v?(\d+)(?:\.(\d+)(?:\.(\d+)|)|)|)'
-  - regex: \b(Boto3?|JetS3t|aws-(?:cli|sdk-(?:cpp|go|java|nodejs|ruby2?|dotnet-(?:\d{1,2}|core)))|s3fs)/(\d+)\.(\d+)(?:\.(\d+)|)
+  - regex: \b(Boto3?|JetS3t|aws-(?:cli|sdk-(?:cpp|go|go-v\d|java|nodejs|ruby2?|dotnet-(?:\d{1,2}|core)))|s3fs)/(\d+)\.(\d+)(?:\.(\d+)|)
   - regex: (FME)\/(\d+\.\d+)\.(\d+)\.(\d+)
   - regex: (QGIS)\/(\d)\.?0?(\d{1,2})\.?0?(\d{1,2})
   - regex: (JOSM)/(\d+)\.(\d+)
@@ -114,6 +114,7 @@ user_agent_parsers:
     family_replacement: Facebook
   - regex: \[FB.{0,300};
     family_replacement: Facebook
+  - regex: (RecipeRadar)/(\d+)\.(\d+)(?:\.(\d+)|)
   - regex: ^.{0,200}?(?:\/[A-Za-z0-9\.]{0,50}|) {0,2}([A-Za-z0-9 \-_\!\[\]:]{0,50}(?:[Aa]rchiver|[Ii]ndexer|[Ss]craper|[Bb]ot|[Ss]pider|[Cc]rawl[a-z]{0,50}))[/
       ](\d+)(?:\.(\d+)(?:\.(\d+)|)|)
   - regex: ^.{0,200}?((?:[A-Za-z][A-Za-z0-9 -]{0,50}|)[^C][^Uu][Bb]ot)\b(?:(?:[ /]|
@@ -133,6 +134,12 @@ user_agent_parsers:
   - regex: (Snapchat)\/(\d+)\.(\d+)\.(\d+)\.(\d+)
   - regex: (Twitter for (?:iPhone|iPad)|TwitterAndroid)(?:\/(\d+)\.(\d+)|)
     family_replacement: Twitter
+  - regex: (musical_ly) app_version\/(\d+)\.(\d+)\.(\d+)
+    family_replacement: TikTok
+  - regex: (musical_ly_)(\d+)\.(\d+)\.(\d+)
+    family_replacement: TikTok
+  - regex: (BytedanceWebview)\/[a-z0-9]+
+    family_replacement: TikTok
   - regex: Mozilla.{1,200}Mobile.{1,100}(Phantom\/ios|Phantom\/android).(\d+)\.(\d+)\.(\d+)
     family_replacement: Phantom
   - regex: Mozilla.{1,100}Mobile.{1,100}(AspiegelBot|PetalBot)
@@ -298,6 +305,8 @@ user_agent_parsers:
     family_replacement: Ecosia iOS
   - regex: (Ecosia) android@(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)
     family_replacement: Ecosia Android
+  - regex: (VivoBrowser)\/(\d+)\.(\d+)\.(\d+)\.(\d+)
+  - regex: (HiBrowser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)
   - regex: Version/.{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
     family_replacement: Chrome Mobile WebView
   - regex: ; wv\).{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)
@@ -787,6 +796,8 @@ os_parsers:
   - regex: (?:PPC|Intel) (Mac OS X)
   - regex: ^Box.{0,200};(Darwin)/(10)\.(1\d)(?:\.(\d+)|)
     os_replacement: Mac OS X
+  - regex: darwin; arm64
+    os_replacement: Mac OS X
   - regex: (Apple\s?TV)(?:/(\d+)\.(\d+)|)
     os_replacement: ATV OS X
   - regex: (CPU[ +]OS|iPhone[ +]OS|CPU[ +]iPhone|CPU IPhone OS|CPU iPad OS)[ +]+(\d+)[_\.](\d+)(?:[_\.](\d+)|)
@@ -1048,29 +1059,27 @@ os_parsers:
   - regex: CFNetwork/.{0,100} Darwin/(21)\.\d+
     os_replacement: iOS
     os_v1_replacement: '15'
-  - regex: CFNetwork/.{0,100} Darwin/22\.0\.\d+
+  - regex: CFNetwork/.{0,100} Darwin/22\.([0-5])\.\d+
     os_replacement: iOS
     os_v1_replacement: '16'
-    os_v2_replacement: '0'
-  - regex: CFNetwork/.{0,100} Darwin/22\.1\.\d+
-    os_replacement: iOS
-    os_v1_replacement: '16'
-    os_v2_replacement: '1'
-  - regex: CFNetwork/.{0,100} Darwin/22\.2\.\d+
-    os_replacement: iOS
-    os_v1_replacement: '16'
-    os_v2_replacement: '2'
-  - regex: CFNetwork/.{0,100} Darwin/22\.3\.\d+
-    os_replacement: iOS
-    os_v1_replacement: '16'
-    os_v2_replacement: '3'
-  - regex: CFNetwork/.{0,100} Darwin/22\.4\.\d+
-    os_replacement: iOS
-    os_v1_replacement: '16'
-    os_v2_replacement: '4'
+    os_v2_replacement: $1
   - regex: CFNetwork/.{0,100} Darwin/(22)\.\d+
     os_replacement: iOS
     os_v1_replacement: '16'
+  - regex: CFNetwork/.{0,100} Darwin/23\.([0-5])\.\d+
+    os_replacement: iOS
+    os_v1_replacement: '17'
+    os_v2_replacement: $1
+  - regex: CFNetwork/.{0,100} Darwin/(23)\.\d+
+    os_replacement: iOS
+    os_v1_replacement: '17'
+  - regex: CFNetwork/.{0,100} Darwin/24\.([0-5])\.\d+
+    os_replacement: iOS
+    os_v1_replacement: '18'
+    os_v2_replacement: $1
+  - regex: CFNetwork/.{0,100} Darwin/(24)\.\d+
+    os_replacement: iOS
+    os_v1_replacement: '18'
   - regex: CFNetwork/.{0,100} Darwin/
     os_replacement: iOS
   - regex: '\b(iOS[ /]|iOS; |iPhone(?:/| v|[ _]OS[/,]|; | OS : |\d,\d/|\d,\d; )|iPad/)(\d{1,2})[_\.](\d{1,2})(?:[_\.](\d+)|)'
@@ -1181,6 +1190,11 @@ os_parsers:
   - regex: linux
     os_replacement: Linux
   - regex: ^(Roku)/DVP-(\d+)\.(\d+)
+  - regex: os\/macos[#]?(\d*)[.]?(\d*)[.]?(\d*)
+    os_replacement: Mac OS X
+    os_v1_replacement: $1
+    os_v2_replacement: $2
+    os_v3_replacement: $3
 device_parsers:
   - regex: ^.{0,100}?(?:(?:iPhone|Windows CE|Windows Phone|Android).{0,300}(?:(?:Bot|Yeti)-Mobile|YRSpider|BingPreview|bots?/\d|(?:bot|spider)\.html)|AdsBot-Google-Mobile.{0,200}iPhone)
     regex_flag: i
@@ -3828,7 +3842,7 @@ device_parsers:
       Java|EtaoSpider|PaperLiBot|SputnikBot|A6\-Indexer|netresearch|searchsight|baiduspider|YisouSpider|ICC\-Crawler|http%20client|Python-urllib|dataparksearch|converacrawler|Screaming
       Frog|AppEngine-Google|YahooCacheSystem|fast\-webcrawler|Sogou Pic Spider|semanticdiscovery|Innovazion
       Crawler|facebookexternalhit|Google.{0,200}/\+/web/snippet|Google-HTTP-Java-Client|BlogBridge|IlTrovatore-Setaccio|InternetArchive|GomezAgent|WebThumbnail|heritrix|NewsGator|PagePeeker|Reaper|ZooShot|holmes|NL-Crawler|Pingdom|StatusCake|WhatsApp|masscan|Google
-      Web Preview|Qwantify|Yeti|OgScrper)
+      Web Preview|Qwantify|Yeti|OgScrper|RecipeRadar)
     regex_flag: i
     device_replacement: Spider
     brand_replacement: Spider

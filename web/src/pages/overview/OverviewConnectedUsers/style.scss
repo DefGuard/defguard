@@ -1,156 +1,28 @@
 @use '../../../shared/scss/base/variables/' as v;
 @use 'sass:list';
 
-$column-widths: 250px, 167px, 136px, 168px, 200px;
+.connection-cards {
+  max-height: 653px;
+  overflow-y: auto;
+  padding-right: 10px;
 
-@mixin set-list-column-widths() {
-  @for $i from 1 through length($column-widths) {
-    & > :nth-child(#{$i}) {
-      width: nth($column-widths, $i);
-    }
-  }
-}
-
-.overview-connected-users {
-  & > header {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    align-content: center;
-    justify-content: flex-start;
-    width: 100%;
-    height: 40px;
-    box-sizing: border-box;
-  }
-
-  & > .connected-users {
+  .connected-users {
     min-height: calc(100% - 94px);
     max-height: calc(100% - 94px);
-
-    &.list {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      align-content: flex-start;
-      justify-content: flex-start;
-      box-sizing: border-box;
-      padding-left: 0 !important;
-
-      @include media-breakpoint-down(xl) {
-        overflow: auto;
-      }
-
-      @include media-breakpoint-up(xl) {
-        overflow: hidden;
-        padding-right: 1rem;
-      }
-
-      & > .headers {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        align-content: center;
-        justify-content: flex-start;
-        box-sizing: border-box;
-        height: 22px;
-
-        @include media-breakpoint-down(xl) {
-          padding-left: calc(52px + 1.5rem);
-          padding-right: 1.5rem;
-        }
-
-        @include media-breakpoint-up(xl) {
-          padding-left: calc(52px + 6rem);
-          padding-right: 34px;
-          width: 100%;
-        }
-
-        & > .header {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          align-content: center;
-          justify-content: flex-start;
-          column-gap: 0.6rem;
-
-          & > span {
-            @include typography-legacy(12px, 14px, medium, v.$gray-light);
-          }
-
-          &.active {
-            & > span {
-              color: v.$text-main;
-            }
-          }
-        }
-
-        @include set-list-column-widths;
-      }
-
-      & > .users-list {
-        box-sizing: border-box;
-        overflow: auto;
-        padding-right: 1.5rem;
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
-
-        @include media-breakpoint-down(xl) {
-          max-height: calc(50vh);
-          padding-left: 1.5rem;
-        }
-
-        @include media-breakpoint-up(xl) {
-          min-height: calc(100% - 28px);
-          max-height: calc(100% - 28px);
-          padding-left: 6rem;
-          width: 100%;
-        }
-
-        & > .user-connection-list-item {
-          & > .user-row,
-          .device-row {
-            @include set-list-column-widths;
-          }
-
-          &:not(:last-of-type) {
-            margin-bottom: 1rem;
-          }
-        }
-      }
-    }
 
     &.grid {
       display: grid;
       width: 100%;
-      gap: 1.5rem;
+      gap: 15px;
       overflow: auto;
       box-sizing: border-box;
       position: relative;
-      padding-top: 1rem;
-      padding-bottom: 4rem;
-      height: auto;
       grid-template-rows: min-content;
       grid-template-columns: 1fr;
 
-      @include media-breakpoint-down(md) {
-        justify-content: center;
-      }
-
-      @include media-breakpoint-up(xl) {
-        padding-top: 1rem;
-        padding-bottom: 4rem;
-        grid-template-columns: repeat(auto-fit, 370px);
+      @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(auto-fill, 370px);
       }
     }
-  }
-}
-
-.no-data-text {
-  margin-left: 6rem;
-  margin-top: 1rem;
-
-  @include media-breakpoint-down(md) {
-    margin-left: 0;
-    text-align: center;
   }
 }

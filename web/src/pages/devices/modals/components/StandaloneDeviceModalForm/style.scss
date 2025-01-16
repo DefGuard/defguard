@@ -1,0 +1,14 @@
+.standalone-device-modal-form {
+  .row {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: 0;
+
+    @include media-breakpoint-up(lg) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 20px;
+    }
+  }
+}

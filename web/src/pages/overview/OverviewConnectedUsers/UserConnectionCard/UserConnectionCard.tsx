@@ -2,9 +2,8 @@ import './style.scss';
 
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { motion } from 'framer-motion';
-import { floor } from 'lodash-es';
+import { sumBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { timer } from 'rxjs';
@@ -21,12 +20,31 @@ import { NetworkSpeed } from '../../../../shared/defguard-ui/components/Layout/N
 import { NetworkDirection } from '../../../../shared/defguard-ui/components/Layout/NetworkSpeed/types';
 import { UserInitials } from '../../../../shared/defguard-ui/components/Layout/UserInitials/UserInitials';
 import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
-import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
+import {
+  NetworkDeviceStats,
+  NetworkUserStats,
+  StandaloneDeviceStats,
+} from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
-import { summarizeDeviceStats, summarizeUsersNetworkStats } from '../../helpers/stats';
+import {
+  summarizeDevicesStats,
+  summarizeDeviceStats,
+  summarizeUsersNetworkStats,
+} from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
+import { formatConnectionTime } from './formatConnectionTime';
 
-dayjs.extend(utc);
+type DeviceConnectionCardProps = {
+  data: StandaloneDeviceStats;
+};
+
+export const StandaloneDeviceConnectionCard = ({ data }: DeviceConnectionCardProps) => {
+  return (
+    <div className="connected-user-card">
+      <DeviceCardContent data={data} />
+    </div>
+  );
+};
 
 interface Props {
   data: NetworkUserStats;
@@ -59,6 +77,58 @@ export const UserConnectionCard = ({ data }: Props) => {
   );
 };
 
+const DeviceCardContent = (props: { data: StandaloneDeviceStats }) => {
+  const { data } = props;
+
+  const getSummarizedStats = useMemo(() => summarizeDeviceStats(data.stats), [data]);
+
+  const totalUpload = useMemo(
+    () => sumBy(getSummarizedStats, (s) => s.upload),
+    [getSummarizedStats],
+  );
+  const totalDownload = useMemo(
+    () => sumBy(getSummarizedStats, (s) => s.download),
+    [getSummarizedStats],
+  );
+
+  return (
+    <div className="user-info">
+      <div className="upper">
+        <DeviceAvatar deviceId={data.id} />
+        <NameBox
+          name={data.name}
+          publicIp={data.public_ip}
+          wireguardIp={data.wireguard_ip}
+        />
+      </div>
+      <div className="lower device">
+        <ConnectionTime connectedAt={data.connected_at} />
+        <div className="network-usage-summary">
+          <div className="network-usage-stats">
+            <NetworkSpeed
+              speedValue={totalDownload}
+              direction={NetworkDirection.DOWNLOAD}
+              data-testid="download"
+            />
+            <NetworkSpeed
+              speedValue={totalUpload}
+              direction={NetworkDirection.UPLOAD}
+              data-testid="upload"
+            />
+          </div>
+          <div className="chart">
+            <AutoSizer>
+              {({ height, width }) => (
+                <NetworkUsageChart height={height} width={width} data={data.stats} />
+              )}
+            </AutoSizer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface MainCardContentProps {
   data: NetworkUserStats;
 }
@@ -74,7 +144,7 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
   }, [data]);
 
   const getSummarizedStats = useMemo(
-    () => summarizeDeviceStats(data.devices),
+    () => summarizeDevicesStats(data.devices),
     [data.devices],
   );
 
@@ -131,24 +201,30 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
 
 interface NameBoxProps {
   name: string;
-  publicIp: string;
-  wireguardIp: string;
+  publicIp?: string;
+  wireguardIp?: string;
 }
 
 const NameBox = ({ name, publicIp, wireguardIp }: NameBoxProps) => {
   return (
     <div className="name-box">
       <span className="name">{name}</span>
-      <div className="lower">
-        <Badge styleVariant={BadgeStyleVariant.STANDARD} text={publicIp} />
-        <Badge styleVariant={BadgeStyleVariant.STANDARD} text={wireguardIp} />
-      </div>
+      {(publicIp || wireguardIp) && (
+        <div className="lower">
+          {publicIp !== undefined && publicIp.length > 0 && (
+            <Badge styleVariant={BadgeStyleVariant.STANDARD} text={publicIp} />
+          )}
+          {wireguardIp !== undefined && wireguardIp.length > 0 && (
+            <Badge styleVariant={BadgeStyleVariant.STANDARD} text={wireguardIp} />
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 interface ConnectionTimeProps {
-  connectedAt: string;
+  connectedAt?: string;
 }
 
 const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
@@ -157,18 +233,11 @@ const ConnectionTime = ({ connectedAt }: ConnectionTimeProps) => {
   const [displayedTime, setDisplayedTime] = useState<string | undefined>();
 
   const updateConnectionTime = useCallback(() => {
-    const minutes = dayjs().diff(dayjs.utc(connectedAt), 'm');
-    if (minutes > 60) {
-      const hours = floor(minutes / 60);
-      const res = [`${hours}h`];
-      if (minutes % 60 > 0) {
-        res.push(`${minutes % 60}m`);
-      }
-      setDisplayedTime(res.join(' '));
-    } else {
-      setDisplayedTime(`${minutes}m`);
+    if (connectedAt) {
+      setDisplayedTime(formatConnectionTime(connectedAt));
     }
-  }, [connectedAt]);
+    return LL.common.noData();
+  }, [connectedAt, LL.common]);
 
   useEffect(() => {
     const interval = 60 * 1000;
@@ -246,7 +315,7 @@ interface ExpandedDeviceCardProps {
 }
 
 const ExpandedDeviceCard = ({ data }: ExpandedDeviceCardProps) => {
-  const getSummarizedStats = useMemo(() => summarizeDeviceStats([data]), [data]);
+  const getSummarizedStats = useMemo(() => summarizeDevicesStats([data]), [data]);
   const downloadSummary = getSummarizedStats.reduce((sum, e) => {
     return sum + e.download;
   }, 0);

@@ -23,6 +23,7 @@ pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
 pub(crate) mod mail;
+pub mod network_devices;
 #[cfg(feature = "openid")]
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
@@ -45,6 +46,7 @@ pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
     pub json: Value,
+    #[schema(value_type = u16)]
     pub status: StatusCode,
 }
 
@@ -241,7 +243,7 @@ pub struct Username {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddUserData {
     pub username: String,
     pub last_name: String,
@@ -269,23 +271,6 @@ pub struct PasswordChange {
     pub new_password: String,
 }
 
-#[derive(Deserialize, ToSchema)]
-pub struct WalletSignature {
-    pub address: String,
-    pub signature: String,
-}
-
-#[derive(Deserialize, Serialize, ToSchema)]
-pub struct WalletChallenge {
-    pub id: Id,
-    pub message: String,
-}
-
-#[derive(Deserialize, ToSchema)]
-pub struct WalletChange {
-    pub use_for_mfa: bool,
-}
-
 #[derive(Deserialize)]
 pub struct WebAuthnRegistration {
     pub name: String,
@@ -295,11 +280,6 @@ pub struct WebAuthnRegistration {
 #[derive(Deserialize)]
 pub struct RecoveryCode {
     code: String,
-}
-
-#[derive(Deserialize)]
-pub struct WalletAddress {
-    address: String,
 }
 
 #[derive(Serialize)]

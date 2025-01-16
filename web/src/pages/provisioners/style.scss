@@ -44,6 +44,7 @@
         display: none;
 
         @include page-header;
+
         @include media-breakpoint-up(lg) {
           display: block;
         }
@@ -85,7 +86,7 @@
           width: 200px;
 
           & > .select-container {
-            height: 40px;
+            min-height: 40px;
           }
         }
 

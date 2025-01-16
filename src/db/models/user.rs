@@ -11,12 +11,13 @@ use axum::http::StatusCode;
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecutor, PgPool, Type};
 use totp_lite::{totp_custom, Sha1};
+use utoipa::ToSchema;
 
 use super::{
-    device::{Device, UserDevice},
+    device::{Device, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
-    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey, WalletInfo,
+    MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
@@ -28,13 +29,12 @@ use crate::{
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Type, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema, Type)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
     OneTimePassword,
     Webauthn,
-    Web3,
     Email,
 }
 
@@ -46,7 +46,6 @@ impl fmt::Display for MFAMethod {
             match self {
                 MFAMethod::None => "None",
                 MFAMethod::OneTimePassword => "TOTP",
-                MFAMethod::Web3 => "Web3",
                 MFAMethod::Webauthn => "WebAuthn",
                 MFAMethod::Email => "Email",
             }
@@ -137,15 +136,12 @@ impl<I> User<I> {
     }
 
     pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
-        match &self.password_hash {
-            Some(hash) => {
-                let parsed_hash = PasswordHash::new(hash)?;
-                Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
-            }
-            None => {
-                error!("Password not set for user {}", self.username);
-                Err(HashError::Password)
-            }
+        if let Some(hash) = &self.password_hash {
+            let parsed_hash = PasswordHash::new(hash)?;
+            Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
+        } else {
+            error!("Password not set for user {}", self.username);
+            Err(HashError::Password)
         }
     }
 
@@ -570,6 +566,12 @@ impl User<Id> {
                 if code == expected_code {
                     return true;
                 }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit current time
+                    frame, checking the previous one.
+                    Expected: {expected_code}, got: {code}",
+                    self.username
+                );
 
                 let previous_code = totp_custom::<Sha1>(
                     timeout,
@@ -577,8 +579,23 @@ impl User<Id> {
                     email_mfa_secret,
                     timestamp.as_secs() - timeout,
                 );
-                return code == previous_code;
+
+                if code == previous_code {
+                    return true;
+                }
+                debug!(
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    expected: {previous_code}, got: {code}",
+                    self.username
+                );
+                return false;
             }
+            debug!(
+                "Couldn't calculate current timestamp when verifying email MFA code for user {}",
+                self.username
+            );
+        } else {
+            debug!("Email MFA secret not configured for user {}", self.username);
         }
         false
     }
@@ -733,22 +750,10 @@ impl User<Id> {
     {
         query_as!(
             Device,
-            "SELECT device.id, name, wireguard_pubkey, user_id, created \
-            FROM device WHERE user_id = $1",
-            self.id
-        )
-        .fetch_all(executor)
-        .await
-    }
-
-    pub(crate) async fn wallets<'e, E>(&self, executor: E) -> Result<Vec<WalletInfo>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
-            WalletInfo,
-            "SELECT address \"address!\", name, chain_id \
-            FROM wallet WHERE user_id = $1 AND validation_timestamp IS NOT NULL",
+            "SELECT device.id, name, wireguard_pubkey, user_id, created, description, \
+            device_type \"device_type: DeviceType\", configured \
+            FROM device WHERE user_id = $1 and device_type = 'user'::device_type \
+            ORDER BY id",
             self.id
         )
         .fetch_all(executor)
@@ -981,12 +986,15 @@ impl User<Id> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{config::DefGuardConfig, SERVER_CONFIG};
+    use crate::{
+        config::DefGuardConfig, db::models::settings::initialize_current_settings, SERVER_CONFIG,
+    };
 
     #[sqlx::test]
     async fn test_mfa_code(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        initialize_current_settings(&pool).await.unwrap();
 
         let mut user = User::new(
             "hpotter",
@@ -1193,7 +1201,7 @@ mod test {
         .await
         .unwrap();
 
-        let user3 = User::new(
+        User::new(
             "hpotter3",
             Some("pass123"),
             "Potter",

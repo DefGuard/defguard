@@ -1,7 +1,9 @@
-/* eslint-disable max-len */
-import type { Translation } from '../i18n-types';
+import { deepmerge } from 'deepmerge-ts';
 
-const pl: Translation = {
+import en from '../en';
+import { Translation } from '../i18n-types';
+
+const translation: Translation = {
   common: {
     controls: {
       back: 'Wróć',
@@ -262,25 +264,6 @@ const pl: Translation = {
       submit: 'Usuń urządzenie',
       messages: {
         success: 'Urządzenie zostało usunięte.',
-      },
-    },
-    addWallet: {
-      title: 'Dodaj portfel',
-      infoBox: 'Aby dodać portfel ETH konieczne będzie podpisanie wiadomości.',
-      form: {
-        fields: {
-          name: {
-            placeholder: 'Nazwa portfela',
-            label: 'Nazwa',
-          },
-          address: {
-            placeholder: 'Adres portfela',
-            label: 'Adres',
-          },
-        },
-        controls: {
-          submit: 'Dodaj portfel',
-        },
       },
     },
     keyDetails: {
@@ -624,14 +607,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         default: 'domyślny',
         enabled: 'Włączony',
         disabled: 'Wyłączony',
-        wallet: {
-          singular: 'Portfel',
-          plural: 'Portfele',
-        },
         labels: {
           totp: 'Hasła jednorazowe oparte na czasie',
           webauth: 'Klucze bezpieczeństwa',
-          wallets: 'Portfele',
           email: 'E-mail',
         },
         editMode: {
@@ -669,32 +647,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           edit: 'Edycja urządzenia',
           delete: 'Usuń urządzenie',
           showConfigurations: 'Pokaż konfiguracje',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: 'Adres skopiowany.',
-        duplicate: {
-          primary: 'Podłączony portfel jest już zarejestrowany',
-          sub: 'Proszę połączyć nieużywany portfel.',
-        },
-      },
-      header: 'Portfele użytkowników',
-      addWallet: 'Dodaj nowy portfel',
-      card: {
-        address: 'Adres',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'Włącz MFA',
-          disableMFA: 'Wyłącz MFA',
-          delete: 'Usuń',
-          copyAddress: 'Skopuj adres',
-        },
-        messages: {
-          deleteSuccess: 'Portfel usunięty',
-          enableMFA: 'MFA w portfelu włączone',
-          disableMFA: 'MFA w portfelu wyłączone',
         },
       },
     },
@@ -1096,17 +1048,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         list: 'Widok listy',
       },
     },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: 'Domyślna wiadomość do podpisu',
-        },
-      },
-      controls: {
-        save: 'Zapisz zmiany',
-      },
-    },
     instanceBranding: {
       header: 'Brandowanie instancji',
       form: {
@@ -1165,7 +1106,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
       licenseInfo: {
         title: 'Informacje o licencji',
-        noLicense: 'Brak licencji',
+        noLicense: 'Brak ważnej licencji',
         licenseNotRequired:
           "<p>Posiadasz dostęp do tej funkcji enterprise, ponieważ nie przekroczyłeś jeszcze żadnych limitów. Sprawdź <a href='https://docs.defguard.net/enterprise/license'>dokumentację</a>, aby uzyskać więcej informacji.</p>",
         types: {
@@ -1323,6 +1264,29 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           label: 'Wyłącz manualną konfigurację WireGuard',
           helper:
             'Kiedy ta opcja jest włączona, użytkownicy nie będą mogli pobrać ani wyświetlić danych do manualnej konfiguracji WireGuard. Możliwe będzie wyłącznie skonfigurowanie klienta Defguard.',
+        },
+      },
+    },
+    gatewayNotifications: {
+      smtpWarning:
+        'Aby włączyć powiadomienia o rozłączeniu należy najpierw skonfigurować serwer SMTP',
+      header: 'Powiadomienia Gateway',
+      helper: "<p>Tutaj możesz włączyć powiadomienia o rozłączeniu się Gateway'a.</p>",
+      form: {
+        submit: 'Zapisz zmiany',
+        fields: {
+          disconnectNotificationsEnabled: {
+            label: 'Włącz powiadomienia o rozłączeniu',
+            help: "Wyślij powiadomienie do administratorów po rozłączeniu się Gateway'a",
+          },
+          inactivityThreshold: {
+            label: 'Czas nieaktywności [minuty]',
+            help: 'Czas (w minutach), który musi upłynąć od rozłączenia zanim zostanie wysłane powiadomienie',
+          },
+          reconnectNotificationsEnabled: {
+            label: 'Włącz powiadomienia o ponownym połączeniu',
+            help: "Wyślij powiadomienie do administratorów po ponownym nawiązaniu połączenia z Gateway'em",
+          },
         },
       },
     },
@@ -1588,7 +1552,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     form: {
       helpers: {
         address:
-          'Od tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN będzie: 10.10.10.0/24)',
+          'Na podstawie tego adresu będzie stworzona sieć VPN, np. 10.10.10.1/24 (sieć VPN: 10.10.10.0/24). Opcjonalnie możesz podać wiele adresów, oddzielając je przecinkiem. Pierwszy adres będzie adresem głównym i zostanie użyty do przypisywania adresów IP urządzeniom. Pozostałe adresy są dodatkowe i nie będą zarządzane przez Defguarda.',
         gateway:
           'Adres publiczny Gatewaya, używany przez użytkowników VPN do łączenia się.',
         dns: 'Określ resolwery DNS, które mają odpytywać, gdy interfejs WireGuard jest aktywny.',
@@ -1670,8 +1634,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         nie ma potrzeby wykonywania dalszych kroków.`,
       fromPackage: `Zainstaluj pakiet dostępny na https://github.com/DefGuard/gateway/releases/latest i skonfiguruj \`/etc/defguard/gateway.toml\`
         na podstawie [dokumentacji]({setupGatewayDocs}).`,
-      authToken: `Poniższy token jest wymwagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
-        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurwoać serwer gateway.
+      authToken: `Poniższy token jest wymagany do autoryzacji i konfiguracji węzła gateway. Upewnij się, że zachowasz ten token w bezpiecznym miejscu,
+        a następnie podążaj za instrukcją wdrażania usługi znajdującej się w [dokumentacji]({setupGatewayDocs}), aby pomyślnie skonfigurować serwer gateway.
         Po więcej szczegółów i dokładnych kroków, proszę zapoznaj się z [dokumentacją](setupGatewayDocs).`,
       dockerBasedGatewaySetup: `Poniżej znajduje się przykład oparty na Dockerze.
         Więcej szczegółów i dokładnych kroków można znaleźć w [dokumentacji]({setupGatewayDocs}).`,
@@ -1688,7 +1652,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       title: 'Autoryzacja dwuetapowa.',
       controls: {
         useAuthenticator: 'Zamiast tego użyj aplikacji Authenticator',
-        useWallet: 'Zamiast tego użyj swojego portfela kryptowalutowego',
         useWebauthn: 'Zamiast tego użyj klucza bezpieczeństwa',
         useRecoveryCode: 'Zamiast tego użyj kodu odzyskiwania',
         useEmail: 'Zamiast tego użyj e-mail',
@@ -1730,18 +1693,6 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           controls: {
             submit: 'Użyj kodu odzyskiwania',
           },
-        },
-      },
-      wallet: {
-        header:
-          'Użyj portfela kryptowalutowego, aby się zalogować, proszę podpisać wiadomość w aplikacji portfelowej lub rozszerzeniu.',
-        controls: {
-          submit: 'Użyj swojego portfela',
-        },
-        messages: {
-          walletError: 'Portfel został rozłączony podczas procesu podpisywania.',
-          walletErrorMfa:
-            'Portfel nie jest autoryzowany do logowania MFA. Proszę użyć autoryzowanego portfela.',
         },
       },
       webauthn: {
@@ -1905,5 +1856,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
     },
   },
 };
+
+const pl = deepmerge(en, translation);
 
 export default pl;

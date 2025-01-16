@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use reqwest::Url;
 use sqlx::{query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool};
 use tera::{Context, Tera};
@@ -88,6 +88,7 @@ pub struct Token {
     pub expires_at: NaiveDateTime,
     pub used_at: Option<NaiveDateTime>,
     pub token_type: Option<String>,
+    pub device_id: Option<Id>,
 }
 
 impl Token {
@@ -106,9 +107,10 @@ impl Token {
             admin_id,
             email,
             created_at: now.naive_utc(),
-            expires_at: (now + Duration::seconds(token_timeout_seconds as i64)).naive_utc(),
+            expires_at: (now + TimeDelta::seconds(token_timeout_seconds as i64)).naive_utc(),
             used_at: None,
             token_type,
+            device_id: None,
         }
     }
 
@@ -117,8 +119,8 @@ impl Token {
         E: PgExecutor<'e>,
     {
         query!(
-            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "INSERT INTO token (id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             self.id,
             self.user_id,
             self.admin_id,
@@ -127,6 +129,7 @@ impl Token {
             self.expires_at,
             self.used_at,
             self.token_type,
+            self.device_id
         )
         .execute(executor)
         .await?;
@@ -151,7 +154,8 @@ impl Token {
     pub fn is_session_valid(&self, session_timeout_seconds: u64) -> bool {
         if let Some(used_at) = self.used_at {
             let now = Utc::now();
-            return now.naive_utc() < (used_at + Duration::seconds(session_timeout_seconds as i64));
+            return now.naive_utc()
+                < (used_at + TimeDelta::seconds(session_timeout_seconds as i64));
         }
         false
     }
@@ -174,7 +178,7 @@ impl Token {
             // session started but still valid
             Some(used_at) if self.is_session_valid(session_timeout_seconds) => {
                 debug!("Session already exists yet it is still valid.");
-                Ok(used_at + Duration::seconds(session_timeout_seconds as i64))
+                Ok(used_at + TimeDelta::seconds(session_timeout_seconds as i64))
             }
             // session expired
             Some(_) => {
@@ -190,7 +194,7 @@ impl Token {
                 self.used_at = Some(now);
 
                 debug!("Generate a new session successfully.");
-                Ok(now + Duration::seconds(session_timeout_seconds as i64))
+                Ok(now + TimeDelta::seconds(session_timeout_seconds as i64))
             }
         }
     }
@@ -198,7 +202,7 @@ impl Token {
     pub async fn find_by_id(pool: &PgPool, id: &str) -> Result<Self, TokenError> {
         if let Some(enrollment) = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
             FROM token WHERE id = $1",
             id
         )
@@ -216,7 +220,7 @@ impl Token {
     pub async fn fetch_all(pool: &PgPool) -> Result<Vec<Self>, TokenError> {
         let tokens = query_as!(
             Self,
-            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type \
+            "SELECT id, user_id, admin_id, email, created_at, expires_at, used_at, token_type, device_id \
             FROM token",
         )
         .fetch_all(pool)
@@ -348,7 +352,7 @@ impl Token {
         &self,
         transaction: &mut PgConnection,
     ) -> Result<String, TokenError> {
-        let settings = Settings::get_settings(&mut *transaction).await?;
+        let settings = Settings::get_current_settings();
 
         // load configured content as template
         let mut tera = Tera::default();
@@ -366,7 +370,7 @@ impl Token {
         ip_address: &str,
         device_info: Option<&str>,
     ) -> Result<String, TokenError> {
-        let settings = Settings::get_settings(&mut *transaction).await?;
+        let settings = Settings::get_current_settings();
 
         // load configured content as template
         let mut tera = Tera::default();
@@ -503,6 +507,9 @@ impl User<Id> {
         enrollment_service_url: Url,
         send_user_notification: bool,
         mail_tx: UnboundedSender<Mail>,
+        // Whether to attach some device to the token. It allows for a partial initialization of
+        // the device before the desktop configuration has taken place.
+        device_id: Option<Id>,
     ) -> Result<String, TokenError> {
         info!(
             "User {} starting a new desktop activation for user {}",
@@ -530,13 +537,16 @@ impl User<Id> {
             "Create a new desktop activation token for user {}.",
             self.username
         );
-        let desktop_configuration = Token::new(
+        let mut desktop_configuration = Token::new(
             self.id,
             Some(admin.id),
             email.clone(),
             token_timeout_seconds,
             Some(ENROLLMENT_TOKEN_TYPE.to_string()),
         );
+        if let Some(device_id) = device_id {
+            desktop_configuration.device_id = Some(device_id);
+        }
         debug!("Saving a new desktop configuration token...");
         desktop_configuration.save(&mut *transaction).await?;
         debug!(

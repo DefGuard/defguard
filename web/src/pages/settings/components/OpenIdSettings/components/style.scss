@@ -105,8 +105,13 @@
 }
 
 #root-form {
-  display: grid;
+  display: block;
   grid-template-columns: 1fr 1fr;
+  @include media-breakpoint-up(lg) {
+    display: grid;
+  }
+
+  column-gap: 20px;
   width: 100%;
   grid-column: 1 / -1;
 

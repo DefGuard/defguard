@@ -1,9 +1,9 @@
-mod common;
+pub mod common;
 
 use defguard::{
     db::{
         models::{
-            device::UserDevice,
+            device::{DeviceType, UserDevice},
             wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
         },
         Device, GatewayEvent, WireguardNetwork,
@@ -47,7 +47,7 @@ async fn test_config_import() {
     // setup initial network
     let initial_network = WireguardNetwork::new(
         "initial".into(),
-        "10.1.9.0/24".parse().unwrap(),
+        vec!["10.1.9.0/24".parse().unwrap()],
         51515,
         String::new(),
         None,
@@ -66,6 +66,9 @@ async fn test_config_import() {
         "test device".into(),
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4=".into(),
         1,
+        DeviceType::User,
+        None,
+        true,
     )
     .save(&mut *transaction)
     .await
@@ -79,6 +82,9 @@ async fn test_config_import() {
         "another test device".into(),
         "v2U14sjNN4tOYD3P15z0WkjriKY9Hl85I3vIEPomrYs=".into(),
         1,
+        DeviceType::User,
+        None,
+        true,
     )
     .save(&mut *transaction)
     .await
@@ -109,7 +115,7 @@ async fn test_config_import() {
     let network = response.network;
     assert_eq!(network.id, 2);
     assert_eq!(network.name, "network");
-    assert_eq!(network.address, "10.0.0.1/24".parse().unwrap());
+    assert_eq!(network.address, vec!["10.0.0.1/24".parse().unwrap()]);
     assert_eq!(network.port, 55055);
     assert_eq!(
         network.pubkey,

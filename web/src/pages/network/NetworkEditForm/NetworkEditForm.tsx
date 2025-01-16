@@ -2,7 +2,6 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import ipaddr from 'ipaddr.js';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -21,7 +20,11 @@ import { QueryKeys } from '../../../shared/queries';
 import { Network } from '../../../shared/types';
 import { titleCase } from '../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings.ts';
-import { validateIpOrDomain, validateIpOrDomainList } from '../../../shared/validators';
+import {
+  validateIpList,
+  validateIpOrDomain,
+  validateIpOrDomainList,
+} from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
 type FormFields = {
@@ -53,15 +56,27 @@ const defaultValues: FormFields = {
 const networkToForm = (data?: Network): FormFields => {
   if (!data) return defaultValues;
   let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, ['id', 'connected_at', 'connected', 'allowed_ips', 'gateways']);
+  omited = omit(omited, [
+    'id',
+    'connected_at',
+    'connected',
+    'allowed_ips',
+    'gateways',
+    'address',
+  ]);
 
   let allowed_ips = '';
+  let address = '';
 
   if (Array.isArray(data.allowed_ips)) {
     allowed_ips = data.allowed_ips.join(',');
   }
 
-  return { ...defaultValues, ...omited, allowed_ips };
+  if (Array.isArray(data.address)) {
+    address = data.address.join(',');
+  }
+
+  return { ...defaultValues, ...omited, allowed_ips, address };
 };
 
 export const NetworkEditForm = () => {
@@ -93,7 +108,7 @@ export const NetworkEditForm = () => {
         QueryKeys.FETCH_NETWORK_TOKEN,
       ];
       for (const key of keys) {
-        queryClient.refetchQueries({
+        void queryClient.refetchQueries({
           queryKey: [key],
         });
       }
@@ -105,27 +120,38 @@ export const NetworkEditForm = () => {
     },
   });
 
-  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+  const {
+    error: groupsFetchError,
+    isError: groupsError,
+    isLoading: groupsLoading,
+    data: groupsData,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
-      setGroupOptions(
-        res.groups.map((g) => ({
-          key: g,
-          value: g,
-          label: titleCase(g),
-        })),
-      );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
     enabled: componentMount,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: 'always',
   });
+
+  useEffect(() => {
+    if (groupsFetchError) {
+      toaster.error(LL.messages.error());
+      console.error(groupsFetchError);
+    }
+  }, [LL.messages, groupsFetchError, toaster]);
+
+  useEffect(() => {
+    if (groupsData) {
+      setGroupOptions(
+        groupsData.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        })),
+      );
+    }
+  }, [groupsData]);
 
   const defaultFormValues = useMemo(() => {
     if (selectedNetworkId && networks) {
@@ -148,39 +174,7 @@ export const NetworkEditForm = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine((value) => {
-            const netmaskPresent = value.split('/').length == 2;
-            if (!netmaskPresent) {
-              return false;
-            }
-            const ipValid = ipaddr.isValidCIDR(value);
-            if (!ipValid) {
-              return false;
-            }
-            const [address] = ipaddr.parseCIDR(value);
-            if (address.kind() === 'ipv6') {
-              const networkAddress = ipaddr.IPv6.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv6.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            } else {
-              const networkAddress = ipaddr.IPv4.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv4.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            }
-            return ipValid;
+            return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z
           .string()
@@ -227,7 +221,7 @@ export const NetworkEditForm = () => {
     mode: 'all',
   });
 
-  const onValidSubmit: SubmitHandler<FormFields> = async (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     values = trimObjectStrings(values);
     setStoreState({ loading: true });
     mutate({
@@ -241,7 +235,6 @@ export const NetworkEditForm = () => {
   // reset form when network is selected
   useEffect(() => {
     reset(defaultFormValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultFormValues, reset]);
 
   useEffect(() => {
@@ -306,7 +299,7 @@ export const NetworkEditForm = () => {
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
           searchable
           searchFilter={(val, options) => {
-            const inf = options as SelectOption<string>[];
+            const inf = options;
             return inf.filter((o) => o.value.toLowerCase().includes(val.toLowerCase()));
           }}
           renderSelected={(val) => ({

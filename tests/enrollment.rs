@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 use common::fetch_user_details;
 use defguard::{

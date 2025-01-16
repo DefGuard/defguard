@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import axios, { AxiosResponse } from 'axios';
 import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import {
+  AddDeviceResponse,
   AddOpenidClientRequest,
   AddUserRequest,
-  AddWalletRequest,
   ApiError,
   ApiHook,
   AuthorizedClient,
@@ -18,12 +19,13 @@ import {
   GetNetworkStatsRequest,
   GroupsResponse,
   LoginData,
+  LoginResponse,
   MFALoginResponse,
   Network,
   NetworkToken,
-  NetworkUserStats,
   OpenidClient,
   OpenIdProvider,
+  Provisioner,
   RemoveUserClientRequest,
   ResetPasswordRequest,
   Settings,
@@ -32,9 +34,8 @@ import {
   User,
   UserEditRequest,
   UserGroupRequest,
+  UserProfile,
   VerifyOpenidClientRequest,
-  WalletChallenge,
-  WalletChallengeRequest,
   WireguardNetworkStats,
   WorkerJobRequest,
   WorkerJobResponse,
@@ -50,7 +51,7 @@ interface HookProps {
   notifyError?: boolean;
 }
 
-const envBaseUrl = import.meta.env.API_BASE_URL;
+const envBaseUrl: string | undefined = import.meta.env.VITE_API_BASE_URL;
 
 const unpackRequest = <T,>(res: AxiosResponse<T>): T => res.data;
 
@@ -81,7 +82,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const getMe = () => client.get<User>(`/me`).then((res) => res.data);
 
   const getUser: ApiHook['user']['getUser'] = async (username) =>
-    client.get(`/user/${username}`).then((res) => res.data);
+    client.get<UserProfile>(`/user/${username}`).then(unpackRequest);
 
   const editUser = async ({ username, data }: UserEditRequest) =>
     client.put<User>(`/user/${username}`, data).then(unpackRequest);
@@ -109,7 +110,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
   const addDevice: ApiHook['device']['addDevice'] = async ({ username, ...rest }) =>
-    client.post(`/device/${username}`, rest).then((res) => res.data);
+    client.post<AddDeviceResponse>(`/device/${username}`, rest).then((res) => res.data);
 
   const fetchUserDevices = async (username: string) =>
     client.get<Device[]>(`/device/user/${username}`).then((res) => res.data);
@@ -141,7 +142,7 @@ const useApi = (props?: HookProps): ApiHook => {
   const login: ApiHook['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
-        return response.data;
+        return response.data as LoginResponse;
       }
       if (response.status === 201) {
         return {
@@ -159,7 +160,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
-  const getWorkers = () => client.get('/worker').then((res) => res.data);
+  const getWorkers: ApiHook['provisioning']['getWorkers'] = () =>
+    client.get<Provisioner[]>('/worker').then(unpackRequest);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
     client.post<WorkerJobResponse>(`/worker/job`, data).then((response) => response.data);
@@ -176,28 +178,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const startEnrollment = ({ username, ...rest }: StartEnrollmentRequest) =>
     client
       .post<StartEnrollmentResponse>(`/user/${username}/start_enrollment`, rest)
-      .then((response) => response.data);
-
-  const walletChallenge = ({
-    username,
-    address,
-    name,
-    chainId,
-  }: WalletChallengeRequest) =>
-    client
-      .get<WalletChallenge>(
-        `/user/${username}/challenge?address=${address}&name=${name}&chain_id=${chainId}`,
-      )
-      .then((response) => response.data);
-
-  const setWallet = ({ username, ...rest }: AddWalletRequest) =>
-    client
-      .put<EmptyApiResponse>(`/user/${username}/wallet`, rest)
-      .then((response) => response.data);
-
-  const deleteWallet = ({ username, address }: WalletChallengeRequest) =>
-    client
-      .delete<EmptyApiResponse>(`/user/${username}/wallet/${address}`)
       .then((response) => response.data);
 
   const getGroups = () => client.get<GroupsResponse>('/group').then(unpackRequest);
@@ -269,9 +249,11 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then((res) => res.data);
 
-  const getUsersStats = (data: GetNetworkStatsRequest) =>
+  const getOverviewStats: ApiHook['network']['getOverviewStats'] = (
+    data: GetNetworkStatsRequest,
+  ) =>
     client
-      .get<NetworkUserStats[]>(`/network/${data.id}/stats/users`, {
+      .get(`/network/${data.id}/stats/users`, {
         params: {
           ...data,
         },
@@ -295,11 +277,9 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
-  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
     () => client.post('/auth/webauthn/init').then(unpackRequest);
 
-  // eslint-disable-next-line max-len
   const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
     async (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
 
@@ -333,23 +313,6 @@ const useApi = (props?: HookProps): ApiHook => {
   const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
     client.post('/auth/email/verify', data).then(unpackRequest);
 
-  const mfaWeb3Start: ApiHook['auth']['mfa']['web3']['start'] = (data) =>
-    client.post('/auth/web3/start', data).then(unpackRequest);
-
-  const mfaWeb3Finish: ApiHook['auth']['mfa']['web3']['finish'] = (data) =>
-    client.post('/auth/web3', data).then(unpackRequest);
-
-  const editWalletMFA: ApiHook['auth']['mfa']['web3']['updateWalletMFA'] = ({
-    address,
-    username,
-    ...rest
-  }) =>
-    client
-      .put(`/user/${username}/wallet/${address}`, {
-        ...rest,
-      })
-      .then(unpackRequest);
-
   const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] = ({
     keyId,
     username,
@@ -359,8 +322,6 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const editSettings = async (settings: Settings) =>
     client.put('/settings', settings).then(unpackRequest);
-
-  const getEnterpriseStatus = () => client.get('/enterprise_status').then(unpackRequest);
 
   const getEnterpriseInfo = () => client.get('/enterprise_info').then(unpackRequest);
 
@@ -487,11 +448,49 @@ const useApi = (props?: HookProps): ApiHook => {
   const testDirsync: ApiHook['settings']['testDirsync'] = () =>
     client.get('/test_directory_sync').then(unpackRequest);
 
+  const createStandaloneDevice: ApiHook['standaloneDevice']['createManualDevice'] = (
+    data,
+  ) => client.post('/device/network', data).then(unpackRequest);
+
+  const deleteStandaloneDevice: ApiHook['standaloneDevice']['deleteDevice'] = (
+    deviceId,
+  ) => client.delete(`/device/network/${deviceId}`);
+  const editStandaloneDevice: ApiHook['standaloneDevice']['editDevice'] = ({
+    id,
+    ...data
+  }) => client.put(`/device/network/${id}`, data).then(unpackRequest);
+
+  const getStandaloneDevice: ApiHook['standaloneDevice']['getDevice'] = (deviceId) =>
+    client.get(`/device/network/${deviceId}`).then(unpackRequest);
+
+  const getAvailableLocationIp: ApiHook['standaloneDevice']['getAvailableIp'] = (data) =>
+    client.get(`/device/network/ip/${data.locationId}`).then(unpackRequest);
+
+  const validateLocationIp: ApiHook['standaloneDevice']['validateLocationIp'] = ({
+    location,
+    ...rest
+  }) => client.post(`/device/network/ip/${location}`, rest).then(unpackRequest);
+
+  const getStandaloneDevicesList: ApiHook['standaloneDevice']['getDevicesList'] = () =>
+    client.get('/device/network').then(unpackRequest);
+
+  const createStandaloneCliDevice: ApiHook['standaloneDevice']['createCliDevice'] = (
+    data,
+  ) => client.post('/device/network/start_cli', data).then(unpackRequest);
+
+  const getStandaloneDeviceConfig: ApiHook['standaloneDevice']['getDeviceConfig'] = (
+    id,
+  ) => client.get(`/device/network/${id}/config`).then(unpackRequest);
+
+  const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
+    (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
         // API sometimes returns null in optional fields.
         if (res.data) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           res.data = removeNulls(res.data);
         }
         return res;
@@ -517,7 +516,6 @@ const useApi = (props?: HookProps): ApiHook => {
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
-    getEnterpriseStatus,
     getEnterpriseInfo,
     oAuth: {
       consent: oAuthConsent,
@@ -530,6 +528,18 @@ const useApi = (props?: HookProps): ApiHook => {
       editGroup,
       addUsersToGroups,
     },
+    standaloneDevice: {
+      createManualDevice: createStandaloneDevice,
+      deleteDevice: deleteStandaloneDevice,
+      editDevice: editStandaloneDevice,
+      getDevice: getStandaloneDevice,
+      getAvailableIp: getAvailableLocationIp,
+      validateLocationIp: validateLocationIp,
+      getDevicesList: getStandaloneDevicesList,
+      createCliDevice: createStandaloneCliDevice,
+      getDeviceConfig: getStandaloneDeviceConfig,
+      generateAuthToken: generateStandaloneDeviceAuthToken,
+    },
     user: {
       getMe,
       addUser,
@@ -540,9 +550,6 @@ const useApi = (props?: HookProps): ApiHook => {
       usernameAvailable,
       changePassword,
       resetPassword,
-      walletChallenge,
-      setWallet,
-      deleteWallet,
       addToGroup,
       removeFromGroup,
       startEnrollment,
@@ -571,11 +578,11 @@ const useApi = (props?: HookProps): ApiHook => {
       getNetworks: fetchNetworks,
       editNetwork: modifyNetwork,
       deleteNetwork,
-      getUsersStats,
       getNetworkToken,
       getNetworkStats,
       getGatewaysStatus,
       deleteGateway,
+      getOverviewStats: getOverviewStats,
     },
     auth: {
       login,
@@ -611,11 +618,6 @@ const useApi = (props?: HookProps): ApiHook => {
           disable: mfaEmailMFADisable,
           sendCode: mfaEmailMFASendCode,
           verify: mfaEmailMFAVerify,
-        },
-        web3: {
-          start: mfaWeb3Start,
-          finish: mfaWeb3Finish,
-          updateWalletMFA: editWalletMFA,
         },
       },
     },

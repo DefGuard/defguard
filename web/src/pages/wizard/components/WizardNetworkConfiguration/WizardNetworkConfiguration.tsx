@@ -2,7 +2,6 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import ipaddr from 'ipaddr.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -21,7 +20,7 @@ import { QueryKeys } from '../../../../shared/queries';
 import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
-import { validateIpOrDomainList } from '../../../../shared/validators';
+import { validateIpList, validateIpOrDomainList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 type FormInputs = ModifyNetworkRequest['network'];
@@ -45,7 +44,8 @@ export const WizardNetworkConfiguration = () => {
   const toaster = useToaster();
   const { LL } = useI18nContext();
 
-  const { mutate: addNetworkMutation, isLoading } = useMutation(addNetwork, {
+  const { mutate: addNetworkMutation, isPending } = useMutation({
+    mutationFn: addNetwork,
     onSuccess: () => {
       setWizardState({ loading: false });
       toaster.success(LL.wizard.configuration.successMessage());
@@ -58,27 +58,39 @@ export const WizardNetworkConfiguration = () => {
     },
   });
 
-  const { isError: groupsError, isLoading: groupsLoading } = useQuery({
+  const {
+    isError: isFetchGroupsError,
+    error: fetchGroupsError,
+    isLoading: groupsLoading,
+    data: fetchGroupsData,
+  } = useQuery({
     queryKey: [QueryKeys.FETCH_GROUPS],
     queryFn: getGroups,
-    onSuccess: (res) => {
-      setGroupOptions(
-        res.groups.map((g) => ({
-          key: g,
-          value: g,
-          label: titleCase(g),
-        })),
-      );
-    },
-    onError: (err) => {
-      toaster.error(LL.messages.error());
-      console.error(err);
-    },
     enabled: componentMount,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: 'always',
   });
+
+  useEffect(() => {
+    if (fetchGroupsError) {
+      toaster.error(LL.messages.error());
+      console.error(fetchGroupsError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchGroupsError]);
+
+  useEffect(() => {
+    if (fetchGroupsData) {
+      setGroupOptions(
+        fetchGroupsData.groups.map((g) => ({
+          key: g,
+          value: g,
+          label: titleCase(g),
+        })),
+      );
+    }
+  }, [fetchGroupsData]);
 
   const zodSchema = useMemo(
     () =>
@@ -88,39 +100,7 @@ export const WizardNetworkConfiguration = () => {
           .string()
           .min(1, LL.form.error.required())
           .refine((value) => {
-            const netmaskPresent = value.split('/').length == 2;
-            if (!netmaskPresent) {
-              return false;
-            }
-            const ipValid = ipaddr.isValidCIDR(value);
-            if (!ipValid) {
-              return false;
-            }
-            const [address] = ipaddr.parseCIDR(value);
-            if (address.kind() === 'ipv6') {
-              const networkAddress = ipaddr.IPv6.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv6.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv6).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            } else {
-              const networkAddress = ipaddr.IPv4.networkAddressFromCIDR(value);
-              const broadcastAddress = ipaddr.IPv4.broadcastAddressFromCIDR(value);
-              if (
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  networkAddress.toNormalizedString() ||
-                (address as ipaddr.IPv4).toNormalizedString() ===
-                  broadcastAddress.toNormalizedString()
-              ) {
-                return false;
-              }
-            }
-            return ipValid;
+            return validateIpList(value, ',', true);
           }, LL.form.error.addressNetmask()),
         endpoint: z.string().min(1, LL.form.error.required()),
         port: z
@@ -167,7 +147,7 @@ export const WizardNetworkConfiguration = () => {
 
   const handleValidSubmit: SubmitHandler<FormInputs> = (values) => {
     const trimmed = trimObjectStrings(values);
-    if (!isLoading) {
+    if (!isPending) {
       setWizardState({ loading: true });
       addNetworkMutation(trimmed);
     }
@@ -231,7 +211,7 @@ export const WizardNetworkConfiguration = () => {
           controller={{ control, name: 'allowed_groups' }}
           label={LL.networkConfiguration.form.fields.allowedGroups.label()}
           loading={groupsLoading}
-          disabled={groupsError || (!groupsLoading && groupOptions.length === 0)}
+          disabled={isFetchGroupsError || (!groupsLoading && groupOptions.length === 0)}
           options={groupOptions}
           placeholder={LL.networkConfiguration.form.fields.allowedGroups.placeholder()}
           renderSelected={(group) => ({

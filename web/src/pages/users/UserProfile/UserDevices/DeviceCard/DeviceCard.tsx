@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
+import SvgIconCopy from '../../../../../shared/components/svg/IconCopy';
 import SvgIconExpand from '../../../../../shared/components/svg/IconExpand';
 import { ColorsRGB } from '../../../../../shared/constants';
 import { Badge } from '../../../../../shared/defguard-ui/components/Layout/Badge/Badge';
@@ -19,9 +20,11 @@ import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
+import { LimitedText } from '../../../../../shared/defguard-ui/components/Layout/LimitedText/LimitedText';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserProfileStore';
+import { useClipboard } from '../../../../../shared/hooks/useClipboard';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
@@ -50,6 +53,7 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
   const setEditDeviceModal = useEditDeviceModal((state) => state.setState);
   const openDeviceConfigModal = useDeviceConfigModal((state) => state.open);
   const enterpriseSettings = useAppStore((state) => state.enterprise_settings);
+  const { writeToClipboard } = useClipboard();
 
   const cn = useMemo(
     () =>
@@ -107,21 +111,48 @@ export const DeviceCard = ({ device, modifiable }: Props) => {
           <h3 data-testid="device-name">{device.name}</h3>
         </header>
         <div className="section-content">
-          <div>
+          <div className="limited">
             <Label>{LL.userPage.devices.card.labels.publicIP()}</Label>
             {latestLocation?.last_connected_ip && (
-              <p data-testid="device-last-connected-from">
-                {latestLocation.last_connected_ip}
-              </p>
+              <LimitedText
+                text={latestLocation.last_connected_ip}
+                testId="device-last-connected-from"
+                otherContent={
+                  <button
+                    className="copy"
+                    onClick={() => {
+                      if (latestLocation.last_connected_ip) {
+                        void writeToClipboard(latestLocation.last_connected_ip);
+                      }
+                    }}
+                  >
+                    <SvgIconCopy />
+                  </button>
+                }
+              />
             )}
             {!latestLocation?.last_connected_ip && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
             )}
           </div>
-          <div>
+          <div className="limited">
             <Label>{LL.userPage.devices.card.labels.connectedThrough()}</Label>
             {latestLocation && latestLocation.last_connected_at && (
-              <p>{latestLocation?.network_name}</p>
+              <LimitedText
+                text={latestLocation?.network_name}
+                otherContent={
+                  <button
+                    className="copy"
+                    onClick={() => {
+                      if (latestLocation.network_name) {
+                        void writeToClipboard(latestLocation.network_name);
+                      }
+                    }}
+                  >
+                    <SvgIconCopy />
+                  </button>
+                }
+              />
             )}
             {!latestLocation?.last_connected_at && (
               <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -210,6 +241,7 @@ const DeviceLocation = ({
   },
 }: DeviceLocationProps) => {
   const { LL } = useI18nContext();
+  const { writeToClipboard } = useClipboard();
   return (
     <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
@@ -220,10 +252,23 @@ const DeviceLocation = ({
         </div>
       </header>
       <div className="section-content">
-        <div>
+        <div className="limited">
           <Label>{LL.userPage.devices.card.labels.lastLocation()}</Label>
           {last_connected_ip && (
-            <p data-testid="device-last-connected-from">{last_connected_ip}</p>
+            <LimitedText
+              text={last_connected_ip}
+              testId="device-last-connected-from"
+              otherContent={
+                <button
+                  className="copy"
+                  onClick={() => {
+                    void writeToClipboard(last_connected_ip);
+                  }}
+                >
+                  <SvgIconCopy />
+                </button>
+              }
+            />
           )}
           {!last_connected_ip && (
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
@@ -238,9 +283,22 @@ const DeviceLocation = ({
             <NoData customMessage={LL.userPage.devices.card.labels.noData()} />
           )}
         </div>
-        <div>
+        <div className="limited">
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <p data-testid="device-assigned-ip">{device_wireguard_ip}</p>
+          <LimitedText
+            text={device_wireguard_ip}
+            testId="device-assigned-ip"
+            otherContent={
+              <button
+                className="copy"
+                onClick={() => {
+                  void writeToClipboard(device_wireguard_ip);
+                }}
+              >
+                <SvgIconCopy />
+              </button>
+            }
+          />
         </div>
       </div>
     </div>

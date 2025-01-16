@@ -35,7 +35,9 @@ export const MFATOTPAuth = () => {
   } = useApi();
   const { LL } = useI18nContext();
 
-  const { mutate, isLoading } = useMutation([MutationKeys.VERIFY_TOTP], verify, {
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationKey: [MutationKeys.VERIFY_TOTP],
+    mutationFn: verify,
     onSuccess: (data) => loginSubject.next(data),
     onError: (err) => {
       console.error(err);

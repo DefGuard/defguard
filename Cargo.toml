@@ -1,20 +1,20 @@
 [package]
 name = "defguard"
-version = "1.1.4"
+version = "1.2.0"
 edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
-rust-version = "1.80"
+rust-version = "1.82"
 
 [workspace]
 
 [dependencies]
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
-axum = { version = "0.7" }
-axum-client-ip = "0.5"
-axum-extra = { version = "0.9", features = [
+axum = { version = "0.8" }
+axum-client-ip = "0.7"
+axum-extra = { version = "0.10", features = [
     "cookie",
     "cookie-private",
     "typed-header",
@@ -28,7 +28,6 @@ chrono = { version = "0.4", default-features = false, features = [
 ] }
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = "0.15"
-ethers-core = "2.0"
 humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
@@ -41,9 +40,9 @@ model_derive = { path = "model-derive" }
 openidconnect = { version = "3.5", default-features = false, optional = true, features = [
     "reqwest",
 ] }
-pgp = "0.13"
-prost = "0.12"
-pulldown-cmark = "0.11"
+pgp = "0.14"
+prost = "0.13"
+pulldown-cmark = "0.12"
 rand = "0.8"
 rand_core = { version = "0.6", default-features = false, features = [
     "getrandom",
@@ -52,13 +51,8 @@ rand_core = { version = "0.6", default-features = false, features = [
 reqwest = { version = "0.11", features = ["json"] }
 rsa = { version = "0.9", features = ["pem"] }
 rust-embed = { version = "8.5", features = ["include-exclude"] }
-rust-ini = "0.20"
-secp256k1 = { version = "0.29", features = [
-    "recovery",
-    "rand-std",
-    "global-context",
-] }
-secrecy = { version = "0.8", features = ["serde"] }
+rust-ini = "0.21"
+secrecy = { version = "0.10", features = ["serde"] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 # match version from webauthn-rs-core
@@ -76,10 +70,9 @@ sqlx = { version = "0.8", features = [
 ssh-key = "0.6"
 struct-patch = "0.8"
 tera = "1.20"
-thiserror = "1.0"
+thiserror = "2.0"
 # match axum-extra -> cookies
 time = { version = "0.3", default-features = false }
-tiny-keccak = { version = "2.0", features = ["keccak"] }
 tokio = { version = "1", features = [
     "macros",
     "parking_lot",
@@ -89,17 +82,18 @@ tokio = { version = "1", features = [
     "time",
 ] }
 tokio-stream = "0.1"
-tonic = { version = "0.11", features = ["gzip", "tls", "tls-roots"] }
-tonic-health = "0.11"
+tokio-util = "0.7"
+tonic = { version = "0.12", features = ["gzip", "tls", "tls-roots"] }
+tonic-health = "0.12"
 totp-lite = { version = "2.0" }
-tower-http = { version = "0.5", features = ["fs", "trace"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
 uaparser = "0.6"
 # openapi
-utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum"] }
+utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [
@@ -110,7 +104,7 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [dev-dependencies]
 bytes = "1.6"
-claims = "0.7"
+claims = "0.8"
 matches = "0.1"
 regex = "1.10"
 reqwest = { version = "0.11", features = [
@@ -124,8 +118,8 @@ serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
 [build-dependencies]
-prost-build = "0.12"
-tonic-build = "0.11"
+prost-build = "0.13"
+tonic-build = "0.12"
 vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]
@@ -135,5 +129,7 @@ worker = []
 wireguard = []
 
 [profile.release]
+codegen-units = 1
+panic = "abort"
 lto = "thin"
 strip = "symbols"

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import './style.scss';
 
 import { AxiosError } from 'axios';
@@ -44,7 +43,7 @@ export const OpenidAllowPage = () => {
 
   const paramsValid = useMemo(() => {
     const check = [scope, responseType, clientId, nonce, redirectUri, state];
-    for (const item in check) {
+    for (const item of check) {
       if (typeof item === 'undefined' || item === null) {
         toaster.error('OpenID Params invalid.');
         return false;

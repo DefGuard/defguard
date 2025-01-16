@@ -29,17 +29,14 @@ export const NetworkGatewaySetup = () => {
     network: { getNetworkToken },
   } = useApi();
 
-  const { data: networkToken } = useQuery(
-    [QueryKeys.FETCH_NETWORK_TOKEN, selectedNetworkId],
-    () => getNetworkToken(selectedNetworkId),
-    {
-      refetchOnMount: true,
-      refetchOnWindowFocus: false,
-    },
-  );
+  const { data: networkToken } = useQuery({
+    queryKey: [QueryKeys.FETCH_NETWORK_TOKEN, selectedNetworkId],
+    queryFn: () => getNetworkToken(selectedNetworkId),
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
 
   const command = useCallback(() => {
-    // eslint-disable-next-line max-len
     return `docker run -e DEFGUARD_TOKEN=${networkToken?.token} -e DEFGUARD_GRPC_URL=${networkToken?.grpc_url} --restart unless-stopped --network host --cap-add NET_ADMIN ghcr.io/defguard/gateway:latest`;
   }, [networkToken]);
 
@@ -53,7 +50,7 @@ export const NetworkGatewaySetup = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          writeToClipboard(command());
+          void writeToClipboard(command());
         }}
       />,
     ],
@@ -66,7 +63,7 @@ export const NetworkGatewaySetup = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          writeToClipboard(returnNetworkToken());
+          void writeToClipboard(returnNetworkToken());
         }}
       />,
     ],

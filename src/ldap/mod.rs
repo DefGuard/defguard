@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
-use sqlx::PgExecutor;
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -99,13 +98,8 @@ pub struct LDAPConnection {
 }
 
 impl LDAPConnection {
-    pub async fn create<'e, E>(executor: E) -> Result<LDAPConnection, LdapError>
-    where
-        E: PgExecutor<'e>,
-    {
-        let settings = Settings::get_settings(executor)
-            .await
-            .map_err(|_| LdapError::MissingSettings)?;
+    pub async fn create() -> Result<LDAPConnection, LdapError> {
+        let settings = Settings::get_current_settings();
         let config = LDAPConfig::try_from(settings.clone())?;
         let url = settings.ldap_url.ok_or(LdapError::MissingSettings)?;
         let password = settings
@@ -138,7 +132,7 @@ impl LDAPConnection {
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
-    /// Searches LDAP for groups.
+    // /// Searches LDAP for groups.
     // async fn search_groups(&mut self, filter: &str) -> Result<Vec<SearchEntry>, LdapError> {
     //     let (rs, _res) = self
     //         .ldap
@@ -283,7 +277,7 @@ impl LDAPConnection {
         Ok(())
     }
 
-    /// Retrieves group with given groupname from LDAP.
+    // /// Retrieves group with given groupname from LDAP.
     // pub async fn get_group(&mut self, groupname: &str) -> Result<Group, LdapError> {
     //     debug!("Performing LDAP group search: {groupname}");
     //     let mut enties = self
@@ -322,7 +316,7 @@ impl LDAPConnection {
         Ok(())
     }
 
-    /// Lists groups satisfying specified criteria
+    // /// Lists groups satisfying specified criteria
     // pub async fn get_groups(&mut self) -> Result<Vec<Group>, LdapError> {
     //     debug!("Performing LDAP group search");
     //     let mut entries = self

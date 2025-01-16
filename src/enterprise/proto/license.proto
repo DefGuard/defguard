@@ -1,10 +1,17 @@
 syntax = "proto3";
 package license;
 
+message LicenseLimits {
+    uint32 users = 1;
+    uint32 devices = 2;
+    uint32 locations = 3;
+}
+
 message LicenseMetadata {
     string customer_id = 1;
     bool subscription = 2;
     optional int64 valid_until = 3;
+    LicenseLimits limits = 4;
 }
 
 message LicenseKey {

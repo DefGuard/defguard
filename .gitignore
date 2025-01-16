@@ -1,7 +1,7 @@
 target/
 defguard.db*
 .volumes*
-node_modules
+node_modules/
 .DS_Store
 dist
 dist-ssr
@@ -13,3 +13,4 @@ ladle-build
 .envrc
 .direnv/
 *.pem
+result/

@@ -112,27 +112,27 @@ export const AddDeviceSetupStep = () => {
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: addDeviceMutation, isLoading } = useMutation(
-    [MutationKeys.ADD_DEVICE],
-    addDevice,
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
-        toaster.success(LL.addDevicePage.messages.deviceAdded());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutateAsync: addDeviceMutation, isPending } = useMutation({
+    mutationFn: addDevice,
+    mutationKey: [MutationKeys.ADD_DEVICE],
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
+      toaster.success(LL.addDevicePage.messages.deviceAdded());
     },
-  );
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
 
-  const validSubmitHandler: SubmitHandler<FormValues> = async (values) => {
+  const validSubmitHandler: SubmitHandler<FormValues> = (values) => {
     if (!userData) return;
     values = trimObjectStrings(values);
     if (values.choice === AddDeviceSetupMethod.AUTO) {
       const keys = generateWGKeys();
-      addDeviceMutation({
+      void addDeviceMutation({
         name: values.name,
         wireguard_pubkey: keys.publicKey,
         username: userData.username,
@@ -148,7 +148,7 @@ export const AddDeviceSetupStep = () => {
         });
       });
     } else {
-      addDeviceMutation({
+      void addDeviceMutation({
         name: values.name,
         wireguard_pubkey: values.publicKey as string,
         username: userData.username,
@@ -181,8 +181,8 @@ export const AddDeviceSetupStep = () => {
   }, [nextSubject, submitRef]);
 
   useEffect(() => {
-    setPageState({ loading: isLoading });
-  }, [isLoading, setPageState]);
+    setPageState({ loading: isPending });
+  }, [isPending, setPageState]);
 
   return (
     <Card id="add-device-setup-step" shaded>

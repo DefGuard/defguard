@@ -21,7 +21,8 @@ export const ResetPasswordButton = ({ user }: Props) => {
     user: { resetPassword },
   } = useApi();
 
-  const changePasswordMutation = useMutation(resetPassword, {
+  const changePasswordMutation = useMutation({
+    mutationFn: resetPassword,
     mutationKey: [MutationKeys.RESET_PASSWORD],
     onSuccess: () => {
       toaster.success(LL.userPage.messages.passwordResetEmailSent());

@@ -1,5 +1,6 @@
 use crate::{
     auth::{AdminRole, SessionInfo},
+    enterprise::get_counts,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -8,14 +9,13 @@ pub mod openid_login;
 pub mod openid_providers;
 
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
 
 use super::{
     db::models::enterprise_settings::EnterpriseSettings, is_enterprise_enabled,
-    license::get_cached_license, needs_enterprise_license,
+    license::get_cached_license,
 };
 use crate::{appstate::AppState, error::WebError};
 
@@ -26,7 +26,6 @@ pub struct LicenseInfo {
 /// Used to check if user is allowed to manage his devices.
 pub struct CanManageDevices;
 
-#[async_trait]
 impl<S> FromRequestParts<S> for LicenseInfo
 where
     S: Send + Sync,
@@ -45,41 +44,30 @@ where
     }
 }
 
-/// Gets basic enterprise status.
-pub async fn check_enterprise_status() -> ApiResult {
-    let enterprise_enabled = is_enterprise_enabled();
-    Ok(ApiResponse {
-        json: serde_json::json!({
-            "enabled": enterprise_enabled,
-        }),
-        status: StatusCode::OK,
-    })
-}
-
 /// Gets full information about enterprise status.
 pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> ApiResult {
-    let enterprise_enabled = is_enterprise_enabled();
-    let needs_license = needs_enterprise_license();
     let license = get_cached_license();
     let license_info = license.as_ref().map(|license| {
+        let counts = get_counts();
         serde_json::json!(
             {
                 "valid_until": license.valid_until,
                 "subscription": license.subscription,
+                "expired": license.is_max_overdue(),
+                "limits_exceeded": counts.is_over_license_limits(license)
             }
         )
     });
     Ok(ApiResponse {
-        json: serde_json::json!({
-            "enabled": enterprise_enabled,
-            "needs_license": needs_license,
-            "license_info": license_info
-        }),
+        json: serde_json::json!(
+            {
+                "license_info": license_info,
+            }
+        ),
         status: StatusCode::OK,
     })
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for CanManageDevices
 where
     S: Send + Sync,

@@ -26,7 +26,6 @@ export enum UserMFAMethod {
   ONE_TIME_PASSWORD = 'OneTimePassword',
   EMAIL = 'Email',
   WEB_AUTH_N = 'Webauthn',
-  WEB3 = 'Web3',
 }
 
 export enum AuthenticationKeyType {
@@ -55,7 +54,6 @@ export type User = {
 export type UserProfile = {
   user: User;
   devices: Device[];
-  wallets: WalletInfo[];
   security_keys: SecurityKey[];
 };
 
@@ -76,12 +74,6 @@ export interface Location {
   shared: {
     ipAddress: string;
   }[];
-}
-
-export interface WalletInfo {
-  address: string;
-  chain_id: number;
-  name: string;
 }
 
 export type AddDeviceResponseDevice = Omit<Device, 'networks'>;
@@ -230,26 +222,6 @@ export interface ResetPasswordRequest {
   username: string;
 }
 
-export interface WalletChallengeRequest {
-  name?: string;
-  username: string;
-  address: string;
-  chainId?: number;
-}
-
-export interface WalletChallenge {
-  id: number;
-  message: string;
-}
-
-export interface AddWalletRequest {
-  name: string;
-  chain_id: number;
-  username: string;
-  address: string;
-  signature: string;
-}
-
 export interface AddUserRequest {
   username: string;
   password?: string;
@@ -294,15 +266,9 @@ export interface UserEditRequest {
   data: Partial<User>;
 }
 
-export interface EditWalletMFARequest {
-  username: string;
-  address: string;
-}
-
 export interface MFALoginResponse {
   mfa_method: UserMFAMethod;
   totp_available: boolean;
-  web3_available: boolean;
   webauthn_available: boolean;
   email_available: boolean;
 }
@@ -362,6 +328,7 @@ export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
+  license_info: LicenseInfo;
 }
 
 export type GetDeviceConfigRequest = {
@@ -436,12 +403,15 @@ export type AuthenticationKey = {
   key: string;
 };
 
+export type EnterpriseInfoResponse = {
+  license_info?: EnterpriseInfo;
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
-  getEnterpriseStatus: () => Promise<EnterpriseStatus>;
-  getEnterpriseInfo: () => Promise<EnterpriseInfo>;
+  getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -464,9 +434,6 @@ export interface ApiHook {
     usernameAvailable: (username: string) => EmptyApiResponse;
     changePassword: (data: ChangePasswordRequest) => EmptyApiResponse;
     resetPassword: (data: ResetPasswordRequest) => EmptyApiResponse;
-    walletChallenge: (data: WalletChallengeRequest) => Promise<WalletChallenge>;
-    setWallet: (data: AddWalletRequest) => EmptyApiResponse;
-    deleteWallet: (data: WalletChallengeRequest) => EmptyApiResponse;
     addToGroup: (data: UserGroupRequest) => EmptyApiResponse;
     removeFromGroup: (data: UserGroupRequest) => EmptyApiResponse;
     startDesktopActivation: (
@@ -489,6 +456,26 @@ export interface ApiHook {
     }) => EmptyApiResponse;
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
   };
+  standaloneDevice: {
+    createManualDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<CreateStandaloneDeviceResponse>;
+    createCliDevice: (
+      data: CreateStandaloneDeviceRequest,
+    ) => Promise<StartEnrollmentResponse>;
+    getDevice: (deviceId: number | string) => Promise<StandaloneDevice>;
+    deleteDevice: (deviceId: number | string) => Promise<void>;
+    editDevice: (data: StandaloneDeviceEditRequest) => Promise<void>;
+    getAvailableIp: (
+      data: GetAvailableLocationIpRequest,
+    ) => Promise<GetAvailableLocationIpResponse>;
+    validateLocationIp: (
+      data: ValidateLocationIpRequest,
+    ) => Promise<ValidateLocationIpResponse>;
+    getDevicesList: () => Promise<StandaloneDevice[]>;
+    getDeviceConfig: (deviceId: number | string) => Promise<string>;
+    generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
+  };
   device: {
     addDevice: (device: AddDeviceRequest) => Promise<AddDeviceResponse>;
     getDevice: (deviceId: string) => Promise<Device>;
@@ -506,7 +493,7 @@ export interface ApiHook {
     getNetworks: () => Promise<Network[]>;
     editNetwork: (network: ModifyNetworkRequest) => Promise<Network>;
     deleteNetwork: (networkId: number) => EmptyApiResponse;
-    getUsersStats: (data: GetNetworkStatsRequest) => Promise<NetworkUserStats[]>;
+    getOverviewStats: (data: GetNetworkStatsRequest) => Promise<OverviewStatsResponse>;
     getNetworkToken: (networkId: Network['id']) => Promise<NetworkToken>;
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
@@ -548,11 +535,6 @@ export interface ApiHook {
         enable: (data: TOTPRequest) => MFARecoveryCodesResponse;
         disable: () => EmptyApiResponse;
         verify: (data: TOTPRequest) => Promise<MFAFinishResponse>;
-      };
-      web3: {
-        start: (data: Web3StartRequest) => Promise<{ challenge: string }>;
-        finish: (data: WalletSignature) => Promise<MFAFinishResponse>;
-        updateWalletMFA: (data: EditWalletMFARequest) => MFARecoveryCodesResponse;
       };
     };
   };
@@ -666,11 +648,6 @@ export interface ChangePasswordModal {
   user?: User;
 }
 
-export interface ChangeWalletModal {
-  visible: boolean;
-  user?: User;
-}
-
 export interface ChangeUserPasswordModal {
   visible: boolean;
   user?: User;
@@ -717,10 +694,6 @@ export interface RecoveryCodesModal extends StandardModalState {
   codes?: string[];
 }
 
-export interface ConnectWalletModal extends StandardModalState {
-  onConnect?: () => void;
-}
-
 export interface WebhookModal extends StandardModalState {
   webhook?: Webhook;
 }
@@ -738,8 +711,6 @@ export interface UseModalStore {
   openIdClientModal: OpenIdClientModal;
   setOpenIdClientModal: ModalSetter<OpenIdClientModal>;
   // DO NOT EXTEND THIS STORE
-  addWalletModal: StandardModalState;
-  // DO NOT EXTEND THIS STORE
   keyDetailModal: KeyDetailModal;
   // DO NOT EXTEND THIS STORE
   keyDeleteModal: KeyDeleteModal;
@@ -749,8 +720,6 @@ export interface UseModalStore {
   toggleUserModal: ToggleUserModal;
   // DO NOT EXTEND THIS STORE
   changePasswordModal: ChangePasswordModal;
-  // DO NOT EXTEND THIS STORE
-  changeWalletModal: ChangeWalletModal;
   // DO NOT EXTEND THIS STORE
   provisionKeyModal: ProvisionKeyModal;
   // DO NOT EXTEND THIS STORE
@@ -767,8 +736,6 @@ export interface UseModalStore {
   addSecurityKeyModal: StandardModalState;
   // DO NOT EXTEND THIS STORE
   registerTOTP: StandardModalState;
-  // DO NOT EXTEND THIS STORE
-  connectWalletModal: ConnectWalletModal;
   // DO NOT EXTEND THIS STORE
   recoveryCodesModal: RecoveryCodesModal;
   // DO NOT EXTEND THIS STORE
@@ -790,8 +757,6 @@ export interface UseModalStore {
   // DO NOT EXTEND THIS STORE
   setChangePasswordModal: ModalSetter<ChangePasswordModal>;
   // DO NOT EXTEND THIS STORE
-  setChangeWalletModal: ModalSetter<ChangeWalletModal>;
-  // DO NOT EXTEND THIS STORE
   setAddOpenidClientModal: ModalSetter<StandardModalState>;
   // DO NOT EXTEND THIS STORE
   setDeleteOpenidClientModal: ModalSetter<DeleteOpenidClientModal>;
@@ -808,13 +773,13 @@ export interface UseOpenIDStore {
  * full defguard instance Settings
  */
 export type Settings = SettingsModules &
-  SettingsWeb3 &
   SettingsSMTP &
   SettingsEnrollment &
   SettingsBranding &
   SettingsLDAP &
   SettingsOpenID &
-  SettingsLicense;
+  SettingsLicense &
+  SettingsGatewayNotifications;
 
 // essentials for core frontend, includes only those that are required for frontend operations
 export type SettingsEssentials = SettingsModules & SettingsBranding;
@@ -863,10 +828,6 @@ export type SettingsLDAP = {
   ldap_username_attr: string;
 };
 
-export type SettingsWeb3 = {
-  challenge_template: string;
-};
-
 export type SettingsOpenID = {
   openid_create_account: boolean;
 };
@@ -875,13 +836,19 @@ export type SettingsLicense = {
   license: string;
 };
 
+export type SettingsGatewayNotifications = {
+  gateway_disconnect_notifications_enabled: boolean;
+  gateway_disconnect_notifications_inactivity_threshold: number;
+  gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
+};
+
 export type SettingsEnterprise = {
   admin_device_management: boolean;
   disable_all_traffic: boolean;
   only_client_activation: boolean;
 };
 
-export type LicenseInfo = {
+export type EnterpriseLicenseInfo = {
   valid_until?: string;
   subscription: boolean;
 };
@@ -891,10 +858,11 @@ export type EnterpriseStatus = {
 };
 
 export type EnterpriseInfo = {
-  enabled: boolean;
-  // If there is no license, there is no license info
-  license_info?: LicenseInfo;
-  needs_license: boolean;
+  expired: boolean;
+  limits_exceeded: boolean;
+  subscription: boolean;
+  // iso utc date
+  valid_until: string;
 };
 
 export interface Webhook {
@@ -934,6 +902,7 @@ export interface OpenIdProvider {
   directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_target: 'all' | 'users' | 'groups';
+  create_account: boolean;
 }
 
 export interface EditOpenidClientRequest {
@@ -1009,6 +978,22 @@ export interface NetworkDeviceStats {
   wireguard_ip: string;
   stats: NetworkSpeedStats[];
 }
+
+export type OverviewStatsResponse = {
+  user_devices: NetworkUserStats[];
+  network_devices: StandaloneDeviceStats[];
+};
+
+export type StandaloneDeviceStats = {
+  id: number;
+  stats: NetworkSpeedStats[];
+  user_id: number;
+  name: string;
+  wireguard_ip?: string;
+  public_ip?: string;
+  connected_at?: string;
+};
+
 export interface NetworkUserStats {
   user: User;
   devices: NetworkDeviceStats[];
@@ -1022,23 +1007,6 @@ export interface WireguardNetworkStats {
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
-}
-
-export interface WalletProvider {
-  title: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Icon: any;
-  right: JSX.Element | string | null;
-  active?: boolean;
-}
-
-export interface WalletSignature {
-  address: string;
-  signature: string;
-}
-
-export interface Web3StartRequest {
-  address: string;
 }
 
 export interface TOTPRequest {
@@ -1073,4 +1041,91 @@ export type GroupInfo = {
 export type DirsyncTestResponse = {
   message: string;
   success: boolean;
+};
+
+export type CreateStandaloneDeviceRequest = {
+  name: string;
+  location_id: number;
+  assigned_ip: string;
+  wireguard_pubkey?: string;
+  description?: string;
+};
+
+export type ValidateLocationIpRequest = {
+  ip: string;
+  location: number | string;
+};
+
+export type ValidateLocationIpResponse = {
+  available: boolean;
+  valid: boolean;
+};
+
+export type GetAvailableLocationIpRequest = {
+  locationId: number | string;
+};
+
+export type GetAvailableLocationIpResponse = {
+  ip: string;
+  network_part: string;
+  modifiable_part: string;
+  network_prefix: string;
+};
+
+export type StandaloneDevice = {
+  id: number;
+  name: string;
+  assigned_ip: string;
+  description?: string;
+  added_by: string;
+  added_date: string;
+  configured: boolean;
+  // when configured is false this will be empty
+  wireguard_pubkey?: string;
+  location: {
+    id: number;
+    name: string;
+  };
+  split_ip: {
+    network_part: string;
+    modifiable_part: string;
+    network_prefix: string;
+  };
+};
+
+export type DeviceConfigurationResponse = {
+  address: string;
+  allowed_ips: string[];
+  config: string;
+  endpoint: string;
+  keepalive_interval: number;
+  mfa_enabled: boolean;
+  network_id: number;
+  network_name: string;
+  pubkey: string;
+};
+
+export type CreateStandaloneDeviceResponse = {
+  config: DeviceConfigurationResponse;
+  device: StandaloneDevice;
+};
+
+export type StandaloneDeviceEditRequest = {
+  id: number;
+  assigned_ip: string;
+  description?: string;
+  name: string;
+};
+
+export type LicenseLimits = {
+  user: boolean;
+  device: boolean;
+  wireguard_network: boolean;
+};
+
+export type LicenseInfo = {
+  enterprise: boolean;
+  limits_exceeded: LicenseLimits;
+  any_limit_exceeded: boolean;
+  is_enterprise_free: boolean;
 };

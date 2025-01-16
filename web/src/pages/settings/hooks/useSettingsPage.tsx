@@ -1,9 +1,11 @@
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { Settings } from '../../../shared/types';
+import { EnterpriseInfo, Settings } from '../../../shared/types';
 
 const defaultValues: StoreValues = {
   settings: undefined,
+  enterpriseInfo: undefined,
+  freeLicense: true,
 };
 
 export const useSettingsPage = createWithEqualityFn<Store>(
@@ -19,6 +21,8 @@ type Store = StoreValues & StoreMethods;
 
 type StoreValues = {
   settings?: Settings;
+  enterpriseInfo?: EnterpriseInfo;
+  freeLicense: boolean;
 };
 
 type StoreMethods = {

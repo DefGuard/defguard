@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Local, TimeDelta};
 use thiserror::Error;
 
 // Time window in seconds
@@ -34,12 +34,12 @@ impl Default for FailedLogin {
 
 impl FailedLogin {
     // How much time has elapsed since first failed login attempt
-    fn time_since_first_attempt(&self) -> Duration {
+    fn time_since_first_attempt(&self) -> TimeDelta {
         Local::now().signed_duration_since(self.first_attempt)
     }
 
     // How much time has elapsed since last failed login attempt
-    fn time_since_last_attempt(&self) -> Duration {
+    fn time_since_last_attempt(&self) -> TimeDelta {
         Local::now().signed_duration_since(self.last_attempt)
     }
 
@@ -57,16 +57,16 @@ impl FailedLogin {
     // Check if user login attempt should be stopped
     fn should_prevent_login(&self) -> bool {
         self.attempt_count >= FAILED_LOGIN_COUNT
-            && self.time_since_last_attempt() <= Duration::seconds(FAILED_LOGIN_TIMEOUT)
+            && self.time_since_last_attempt() <= TimeDelta::seconds(FAILED_LOGIN_TIMEOUT)
     }
 
     // Check if attempt counter can be reset.
     // Counter can be reset after enough time has passed since the initial attempt.
     // If user was blocked we also check if enough time (timeout) has passed since last attempt.
     fn should_reset_counter(&self) -> bool {
-        self.time_since_first_attempt() > Duration::seconds(FAILED_LOGIN_WINDOW)
+        self.time_since_first_attempt() > TimeDelta::seconds(FAILED_LOGIN_WINDOW)
             && self.attempt_count < FAILED_LOGIN_COUNT
-            || self.time_since_last_attempt() > Duration::seconds(FAILED_LOGIN_TIMEOUT)
+            || self.time_since_last_attempt() > TimeDelta::seconds(FAILED_LOGIN_TIMEOUT)
     }
 }
 

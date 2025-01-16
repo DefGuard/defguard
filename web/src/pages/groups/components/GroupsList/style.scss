@@ -9,6 +9,10 @@
   row-gap: 10px;
   width: 100%;
 
+  .scroll-container {
+    max-height: 600px;
+  }
+
   .headers {
     @include list-layout;
 

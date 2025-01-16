@@ -1,0 +1,27 @@
+#add-standalone-device-modal {
+  .finish-cli-step {
+    .download {
+      width: 100%;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 30px;
+
+      a {
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .btn {
+        height: 47px;
+      }
+    }
+
+    .expanded-content {
+      p {
+        @include typography(app-code);
+      }
+    }
+  }
+}

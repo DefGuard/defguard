@@ -33,10 +33,12 @@ export const LdapSettingsForm = () => {
 
   const toaster = useToaster();
 
-  const { isLoading, mutate } = useMutation({
+  const { isPending: isLoading, mutate } = useMutation({
     mutationFn: patchSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_SETTINGS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_SETTINGS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {

@@ -28,6 +28,10 @@
       max-width: 100%;
     }
 
+    .limited {
+      max-width: 120px;
+    }
+
     .main-info {
       & > header {
         grid-template-rows: 40px;
@@ -153,4 +157,12 @@
       grid-template-rows: auto auto;
     }
   }
+}
+
+.copy {
+  background-color: transparent;
+  border: 0 solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }

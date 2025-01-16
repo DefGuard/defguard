@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-d
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
+import { DevicesPage } from '../../pages/devices/DevicesPage';
 import { EnrollmentPage } from '../../pages/enrollment/EnrollmentPage';
 import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
@@ -20,6 +21,7 @@ import { UsersSharedModals } from '../../pages/users/UsersSharedModals';
 import { WebhooksListPage } from '../../pages/webhooks/WebhooksListPage';
 import { WizardPage } from '../../pages/wizard/WizardPage';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
+import { UpgradeLicenseModal } from '../../shared/components/Layout/UpgradeLicenseModal/UpgradeLicenseModal';
 import { UpdateNotificationModal } from '../../shared/components/modals/UpdateNotificationModal/UpdateNotificationModal';
 import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedRoute/ProtectedRoute';
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
@@ -56,7 +58,7 @@ const App = () => {
               <Route
                 path="groups/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <GroupsPage />
                   </ProtectedRoute>
                 }
@@ -64,7 +66,7 @@ const App = () => {
               <Route
                 path="enrollment/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <EnrollmentPage />
                   </ProtectedRoute>
                 }
@@ -72,10 +74,7 @@ const App = () => {
               <Route
                 path="network/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="wireguard_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <NetworkPage />
                   </ProtectedRoute>
                 }
@@ -83,7 +82,7 @@ const App = () => {
               <Route
                 path="wizard/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <WizardPage />
                   </ProtectedRoute>
                 }
@@ -91,10 +90,7 @@ const App = () => {
               <Route
                 path="overview/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="wireguard_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <OverviewPage />
                   </ProtectedRoute>
                 }
@@ -102,7 +98,7 @@ const App = () => {
               <Route
                 path="users/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <UsersPage />
                   </ProtectedRoute>
                 }
@@ -110,10 +106,7 @@ const App = () => {
               <Route
                 path="provisioners/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="worker_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="worker_enabled">
                     <ProvisionersPage />
                   </ProtectedRoute>
                 }
@@ -121,10 +114,7 @@ const App = () => {
               <Route
                 path="webhooks/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="webhooks_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="webhooks_enabled">
                     <WebhooksListPage />
                   </ProtectedRoute>
                 }
@@ -132,10 +122,7 @@ const App = () => {
               <Route
                 path="openid/*"
                 element={
-                  <ProtectedRoute
-                    allowedGroups={['admin']}
-                    moduleRequired="openid_enabled"
-                  >
+                  <ProtectedRoute adminRequired moduleRequired="openid_enabled">
                     <OpenidClientsListPage />
                   </ProtectedRoute>
                 }
@@ -143,8 +130,16 @@ const App = () => {
               <Route
                 path="settings/*"
                 element={
-                  <ProtectedRoute allowedGroups={['admin']}>
+                  <ProtectedRoute adminRequired>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="devices/*"
+                element={
+                  <ProtectedRoute adminRequired>
+                    <DevicesPage />
                   </ProtectedRoute>
                 }
               />
@@ -182,6 +177,7 @@ const App = () => {
           </Routes>
           <Navigation />
           <UpdateNotificationModal />
+          <UpgradeLicenseModal />
         </Router>
       </div>
       <ToastManager />

@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 import type { BaseTranslation } from '../i18n-types';
 
 const en: BaseTranslation = {
@@ -25,9 +24,13 @@ const en: BaseTranslation = {
       copy: 'Copy',
       edit: 'Edit',
       dismiss: 'Dismiss',
+      show: 'Show',
     },
     key: 'Key',
     name: 'Name',
+    noData: 'No data',
+    unavailable: 'Unavailable',
+    notSet: 'Not set',
   },
   messages: {
     error: 'Error has occurred.',
@@ -41,11 +44,150 @@ const en: BaseTranslation = {
     },
   },
   modals: {
+    upgradeLicenseModal: {
+      enterprise: {
+        title: 'Upgrade to Enterprise',
+        //md
+        subTitle: `This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.`,
+      },
+      limit: {
+        title: 'Upgrade',
+        //md
+        subTitle: `
+        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
+        `,
+      },
+      //md
+      content: `
+You can find out more about features like:
+- Real time and automatic client synchronization
+- External SSO
+- Controlling VPN clients behavior
+
+Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
+      `,
+      controls: {
+        cancel: 'Maybe later',
+        confirm: 'See all Enterprise plans',
+      },
+    },
+    standaloneDeviceEnrollmentModal: {
+      title: 'Network device token',
+      toasters: {
+        error: 'Token generation failed.',
+      },
+    },
+    standaloneDeviceConfigModal: {
+      title: 'Network device config',
+      cardTitle: 'Config',
+      toasters: {
+        getConfig: {
+          error: 'Failed to get device config.',
+        },
+      },
+    },
+    editStandaloneModal: {
+      title: 'Edit network device',
+      toasts: {
+        success: 'Device modified',
+        failure: 'Modifying the device failed',
+      },
+    },
+    deleteStandaloneDevice: {
+      title: 'Delete network device',
+      content: 'Device {name: string} will be deleted.',
+      messages: {
+        success: 'Device deleted',
+        error: 'Failed to remove device.',
+      },
+    },
+    addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Device added',
+        creationFailed: 'Device could not be added.',
+      },
+      infoBox: {
+        setup:
+          'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+      },
+      form: {
+        submit: 'Add Device',
+        labels: {
+          deviceName: 'Device Name',
+          location: 'Location',
+          assignedAddress: 'Assigned IP',
+          description: 'Description',
+          generation: {
+            auto: 'Generate key pair',
+            manual: 'Use my own public key',
+          },
+          publicKey: 'Provide Your Public Key',
+        },
+      },
+      steps: {
+        method: {
+          title: 'Choose a proffered method',
+          cards: {
+            cli: {
+              title: 'defguard Command Line Client',
+              subtitle:
+                'When using defguard-cli your device will automatically have VPN configuration up-to-date (real time-sync).',
+              download: 'Download defguard CLI Client',
+            },
+            manual: {
+              title: 'Manual WireGuard Client',
+              subtitle:
+                'If your device does not support our cli binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN Location configuration will require manual changes in device configuration.',
+            },
+          },
+        },
+        manual: {
+          title: 'Add new VPN device using WireGuard Client',
+          finish: {
+            messageTop:
+              'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
+            ctaInstruction:
+              'Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard app.',
+            // MD
+            warningMessage: `
+            Please remember that defguard **doesn't store private keys**.  We will securely generate the public&private key pare in your browser, and only store the public key in defguard database. Please download the configuration generated with the private key for the device, as later it will not be accessible.
+            `,
+            actionCard: {
+              title: 'Config',
+            },
+          },
+        },
+        cli: {
+          title: 'Add device using defguard Command Line Client',
+          finish: {
+            topMessage:
+              'First download defguard command line client binaries and install them on your server.',
+            downloadButton: 'Download defguard CLI Client',
+            commandCopy: 'Copy and paste this command in your terminal on the device',
+          },
+          setup: {
+            stepMessage:
+              'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+            form: {
+              submit: 'Add Device',
+            },
+          },
+        },
+      },
+    },
     updatesNotificationToaster: {
       title: 'New version available {version: string}',
       controls: {
         more: "See what's new",
       },
+    },
+    enterpriseUpgradeToaster: {
+      title: `You've reached the enterprise functionality limit.`,
+      message: `You've exceeded the limit of your current Defguard plan and the enterprise
+          features will be disabled. Purchase an enterprise license or upgrade your
+          exsiting one to continue using these features.`,
+      link: 'See all enterprise plans',
     },
     updatesNotification: {
       header: {
@@ -260,25 +402,6 @@ const en: BaseTranslation = {
       submit: 'Delete device',
       messages: {
         success: 'Device has been deleted.',
-      },
-    },
-    addWallet: {
-      title: 'Add wallet',
-      infoBox: 'In order to add a ETH wallet you will need to sign message.',
-      form: {
-        fields: {
-          name: {
-            placeholder: 'Wallet name',
-            label: 'Name',
-          },
-          address: {
-            placeholder: 'Wallet address',
-            label: 'Address',
-          },
-        },
-        controls: {
-          submit: 'Add wallet',
-        },
       },
     },
     keyDetails: {
@@ -637,15 +760,10 @@ const en: BaseTranslation = {
         default: 'default',
         enabled: 'Enabled',
         disabled: 'Disabled',
-        wallet: {
-          singular: 'Wallet',
-          plural: 'Wallets',
-        },
         labels: {
           totp: 'Time based one time passwords',
           email: 'Email',
           webauth: 'Security keys',
-          wallets: 'Wallets',
         },
         editMode: {
           enable: 'Enable',
@@ -682,32 +800,6 @@ const en: BaseTranslation = {
           edit: 'Edit device',
           delete: 'Delete device',
           showConfigurations: 'Show configuration',
-        },
-      },
-    },
-    wallets: {
-      messages: {
-        addressCopied: 'Address copied.',
-        duplicate: {
-          primary: 'Connected wallet is already registered',
-          sub: 'Please connect unused wallet.',
-        },
-      },
-      header: 'User wallets',
-      addWallet: 'Add new wallet',
-      card: {
-        address: 'Address',
-        mfaBadge: 'MFA',
-        edit: {
-          enableMFA: 'Enable MFA',
-          disableMFA: 'Disable MFA',
-          delete: 'Delete',
-          copyAddress: 'Copy address',
-        },
-        messages: {
-          deleteSuccess: 'Wallet deleted',
-          enableMFA: 'Wallet MFA enabled',
-          disableMFA: 'Wallet MFA disabled',
         },
       },
     },
@@ -784,6 +876,10 @@ const en: BaseTranslation = {
   },
   usersOverview: {
     pageTitle: 'Users',
+    grid: {
+      usersTitle: 'Connected Users',
+      devicesTitle: 'Connected Network Devices',
+    },
     search: {
       placeholder: 'Find users',
     },
@@ -827,6 +923,7 @@ const en: BaseTranslation = {
       enrollment: 'Enrollment',
       support: 'Support',
       groups: 'Groups',
+      devices: 'Network Devices',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -841,6 +938,7 @@ const en: BaseTranslation = {
       networkSettings: 'Edit Location',
       enrollment: 'Enrollment',
       support: 'Support',
+      devices: 'Network Devices',
     },
     copyright: 'Copyright ©2023-2024',
     version: {
@@ -861,6 +959,9 @@ const en: BaseTranslation = {
       username: 'Username',
     },
     error: {
+      reservedName: 'Name is already taken.',
+      invalidIp: 'IP is invalid.',
+      reservedIp: 'IP is already in use.',
       forbiddenCharacter: 'Field contains forbidden characters.',
       usernameTaken: 'Username is already in use.',
       invalidKey: 'Key is invalid.',
@@ -868,7 +969,9 @@ const en: BaseTranslation = {
       required: 'Field is required.',
       invalidCode: 'Submitted code is invalid.',
       maximumLength: 'Maximum length exceeded.',
+      maximumLengthOf: `Field length cannot exceed {length: number}`,
       minimumLength: 'Minimum length not reached.',
+      minimumLengthOf: `Minimum length of {length: number} not reached.`,
       noSpecialChars: 'No special characters are allowed.',
       oneDigit: 'One digit required.',
       oneSpecial: 'Special character required.',
@@ -893,6 +996,14 @@ const en: BaseTranslation = {
     },
   },
   components: {
+    standaloneDeviceTokenModalContent: {
+      headerMessage:
+        'First download defguard command line client binaries and install them on your server.',
+      downloadButton: 'Download defguard CLI Client',
+      expandableCard: {
+        title: 'Copy and paste this command in your terminal on the device',
+      },
+    },
     deviceConfigsCard: {
       cardTitle: 'WireGuard Config for location:',
       messages: {
@@ -928,6 +1039,7 @@ const en: BaseTranslation = {
       ldap: 'LDAP',
       openid: 'OpenID',
       enterprise: 'Enterprise features',
+      gatewayNotifications: 'Gateway notifications',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1106,17 +1218,6 @@ const en: BaseTranslation = {
         list: 'List view',
       },
     },
-    web3Settings: {
-      header: 'Web3 / Wallet connect',
-      fields: {
-        signMessage: {
-          label: 'Default sign message template',
-        },
-      },
-      controls: {
-        save: 'Save changes',
-      },
-    },
     instanceBranding: {
       header: 'Instance Branding',
       form: {
@@ -1175,7 +1276,12 @@ const en: BaseTranslation = {
       },
       licenseInfo: {
         title: 'License information',
-        noLicense: 'No license',
+        status: {
+          noLicense: 'No valid license',
+          expired: 'Expired',
+          limitsExceeded: 'Limits Exceeded',
+          active: 'Active',
+        },
         licenseNotRequired:
           "<p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>",
         types: {
@@ -1335,6 +1441,29 @@ const en: BaseTranslation = {
           label: "Disable users' ability to manually configure WireGuard client",
           helper:
             "When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.",
+        },
+      },
+    },
+    gatewayNotifications: {
+      smtpWarning:
+        'To enable gateway disconnect notifications you must first configure an SMTP server',
+      header: 'Gateway disconnect notifications',
+      helper: '<p>Here you can enable gateway disconnect notifications.</p>',
+      form: {
+        submit: 'Save changes',
+        fields: {
+          disconnectNotificationsEnabled: {
+            label: 'Enable gateway disconnect notifications',
+            help: 'Send email notification to admin users once a gateway is disconnected',
+          },
+          inactivityThreshold: {
+            label: 'Gateway inactivity time [minutes]',
+            help: 'Time (in minutes) that a gateway needs to stay disconnected before a notification is sent',
+          },
+          reconnectNotificationsEnabled: {
+            label: 'Enable gateway reconnect notifications',
+            help: 'Send email notification to admin users once a gateway is reconnected',
+          },
         },
       },
     },
@@ -1562,6 +1691,10 @@ const en: BaseTranslation = {
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
     },
+    cardsLabels: {
+      users: 'Connected Users',
+      devices: 'Connected Network Devices',
+    },
   },
   connectedUsersOverview: {
     pageTitle: 'Connected users',
@@ -1599,7 +1732,7 @@ const en: BaseTranslation = {
     form: {
       helpers: {
         address:
-          'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)',
+          'Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.',
         gateway: 'Gateway public address, used by VPN users to connect',
         dns: 'Specify the DNS resolvers to query when the wireguard interface is up.',
         allowedIps:
@@ -1698,7 +1831,6 @@ const en: BaseTranslation = {
       title: 'Two-factor authentication',
       controls: {
         useAuthenticator: 'Use Authenticator app instead',
-        useWallet: 'Use your wallet instead',
         useWebauthn: 'Use security key instead',
         useRecoveryCode: 'Use recovery code instead',
         useEmail: 'Use E-mail instead',
@@ -1738,18 +1870,6 @@ const en: BaseTranslation = {
           controls: {
             submit: 'Use recovery code',
           },
-        },
-      },
-      wallet: {
-        header:
-          'Use your crypto wallet to sign in, please sign message in your wallet app or extension.',
-        controls: {
-          submit: 'Use your wallet',
-        },
-        messages: {
-          walletError: 'Wallet was disconnected during signing process.',
-          walletErrorMfa:
-            'Wallet is not authorized for MFA login. Please use authorized wallet.',
         },
       },
       webauthn: {
@@ -1911,6 +2031,38 @@ To submit:
 
 Any other requests you can reach us at: support@defguard.net
 `,
+    },
+  },
+  devicesPage: {
+    title: 'Network Devices',
+    search: {
+      placeholder: 'Find',
+    },
+    bar: {
+      itemsCount: 'All devices',
+      filters: {},
+      actions: {
+        addNewDevice: 'Add new',
+      },
+    },
+    list: {
+      columns: {
+        labels: {
+          name: 'Device name',
+          location: 'Location',
+          assignedIp: 'IP',
+          description: 'Description',
+          addedBy: 'Added by',
+          addedAt: 'Add date',
+          edit: 'Edit',
+        },
+      },
+      edit: {
+        actionLabels: {
+          config: 'View config',
+          generateToken: 'Generate auth token',
+        },
+      },
     },
   },
 };

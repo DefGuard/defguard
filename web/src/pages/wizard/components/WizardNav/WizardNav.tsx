@@ -17,8 +17,11 @@ import {
 import { Divider } from '../../../../shared/defguard-ui/components/Layout/Divider/Divider';
 import { DividerDirection } from '../../../../shared/defguard-ui/components/Layout/Divider/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useEnterpriseUpgradeStore } from '../../../../shared/hooks/store/useEnterpriseUpgradeStore';
+import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
+import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface Props {
@@ -28,6 +31,8 @@ interface Props {
 }
 
 export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
+  const { getAppInfo } = useApi();
+  const setAppState = useAppStore((s) => s.setState, shallow);
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const toaster = useToaster();
@@ -47,30 +52,28 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
     ],
     shallow,
   );
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
 
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
         resetState();
-        queryClient.invalidateQueries([QueryKeys.FETCH_NETWORKS]);
-        queryClient.invalidateQueries([QueryKeys.FETCH_APP_INFO]);
+        invalidateMultipleQueries(queryClient, [[QueryKeys.FETCH_NETWORKS]]);
+        void getAppInfo().then((response) => {
+          setAppState({ appInfo: response });
+          if (response.license_info.any_limit_exceeded) {
+            showUpgradeToast();
+          }
+        });
         navigate('/admin/overview', { replace: true });
       } else {
         next();
       }
     });
     return () => sub?.unsubscribe();
-  }, [
-    LL.wizard,
-    lastStep,
-    navigate,
-    next,
-    nextSubject,
-    queryClient,
-    resetState,
-    toaster,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [LL.wizard, lastStep]);
 
   if (!networkPresent && currentStep === 0) return null;
 
@@ -87,13 +90,13 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
             data-testid="wizard-back"
             onClick={() => back()}
             size={ButtonSize.LARGE}
-            text="Back"
+            text={LL.common.controls.back()}
             icon={<SvgIconArrowGrayLeft />}
             disabled={loading || backDisabled}
           />
           <Button
             data-testid="wizard-next"
-            text={lastStep ? 'Finish' : 'Next'}
+            text={lastStep ? LL.common.controls.finish() : LL.common.controls.next()}
             size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={!lastStep ? <SvgIconArrowGrayRight /> : null}

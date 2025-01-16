@@ -11,7 +11,6 @@ const defaultValues: StoreValues = {
   userProfile: undefined,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const useUserProfileStore = createWithEqualityFn<Store>(
   (set) => ({
     ...defaultValues,

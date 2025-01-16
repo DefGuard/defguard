@@ -1,8 +1,9 @@
 pub mod models;
 
 use sqlx::postgres::{PgConnectOptions, PgPool};
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema)]
 pub struct NoId;
 pub type Id = i64;
 
@@ -33,10 +34,9 @@ pub use models::{
     session::{Session, SessionState},
     settings::Settings,
     user::{MFAMethod, User},
-    wallet::Wallet,
     webauthn::WebAuthn,
     webhook::{AppEvent, HWKeyUserData, WebHook},
-    wireguard::{GatewayEvent, WireguardNetwork, WireguardPeerStats},
+    wireguard::{GatewayEvent, WireguardNetwork},
     yubikey::YubiKey,
     MFAInfo, UserDetails, UserInfo,
 };

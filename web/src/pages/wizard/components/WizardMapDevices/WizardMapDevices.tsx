@@ -63,12 +63,14 @@ export const WizardMapDevices = () => {
     [LL.form.error],
   );
 
-  const { isLoading, data: users } = useQuery([QueryKeys.FETCH_USERS_LIST], getUsers, {
-    refetchOnWindowFocus: false,
+  const { isLoading, data: users } = useQuery({
+    queryKey: [QueryKeys.FETCH_USERS_LIST],
+    queryFn: getUsers,
     refetchOnMount: false,
   });
 
-  const { isLoading: createLoading, mutate } = useMutation(mapUserDevices, {
+  const { isPending: createLoading, mutate } = useMutation({
+    mutationFn: mapUserDevices,
     onSuccess: () => {
       setWizardState({ loading: false });
       toaster.success(LL.wizard.deviceMap.messages.crateSuccess());
@@ -90,9 +92,9 @@ export const WizardMapDevices = () => {
   const getUsersOptions = useMemo(
     (): SelectOption<number>[] =>
       users?.map((user) => ({
-        value: user.id as number,
+        value: user.id,
         label: `${user.first_name} ${user.last_name}`,
-        key: user.id as number,
+        key: user.id,
         meta: ``,
       })) ?? [],
     [users],

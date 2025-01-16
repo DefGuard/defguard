@@ -3,18 +3,12 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { createWithEqualityFn } from 'zustand/traditional';
 
 import { Locales } from '../../../i18n/i18n-types';
-import {
-  AppInfo,
-  EnterpriseStatus,
-  SettingsEnterprise,
-  SettingsEssentials,
-} from '../../types';
+import { AppInfo, SettingsEnterprise, SettingsEssentials } from '../../types';
 
 const defaultValues: StoreValues = {
   settings: undefined,
   language: undefined,
   appInfo: undefined,
-  enterprise_status: undefined,
   enterprise_settings: undefined,
 };
 
@@ -28,7 +22,7 @@ export const useAppStore = createWithEqualityFn<Store>()(
     }),
     {
       name: 'app-store',
-      version: 0.2,
+      version: 1,
       partialize: (store) => pick(store, persistKeys),
       storage: createJSONStorage(() => sessionStorage),
     },
@@ -42,7 +36,6 @@ type StoreValues = {
   settings?: SettingsEssentials;
   language?: Locales;
   appInfo?: AppInfo;
-  enterprise_status?: EnterpriseStatus;
   enterprise_settings?: SettingsEnterprise;
 };
 

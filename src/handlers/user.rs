@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Json, Path, Query, State},
+    extract::{Json, Path, State},
     http::StatusCode,
 };
 use serde_json::json;
@@ -7,7 +7,6 @@ use serde_json::json;
 use super::{
     mail::EMAIL_PASSOWRD_RESET_START_SUBJECT, user_for_admin_or_self, AddUserData, ApiResponse,
     ApiResult, PasswordChange, PasswordChangeSelf, StartEnrollmentRequest, Username,
-    WalletChallenge, WalletSignature,
 };
 use crate::{
     appstate::AppState,
@@ -16,10 +15,9 @@ use crate::{
         models::{
             device::DeviceInfo,
             enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-            WalletInfo,
         },
-        AppEvent, GatewayEvent, OAuth2AuthorizedApp, Settings, User, UserDetails, UserInfo, Wallet,
-        WebAuthn, WireguardNetwork,
+        AppEvent, GatewayEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
+        WireguardNetwork,
     },
     enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     error::WebError,
@@ -338,7 +336,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        let _result = ldap_add_user(&appstate.pool, &user, &password).await;
+        let _result = ldap_add_user(&user, &password).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -372,9 +370,9 @@ pub async fn add_user(
         (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
         (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
         (status = 401, description = "Unauthorized to start enrollment.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to start enrollment.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start enrollment.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 403, description = "You don't have permission to start enrollment.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start enrollment.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
 pub async fn start_enrollment(
@@ -463,11 +461,11 @@ pub async fn start_enrollment(
     path = "/api/v1/user/{username}/start_desktop",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
-        (status = 400, description = "Bad request, invalid enrollment request.", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
-        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = Json, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start remote desktop configuration.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
 pub async fn start_remote_desktop_configuration(
@@ -515,6 +513,7 @@ pub async fn start_remote_desktop_configuration(
             config.enrollment_url.clone(),
             data.send_enrollment_notification,
             appstate.mail_tx.clone(),
+            None,
         )
         .await?;
 
@@ -550,7 +549,7 @@ pub async fn start_remote_desktop_configuration(
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
-    request_body = Json<Username>,
+    request_body = Username,
     responses(
         (status = 200, description = "Provided username is available to use.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided username is not available or username is invalid.", body = ApiResponse, example = json!({})),
@@ -597,7 +596,7 @@ pub async fn username_available(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<UserInfo>,
+    request_body = UserInfo,
     responses(
         (status = 200, description = "User has been updated."),
         (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = ApiResponse, example = json!({})),
@@ -675,7 +674,7 @@ pub async fn modify_user(
     user.save(&mut *transaction).await?;
 
     // TODO: Reflect user status (active/disabled) modification in ldap
-    let _result = ldap_modify_user(&appstate.pool, &username, &user).await;
+    let _result = ldap_modify_user(&username, &user).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     appstate.trigger_action(AppEvent::UserModified(user_info));
 
@@ -738,7 +737,7 @@ pub async fn delete_user(
         debug!("Devices of user {username} purged from networks.");
 
         user.delete(&mut *transaction).await?;
-        let _result = ldap_delete_user(&mut *transaction, &username).await;
+        let _result = ldap_delete_user(&username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
@@ -762,7 +761,7 @@ pub async fn delete_user(
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
-    request_body = Json<PasswordChangeSelf>,
+    request_body = PasswordChangeSelf,
     responses(
         (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = ApiResponse, example = json!({})),
@@ -795,7 +794,7 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    let _ = ldap_change_password(&appstate.pool, &user.username, &data.new_password).await;
+    let _ = ldap_change_password(&user.username, &data.new_password).await;
 
     info!("User {} changed his password.", &user.username);
 
@@ -819,11 +818,11 @@ pub async fn change_self_password(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<PasswordChange>,
+    request_body = PasswordChange,
     responses(
         (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = ApiResponse, example = json!({})),
-        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Cannot change user password that does not exist.", body = ApiResponse, example = json!({})),
         (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
@@ -869,7 +868,7 @@ pub async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        let _ = ldap_change_password(&appstate.pool, &username, &data.new_password).await;
+        let _ = ldap_change_password(&username, &data.new_password).await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username
@@ -986,237 +985,6 @@ pub async fn reset_password(
             json: json!({}),
             status: StatusCode::NOT_FOUND,
         })
-    }
-}
-
-/// Wallet challenge
-///
-/// Endpoint allows to generate a wallet challenge for ownership verification.
-///
-/// # Returns
-/// Returns `WalletChallenge` object or `WebError` object if error occurs.
-#[utoipa::path(
-    get,
-    path = "/api/v1/user/{username}/challenge",
-    params(
-        ("username" = String, description = "name of a user"),
-    ),
-    responses(
-        (status = 200, description = "Return successfully wallet challenge details.", body = WalletChallenge, example = json!(
-            {
-                "id": 1,
-                "message": "message"
-            }
-        )),
-        (status = 401, description = "Unauthorized to return wallet challenge.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 404, description = "Wrong address or wallet challenge is alredy validated.", body = ApiResponse, example = json!({"msg": "wrong address"})),
-        (status = 500, description = "Cannot retrive settings.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
-    )
-)]
-pub async fn wallet_challenge(
-    session: SessionInfo,
-    State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Query(wallet_info): Query<WalletInfo>,
-) -> ApiResult {
-    debug!(
-        "User {} generating wallet challenge for user {username}",
-        session.user.username,
-    );
-    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-
-    // check if address already exists
-    let wallet = if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id, &wallet_info.address).await?
-    {
-        if wallet.validation_timestamp.is_some() {
-            error!(
-                "Can't generate wallet challange for user {username}, the wallet {} is already validated",
-                wallet_info.address
-                );
-            return Err(WebError::ObjectNotFound("wrong address".into()));
-        }
-        wallet
-    } else {
-        let challenge_message = if let Some(settings) = Settings::get(&appstate.pool).await? {
-            Wallet::format_challenge(&wallet_info.address, &settings.challenge_template)
-        } else {
-            error!("Cannot retrieve settings");
-            return Err(WebError::DbError("cannot retrieve settings".into()));
-        };
-        Wallet::new_for_user(
-            user.id,
-            wallet_info.address,
-            wallet_info.name,
-            wallet_info.chain_id,
-            challenge_message,
-        )
-        .save(&appstate.pool)
-        .await?
-    };
-
-    info!(
-        "User {} generated wallet challenge for user {username}",
-        session.user.username
-    );
-
-    Ok(ApiResponse {
-        json: json!(WalletChallenge {
-            id: wallet.id,
-            message: wallet.challenge_message
-        }),
-        status: StatusCode::OK,
-    })
-}
-
-/// Set wallet
-///
-/// Set a new signature to user wallet by providing `WalletSignature` object.
-///
-/// # Returns
-/// It returns `WebError` object if error occurs.
-#[utoipa::path(
-    get,
-    path = "/api/v1/user/{username}/wallet",
-    params(
-        ("username" = String, description = "name of a user"),
-    ),
-    responses(
-        (status = 200, description = "Successfully set wallet signature."),
-        (status = 401, description = "Unauthorized to set a new signature.", body = Json, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to set new signature to wallet.", body = Json, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet signature or address, can't set new signature for user.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot set a new wallet signature", body = Json, example = json!({"msg": "Internal server error"}))
-    )
-)]
-pub async fn set_wallet(
-    session: SessionInfo,
-    State(appstate): State<AppState>,
-    Path(username): Path<String>,
-    Json(wallet_info): Json<WalletSignature>,
-) -> ApiResult {
-    debug!(
-        "User {} setting wallet signature for user {username}",
-        session.user.username
-    );
-    let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    if let Some(mut wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id, &wallet_info.address).await?
-    {
-        if wallet.validate_signature(&wallet_info.signature).is_ok() {
-            wallet
-                .set_signature(&appstate.pool, &wallet_info.signature)
-                .await?;
-            info!(
-                "User {} set wallet signature for user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse::default())
-        } else {
-            error!(
-                "User {} failed to set wallet signature for user {username}, wallet ({}) signature {} is invalid",
-                session.user.username, wallet_info.address, wallet_info.signature
-            );
-            Err(WebError::ObjectNotFound("wrong address".into()))
-        }
-    } else {
-        error!(
-            "User {} failed to set wallet signature for user {username}, address {} not found",
-            session.user.username, wallet_info.address
-        );
-        Err(WebError::ObjectNotFound("wallet not found".into()))
-    }
-}
-
-/// Change wallet.
-///
-/// Updates user wallet.
-/// Currently only `use_for_mfa` flag can be set or unset.
-///
-/// # Returns
-/// Returns `RecoveryCodes` object or `WebError` object if error occurs.
-#[utoipa::path(
-    put,
-    path = "/api/v1/user/{username}/wallet/{address}",
-    params(
-        ("username" = String, description = "name of a user"),
-        ("address" = String, description = "address of a user portfel")
-    ),
-    request_body = Json<WalletChange>,
-    responses(
-        (status = 200, description = "Successfully updated user's wallet.", body = RecoveryCodes, example = json!({"codes": "[]"})),
-        (status = 401, description = "Unauthorized to udpate user wallet.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to update user wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet, can't update user wallet.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot udpate user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
-    )
-)]
-pub async fn update_wallet(
-    session: SessionInfo,
-    Path((username, address)): Path<(String, String)>,
-) -> ApiResult {
-    debug!(
-        "User {} updating wallet {address} for user {username}",
-        session.user.username,
-    );
-    Err(WebError::ObjectNotFound("deprecated wallet update".into()))
-}
-
-/// Delete wallet.
-///
-/// Endpoint helps you to delete user wallet.
-///
-/// # Returns
-/// Returns `WebError` object if error occurs.
-#[utoipa::path(
-    delete,
-    path = "/api/v1/user/{username}/wallet/{address}",
-    params(
-        ("username" = String, description = "name of a user"),
-        ("address" = String, description = "address of a user portfel")
-    ),
-    responses(
-        (status = 200, description = "Successfully deleted user's wallet."),
-        (status = 401, description = "Unauthorized to delete user wallet.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to delete user wallet.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
-        (status = 404, description = "Incorrect wallet, can't delete user wallet.", body = ApiResponse, example = json!({"msg": "wallet not found"})),
-        (status = 500, description = "Cannot delete user wallet.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
-    )
-)]
-pub async fn delete_wallet(
-    session: SessionInfo,
-    State(appstate): State<AppState>,
-    Path((username, address)): Path<(String, String)>,
-) -> ApiResult {
-    debug!(
-        "User {} deleting wallet {address} for user {username}",
-        session.user.username,
-    );
-    let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
-    if let Some(wallet) =
-        Wallet::find_by_user_and_address(&appstate.pool, user.id, &address).await?
-    {
-        if wallet.user_id == user.id {
-            wallet.delete(&appstate.pool).await?;
-            user.verify_mfa_state(&appstate.pool).await?;
-            info!(
-                "User {} deleted wallet {address} for user {username}",
-                session.user.username,
-            );
-            Ok(ApiResponse::default())
-        } else {
-            error!(
-                "User {} failed to delete wallet {address} for user {username} (id: {:?}), the owner id is {}",
-                session.user.username, user.id, wallet.user_id
-            );
-            Err(WebError::ObjectNotFound("wrong wallet".into()))
-        }
-    } else {
-        error!(
-            "User {} failed to delete wallet {address} for user {username}, wallet not found",
-            session.user.username
-        );
-        Err(WebError::ObjectNotFound("wallet not found".into()))
     }
 }
 

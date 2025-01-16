@@ -64,10 +64,7 @@ pub(crate) async fn build_device_config_response(
     device: Device<Id>,
     token: Option<String>,
 ) -> Result<DeviceConfigResponse, Status> {
-    let settings = Settings::get_settings(pool).await.map_err(|_| {
-        error!("Failed to get settings");
-        Status::internal("unexpected error")
-    })?;
+    let settings = Settings::get_current_settings();
 
     let networks = WireguardNetwork::all(pool).await.map_err(|err| {
         error!("Failed to fetch all networks: {err}");
@@ -108,7 +105,7 @@ pub(crate) async fn build_device_config_response(
                 .collect::<Vec<String>>()
                 .join(",");
             let config = ProtoDeviceConfig {
-                config: device.create_config(&network, &wireguard_network_device),
+                config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
                 network_name: network.name,
                 assigned_ip: wireguard_network_device.wireguard_ip.to_string(),

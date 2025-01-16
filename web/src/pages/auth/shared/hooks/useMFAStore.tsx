@@ -11,7 +11,6 @@ interface MFAStore extends MFALoginResponse {
 const defaultState: MFALoginResponse = {
   mfa_method: UserMFAMethod.NONE,
   totp_available: false,
-  web3_available: false,
   webauthn_available: false,
   email_available: false,
 };
@@ -29,6 +28,7 @@ export const useMFAStore = createWithEqualityFn<
     {
       name: 'mfa-storage',
       storage: createJSONStorage(() => sessionStorage),
+      version: 2,
     },
   ),
   Object.is,

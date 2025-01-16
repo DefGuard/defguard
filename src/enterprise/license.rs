@@ -1,35 +1,30 @@
-use std::{
-    sync::{RwLock, RwLockReadGuard},
-    time::Duration,
-};
+use std::time::Duration;
 
 use anyhow::Result;
 use base64::prelude::*;
 use chrono::{DateTime, TimeDelta, Utc};
 use humantime::format_duration;
-use pgp::{types::KeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
+use pgp::{types::PublicKeyTrait, Deserializable, SignedPublicKey, StandaloneSignature};
 use prost::Message;
 use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::time::sleep;
 
-use crate::{db::Settings, server_config, VERSION};
+use super::limits::Counts;
+use crate::{
+    db::{models::settings::update_current_settings, Settings},
+    global_value, server_config, VERSION,
+};
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
 
-static LICENSE: RwLock<Option<License>> = RwLock::new(None);
-
-pub fn set_cached_license(license: Option<License>) {
-    *LICENSE
-        .write()
-        .expect("Failed to acquire lock on the license mutex.") = license;
-}
-
-pub fn get_cached_license() -> RwLockReadGuard<'static, Option<License>> {
-    LICENSE
-        .read()
-        .expect("Failed to acquire lock on the license mutex.")
-}
+global_value!(
+    LICENSE,
+    Option<License>,
+    None,
+    set_cached_license,
+    get_cached_license
+);
 
 tonic::include_proto!("license");
 
@@ -190,6 +185,10 @@ pub enum LicenseError {
     LicenseNotFound,
     #[error("License server error: {0}")]
     LicenseServerError(String),
+    #[error(
+        "License limits exceeded. To upgrade your license please contact sales<at>defguard.net"
+    )]
+    LicenseLimitsExceeded,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -202,6 +201,7 @@ pub struct License {
     pub customer_id: String,
     pub subscription: bool,
     pub valid_until: Option<DateTime<Utc>>,
+    pub limits: Option<LicenseLimits>,
 }
 
 impl License {
@@ -210,11 +210,13 @@ impl License {
         customer_id: String,
         subscription: bool,
         valid_until: Option<DateTime<Utc>>,
+        limits: Option<LicenseLimits>,
     ) -> Self {
         Self {
             customer_id,
             subscription,
             valid_until,
+            limits,
         }
     }
 
@@ -247,7 +249,7 @@ impl License {
             let signing_key = public_key
                 .public_subkeys
                 .into_iter()
-                .find(KeyTrait::is_signing_key)
+                .find(PublicKeyTrait::is_signing_key)
                 .ok_or(LicenseError::LicenseServerError(
                     "Failed to find a signing key in the provided public key".to_string(),
                 ))?;
@@ -290,8 +292,12 @@ impl License {
                     None => None,
                 };
 
-                let license =
-                    License::new(metadata.customer_id, metadata.subscription, valid_until);
+                let license = License::new(
+                    metadata.customer_id,
+                    metadata.subscription,
+                    valid_until,
+                    metadata.limits,
+                );
 
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
@@ -312,24 +318,15 @@ impl License {
     }
 
     /// Get the key from the database
-    async fn get_key(pool: &PgPool) -> Result<Option<String>, LicenseError> {
-        let settings = Settings::get_settings(pool).await?;
-        match settings.license {
-            Some(key) => {
-                if key.is_empty() {
-                    Ok(None)
-                } else {
-                    Ok(Some(key))
-                }
-            }
-            None => Ok(None),
-        }
+    fn get_key() -> Option<String> {
+        let settings = Settings::get_current_settings();
+        settings.license.filter(|key| !key.is_empty())
     }
 
     /// Create the license object based on the license key stored in the database.
     /// Automatically decodes and deserializes the keys and verifies the signature.
-    pub async fn load(pool: &PgPool) -> Result<Option<License>, LicenseError> {
-        if let Some(key) = Self::get_key(pool).await? {
+    pub fn load() -> Result<Option<License>, LicenseError> {
+        if let Some(key) = Self::get_key() {
             Ok(Some(Self::from_base64(&key)?))
         } else {
             debug!("No license key found in the database");
@@ -340,14 +337,14 @@ impl License {
     /// Try to load the license from the database, if the license requires a renewal, try to renew it.
     /// If the renewal fails, it will return the old license for the renewal service to renew it later.
     pub async fn load_or_renew(pool: &PgPool) -> Result<Option<License>, LicenseError> {
-        match Self::load(pool).await? {
+        match Self::load()? {
             Some(license) => {
                 if license.requires_renewal() {
                     if license.is_max_overdue() {
                         Err(LicenseError::LicenseExpired)
                     } else {
                         info!("License requires renewal, trying to renew it...");
-                        match renew_license(pool).await {
+                        match renew_license().await {
                             Ok(new_key) => {
                                 let new_license = License::from_base64(&new_key)?;
                                 save_license_key(pool, &new_key).await?;
@@ -421,11 +418,11 @@ impl License {
     /// Checks if the license has reached its maximum overdue time.
     #[must_use]
     pub fn is_max_overdue(&self) -> bool {
-        if !self.subscription {
+        if self.subscription {
+            self.time_overdue() > MAX_OVERDUE_TIME
+        } else {
             // Non-subscription licenses are considered expired immediately, no grace period is required
             self.is_expired()
-        } else {
-            self.time_overdue() > MAX_OVERDUE_TIME
         }
     }
 }
@@ -433,9 +430,9 @@ impl License {
 /// Exchange the currently stored key for a new one from the license server.
 ///
 /// Doesn't update the cached license, nor does it save the new key in the database.
-async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
+async fn renew_license() -> Result<String, LicenseError> {
     debug!("Exchanging license for a new one...");
-    let Some(old_license_key) = Settings::get_settings(db_pool).await?.license else {
+    let Some(old_license_key) = Settings::get_current_settings().license else {
         return Err(LicenseError::LicenseNotFound);
     };
 
@@ -445,34 +442,37 @@ async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
         key: old_license_key,
     };
 
-    let new_license_key = match client
-        .post(LICENSE_SERVER_URL)
-        .json(&request_body)
-        .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
-        .timeout(Duration::from_secs(10))
-        .send()
-        .await
-    {
-        Ok(response) => match response.status() {
-            reqwest::StatusCode::OK => {
-                let response: RefreshRequestResponse = response.json().await.map_err(|err| {
-                    error!("Failed to parse the response from the license server while trying to renew the license: {err:?}");
+    let new_license_key =
+        match client
+            .post(LICENSE_SERVER_URL)
+            .json(&request_body)
+            .header(reqwest::header::USER_AGENT, format!("DefGuard/{VERSION}"))
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+        {
+            Ok(response) => match response.status() {
+                reqwest::StatusCode::OK => {
+                    let response: RefreshRequestResponse = response.json().await.map_err(|err| {
+                    error!("Failed to parse the response from the license server while trying to \
+                        renew the license: {err:?}");
                     LicenseError::LicenseServerError(err.to_string())
                 })?;
-                response.key
+                    response.key
+                }
+                status => {
+                    let status_message = response.text().await.unwrap_or_default();
+                    let message = format!(
+                        "Failed to renew the license, the license server returned a status code \
+                    {status} with error: {status_message}"
+                    );
+                    return Err(LicenseError::LicenseServerError(message));
+                }
+            },
+            Err(err) => {
+                return Err(LicenseError::LicenseServerError(err.to_string()));
             }
-            status => {
-                let status_message = response.text().await.unwrap_or_default();
-                let message = format!(
-                    "Failed to renew the license, the license server returned a status code {status} with error: {status_message}"
-                );
-                return Err(LicenseError::LicenseServerError(message));
-            }
-        },
-        Err(err) => {
-            return Err(LicenseError::LicenseServerError(err.to_string()));
-        }
-    };
+        };
 
     info!("Successfully exchanged the license for a new one");
 
@@ -486,12 +486,19 @@ async fn renew_license(db_pool: &PgPool) -> Result<String, LicenseError> {
 /// This function checks the following two things:
 /// 1. Does the cached license exist
 /// 2. Is the cached license past its maximum expiry date
-pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
-    debug!("Validating if the license is present and not expired...");
+/// 3. Does current object count exceed license limits
+pub(crate) fn validate_license(
+    license: Option<&License>,
+    counts: &Counts,
+) -> Result<(), LicenseError> {
+    debug!("Validating if the license is present, not expired and not exceeding limits...");
     match license {
         Some(license) => {
             if license.is_max_overdue() {
                 return Err(LicenseError::LicenseExpired);
+            }
+            if counts.is_over_license_limits(license) {
+                return Err(LicenseError::LicenseLimitsExceeded);
             }
             Ok(())
         }
@@ -502,16 +509,16 @@ pub fn validate_license(license: Option<&License>) -> Result<(), LicenseError> {
 /// Helper function to save the license key string in the database
 async fn save_license_key(pool: &PgPool, key: &str) -> Result<(), LicenseError> {
     debug!("Saving the license key to the database...");
-    let mut settings = Settings::get_settings(pool).await?;
+    let mut settings = Settings::get_current_settings();
     settings.license = Some(key.to_string());
-    settings.save_license(pool).await?;
+    update_current_settings(pool, settings).await?;
 
     info!("Successfully saved license key to the database.");
 
     Ok(())
 }
 
-/// Helper function to update the cached license mutex. The mutex is used mainly in the appstate.
+/// Helper function to update the in-memory cached license mutex.
 pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
     debug!("Updating the cached license information with the provided key...");
     let license = if let Some(key) = key {
@@ -561,36 +568,31 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
             let license = get_cached_license();
             debug!("Checking if the license {license:?} requires a renewal...");
 
-            match &*license {
-                Some(license) => {
-                    if license.requires_renewal() {
-                        // check if we are pass the maximum expiration date, after which we don't
-                        // want to try to renew the license anymore
-                        if license.is_max_overdue() {
-                            check_period = *config.check_period;
-                            warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
-                            debug!("Changing check period to {}", format_duration(check_period));
-                            false
-                        } else {
-                            debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
-                            true
-                        }
-                    } else {
-                        // This if is only for logging purposes, to provide more detailed information
-                        if license.subscription {
-                            debug!(
-                                "License doesn't need to be renewed yet, skipping renewal check"
-                            );
-                        } else {
-                            debug!("License is not a subscription, skipping renewal check");
-                        }
+            if let Some(license) = license.as_ref() {
+                if license.requires_renewal() {
+                    // check if we are pass the maximum expiration date, after which we don't
+                    // want to try to renew the license anymore
+                    if license.is_max_overdue() {
+                        check_period = *config.check_period;
+                        warn!("Your license has expired and reached its maximum overdue date, please contact sales at sales<at>defguard.net");
+                        debug!("Changing check period to {}", format_duration(check_period));
                         false
+                    } else {
+                        debug!("License requires renewal, as it is about to expire and is not past the maximum overdue time");
+                        true
                     }
-                }
-                None => {
-                    debug!("No license found, skipping license check");
+                } else {
+                    // This if is only for logging purposes, to provide more detailed information
+                    if license.subscription {
+                        debug!("License doesn't need to be renewed yet, skipping renewal check");
+                    } else {
+                        debug!("License is not a subscription, skipping renewal check");
+                    }
                     false
                 }
+            } else {
+                debug!("No license found, skipping license check");
+                false
             }
         };
 
@@ -598,7 +600,7 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
             info!("License requires renewal, renewing license...");
             check_period = *config.check_period_renewal_window;
             debug!("Changing check period to {}", format_duration(check_period));
-            match renew_license(pool).await {
+            match renew_license().await {
                 Ok(new_license_key) => match save_license_key(pool, &new_license_key).await {
                     Ok(()) => {
                         update_cached_license(Some(&new_license_key))?;
@@ -627,21 +629,16 @@ pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseErro
 #[cfg(test)]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mQENBGa0jtoBCAC63WkY0btyVzHI8JGVfIkFClNggcDgK+X/if5ndJtHKRXcW6DB
-bRTBNCdUr7sDzCMEYWu8t400Yn/mrLKuubA3G6rp3Eo2nHnOicoZ6mfAdUQL862l
-m9M8zpJtFodWR5G0nznyvabQi9kI1JT87DEIAdfLhN4eoMpgEm+jASSgFeT63oJ9
-fLHofMZLwYZW/mqsnGxElmUsfnVWeseUSgmKBP4IgdtX4LsCx8XiOyQJww6bEUTj
-ZBSqwwuRa1ybtsV3ihEKjDBmXQo5+J3fsadm/6m5PRJVk5rq9/LGVKIBG9m/x6Pn
-xeYaLsjNyAwOSHH2KpeBLPVEfjsqWRt8fyAzABEBAAG0HEF1dG9nZW5lcmF0ZWQg
-S2V5IDxkZWZndWFyZD6JAU4EEwEKADgWIQTyH9Rb8S5I78bRYzghGgZ+AdnRKwUC
-ZrSO2gIbLwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRAhGgZ+AdnRKyzzCACW
-oGBnAPHkCuvlnZjcYUAJVrjI/S02x4t3wFjaFOu+GQSjeB+AjDawF/S4D5ReQ8iq
-D3dTvno3lk/F5HvqV/ZDU9WMmkDFzJoEwKbNIlWwQvvrTnoyy7lpKskNxwwsErEL
-2+rW+lW/N5KNHFaUh2d5JhK08VRPfyl0WA8gqQ99Wnhq4rHF7ijKFm3im0RlzkMI
-NTXxxee/9J0/Pzh+7zFZlMxnnjwiHlxJXpQFwh7+TS9C3IpChW3ipyPgp1DkzsNv
-Xry1crUOhOyEozdKYh2H6tZEi3bjtGwpYkXJs/g3f6HPKjS8rDOMXw4Japb7LYtC
-Aao60J8cOm8J96u1MsUK
-=6cHp
+mI0EZ3ZfKQEEAKp7t6rldfVtMZ3x42cC+P7ZzF4OxuGlt/eDxoCzFpirCIwu1WY/
+cpi+3zop0dovEBbIoYIHJVLwMxx/y/UzQ9H/3Vc0MZ3ZNwK+LRGugaOi6Y/Z6C3i
+JjBJRMLi1rIU8TbYHE4QG6QUssDH74cE0s/WQjsEqkthkKwf5qv4/TgLABEBAAG0
+HWRlZmd1YXJkLXRlc3QgPGRlZmd1YXJkQHRlc3Q+iNEEEwEIADsWIQSaLjwX4m6j
+CO3NypmohGwBApqEhAUCZ3ZfKQIbAwULCQgHAgIiAgYVCgkICwIEFgIDAQIeBwIX
+gAAKCRCohGwBApqEhONUA/9vnmAL8Roouk0GPeTKt9C/srXcmPtIadzoyEqGjsNI
+Y1dpL7jhaKjY8sJtuNaCwTJ529w97fLM+SIeAMbwrK5naSdAIRqknn1h8a8VWkdX
+isbqg9N/kMP891HyJZHM35VbHn1zFuJUh2gVzfIVaaAmC7YIMtmiAP5lYbrId/Ps
+hw==
+=6frq
 -----END PGP PUBLIC KEY BLOCK-----
 ";
 
@@ -653,78 +650,129 @@ mod test {
 
     #[test]
     fn test_license() {
-        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9BYAAoJEKiEbAECmoSEtuMEAJu+mQlHt+OsIb3DSiknwyB+Z3d/AtvaOxIrnGSgnpJ22jAwKTRfBrOJsJQr0dA9wB4yawbXGv6+m35QPABQdSM+clq7x5J2bxyhLla00O7cdf2BcdYmyBEv1D/ZIjT1XBFoYEXzwxniviNsw4ZJaRsRIylr7eWsTw1tu+8IF4/U";
+        let license = License::from_base64(license).unwrap();
+        assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
+        assert!(!license.subscription);
+        assert_eq!(
+            license.valid_until.unwrap(),
+            Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
+        );
+        assert!(license.is_expired());
+
+        let limits = license.limits.unwrap();
+        assert_eq!(limits.users, 10);
+        assert_eq!(limits.devices, 100);
+        assert_eq!(limits.locations, 5);
+    }
+
+    #[test]
+    fn test_legacy_license() {
+        // use license key generated before user/device/location limits were introduced
+        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGNaw1LsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3fBjAAKCRCohGwBApqEhNX+A/9dQmucvCTm5ll9h7a8f1N7d7dAOQW8/xhVA4bZP3GATIya/RxZ+cp+oHRYvHwSiRG3smGbRzti9DdHaTC/X1nqjMvZ6M4pR+aBayFH7fSUQKRj5z40juZ/HTCH/236YG3IzUZmIasLYl8Em9AY3oobkkwh1Yw+v8XYaBTUsrOv9w==";
         let license = License::from_base64(license).unwrap();
         assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
         assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 21, 10, 19, 30).unwrap()
+            Utc.with_ymd_and_hms(2025, 1, 1, 10, 26, 30).unwrap()
         );
 
         assert!(license.is_expired());
+
+        // legacy license is unlimited
+        assert!(license.limits.is_none());
     }
 
     #[test]
     fn test_new_license() {
         // This key has an additional test_field in the metadata that doesn't exist in the proto definition
         // It should still be able to decode the license correctly
-        let license = "CjIKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGMv0lrYGIggxMjM0NTY3OBK2AokBMwQAAQoAHRYhBPIf1FvxLkjvxtFjOCEaBn4B2dErBQJmxbpSAAoJECEaBn4B2dEru6sH/0FBWgj8Nl1n/hwx1CdwrmKkKOCRpTf244wS07EcwQDr/A5TA011Y4PFJBSFfoIlyuGFHh20KoczFVUPfyiIGkqMMGOe8BH0Pbst6n5hd1S67m5fKgNV+NdaWg1aJfMdbGdworpZWTnsHnsTnER+fhoC/CohPtTshTdBZX0wmyfAWKQW3HM0YcE73+KFvGMzTMyin/bOrjr7bW0d5yoQLaEIpAASTlb6DaX5avyTFitXLf77cMjRu4wysnlPfwIpSqQI+ESHNh+OepOUqxmox+U9hGVtvlIJhvBOLgJ/Kmldc1Kj7uZaldLhWDG5e7+dVdnhbwfuoUsgS9jmpAmeWsg=";
+        let license = "CjAKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGIgYIChBkGAUStQGIswQAAQgAHRYhBJouPBfibqMI7c3KmaiEbAECmoSEBQJnd9EMAAoJEKiEbAECmoSE/0kEAIb18pVTEYWQo0w6813nShJqi7++Uo/fX4pxaAzEiG9r5HGpZSbsceCarMiK1rBr93HOIMeDRsbZmJBA/MAYGi32uXgzLE8fGSd4lcUPAbpvlj7KNvQNH6sMelzQVw+AJVY+IASqO84nfy92taEVagbLqIwl/eSQUnehJBS+B5/z";
         let license = License::from_base64(license).unwrap();
 
-        assert_eq!(license.customer_id, "5a0dad4b9cfe4b76bb93bb5cd90c6f7c");
+        assert_eq!(license.customer_id, "0c4dcb5400544d47ad8617fcdf2704cb");
         assert!(!license.subscription);
         assert_eq!(
             license.valid_until.unwrap(),
-            Utc.with_ymd_and_hms(2024, 8, 21, 9, 58, 35).unwrap()
+            Utc.with_ymd_and_hms(2024, 12, 26, 13, 57, 54).unwrap()
         );
     }
 
     #[test]
     fn test_invalid_license() {
-        let license = "CigKIDVhMGRhZDRiOWNmZTRiNzZiYjkzYmI1Y2Q5MGM2ZjdjGLL+lrYGErYCiQEzBAABCgAdFiEE8h/UW/EuSO/G0WM4IRoGfgHZ0SsFAmbFvzUACgkQIRoGfgHZ0SuNQggAioLovxAyrgAn+LPO42QIlVHYG8oTs3jnpM0BMx3cXbfy7M0ECsC10HpzIkundems7SgYO/+iJfMMe4mj3kiA+uwacCmPW6VWTIVEIpX2jqRpv7DcDnUSeAszySZl6KhQS+35IPC0Gs2yQNU4/mDsa4VUv9DiL8s7rMM89fe4QmtjVRpFQVgGLm4IM+mRIXTySB2RwmVzw8+YE4z+w4emLxaKWjw4Q7CQxykkPNGlBj224jozs/Biw9eDYCbJOT/5KXNqZ2peht59n6RMVc0SNKE26E8hDmJ61M0Tzj57wQ6nZ3yh6KGyTdCIc9Y9wcrHwZ1Yw1tdh8j/fULUyPtNyA==";
+        let license = "CigKIDBjNGRjYjU0MDA1NDRkNDdhZDg2MTdmY2RmMjcwNGNiGOLBtbsGErUBiLMEAAEIAB0WIQSaLjwX4m6jCO3NypmohGwBApqEhAUCZ3ZjywAKCRCohGwBApqEhEwFBACpHDnIszU2+KZcGhi3kycd3a12PyXJuFhhY4cuSyC8YEND85BplSWK1L8nu5ghFULFlddXP9HTHdxhJbtx4SgOQ8pxUY3+OpBN4rfJOMF61tvMRLaWlz7FWm/RnHe8cpoAOYm4oKRS0+FA2qLThxSsVa+S907ty19c6mcDgi6V5g==";
         let license = License::from_base64(license).unwrap();
-        assert!(validate_license(Some(&license)).is_err());
-        assert!(validate_license(None).is_err());
+        let counts = Counts::default();
+        assert!(validate_license(Some(&license), &counts).is_err());
+        assert!(validate_license(None, &counts).is_err());
 
         // One day past the expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: Some(Utc::now() - TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_err());
+        let license = License::new(
+            "test".to_string(),
+            false,
+            Some(Utc::now() - TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: Some(Utc::now() + TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new(
+            "test".to_string(),
+            false,
+            Some(Utc::now() + TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // No expiry date, non-subscription license
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: false,
-            valid_until: None,
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new("test".to_string(), false, None, None);
+        assert!(validate_license(Some(&license), &counts).is_ok());
 
         // One day past the maximum overdue date
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: true,
-            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_err());
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME - TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
 
         // One day before the maximum overdue date
-        let license = License {
-            customer_id: "test".to_string(),
-            subscription: true,
-            valid_until: Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
-        };
-        assert!(validate_license(Some(&license)).is_ok());
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            None,
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
+
+        let counts = Counts::new(5, 5, 5);
+
+        // Over object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 1,
+                devices: 1,
+                locations: 1,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_err());
+
+        // Below object count limits
+        let license = License::new(
+            "test".to_string(),
+            true,
+            Some(Utc::now() - MAX_OVERDUE_TIME + TimeDelta::days(1)),
+            Some(LicenseLimits {
+                users: 10,
+                devices: 10,
+                locations: 10,
+            }),
+        );
+        assert!(validate_license(Some(&license), &counts).is_ok());
     }
 }

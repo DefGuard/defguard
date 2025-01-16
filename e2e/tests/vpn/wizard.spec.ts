@@ -37,7 +37,7 @@ test.describe('Setup VPN (wizard) ', () => {
       ...testUserTemplate,
       firstName: `test${id}`,
       username: `test${id}`,
-      mail: `test${id}@test.com`
+      mail: `test${id}@test.com`,
     }));
     await loginBasic(page, defaultUserAdmin);
     await apiCreateUsersBulk(page, users);

@@ -53,42 +53,42 @@ export const OpenIdClientModalForm = () => {
     return defaultValuesEmptyForm;
   }, [modalState.client]);
 
-  const { mutate: addMutation, isLoading: addLoading } = useMutation(
-    [MutationKeys.ADD_OPENID_CLIENT],
-    addOpenidClient,
-    {
-      onSuccess: () => {
-        toaster.success(
-          LL.openidOverview.modals.openidClientModal.form.messages.successAdd(),
-        );
-        setModalState({ visible: false });
-        queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        setModalState({ visible: false });
-        console.error(err);
-      },
+  const { mutate: addMutation, isPending: addLoading } = useMutation({
+    mutationKey: [MutationKeys.ADD_OPENID_CLIENT],
+    mutationFn: addOpenidClient,
+    onSuccess: () => {
+      toaster.success(
+        LL.openidOverview.modals.openidClientModal.form.messages.successAdd(),
+      );
+      setModalState({ visible: false });
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_CLIENTS],
+      });
     },
-  );
-  const { mutate: editMutation, isLoading: editLoading } = useMutation(
-    [MutationKeys.EDIT_OPENID_CLIENT],
-    editOpenidClient,
-    {
-      onSuccess: () => {
-        toaster.success(
-          LL.openidOverview.modals.openidClientModal.form.messages.successModify(),
-        );
-        setModalState({ visible: false });
-        queryClient.invalidateQueries([QueryKeys.FETCH_CLIENTS]);
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        setModalState({ visible: false });
-        console.error(err);
-      },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      setModalState({ visible: false });
+      console.error(err);
     },
-  );
+  });
+  const { mutate: editMutation, isPending: editLoading } = useMutation({
+    mutationKey: [MutationKeys.EDIT_OPENID_CLIENT],
+    mutationFn: editOpenidClient,
+    onSuccess: () => {
+      toaster.success(
+        LL.openidOverview.modals.openidClientModal.form.messages.successModify(),
+      );
+      setModalState({ visible: false });
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_CLIENTS],
+      });
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      setModalState({ visible: false });
+      console.error(err);
+    },
+  });
 
   const zodSchema = useMemo(
     () =>
@@ -204,7 +204,7 @@ export const OpenIdClientModalForm = () => {
                 variant={ActionButtonVariant.COPY}
                 onClick={() => {
                   if (modalState.client) {
-                    writeToClipboard(
+                    void writeToClipboard(
                       modalState.client.client_id,
                       LL.openidOverview.modals.openidClientModal.messages.clientIdCopy(),
                     );
@@ -225,7 +225,7 @@ export const OpenIdClientModalForm = () => {
                 disabled={isUndefined(modalState.client)}
                 onClick={() => {
                   if (modalState.client) {
-                    writeToClipboard(
+                    void writeToClipboard(
                       modalState.client.client_secret,
                       LL.openidOverview.modals.openidClientModal.messages.clientSecretCopy(),
                     );

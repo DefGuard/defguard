@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"device\" (\"name\",\"wireguard_pubkey\",\"user_id\",\"created\",\"device_type\",\"description\",\"configured\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Timestamp",
+        {
+          "Custom": {
+            "name": "device_type",
+            "kind": {
+              "Enum": [
+                "user",
+                "network"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "41e599df755801f08a6e2e02aebed2d72c903ea7fbd45b4e3c4b10199d936fab"
+}

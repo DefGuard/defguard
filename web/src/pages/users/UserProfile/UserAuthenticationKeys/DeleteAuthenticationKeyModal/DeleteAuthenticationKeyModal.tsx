@@ -26,7 +26,7 @@ export const DeleteAuthenticationKeyModal = () => {
 
   const onSuccess = () => {
     toaster.success(LL.messages.success());
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
     });
     close();
@@ -37,13 +37,13 @@ export const DeleteAuthenticationKeyModal = () => {
     console.error(e);
   };
 
-  const { mutate: deleteYubikeyMutation, isLoading: yubikeyPending } = useMutation({
+  const { mutate: deleteYubikeyMutation, isPending: yubikeyPending } = useMutation({
     mutationFn: deleteYubiKey,
     onSuccess,
     onError,
   });
 
-  const { mutate: deleteAuthenticationKeyMutation, isLoading: authKeyPending } =
+  const { mutate: deleteAuthenticationKeyMutation, isPending: authKeyPending } =
     useMutation({
       mutationFn: deleteAuthenticationKey,
       onSuccess,

@@ -1,35 +1,33 @@
-mod common;
+pub mod common;
 
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
-        models::wireguard::{
-            WireguardDeviceTransferRow, WireguardNetworkStats, WireguardUserStatsRow,
+        models::{
+            device::Device,
+            wireguard::{
+                WireguardDeviceStatsRow, WireguardDeviceTransferRow, WireguardNetworkStats,
+                WireguardUserStatsRow,
+            },
+            wireguard_peer_stats::WireguardPeerStats,
         },
-        Device, Id, NoId, WireguardPeerStats,
+        Id, NoId,
     },
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::{json, Value};
+use serde::Deserialize;
+use serde_json::json;
 
-use self::common::make_test_client;
+use self::common::{make_network, make_test_client};
 
 static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
-fn make_network() -> Value {
-    json!({
-        "name": "network",
-        "address": "10.1.1.1/24",
-        "port": 55555,
-        "endpoint": "192.168.4.14",
-        "allowed_ips": "10.1.1.0/24",
-        "dns": "1.1.1.1",
-        "allowed_groups": [],
-        "mfa_enabled": false,
-        "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
-    })
+#[derive(Deserialize)]
+struct StatsResponse {
+    user_devices: Vec<WireguardUserStatsRow>,
+    #[serde(rename = "network_devices")]
+    _network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
 #[tokio::test]
@@ -40,7 +38,6 @@ async fn test_stats() {
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
     // create network
     let response = client
         .post("/api/v1/network")
@@ -93,7 +90,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert!(stats.is_empty());
 
     // insert stats
@@ -126,7 +124,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(
@@ -147,7 +146,7 @@ async fn test_stats() {
         stats[0].devices[0].stats.last().unwrap().clone(),
         WireguardDeviceTransferRow {
             device_id: 1,
-            collected_at: Some(now_trunc),
+            collected_at: now_trunc,
             upload: 10,
             download: 20,
         }
@@ -156,7 +155,7 @@ async fn test_stats() {
         stats[0].devices[1].stats.last().unwrap().clone(),
         WireguardDeviceTransferRow {
             device_id: 2,
-            collected_at: Some(now_trunc),
+            collected_at: now_trunc,
             upload: 10 * 2,
             download: 20 * 2,
         }
@@ -230,7 +229,8 @@ async fn test_stats() {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
-    let stats: Vec<WireguardUserStatsRow> = response.json().await;
+    let stats = response.json::<StatsResponse>().await;
+    let stats = stats.user_devices;
     assert_eq!(stats.len(), 1);
     assert_eq!(stats[0].devices.len(), 2);
     assert_eq!(

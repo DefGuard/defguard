@@ -30,7 +30,9 @@ export const UserAuthInfoMFA = () => {
   const queryClient = useQueryClient();
 
   const refreshUserQueries = () => {
-    queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+    void queryClient.invalidateQueries({
+      queryKey: [QueryKeys.FETCH_USER_PROFILE],
+    });
   };
 
   const {
@@ -51,7 +53,9 @@ export const UserAuthInfoMFA = () => {
 
   const toaster = useToaster();
 
-  const { mutate: disableMFA } = useMutation([MutationKeys.DISABLE_MFA], disable, {
+  const { mutate: disableMFA } = useMutation({
+    mutationKey: [MutationKeys.DISABLE_MFA],
+    mutationFn: disable,
     onSuccess: () => {
       refreshUserQueries();
       toaster.success(LL.userPage.userAuthInfo.mfa.messages.mfaDisabled());
@@ -62,40 +66,40 @@ export const UserAuthInfoMFA = () => {
     },
   });
 
-  const { mutate: disableTOTPMutation } = useMutation(
-    [MutationKeys.DISABLE_TOTP],
-    disableTOTP,
-    {
-      onSuccess: () => {
-        refreshUserQueries();
-        toaster.success(LL.userPage.userAuthInfo.mfa.messages.OTPDisabled());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+  const { mutate: disableTOTPMutation } = useMutation({
+    mutationKey: [MutationKeys.DISABLE_TOTP],
+    mutationFn: disableTOTP,
+    onSuccess: () => {
+      refreshUserQueries();
+      toaster.success(LL.userPage.userAuthInfo.mfa.messages.OTPDisabled());
     },
-  );
-
-  const { mutate: disableEmailMFAMutation } = useMutation(
-    [MutationKeys.DISABLE_EMAIL_MFA],
-    disableEmailMFA,
-    {
-      onSuccess: () => {
-        refreshUserQueries();
-        toaster.success(LL.userPage.userAuthInfo.mfa.messages.EmailMFADisabled());
-      },
-      onError: (err) => {
-        toaster.error(LL.messages.error());
-        console.error(err);
-      },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
     },
-  );
+  });
 
-  const { mutate: editUserMutation } = useMutation([MutationKeys.EDIT_USER], editUser, {
+  const { mutate: disableEmailMFAMutation } = useMutation({
+    mutationKey: [MutationKeys.DISABLE_EMAIL_MFA],
+    mutationFn: disableEmailMFA,
+    onSuccess: () => {
+      refreshUserQueries();
+      toaster.success(LL.userPage.userAuthInfo.mfa.messages.EmailMFADisabled());
+    },
+    onError: (err) => {
+      toaster.error(LL.messages.error());
+      console.error(err);
+    },
+  });
+
+  const { mutate: editUserMutation } = useMutation({
+    mutationKey: [MutationKeys.EDIT_USER],
+    mutationFn: editUser,
     onSuccess: () => {
       toaster.success(LL.userPage.userAuthInfo.mfa.messages.changeMFAMethod());
-      queryClient.invalidateQueries([QueryKeys.FETCH_USER_PROFILE]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_USER_PROFILE],
+      });
     },
     onError: () => {
       toaster.error(LL.messages.error());

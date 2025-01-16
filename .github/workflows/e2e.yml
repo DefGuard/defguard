@@ -59,7 +59,7 @@ jobs:
       - name: Stop compose
         if: always()
         run: docker compose --file './docker-compose.e2e.yaml' down
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report

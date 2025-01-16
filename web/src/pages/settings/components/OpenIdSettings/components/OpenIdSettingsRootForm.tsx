@@ -30,30 +30,35 @@ export const OpenIdSettingsRootForm = () => {
   const localLL = LL.settingsPage.openIdSettings;
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
   const queryClient = useQueryClient();
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
   } = useApi();
 
-  const { isLoading } = useQuery({
+  const { isLoading, data: openidProvidersData } = useQuery({
     queryFn: fetchOpenIdProviders,
     queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
     refetchOnMount: true,
     refetchOnWindowFocus: false,
-    onSuccess: (provider) => {
-      setCurrentProvider(provider);
-    },
     retry: false,
     enabled: enterpriseEnabled,
   });
+
+  useEffect(() => {
+    if (openidProvidersData) {
+      setCurrentProvider(openidProvidersData);
+    }
+  }, [openidProvidersData]);
 
   const toaster = useToaster();
 
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -65,7 +70,9 @@ export const OpenIdSettingsRootForm = () => {
   const { mutate: deleteProvider } = useMutation({
     mutationFn: deleteOpenIdProvider,
     onSuccess: () => {
-      queryClient.invalidateQueries([QueryKeys.FETCH_OPENID_PROVIDERS]);
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
+      });
       toaster.success(LL.settingsPage.messages.editSuccess());
     },
     onError: (error) => {
@@ -93,6 +100,7 @@ export const OpenIdSettingsRootForm = () => {
         directory_sync_user_behavior: z.string(),
         directory_sync_admin_behavior: z.string(),
         directory_sync_target: z.string(),
+        create_account: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -115,6 +123,7 @@ export const OpenIdSettingsRootForm = () => {
       directory_sync_admin_behavior:
         currentProvider?.directory_sync_admin_behavior ?? 'keep',
       directory_sync_target: currentProvider?.directory_sync_target ?? 'all',
+      create_account: currentProvider?.create_account ?? false,
     }),
     [currentProvider],
   );
@@ -205,7 +214,7 @@ export const OpenIdSettingsRootForm = () => {
             />
           </div>
           <div className="right">
-            <OpenIdGeneralSettings />
+            <OpenIdGeneralSettings formControl={formControl} />
             <DirsyncSettings
               currentProvider={currentProvider}
               formControl={formControl}

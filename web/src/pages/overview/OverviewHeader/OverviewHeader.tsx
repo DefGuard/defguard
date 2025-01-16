@@ -1,5 +1,5 @@
 import { isUndefined } from 'lodash-es';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
@@ -9,7 +9,10 @@ import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatu
 import IconEditNetwork from '../../../shared/components/svg/IconEditNetwork';
 import { deviceBreakpoints } from '../../../shared/constants';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 import { OverviewStatsFilterSelect } from '../OverviewStatsFilterSelect/OverviewStatsFilterSelect';
@@ -34,24 +37,27 @@ export const OverviewHeader = ({ loading = false }: Props) => {
     [networks, selectedNetworkId],
   );
 
-  const handleNetworkAction = () => {
+  const handleNetworkAction = useCallback(() => {
     if (selectedNetwork) {
       setNetworkPageStore({ selectedNetworkId: selectedNetworkId });
       navigate('../network');
     }
-  };
+  }, [navigate, selectedNetwork, selectedNetworkId, setNetworkPageStore]);
 
-  const renderEditNetworks = () => {
+  const renderEditNetworks = useMemo(() => {
     return (
-      <Button
-        styleVariant={ButtonStyleVariant.STANDARD}
-        text={LL.networkOverview.controls.editNetworks()}
-        icon={<IconEditNetwork />}
-        loading={loading || isUndefined(selectedNetwork)}
-        onClick={handleNetworkAction}
-      />
+      <>
+        <Button
+          styleVariant={ButtonStyleVariant.STANDARD}
+          text={LL.networkOverview.controls.editNetworks()}
+          icon={<IconEditNetwork />}
+          loading={loading || isUndefined(selectedNetwork)}
+          onClick={handleNetworkAction}
+          size={ButtonSize.SMALL}
+        />
+      </>
     );
-  };
+  }, [LL.networkOverview.controls, handleNetworkAction, loading, selectedNetwork]);
 
   return (
     <>
@@ -59,7 +65,7 @@ export const OverviewHeader = ({ loading = false }: Props) => {
         <div className="mobile-options">
           <div className="top-row">
             {selectedNetworkId && <GatewaysStatus networkId={selectedNetworkId} />}
-            {renderEditNetworks()}
+            {renderEditNetworks}
           </div>
           <OverViewNetworkSelect />
           <OverviewStatsFilterSelect />
@@ -71,7 +77,7 @@ export const OverviewHeader = ({ loading = false }: Props) => {
           <div className="controls">
             <OverViewNetworkSelect />
             <OverviewStatsFilterSelect />
-            {renderEditNetworks()}
+            {renderEditNetworks}
           </div>
         </header>
       )}

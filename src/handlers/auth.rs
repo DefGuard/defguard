@@ -4,7 +4,7 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     extract::{
         cookie::{Cookie, CookieJar, SameSite},
@@ -23,7 +23,7 @@ use webauthn_rs_proto::options::CollectedClientData;
 
 use super::{
     ApiResponse, ApiResult, Auth, AuthCode, AuthResponse, AuthTotp, RecoveryCode, RecoveryCodes,
-    WalletAddress, WalletSignature, WebAuthnRegistration, SESSION_COOKIE_NAME,
+    WebAuthnRegistration, SESSION_COOKIE_NAME,
 };
 use crate::{
     appstate::AppState,
@@ -31,9 +31,7 @@ use crate::{
         failed_login::{check_username, log_failed_login_attempt},
         SessionInfo,
     },
-    db::{
-        Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, Wallet, WebAuthn,
-    },
+    db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     error::WebError,
     handlers::{
         mail::{
@@ -83,7 +81,7 @@ pub(crate) async fn create_session(
             "User {} has MFA enabled, sending MFA info for further authentication.",
             user.username
         );
-        if let Some(mfa_info) = MFAInfo::for_user(pool, &user).await? {
+        if let Some(mfa_info) = MFAInfo::for_user(pool, user).await? {
             check_new_device_login(
                 pool,
                 mail_tx,
@@ -131,7 +129,6 @@ pub(crate) async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
-    forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
@@ -199,11 +196,10 @@ pub(crate) async fn authenticate(
         }
     };
 
-    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
     let (session, user_info, mfa_info) = create_session(
         &appstate.pool,
         &appstate.mail_tx,
-        ip_address,
+        insecure_ip,
         user_agent.as_str(),
         &mut user,
     )
@@ -597,7 +593,7 @@ pub async fn totp_code(
 /// Initialize email MFA setup
 pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
     // check if SMTP is configured
-    let settings = Settings::get_settings(&appstate.pool).await?;
+    let settings = Settings::get_current_settings();
     if !settings.smtp_configured() {
         error!("Unable to start email MFA configuration. SMTP is not configured.");
         return Err(WebError::EmailMfa("SMTP not configured".into()));
@@ -729,40 +725,6 @@ pub async fn email_mfa_code(
     }
 }
 
-/// Start Web3 authentication
-pub async fn web3auth_start(
-    mut session: Session,
-    State(appstate): State<AppState>,
-    Json(data): Json<WalletAddress>,
-) -> ApiResult {
-    debug!("Starting web3 authentication for wallet {}", data.address);
-    match Settings::get(&appstate.pool).await? {
-        Some(settings) => {
-            let challenge = Wallet::format_challenge(&data.address, &settings.challenge_template);
-            session
-                .set_web3_challenge(&appstate.pool, challenge.clone())
-                .await?;
-            info!("Started web3 authentication for wallet {}", data.address);
-            Ok(ApiResponse {
-                json: json!({ "challenge": challenge }),
-                status: StatusCode::OK,
-            })
-        }
-        None => Err(WebError::DbError("cannot retrieve settings".into())),
-    }
-}
-
-/// Finish Web3 authentication
-pub async fn web3auth_end(
-    Json(signature): Json<WalletSignature>,
-) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
-    debug!(
-        "Finishing web3 authentication for wallet {}",
-        signature.address
-    );
-    Err(WebError::Http(StatusCode::BAD_REQUEST))
-}
-
 /// Authenticate with a recovery code.
 pub async fn recovery_code(
     private_cookies: PrivateCookieJar,
@@ -772,7 +734,7 @@ pub async fn recovery_code(
 ) -> Result<(PrivateCookieJar, ApiResponse), WebError> {
     if let Some(mut user) = User::find_by_id(&appstate.pool, session.user_id).await? {
         let username = user.username.clone();
-        debug!("Authenticating user {} with recovery code", username);
+        debug!("Authenticating user {username} with recovery code");
         if user
             .verify_recovery_code(&appstate.pool, &recovery_code.code)
             .await?

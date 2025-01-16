@@ -19,7 +19,7 @@ export const KeyBox = ({ title, keyValue }: Props) => {
 
   const handleCopy = () => {
     if (keyValue) {
-      writeToClipboard(keyValue);
+      void writeToClipboard(keyValue);
     }
   };
 

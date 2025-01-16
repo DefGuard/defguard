@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 
 use defguard::handlers::{Auth, GroupInfo};
 use reqwest::StatusCode;

@@ -19,7 +19,7 @@ use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
 use super::GatewayMap;
 use crate::{
     db::{
-        models::wireguard::{WireguardNetwork, WireguardPeerStats},
+        models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId,
     },
     mail::Mail,
@@ -51,6 +51,7 @@ impl WireguardNetwork<Id> {
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
             WHERE wireguard_network_id = $1 AND (is_authorized = true OR NOT $2) \
+            AND d.configured = true \
             AND u.is_active = true \
             ORDER BY d.id ASC",
             self.id,
@@ -139,7 +140,7 @@ fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration
         name: network.name.clone(),
         port: network.port as u32,
         prvkey: network.prvkey.clone(),
-        address: network.address.to_string(),
+        addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
     }
 }
@@ -325,7 +326,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network.name.clone(),
                     prvkey: network.prvkey.clone(),
-                    address: network.address.to_string(),
+                    addresses: network.address.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
                 })),
@@ -360,7 +361,7 @@ impl GatewayUpdatesHandler {
                 update: Some(update::Update::Network(Configuration {
                     name: network_name.to_string(),
                     prvkey: String::new(),
-                    address: String::new(),
+                    addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
                 })),
@@ -620,7 +621,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let events_rx = self.wireguard_tx.subscribe();
         let mut state = self.state.lock().unwrap();
         state
-            .connect_gateway(gateway_network_id, &hostname)
+            .connect_gateway(gateway_network_id, &hostname, &self.pool)
             .map_err(|err| {
                 error!("Failed to connect gateway on network {gateway_network_id}: {err}");
                 Status::new(

@@ -1,11 +1,8 @@
 use chrono::{Duration, Utc};
 use common::{exceed_enterprise_limits, make_test_client};
-use defguard::enterprise::db::models::openid_provider::DirectorySyncTarget;
-use defguard::enterprise::{
-    db::models::openid_provider::DirectorySyncUserBehavior, license::get_cached_license,
-};
 use defguard::{
     enterprise::{
+        db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
         license::{set_cached_license, License},
     },
@@ -14,7 +11,7 @@ use defguard::{
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 
-mod common;
+pub mod common;
 use self::common::client::TestClient;
 
 async fn make_client() -> TestClient {
@@ -27,6 +24,11 @@ async fn make_client() -> TestClient {
 //     let (client, _) = make_test_client_with_real_url().await;
 //     client
 // }
+
+#[derive(Deserialize)]
+struct UrlResponse {
+    url: String,
+}
 
 #[tokio::test]
 async fn test_openid_providers() {
@@ -52,6 +54,7 @@ async fn test_openid_providers() {
         directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
         directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
         directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
     };
 
     let response = client
@@ -65,11 +68,6 @@ async fn test_openid_providers() {
     let response = client.get("/api/v1/openid/auth_info").send().await;
 
     assert_eq!(response.status(), StatusCode::OK);
-
-    #[derive(Deserialize)]
-    struct UrlResponse {
-        url: String,
-    }
 
     let provider: UrlResponse = response.json().await;
 
@@ -90,11 +88,12 @@ async fn test_openid_providers() {
     assert!(redirect_uri.is_some());
 
     // Test that the endpoint is forbidden when the license is expired
-    let new_license = License {
-        customer_id: "test".to_string(),
-        subscription: false,
-        valid_until: Some(Utc::now() - Duration::days(1)),
-    };
+    let new_license = License::new(
+        "test".to_string(),
+        false,
+        Some(Utc::now() - Duration::days(1)),
+        None,
+    );
     set_cached_license(Some(new_license));
     let response = client.get("/api/v1/openid/auth_info").send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);

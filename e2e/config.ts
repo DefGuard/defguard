@@ -43,6 +43,7 @@ export const routes = {
     openid: '/admin/openid',
     overview: '/admin/overview',
     settings: '/admin/settings',
+    devices: '/admin/devices',
   },
   authorize: '/api/v1/oauth/authorize',
 };

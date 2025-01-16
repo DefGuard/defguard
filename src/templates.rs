@@ -20,6 +20,7 @@ static MAIL_SUPPORT_DATA: &str = include_str!("../templates/mail_support_data.te
 static MAIL_NEW_DEVICE_ADDED: &str = include_str!("../templates/mail_new_device_added.tera");
 static MAIL_GATEWAY_DISCONNECTED: &str =
     include_str!("../templates/mail_gateway_disconnected.tera");
+static MAIL_GATEWAY_RECONNECTED: &str = include_str!("../templates/mail_gateway_reconnected.tera");
 static MAIL_MFA_CONFIGURED: &str = include_str!("../templates/mail_mfa_configured.tera");
 static MAIL_NEW_DEVICE_LOGIN: &str = include_str!("../templates/mail_new_device_login.tera");
 static MAIL_NEW_DEVICE_OCID_LOGIN: &str =
@@ -250,6 +251,19 @@ pub fn gateway_disconnected_mail(
     context.insert("network_name", network_name);
     tera.add_raw_template("mail_gateway_disconnected", MAIL_GATEWAY_DISCONNECTED)?;
     Ok(tera.render("mail_gateway_disconnected", &context)?)
+}
+
+pub fn gateway_reconnected_mail(
+    gateway_name: &str,
+    gateway_ip: &str,
+    network_name: &str,
+) -> Result<String, TemplateError> {
+    let (mut tera, mut context) = get_base_tera(None, None, None, None)?;
+    context.insert("gateway_name", gateway_name);
+    context.insert("gateway_ip", gateway_ip);
+    context.insert("network_name", network_name);
+    tera.add_raw_template("mail_gateway_reconnected", MAIL_GATEWAY_RECONNECTED)?;
+    Ok(tera.render("mail_gateway_reconnected", &context)?)
 }
 
 pub fn email_mfa_activation_mail(

@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (SELECT count(*) FROM \"user\") \"users!\", (SELECT count(*) FROM device) \"devices!\", (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "users!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "devices!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "wireguard_networks!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8d638604879f1d86b881c3361721f3169c8431b0860003e4b482f7ef97c9626e"
+}

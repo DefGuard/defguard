@@ -48,8 +48,6 @@ export const AuthPage = () => {
 
   const setAppStore = useAppStore((state) => state.setState);
 
-  const enterpriseEnabled = useAppStore((state) => state.enterprise_status?.enabled);
-
   const [params] = useSearchParams();
   const redirectUrl = params.get('r');
 
@@ -60,7 +58,8 @@ export const AuthPage = () => {
   }, [mfaMethod, navigate, openIdParams, user]);
 
   useEffect(() => {
-    const sub = loginSubject.subscribe(async ({ user, url, mfa }) => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    const sub = loginSubject.subscribe(async ({ user, url, mfa }): Promise<void> => {
       // handle forward auth redirect
       if (redirectUrl && user) {
         setShowRedirect(true);
@@ -153,7 +152,7 @@ export const AuthPage = () => {
         <Route path="/" element={<Navigate to="login" />} />
         <Route path="login" element={<Login />} />
         <Route path="mfa/*" element={<MFARoute />} />
-        {enterpriseEnabled && <Route path="callback" element={<OpenIDCallback />} />}
+        <Route path="callback" element={<OpenIDCallback />} />
         <Route path="*" element={<Navigate to="login" />} />
       </Routes>
     </div>

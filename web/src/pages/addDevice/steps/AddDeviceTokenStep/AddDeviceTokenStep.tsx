@@ -13,6 +13,9 @@ import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card
 import { ExpandableCard } from '../../../../shared/defguard-ui/components/Layout/ExpandableCard/ExpandableCard';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
+import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useAddDevicePageStore } from '../../hooks/useAddDevicePageStore';
 
@@ -21,6 +24,9 @@ export const AddDeviceTokenStep = () => {
   const { LL } = useI18nContext();
   const localLL = LL.addDevicePage.steps.copyToken;
   const navigate = useNavigate();
+  const { getAppInfo } = useApi();
+  const setAppStore = useAppStore((s) => s.setState, shallow);
+  const isAdmin = useAuthStore((s) => s.user?.is_admin);
 
   const userData = useAddDevicePageStore((state) => state.userData);
 
@@ -41,7 +47,7 @@ export const AddDeviceTokenStep = () => {
         disabled={isUndefined(token)}
         onClick={() => {
           if (token) {
-            writeToClipboard(token);
+            void writeToClipboard(token);
           }
         }}
         key={0}
@@ -57,7 +63,7 @@ export const AddDeviceTokenStep = () => {
         disabled={isUndefined(url)}
         onClick={() => {
           if (url) {
-            writeToClipboard(url);
+            void writeToClipboard(url);
           }
         }}
         key={0}
@@ -69,6 +75,13 @@ export const AddDeviceTokenStep = () => {
   useEffect(() => {
     const sub = nextSubject.subscribe(() => {
       if (userData) {
+        if (isAdmin) {
+          void getAppInfo().then((response) => {
+            setAppStore({
+              appInfo: response,
+            });
+          });
+        }
         setTimeout(() => {
           resetPage();
         }, 1000);
@@ -78,7 +91,8 @@ export const AddDeviceTokenStep = () => {
     return () => {
       sub.unsubscribe();
     };
-  }, [resetPage, nextSubject, navigate, userData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextSubject, userData]);
 
   return (
     <>

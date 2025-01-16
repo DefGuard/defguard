@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use sqlx::{query, query_as, Error as SqlxError, PgExecutor, PgPool, Type};
 use webauthn_rs::prelude::{PasskeyAuthentication, PasskeyRegistration};
 
@@ -22,7 +22,6 @@ pub struct Session {
     pub created: NaiveDateTime,
     pub expires: NaiveDateTime,
     pub webauthn_challenge: Option<Vec<u8>>,
-    pub web3_challenge: Option<String>,
     pub ip_address: String,
     pub device_info: Option<String>,
 }
@@ -42,9 +41,8 @@ impl Session {
             user_id,
             state,
             created: now.naive_utc(),
-            expires: (now + Duration::seconds(timeout.as_secs() as i64)).naive_utc(),
+            expires: (now + TimeDelta::seconds(timeout.as_secs() as i64)).naive_utc(),
             webauthn_challenge: None,
-            web3_challenge: None,
             ip_address,
             device_info,
         }
@@ -59,7 +57,7 @@ impl Session {
         query_as!(
             Self,
             "SELECT id, user_id, state \"state: SessionState\", created, expires, webauthn_challenge, \
-            web3_challenge, ip_address, device_info FROM session WHERE id = $1",
+            ip_address, device_info FROM session WHERE id = $1",
             id
         )
         .fetch_optional(pool)
@@ -68,15 +66,14 @@ impl Session {
 
     pub async fn save(&self, pool: &PgPool) -> Result<(), SqlxError> {
         query!(
-            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, web3_challenge, ip_address, device_info) \
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "INSERT INTO session (id, user_id, state, created, expires, webauthn_challenge, ip_address, device_info) \
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
             self.id,
             self.user_id,
             self.state.clone() as i16,
             self.created,
             self.expires,
             self.webauthn_challenge,
-            self.web3_challenge,
             self.ip_address,
             self.device_info,
         )
@@ -153,26 +150,6 @@ impl Session {
             .await?;
             self.webauthn_challenge = Some(webauthn_challenge);
         }
-
-        Ok(())
-    }
-
-    pub async fn set_web3_challenge<'e, E>(
-        &mut self,
-        executor: E,
-        web3_challenge: String,
-    ) -> Result<(), SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query!(
-            "UPDATE session SET web3_challenge = $1 WHERE id = $2",
-            web3_challenge,
-            self.id
-        )
-        .execute(executor)
-        .await?;
-        self.web3_challenge = Some(web3_challenge);
 
         Ok(())
     }

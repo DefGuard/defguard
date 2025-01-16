@@ -1,13 +1,12 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
-use utoipa::ToSchema;
 
 use crate::{
     auth::failed_login::FailedLoginError,
     db::models::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
-        wireguard::WireguardNetworkError,
+        settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::license::LicenseError,
     grpc::GatewayMapError,
@@ -16,7 +15,7 @@ use crate::{
 };
 
 /// Represents kinds of error that occurred
-#[derive(Debug, Error, ToSchema)]
+#[derive(Debug, Error)]
 pub enum WebError {
     #[error("GRPC error: {0}")]
     Grpc(String),
@@ -112,6 +111,7 @@ impl From<GatewayMapError> for WebError {
             | GatewayMapError::UidNotFound(_) => Self::ObjectNotFound(error.to_string()),
             GatewayMapError::RemoveActive(_) => Self::BadRequest(error.to_string()),
             GatewayMapError::ConfigError => Self::ServerConfigMissing,
+            GatewayMapError::SettingsError => Self::DbError(error.to_string()),
         }
     }
 }
@@ -152,6 +152,16 @@ impl From<TokenError> for WebError {
             | TokenError::TemplateError(_)
             | TokenError::TemplateErrorInternal(_) => {
                 WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    }
+}
+
+impl From<SettingsValidationError> for WebError {
+    fn from(err: SettingsValidationError) -> Self {
+        match err {
+            SettingsValidationError::CannotEnableGatewayNotifications => {
+                Self::BadRequest(err.to_string())
             }
         }
     }

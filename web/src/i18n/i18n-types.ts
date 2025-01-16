@@ -95,6 +95,10 @@ type RootTranslation = {
 			 * D​i​s​m​i​s​s
 			 */
 			dismiss: string
+			/**
+			 * S​h​o​w
+			 */
+			show: string
 		}
 		/**
 		 * K​e​y
@@ -104,6 +108,18 @@ type RootTranslation = {
 		 * N​a​m​e
 		 */
 		name: string
+		/**
+		 * N​o​ ​d​a​t​a
+		 */
+		noData: string
+		/**
+		 * U​n​a​v​a​i​l​a​b​l​e
+		 */
+		unavailable: string
+		/**
+		 * N​o​t​ ​s​e​t
+		 */
+		notSet: string
 	}
 	messages: {
 		/**
@@ -138,6 +154,269 @@ type RootTranslation = {
 		}
 	}
 	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * U​p​g​r​a​d​e​ ​t​o​ ​E​n​t​e​r​p​r​i​s​e
+				 */
+				title: string
+				/**
+				 * T​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​*​*​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​*​*​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
+				 */
+				subTitle: string
+			}
+			limit: {
+				/**
+				 * U​p​g​r​a​d​e
+				 */
+				title: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​u​s​e​r​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
+			​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				subTitle: string
+			}
+			/**
+			 * 
+		​Y​o​u​ ​c​a​n​ ​f​i​n​d​ ​o​u​t​ ​m​o​r​e​ ​a​b​o​u​t​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​:​
+		​-​ ​R​e​a​l​ ​t​i​m​e​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​c​l​i​e​n​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​
+		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
+		​-​ ​C​o​n​t​r​o​l​l​i​n​g​ ​V​P​N​ ​c​l​i​e​n​t​s​ ​b​e​h​a​v​i​o​r​
+		​
+		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
+		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
+		​ ​ ​ ​ ​ ​ 
+			 */
+			content: string
+			controls: {
+				/**
+				 * M​a​y​b​e​ ​l​a​t​e​r
+				 */
+				cancel: string
+				/**
+				 * S​e​e​ ​a​l​l​ ​E​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+				 */
+				confirm: string
+			}
+		}
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​t​o​k​e​n
+			 */
+			title: string
+			toasters: {
+				/**
+				 * T​o​k​e​n​ ​g​e​n​e​r​a​t​i​o​n​ ​f​a​i​l​e​d​.
+				 */
+				error: string
+			}
+		}
+		standaloneDeviceConfigModal: {
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g
+			 */
+			title: string
+			/**
+			 * C​o​n​f​i​g
+			 */
+			cardTitle: string
+			toasters: {
+				getConfig: {
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​g​e​t​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​.
+					 */
+					error: string
+				}
+			}
+		}
+		editStandaloneModal: {
+			/**
+			 * E​d​i​t​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+				 */
+				success: string
+				/**
+				 * M​o​d​i​f​y​i​n​g​ ​t​h​e​ ​d​e​v​i​c​e​ ​f​a​i​l​e​d
+				 */
+				failure: string
+			}
+		}
+		deleteStandaloneDevice: {
+			/**
+			 * D​e​l​e​t​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e
+			 */
+			title: string
+			/**
+			 * D​e​v​i​c​e​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​.
+			 * @param {string} name
+			 */
+			content: RequiredParams<'name'>
+			messages: {
+				/**
+				 * D​e​v​i​c​e​ ​d​e​l​e​t​e​d
+				 */
+				success: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​r​e​m​o​v​e​ ​d​e​v​i​c​e​.
+				 */
+				error: string
+			}
+		}
+		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * D​e​v​i​c​e​ ​a​d​d​e​d
+				 */
+				deviceCreated: string
+				/**
+				 * D​e​v​i​c​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​a​d​d​e​d​.
+				 */
+				creationFailed: string
+			}
+			infoBox: {
+				/**
+				 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+				 */
+				setup: string
+			}
+			form: {
+				/**
+				 * A​d​d​ ​D​e​v​i​c​e
+				 */
+				submit: string
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​N​a​m​e
+					 */
+					deviceName: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * A​s​s​i​g​n​e​d​ ​I​P
+					 */
+					assignedAddress: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					generation: {
+						/**
+						 * G​e​n​e​r​a​t​e​ ​k​e​y​ ​p​a​i​r
+						 */
+						auto: string
+						/**
+						 * U​s​e​ ​m​y​ ​o​w​n​ ​p​u​b​l​i​c​ ​k​e​y
+						 */
+						manual: string
+					}
+					/**
+					 * P​r​o​v​i​d​e​ ​Y​o​u​r​ ​P​u​b​l​i​c​ ​K​e​y
+					 */
+					publicKey: string
+				}
+			}
+			steps: {
+				method: {
+					/**
+					 * C​h​o​o​s​e​ ​a​ ​p​r​o​f​f​e​r​e​d​ ​m​e​t​h​o​d
+					 */
+					title: string
+					cards: {
+						cli: {
+							/**
+							 * d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​h​a​v​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​u​p​-​t​o​-​d​a​t​e​ ​(​r​e​a​l​ ​t​i​m​e​-​s​y​n​c​)​.
+							 */
+							subtitle: string
+							/**
+							 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+							 */
+							download: string
+						}
+						manual: {
+							/**
+							 * M​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+							 */
+							title: string
+							/**
+							 * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​c​l​i​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+							 */
+							subtitle: string
+						}
+					}
+				}
+				manual: {
+					/**
+					 * A​d​d​ ​n​e​w​ ​V​P​N​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​W​i​r​e​G​u​a​r​d​ ​C​l​i​e​n​t
+					 */
+					title: string
+					finish: {
+						/**
+						 * D​o​w​n​l​o​a​d​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​t​o​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​n​d​ ​i​m​p​o​r​t​ ​i​t​ ​i​n​t​o​ ​y​o​u​r​ ​V​P​N​ ​c​l​i​e​n​t​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​s​e​t​u​p​.
+						 */
+						messageTop: string
+						/**
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
+						 */
+						ctaInstruction: string
+						/**
+						 * 
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​d​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​&​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​r​e​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​a​n​d​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​d​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​l​a​t​e​r​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+						 */
+						warningMessage: string
+						actionCard: {
+							/**
+							 * C​o​n​f​i​g
+							 */
+							title: string
+						}
+					}
+				}
+				cli: {
+					/**
+					 * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+					 */
+					title: string
+					finish: {
+						/**
+						 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+						 */
+						topMessage: string
+						/**
+						 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+						 */
+						downloadButton: string
+						/**
+						 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+						 */
+						commandCopy: string
+					}
+					setup: {
+						/**
+						 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​d​e​f​i​n​i​t​i​o​n​s​ ​o​r​ ​g​e​n​e​r​a​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​ ​f​o​r​ ​d​e​v​i​c​e​s​ ​t​h​a​t​ ​c​a​n​ ​c​o​n​n​e​c​t​ ​t​o​ ​y​o​u​r​ ​V​P​N​.​ ​O​n​l​y​ ​l​o​c​a​t​i​o​n​s​ ​w​i​t​h​o​u​t​ ​M​u​l​t​i​-​F​a​c​t​o​r​ ​A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​h​e​r​e​,​ ​a​s​ ​M​F​A​ ​i​s​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​D​e​s​k​t​o​p​ ​C​l​i​e​n​t​ ​f​o​r​ ​n​o​w​.
+						 */
+						stepMessage: string
+						form: {
+							/**
+							 * A​d​d​ ​D​e​v​i​c​e
+							 */
+							submit: string
+						}
+					}
+				}
+			}
+		}
 		updatesNotificationToaster: {
 			/**
 			 * N​e​w​ ​v​e​r​s​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​{​v​e​r​s​i​o​n​}
@@ -150,6 +429,22 @@ type RootTranslation = {
 				 */
 				more: string
 			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​l​i​m​i​t​.
+			 */
+			title: string
+			/**
+			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+			 */
+			message: string
+			/**
+			 * S​e​e​ ​a​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​p​l​a​n​s
+			 */
+			link: string
 		}
 		updatesNotification: {
 			header: {
@@ -633,46 +928,6 @@ type RootTranslation = {
 				 * D​e​v​i​c​e​ ​h​a​s​ ​b​e​e​n​ ​d​e​l​e​t​e​d​.
 				 */
 				success: string
-			}
-		}
-		addWallet: {
-			/**
-			 * A​d​d​ ​w​a​l​l​e​t
-			 */
-			title: string
-			/**
-			 * I​n​ ​o​r​d​e​r​ ​t​o​ ​a​d​d​ ​a​ ​E​T​H​ ​w​a​l​l​e​t​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​s​i​g​n​ ​m​e​s​s​a​g​e​.
-			 */
-			infoBox: string
-			form: {
-				fields: {
-					name: {
-						/**
-						 * W​a​l​l​e​t​ ​n​a​m​e
-						 */
-						placeholder: string
-						/**
-						 * N​a​m​e
-						 */
-						label: string
-					}
-					address: {
-						/**
-						 * W​a​l​l​e​t​ ​a​d​d​r​e​s​s
-						 */
-						placeholder: string
-						/**
-						 * A​d​d​r​e​s​s
-						 */
-						label: string
-					}
-				}
-				controls: {
-					/**
-					 * A​d​d​ ​w​a​l​l​e​t
-					 */
-					submit: string
-				}
 			}
 		}
 		keyDetails: {
@@ -1466,16 +1721,6 @@ type RootTranslation = {
 				 * D​i​s​a​b​l​e​d
 				 */
 				disabled: string
-				wallet: {
-					/**
-					 * W​a​l​l​e​t
-					 */
-					singular: string
-					/**
-					 * W​a​l​l​e​t​s
-					 */
-					plural: string
-				}
 				labels: {
 					/**
 					 * T​i​m​e​ ​b​a​s​e​d​ ​o​n​e​ ​t​i​m​e​ ​p​a​s​s​w​o​r​d​s
@@ -1489,10 +1734,6 @@ type RootTranslation = {
 					 * S​e​c​u​r​i​t​y​ ​k​e​y​s
 					 */
 					webauth: string
-					/**
-					 * W​a​l​l​e​t​s
-					 */
-					wallets: string
 				}
 				editMode: {
 					/**
@@ -1589,74 +1830,6 @@ type RootTranslation = {
 					 * S​h​o​w​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 					 */
 					showConfigurations: string
-				}
-			}
-		}
-		wallets: {
-			messages: {
-				/**
-				 * A​d​d​r​e​s​s​ ​c​o​p​i​e​d​.
-				 */
-				addressCopied: string
-				duplicate: {
-					/**
-					 * C​o​n​n​e​c​t​e​d​ ​w​a​l​l​e​t​ ​i​s​ ​a​l​r​e​a​d​y​ ​r​e​g​i​s​t​e​r​e​d
-					 */
-					primary: string
-					/**
-					 * P​l​e​a​s​e​ ​c​o​n​n​e​c​t​ ​u​n​u​s​e​d​ ​w​a​l​l​e​t​.
-					 */
-					sub: string
-				}
-			}
-			/**
-			 * U​s​e​r​ ​w​a​l​l​e​t​s
-			 */
-			header: string
-			/**
-			 * A​d​d​ ​n​e​w​ ​w​a​l​l​e​t
-			 */
-			addWallet: string
-			card: {
-				/**
-				 * A​d​d​r​e​s​s
-				 */
-				address: string
-				/**
-				 * M​F​A
-				 */
-				mfaBadge: string
-				edit: {
-					/**
-					 * E​n​a​b​l​e​ ​M​F​A
-					 */
-					enableMFA: string
-					/**
-					 * D​i​s​a​b​l​e​ ​M​F​A
-					 */
-					disableMFA: string
-					/**
-					 * D​e​l​e​t​e
-					 */
-					'delete': string
-					/**
-					 * C​o​p​y​ ​a​d​d​r​e​s​s
-					 */
-					copyAddress: string
-				}
-				messages: {
-					/**
-					 * W​a​l​l​e​t​ ​d​e​l​e​t​e​d
-					 */
-					deleteSuccess: string
-					/**
-					 * W​a​l​l​e​t​ ​M​F​A​ ​e​n​a​b​l​e​d
-					 */
-					enableMFA: string
-					/**
-					 * W​a​l​l​e​t​ ​M​F​A​ ​d​i​s​a​b​l​e​d
-					 */
-					disableMFA: string
 				}
 			}
 		}
@@ -1852,6 +2025,16 @@ type RootTranslation = {
 		 * U​s​e​r​s
 		 */
 		pageTitle: string
+		grid: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			usersTitle: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devicesTitle: string
+		}
 		search: {
 			/**
 			 * F​i​n​d​ ​u​s​e​r​s
@@ -1985,6 +2168,10 @@ type RootTranslation = {
 			 * G​r​o​u​p​s
 			 */
 			groups: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
 		}
 		mobileTitles: {
 			/**
@@ -2035,6 +2222,10 @@ type RootTranslation = {
 			 * S​u​p​p​o​r​t
 			 */
 			support: string
+			/**
+			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
 		}
 		/**
 		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
@@ -2094,6 +2285,18 @@ type RootTranslation = {
 		}
 		error: {
 			/**
+			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
+			 */
+			reservedName: string
+			/**
+			 * I​P​ ​i​s​ ​i​n​v​a​l​i​d​.
+			 */
+			invalidIp: string
+			/**
+			 * I​P​ ​i​s​ ​a​l​r​e​a​d​y​ ​i​n​ ​u​s​e​.
+			 */
+			reservedIp: string
+			/**
 			 * F​i​e​l​d​ ​c​o​n​t​a​i​n​s​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s​.
 			 */
 			forbiddenCharacter: string
@@ -2122,9 +2325,19 @@ type RootTranslation = {
 			 */
 			maximumLength: string
 			/**
+			 * F​i​e​l​d​ ​l​e​n​g​t​h​ ​c​a​n​n​o​t​ ​e​x​c​e​e​d​ ​{​l​e​n​g​t​h​}
+			 * @param {number} length
+			 */
+			maximumLengthOf: RequiredParams<'length'>
+			/**
 			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​n​o​t​ ​r​e​a​c​h​e​d​.
 			 */
 			minimumLength: string
+			/**
+			 * M​i​n​i​m​u​m​ ​l​e​n​g​t​h​ ​o​f​ ​{​l​e​n​g​t​h​}​ ​n​o​t​ ​r​e​a​c​h​e​d​.
+			 * @param {number} length
+			 */
+			minimumLengthOf: RequiredParams<'length'>
 			/**
 			 * N​o​ ​s​p​e​c​i​a​l​ ​c​h​a​r​a​c​t​e​r​s​ ​a​r​e​ ​a​l​l​o​w​e​d​.
 			 */
@@ -2208,6 +2421,22 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+			 */
+			headerMessage: string
+			/**
+			 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+			 */
+			downloadButton: string
+			expandableCard: {
+				/**
+				 * C​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​i​s​ ​c​o​m​m​a​n​d​ ​i​n​ ​y​o​u​r​ ​t​e​r​m​i​n​a​l​ ​o​n​ ​t​h​e​ ​d​e​v​i​c​e
+				 */
+				title: string
+			}
+		}
 		deviceConfigsCard: {
 			/**
 			 * W​i​r​e​G​u​a​r​d​ ​C​o​n​f​i​g​ ​f​o​r​ ​l​o​c​a​t​i​o​n​:
@@ -2297,6 +2526,10 @@ type RootTranslation = {
 			 * E​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​s
 			 */
 			enterprise: string
+			/**
+			 * G​a​t​e​w​a​y​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			gatewayNotifications: string
 		}
 		messages: {
 			/**
@@ -2704,26 +2937,6 @@ type RootTranslation = {
 				list: string
 			}
 		}
-		web3Settings: {
-			/**
-			 * W​e​b​3​ ​/​ ​W​a​l​l​e​t​ ​c​o​n​n​e​c​t
-			 */
-			header: string
-			fields: {
-				signMessage: {
-					/**
-					 * D​e​f​a​u​l​t​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​t​e​m​p​l​a​t​e
-					 */
-					label: string
-				}
-			}
-			controls: {
-				/**
-				 * S​a​v​e​ ​c​h​a​n​g​e​s
-				 */
-				save: string
-			}
-		}
 		instanceBranding: {
 			/**
 			 * I​n​s​t​a​n​c​e​ ​B​r​a​n​d​i​n​g
@@ -2849,10 +3062,24 @@ type RootTranslation = {
 				 * L​i​c​e​n​s​e​ ​i​n​f​o​r​m​a​t​i​o​n
 				 */
 				title: string
-				/**
-				 * N​o​ ​l​i​c​e​n​s​e
-				 */
-				noLicense: string
+				status: {
+					/**
+					 * N​o​ ​v​a​l​i​d​ ​l​i​c​e​n​s​e
+					 */
+					noLicense: string
+					/**
+					 * E​x​p​i​r​e​d
+					 */
+					expired: string
+					/**
+					 * L​i​m​i​t​s​ ​E​x​c​e​e​d​e​d
+					 */
+					limitsExceeded: string
+					/**
+					 * A​c​t​i​v​e
+					 */
+					active: string
+				}
 				/**
 				 * <​p​>​Y​o​u​ ​h​a​v​e​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​,​ ​a​s​ ​y​o​u​ ​h​a​v​e​n​'​t​ ​e​x​c​e​e​d​e​d​ ​a​n​y​ ​o​f​ ​t​h​e​ ​u​s​a​g​e​ ​l​i​m​i​t​s​ ​y​e​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​<​a​ ​h​r​e​f​=​'​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​'​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​.​<​/​p​>
 				 */
@@ -3167,6 +3394,58 @@ type RootTranslation = {
 					 * W​h​e​n​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​e​n​a​b​l​e​d​,​ ​u​s​e​r​s​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​v​i​e​w​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​o​r​ ​t​h​e​ ​m​a​n​u​a​l​ ​W​i​r​e​G​u​a​r​d​ ​c​l​i​e​n​t​ ​s​e​t​u​p​.​ ​O​n​l​y​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​e​s​k​t​o​p​ ​c​l​i​e​n​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​v​a​i​l​a​b​l​e​.
 					 */
 					helper: string
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * T​o​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
+			 */
+			smtpWarning: string
+			/**
+			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 */
+			header: string
+			/**
+			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.​<​/​p​>
+			 */
+			helper: string
+			form: {
+				/**
+				 * S​a​v​e​ ​c​h​a​n​g​e​s
+				 */
+				submit: string
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​d​i​s​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
+					inactivityThreshold: {
+						/**
+						 * G​a​t​e​w​a​y​ ​i​n​a​c​t​i​v​i​t​y​ ​t​i​m​e​ ​[​m​i​n​u​t​e​s​]
+						 */
+						label: string
+						/**
+						 * T​i​m​e​ ​(​i​n​ ​m​i​n​u​t​e​s​)​ ​t​h​a​t​ ​a​ ​g​a​t​e​w​a​y​ ​n​e​e​d​s​ ​t​o​ ​s​t​a​y​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​b​e​f​o​r​e​ ​a​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​i​s​ ​s​e​n​t
+						 */
+						help: string
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * E​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​r​e​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+						 */
+						label: string
+						/**
+						 * S​e​n​d​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​ ​t​o​ ​a​d​m​i​n​ ​u​s​e​r​s​ ​o​n​c​e​ ​a​ ​g​a​t​e​w​a​y​ ​i​s​ ​r​e​c​o​n​n​e​c​t​e​d
+						 */
+						help: string
+					}
 				}
 			}
 		}
@@ -3725,6 +4004,16 @@ type RootTranslation = {
 			 */
 			gatewayDisconnected: string
 		}
+		cardsLabels: {
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​U​s​e​r​s
+			 */
+			users: string
+			/**
+			 * C​o​n​n​e​c​t​e​d​ ​N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+			 */
+			devices: string
+		}
 	}
 	connectedUsersOverview: {
 		/**
@@ -3810,7 +4099,7 @@ type RootTranslation = {
 		form: {
 			helpers: {
 				/**
-				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)
+				 * B​a​s​e​d​ ​o​n​ ​t​h​i​s​ ​a​d​d​r​e​s​s​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​a​d​d​r​e​s​s​ ​w​i​l​l​ ​b​e​ ​d​e​f​i​n​e​d​,​ ​e​g​.​ ​1​0​.​1​0​.​1​0​.​1​/​2​4​ ​(​a​n​d​ ​V​P​N​ ​n​e​t​w​o​r​k​ ​w​i​l​l​ ​b​e​:​ ​1​0​.​1​0​.​1​0​.​0​/​2​4​)​.​ ​Y​o​u​ ​c​a​n​ ​o​p​t​i​o​n​a​l​l​y​ ​s​p​e​c​i​f​y​ ​m​u​l​t​i​p​l​e​ ​a​d​d​r​e​s​s​e​s​ ​s​e​p​a​r​a​t​e​d​ ​b​y​ ​a​ ​c​o​m​m​a​.​ ​T​h​e​ ​f​i​r​s​t​ ​a​d​d​r​e​s​s​ ​i​s​ ​t​h​e​ ​p​r​i​m​a​r​y​ ​a​d​d​r​e​s​s​,​ ​a​n​d​ ​t​h​i​s​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​I​P​ ​a​d​d​r​e​s​s​ ​a​s​s​i​g​n​m​e​n​t​ ​f​o​r​ ​d​e​v​i​c​e​s​.​ ​T​h​e​ ​o​t​h​e​r​ ​I​P​ ​a​d​d​r​e​s​s​e​s​ ​a​r​e​ ​a​u​x​i​l​i​a​r​y​ ​a​n​d​ ​a​r​e​ ​n​o​t​ ​m​a​n​a​g​e​d​ ​b​y​ ​D​e​f​g​u​a​r​d​.
 				 */
 				address: string
 				/**
@@ -4043,10 +4332,6 @@ type RootTranslation = {
 				 */
 				useAuthenticator: string
 				/**
-				 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​i​n​s​t​e​a​d
-				 */
-				useWallet: string
-				/**
 				 * U​s​e​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​i​n​s​t​e​a​d
 				 */
 				useWebauthn: string
@@ -4121,28 +4406,6 @@ type RootTranslation = {
 						 */
 						submit: string
 					}
-				}
-			}
-			wallet: {
-				/**
-				 * U​s​e​ ​y​o​u​r​ ​c​r​y​p​t​o​ ​w​a​l​l​e​t​ ​t​o​ ​s​i​g​n​ ​i​n​,​ ​p​l​e​a​s​e​ ​s​i​g​n​ ​m​e​s​s​a​g​e​ ​i​n​ ​y​o​u​r​ ​w​a​l​l​e​t​ ​a​p​p​ ​o​r​ ​e​x​t​e​n​s​i​o​n​.
-				 */
-				header: string
-				controls: {
-					/**
-					 * U​s​e​ ​y​o​u​r​ ​w​a​l​l​e​t
-					 */
-					submit: string
-				}
-				messages: {
-					/**
-					 * W​a​l​l​e​t​ ​w​a​s​ ​d​i​s​c​o​n​n​e​c​t​e​d​ ​d​u​r​i​n​g​ ​s​i​g​n​i​n​g​ ​p​r​o​c​e​s​s​.
-					 */
-					walletError: string
-					/**
-					 * W​a​l​l​e​t​ ​i​s​ ​n​o​t​ ​a​u​t​h​o​r​i​z​e​d​ ​f​o​r​ ​M​F​A​ ​l​o​g​i​n​.​ ​P​l​e​a​s​e​ ​u​s​e​ ​a​u​t​h​o​r​i​z​e​d​ ​w​a​l​l​e​t​.
-					 */
-					walletErrorMfa: string
 				}
 			}
 			webauthn: {
@@ -4501,6 +4764,78 @@ type RootTranslation = {
 			body: string
 		}
 	}
+	devicesPage: {
+		/**
+		 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
+		 */
+		title: string
+		search: {
+			/**
+			 * F​i​n​d
+			 */
+			placeholder: string
+		}
+		bar: {
+			/**
+			 * A​l​l​ ​d​e​v​i​c​e​s
+			 */
+			itemsCount: string
+			filters: {
+			}
+			actions: {
+				/**
+				 * A​d​d​ ​n​e​w
+				 */
+				addNewDevice: string
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * D​e​v​i​c​e​ ​n​a​m​e
+					 */
+					name: string
+					/**
+					 * L​o​c​a​t​i​o​n
+					 */
+					location: string
+					/**
+					 * I​P
+					 */
+					assignedIp: string
+					/**
+					 * D​e​s​c​r​i​p​t​i​o​n
+					 */
+					description: string
+					/**
+					 * A​d​d​e​d​ ​b​y
+					 */
+					addedBy: string
+					/**
+					 * A​d​d​ ​d​a​t​e
+					 */
+					addedAt: string
+					/**
+					 * E​d​i​t
+					 */
+					edit: string
+				}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * V​i​e​w​ ​c​o​n​f​i​g
+					 */
+					config: string
+					/**
+					 * G​e​n​e​r​a​t​e​ ​a​u​t​h​ ​t​o​k​e​n
+					 */
+					generateToken: string
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -4584,6 +4919,10 @@ export type TranslationFunctions = {
 			 * Dismiss
 			 */
 			dismiss: () => LocalizedString
+			/**
+			 * Show
+			 */
+			show: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -4593,6 +4932,18 @@ export type TranslationFunctions = {
 		 * Name
 		 */
 		name: () => LocalizedString
+		/**
+		 * No data
+		 */
+		noData: () => LocalizedString
+		/**
+		 * Unavailable
+		 */
+		unavailable: () => LocalizedString
+		/**
+		 * Not set
+		 */
+		notSet: () => LocalizedString
 	}
 	messages: {
 		/**
@@ -4627,6 +4978,268 @@ export type TranslationFunctions = {
 		}
 	}
 	modals: {
+		upgradeLicenseModal: {
+			enterprise: {
+				/**
+				 * Upgrade to Enterprise
+				 */
+				title: () => LocalizedString
+				/**
+				 * This functionality is an **enterprise feature** and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
+				 */
+				subTitle: () => LocalizedString
+			}
+			limit: {
+				/**
+				 * Upgrade
+				 */
+				title: () => LocalizedString
+				/**
+				 * 
+			        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
+			        
+				 */
+				subTitle: () => LocalizedString
+			}
+			/**
+			 * 
+		You can find out more about features like:
+		- Real time and automatic client synchronization
+		- External SSO
+		- Controlling VPN clients behavior
+	
+		Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+		Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
+		      
+			 */
+			content: () => LocalizedString
+			controls: {
+				/**
+				 * Maybe later
+				 */
+				cancel: () => LocalizedString
+				/**
+				 * See all Enterprise plans
+				 */
+				confirm: () => LocalizedString
+			}
+		}
+		standaloneDeviceEnrollmentModal: {
+			/**
+			 * Network device token
+			 */
+			title: () => LocalizedString
+			toasters: {
+				/**
+				 * Token generation failed.
+				 */
+				error: () => LocalizedString
+			}
+		}
+		standaloneDeviceConfigModal: {
+			/**
+			 * Network device config
+			 */
+			title: () => LocalizedString
+			/**
+			 * Config
+			 */
+			cardTitle: () => LocalizedString
+			toasters: {
+				getConfig: {
+					/**
+					 * Failed to get device config.
+					 */
+					error: () => LocalizedString
+				}
+			}
+		}
+		editStandaloneModal: {
+			/**
+			 * Edit network device
+			 */
+			title: () => LocalizedString
+			toasts: {
+				/**
+				 * Device modified
+				 */
+				success: () => LocalizedString
+				/**
+				 * Modifying the device failed
+				 */
+				failure: () => LocalizedString
+			}
+		}
+		deleteStandaloneDevice: {
+			/**
+			 * Delete network device
+			 */
+			title: () => LocalizedString
+			/**
+			 * Device {name} will be deleted.
+			 */
+			content: (arg: { name: string }) => LocalizedString
+			messages: {
+				/**
+				 * Device deleted
+				 */
+				success: () => LocalizedString
+				/**
+				 * Failed to remove device.
+				 */
+				error: () => LocalizedString
+			}
+		}
+		addStandaloneDevice: {
+			toasts: {
+				/**
+				 * Device added
+				 */
+				deviceCreated: () => LocalizedString
+				/**
+				 * Device could not be added.
+				 */
+				creationFailed: () => LocalizedString
+			}
+			infoBox: {
+				/**
+				 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+				 */
+				setup: () => LocalizedString
+			}
+			form: {
+				/**
+				 * Add Device
+				 */
+				submit: () => LocalizedString
+				labels: {
+					/**
+					 * Device Name
+					 */
+					deviceName: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * Assigned IP
+					 */
+					assignedAddress: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					generation: {
+						/**
+						 * Generate key pair
+						 */
+						auto: () => LocalizedString
+						/**
+						 * Use my own public key
+						 */
+						manual: () => LocalizedString
+					}
+					/**
+					 * Provide Your Public Key
+					 */
+					publicKey: () => LocalizedString
+				}
+			}
+			steps: {
+				method: {
+					/**
+					 * Choose a proffered method
+					 */
+					title: () => LocalizedString
+					cards: {
+						cli: {
+							/**
+							 * defguard Command Line Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * When using defguard-cli your device will automatically have VPN configuration up-to-date (real time-sync).
+							 */
+							subtitle: () => LocalizedString
+							/**
+							 * Download defguard CLI Client
+							 */
+							download: () => LocalizedString
+						}
+						manual: {
+							/**
+							 * Manual WireGuard Client
+							 */
+							title: () => LocalizedString
+							/**
+							 * If your device does not support our cli binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN Location configuration will require manual changes in device configuration.
+							 */
+							subtitle: () => LocalizedString
+						}
+					}
+				}
+				manual: {
+					/**
+					 * Add new VPN device using WireGuard Client
+					 */
+					title: () => LocalizedString
+					finish: {
+						/**
+						 * Download the provided configuration file to your device and import it into your VPN client to complete the setup.
+						 */
+						messageTop: () => LocalizedString
+						/**
+						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard app.
+						 */
+						ctaInstruction: () => LocalizedString
+						/**
+						 * 
+					            Please remember that defguard **doesn't store private keys**.  We will securely generate the public&private key pare in your browser, and only store the public key in defguard database. Please download the configuration generated with the private key for the device, as later it will not be accessible.
+					            
+						 */
+						warningMessage: () => LocalizedString
+						actionCard: {
+							/**
+							 * Config
+							 */
+							title: () => LocalizedString
+						}
+					}
+				}
+				cli: {
+					/**
+					 * Add device using defguard Command Line Client
+					 */
+					title: () => LocalizedString
+					finish: {
+						/**
+						 * First download defguard command line client binaries and install them on your server.
+						 */
+						topMessage: () => LocalizedString
+						/**
+						 * Download defguard CLI Client
+						 */
+						downloadButton: () => LocalizedString
+						/**
+						 * Copy and paste this command in your terminal on the device
+						 */
+						commandCopy: () => LocalizedString
+					}
+					setup: {
+						/**
+						 * Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.
+						 */
+						stepMessage: () => LocalizedString
+						form: {
+							/**
+							 * Add Device
+							 */
+							submit: () => LocalizedString
+						}
+					}
+				}
+			}
+		}
 		updatesNotificationToaster: {
 			/**
 			 * New version available {version}
@@ -4638,6 +5251,22 @@ export type TranslationFunctions = {
 				 */
 				more: () => LocalizedString
 			}
+		}
+		enterpriseUpgradeToaster: {
+			/**
+			 * You've reached the enterprise functionality limit.
+			 */
+			title: () => LocalizedString
+			/**
+			 * You've exceeded the limit of your current Defguard plan and the enterprise
+		          features will be disabled. Purchase an enterprise license or upgrade your
+		          exsiting one to continue using these features.
+			 */
+			message: () => LocalizedString
+			/**
+			 * See all enterprise plans
+			 */
+			link: () => LocalizedString
 		}
 		updatesNotification: {
 			header: {
@@ -5116,46 +5745,6 @@ export type TranslationFunctions = {
 				 * Device has been deleted.
 				 */
 				success: () => LocalizedString
-			}
-		}
-		addWallet: {
-			/**
-			 * Add wallet
-			 */
-			title: () => LocalizedString
-			/**
-			 * In order to add a ETH wallet you will need to sign message.
-			 */
-			infoBox: () => LocalizedString
-			form: {
-				fields: {
-					name: {
-						/**
-						 * Wallet name
-						 */
-						placeholder: () => LocalizedString
-						/**
-						 * Name
-						 */
-						label: () => LocalizedString
-					}
-					address: {
-						/**
-						 * Wallet address
-						 */
-						placeholder: () => LocalizedString
-						/**
-						 * Address
-						 */
-						label: () => LocalizedString
-					}
-				}
-				controls: {
-					/**
-					 * Add wallet
-					 */
-					submit: () => LocalizedString
-				}
 			}
 		}
 		keyDetails: {
@@ -5939,16 +6528,6 @@ export type TranslationFunctions = {
 				 * Disabled
 				 */
 				disabled: () => LocalizedString
-				wallet: {
-					/**
-					 * Wallet
-					 */
-					singular: () => LocalizedString
-					/**
-					 * Wallets
-					 */
-					plural: () => LocalizedString
-				}
 				labels: {
 					/**
 					 * Time based one time passwords
@@ -5962,10 +6541,6 @@ export type TranslationFunctions = {
 					 * Security keys
 					 */
 					webauth: () => LocalizedString
-					/**
-					 * Wallets
-					 */
-					wallets: () => LocalizedString
 				}
 				editMode: {
 					/**
@@ -6062,74 +6637,6 @@ export type TranslationFunctions = {
 					 * Show configuration
 					 */
 					showConfigurations: () => LocalizedString
-				}
-			}
-		}
-		wallets: {
-			messages: {
-				/**
-				 * Address copied.
-				 */
-				addressCopied: () => LocalizedString
-				duplicate: {
-					/**
-					 * Connected wallet is already registered
-					 */
-					primary: () => LocalizedString
-					/**
-					 * Please connect unused wallet.
-					 */
-					sub: () => LocalizedString
-				}
-			}
-			/**
-			 * User wallets
-			 */
-			header: () => LocalizedString
-			/**
-			 * Add new wallet
-			 */
-			addWallet: () => LocalizedString
-			card: {
-				/**
-				 * Address
-				 */
-				address: () => LocalizedString
-				/**
-				 * MFA
-				 */
-				mfaBadge: () => LocalizedString
-				edit: {
-					/**
-					 * Enable MFA
-					 */
-					enableMFA: () => LocalizedString
-					/**
-					 * Disable MFA
-					 */
-					disableMFA: () => LocalizedString
-					/**
-					 * Delete
-					 */
-					'delete': () => LocalizedString
-					/**
-					 * Copy address
-					 */
-					copyAddress: () => LocalizedString
-				}
-				messages: {
-					/**
-					 * Wallet deleted
-					 */
-					deleteSuccess: () => LocalizedString
-					/**
-					 * Wallet MFA enabled
-					 */
-					enableMFA: () => LocalizedString
-					/**
-					 * Wallet MFA disabled
-					 */
-					disableMFA: () => LocalizedString
 				}
 			}
 		}
@@ -6323,6 +6830,16 @@ export type TranslationFunctions = {
 		 * Users
 		 */
 		pageTitle: () => LocalizedString
+		grid: {
+			/**
+			 * Connected Users
+			 */
+			usersTitle: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devicesTitle: () => LocalizedString
+		}
 		search: {
 			/**
 			 * Find users
@@ -6456,6 +6973,10 @@ export type TranslationFunctions = {
 			 * Groups
 			 */
 			groups: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
@@ -6506,6 +7027,10 @@ export type TranslationFunctions = {
 			 * Support
 			 */
 			support: () => LocalizedString
+			/**
+			 * Network Devices
+			 */
+			devices: () => LocalizedString
 		}
 		/**
 		 * Copyright ©2023-2024
@@ -6563,6 +7088,18 @@ export type TranslationFunctions = {
 		}
 		error: {
 			/**
+			 * Name is already taken.
+			 */
+			reservedName: () => LocalizedString
+			/**
+			 * IP is invalid.
+			 */
+			invalidIp: () => LocalizedString
+			/**
+			 * IP is already in use.
+			 */
+			reservedIp: () => LocalizedString
+			/**
 			 * Field contains forbidden characters.
 			 */
 			forbiddenCharacter: () => LocalizedString
@@ -6591,9 +7128,17 @@ export type TranslationFunctions = {
 			 */
 			maximumLength: () => LocalizedString
 			/**
+			 * Field length cannot exceed {length}
+			 */
+			maximumLengthOf: (arg: { length: number }) => LocalizedString
+			/**
 			 * Minimum length not reached.
 			 */
 			minimumLength: () => LocalizedString
+			/**
+			 * Minimum length of {length} not reached.
+			 */
+			minimumLengthOf: (arg: { length: number }) => LocalizedString
 			/**
 			 * No special characters are allowed.
 			 */
@@ -6675,6 +7220,22 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		standaloneDeviceTokenModalContent: {
+			/**
+			 * First download defguard command line client binaries and install them on your server.
+			 */
+			headerMessage: () => LocalizedString
+			/**
+			 * Download defguard CLI Client
+			 */
+			downloadButton: () => LocalizedString
+			expandableCard: {
+				/**
+				 * Copy and paste this command in your terminal on the device
+				 */
+				title: () => LocalizedString
+			}
+		}
 		deviceConfigsCard: {
 			/**
 			 * WireGuard Config for location:
@@ -6764,6 +7325,10 @@ export type TranslationFunctions = {
 			 * Enterprise features
 			 */
 			enterprise: () => LocalizedString
+			/**
+			 * Gateway notifications
+			 */
+			gatewayNotifications: () => LocalizedString
 		}
 		messages: {
 			/**
@@ -7169,26 +7734,6 @@ export type TranslationFunctions = {
 				list: () => LocalizedString
 			}
 		}
-		web3Settings: {
-			/**
-			 * Web3 / Wallet connect
-			 */
-			header: () => LocalizedString
-			fields: {
-				signMessage: {
-					/**
-					 * Default sign message template
-					 */
-					label: () => LocalizedString
-				}
-			}
-			controls: {
-				/**
-				 * Save changes
-				 */
-				save: () => LocalizedString
-			}
-		}
 		instanceBranding: {
 			/**
 			 * Instance Branding
@@ -7313,10 +7858,24 @@ export type TranslationFunctions = {
 				 * License information
 				 */
 				title: () => LocalizedString
-				/**
-				 * No license
-				 */
-				noLicense: () => LocalizedString
+				status: {
+					/**
+					 * No valid license
+					 */
+					noLicense: () => LocalizedString
+					/**
+					 * Expired
+					 */
+					expired: () => LocalizedString
+					/**
+					 * Limits Exceeded
+					 */
+					limitsExceeded: () => LocalizedString
+					/**
+					 * Active
+					 */
+					active: () => LocalizedString
+				}
 				/**
 				 * <p>You have access to this enterprise feature, as you haven't exceeded any of the usage limits yet. Check the <a href='https://docs.defguard.net/enterprise/license'>documentation</a> for more information.</p>
 				 */
@@ -7631,6 +8190,58 @@ export type TranslationFunctions = {
 					 * When this option is enabled, users won't be able to view or download configuration for the manual WireGuard client setup. Only the Defguard desktop client configuration will be available.
 					 */
 					helper: () => LocalizedString
+				}
+			}
+		}
+		gatewayNotifications: {
+			/**
+			 * To enable gateway disconnect notifications you must first configure an SMTP server
+			 */
+			smtpWarning: () => LocalizedString
+			/**
+			 * Gateway disconnect notifications
+			 */
+			header: () => LocalizedString
+			/**
+			 * <p>Here you can enable gateway disconnect notifications.</p>
+			 */
+			helper: () => LocalizedString
+			form: {
+				/**
+				 * Save changes
+				 */
+				submit: () => LocalizedString
+				fields: {
+					disconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway disconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is disconnected
+						 */
+						help: () => LocalizedString
+					}
+					inactivityThreshold: {
+						/**
+						 * Gateway inactivity time [minutes]
+						 */
+						label: () => LocalizedString
+						/**
+						 * Time (in minutes) that a gateway needs to stay disconnected before a notification is sent
+						 */
+						help: () => LocalizedString
+					}
+					reconnectNotificationsEnabled: {
+						/**
+						 * Enable gateway reconnect notifications
+						 */
+						label: () => LocalizedString
+						/**
+						 * Send email notification to admin users once a gateway is reconnected
+						 */
+						help: () => LocalizedString
+					}
 				}
 			}
 		}
@@ -8182,6 +8793,16 @@ export type TranslationFunctions = {
 			 */
 			gatewayDisconnected: () => LocalizedString
 		}
+		cardsLabels: {
+			/**
+			 * Connected Users
+			 */
+			users: () => LocalizedString
+			/**
+			 * Connected Network Devices
+			 */
+			devices: () => LocalizedString
+		}
 	}
 	connectedUsersOverview: {
 		/**
@@ -8267,7 +8888,7 @@ export type TranslationFunctions = {
 		form: {
 			helpers: {
 				/**
-				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24)
+				 * Based on this address VPN network address will be defined, eg. 10.10.10.1/24 (and VPN network will be: 10.10.10.0/24). You can optionally specify multiple addresses separated by a comma. The first address is the primary address, and this one will be used for IP address assignment for devices. The other IP addresses are auxiliary and are not managed by Defguard.
 				 */
 				address: () => LocalizedString
 				/**
@@ -8496,10 +9117,6 @@ export type TranslationFunctions = {
 				 */
 				useAuthenticator: () => LocalizedString
 				/**
-				 * Use your wallet instead
-				 */
-				useWallet: () => LocalizedString
-				/**
 				 * Use security key instead
 				 */
 				useWebauthn: () => LocalizedString
@@ -8574,28 +9191,6 @@ export type TranslationFunctions = {
 						 */
 						submit: () => LocalizedString
 					}
-				}
-			}
-			wallet: {
-				/**
-				 * Use your crypto wallet to sign in, please sign message in your wallet app or extension.
-				 */
-				header: () => LocalizedString
-				controls: {
-					/**
-					 * Use your wallet
-					 */
-					submit: () => LocalizedString
-				}
-				messages: {
-					/**
-					 * Wallet was disconnected during signing process.
-					 */
-					walletError: () => LocalizedString
-					/**
-					 * Wallet is not authorized for MFA login. Please use authorized wallet.
-					 */
-					walletErrorMfa: () => LocalizedString
 				}
 			}
 			webauthn: {
@@ -8952,6 +9547,78 @@ export type TranslationFunctions = {
 	
 			 */
 			body: () => LocalizedString
+		}
+	}
+	devicesPage: {
+		/**
+		 * Network Devices
+		 */
+		title: () => LocalizedString
+		search: {
+			/**
+			 * Find
+			 */
+			placeholder: () => LocalizedString
+		}
+		bar: {
+			/**
+			 * All devices
+			 */
+			itemsCount: () => LocalizedString
+			filters: {
+			}
+			actions: {
+				/**
+				 * Add new
+				 */
+				addNewDevice: () => LocalizedString
+			}
+		}
+		list: {
+			columns: {
+				labels: {
+					/**
+					 * Device name
+					 */
+					name: () => LocalizedString
+					/**
+					 * Location
+					 */
+					location: () => LocalizedString
+					/**
+					 * IP
+					 */
+					assignedIp: () => LocalizedString
+					/**
+					 * Description
+					 */
+					description: () => LocalizedString
+					/**
+					 * Added by
+					 */
+					addedBy: () => LocalizedString
+					/**
+					 * Add date
+					 */
+					addedAt: () => LocalizedString
+					/**
+					 * Edit
+					 */
+					edit: () => LocalizedString
+				}
+			}
+			edit: {
+				actionLabels: {
+					/**
+					 * View config
+					 */
+					config: () => LocalizedString
+					/**
+					 * Generate auth token
+					 */
+					generateToken: () => LocalizedString
+				}
+			}
 		}
 	}
 }

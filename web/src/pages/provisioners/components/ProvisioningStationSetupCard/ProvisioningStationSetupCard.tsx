@@ -22,14 +22,12 @@ export const ProvisioningStationSetup = () => {
     provisioning: { getWorkerToken },
   } = useApi();
 
-  const { data, isLoading: tokenLoading } = useQuery(
-    [QueryKeys.FETCH_WORKER_TOKEN],
-    getWorkerToken,
-    {
-      refetchOnWindowFocus: false,
-      refetchOnMount: true,
-    },
-  );
+  const { data, isLoading: tokenLoading } = useQuery({
+    queryKey: [QueryKeys.FETCH_WORKER_TOKEN],
+    queryFn: getWorkerToken,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
 
   const command = useMemo(
     () =>
@@ -44,7 +42,10 @@ export const ProvisioningStationSetup = () => {
         variant={ActionButtonVariant.COPY}
         onClick={() => {
           if (data?.token) {
-            writeToClipboard(data.token, LL.provisionersOverview.messages.copy.token());
+            void writeToClipboard(
+              data.token,
+              LL.provisionersOverview.messages.copy.token(),
+            );
           }
         }}
       />,
@@ -58,7 +59,7 @@ export const ProvisioningStationSetup = () => {
         key={1}
         variant={ActionButtonVariant.COPY}
         onClick={() => {
-          writeToClipboard(command, LL.provisionersOverview.messages.copy.command());
+          void writeToClipboard(command, LL.provisionersOverview.messages.copy.command());
         }}
       />,
     ],
