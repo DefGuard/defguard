@@ -728,6 +728,7 @@ struct SplitIP {
     network_part: String,
     modifiable_part: String,
     network_prefix: String,
+    ip: String,
 }
 
 /// Splits the IP address (IPv4 or IPv6) into three parts: network part, modifiable part and prefix
@@ -798,6 +799,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIP {
     }
 
     SplitIP {
+        ip: ip.to_string(),
         network_part,
         modifiable_part,
         network_prefix: network_prefix.to_string(),
