@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Subject } from 'rxjs';
 import { shallow } from 'zustand/shallow';
 
@@ -13,12 +13,10 @@ import {
 } from '../../../../shared/defguard-ui/components/Layout/Button/types';
 import { LoaderSpinner } from '../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ModalWithTitle } from '../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
-import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import { useAuthStore } from '../../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { Network } from '../../../../shared/types';
 import { selectifyNetworks } from '../../../../shared/utils/form/selectifyNetwork';
 import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
@@ -57,8 +55,6 @@ export const EditStandaloneModal = () => {
 };
 
 const ModalContent = () => {
-  // this is needs bcs opening modal again and again would prevent availableIp to refetch
-  const modalSessionID = useId();
   const { LL } = useI18nContext();
   const localLL = LL.modals.editStandaloneModal;
   const device = useEditStandaloneDeviceModal((s) => s.device);
@@ -72,7 +68,7 @@ const ModalContent = () => {
 
   const {
     network: { getNetworks },
-    standaloneDevice: { getAvailableIp, editDevice },
+    standaloneDevice: { editDevice },
   } = useApi();
 
   const { mutateAsync } = useMutation({
@@ -98,22 +94,6 @@ const ModalContent = () => {
     refetchOnMount: true,
   });
 
-  const { data: availableIpResponse } = useQuery({
-    queryKey: [
-      'ADD_STANDALONE_DEVICE_MODAL_FETCH_INITIAL_AVAILABLE_IP',
-      networks,
-      modalSessionID,
-    ],
-    queryFn: () =>
-      getAvailableIp({
-        locationId: (networks as Network[])[0].id,
-      }),
-    enabled: networks !== undefined && Array.isArray(networks) && networks.length > 0,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    refetchOnWindowFocus: false,
-  });
-
   const locationOptions = useMemo(() => {
     if (networks) {
       return selectifyNetworks(networks);
@@ -122,12 +102,14 @@ const ModalContent = () => {
   }, [networks]);
 
   const defaultValues = useMemo(() => {
-    if (locationOptions && availableIpResponse && device) {
-      let modifiablePart = device.assigned_ip.split(availableIpResponse.network_part)[1];
+    if (locationOptions && device) {
+      let modifiablePart = device.assigned_ip.split(device.split_ip.network_part)[1];
 
       if (modifiablePart === undefined) {
-        modifiablePart = availableIpResponse.modifiable_part;
+        modifiablePart = device.split_ip.modifiable_part;
       }
+
+      console.log(modifiablePart);
 
       const res: AddStandaloneDeviceFormFields = {
         name: device?.name,
@@ -140,7 +122,7 @@ const ModalContent = () => {
       return res;
     }
     return undefined;
-  }, [availableIpResponse, device, locationOptions]);
+  }, [device, locationOptions]);
 
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
@@ -156,9 +138,13 @@ const ModalContent = () => {
     [device, mutateAsync],
   );
 
+  if (!device) {
+    return null;
+  }
+
   return (
     <>
-      {defaultValues && isPresent(availableIpResponse) && (
+      {defaultValues && (
         <StandaloneDeviceModalForm
           mode={StandaloneDeviceModalFormMode.EDIT}
           defaults={defaultValues}
@@ -167,7 +153,10 @@ const ModalContent = () => {
           onSubmit={handleSubmit}
           submitSubject={submitSubject}
           reservedNames={reservedDeviceNames}
-          initialIpRecommendation={availableIpResponse}
+          initialIpRecommendation={{
+            ip: device.assigned_ip,
+            ...device.split_ip,
+          }}
         />
       )}
       {!defaultValues && (

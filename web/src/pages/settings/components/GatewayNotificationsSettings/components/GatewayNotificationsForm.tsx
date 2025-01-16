@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -16,7 +17,6 @@ import {
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -86,7 +86,7 @@ export const GatewayNotificationsForm = () => {
     return res;
   }, [settings]);
 
-  const { control, handleSubmit, setValue, watch } = useForm<FormFields>({
+  const { control, handleSubmit, watch } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
@@ -124,16 +124,15 @@ export const GatewayNotificationsForm = () => {
       </header>
       <form id="gateway-notifications-form" onSubmit={handleSubmit(onSubmit)}>
         <div className="checkbox-row">
-          <LabeledCheckbox
+          <FormCheckBox
             disabled={isLoading || !smtpConfigured}
             label={localLL.form.fields.disconnectNotificationsEnabled.label()}
             value={gatewayDisconnectNotificationsEnabled}
-            onChange={() =>
-              setValue(
-                'gateway_disconnect_notifications_enabled',
-                !gatewayDisconnectNotificationsEnabled,
-              )
-            }
+            controller={{
+              control,
+              name: 'gateway_disconnect_notifications_enabled',
+            }}
+            labelPlacement="right"
           />
           <Helper>
             {parse(LL.settingsPage.enterprise.fields.deviceManagement.helper())}
@@ -155,18 +154,17 @@ export const GatewayNotificationsForm = () => {
           required
         />
         <div className="checkbox-row">
-          <LabeledCheckbox
+          <FormCheckBox
             disabled={
               isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured
             }
             label={localLL.form.fields.reconnectNotificationsEnabled.label()}
             value={gatewayDisconnectNotificationsReconnectNotificationEnabled}
-            onChange={() =>
-              setValue(
-                'gateway_disconnect_notifications_reconnect_notification_enabled',
-                !gatewayDisconnectNotificationsReconnectNotificationEnabled,
-              )
-            }
+            controller={{
+              control,
+              name: 'gateway_disconnect_notifications_reconnect_notification_enabled',
+            }}
+            labelPlacement="right"
           />
           <Helper>
             {parse(localLL.form.fields.reconnectNotificationsEnabled.help())}

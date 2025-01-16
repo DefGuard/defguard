@@ -54,6 +54,7 @@ async fn test_openid_providers() {
         directory_sync_user_behavior: DirectorySyncUserBehavior::Keep.to_string(),
         directory_sync_admin_behavior: DirectorySyncUserBehavior::Keep.to_string(),
         directory_sync_target: DirectorySyncTarget::All.to_string(),
+        create_account: false,
     };
 
     let response = client
