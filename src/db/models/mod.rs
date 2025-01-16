@@ -40,7 +40,7 @@ pub struct NewOpenIDClient {
     pub enabled: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OAuth2AuthorizedAppInfo {
     pub oauth2client_id: Id,
     pub user_id: Id,
@@ -48,7 +48,7 @@ pub struct OAuth2AuthorizedAppInfo {
 }
 
 /// Only `id` and `name` from [`WebAuthn`].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct SecurityKey {
     pub id: Id,
     pub name: String,

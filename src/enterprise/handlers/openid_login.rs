@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode, Json};
-use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     extract::{
         cookie::{Cookie, SameSite},
@@ -415,7 +415,6 @@ pub(crate) async fn auth_callback(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
-    forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(payload): Json<AuthenticationResponse>,
@@ -452,11 +451,10 @@ pub(crate) async fn auth_callback(
     )
     .await?;
 
-    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
     let (session, user_info, mfa_info) = create_session(
         &appstate.pool,
         &appstate.mail_tx,
-        ip_address,
+        insecure_ip,
         user_agent.as_str(),
         &mut user,
     )

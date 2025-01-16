@@ -23,6 +23,13 @@ use self::common::{make_network, make_test_client};
 
 static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
+#[derive(Deserialize)]
+struct StatsResponse {
+    user_devices: Vec<WireguardUserStatsRow>,
+    #[serde(rename = "network_devices")]
+    _network_devices: Vec<WireguardDeviceStatsRow>,
+}
+
 #[tokio::test]
 async fn test_stats() {
     let (client, client_state) = make_test_client().await;
@@ -31,12 +38,6 @@ async fn test_stats() {
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    #[derive(Deserialize)]
-    struct StatsResponse {
-        user_devices: Vec<WireguardUserStatsRow>,
-        #[serde(rename = "network_devices")]
-        _network_devices: Vec<WireguardDeviceStatsRow>,
-    }
     // create network
     let response = client
         .post("/api/v1/network")

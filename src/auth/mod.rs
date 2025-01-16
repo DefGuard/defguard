@@ -6,9 +6,8 @@ use std::{
 };
 
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
-    http::request::Parts,
+    http::{header::AUTHORIZATION, request::Parts},
 };
 use axum_extra::extract::cookie::CookieJar;
 use jsonwebtoken::{
@@ -118,7 +117,6 @@ impl Claims {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for Session
 where
     S: Send + Sync,
@@ -177,7 +175,6 @@ impl SessionInfo {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for SessionInfo
 where
     S: Send + Sync,
@@ -215,7 +212,6 @@ macro_rules! role {
     ($name:ident, $($permission:path)*) => {
         pub struct $name;
 
-        #[async_trait]
         impl<S> FromRequestParts<S> for $name
         where
             S: Send + Sync,
@@ -253,7 +249,6 @@ role!(AdminRole, Permission::IsAdmin);
 // User authenticated by a valid access token
 pub struct AccessUserInfo(pub(crate) User<Id>);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AccessUserInfo
 where
     S: Send + Sync,
@@ -263,7 +258,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
-        if let Some(token) = parts.headers.get("Authorization").and_then(|value| {
+        if let Some(token) = parts.headers.get(AUTHORIZATION).and_then(|value| {
             if let Ok(value) = value.to_str() {
                 if value.to_lowercase().starts_with("bearer ") {
                     value.get(7..)

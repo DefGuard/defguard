@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::{FromRequestParts, State},
     http::{header::HeaderValue, request::Parts, StatusCode},
     response::{IntoResponse, Redirect, Response},
@@ -29,14 +28,16 @@ impl IntoResponse for ForwardAuthResponse {
     }
 }
 
-pub struct ForwardAuthHeaders {
+pub(crate) struct ForwardAuthHeaders {
     pub forwarded_host: Option<String>,
     pub forwarded_proto: Option<String>,
     pub forwarded_uri: Option<String>,
 }
 
-#[async_trait]
-impl<S> FromRequestParts<S> for ForwardAuthHeaders {
+impl<S> FromRequestParts<S> for ForwardAuthHeaders
+where
+    S: Send + Sync,
+{
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {

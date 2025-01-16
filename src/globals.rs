@@ -42,6 +42,7 @@ macro_rules! global_value {
         // This is not really a 1:1 replacement for the non-test RwLockReadGuard<'static, $type> as the RwLock may be tried to be
         // dereferenced
         #[cfg(test)]
+        #[must_use]
         pub fn $get_fn() -> $type {
             $name.with(|value| {
                 value

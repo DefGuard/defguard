@@ -55,7 +55,7 @@ impl OAuth2Client {
 
 impl OAuth2Client<Id> {
     /// Find client by 'client_id`.
-    pub async fn find_by_client_id(
+    pub(crate) async fn find_by_client_id(
         pool: &PgPool,
         client_id: &str,
     ) -> Result<Option<Self>, SqlxError> {
@@ -70,7 +70,7 @@ impl OAuth2Client<Id> {
     }
 
     /// Find using `client_id` and `client_secret`; must be `enabled`.
-    pub async fn find_by_auth(
+    pub(crate) async fn find_by_auth(
         pool: &PgPool,
         client_id: &str,
         client_secret: &str,
@@ -81,21 +81,6 @@ impl OAuth2Client<Id> {
             FROM oauth2client WHERE client_id = $1 AND client_secret = $2 AND enabled",
             client_id,
             client_secret
-        )
-        .fetch_optional(pool)
-        .await
-    }
-
-    /// Find enabled client by `client_id`.
-    pub async fn find_enabled_for_client_id(
-        pool: &PgPool,
-        client_id: &str,
-    ) -> Result<Option<Self>, SqlxError> {
-        query_as!(
-            Self,
-            "SELECT id, client_id, client_secret, redirect_uri, scope, name, enabled \
-            FROM oauth2client WHERE client_id = $1 AND enabled",
-            client_id
         )
         .fetch_optional(pool)
         .await

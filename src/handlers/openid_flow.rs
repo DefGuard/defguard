@@ -4,14 +4,17 @@ use std::{
 };
 
 use axum::{
-    async_trait,
-    extract::{FromRef, FromRequestParts, Query, State},
-    http::{header::LOCATION, request::Parts, HeaderMap, HeaderValue, StatusCode},
+    extract::{FromRef, OptionalFromRequestParts, Query, State},
+    http::{
+        header::{AUTHORIZATION, LOCATION},
+        request::Parts,
+        HeaderMap, HeaderValue, StatusCode,
+    },
     Form,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, PrivateCookieJar, SameSite};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chrono::{TimeDelta, Utc};
+use chrono::Utc;
 use openidconnect::{
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
@@ -96,41 +99,43 @@ pub type DefguardIdTokenFields = IdTokenFields<
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;
 
 /// Provide `OAuth2Client` when Basic Authorization header contains `client_id` and `client_secret`.
-#[async_trait]
-impl<S> FromRequestParts<S> for OAuth2Client<Id>
+impl<S> OptionalFromRequestParts<S> for OAuth2Client<Id>
 where
     S: Send + Sync,
     AppState: FromRef<S>,
 {
     type Rejection = WebError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let appstate = AppState::from_ref(state);
-        if let Some(basic_auth) = parts.headers.get("authorization").and_then(|value| {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        if let Some(basic_auth) = parts.headers.get(AUTHORIZATION).and_then(|value| {
             if let Ok(value) = value.to_str() {
                 if value.starts_with("Basic ") {
-                    value.get(6..)
-                } else {
-                    None
+                    return value.get(6..);
                 }
-            } else {
-                None
             }
+            None
         }) {
             if let Ok(decoded) = BASE64_STANDARD.decode(basic_auth) {
                 if let Ok(auth_pair) = String::from_utf8(decoded) {
                     if let Some((client_id, client_secret)) = auth_pair.split_once(':') {
-                        if let Ok(Some(oauth2client)) =
-                            OAuth2Client::find_by_auth(&appstate.pool, client_id, client_secret)
-                                .await
-                        {
-                            return Ok(oauth2client);
-                        }
+                        let appstate = AppState::from_ref(state);
+                        return OAuth2Client::find_by_auth(
+                            &appstate.pool,
+                            client_id,
+                            client_secret,
+                        )
+                        .await
+                        .map_err(Into::into);
                     }
                 }
             }
+            Err(WebError::Authorization("Invalid credentials".into()))
+        } else {
+            Ok(None)
         }
-        Err(WebError::Authorization("Invalid credentials".into()))
     }
 }
 
@@ -677,8 +682,8 @@ impl TokenRequest {
                 debug!("Scope contains openid, issuing JWT ID token");
                 let authorization_code = AuthorizationCode::new(code.into());
                 let issue_time = Utc::now();
-                let timeout = server_config().session_timeout;
-                let expiration = issue_time + TimeDelta::seconds(timeout.as_secs() as i64);
+                let timeout: std::time::Duration = server_config().session_timeout.into();
+                let expiration = issue_time + timeout;
                 let id_token_claims = IdTokenClaims::new(
                     IssuerUrl::from_url(base_url.clone()),
                     vec![Audience::new(auth_code.client_id.clone())],

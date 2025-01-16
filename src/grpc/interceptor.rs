@@ -26,9 +26,11 @@ impl Interceptor for JwtInterceptor {
 
         let token = match req.metadata().get("authorization") {
             Some(token) => token.to_str().map_err(|err| {
-                warn!("Failed to parse authorization header during handling gRPC request from hostname {}. \
-                If you recognize this hostname, there may be an issue with the token used for authorization. \
-                Cause of the failed parsing: {:?}", hostname, err);
+                warn!(
+                    "Failed to parse authorization header during handling gRPC request from \
+                    hostname {hostname}. If you recognize this hostname, there may be an issue \
+                    with the token used for authorization. Cause of the failed parsing: {err:?}"
+                );
                 Status::unauthenticated("Invalid token")
             })?,
             None => return Err(Status::unauthenticated("Missing authorization header")),
@@ -61,10 +63,9 @@ impl Interceptor for JwtInterceptor {
             }
             Err(err) => {
                 warn!(
-                    "Failed to authorize a gRPC request from hostname {}. \
-                    If you recognize this hostname, there may be an issue with the token used for authorization. \
-                    Cause of the failed authorization: {:?}",
-                    hostname, err
+                    "Failed to authorize a gRPC request from hostname {hostname}. If you recognize \
+                    this hostname, there may be an issue with the token used for authorization. \
+                    Cause of the failed authorization: {err:?}"
                 );
                 Err(Status::unauthenticated("Invalid token"))
             }

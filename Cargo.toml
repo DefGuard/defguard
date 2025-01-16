@@ -12,9 +12,9 @@ rust-version = "1.82"
 [dependencies]
 anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
-axum = { version = "0.7" }
-axum-client-ip = "0.5"
-axum-extra = { version = "0.9", features = [
+axum = { version = "0.8" }
+axum-client-ip = "0.7"
+axum-extra = { version = "0.10", features = [
     "cookie",
     "cookie-private",
     "typed-header",
@@ -92,8 +92,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 trait-variant = "0.1"
 uaparser = "0.6"
 # openapi
-utoipa = { version = "4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "7", features = ["axum", "vendored"] }
+utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
 uuid = { version = "1.9", features = ["v4"] }
 webauthn-authenticator-rs = { version = "0.5" }
 webauthn-rs = { version = "0.5", features = [

@@ -170,7 +170,6 @@ mod openapi {
         models::device::{ModifyDevice, UserDevice},
         AddDevice, UserDetails, UserInfo,
     };
-    use error::WebError;
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
         user, wireguard as device,
@@ -221,7 +220,7 @@ mod openapi {
         ),
         components(
             schemas(
-                ApiResponse, UserInfo, WebError, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
             ),
         ),
         tags(
@@ -293,10 +292,10 @@ pub fn build_webapp(
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
-        .route("/*path", get(index))
-        .route("/fonts/*path", get(web_asset))
-        .route("/assets/*path", get(web_asset))
-        .route("/svg/*path", get(svg))
+        .route("/{*path}", get(index))
+        .route("/fonts/{*path}", get(web_asset))
+        .route("/assets/{*path}", get(web_asset))
+        .route("/svg/{*path}", get(svg))
         .fallback_service(get(handle_404));
 
     let webapp = webapp.nest(
@@ -328,44 +327,44 @@ pub fn build_webapp(
             .route("/auth/recovery", post(recovery_code))
             // /user
             .route("/user", get(list_users))
-            .route("/user/:username", get(get_user))
+            .route("/user/{username}", get(get_user))
             .route("/user", post(add_user))
-            .route("/user/:username/start_enrollment", post(start_enrollment))
+            .route("/user/{username}/start_enrollment", post(start_enrollment))
             .route(
-                "/user/:username/start_desktop",
+                "/user/{username}/start_desktop",
                 post(start_remote_desktop_configuration),
             )
             .route("/user/available", post(username_available))
-            .route("/user/:username", put(modify_user))
-            .route("/user/:username", delete(delete_user))
+            .route("/user/{username}", put(modify_user))
+            .route("/user/{username}", delete(delete_user))
             // FIXME: username `change_password` is invalid
             .route("/user/change_password", put(change_self_password))
-            .route("/user/:username/password", put(change_password))
-            .route("/user/:username/reset_password", post(reset_password))
+            .route("/user/{username}/password", put(change_password))
+            .route("/user/{username}/reset_password", post(reset_password))
             // auth keys
-            .route("/user/:username/auth_key", get(fetch_authentication_keys))
-            .route("/user/:username/auth_key", post(add_authentication_key))
+            .route("/user/{username}/auth_key", get(fetch_authentication_keys))
+            .route("/user/{username}/auth_key", post(add_authentication_key))
             .route(
-                "/user/:username/auth_key/:key_id",
+                "/user/{username}/auth_key/{key_id}",
                 delete(delete_authentication_key),
             )
             .route(
-                "/user/:username/auth_key/:key_id/rename",
+                "/user/{username}/auth_key/{key_id}/rename",
                 post(rename_authentication_key),
             )
             // yubi keys
-            .route("/user/:username/yubikey/:key_id", delete(delete_yubikey))
+            .route("/user/{username}/yubikey/{key_id}", delete(delete_yubikey))
             .route(
-                "/user/:username/yubikey/:key_id/rename",
+                "/user/{username}/yubikey/{key_id}/rename",
                 post(rename_yubikey),
             )
             .route(
-                "/user/:username/security_key/:id",
+                "/user/{username}/security_key/{id}",
                 delete(delete_security_key),
             )
             .route("/me", get(me))
             .route(
-                "/user/:username/oauth_app/:oauth2client_id",
+                "/user/{username}/oauth_app/{oauth2client_id}",
                 delete(delete_authorized_app),
             )
             // forward_auth
@@ -373,11 +372,11 @@ pub fn build_webapp(
             // group
             .route("/group", get(list_groups))
             .route("/group", post(create_group))
-            .route("/group/:name", get(get_group))
-            .route("/group/:name", put(modify_group))
-            .route("/group/:name", delete(delete_group))
-            .route("/group/:name", post(add_group_member))
-            .route("/group/:name/user/:username", delete(remove_group_member))
+            .route("/group/{name}", get(get_group))
+            .route("/group/{name}", put(modify_group))
+            .route("/group/{name}", delete(delete_group))
+            .route("/group/{name}", post(add_group_member))
+            .route("/group/{name}/user/{username}", delete(remove_group_member))
             .route("/group-info", get(list_groups_info))
             .route("/groups-assign", post(bulk_assign_to_groups))
             // mail
@@ -387,7 +386,7 @@ pub fn build_webapp(
             .route("/settings", get(get_settings))
             .route("/settings", put(update_settings))
             .route("/settings", patch(patch_settings))
-            .route("/settings/:id", put(set_default_branding))
+            .route("/settings/{id}", put(set_default_branding))
             // settings for frontend
             .route("/settings_essentials", get(get_settings_essentials))
             // enterprise settings
@@ -399,10 +398,10 @@ pub fn build_webapp(
             // webhooks
             .route("/webhook", post(add_webhook))
             .route("/webhook", get(list_webhooks))
-            .route("/webhook/:id", get(get_webhook))
-            .route("/webhook/:id", put(change_webhook))
-            .route("/webhook/:id", delete(delete_webhook))
-            .route("/webhook/:id", post(change_enabled))
+            .route("/webhook/{id}", get(get_webhook))
+            .route("/webhook/{id}", put(change_webhook))
+            .route("/webhook/{id}", delete(delete_webhook))
+            .route("/webhook/{id}", post(change_enabled))
             // ldap
             .route("/ldap/test", get(test_ldap_settings)),
     );
@@ -413,7 +412,7 @@ pub fn build_webapp(
         Router::new()
             .route("/provider", get(get_current_openid_provider))
             .route("/provider", post(add_openid_provider))
-            .route("/provider/:name", delete(delete_openid_provider))
+            .route("/provider/{name}", delete(delete_openid_provider))
             .route("/callback", post(auth_callback))
             .route("/auth_info", get(get_auth_info)),
     );
@@ -432,10 +431,10 @@ pub fn build_webapp(
                 .route("/discovery/keys", get(discovery_keys))
                 .route("/", post(add_openid_client))
                 .route("/", get(list_openid_clients))
-                .route("/:client_id", get(get_openid_client))
-                .route("/:client_id", put(change_openid_client))
-                .route("/:client_id", post(change_openid_client_state))
-                .route("/:client_id", delete(delete_openid_client))
+                .route("/{client_id}", get(get_openid_client))
+                .route("/{client_id}", put(change_openid_client))
+                .route("/{client_id}", post(change_openid_client_state))
+                .route("/{client_id}", delete(delete_openid_client))
                 .route("/authorize", get(authorization))
                 .route("/authorize", post(secure_authorization))
                 .route("/token", post(token))
@@ -450,26 +449,26 @@ pub fn build_webapp(
     let webapp = webapp.nest(
         "/api/v1",
         Router::new()
-            // FIXME: change /device/:device_id to /device/:username
-            .route("/device/:device_id", post(add_device))
-            .route("/device/:device_id", put(modify_device))
-            .route("/device/:device_id", get(get_device))
-            .route("/device/:device_id", delete(delete_device))
+            // FIXME: Conflict; change /device/{device_id} to /device/{username}.
+            .route("/device/{device_id}", post(add_device))
+            .route("/device/{device_id}", put(modify_device))
+            .route("/device/{device_id}", get(get_device))
+            .route("/device/{device_id}", delete(delete_device))
             .route("/device", get(list_devices))
-            .route("/device/user/:username", get(list_user_devices))
+            .route("/device/user/{username}", get(list_user_devices))
             // Network devices, as opposed to user devices
             .route("/device/network", post(add_network_device))
             .route("/device/network", get(list_network_devices))
-            .route("/device/network/ip/:network_id", get(find_available_ip))
+            .route("/device/network/ip/{network_id}", get(find_available_ip))
             .route(
-                "/device/network/ip/:network_id",
+                "/device/network/ip/{network_id}",
                 post(check_ip_availability),
             )
-            .route("/device/network/:device_id", put(modify_network_device))
-            .route("/device/network/:device_id", get(get_network_device))
-            .route("/device/network/:device_id", delete(delete_device))
+            .route("/device/network/{device_id}", put(modify_network_device))
+            .route("/device/network/{device_id}", get(get_network_device))
+            .route("/device/network/{device_id}", delete(delete_device))
             .route(
-                "/device/network/:device_id/config",
+                "/device/network/{device_id}/config",
                 get(download_network_device_config),
             )
             .route(
@@ -477,28 +476,28 @@ pub fn build_webapp(
                 post(start_network_device_setup),
             )
             .route(
-                "/device/network/start_cli/:device_id",
+                "/device/network/start_cli/{device_id}",
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network))
-            .route("/network/:network_id", put(modify_network))
-            .route("/network/:network_id", delete(delete_network))
+            .route("/network/{network_id}", put(modify_network))
+            .route("/network/{network_id}", delete(delete_network))
             .route("/network", get(list_networks))
-            .route("/network/:network_id", get(network_details))
-            .route("/network/:network_id/gateways", get(gateway_status))
+            .route("/network/{network_id}", get(network_details))
+            .route("/network/{network_id}/gateways", get(gateway_status))
             .route(
-                "/network/:network_id/gateways/:gateway_id",
+                "/network/{network_id}/gateways/{gateway_id}",
                 delete(remove_gateway),
             )
             .route("/network/import", post(import_network))
-            .route("/network/:network_id/devices", post(add_user_devices))
+            .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
-                "/network/:network_id/device/:device_id/config",
+                "/network/{network_id}/device/{device_id}/config",
                 get(download_config),
             )
-            .route("/network/:network_id/token", get(create_network_token))
-            .route("/network/:network_id/stats/users", get(devices_stats))
-            .route("/network/:network_id/stats", get(network_stats))
+            .route("/network/{network_id}/token", get(create_network_token))
+            .route("/network/{network_id}/stats/users", get(devices_stats))
+            .route("/network/{network_id}/stats", get(network_stats))
             .layer(Extension(gateway_state)),
     );
 
@@ -509,8 +508,8 @@ pub fn build_webapp(
             .route("/job", post(create_job))
             .route("/token", get(create_worker_token))
             .route("/", get(list_workers))
-            .route("/:id", delete(remove_worker))
-            .route("/:id", get(job_status))
+            .route("/{id}", delete(remove_worker))
+            .route("/{id}", get(job_status))
             .layer(Extension(worker_state)),
     );
 
