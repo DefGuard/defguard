@@ -419,5 +419,5 @@ async fn test_token_client_credentials() {
         .body("client_id=WrongClient&client_secret=WrongSecret&grant_type=code")
         .send()
         .await;
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }

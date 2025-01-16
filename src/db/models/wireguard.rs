@@ -81,6 +81,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
+    #[schema(value_type = String)]
     pub address: Vec<IpNetwork>,
     pub port: i32,
     pub pubkey: String,
@@ -89,6 +90,7 @@ pub struct WireguardNetwork<I = NoId> {
     pub endpoint: String,
     pub dns: Option<String>,
     #[model(ref)]
+    #[schema(value_type = String)]
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,

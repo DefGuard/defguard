@@ -9,7 +9,6 @@ pub mod openid_login;
 pub mod openid_providers;
 
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
@@ -27,7 +26,6 @@ pub struct LicenseInfo {
 /// Used to check if user is allowed to manage his devices.
 pub struct CanManageDevices;
 
-#[async_trait]
 impl<S> FromRequestParts<S> for LicenseInfo
 where
     S: Send + Sync,
@@ -70,7 +68,6 @@ pub async fn check_enterprise_info(_admin: AdminRole, _session: SessionInfo) -> 
     })
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for CanManageDevices
 where
     S: Send + Sync,
