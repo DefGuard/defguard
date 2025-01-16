@@ -4,7 +4,7 @@ use axum::{
     extract::{Json, State},
     http::StatusCode,
 };
-use axum_client_ip::{InsecureClientIp, LeftmostXForwardedFor};
+use axum_client_ip::InsecureClientIp;
 use axum_extra::{
     extract::{
         cookie::{Cookie, CookieJar, SameSite},
@@ -129,7 +129,6 @@ pub(crate) async fn authenticate(
     cookies: CookieJar,
     mut private_cookies: PrivateCookieJar,
     user_agent: TypedHeader<UserAgent>,
-    forwarded_for_ip: Option<LeftmostXForwardedFor>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(data): Json<Auth>,
@@ -197,11 +196,10 @@ pub(crate) async fn authenticate(
         }
     };
 
-    let ip_address = forwarded_for_ip.map_or(insecure_ip, |v| v.0);
     let (session, user_info, mfa_info) = create_session(
         &appstate.pool,
         &appstate.mail_tx,
-        ip_address,
+        insecure_ip,
         user_agent.as_str(),
         &mut user,
     )

@@ -1,8 +1,9 @@
 pub mod models;
 
 use sqlx::postgres::{PgConnectOptions, PgPool};
+use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema)]
 pub struct NoId;
 pub type Id = i64;
 

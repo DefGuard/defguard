@@ -46,6 +46,7 @@ pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
     pub json: Value,
+    #[schema(value_type = u16)]
     pub status: StatusCode,
 }
 
@@ -242,7 +243,7 @@ pub struct Username {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct AddUserData {
     pub username: String,
     pub last_name: String,

@@ -370,9 +370,9 @@ pub async fn add_user(
         (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
         (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
         (status = 401, description = "Unauthorized to start enrollment.", body = ApiResponse, example = json!({"msg": "Session is required"})),
-        (status = 403, description = "You don't have permission to start enrollment.", body = Json, example = json!({"msg": "access denied"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start enrollment.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 403, description = "You don't have permission to start enrollment.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start enrollment.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
 pub async fn start_enrollment(
@@ -461,11 +461,11 @@ pub async fn start_enrollment(
     path = "/api/v1/user/{username}/start_desktop",
     request_body = StartEnrollmentRequest,
     responses(
-        (status = 201, description = "Trigger enrollment process manually.", body = Json, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
-        (status = 400, description = "Bad request, invalid enrollment request.", body = Json, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
-        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = Json, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
-        (status = 404, description = "Provided user does not exist.", body = Json, example = json!({"msg": "user <username> not found"})),
-        (status = 500, description = "Unable to start remote desktop configuration.", body = Json, example = json!({"msg": "unexpected error"}))
+        (status = 201, description = "Trigger enrollment process manually.", body = ApiResponse, example = json!({"enrollment_token": "your_enrollment_token", "enrollment_url": "your_enrollment_token"})),
+        (status = 400, description = "Bad request, invalid enrollment request.", body = ApiResponse, example = json!({"msg": "Email notification is enabled, but email was not provided"})),
+        (status = 401, description = "Unauthorized to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
+        (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
+        (status = 500, description = "Unable to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
     )
 )]
 pub async fn start_remote_desktop_configuration(
@@ -549,7 +549,7 @@ pub async fn start_remote_desktop_configuration(
 #[utoipa::path(
     post,
     path = "/api/v1/user/available",
-    request_body = Json<Username>,
+    request_body = Username,
     responses(
         (status = 200, description = "Provided username is available to use.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided username is not available or username is invalid.", body = ApiResponse, example = json!({})),
@@ -596,7 +596,7 @@ pub async fn username_available(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<UserInfo>,
+    request_body = UserInfo,
     responses(
         (status = 200, description = "User has been updated."),
         (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = ApiResponse, example = json!({})),
@@ -761,7 +761,7 @@ pub async fn delete_user(
 #[utoipa::path(
     put,
     path = "/api/v1/user/change_password",
-    request_body = Json<PasswordChangeSelf>,
+    request_body = PasswordChangeSelf,
     responses(
         (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = ApiResponse, example = json!({})),
@@ -818,11 +818,11 @@ pub async fn change_self_password(
     params(
         ("username" = String, description = "name of a user"),
     ),
-    request_body = Json<PasswordChange>,
+    request_body = PasswordChange,
     responses(
         (status = 200, description = "Pasword has been changed.", body = ApiResponse, example = json!({})),
         (status = 400, description = "Bad request, password does not satisfy requirements. This endpoint does not change your own password.", body = ApiResponse, example = json!({})),
-        (status = 401, description = "Unauthorized to change password.", body = Json, example = json!({"msg": "Session is required"})),
+        (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Cannot change user password that does not exist.", body = ApiResponse, example = json!({})),
         (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))

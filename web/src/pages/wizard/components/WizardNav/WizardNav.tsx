@@ -90,13 +90,13 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
             data-testid="wizard-back"
             onClick={() => back()}
             size={ButtonSize.LARGE}
-            text="Back"
+            text={LL.common.controls.back()}
             icon={<SvgIconArrowGrayLeft />}
             disabled={loading || backDisabled}
           />
           <Button
             data-testid="wizard-next"
-            text={lastStep ? 'Finish' : 'Next'}
+            text={lastStep ? LL.common.controls.finish() : LL.common.controls.next()}
             size={ButtonSize.LARGE}
             styleVariant={ButtonStyleVariant.PRIMARY}
             icon={!lastStep ? <SvgIconArrowGrayRight /> : null}
