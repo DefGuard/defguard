@@ -206,5 +206,7 @@ const filterNavItems = (items: NavigationItem[], currentUser: User): NavigationI
     .filter((item) => {
       if (item.adminOnly) {
         return currentUser ? currentUser.is_admin : false;
+      } else {
+        return true;
       }
     });
