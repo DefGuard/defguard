@@ -923,9 +923,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         helper:
           'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
         custom: 'Niestandardowy',
+        none: 'Brak',
         documentation: 'Dokumentacja',
         delete: 'Usuń dostawcę',
-
         directory_sync_settings: {
           title: 'Ustawienia synchronizacji katalogu',
           helper:

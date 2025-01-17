@@ -2,40 +2,30 @@ import './style.scss';
 
 import parse from 'html-react-parser';
 import { useCallback, useMemo } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { Select } from '../../../../../shared/defguard-ui/components/Layout/Select/Select';
 import {
   SelectOption,
   SelectSelectedValue,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { OpenIdProvider } from '../../../../../shared/types';
 
-type FormFields = OpenIdProvider & {
-  create_account: boolean;
-};
-
-export const OpenIdSettingsForm = ({
-  setCurrentProvider,
-  currentProvider,
-  formControl,
-  isLoading,
-}: {
-  setCurrentProvider: (provider?: OpenIdProvider) => void;
-  currentProvider?: OpenIdProvider;
-  formControl: UseFormReturn<FormFields>;
-  isLoading: boolean;
-}) => {
+export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const { control } = formControl;
+  const { control, setValue } = useFormContext();
 
   const options: SelectOption<string>[] = useMemo(
     () => [
+      {
+        value: '',
+        label: localLL.form.none(),
+        key: 0,
+      },
       {
         value: 'Google',
         label: 'Google',
@@ -94,22 +84,17 @@ export const OpenIdSettingsForm = ({
     [],
   );
 
+  const providerName = useWatch({
+    control,
+    name: 'name',
+  }) as string;
+
   const handleProviderChange = useCallback(
     (val: string) => {
-      if (currentProvider) {
-        setCurrentProvider({
-          ...currentProvider,
-          id: currentProvider?.id ?? 0,
-          name: val,
-          base_url: getProviderUrl({ name: val }) ?? '',
-          client_id: currentProvider?.client_id ?? '',
-          client_secret: currentProvider?.client_secret ?? '',
-          display_name:
-            getProviderDisplayName({ name: val }) ?? currentProvider?.display_name ?? '',
-        });
-      }
+      setValue('base_url', getProviderUrl({ name: val }) ?? '');
+      setValue('display_name', getProviderDisplayName({ name: val }) ?? '');
     },
-    [currentProvider, getProviderUrl, getProviderDisplayName, setCurrentProvider],
+    [getProviderUrl, getProviderDisplayName, setValue],
   );
 
   return (
@@ -118,9 +103,12 @@ export const OpenIdSettingsForm = ({
         <h2>{localLL.form.title()}</h2>
         <Helper>{parse(localLL.form.helper())}</Helper>
       </header>
-      <Select
+      <FormSelect
+        controller={{
+          control,
+          name: 'name',
+        }}
         sizeVariant={SelectSizeVariant.STANDARD}
-        selected={currentProvider?.name ?? undefined}
         options={options}
         renderSelected={renderSelected}
         onChangeSingle={(res) => handleProviderChange(res)}
@@ -132,7 +120,7 @@ export const OpenIdSettingsForm = ({
         controller={{ control, name: 'base_url' }}
         label={localLL.form.labels.base_url.label()}
         labelExtras={<Helper>{parse(localLL.form.labels.base_url.helper())}</Helper>}
-        disabled={currentProvider?.name === 'Google' || isLoading}
+        disabled={providerName === 'Google' || isLoading}
         required
       />
       <FormInput
@@ -154,7 +142,7 @@ export const OpenIdSettingsForm = ({
         controller={{ control, name: 'display_name' }}
         label={localLL.form.labels.display_name.label()}
         labelExtras={<Helper>{parse(localLL.form.labels.display_name.helper())}</Helper>}
-        disabled={isLoading || currentProvider?.name !== 'Custom'}
+        disabled={isLoading || providerName !== 'Custom'}
       />
       <a
         href={

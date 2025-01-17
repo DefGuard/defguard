@@ -1094,6 +1094,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         helper:
           'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
         custom: 'Custom',
+        none: 'None',
         documentation: 'Documentation',
         delete: 'Delete provider',
         directory_sync_settings: {
