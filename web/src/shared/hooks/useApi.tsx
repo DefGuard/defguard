@@ -25,7 +25,6 @@ import {
   NetworkToken,
   OpenidClient,
   OpenIdInfo,
-  OpenIdProvider,
   Provisioner,
   RemoveUserClientRequest,
   ResetPasswordRequest,
