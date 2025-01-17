@@ -18,7 +18,9 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { OpenIdProvider } from '../../../../../shared/types';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
-type FormFields = OpenIdProvider;
+type FormFields = OpenIdProvider & {
+  create_account: boolean;
+};
 
 const SUPPORTED_SYNC_PROVIDERS = ['Google'];
 

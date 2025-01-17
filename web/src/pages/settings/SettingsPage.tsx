@@ -70,7 +70,7 @@ export const SettingsPage = () => {
   const handleTabClick = useCallback(
     (tabIndex: number) => {
       if (appInfo) {
-        if (enterpriseTabs.includes(tabIndex) && appInfo.license_info.enterprise) {
+        if (enterpriseTabs.includes(tabIndex) && !appInfo.license_info.enterprise) {
           openUpgradeLicenseModal({
             modalVariant: UpgradeLicenseModalVariant.ENTERPRISE_NOTICE,
           });
@@ -147,7 +147,7 @@ export const SettingsPage = () => {
   useEffect(() => {
     if (
       appInfo &&
-      appInfo.license_info.enterprise &&
+      !appInfo.license_info.enterprise &&
       enterpriseTabs.includes(activeCard)
     ) {
       setActiveCard(0);

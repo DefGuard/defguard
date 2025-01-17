@@ -24,6 +24,7 @@ import {
   Network,
   NetworkToken,
   OpenidClient,
+  OpenIdInfo,
   OpenIdProvider,
   Provisioner,
   RemoveUserClientRequest,
@@ -412,7 +413,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post('/groups-assign', data).then(unpackRequest);
 
   const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = async () =>
-    client.get<OpenIdProvider>(`/openid/provider`).then((res) => res.data);
+    client.get<OpenIdInfo>(`/openid/provider`).then((res) => res.data);
 
   const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = async (data) =>
     client.post(`/openid/provider`, data).then(unpackRequest);
