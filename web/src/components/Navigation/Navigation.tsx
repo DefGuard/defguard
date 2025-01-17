@@ -75,14 +75,14 @@ export const Navigation = () => {
         title: LL.navigation.bar.settings(),
         linkPath: '/admin/settings',
         icon: <SvgIconNavSettings />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: true,
       },
       {
         title: LL.navigation.bar.support(),
         icon: <SvgIconNavSupport />,
         linkPath: '/support',
-        allowedToView: [],
+        adminOnly: false,
         enabled: true,
         className: 'support',
       },
@@ -92,63 +92,63 @@ export const Navigation = () => {
         title: LL.navigation.bar.overview(),
         linkPath: overviewLink,
         icon: <SvgIconNavVpn />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: settings?.wireguard_enabled,
       },
       {
         title: LL.navigation.bar.users(),
         linkPath: '/admin/users',
         icon: <SvgIconNavUsers />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: true,
       },
       {
         title: LL.navigation.bar.groups(),
         linkPath: '/admin/groups',
         icon: <SvgIconNavGroups />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: true,
       },
       {
         title: LL.navigation.bar.devices(),
         linkPath: '/admin/devices',
         icon: <DevicePageNavigationIcon />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: true,
       },
       {
         title: LL.navigation.bar.openId(),
         linkPath: '/admin/openid',
         icon: <SvgIconNavOpenId />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: settings?.openid_enabled,
       },
       {
         title: LL.navigation.bar.webhooks(),
         linkPath: '/admin/webhooks',
         icon: <SvgIconNavWebhooks />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: settings?.webhooks_enabled,
       },
       {
         title: LL.navigation.bar.provisioners(),
         linkPath: '/admin/provisioners',
         icon: <SvgIconNavProvisioners />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: settings?.worker_enabled,
       },
       {
         title: LL.navigation.bar.enrollment(),
         linkPath: '/admin/enrollment',
         icon: <SvgIconNavKey />,
-        allowedToView: ['admin'],
+        adminOnly: true,
         enabled: true,
       },
       {
         title: LL.navigation.bar.myProfile(),
         linkPath: `/me`,
         icon: <SvgIconNavProfile />,
-        allowedToView: [],
+        adminOnly: false,
         enabled: true,
         onClick: () => {
           resetUserProfile();
@@ -204,18 +204,7 @@ const filterNavItems = (items: NavigationItem[], currentUser: User): NavigationI
   items
     .filter((item) => item.enabled)
     .filter((item) => {
-      if (item.allowedToView && item.allowedToView.length) {
-        if (currentUser) {
-          for (const group of currentUser.groups) {
-            if (item.allowedToView?.includes(group)) {
-              return true;
-            }
-          }
-          return false;
-        } else {
-          return false;
-        }
-      } else {
-        return true;
+      if (item.adminOnly) {
+        return currentUser ? currentUser.is_admin : false;
       }
     });
