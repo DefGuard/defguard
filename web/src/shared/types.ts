@@ -572,7 +572,7 @@ export interface ApiHook {
     getEnterpriseSettings: () => Promise<SettingsEnterprise>;
     patchEnterpriseSettings: (data: Partial<SettingsEnterprise>) => EmptyApiResponse;
     testLdapSettings: () => Promise<EmptyApiResponse>;
-    fetchOpenIdProviders: () => Promise<OpenIdProvider>;
+    fetchOpenIdProviders: () => Promise<OpenIdInfo>;
     addOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
     deleteOpenIdProvider: (name: string) => Promise<EmptyApiResponse>;
     editOpenIdProvider: (data: OpenIdProvider) => Promise<EmptyApiResponse>;
@@ -887,6 +887,13 @@ export interface OpenidClient {
   enabled: boolean;
 }
 
+export interface OpenIdInfo {
+  settings: {
+    create_account: boolean;
+  };
+  provider?: OpenIdProvider;
+}
+
 export interface OpenIdProvider {
   id: number;
   name: string;
@@ -902,7 +909,6 @@ export interface OpenIdProvider {
   directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_target: 'all' | 'users' | 'groups';
-  create_account: boolean;
 }
 
 export interface EditOpenidClientRequest {

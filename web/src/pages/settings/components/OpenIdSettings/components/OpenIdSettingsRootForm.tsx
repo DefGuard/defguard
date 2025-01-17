@@ -23,12 +23,17 @@ import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './OpenIdProviderSettings';
 
-type FormFields = OpenIdProvider;
+type FormFields = OpenIdProvider & {
+  create_account: boolean;
+};
 
 export const OpenIdSettingsRootForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
   const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
+  const [openIDSettings, setOpenIDSettings] = useState<{
+    create_account: boolean;
+  } | null>(null);
   const queryClient = useQueryClient();
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
@@ -36,7 +41,7 @@ export const OpenIdSettingsRootForm = () => {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
   } = useApi();
 
-  const { isLoading, data: openidProvidersData } = useQuery({
+  const { isLoading, data: openidData } = useQuery({
     queryFn: fetchOpenIdProviders,
     queryKey: [QueryKeys.FETCH_OPENID_PROVIDERS],
     refetchOnMount: true,
@@ -46,10 +51,13 @@ export const OpenIdSettingsRootForm = () => {
   });
 
   useEffect(() => {
-    if (openidProvidersData) {
-      setCurrentProvider(openidProvidersData);
+    if (openidData?.provider) {
+      setCurrentProvider(openidData?.provider);
     }
-  }, [openidProvidersData]);
+    if (openidData?.settings) {
+      setOpenIDSettings(openidData?.settings);
+    }
+  }, [openidData]);
 
   const toaster = useToaster();
 
@@ -123,9 +131,9 @@ export const OpenIdSettingsRootForm = () => {
       directory_sync_admin_behavior:
         currentProvider?.directory_sync_admin_behavior ?? 'keep',
       directory_sync_target: currentProvider?.directory_sync_target ?? 'all',
-      create_account: currentProvider?.create_account ?? false,
+      create_account: openIDSettings?.create_account ?? false,
     }),
-    [currentProvider],
+    [currentProvider, openIDSettings],
   );
 
   const formControl = useForm<FormFields>({

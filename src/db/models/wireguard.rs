@@ -45,7 +45,7 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(5);
+pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
 pub const PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels

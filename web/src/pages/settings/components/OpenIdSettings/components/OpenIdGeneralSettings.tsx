@@ -13,11 +13,14 @@ import { useSettingsPage } from '../../../hooks/useSettingsPage';
 export const OpenIdGeneralSettings = ({
   formControl,
 }: {
-  formControl: UseFormReturn<OpenIdProvider>;
+  formControl: UseFormReturn<
+    OpenIdProvider & {
+      create_account: boolean;
+    }
+  >;
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-
   const settings = useSettingsPage((state) => state.settings);
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   if (!settings) return null;

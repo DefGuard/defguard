@@ -23,7 +23,11 @@ export const OpenIdSettingsForm = ({
 }: {
   setCurrentProvider: (provider: OpenIdProvider | null) => void;
   currentProvider: OpenIdProvider | null;
-  formControl: UseFormReturn<OpenIdProvider>;
+  formControl: UseFormReturn<
+    OpenIdProvider & {
+      create_account: boolean;
+    }
+  >;
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
