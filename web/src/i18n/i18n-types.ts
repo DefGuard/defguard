@@ -2672,6 +2672,10 @@ type RootTranslation = {
 				 */
 				custom: string
 				/**
+				 * N​o​n​e
+				 */
+				none: string
+				/**
 				 * D​o​c​u​m​e​n​t​a​t​i​o​n
 				 */
 				documentation: string
@@ -7470,6 +7474,10 @@ export type TranslationFunctions = {
 				 * Custom
 				 */
 				custom: () => LocalizedString
+				/**
+				 * None
+				 */
+				none: () => LocalizedString
 				/**
 				 * Documentation
 				 */

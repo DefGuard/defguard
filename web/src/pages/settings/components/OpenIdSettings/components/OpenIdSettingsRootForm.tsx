@@ -2,8 +2,8 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { useCallback, useEffect, useMemo } from 'react';
+import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -17,7 +17,7 @@ import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { OpenIdInfo, OpenIdProvider } from '../../../../../shared/types';
+import { OpenIdProvider } from '../../../../../shared/types';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './OpenIdProviderSettings';
@@ -29,7 +29,6 @@ type FormFields = OpenIdProvider & {
 export const OpenIdSettingsRootForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const [openidInfo, setOpenidInfo] = useState<OpenIdInfo | null>(null);
   const queryClient = useQueryClient();
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
@@ -46,25 +45,7 @@ export const OpenIdSettingsRootForm = () => {
     enabled: enterpriseEnabled,
   });
 
-  useEffect(() => {
-    if (openidData) {
-      setOpenidInfo(openidData);
-    }
-  }, [openidData]);
-
   const toaster = useToaster();
-
-  const setProvider = useCallback(
-    (provider?: OpenIdProvider) => {
-      if (openidInfo) {
-        setOpenidInfo({
-          ...openidInfo,
-          provider,
-        });
-      }
-    },
-    [openidInfo],
-  );
 
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
@@ -96,25 +77,53 @@ export const OpenIdSettingsRootForm = () => {
 
   const schema = useMemo(
     () =>
-      z.object({
-        name: z.string().min(1, LL.form.error.required()),
-        base_url: z
-          .string()
-          .url(LL.form.error.invalid())
-          .min(1, LL.form.error.required()),
-        client_id: z.string().min(1, LL.form.error.required()),
-        client_secret: z.string().min(1, LL.form.error.required()),
-        display_name: z.string(),
-        admin_email: z.string(),
-        google_service_account_email: z.string(),
-        google_service_account_key: z.string(),
-        directory_sync_enabled: z.boolean(),
-        directory_sync_interval: z.number().min(60, LL.form.error.invalid()),
-        directory_sync_user_behavior: z.string(),
-        directory_sync_admin_behavior: z.string(),
-        directory_sync_target: z.string(),
-        create_account: z.boolean(),
-      }),
+      z
+        .object({
+          name: z.string().optional(),
+          base_url: z
+            .string()
+            .url(LL.form.error.invalid())
+            .min(1, LL.form.error.required()),
+          client_id: z.string().min(1, LL.form.error.required()),
+          client_secret: z.string().min(1, LL.form.error.required()),
+          display_name: z.string(),
+          admin_email: z.string(),
+          google_service_account_email: z.string(),
+          google_service_account_key: z.string(),
+          directory_sync_enabled: z.boolean(),
+          directory_sync_interval: z.number().min(60, LL.form.error.invalid()),
+          directory_sync_user_behavior: z.string(),
+          directory_sync_admin_behavior: z.string(),
+          directory_sync_target: z.string(),
+          create_account: z.boolean(),
+        })
+        .superRefine((val, ctx) => {
+          if (val.name === '') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: LL.form.error.required(),
+              path: ['name'],
+            });
+          }
+
+          if (val.directory_sync_enabled) {
+            if (val.admin_email.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['admin_email'],
+              });
+            }
+
+            if (val.google_service_account_email.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['google_service_account_email'],
+              });
+            }
+          }
+        }),
     [LL.form.error],
   );
 
@@ -137,22 +146,22 @@ export const OpenIdSettingsRootForm = () => {
       create_account: false,
     };
 
-    if (openidInfo) {
-      if (openidInfo.provider) {
+    if (openidData) {
+      if (openidData.provider) {
         defaults = {
           ...defaults,
-          ...openidInfo.provider,
+          ...openidData.provider,
         };
       }
 
       defaults = {
         ...defaults,
-        ...openidInfo.settings,
+        ...openidData.settings,
       };
     }
 
     return defaults;
-  }, [openidInfo]);
+  }, [openidData]);
 
   const formControl = useForm<FormFields>({
     resolver: zodResolver(schema),
@@ -167,82 +176,49 @@ export const OpenIdSettingsRootForm = () => {
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  const conditionallyRequired: (keyof OpenIdProvider)[] = [
-    'admin_email',
-    'google_service_account_email',
-  ];
-
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    // Some fields are required only if directory sync is enabled.
-    // Check if the required fields are filled in.
-    const formValues = formControl.getValues();
-    const dirsync_enabled = formValues.directory_sync_enabled;
-    if (dirsync_enabled) {
-      const missingRequiredFields = conditionallyRequired.filter(
-        (field) =>
-          formValues[field]?.toString().length === 0 || formValues[field] === null,
-      );
-      if (missingRequiredFields.length) {
-        for (const field of missingRequiredFields) {
-          formControl.setError(field, {
-            type: 'required',
-            message: LL.form.error.required(),
-          });
-        }
-        return;
-      }
-    }
     mutate(data);
   };
 
   const handleDeleteProvider = useCallback(() => {
-    if (openidInfo?.provider) {
-      deleteProvider(openidInfo.provider.name);
-      setProvider();
+    if (openidData?.provider) {
+      deleteProvider(openidData?.provider.name);
     }
-  }, [openidInfo, deleteProvider, setProvider]);
+  }, [openidData, deleteProvider]);
 
   return (
-    <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
-      <div className="controls">
-        <Button
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          text={LL.common.controls.saveChanges()}
-          type="submit"
-          loading={isLoading}
-          form="root-form"
-          icon={<IconCheckmarkWhite />}
-          disabled={!enterpriseEnabled}
-        />
-        <Button
-          text={localLL.form.delete()}
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.CONFIRM}
-          loading={isLoading}
-          onClick={() => {
-            handleDeleteProvider();
-          }}
-          disabled={!enterpriseEnabled}
-        />
-      </div>
-      {/* FIXME: Change to shared state instead of passing it? */}
-      <div className="left">
-        <OpenIdSettingsForm
-          currentProvider={openidInfo?.provider}
-          setCurrentProvider={setProvider}
-          formControl={formControl}
-          isLoading={isLoading}
-        />
-      </div>
-      <div className="right">
-        <OpenIdGeneralSettings formControl={formControl} isLoading={isLoading} />
-        <DirsyncSettings
-          currentProvider={openidInfo?.provider}
-          formControl={formControl}
-          isLoading={isLoading}
-        />
-      </div>
-    </form>
+    <FormProvider {...formControl}>
+      <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
+        <div className="controls">
+          <Button
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            text={LL.common.controls.saveChanges()}
+            type="submit"
+            loading={isLoading}
+            form="root-form"
+            icon={<IconCheckmarkWhite />}
+            disabled={!enterpriseEnabled}
+          />
+          <Button
+            text={localLL.form.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            onClick={() => {
+              handleDeleteProvider();
+            }}
+            disabled={!enterpriseEnabled}
+          />
+        </div>
+        <div className="left">
+          <OpenIdSettingsForm isLoading={isLoading} />
+        </div>
+        <div className="right">
+          <OpenIdGeneralSettings isLoading={isLoading} />
+          <DirsyncSettings isLoading={isLoading} />
+        </div>
+      </form>
+    </FormProvider>
   );
 };
