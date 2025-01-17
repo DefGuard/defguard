@@ -86,17 +86,11 @@ export const GatewayNotificationsForm = () => {
     return res;
   }, [settings]);
 
-  const { control, handleSubmit, watch } = useForm<FormFields>({
+  const { control, handleSubmit } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(zodSchema),
   });
-  const gatewayDisconnectNotificationsEnabled = watch(
-    'gateway_disconnect_notifications_enabled',
-  );
-  const gatewayDisconnectNotificationsReconnectNotificationEnabled = watch(
-    'gateway_disconnect_notifications_reconnect_notification_enabled',
-  );
 
   const onSubmit: SubmitHandler<FormFields> = (data) => {
     mutate(data);
@@ -127,7 +121,6 @@ export const GatewayNotificationsForm = () => {
           <FormCheckBox
             disabled={isLoading || !smtpConfigured}
             label={localLL.form.fields.disconnectNotificationsEnabled.label()}
-            value={gatewayDisconnectNotificationsEnabled}
             controller={{
               control,
               name: 'gateway_disconnect_notifications_enabled',
@@ -148,18 +141,13 @@ export const GatewayNotificationsForm = () => {
           labelExtras={
             <Helper>{parse(localLL.form.fields.inactivityThreshold.help())}</Helper>
           }
-          disabled={
-            isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured
-          }
+          disabled={isLoading || !smtpConfigured}
           required
         />
         <div className="checkbox-row">
           <FormCheckBox
-            disabled={
-              isLoading || !gatewayDisconnectNotificationsEnabled || !smtpConfigured
-            }
+            disabled={isLoading || !smtpConfigured}
             label={localLL.form.fields.reconnectNotificationsEnabled.label()}
-            value={gatewayDisconnectNotificationsReconnectNotificationEnabled}
             controller={{
               control,
               name: 'gateway_disconnect_notifications_reconnect_notification_enabled',

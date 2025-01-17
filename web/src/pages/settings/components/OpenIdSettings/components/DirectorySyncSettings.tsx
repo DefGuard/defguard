@@ -27,9 +27,11 @@ const SUPPORTED_SYNC_PROVIDERS = ['Google'];
 export const DirsyncSettings = ({
   currentProvider,
   formControl,
+  isLoading,
 }: {
-  currentProvider: OpenIdProvider | null;
+  currentProvider?: OpenIdProvider;
   formControl: UseFormReturn<FormFields>;
+  isLoading: boolean;
 }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
@@ -101,7 +103,7 @@ export const DirsyncSettings = ({
             <>
               <div id="enable-dir-sync">
                 <FormCheckBox
-                  disabled={!enterpriseEnabled}
+                  disabled={isLoading}
                   label={localLL.form.labels.enable_directory_sync.label()}
                   labelPlacement="right"
                   controller={{ control, name: 'directory_sync_enabled' }}
@@ -118,7 +120,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.sync_target.helper())}</Helper>
                 }
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
               />
               <FormInput
                 value={currentProvider?.directory_sync_interval ?? ''}
@@ -130,7 +132,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.sync_interval.helper())}</Helper>
                 }
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
               />
               <FormSelect
                 controller={{ control, name: 'directory_sync_user_behavior' }}
@@ -143,7 +145,7 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.user_behavior.helper())}</Helper>
                 }
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
               />
               <FormSelect
                 controller={{ control, name: 'directory_sync_admin_behavior' }}
@@ -156,26 +158,17 @@ export const DirsyncSettings = ({
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.admin_behavior.helper())}</Helper>
                 }
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
               />
               <FormInput
                 controller={{ control, name: 'admin_email' }}
                 label={localLL.form.labels.admin_email.label()}
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
                 labelExtras={
                   <Helper>{parse(localLL.form.labels.admin_email.helper())}</Helper>
                 }
                 required={enabled}
               />
-              <div className="hidden-input">
-                <FormInput
-                  value={currentProvider?.google_service_account_key ?? ''}
-                  type="text"
-                  name="google_service_account_key"
-                  controller={{ control, name: 'google_service_account_key' }}
-                  readOnly
-                />
-              </div>
               <FormInput
                 value={currentProvider?.google_service_account_email ?? ''}
                 controller={{ control, name: 'google_service_account_email' }}
@@ -188,7 +181,7 @@ export const DirsyncSettings = ({
                     {parse(localLL.form.labels.service_account_used.helper())}
                   </Helper>
                 }
-                disabled={!enterpriseEnabled}
+                disabled={isLoading}
                 required={enabled}
               />
               <div className="input">
@@ -221,7 +214,7 @@ export const DirsyncSettings = ({
                         reader.readAsText(file);
                       }
                     }}
-                    disabled={!enterpriseEnabled}
+                    disabled={isLoading}
                   />
                   <div className="upload-label">
                     <SvgIconDownload />{' '}

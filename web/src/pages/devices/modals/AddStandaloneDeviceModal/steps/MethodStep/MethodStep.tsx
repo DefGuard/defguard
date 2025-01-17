@@ -13,6 +13,7 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { SelectOption } from '../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { externalLink } from '../../../../../../shared/links';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { Network } from '../../../../../../shared/types';
 import { DeviceSetupMethodCard } from '../../../../../addDevice/steps/AddDeviceSetupMethodStep/components/DeviceSetupMethodCard/DeviceSetupMethodCard';
@@ -111,7 +112,7 @@ export const MethodStep = () => {
         <DeviceSetupMethodCard
           title={localLL.cards.cli.title()}
           subtitle={localLL.cards.cli.subtitle()}
-          link={'https://defguard.net/download'}
+          link={externalLink.defguardCliDownload}
           linkText={localLL.cards.cli.download()}
           logo={<DefguardIcon />}
           selected={choice === AddStandaloneDeviceModalChoice.CLI}
