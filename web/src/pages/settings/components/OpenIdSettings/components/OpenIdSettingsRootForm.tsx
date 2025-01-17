@@ -13,12 +13,11 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { LoaderSpinner } from '../../../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { OpenIdProvider } from '../../../../../shared/types';
+import { OpenIdInfo, OpenIdProvider } from '../../../../../shared/types';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdSettingsForm } from './OpenIdProviderSettings';
@@ -30,10 +29,7 @@ type FormFields = OpenIdProvider & {
 export const OpenIdSettingsRootForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const [currentProvider, setCurrentProvider] = useState<OpenIdProvider | null>(null);
-  const [openIDSettings, setOpenIDSettings] = useState<{
-    create_account: boolean;
-  } | null>(null);
+  const [openidInfo, setOpenidInfo] = useState<OpenIdInfo | null>(null);
   const queryClient = useQueryClient();
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
@@ -51,15 +47,24 @@ export const OpenIdSettingsRootForm = () => {
   });
 
   useEffect(() => {
-    if (openidData?.provider) {
-      setCurrentProvider(openidData?.provider);
-    }
-    if (openidData?.settings) {
-      setOpenIDSettings(openidData?.settings);
+    if (openidData) {
+      setOpenidInfo(openidData);
     }
   }, [openidData]);
 
   const toaster = useToaster();
+
+  const setProvider = useCallback(
+    (provider?: OpenIdProvider) => {
+      if (openidInfo) {
+        setOpenidInfo({
+          ...openidInfo,
+          provider,
+        });
+      }
+    },
+    [openidInfo],
+  );
 
   const { mutate } = useMutation({
     mutationFn: addOpenIdProvider,
@@ -113,28 +118,41 @@ export const OpenIdSettingsRootForm = () => {
     [LL.form.error],
   );
 
-  const defaultValues = useMemo(
-    (): FormFields => ({
-      id: currentProvider?.id ?? 0,
-      name: currentProvider?.name ?? '',
-      base_url: currentProvider?.base_url ?? '',
-      client_id: currentProvider?.client_id ?? '',
-      client_secret: currentProvider?.client_secret ?? '',
-      display_name: currentProvider?.display_name ?? '',
-      admin_email: currentProvider?.admin_email ?? '',
-      google_service_account_email: currentProvider?.google_service_account_email ?? '',
-      google_service_account_key: currentProvider?.google_service_account_key ?? '',
-      directory_sync_enabled: currentProvider?.directory_sync_enabled ?? false,
-      directory_sync_interval: currentProvider?.directory_sync_interval ?? 600,
-      directory_sync_user_behavior:
-        currentProvider?.directory_sync_user_behavior ?? 'keep',
-      directory_sync_admin_behavior:
-        currentProvider?.directory_sync_admin_behavior ?? 'keep',
-      directory_sync_target: currentProvider?.directory_sync_target ?? 'all',
-      create_account: openIDSettings?.create_account ?? false,
-    }),
-    [currentProvider, openIDSettings],
-  );
+  const defaultValues = useMemo((): FormFields => {
+    let defaults: FormFields = {
+      id: 0,
+      name: '',
+      base_url: '',
+      client_id: '',
+      client_secret: '',
+      display_name: '',
+      admin_email: '',
+      google_service_account_email: '',
+      google_service_account_key: '',
+      directory_sync_enabled: false,
+      directory_sync_interval: 600,
+      directory_sync_user_behavior: 'keep',
+      directory_sync_admin_behavior: 'keep',
+      directory_sync_target: 'all',
+      create_account: false,
+    };
+
+    if (openidInfo) {
+      if (openidInfo.provider) {
+        defaults = {
+          ...defaults,
+          ...openidInfo.provider,
+        };
+      }
+
+      defaults = {
+        ...defaults,
+        ...openidInfo.settings,
+      };
+    }
+
+    return defaults;
+  }, [openidInfo]);
 
   const formControl = useForm<FormFields>({
     resolver: zodResolver(schema),
@@ -178,11 +196,11 @@ export const OpenIdSettingsRootForm = () => {
   };
 
   const handleDeleteProvider = useCallback(() => {
-    if (currentProvider) {
-      deleteProvider(currentProvider.name);
-      setCurrentProvider(null);
+    if (openidInfo?.provider) {
+      deleteProvider(openidInfo.provider.name);
+      setProvider();
     }
-  }, [currentProvider, deleteProvider]);
+  }, [openidInfo, deleteProvider, setProvider]);
 
   return (
     <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
@@ -208,28 +226,23 @@ export const OpenIdSettingsRootForm = () => {
           disabled={!enterpriseEnabled}
         />
       </div>
-      {isLoading ? (
-        <div className="loader">
-          <LoaderSpinner size={80} />
-        </div>
-      ) : (
-        <>
-          <div className="left">
-            <OpenIdSettingsForm
-              currentProvider={currentProvider}
-              setCurrentProvider={setCurrentProvider}
-              formControl={formControl}
-            />
-          </div>
-          <div className="right">
-            <OpenIdGeneralSettings formControl={formControl} />
-            <DirsyncSettings
-              currentProvider={currentProvider}
-              formControl={formControl}
-            />
-          </div>
-        </>
-      )}
+      {/* FIXME: Change to shared state instead of passing it? */}
+      <div className="left">
+        <OpenIdSettingsForm
+          currentProvider={openidInfo?.provider}
+          setCurrentProvider={setProvider}
+          formControl={formControl}
+          isLoading={isLoading}
+        />
+      </div>
+      <div className="right">
+        <OpenIdGeneralSettings formControl={formControl} isLoading={isLoading} />
+        <DirsyncSettings
+          currentProvider={openidInfo?.provider}
+          formControl={formControl}
+          isLoading={isLoading}
+        />
+      </div>
     </form>
   );
 };

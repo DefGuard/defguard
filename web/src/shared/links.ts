@@ -19,5 +19,5 @@ export const externalLink = {
     download: 'https://www.wireguard.com/install/',
   },
   //TODO: change me
-  defguardCliDownload: 'https://github.com/DefGuard/client/releases',
+  defguardCliDownload: 'https://github.com/Defguard/client/releases/latest',
 };
