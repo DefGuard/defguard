@@ -50,14 +50,17 @@ const translation: Translation = {
     upgradeLicenseModal: {
       enterprise: {
         title: 'Podnieś do Enterprise',
+        //md
         subTitle: `Został przekroczony limit użytkowników, urządzeń lub sieci, a ta funkcjonalność jest dostępna tylko w wersji **enterprise**. Aby użyć tej funkcjonalności, należy zakupić lub podnieść obecną licencję enterprise.`,
       },
       limit: {
         title: 'Podnieś',
+        //md
         subTitle: `
         **Osiągnięto limit** funkcjonalności. Aby **[ zarządzać większą liczbą lokalizacji/użytkowników/urządzeń ]** wymagany jest zakup licencji Enterprise.
         `,
       },
+      //md
       content: `
 Aby dowiedzieć się więcej o:
 - Automatyczniej synchronizacji klientów w czasie rzeczywistym
@@ -149,6 +152,7 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
               'Pobierz podany plik konfiguracyjny na urządzeniu i zaimportuj go do klienta VPN żeby zakończyć jego konfigurowanie.',
             ctaInstruction:
               'Użyj podanego niżej pliku konfiguracyjnego skanując kod QR lub importując go jako plik w aplikacji WireGuard na urządzeniu.',
+            // MD
             warningMessage: `
             Należy pamiętać, że Defguard **nie przechowuje kluczy prywatnych**. Para kluczy (publiczny i prywatny) zostanie bezpiecznie utworzona w przeglądarce, ale jedynie klucz publiczny zostanie zapisany w bazie danych Defguard. Proszę pobrać utworzoną konfigurację zawierającą klucz prywatny dla urządzenia, gdyż nie będzie ona później dostępna.
             `,
@@ -158,18 +162,18 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
           },
         },
         cli: {
-          title: 'Add device using defguard Command Line Client',
+          title: 'Dodaj urządzenie używając klienta Defguard CLI',
           finish: {
             topMessage:
-              'First download defguard command line client binaries and install them on your server.',
-            downloadButton: 'Download defguard CLI Client',
-            commandCopy: 'Copy and paste this command in your terminal on the device',
+              'Najpierw pobierz klienta Defguard CLI i zainstaluj go na serwerze.',
+            downloadButton: 'Pobierz klienta Defguard CLI',
+            commandCopy: 'Skopiuj i wklej to polecenie w terminalu na urządzeniu',
           },
           setup: {
             stepMessage:
-              'Here you can add definitions or generate configurations for devices that can connect to your VPN. Only locations without Multi-Factor Authentication are available here, as MFA is only supported in Defguard Desktop Client for now.',
+              'Tu można dodać definicje lub utworzyć konfiguracje dla urządzeń, które mogą łączyć się do sieci VPN. Tutaj dostępne są jedynie lokalizacje bez uwierzytelniania wieloskładnikowego (MFA) ponieważ póki co MFA jest wspierane jedynie w kliencie Defguard Desktop.',
             form: {
-              submit: 'Add Device',
+              submit: 'Dodaj urządzenie',
             },
           },
         },
