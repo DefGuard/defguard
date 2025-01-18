@@ -162,7 +162,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           title: 'Add device using Defguard Command Line Client',
           finish: {
             topMessage:
-              'First download Defguard command line client binariy and install it on your server.',
+              'First download Defguard command line client binary and install it on your server.',
             downloadButton: 'Download Defguard CLI Client',
             commandCopy: 'Copy and paste this command in your terminal on the device',
           },
