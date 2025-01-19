@@ -10,7 +10,9 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
+import { useEnterpriseUpgradeStore } from '../../../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { generateWGKeys } from '../../../../../../shared/utils/generateWGKeys';
@@ -47,6 +49,10 @@ export const SetupManualStep = () => {
     standaloneDevice: { createManualDevice: createDevice },
   } = useApi();
 
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
+  const { getAppInfo } = useApi();
+  const setAppStore = useAppStore((s) => s.setState, shallow);
+
   const { mutateAsync } = useMutation({
     mutationFn: createDevice,
     onSuccess: () => {
@@ -54,6 +60,14 @@ export const SetupManualStep = () => {
         [QueryKeys.FETCH_USER_PROFILE, currentUserId],
         [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
       ]);
+      void getAppInfo().then((response) => {
+        setAppStore({
+          appInfo: response,
+        });
+        if (response.license_info.any_limit_exceeded) {
+          showUpgradeToast();
+        }
+      });
     },
   });
 

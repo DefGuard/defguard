@@ -10,7 +10,9 @@ import {
 } from '../../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { MessageBox } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAppStore } from '../../../../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../../../../shared/hooks/store/useAuthStore';
+import { useEnterpriseUpgradeStore } from '../../../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
@@ -43,6 +45,10 @@ export const SetupCliStep = () => {
     standaloneDevice: { createCliDevice },
   } = useApi();
 
+  const showUpgradeToast = useEnterpriseUpgradeStore((s) => s.show);
+  const { getAppInfo } = useApi();
+  const setAppStore = useAppStore((s) => s.setState, shallow);
+
   const { mutateAsync } = useMutation({
     mutationFn: createCliDevice,
     onSuccess: () => {
@@ -51,6 +57,14 @@ export const SetupCliStep = () => {
         [QueryKeys.FETCH_USER_PROFILE, currentUserId],
         [QueryKeys.FETCH_STANDALONE_DEVICE_LIST],
       ]);
+      void getAppInfo().then((response) => {
+        setAppStore({
+          appInfo: response,
+        });
+        if (response.license_info.any_limit_exceeded) {
+          showUpgradeToast();
+        }
+      });
     },
     onError: (e) => {
       toast.error(LL.modals.addStandaloneDevice.toasts.creationFailed());
