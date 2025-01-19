@@ -148,7 +148,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             messageTop:
               'Download the provided configuration file to your device and import it into your VPN client to complete the setup.',
             ctaInstruction:
-              'Use provided configuration file below by scanning QR code or importing it as file on your device\'s WireGuard app.',
+              "Use provided configuration file below by scanning QR code or importing it as file on your device's WireGuard app.",
             // MD
             warningMessage: `
             Please remember that Defguard **doesn't store private keys**. We will securely generate the public and private key pair in your browser, but only store the public key in Defguard database. Please download the configuration generated with the private key for the device, as it will not be accessible later.
