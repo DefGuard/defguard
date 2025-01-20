@@ -112,8 +112,8 @@ export const MethodStep = () => {
         <DeviceSetupMethodCard
           title={localLL.cards.cli.title()}
           subtitle={localLL.cards.cli.subtitle()}
-          link={externalLink.defguardCliDownload}
-          linkText={localLL.cards.cli.download()}
+          link={externalLink.defguardCliDocs}
+          linkText={localLL.cards.cli.docs()}
           logo={<DefguardIcon />}
           selected={choice === AddStandaloneDeviceModalChoice.CLI}
           onSelect={() => handleChange(AddStandaloneDeviceModalChoice.CLI)}

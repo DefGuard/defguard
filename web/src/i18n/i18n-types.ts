@@ -339,9 +339,9 @@ type RootTranslation = {
 							 */
 							subtitle: string
 							/**
-							 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+							 * D​e​f​g​u​a​r​d​ ​C​L​I​ ​d​o​w​n​l​o​a​d​ ​a​n​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n
 							 */
-							download: string
+							docs: string
 						}
 						manual: {
 							/**
@@ -2427,7 +2427,7 @@ type RootTranslation = {
 			 */
 			headerMessage: string
 			/**
-			 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+			 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
 			 */
 			downloadButton: string
 			expandableCard: {
@@ -5166,9 +5166,9 @@ export type TranslationFunctions = {
 							 */
 							subtitle: () => LocalizedString
 							/**
-							 * Download Defguard CLI Client
+							 * Defguard CLI download and documentation
 							 */
-							download: () => LocalizedString
+							docs: () => LocalizedString
 						}
 						manual: {
 							/**
@@ -7230,7 +7230,7 @@ export type TranslationFunctions = {
 			 */
 			headerMessage: () => LocalizedString
 			/**
-			 * Download defguard CLI Client
+			 * Download Defguard CLI Client
 			 */
 			downloadButton: () => LocalizedString
 			expandableCard: {

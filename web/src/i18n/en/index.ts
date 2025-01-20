@@ -133,7 +133,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
               title: 'Defguard Command Line Client',
               subtitle:
                 'When using defguard-cli your device will automatically have VPN configuration up-to-date (real time sync).',
-              download: 'Download Defguard CLI Client',
+              docs: 'Defguard CLI download and documentation',
             },
             manual: {
               title: 'Manual WireGuard Client',
@@ -999,7 +999,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     standaloneDeviceTokenModalContent: {
       headerMessage:
         'First download defguard command line client binaries and install them on your server.',
-      downloadButton: 'Download defguard CLI Client',
+      downloadButton: 'Download Defguard CLI Client',
       expandableCard: {
         title: 'Copy and paste this command in your terminal on the device',
       },

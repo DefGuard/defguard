@@ -136,7 +136,7 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
               title: 'Klient Defguard CLI',
               subtitle:
                 'Używając defguard-cli urządznie automatycznie dostanie bieżącą konfigurację VPN (synchronizacja w czasie rzeczywistym).',
-              download: 'Pobierz klienta Defguard CLI',
+              docs: 'Pobieranie i dokumentacja klienta Defguard CLI',
             },
             manual: {
               title: 'Ręczny klient WireGuard',
