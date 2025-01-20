@@ -787,7 +787,7 @@ impl Device<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
             connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE id IN \
-            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id ASC LIMIT 1)",
+            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
         )
         .fetch_all(executor)
