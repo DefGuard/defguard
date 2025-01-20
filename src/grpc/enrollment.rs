@@ -487,7 +487,7 @@ impl EnrollmentServer {
             })?;
 
             let mut networks = device
-                .find_device_networks(&mut *transaction)
+                .find_network_device_networks(&mut *transaction)
                 .await
                 .map_err(|err| {
                     error!(
