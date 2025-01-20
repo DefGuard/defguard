@@ -333,6 +333,29 @@ impl WireguardNetworkDevice {
         Ok(res)
     }
 
+    /// Get a first network the device was added to. Useful for network devices to
+    /// make sure they always pull only one network's config.
+    pub(crate) async fn find_first<'e, E>(
+        executor: E,
+        device_id: Id,
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let res = query_as!(
+            Self,
+            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized, authorized_at \
+            FROM wireguard_network_device \
+            WHERE device_id = $1 ORDER BY id LIMIT 1",
+            device_id
+        )
+        .fetch_optional(executor)
+        .await?;
+
+        Ok(res)
+    }
+
     pub async fn find_by_device<'e, E>(
         executor: E,
         device_id: Id,
@@ -376,6 +399,24 @@ impl WireguardNetworkDevice {
         .await?;
 
         Ok(res)
+    }
+
+    pub(crate) async fn network<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<WireguardNetwork<Id>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            WireguardNetwork,
+            "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            FROM wireguard_network WHERE id = $1",
+            self.wireguard_network_id
+        )
+        .fetch_one(executor)
+        .await
     }
 }
 
@@ -732,7 +773,9 @@ impl Device<Id> {
         Err(ModelError::CannotCreate)
     }
 
-    pub async fn find_device_networks<'e, E>(
+    /// Gets the first network of the network device
+    /// FIXME: Return only one network, not a Vec
+    pub async fn find_network_device_networks<'e, E>(
         &self,
         executor: E,
     ) -> Result<Vec<WireguardNetwork<Id>>, SqlxError>
@@ -744,7 +787,7 @@ impl Device<Id> {
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
             connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
             FROM wireguard_network WHERE id IN \
-            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1)",
+            (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
         )
         .fetch_all(executor)
@@ -773,6 +816,25 @@ impl Device<Id> {
             configured \
             FROM device WHERE device_type = $1 ORDER BY name",
             device_type as DeviceType
+        ).fetch_all(executor).await
+    }
+
+    pub(crate) async fn find_by_type_and_network<'e, E>(
+        executor: E,
+        device_type: DeviceType,
+        network_id: Id,
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(Self,
+            "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM device WHERE device_type = $1 \
+            AND id IN (SELECT device_id FROM wireguard_network_device WHERE wireguard_network_id = $2) \
+            ORDER BY name",
+            device_type as DeviceType,
+            network_id
         ).fetch_all(executor).await
     }
 
