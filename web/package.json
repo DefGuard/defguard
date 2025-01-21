@@ -134,7 +134,7 @@
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.19.1",
     "typescript-eslint-language-service": "^5.0.5",
-    "vite": "^6.0.7",
+    "vite": "^6.0.9",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-package-version": "^1.1.0"
   }
