@@ -127,12 +127,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
       steps: {
         method: {
-          title: 'Choose a proffered method',
+          title: 'Choose a preferred method',
           cards: {
             cli: {
               title: 'Defguard Command Line Client',
               subtitle:
-                'When using defguard-cli your device will automatically have VPN configuration up-to-date (real time sync).',
+                'When using defguard-cli your device will be automatically configured.',
               docs: 'Defguard CLI download and documentation',
             },
             manual: {

@@ -130,12 +130,12 @@ Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](htt
       },
       steps: {
         method: {
-          title: 'Wybierz preferowaną metodę',
+          title: 'Wybierz preferowaną metodę',
           cards: {
             cli: {
               title: 'Klient Defguard CLI',
               subtitle:
-                'Używając defguard-cli urządznie automatycznie dostanie bieżącą konfigurację VPN (synchronizacja w czasie rzeczywistym).',
+                'Używając defguard-cli urządznie zostanie automatycznie skonfigurowane.',
               docs: 'Pobieranie i dokumentacja klienta Defguard CLI',
             },
             manual: {

@@ -325,7 +325,7 @@ type RootTranslation = {
 			steps: {
 				method: {
 					/**
-					 * C​h​o​o​s​e​ ​a​ ​p​r​o​f​f​e​r​e​d​ ​m​e​t​h​o​d
+					 * C​h​o​o​s​e​ ​a​ ​p​r​e​f​e​r​r​e​d​ ​m​e​t​h​o​d
 					 */
 					title: string
 					cards: {
@@ -335,7 +335,7 @@ type RootTranslation = {
 							 */
 							title: string
 							/**
-							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​h​a​v​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​u​p​-​t​o​-​d​a​t​e​ ​(​r​e​a​l​ ​t​i​m​e​ ​s​y​n​c​)​.
+							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​b​e​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​.
 							 */
 							subtitle: string
 							/**
@@ -5152,7 +5152,7 @@ export type TranslationFunctions = {
 			steps: {
 				method: {
 					/**
-					 * Choose a proffered method
+					 * Choose a preferred method
 					 */
 					title: () => LocalizedString
 					cards: {
@@ -5162,7 +5162,7 @@ export type TranslationFunctions = {
 							 */
 							title: () => LocalizedString
 							/**
-							 * When using defguard-cli your device will automatically have VPN configuration up-to-date (real time sync).
+							 * When using defguard-cli your device will be automatically configured.
 							 */
 							subtitle: () => LocalizedString
 							/**
