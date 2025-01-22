@@ -30,6 +30,10 @@ pub enum DirectorySyncError {
     NotConfigured,
     #[error("Couldn't map provider's group to a Defguard group as it doesn't exist. There may be an issue with automatic group creation. Error details: {0}")]
     DefGuardGroupNotFound(String),
+    #[error("The provided provider configuration is invalid: {0}")]
+    InvalidProviderConfiguration(String),
+    #[error("Couldn't construct URL from the given string: {0}")]
+    InvalidUrl(String),
 }
 
 impl From<reqwest::Error> for DirectorySyncError {
@@ -47,6 +51,7 @@ impl From<reqwest::Error> for DirectorySyncError {
 }
 
 pub mod google;
+pub mod microsoft;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryGroup {
@@ -328,21 +333,31 @@ async fn get_directory_sync_client(
         .ok_or(DirectorySyncError::NotConfigured)?;
 
     match provider_settings.name.as_str() {
-        "Google" => {
-            debug!("Google directory sync provider selected");
-            match (
-                provider_settings.google_service_account_key.as_ref(),
-                provider_settings.google_service_account_email.as_ref(),
-                provider_settings.admin_email.as_ref(),
-            ) {
-                (Some(key), Some(email), Some(admin_email)) => {
-                    debug!("Google directory has all the configuration needed, proceeding with creating the sync client");
-                    let client = google::GoogleDirectorySync::new(key, email, admin_email);
-                    debug!("Google directory sync client created");
-                    Ok(client)
-                }
-                _ => Err(DirectorySyncError::NotConfigured),
-            }
+        // "Google" => {
+        //     debug!("Google directory sync provider selected");
+        //     match (
+        //         provider_settings.google_service_account_key.as_ref(),
+        //         provider_settings.google_service_account_email.as_ref(),
+        //         provider_settings.admin_email.as_ref(),
+        //     ) {
+        //         (Some(key), Some(email), Some(admin_email)) => {
+        //             debug!("Google directory has all the configuration needed, proceeding with creating the sync client");
+        //             let client = google::GoogleDirectorySync::new(key, email, admin_email);
+        //             debug!("Google directory sync client created");
+        //             Ok(client)
+        //         }
+        //         _ => Err(DirectorySyncError::NotConfigured),
+        //     }
+        // }
+        "Microsoft" => {
+            debug!("Microsoft directory sync provider selected");
+            let client = microsoft::MicrosoftDirectorySync::new(
+                provider_settings.client_id,
+                provider_settings.client_secret,
+                provider_settings.base_url,
+            );
+            debug!("Microsoft directory sync client created");
+            Ok(client)
         }
         _ => Err(DirectorySyncError::UnsupportedProvider(
             provider_settings.name.clone(),
@@ -595,6 +610,31 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
     }
 
     Ok(())
+}
+
+/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
+/// The context_message is used to provide more context to the error message.
+async fn parse_response<T>(
+    response: reqwest::Response,
+    context_message: &str,
+) -> Result<T, DirectorySyncError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    let status = &response.status();
+    match status {
+        &reqwest::StatusCode::OK => {
+            let json: serde_json::Value = response.json().await?;
+            println!("{json:?}");
+            Ok(serde_json::from_value(json).map_err(|err| {
+                DirectorySyncError::RequestError(format!("{context_message} Error: {err}"))
+            })?)
+        }
+        _ => Err(DirectorySyncError::RequestError(format!(
+            "{context_message} Code returned: {status}. Details: {}",
+            response.text().await?
+        ))),
+    }
 }
 
 #[cfg(test)]

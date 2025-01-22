@@ -5,7 +5,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
 
-use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 
 #[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
@@ -106,25 +106,6 @@ struct UsersResponse {
 #[derive(Debug, Serialize, Deserialize)]
 struct GroupsResponse {
     groups: Vec<DirectoryGroup>,
-}
-
-/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
-/// The context_message is used to provide more context to the error message.
-async fn parse_response<T>(
-    response: reqwest::Response,
-    context_message: &str,
-) -> Result<T, DirectorySyncError>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let status = &response.status();
-    match status {
-        &reqwest::StatusCode::OK => Ok(response.json().await?),
-        _ => Err(DirectorySyncError::RequestError(format!(
-            "{context_message} Code returned: {status}. Details: {}",
-            response.text().await?
-        ))),
-    }
 }
 
 impl GoogleDirectorySync {
