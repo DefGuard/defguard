@@ -299,7 +299,7 @@ type RootTranslation = {
 					 */
 					location: string
 					/**
-					 * A​s​s​i​g​n​e​d​ ​I​P
+					 * A​s​s​i​g​n​e​d​ ​I​P​ ​A​d​d​r​e​s​s
 					 */
 					assignedAddress: string
 					/**
@@ -325,23 +325,23 @@ type RootTranslation = {
 			steps: {
 				method: {
 					/**
-					 * C​h​o​o​s​e​ ​a​ ​p​r​o​f​f​e​r​e​d​ ​m​e​t​h​o​d
+					 * C​h​o​o​s​e​ ​a​ ​p​r​e​f​e​r​r​e​d​ ​m​e​t​h​o​d
 					 */
 					title: string
 					cards: {
 						cli: {
 							/**
-							 * d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+							 * D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
 							 */
 							title: string
 							/**
-							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​h​a​v​e​ ​V​P​N​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​u​p​-​t​o​-​d​a​t​e​ ​(​r​e​a​l​ ​t​i​m​e​-​s​y​n​c​)​.
+							 * W​h​e​n​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​-​c​l​i​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​w​i​l​l​ ​b​e​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​.
 							 */
 							subtitle: string
 							/**
-							 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+							 * D​e​f​g​u​a​r​d​ ​C​L​I​ ​d​o​w​n​l​o​a​d​ ​a​n​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n
 							 */
-							download: string
+							docs: string
 						}
 						manual: {
 							/**
@@ -349,7 +349,7 @@ type RootTranslation = {
 							 */
 							title: string
 							/**
-							 * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​c​l​i​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​L​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
+							 * I​f​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​d​o​e​s​ ​n​o​t​ ​s​u​p​p​o​r​t​ ​o​u​r​ ​C​L​I​ ​b​i​n​a​r​i​e​s​ ​y​o​u​ ​c​a​n​ ​a​l​w​a​y​s​ ​g​e​n​e​r​a​t​e​ ​a​ ​W​i​r​e​G​u​a​r​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​i​t​ ​m​a​n​u​a​l​l​y​ ​-​ ​b​u​t​ ​a​n​y​ ​u​p​d​a​t​e​s​ ​t​o​ ​t​h​e​ ​V​P​N​ ​l​o​c​a​t​i​o​n​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​w​i​l​l​ ​r​e​q​u​i​r​e​ ​m​a​n​u​a​l​ ​c​h​a​n​g​e​s​ ​i​n​ ​d​e​v​i​c​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​.
 							 */
 							subtitle: string
 						}
@@ -366,12 +366,12 @@ type RootTranslation = {
 						 */
 						messageTop: string
 						/**
-						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​C​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
+						 * U​s​e​ ​p​r​o​v​i​d​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​b​e​l​o​w​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​Q​R​ ​c​o​d​e​ ​o​r​ ​i​m​p​o​r​t​i​n​g​ ​i​t​ ​a​s​ ​f​i​l​e​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​'​s​ ​W​i​r​e​G​u​a​r​d​ ​a​p​p​.
 						 */
 						ctaInstruction: string
 						/**
 						 * 
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​d​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​&​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​r​e​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​a​n​d​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​d​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​l​a​t​e​r​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​.​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​D​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​a​n​d​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​i​r​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​b​u​t​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​ ​l​a​t​e​r​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 						 */
 						warningMessage: string
@@ -385,16 +385,16 @@ type RootTranslation = {
 				}
 				cli: {
 					/**
-					 * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​d​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
+					 * A​d​d​ ​d​e​v​i​c​e​ ​u​s​i​n​g​ ​D​e​f​g​u​a​r​d​ ​C​o​m​m​a​n​d​ ​L​i​n​e​ ​C​l​i​e​n​t
 					 */
 					title: string
 					finish: {
 						/**
-						 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
+						 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​y​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​i​t​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
 						 */
 						topMessage: string
 						/**
-						 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+						 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
 						 */
 						downloadButton: string
 						/**
@@ -2427,7 +2427,7 @@ type RootTranslation = {
 			 */
 			headerMessage: string
 			/**
-			 * D​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
+			 * D​o​w​n​l​o​a​d​ ​D​e​f​g​u​a​r​d​ ​C​L​I​ ​C​l​i​e​n​t
 			 */
 			downloadButton: string
 			expandableCard: {
@@ -2671,6 +2671,10 @@ type RootTranslation = {
 				 * C​u​s​t​o​m
 				 */
 				custom: string
+				/**
+				 * N​o​n​e
+				 */
+				none: string
 				/**
 				 * D​o​c​u​m​e​n​t​a​t​i​o​n
 				 */
@@ -4793,7 +4797,7 @@ type RootTranslation = {
 			columns: {
 				labels: {
 					/**
-					 * D​e​v​i​c​e​ ​n​a​m​e
+					 * D​e​v​i​c​e​ ​N​a​m​e
 					 */
 					name: string
 					/**
@@ -4801,7 +4805,7 @@ type RootTranslation = {
 					 */
 					location: string
 					/**
-					 * I​P
+					 * I​P​ ​A​d​d​r​e​s​s
 					 */
 					assignedIp: string
 					/**
@@ -4809,11 +4813,11 @@ type RootTranslation = {
 					 */
 					description: string
 					/**
-					 * A​d​d​e​d​ ​b​y
+					 * A​d​d​e​d​ ​B​y
 					 */
 					addedBy: string
 					/**
-					 * A​d​d​ ​d​a​t​e
+					 * A​d​d​ ​D​a​t​e
 					 */
 					addedAt: string
 					/**
@@ -5122,7 +5126,7 @@ export type TranslationFunctions = {
 					 */
 					location: () => LocalizedString
 					/**
-					 * Assigned IP
+					 * Assigned IP Address
 					 */
 					assignedAddress: () => LocalizedString
 					/**
@@ -5148,23 +5152,23 @@ export type TranslationFunctions = {
 			steps: {
 				method: {
 					/**
-					 * Choose a proffered method
+					 * Choose a preferred method
 					 */
 					title: () => LocalizedString
 					cards: {
 						cli: {
 							/**
-							 * defguard Command Line Client
+							 * Defguard Command Line Client
 							 */
 							title: () => LocalizedString
 							/**
-							 * When using defguard-cli your device will automatically have VPN configuration up-to-date (real time-sync).
+							 * When using defguard-cli your device will be automatically configured.
 							 */
 							subtitle: () => LocalizedString
 							/**
-							 * Download defguard CLI Client
+							 * Defguard CLI download and documentation
 							 */
-							download: () => LocalizedString
+							docs: () => LocalizedString
 						}
 						manual: {
 							/**
@@ -5172,7 +5176,7 @@ export type TranslationFunctions = {
 							 */
 							title: () => LocalizedString
 							/**
-							 * If your device does not support our cli binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN Location configuration will require manual changes in device configuration.
+							 * If your device does not support our CLI binaries you can always generate a WireGuard configuration file and configure it manually - but any updates to the VPN location configuration will require manual changes in device configuration.
 							 */
 							subtitle: () => LocalizedString
 						}
@@ -5189,12 +5193,12 @@ export type TranslationFunctions = {
 						 */
 						messageTop: () => LocalizedString
 						/**
-						 * Use provided configuration file below by scanning QR Code or importing it as file on your devices WireGuard app.
+						 * Use provided configuration file below by scanning QR code or importing it as file on your device's WireGuard app.
 						 */
 						ctaInstruction: () => LocalizedString
 						/**
 						 * 
-					            Please remember that defguard **doesn't store private keys**.  We will securely generate the public&private key pare in your browser, and only store the public key in defguard database. Please download the configuration generated with the private key for the device, as later it will not be accessible.
+					            Please remember that Defguard **doesn't store private keys**. We will securely generate the public and private key pair in your browser, but only store the public key in Defguard database. Please download the configuration generated with the private key for the device, as it will not be accessible later.
 					            
 						 */
 						warningMessage: () => LocalizedString
@@ -5208,16 +5212,16 @@ export type TranslationFunctions = {
 				}
 				cli: {
 					/**
-					 * Add device using defguard Command Line Client
+					 * Add device using Defguard Command Line Client
 					 */
 					title: () => LocalizedString
 					finish: {
 						/**
-						 * First download defguard command line client binaries and install them on your server.
+						 * First download Defguard command line client binary and install it on your server.
 						 */
 						topMessage: () => LocalizedString
 						/**
-						 * Download defguard CLI Client
+						 * Download Defguard CLI Client
 						 */
 						downloadButton: () => LocalizedString
 						/**
@@ -7226,7 +7230,7 @@ export type TranslationFunctions = {
 			 */
 			headerMessage: () => LocalizedString
 			/**
-			 * Download defguard CLI Client
+			 * Download Defguard CLI Client
 			 */
 			downloadButton: () => LocalizedString
 			expandableCard: {
@@ -7470,6 +7474,10 @@ export type TranslationFunctions = {
 				 * Custom
 				 */
 				custom: () => LocalizedString
+				/**
+				 * None
+				 */
+				none: () => LocalizedString
 				/**
 				 * Documentation
 				 */
@@ -9578,7 +9586,7 @@ export type TranslationFunctions = {
 			columns: {
 				labels: {
 					/**
-					 * Device name
+					 * Device Name
 					 */
 					name: () => LocalizedString
 					/**
@@ -9586,7 +9594,7 @@ export type TranslationFunctions = {
 					 */
 					location: () => LocalizedString
 					/**
-					 * IP
+					 * IP Address
 					 */
 					assignedIp: () => LocalizedString
 					/**
@@ -9594,11 +9602,11 @@ export type TranslationFunctions = {
 					 */
 					description: () => LocalizedString
 					/**
-					 * Added by
+					 * Added By
 					 */
 					addedBy: () => LocalizedString
 					/**
-					 * Add date
+					 * Add Date
 					 */
 					addedAt: () => LocalizedString
 					/**

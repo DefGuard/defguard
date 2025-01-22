@@ -1,15 +1,14 @@
 <div align="center">
  <p align="center">
-    <img src="docs/header.png" alt="defguard">
-    <h2>Secure Remote Access Management (WireGuard 2FA/MFA), Identity and Access Management (OpenID Connect SSO), Account Lifecycle (Onboarding)</h2>
-    <img alt="GitHub commits since latest release" src="https://img.shields.io/github/commits-since/defguard/defguard/latest/dev?style=for-the-badge&label=COMMITS%20SINCE%20LATEST%20RELEASE">
- </p>
+  Defguard is a <strong>true Zero-Trust WireGuard® VPN with 2FA/Multi-Factor Authentication</strong>, as each connection requires MFA (and not only when logging in into the client application like other solutions)
+  <img width="1096" alt="zero-trust" src="https://github.com/user-attachments/assets/a3bed030-0d82-4f8c-9687-01cc5780eff7" />
+  Our primary focus at defguard is on prioritizing security. Then, we aim to make this challenging topic both useful and as easy to navigate as possible.
 
 [Website](https://defguard.net) | [Getting Started](https://docs.defguard.net/#what-is-defguard) | [Features](https://github.com/defguard/defguard#features) | [Roadmap](https://github.com/orgs/defguard/projects/5) | [Support ❤](https://github.com/defguard/defguard#support)
 
 </div>
 
-### Comprehensive Access Control
+### Defguard provides Comprehensive Access Control (a complete security platform):
 
 - **[WireGuard® VPN with 2FA/MFA](https://docs.defguard.net/admin-and-features/wireguard/multi-factor-authentication-mfa-2fa/architecture)** - not 2FA to "access application" like most solutions
     - The only solution with [automatic and real-time synchronization](https://docs.defguard.net/enterprise/automatic-real-time-desktop-client-configuration) for users' desktop client settings (including all VPNs/locations).
@@ -28,6 +27,10 @@
 See:
 - [full list of features](https://github.com/defguard/defguard#features)
 - [enterprise only features](https://docs.defguard.net/enterprise/all-enteprise-features)
+
+### Defguard makes it easy to manage complex VPN networks in a secure way
+
+<img width="1564" alt="locations-connections" src="https://github.com/user-attachments/assets/f886750b-1d4e-467e-917d-bc19a86e275c" />
 
 #### Video introduction
 

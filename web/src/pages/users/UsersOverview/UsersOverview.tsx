@@ -120,10 +120,10 @@ export const UsersOverview = () => {
       case FilterOptions.ALL:
         break;
       case FilterOptions.ADMIN:
-        searched = searched.filter((user) => user.groups.includes('admin'));
+        searched = searched.filter((user) => user.is_admin);
         break;
       case FilterOptions.USERS:
-        searched = searched.filter((user) => !user.groups.includes('admin'));
+        searched = searched.filter((user) => !user.is_admin);
         break;
     }
     return searched;

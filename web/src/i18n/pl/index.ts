@@ -5,6 +5,11 @@ import { Translation } from '../i18n-types';
 
 const translation: Translation = {
   common: {
+    conditions: {
+      and: 'I',
+      equal: 'Równy',
+      or: 'Albo',
+    },
     controls: {
       back: 'Wróć',
       next: 'Następny',
@@ -22,14 +27,13 @@ const translation: Translation = {
       rename: 'Zmień nazwę',
       edit: 'Edytuj',
       dismiss: 'Odrzuć',
-    },
-    conditions: {
-      and: 'I',
-      equal: 'Równy',
-      or: 'Albo',
+      show: 'Pokaż',
     },
     key: 'Klucz',
     name: 'Nazwa',
+    noData: 'Brak danych',
+    unavailable: 'Niedostępne',
+    notSet: 'Nieustawione',
   },
   messages: {
     error: 'Wystąpił błąd.',
@@ -43,6 +47,138 @@ const translation: Translation = {
     insecureContext: 'Kontekst nie jest bezpieczny',
   },
   modals: {
+    upgradeLicenseModal: {
+      enterprise: {
+        title: 'Podnieś do Enterprise',
+        //md
+        subTitle: `Został przekroczony limit użytkowników, urządzeń lub sieci, a ta funkcjonalność jest dostępna tylko w wersji **enterprise**. Aby użyć tej funkcjonalności, należy zakupić lub podnieść obecną licencję enterprise.`,
+      },
+      limit: {
+        title: 'Podnieś',
+        //md
+        subTitle: `
+        **Osiągnięto limit** funkcjonalności. Aby **[ zarządzać większą liczbą lokalizacji/użytkowników/urządzeń ]** wymagany jest zakup licencji Enterprise.
+        `,
+      },
+      //md
+      content: `
+Aby dowiedzieć się więcej o:
+- Automatyczniej synchronizacji klientów w czasie rzeczywistym
+- Zewnętrznym SSO
+- Kontrolowaniu działania klientów VPN
+
+Pełna lista funkcjonalności enterprise: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
+Informacja o licencjonowaniu: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
+      `,
+      controls: {
+        cancel: 'Może później',
+        confirm: 'Wszystkie plany Enterprise',
+      },
+    },
+    standaloneDeviceEnrollmentModal: {
+      title: 'Network device token',
+      toasters: {
+        error: 'Token generation failed.',
+      },
+    },
+    standaloneDeviceConfigModal: {
+      title: 'Konfiguracja urządzenia sieciowego',
+      cardTitle: 'Konfiguracja',
+      toasters: {
+        getConfig: {
+          error: 'Nie udało się pobrać konfiguracji urządzenia.',
+        },
+      },
+    },
+    editStandaloneModal: {
+      title: 'Edycja urządzenia sieciowego',
+      toasts: {
+        success: 'Urządzenia zostało zmienione',
+        failure: 'Nie udało się zmienić urządzenia.',
+      },
+    },
+    deleteStandaloneDevice: {
+      title: 'Usuń urządzenie sieciowe',
+      content: 'Urządzenie {name: string} zostanie usunięte.',
+      messages: {
+        success: 'Urządzenie zostało usunięte',
+        error: 'Nie udało się usunąć urządzenia.',
+      },
+    },
+    addStandaloneDevice: {
+      toasts: {
+        deviceCreated: 'Urządzenie zostało dodane',
+        creationFailed: 'Urządzenie nie mogło być dodane.',
+      },
+      infoBox: {
+        setup:
+          'Tu można dodać definicje lub utworzyć konfiguracje dla urządzeń, które można podłączyć do sieci VPN. Dostępne są jedynie lokalizacje bez uwierzytelniania wieloskładnikowego (MFA), ponieważ póki co ta funkcjonalność jest dostępna tylko w kliencie Defguard Desktop.',
+      },
+      form: {
+        submit: 'Dodaj urządzenie',
+        labels: {
+          deviceName: 'Nazwa urządzenia',
+          location: 'Położenie',
+          assignedAddress: 'Przydzielony adres IP',
+          description: 'Opis',
+          generation: {
+            auto: 'Utwórz parę kluczy',
+            manual: 'Własny klucz publiczny',
+          },
+          publicKey: 'Podaj swój klucz publiczny',
+        },
+      },
+      steps: {
+        method: {
+          title: 'Wybierz preferowaną metodę',
+          cards: {
+            cli: {
+              title: 'Klient Defguard CLI',
+              subtitle:
+                'Używając defguard-cli urządznie zostanie automatycznie skonfigurowane.',
+              docs: 'Pobieranie i dokumentacja klienta Defguard CLI',
+            },
+            manual: {
+              title: 'Ręczny klient WireGuard',
+              subtitle:
+                'Jeżeli Twoje urządzenie nie wspiera naszych programów CLI, zawsze można utworzyć plik konfiguracyjny WireGuard i skonfigurowć je ręcznie - ale w takim przypadku uaktualnienia lokalizacji VPN będą wymagały ręcznych zmian w urządzeniu.',
+            },
+          },
+        },
+        manual: {
+          title: 'Dodaj nowe urządzenie VPN używając klienta WireGuard',
+          finish: {
+            messageTop:
+              'Pobierz podany plik konfiguracyjny na urządzeniu i zaimportuj go do klienta VPN żeby zakończyć jego konfigurowanie.',
+            ctaInstruction:
+              'Użyj podanego niżej pliku konfiguracyjnego skanując kod QR lub importując go jako plik w aplikacji WireGuard na urządzeniu.',
+            // MD
+            warningMessage: `
+            Należy pamiętać, że Defguard **nie przechowuje kluczy prywatnych**. Para kluczy (publiczny i prywatny) zostanie bezpiecznie utworzona w przeglądarce, ale jedynie klucz publiczny zostanie zapisany w bazie danych Defguard. Proszę pobrać utworzoną konfigurację zawierającą klucz prywatny dla urządzenia, gdyż nie będzie ona później dostępna.
+            `,
+            actionCard: {
+              title: 'Konfiguracja',
+            },
+          },
+        },
+        cli: {
+          title: 'Dodaj urządzenie używając klienta Defguard CLI',
+          finish: {
+            topMessage:
+              'Najpierw pobierz klienta Defguard CLI i zainstaluj go na serwerze.',
+            downloadButton: 'Pobierz klienta Defguard CLI',
+            commandCopy: 'Skopiuj i wklej to polecenie w terminalu na urządzeniu',
+          },
+          setup: {
+            stepMessage:
+              'Tu można dodać definicje lub utworzyć konfiguracje dla urządzeń, które mogą łączyć się do sieci VPN. Tutaj dostępne są jedynie lokalizacje bez uwierzytelniania wieloskładnikowego (MFA) ponieważ póki co MFA jest wspierane jedynie w kliencie Defguard Desktop.',
+            form: {
+              submit: 'Dodaj urządzenie',
+            },
+          },
+        },
+      },
+    },
     updatesNotification: {
       header: {
         criticalBadge: 'Aktualizacja krytyczna',
@@ -923,9 +1059,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         helper:
           'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
         custom: 'Niestandardowy',
+        none: 'Brak',
         documentation: 'Dokumentacja',
         delete: 'Usuń dostawcę',
-
         directory_sync_settings: {
           title: 'Ustawienia synchronizacji katalogu',
           helper:
@@ -1776,7 +1912,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
   },
   redirectPage: {
     title: 'Zostałeś zalogowany',
-    subtitle: 'Wkrótce zostaniesz przekierowany...',
+    subtitle: 'Wkrótce nastąpi przekierowanie...',
   },
   enrollmentPage: {
     title: 'Rejestracja',
@@ -1853,6 +1989,38 @@ Aby zgłosić:
 
 W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
 `,
+    },
+  },
+  devicesPage: {
+    title: 'Urządzenia sieciowe',
+    search: {
+      placeholder: 'Znajdź',
+    },
+    bar: {
+      itemsCount: 'Wszystkie urządzenia',
+      filters: {},
+      actions: {
+        addNewDevice: 'Dodaj nowe',
+      },
+    },
+    list: {
+      columns: {
+        labels: {
+          name: 'Nazwa',
+          location: 'Położenie',
+          assignedIp: 'Adres IP',
+          description: 'Opis',
+          addedBy: 'Dodane przez',
+          addedAt: 'Data dodania',
+          edit: 'Zmień',
+        },
+      },
+      edit: {
+        actionLabels: {
+          config: 'Zobacz konfigurację',
+          generateToken: 'Utwórz kupon autoryzacyjny',
+        },
+      },
     },
   },
 };

@@ -45,7 +45,7 @@ pub struct MappedDevice {
     pub wireguard_ip: IpAddr,
 }
 
-pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(5);
+pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
 pub const PEER_STATS_LIMIT: i64 = 6 * 60;
 
 /// Defines datetime aggregation levels
@@ -366,8 +366,10 @@ impl WireguardNetwork<Id> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
         let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
-        // network devices are always allowed
-        let network_devices = Device::find_by_type(&mut *transaction, DeviceType::Network).await?;
+        // network devices are always allowed, make sure to take only network devices already assigned to that network
+        let network_devices =
+            Device::find_by_type_and_network(&mut *transaction, DeviceType::Network, self.id)
+                .await?;
         allowed_devices.extend(network_devices);
 
         // convert to a map for easier processing

@@ -6,7 +6,7 @@ use semver::Version;
 use crate::global_value;
 
 const PRODUCT_NAME: &str = "Defguard";
-const UPDATES_URL: &str = "https://update-service-dev.defguard.net/api/update/check";
+const UPDATES_URL: &str = "https://pkgs.defguard.net/api/update/check";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Deserialize, Debug, Serialize)]

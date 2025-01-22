@@ -212,7 +212,7 @@ async fn test_network_devices() {
 
     // Make sure the device is only in the selected network
     let device_networks = device
-        .find_device_networks(&client_state.pool)
+        .find_network_device_networks(&client_state.pool)
         .await
         .unwrap();
     assert_eq!(device_networks.len(), 1);
@@ -257,7 +257,7 @@ async fn test_network_devices() {
     assert!(!device.configured);
     assert_eq!(device.name, "device-2");
     let device_network = device
-        .find_device_networks(&client_state.pool)
+        .find_network_device_networks(&client_state.pool)
         .await
         .unwrap();
     assert_eq!(device_network.len(), 1);

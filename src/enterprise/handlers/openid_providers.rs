@@ -119,12 +119,12 @@ pub async fn get_current_openid_provider(
     _admin: AdminRole,
     State(appstate): State<AppState>,
 ) -> ApiResult {
+    let settings = Settings::get_current_settings();
+    let create_account = settings.openid_create_account;
     match OpenIdProvider::get_current(&appstate.pool).await? {
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
-            let settings = Settings::get_current_settings();
-            let create_account = settings.openid_create_account;
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
@@ -134,7 +134,10 @@ pub async fn get_current_openid_provider(
             })
         }
         None => Ok(ApiResponse {
-            json: json!({}),
+            json: json!({
+                "provider": null,
+                "settings": json!({ "create_account": create_account }),
+            }),
             status: StatusCode::NO_CONTENT,
         }),
     }

@@ -2,7 +2,7 @@ export interface NavigationItem {
   title: string;
   linkPath: string;
   icon?: React.ReactNode;
-  allowedToView?: string[];
+  adminOnly?: boolean;
   enabled: boolean | undefined;
   onClick?: () => void;
   className?: string;

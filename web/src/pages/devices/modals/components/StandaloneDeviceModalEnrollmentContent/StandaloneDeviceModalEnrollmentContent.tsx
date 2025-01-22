@@ -38,11 +38,7 @@ export const StandaloneDeviceModalEnrollmentContent = ({
         dismissId="standalone-device-enrollment-modal-content-header"
       />
       <div className="download">
-        <a
-          href={externalLink.defguardCliDownload}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={externalLink.defguardCliDocs} target="_blank" rel="noopener noreferrer">
           <Button
             text={localLL.downloadButton()}
             size={ButtonSize.LARGE}

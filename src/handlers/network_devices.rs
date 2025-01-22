@@ -52,7 +52,7 @@ impl NetworkDeviceInfo {
         transaction: &mut PgConnection,
     ) -> Result<Self, WebError> {
         let network = device
-            .find_device_networks(&mut *transaction)
+            .find_network_device_networks(&mut *transaction)
             .await?
             .pop()
             .ok_or(WebError::ObjectNotFound(format!(
@@ -106,7 +106,7 @@ pub async fn download_network_device_config(
                 "Network device with ID {device_id} not found"
             )))?;
     let network = device
-        .find_device_networks(&appstate.pool)
+        .find_network_device_networks(&appstate.pool)
         .await?
         .pop()
         .ok_or(WebError::ObjectNotFound(format!(
@@ -674,7 +674,7 @@ pub async fn modify_network_device(
             WebError::ObjectNotFound(format!("Device {device_id} not found"))
         })?;
     let device_network = device
-        .find_device_networks(&mut *transaction)
+        .find_network_device_networks(&mut *transaction)
         .await?
         .pop()
         .ok_or_else(|| {

@@ -9,7 +9,8 @@ use super::{
 use crate::{
     db::{
         models::{
-            device::WireguardNetworkDevice, polling_token::PollingToken,
+            device::{DeviceType, WireguardNetworkDevice},
+            polling_token::PollingToken,
             wireguard::WireguardNetwork,
         },
         Device, Id, Settings, User,
@@ -87,17 +88,27 @@ pub(crate) async fn build_device_config_response(
             error!("User not found: {}", device.user_id);
             Status::internal("unexpected error")
         })?;
-    for network in networks {
-        let wireguard_network_device = WireguardNetworkDevice::find(pool, device.id, network.id)
+    if device.device_type == DeviceType::Network {
+        let wireguard_network_device = WireguardNetworkDevice::find_first(pool, device.id)
             .await
             .map_err(|err| {
                 error!(
-                    "Failed to fetch WireGuard network device for device {} and network {}: {err}",
-                    device.id, network.id
+                    "Failed to fetch WireGuard network device for device {}: {err}",
+                    device.id
                 );
                 Status::internal(format!("unexpected error: {err}"))
             })?;
         if let Some(wireguard_network_device) = wireguard_network_device {
+            let network = wireguard_network_device
+                .network(pool)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to fetch network for WireGuard network device {}: {err}",
+                        device.name
+                    );
+                    Status::internal(format!("unexpected error: {err}"))
+                })?;
             let allowed_ips = network
                 .allowed_ips
                 .iter()
@@ -117,6 +128,40 @@ pub(crate) async fn build_device_config_response(
                 keepalive_interval: network.keepalive_interval,
             };
             configs.push(config);
+        }
+    } else {
+        for network in networks {
+            let wireguard_network_device =
+                WireguardNetworkDevice::find(pool, device.id, network.id)
+                    .await
+                    .map_err(|err| {
+                        error!(
+                    "Failed to fetch WireGuard network device for device {} and network {}: {err}",
+                    device.id, network.id
+                );
+                        Status::internal(format!("unexpected error: {err}"))
+                    })?;
+            if let Some(wireguard_network_device) = wireguard_network_device {
+                let allowed_ips = network
+                    .allowed_ips
+                    .iter()
+                    .map(IpNetwork::to_string)
+                    .collect::<Vec<String>>()
+                    .join(",");
+                let config = ProtoDeviceConfig {
+                    config: Device::create_config(&network, &wireguard_network_device),
+                    network_id: network.id,
+                    network_name: network.name,
+                    assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                    endpoint: format!("{}:{}", network.endpoint, network.port),
+                    pubkey: network.pubkey,
+                    allowed_ips,
+                    dns: network.dns,
+                    mfa_enabled: network.mfa_enabled,
+                    keepalive_interval: network.keepalive_interval,
+                };
+                configs.push(config);
+            }
         }
     }
 
