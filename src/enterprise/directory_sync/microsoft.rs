@@ -22,6 +22,7 @@ const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memb
 const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const ALL_USERS_URL: &str = "https://graph.microsoft.com/v1.0/users";
+const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -66,6 +67,20 @@ struct UsersResponse {
     value: Vec<User>,
 }
 
+async fn make_get_request(
+    url: Url,
+    token: String,
+) -> Result<reqwest::Response, DirectorySyncError> {
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .header(AUTHORIZATION, format!("Bearer {}", token))
+        .timeout(REQUEST_TIMEOUT)
+        .send()
+        .await?;
+    Ok(response)
+}
+
 impl MicrosoftDirectorySync {
     pub(crate) fn new(client_id: String, client_secret: String, url: String) -> Self {
         Self {
@@ -80,10 +95,7 @@ impl MicrosoftDirectorySync {
     fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
         debug!("Extracting tenant ID from Microsoft base URL: {}", self.url);
         let parts: Vec<&str> = self.url.split('/').collect();
-        debug!(
-            "Split Microsoft base URL into the following parts: {:?}",
-            parts
-        );
+        debug!("Split Microsoft base URL into the following parts: {parts:?}",);
         let tenant_id =
             parts
                 .get(parts.len() - 2)
@@ -91,11 +103,12 @@ impl MicrosoftDirectorySync {
                     "Couldn't extrat tenant ID from the provided Microsoft base url: {}",
                     self.url
                 )))?;
-        debug!("Tenant ID extracted successfully: {}", tenant_id);
+        debug!("Tenant ID extracted successfully: {tenant_id}",);
         Ok(tenant_id.to_string())
     }
 
     async fn query_access_token(&self) -> Result<TokenResponse, DirectorySyncError> {
+        debug!("Querying Microsoft directory sync access token.");
         let tenant_id = self.extract_tenant()?;
         let token_url = ACCESS_TOKEN_URL.replace("{tenant_id}", &tenant_id);
         let client = reqwest::Client::new();
@@ -104,13 +117,13 @@ impl MicrosoftDirectorySync {
             .form(&[
                 ("client_id", &self.client_id),
                 ("client_secret", &self.client_secret),
-                ("scope", &"https://graph.microsoft.com/.default".to_string()),
+                ("scope", &MICROSOFT_DEFAULT_SCOPE.to_string()),
                 ("grant_type", &"client_credentials".to_string()),
             ])
             .send()
             .await?;
-
         let token_response: TokenResponse = response.json().await?;
+        debug!("Microsoft directory sync access token queried successfully.");
         Ok(token_response)
     }
 
@@ -128,17 +141,13 @@ impl MicrosoftDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-        let client = reqwest::Client::new();
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let response = client
-            .get(GROUPS_URL)
-            .header(AUTHORIZATION, format!("Bearer {}", access_token))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let url = Url::parse(GROUPS_URL)
+            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
+        let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(response, "Failed to query all Microsoft groups.").await
     }
 
@@ -156,20 +165,13 @@ impl MicrosoftDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let url = Url::parse(&USER_GROUPS.replace("{user_id}", user_id))
             .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let client = reqwest::Client::new();
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(response, "Failed to query user groups from Microsoft API.").await
     }
 
@@ -187,13 +189,7 @@ impl MicrosoftDirectorySync {
 
         let url = Url::parse(&GROUP_MEMBERS.replace("{group_id}", &group.id))
             .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let client = reqwest::Client::builder().build()?;
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(
             response,
             "Failed to query group members from Microsoft API.",
@@ -211,13 +207,7 @@ impl MicrosoftDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let url = Url::parse(ALL_USERS_URL)
             .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let client = reqwest::Client::builder().build()?;
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(response, "Failed to query all users in the Microsoft API.").await
     }
 
@@ -228,15 +218,9 @@ impl MicrosoftDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let url = Url::parse(&format!("{ALL_USERS_URL}?$top=1"))
             .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let client = reqwest::Client::builder().build()?;
-        let result = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let response = make_get_request(url, access_token.to_string()).await?;
         let _result: UsersResponse =
-            parse_response(result, "Failed to test connection to Microsoft API.").await?;
+            parse_response(response, "Failed to test connection to Microsoft API.").await?;
         Ok(())
     }
 }
@@ -262,7 +246,7 @@ impl DirectorySync for MicrosoftDirectorySync {
         &self,
         user_id: &str,
     ) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
-        debug!("Querying groups of user: {}", user_id);
+        debug!("Querying groups of user: {user_id}");
         let groups = self
             .query_user_groups(user_id)
             .await?
