@@ -342,7 +342,7 @@ impl DirectorySync for GoogleDirectorySync {
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
-        debug!("Testing connection to Microsoft API.");
+        debug!("Testing connection to Google API.");
         self.query_test_connection().await?;
         info!("Successfully tested connection to Google API, connection is working.");
         Ok(())
