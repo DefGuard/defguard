@@ -1072,6 +1072,7 @@ dependencies = [
  "mime_guess",
  "model_derive",
  "openidconnect",
+ "paste",
  "pgp",
  "prost",
  "prost-build",
