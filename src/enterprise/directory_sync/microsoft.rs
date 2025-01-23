@@ -227,7 +227,6 @@ impl MicrosoftDirectorySync {
             .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
-        println!("{result:?}");
         let _result: UsersResponse =
             parse_response(result, "Failed to test connection to Microsoft API.").await?;
         Ok(())

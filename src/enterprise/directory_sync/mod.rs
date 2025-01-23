@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use paste::paste;
 use sqlx::error::Error as SqlxError;
 use sqlx::PgPool;
 use thiserror::Error;
@@ -93,6 +94,123 @@ trait DirectorySync {
     async fn test_connection(&self) -> Result<(), DirectorySyncError>;
 }
 
+/// This macro generates a boilerplate enum which enables a simple polymorphism for things that implement
+/// the DirectorySync trait without having to resolve to fully dynamic dispatch using something like Box<dyn DirectorySync>.
+///
+///
+/// When creating a new provider, make sure that:
+/// - The provider main struct is called <PROVIDER>DirectorySync, e.g. GoogleDirectorySync
+/// - The provider implements the [`DirectorySync`] trait
+/// - You implemented some way to initialize the provider client and added an initialization step in the [`DirectorySyncClient::build`] function
+/// - You added the provider name to the macro invocation
+/// - You've implemented your provider logic in a file called the same as your provider but lowercase, e.g. google.rs
+///
+// If you have time to refactor the whole thing to use boxes instead, go ahead.
+macro_rules! dirsync_clients {
+    ($($variant:ident),*) => {
+        paste! {
+        pub(crate) enum DirectorySyncClient {
+            $(
+                $variant([< $variant:lower >]::[< $variant DirectorySync >]),
+            )*
+        }
+        }
+
+        impl DirectorySync for DirectorySyncClient {
+            async fn get_groups(&self) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.get_groups().await,
+                    )*
+                }
+            }
+
+            async fn get_user_groups(&self, user_id: &str) -> Result<Vec<DirectoryGroup>, DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.get_user_groups(user_id).await,
+                    )*
+                }
+            }
+
+            async fn get_group_members(&self, group: &DirectoryGroup) -> Result<Vec<String>, DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.get_group_members(group).await,
+                    )*
+                }
+            }
+
+            async fn prepare(&mut self) -> Result<(), DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.prepare().await,
+                    )*
+                }
+            }
+
+            async fn get_all_users(&self) -> Result<Vec<DirectoryUser>, DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.get_all_users().await,
+                    )*
+                }
+            }
+
+            async fn test_connection(&self) -> Result<(), DirectorySyncError> {
+                match self {
+                    $(
+                        DirectorySyncClient::$variant(client) => client.test_connection().await,
+                    )*
+                }
+            }
+        }
+    };
+}
+
+dirsync_clients!(Google, Microsoft);
+
+impl DirectorySyncClient {
+    /// Builds the current directory sync client based on the current provider settings (provider name), if possible.
+    pub(crate) async fn build(pool: &PgPool) -> Result<Self, DirectorySyncError> {
+        let provider_settings = OpenIdProvider::get_current(pool)
+            .await?
+            .ok_or(DirectorySyncError::NotConfigured)?;
+
+        match provider_settings.name.as_str() {
+            "Google" => {
+                debug!("Google directory sync provider selected");
+                match (
+                    provider_settings.google_service_account_key.as_ref(),
+                    provider_settings.google_service_account_email.as_ref(),
+                    provider_settings.admin_email.as_ref(),
+                ) {
+                    (Some(key), Some(email), Some(admin_email)) => {
+                        debug!("Google directory has all the configuration needed, proceeding with creating the sync client");
+                        let client = google::GoogleDirectorySync::new(key, email, admin_email);
+                        debug!("Google directory sync client created");
+                        Ok(Self::Google(client))
+                    }
+                    _ => Err(DirectorySyncError::NotConfigured),
+                }
+            }
+            "Microsoft" => {
+                debug!("Microsoft directory sync provider selected");
+                let client = microsoft::MicrosoftDirectorySync::new(
+                    provider_settings.client_id,
+                    provider_settings.client_secret,
+                    provider_settings.base_url,
+                );
+                debug!("Microsoft directory sync client created");
+                Ok(Self::Microsoft(client))
+            }
+            _ => Err(DirectorySyncError::UnsupportedProvider(
+                provider_settings.name.clone(),
+            )),
+        }
+    }
+}
+
 async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
@@ -153,7 +271,7 @@ pub(crate) async fn test_directory_sync_connection(
         return Ok(());
     }
 
-    match get_directory_sync_client(pool).await {
+    match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
             dir_sync.test_connection().await?;
@@ -183,7 +301,7 @@ pub(crate) async fn sync_user_groups_if_configured(
         return Ok(());
     }
 
-    match get_directory_sync_client(pool).await {
+    match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
             sync_user_groups(&dir_sync, user, pool).await?;
@@ -322,47 +440,6 @@ async fn sync_all_users_groups<T: DirectorySync>(
 
     info!("Syncing all users' groups done.");
     Ok(())
-}
-
-async fn get_directory_sync_client(
-    pool: &PgPool,
-) -> Result<impl DirectorySync, DirectorySyncError> {
-    debug!("Getting directory sync client");
-    let provider_settings = OpenIdProvider::get_current(pool)
-        .await?
-        .ok_or(DirectorySyncError::NotConfigured)?;
-
-    match provider_settings.name.as_str() {
-        // "Google" => {
-        //     debug!("Google directory sync provider selected");
-        //     match (
-        //         provider_settings.google_service_account_key.as_ref(),
-        //         provider_settings.google_service_account_email.as_ref(),
-        //         provider_settings.admin_email.as_ref(),
-        //     ) {
-        //         (Some(key), Some(email), Some(admin_email)) => {
-        //             debug!("Google directory has all the configuration needed, proceeding with creating the sync client");
-        //             let client = google::GoogleDirectorySync::new(key, email, admin_email);
-        //             debug!("Google directory sync client created");
-        //             Ok(client)
-        //         }
-        //         _ => Err(DirectorySyncError::NotConfigured),
-        //     }
-        // }
-        "Microsoft" => {
-            debug!("Microsoft directory sync provider selected");
-            let client = microsoft::MicrosoftDirectorySync::new(
-                provider_settings.client_id,
-                provider_settings.client_secret,
-                provider_settings.base_url,
-            );
-            debug!("Microsoft directory sync client created");
-            Ok(client)
-        }
-        _ => Err(DirectorySyncError::UnsupportedProvider(
-            provider_settings.name.clone(),
-        )),
-    }
 }
 
 fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
@@ -585,7 +662,7 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
         .ok_or(DirectorySyncError::NotConfigured)?
         .directory_sync_target;
 
-    match get_directory_sync_client(pool).await {
+    match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             // TODO: Directory sync's access token is dropped every time, find a way to preserve it
             // Same goes for Etags, those could be used to reduce the amount of data transferred. Some way
@@ -625,7 +702,6 @@ where
     match status {
         &reqwest::StatusCode::OK => {
             let json: serde_json::Value = response.json().await?;
-            println!("{json:?}");
             Ok(serde_json::from_value(json).map_err(|err| {
                 DirectorySyncError::RequestError(format!("{context_message} Error: {err}"))
             })?)
@@ -714,7 +790,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user1 = make_test_user("user1", &pool).await;
         make_test_user("user2", &pool).await;
@@ -744,7 +820,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         let user1 = make_test_user("user1", &pool).await;
@@ -778,7 +854,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         let user1 = make_test_user("user1", &pool).await;
@@ -819,7 +895,7 @@ mod test {
         User::init_admin_user(&pool, config.default_admin_password.expose_secret())
             .await
             .unwrap();
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         let user1 = make_test_user("user1", &pool).await;
@@ -857,7 +933,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         let user1 = make_test_user("user1", &pool).await;
@@ -900,7 +976,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         let user1 = make_test_user("user1", &pool).await;
@@ -948,7 +1024,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         make_test_user("testuser", &pool).await;
@@ -998,7 +1074,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
@@ -1021,7 +1097,7 @@ mod test {
             DirectorySyncTarget::Users,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
@@ -1042,7 +1118,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user("testuser", &pool).await;
         make_test_user("user2", &pool).await;
@@ -1066,7 +1142,7 @@ mod test {
             DirectorySyncTarget::Groups,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
         let user = make_test_user("testuser", &pool).await;
         make_test_user("user2", &pool).await;
@@ -1090,7 +1166,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         // Make one admin and check if he's deleted
@@ -1133,7 +1209,7 @@ mod test {
             DirectorySyncTarget::All,
         )
         .await;
-        let mut client = get_directory_sync_client(&pool).await.unwrap();
+        let mut client = DirectorySyncClient::build(&pool).await.unwrap();
         client.prepare().await.unwrap();
 
         // a user that's not in the directory
