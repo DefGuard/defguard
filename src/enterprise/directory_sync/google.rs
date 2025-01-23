@@ -165,17 +165,14 @@ impl GoogleDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut url = Url::from_str(GROUPS_URL).unwrap();
-
         url.query_pairs_mut()
             .append_pair("userKey", user_id)
             .append_pair("maxResults", "500");
-
         let client = reqwest::Client::new();
         let response = client
             .get(url)
@@ -345,7 +342,9 @@ impl DirectorySync for GoogleDirectorySync {
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
+        debug!("Testing connection to Microsoft API.");
         self.query_test_connection().await?;
+        info!("Successfully tested connection to Google API, connection is working.");
         Ok(())
     }
 }

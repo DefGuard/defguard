@@ -106,23 +106,23 @@ export const OpenIdSettingsRootForm = () => {
             });
           }
 
-          // if (val.directory_sync_enabled && val.name !== 'Google') {
-          //   if (val.admin_email.length === 0) {
-          //     ctx.addIssue({
-          //       code: z.ZodIssueCode.custom,
-          //       message: LL.form.error.required(),
-          //       path: ['admin_email'],
-          //     });
-          //   }
+          if (val.directory_sync_enabled && val.name === 'Google') {
+            if (val.admin_email.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['admin_email'],
+              });
+            }
 
-          //   if (val.google_service_account_email.length === 0) {
-          //     ctx.addIssue({
-          //       code: z.ZodIssueCode.custom,
-          //       message: LL.form.error.required(),
-          //       path: ['google_service_account_email'],
-          //     });
-          //   }
-          // }
+            if (val.google_service_account_email.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['google_service_account_email'],
+              });
+            }
+          }
         }),
     [LL.form.error],
   );

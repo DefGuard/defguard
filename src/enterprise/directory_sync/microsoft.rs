@@ -78,7 +78,12 @@ impl MicrosoftDirectorySync {
     }
 
     fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
+        debug!("Extracting tenant ID from Microsoft base URL: {}", self.url);
         let parts: Vec<&str> = self.url.split('/').collect();
+        debug!(
+            "Split Microsoft base URL into the following parts: {:?}",
+            parts
+        );
         let tenant_id =
             parts
                 .get(parts.len() - 2)
@@ -86,6 +91,7 @@ impl MicrosoftDirectorySync {
                     "Couldn't extrat tenant ID from the provided Microsoft base url: {}",
                     self.url
                 )))?;
+        debug!("Tenant ID extracted successfully: {}", tenant_id);
         Ok(tenant_id.to_string())
     }
 
@@ -109,10 +115,12 @@ impl MicrosoftDirectorySync {
     }
 
     async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
+        debug!("Refreshing Microsoft directory sync access token.");
         let token_response = self.query_access_token().await?;
         let expires_in = TimeDelta::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
         self.token_expiry = Some(Utc::now() + expires_in);
+        debug!("Microsoft directory sync access token refreshed.");
         Ok(())
     }
 
@@ -325,7 +333,9 @@ impl DirectorySync for MicrosoftDirectorySync {
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
+        debug!("Testing connection to Microsoft API.");
         self.query_test_connection().await?;
+        info!("Successfully tested connection to Microsoft API, connection is working.");
         Ok(())
     }
 }
