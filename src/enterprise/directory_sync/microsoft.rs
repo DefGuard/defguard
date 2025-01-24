@@ -2,7 +2,6 @@ use chrono::{TimeDelta, Utc};
 use reqwest::{header::AUTHORIZATION, Url};
 use std::time::Duration;
 
-use crate::{db::Settings, enterprise::db::models::openid_provider::OpenIdProvider};
 use serde::Deserialize;
 
 use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
@@ -16,12 +15,17 @@ pub(crate) struct MicrosoftDirectorySync {
     url: String,
 }
 
+#[cfg(not(test))]
 const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
+#[cfg(not(test))]
 const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups";
+#[cfg(not(test))]
 const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf";
+#[cfg(not(test))]
 const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const ALL_USERS_URL: &str = "https://graph.microsoft.com/v1.0/users";
+#[cfg(not(test))]
 const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 
 #[derive(Deserialize)]
@@ -40,7 +44,7 @@ struct GroupDetails {
 
 #[derive(Deserialize)]
 struct GroupsResponse {
-    value: Option<Vec<GroupDetails>>,
+    value: Vec<GroupDetails>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,7 +56,7 @@ struct GroupMember {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GroupMembersResponse {
-    value: Option<Vec<GroupMember>>,
+    value: Vec<GroupMember>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -73,6 +77,16 @@ async fn make_get_request(
 ) -> Result<reqwest::Response, DirectorySyncError> {
     let client = reqwest::Client::new();
     let response = client
+        .get(url.clone())
+        .header(AUTHORIZATION, format!("Bearer {}", token))
+        .timeout(REQUEST_TIMEOUT)
+        .send()
+        .await?;
+
+    let response_json = response.json::<serde_json::Value>().await?;
+    println!("{:?}", response_json);
+
+    let response = client
         .get(url)
         .header(AUTHORIZATION, format!("Bearer {}", token))
         .timeout(REQUEST_TIMEOUT)
@@ -81,32 +95,8 @@ async fn make_get_request(
     Ok(response)
 }
 
+#[cfg(not(test))]
 impl MicrosoftDirectorySync {
-    pub(crate) fn new(client_id: String, client_secret: String, url: String) -> Self {
-        Self {
-            access_token: None,
-            client_id,
-            client_secret,
-            url,
-            token_expiry: None,
-        }
-    }
-
-    fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
-        debug!("Extracting tenant ID from Microsoft base URL: {}", self.url);
-        let parts: Vec<&str> = self.url.split('/').collect();
-        debug!("Split Microsoft base URL into the following parts: {parts:?}",);
-        let tenant_id =
-            parts
-                .get(parts.len() - 2)
-                .ok_or(DirectorySyncError::InvalidProviderConfiguration(format!(
-                    "Couldn't extrat tenant ID from the provided Microsoft base url: {}",
-                    self.url
-                )))?;
-        debug!("Tenant ID extracted successfully: {tenant_id}",);
-        Ok(tenant_id.to_string())
-    }
-
     async fn query_access_token(&self) -> Result<TokenResponse, DirectorySyncError> {
         debug!("Querying Microsoft directory sync access token.");
         let tenant_id = self.extract_tenant()?;
@@ -127,16 +117,6 @@ impl MicrosoftDirectorySync {
         Ok(token_response)
     }
 
-    async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
-        debug!("Refreshing Microsoft directory sync access token.");
-        let token_response = self.query_access_token().await?;
-        let expires_in = TimeDelta::seconds(token_response.expires_in);
-        self.access_token = Some(token_response.token);
-        self.token_expiry = Some(Utc::now() + expires_in);
-        debug!("Microsoft directory sync access token refreshed.");
-        Ok(())
-    }
-
     async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
@@ -149,16 +129,6 @@ impl MicrosoftDirectorySync {
             .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
         let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(response, "Failed to query all Microsoft groups.").await
-    }
-
-    fn is_token_expired(&self) -> bool {
-        debug!(
-            "Checking if Microsoft directory sync token is expired, expiry date: {:?}",
-            self.token_expiry
-        );
-        let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
-        debug!("Token expiry check result: {}", result);
-        result
     }
 
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
@@ -210,6 +180,53 @@ impl MicrosoftDirectorySync {
         let response = make_get_request(url, access_token.to_string()).await?;
         parse_response(response, "Failed to query all users in the Microsoft API.").await
     }
+}
+
+impl MicrosoftDirectorySync {
+    pub(crate) const fn new(client_id: String, client_secret: String, url: String) -> Self {
+        Self {
+            access_token: None,
+            client_id,
+            client_secret,
+            url,
+            token_expiry: None,
+        }
+    }
+
+    fn extract_tenant(&self) -> Result<String, DirectorySyncError> {
+        debug!("Extracting tenant ID from Microsoft base URL: {}", self.url);
+        let parts: Vec<&str> = self.url.split('/').collect();
+        debug!("Split Microsoft base URL into the following parts: {parts:?}",);
+        let tenant_id =
+            parts
+                .get(parts.len() - 2)
+                .ok_or(DirectorySyncError::InvalidProviderConfiguration(format!(
+                    "Couldn't extract tenant ID from the provided Microsoft API base URL: {}",
+                    self.url
+                )))?;
+        debug!("Tenant ID extracted successfully: {tenant_id}",);
+        Ok(tenant_id.to_string())
+    }
+
+    async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
+        debug!("Refreshing Microsoft directory sync access token.");
+        let token_response = self.query_access_token().await?;
+        let expires_in = TimeDelta::seconds(token_response.expires_in);
+        self.access_token = Some(token_response.token);
+        self.token_expiry = Some(Utc::now() + expires_in);
+        debug!("Microsoft directory sync access token refreshed.");
+        Ok(())
+    }
+
+    fn is_token_expired(&self) -> bool {
+        debug!(
+            "Checking if Microsoft directory sync token is expired, expiry date: {:?}",
+            self.token_expiry
+        );
+        let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
+        debug!("Token expiry check result: {}", result);
+        result
+    }
 
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
         let access_token = self
@@ -232,7 +249,6 @@ impl DirectorySync for MicrosoftDirectorySync {
             .query_groups()
             .await?
             .value
-            .unwrap_or_default()
             .into_iter()
             .map(|group| DirectoryGroup {
                 id: group.id,
@@ -251,7 +267,6 @@ impl DirectorySync for MicrosoftDirectorySync {
             .query_user_groups(user_id)
             .await?
             .value
-            .unwrap_or_default()
             .into_iter()
             .map(|group| DirectoryGroup {
                 id: group.id,
@@ -270,7 +285,6 @@ impl DirectorySync for MicrosoftDirectorySync {
             .query_group_members(group)
             .await?
             .value
-            .unwrap_or_default()
             .into_iter()
             .filter_map(|user| {
                 if let Some(email) = user.mail {
@@ -325,6 +339,124 @@ impl DirectorySync for MicrosoftDirectorySync {
 }
 
 #[cfg(test)]
+impl MicrosoftDirectorySync {
+    async fn query_user_groups(
+        &self,
+        _user_id: &str,
+    ) -> Result<GroupsResponse, DirectorySyncError> {
+        if self.is_token_expired() {
+            return Err(DirectorySyncError::AccessTokenExpired);
+        }
+        let _access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+
+        Ok(GroupsResponse {
+            value: vec![GroupDetails {
+                display_name: "group1".into(),
+                id: "1".into(),
+            }],
+        })
+    }
+
+    async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
+        if self.is_token_expired() {
+            return Err(DirectorySyncError::AccessTokenExpired);
+        }
+
+        let _access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+
+        Ok(GroupsResponse {
+            value: vec![
+                GroupDetails {
+                    display_name: "group1".into(),
+                    id: "1".into(),
+                },
+                GroupDetails {
+                    display_name: "group2".into(),
+                    id: "2".into(),
+                },
+                GroupDetails {
+                    display_name: "group3".into(),
+                    id: "3".into(),
+                },
+            ],
+        })
+    }
+
+    async fn query_group_members(
+        &self,
+        group: &DirectoryGroup,
+    ) -> Result<GroupMembersResponse, DirectorySyncError> {
+        if self.is_token_expired() {
+            return Err(DirectorySyncError::AccessTokenExpired);
+        }
+        let _access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+
+        Ok(GroupMembersResponse {
+            value: vec![
+                GroupMember {
+                    display_name: "testuser".into(),
+                    mail: Some("testuser@email.com".into()),
+                },
+                GroupMember {
+                    display_name: "testuserdisabled".into(),
+                    mail: Some("testuserdisabled@email.com".into()),
+                },
+                GroupMember {
+                    display_name: "testuser2".into(),
+                    mail: Some(
+                        "testuser2@email.com
+                    "
+                        .into(),
+                    ),
+                },
+            ],
+        })
+    }
+
+    async fn query_access_token(&self) -> Result<TokenResponse, DirectorySyncError> {
+        Ok(TokenResponse {
+            token: "test_token_refreshed".into(),
+            expires_in: 3600,
+        })
+    }
+
+    async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
+        if self.is_token_expired() {
+            return Err(DirectorySyncError::AccessTokenExpired);
+        }
+        let _access_token = self
+            .access_token
+            .as_ref()
+            .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        Ok(UsersResponse {
+            value: vec![
+                User {
+                    display_name: "testuser".into(),
+                    mail: Some("testuser@email.com".into()),
+                },
+                User {
+                    display_name: "testuserdisabled".into(),
+                    mail: Some("testuserdisabled@email.com".into()),
+                },
+                User {
+                    display_name: "testuser2".into(),
+                    mail: Some("testuser2@email.com".into()),
+                },
+            ],
+        })
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -337,5 +469,99 @@ mod tests {
         );
         let tenant = provider.extract_tenant().unwrap();
         assert_eq!(tenant, "tenant-id-123");
+    }
+
+    #[tokio::test]
+    async fn test_token() {
+        let mut dirsync = MicrosoftDirectorySync::new(
+            "id".to_string(),
+            "secret".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+        );
+
+        // no token
+        assert!(dirsync.is_token_expired());
+
+        // expired token
+        dirsync.access_token = Some("test_token".into());
+        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
+        assert!(dirsync.is_token_expired());
+
+        // valid token
+        dirsync.access_token = Some("test_token".into());
+        dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
+        assert!(!dirsync.is_token_expired());
+
+        // no token
+        dirsync.access_token = Some("test_token".into());
+        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
+        dirsync.refresh_access_token().await.unwrap();
+        assert!(!dirsync.is_token_expired());
+        assert_eq!(dirsync.access_token, Some("test_token_refreshed".into()));
+    }
+
+    #[tokio::test]
+    async fn test_all_users() {
+        let mut dirsync = MicrosoftDirectorySync::new(
+            "id".to_string(),
+            "secret".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+        );
+        dirsync.refresh_access_token().await.unwrap();
+
+        let users = dirsync.get_all_users().await.unwrap();
+
+        assert_eq!(users.len(), 3);
+        assert_eq!(users[1].email, "testuserdisabled@email.com");
+    }
+
+    #[tokio::test]
+    async fn test_groups() {
+        let mut dirsync = MicrosoftDirectorySync::new(
+            "id".to_string(),
+            "secret".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+        );
+        dirsync.refresh_access_token().await.unwrap();
+
+        let groups = dirsync.get_groups().await.unwrap();
+
+        assert_eq!(groups.len(), 3);
+
+        for (i, group) in groups.iter().enumerate().take(3) {
+            assert_eq!(group.id, (i + 1).to_string());
+            assert_eq!(group.name, format!("group{}", i + 1));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_user_groups() {
+        let mut dirsync = MicrosoftDirectorySync::new(
+            "id".to_string(),
+            "secret".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+        );
+        dirsync.refresh_access_token().await.unwrap();
+
+        let groups = dirsync.get_user_groups("testuser").await.unwrap();
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].id, "1");
+        assert_eq!(groups[0].name, "group1");
+    }
+
+    #[tokio::test]
+    async fn test_group_members() {
+        let mut dirsync = MicrosoftDirectorySync::new(
+            "id".to_string(),
+            "secret".to_string(),
+            "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+        );
+        dirsync.refresh_access_token().await.unwrap();
+
+        let groups = dirsync.get_groups().await.unwrap();
+        let members = dirsync.get_group_members(&groups[0]).await.unwrap();
+
+        assert_eq!(members.len(), 3);
+        assert_eq!(members[0], "testuser@email.com");
     }
 }
