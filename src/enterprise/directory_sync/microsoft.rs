@@ -1,7 +1,7 @@
-use chrono::{TimeDelta, Utc};
-use reqwest::{header::AUTHORIZATION, Url};
 use std::time::Duration;
 
+use chrono::{TimeDelta, Utc};
+use reqwest::{header::AUTHORIZATION, Url};
 use serde::Deserialize;
 
 use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
@@ -18,13 +18,14 @@ pub(crate) struct MicrosoftDirectorySync {
 #[cfg(not(test))]
 const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
 #[cfg(not(test))]
-const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups";
+const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups?$top=999";
 #[cfg(not(test))]
-const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf";
+const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf?$top=999";
 #[cfg(not(test))]
-const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members";
+const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members?$select=accountEnabled,displayName,mail,otherMails&$top=999";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-const ALL_USERS_URL: &str = "https://graph.microsoft.com/v1.0/users";
+const ALL_USERS_URL: &str =
+    "https://graph.microsoft.com/v1.0/users?$select=accountEnabled,displayName,mail,otherMails&$top=999";
 #[cfg(not(test))]
 const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 
@@ -48,15 +49,8 @@ struct GroupsResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct GroupMember {
-    #[serde(rename = "displayName")]
-    display_name: String,
-    mail: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 struct GroupMembersResponse {
-    value: Vec<GroupMember>,
+    value: Vec<User>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,6 +58,10 @@ struct User {
     #[serde(rename = "displayName")]
     display_name: String,
     mail: Option<String>,
+    #[serde(rename = "accountEnabled")]
+    account_enabled: bool,
+    #[serde(rename = "otherMails")]
+    other_mails: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -76,16 +74,6 @@ async fn make_get_request(
     token: String,
 ) -> Result<reqwest::Response, DirectorySyncError> {
     let client = reqwest::Client::new();
-    let response = client
-        .get(url.clone())
-        .header(AUTHORIZATION, format!("Bearer {}", token))
-        .timeout(REQUEST_TIMEOUT)
-        .send()
-        .await?;
-
-    let response_json = response.json::<serde_json::Value>().await?;
-    println!("{:?}", response_json);
-
     let response = client
         .get(url)
         .header(AUTHORIZATION, format!("Bearer {}", token))
@@ -320,9 +308,12 @@ impl DirectorySync for MicrosoftDirectorySync {
             .into_iter()
             .filter_map(|user| {
                 if let Some(email) = user.mail {
-                    Some(DirectoryUser { email, active: true })
+                    Some(DirectoryUser { email, active: user.account_enabled })
+                } else if let Some(mail) = user.other_mails.first() {
+                    warn!("User {} doesn't have a primary email address set, his first additional email address will be used: {mail}", user.display_name);
+                    Some(DirectoryUser { email: mail.clone(), active: user.account_enabled })
                 } else {
-                    warn!("User {} doesn't have an email address and will be skipped in synchronization.", user.display_name);
+                    warn!("User {} doesn't have any email address and will be skipped in synchronization.", user.display_name);
                     None
                 }
             });
@@ -402,21 +393,27 @@ impl MicrosoftDirectorySync {
 
         Ok(GroupMembersResponse {
             value: vec![
-                GroupMember {
+                User {
                     display_name: "testuser".into(),
                     mail: Some("testuser@email.com".into()),
+                    account_enabled: true,
+                    other_mails: vec![],
                 },
-                GroupMember {
+                User {
                     display_name: "testuserdisabled".into(),
                     mail: Some("testuserdisabled@email.com".into()),
+                    account_enabled: false,
+                    other_mails: vec![],
                 },
-                GroupMember {
+                User {
                     display_name: "testuser2".into(),
                     mail: Some(
                         "testuser2@email.com
                     "
                         .into(),
                     ),
+                    account_enabled: true,
+                    other_mails: vec![],
                 },
             ],
         })
@@ -442,14 +439,20 @@ impl MicrosoftDirectorySync {
                 User {
                     display_name: "testuser".into(),
                     mail: Some("testuser@email.com".into()),
+                    account_enabled: true,
+                    other_mails: vec![],
                 },
                 User {
                     display_name: "testuserdisabled".into(),
                     mail: Some("testuserdisabled@email.com".into()),
+                    account_enabled: false,
+                    other_mails: vec![],
                 },
                 User {
                     display_name: "testuser2".into(),
                     mail: Some("testuser2@email.com".into()),
+                    account_enabled: true,
+                    other_mails: vec![],
                 },
             ],
         })
@@ -513,6 +516,7 @@ mod tests {
 
         assert_eq!(users.len(), 3);
         assert_eq!(users[1].email, "testuserdisabled@email.com");
+        assert!(!users[1].active);
     }
 
     #[tokio::test]
