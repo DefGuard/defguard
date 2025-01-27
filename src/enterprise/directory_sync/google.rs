@@ -224,7 +224,8 @@ impl GoogleDirectorySync {
             "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
             group.id
         );
-        let mut url = Url::from_str(&url_str).unwrap();
+        let mut url =
+            Url::parse(&url_str).map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
         url.query_pairs_mut()
             .append_pair("includeDerivedMembership", "true")
             .append_pair("maxResults", "500");
