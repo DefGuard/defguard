@@ -455,7 +455,7 @@ pub async fn run_grpc_bidi_stream(
         let tls = ClientTlsConfig::new().ca_certificate(Certificate::from_pem(ca));
         endpoint.tls_config(tls)?
     } else {
-        endpoint
+        endpoint.tls_config(ClientTlsConfig::new().with_enabled_roots())?
     };
 
     loop {
