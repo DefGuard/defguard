@@ -42,7 +42,8 @@ export const OpenidAllowPage = () => {
   const { LL } = useI18nContext();
 
   const paramsValid = useMemo(() => {
-    const check = [scope, responseType, clientId, nonce, redirectUri, state];
+    // nonce is optional in the auth code flow
+    const check = [scope, responseType, clientId, redirectUri, state];
     for (const item of check) {
       if (typeof item === 'undefined' || item === null) {
         toaster.error('OpenID Params invalid.');
@@ -50,7 +51,7 @@ export const OpenidAllowPage = () => {
       }
     }
     return true;
-  }, [clientId, nonce, redirectUri, responseType, scope, state, toaster]);
+  }, [clientId, redirectUri, responseType, scope, state, toaster]);
 
   const handleSubmit = useCallback(
     (allow: boolean) => {
