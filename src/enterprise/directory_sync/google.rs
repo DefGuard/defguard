@@ -5,7 +5,7 @@ use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
 
-use super::{DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 
 #[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
@@ -108,25 +108,6 @@ struct GroupsResponse {
     groups: Vec<DirectoryGroup>,
 }
 
-/// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
-/// The context_message is used to provide more context to the error message.
-async fn parse_response<T>(
-    response: reqwest::Response,
-    context_message: &str,
-) -> Result<T, DirectorySyncError>
-where
-    T: serde::de::DeserializeOwned,
-{
-    let status = &response.status();
-    match status {
-        &reqwest::StatusCode::OK => Ok(response.json().await?),
-        _ => Err(DirectorySyncError::RequestError(format!(
-            "{context_message} Code returned: {status}. Details: {}",
-            response.text().await?
-        ))),
-    }
-}
-
 impl GoogleDirectorySync {
     #[must_use]
     pub fn new(private_key: &str, client_email: &str, admin_email: &str) -> Self {
@@ -184,17 +165,14 @@ impl GoogleDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut url = Url::from_str(GROUPS_URL).unwrap();
-
         url.query_pairs_mut()
             .append_pair("userKey", user_id)
             .append_pair("maxResults", "500");
-
         let client = reqwest::Client::new();
         let response = client
             .get(url)
@@ -246,7 +224,8 @@ impl GoogleDirectorySync {
             "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
             group.id
         );
-        let mut url = Url::from_str(&url_str).unwrap();
+        let mut url =
+            Url::parse(&url_str).map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
         url.query_pairs_mut()
             .append_pair("includeDerivedMembership", "true")
             .append_pair("maxResults", "500");
@@ -364,7 +343,9 @@ impl DirectorySync for GoogleDirectorySync {
     }
 
     async fn test_connection(&self) -> Result<(), DirectorySyncError> {
+        debug!("Testing connection to Google API.");
         self.query_test_connection().await?;
+        info!("Successfully tested connection to Google API, connection is working.");
         Ok(())
     }
 }

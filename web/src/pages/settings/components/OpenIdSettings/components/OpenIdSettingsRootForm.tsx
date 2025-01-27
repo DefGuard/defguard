@@ -106,7 +106,7 @@ export const OpenIdSettingsRootForm = () => {
             });
           }
 
-          if (val.directory_sync_enabled) {
+          if (val.directory_sync_enabled && val.name === 'Google') {
             if (val.admin_email.length === 0) {
               ctx.addIssue({
                 code: z.ZodIssueCode.custom,

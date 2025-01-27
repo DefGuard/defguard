@@ -1048,7 +1048,7 @@ dependencies = [
 
 [[package]]
 name = "defguard"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1072,6 +1072,7 @@ dependencies = [
  "mime_guess",
  "model_derive",
  "openidconnect",
+ "paste",
  "pgp",
  "prost",
  "prost-build",
