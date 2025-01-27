@@ -107,6 +107,7 @@ impl MicrosoftDirectorySync {
 
     async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
+            debug!("Microsoft directory sync access token is expired, aborting group query.");
             return Err(DirectorySyncError::AccessTokenExpired);
         }
         let access_token = self
@@ -121,6 +122,9 @@ impl MicrosoftDirectorySync {
 
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
+            debug!(
+                "Microsoft directory sync access token is expired, aborting query of user groups."
+            );
             return Err(DirectorySyncError::AccessTokenExpired);
         }
         let access_token = self
@@ -138,6 +142,9 @@ impl MicrosoftDirectorySync {
         group: &DirectoryGroup,
     ) -> Result<GroupMembersResponse, DirectorySyncError> {
         if self.is_token_expired() {
+            debug!(
+                "Microsoft directory sync access token is expired, aborting group member query."
+            );
             return Err(DirectorySyncError::AccessTokenExpired);
         }
         let access_token = self
@@ -157,6 +164,7 @@ impl MicrosoftDirectorySync {
 
     async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
         if self.is_token_expired() {
+            debug!("Microsoft directory sync access token is expired, aborting all users query.");
             return Err(DirectorySyncError::AccessTokenExpired);
         }
         let access_token = self
@@ -202,7 +210,10 @@ impl MicrosoftDirectorySync {
         let expires_in = TimeDelta::seconds(token_response.expires_in);
         self.access_token = Some(token_response.token);
         self.token_expiry = Some(Utc::now() + expires_in);
-        debug!("Microsoft directory sync access token refreshed.");
+        debug!(
+            "Microsoft directory sync access token refreshed, the new token expires at: {:?}",
+            self.token_expiry
+        );
         Ok(())
     }
 

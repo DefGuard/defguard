@@ -102,7 +102,7 @@ trait DirectorySync {
 /// - The provider main struct is called <PROVIDER>DirectorySync, e.g. GoogleDirectorySync
 /// - The provider implements the [`DirectorySync`] trait
 /// - You implemented some way to initialize the provider client and added an initialization step in the [`DirectorySyncClient::build`] function
-/// - You added the provider name to the macro invocation
+/// - You added the provider name to the macro invocation below the macro definition
 /// - You've implemented your provider logic in a file called the same as your provider but lowercase, e.g. google.rs
 ///
 // If you have time to refactor the whole thing to use boxes instead, go ahead.
