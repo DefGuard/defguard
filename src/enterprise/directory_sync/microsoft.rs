@@ -28,6 +28,8 @@ const ALL_USERS_URL: &str =
     "https://graph.microsoft.com/v1.0/users?$select=accountEnabled,displayName,mail,otherMails&$top=999";
 #[cfg(not(test))]
 const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
+#[cfg(not(test))]
+const GRANT_TYPE: &str = "client_credentials";
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -96,7 +98,7 @@ impl MicrosoftDirectorySync {
                 ("client_id", &self.client_id),
                 ("client_secret", &self.client_secret),
                 ("scope", &MICROSOFT_DEFAULT_SCOPE.to_string()),
-                ("grant_type", &"client_credentials".to_string()),
+                ("grant_type", &GRANT_TYPE.to_string()),
             ])
             .send()
             .await?;
