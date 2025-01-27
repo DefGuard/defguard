@@ -78,7 +78,7 @@ async fn make_get_request(
     let client = reqwest::Client::new();
     let response = client
         .get(url)
-        .header(AUTHORIZATION, format!("Bearer {}", token))
+        .header(AUTHORIZATION, format!("Bearer {token}"))
         .timeout(REQUEST_TIMEOUT)
         .send()
         .await?;
@@ -225,7 +225,7 @@ impl MicrosoftDirectorySync {
             self.token_expiry
         );
         let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
-        debug!("Token expiry check result: {}", result);
+        debug!("Token expiry check result: {result}");
         result
     }
 
