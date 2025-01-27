@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
@@ -40,6 +40,7 @@ model_derive = { path = "model-derive" }
 openidconnect = { version = "3.5", default-features = false, optional = true, features = [
     "reqwest",
 ] }
+paste = "1.0.15"
 pgp = "0.14"
 prost = "0.13"
 pulldown-cmark = "0.12"

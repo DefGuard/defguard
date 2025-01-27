@@ -17,7 +17,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
-const SUPPORTED_SYNC_PROVIDERS = ['Google'];
+const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft'];
 
 export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
@@ -89,155 +89,159 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
       </header>
       <div id="directory-sync-settings">
         {showDirsync ? (
-          providerName === 'Google' ? (
-            <>
-              <div id="enable-dir-sync">
-                {/* FIXME: Really buggy when using the controller, investigate why */}
-                <LabeledCheckbox
-                  disabled={isLoading || !showDirsync}
-                  label={localLL.form.labels.enable_directory_sync.label()}
-                  value={dirsyncEnabled}
-                  onChange={(val) => setValue('directory_sync_enabled', val)}
-                  // controller={{ control, name: 'directory_sync_enabled' }}
+          <>
+            <div id="enable-dir-sync">
+              {/* FIXME: Really buggy when using the controller, investigate why */}
+              <LabeledCheckbox
+                disabled={isLoading || !showDirsync}
+                label={localLL.form.labels.enable_directory_sync.label()}
+                value={dirsyncEnabled}
+                onChange={(val) => setValue('directory_sync_enabled', val)}
+                // controller={{ control, name: 'directory_sync_enabled' }}
+              />
+            </div>
+            <FormSelect
+              controller={{ control, name: 'directory_sync_target' }}
+              options={syncTarget}
+              label={localLL.form.labels.sync_target.label()}
+              renderSelected={(val) => ({
+                key: val,
+                displayValue: titleCase(val),
+              })}
+              labelExtras={
+                <Helper>{parse(localLL.form.labels.sync_target.helper())}</Helper>
+              }
+              disabled={isLoading}
+            />
+            <FormInput
+              controller={{ control, name: 'directory_sync_interval' }}
+              type="number"
+              name="directory_sync_interval"
+              label={localLL.form.labels.sync_interval.label()}
+              required
+              labelExtras={
+                <Helper>{parse(localLL.form.labels.sync_interval.helper())}</Helper>
+              }
+              disabled={isLoading}
+            />
+            <FormSelect
+              controller={{ control, name: 'directory_sync_user_behavior' }}
+              options={userBehaviorOptions}
+              label={localLL.form.labels.user_behavior.label()}
+              renderSelected={(val) => ({
+                key: val,
+                displayValue: titleCase(val),
+              })}
+              labelExtras={
+                <Helper>{parse(localLL.form.labels.user_behavior.helper())}</Helper>
+              }
+              disabled={isLoading}
+            />
+            <FormSelect
+              controller={{ control, name: 'directory_sync_admin_behavior' }}
+              options={userBehaviorOptions}
+              label={localLL.form.labels.admin_behavior.label()}
+              renderSelected={(val) => ({
+                key: val,
+                displayValue: titleCase(val),
+              })}
+              labelExtras={
+                <Helper>{parse(localLL.form.labels.admin_behavior.helper())}</Helper>
+              }
+              disabled={isLoading}
+            />
+            {providerName === 'Google' ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'admin_email' }}
+                  label={localLL.form.labels.admin_email.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.admin_email.helper())}</Helper>
+                  }
+                  required={dirsyncEnabled}
                 />
-              </div>
-              <FormSelect
-                controller={{ control, name: 'directory_sync_target' }}
-                options={syncTarget}
-                label={localLL.form.labels.sync_target.label()}
-                renderSelected={(val) => ({
-                  key: val,
-                  displayValue: titleCase(val),
-                })}
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.sync_target.helper())}</Helper>
-                }
-                disabled={isLoading}
-              />
-              <FormInput
-                controller={{ control, name: 'directory_sync_interval' }}
-                type="number"
-                name="directory_sync_interval"
-                label={localLL.form.labels.sync_interval.label()}
-                required
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.sync_interval.helper())}</Helper>
-                }
-                disabled={isLoading}
-              />
-              <FormSelect
-                controller={{ control, name: 'directory_sync_user_behavior' }}
-                options={userBehaviorOptions}
-                label={localLL.form.labels.user_behavior.label()}
-                renderSelected={(val) => ({
-                  key: val,
-                  displayValue: titleCase(val),
-                })}
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.user_behavior.helper())}</Helper>
-                }
-                disabled={isLoading}
-              />
-              <FormSelect
-                controller={{ control, name: 'directory_sync_admin_behavior' }}
-                options={userBehaviorOptions}
-                label={localLL.form.labels.admin_behavior.label()}
-                renderSelected={(val) => ({
-                  key: val,
-                  displayValue: titleCase(val),
-                })}
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.admin_behavior.helper())}</Helper>
-                }
-                disabled={isLoading}
-              />
-              <FormInput
-                controller={{ control, name: 'admin_email' }}
-                label={localLL.form.labels.admin_email.label()}
-                disabled={isLoading}
-                labelExtras={
-                  <Helper>{parse(localLL.form.labels.admin_email.helper())}</Helper>
-                }
-                required={dirsyncEnabled}
-              />
-              <FormInput
-                controller={{ control, name: 'google_service_account_email' }}
-                type="text"
-                name="google_service_account_email"
-                readOnly
-                label={localLL.form.labels.service_account_used.label()}
-                labelExtras={
-                  <Helper>
-                    {parse(localLL.form.labels.service_account_used.helper())}
-                  </Helper>
-                }
-                disabled={isLoading}
-                required={dirsyncEnabled}
-              />
-              <div className="input">
-                <div className="top">
-                  <label className="input-label">
-                    {localLL.form.labels.service_account_key_file.label()}:
-                  </label>
-                  <Helper>{localLL.form.labels.service_account_key_file.helper()}</Helper>
-                </div>
-                <div className={'file-upload-container'}>
-                  <input
-                    className={'file-upload'}
-                    type="file"
-                    accept=".json"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          if (e?.target?.result) {
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                            const key = JSON.parse(e.target?.result as string);
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                            setValue('google_service_account_key', key.private_key);
-                            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                            setValue('google_service_account_email', key.client_email);
-                            setGoogleServiceAccountFileName(file.name);
-                          }
-                        };
-                        reader.readAsText(file);
-                      }
-                    }}
-                    disabled={isLoading}
-                  />
-                  <div className="upload-label">
-                    <SvgIconDownload />{' '}
-                    <p>
-                      {googleServiceAccountFileName
-                        ? `${localLL.form.labels.service_account_key_file.uploaded()}: ${googleServiceAccountFileName}`
-                        : localLL.form.labels.service_account_key_file.uploadPrompt()}
-                    </p>
+                <FormInput
+                  controller={{ control, name: 'google_service_account_email' }}
+                  type="text"
+                  name="google_service_account_email"
+                  readOnly
+                  label={localLL.form.labels.service_account_used.label()}
+                  labelExtras={
+                    <Helper>
+                      {parse(localLL.form.labels.service_account_used.helper())}
+                    </Helper>
+                  }
+                  disabled={isLoading}
+                  required={dirsyncEnabled}
+                />
+                <div className="input">
+                  <div className="top">
+                    <label className="input-label">
+                      {localLL.form.labels.service_account_key_file.label()}:
+                    </label>
+                    <Helper>
+                      {localLL.form.labels.service_account_key_file.helper()}
+                    </Helper>
+                  </div>
+                  <div className={'file-upload-container'}>
+                    <input
+                      className={'file-upload'}
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            if (e?.target?.result) {
+                              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                              const key = JSON.parse(e.target?.result as string);
+                              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                              setValue('google_service_account_key', key.private_key);
+                              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                              setValue('google_service_account_email', key.client_email);
+                              setGoogleServiceAccountFileName(file.name);
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                      disabled={isLoading}
+                    />
+                    <div className="upload-label">
+                      <SvgIconDownload />{' '}
+                      <p>
+                        {googleServiceAccountFileName
+                          ? `${localLL.form.labels.service_account_key_file.uploaded()}: ${googleServiceAccountFileName}`
+                          : localLL.form.labels.service_account_key_file.uploadPrompt()}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="test-connection">
-                <Button
-                  onClick={() => {
-                    void testDirsync().then((res) => {
-                      if (res.success) {
-                        toaster.success(
-                          localLL.form.directory_sync_settings.connectionTest.success(),
-                        );
-                      } else {
-                        toaster.error(
-                          `${localLL.form.directory_sync_settings.connectionTest.error()} ${res.message}`,
-                        );
-                      }
-                    });
-                  }}
-                  disabled={!enterpriseEnabled}
-                  text="Test connection"
-                  styleVariant={ButtonStyleVariant.PRIMARY}
-                ></Button>
-              </div>
-            </>
-          ) : null
+              </>
+            ) : null}
+            <div className="test-connection">
+              <Button
+                onClick={() => {
+                  void testDirsync().then((res) => {
+                    if (res.success) {
+                      toaster.success(
+                        localLL.form.directory_sync_settings.connectionTest.success(),
+                      );
+                    } else {
+                      toaster.error(
+                        `${localLL.form.directory_sync_settings.connectionTest.error()} ${res.message}`,
+                      );
+                    }
+                  });
+                }}
+                disabled={!enterpriseEnabled}
+                text="Test connection"
+                styleVariant={ButtonStyleVariant.PRIMARY}
+              ></Button>
+            </div>
+          </>
         ) : (
           <p id="sync-not-supported">
             {localLL.form.directory_sync_settings.notSupported()}
