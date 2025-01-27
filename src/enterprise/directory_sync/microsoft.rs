@@ -392,7 +392,7 @@ impl MicrosoftDirectorySync {
 
     async fn query_group_members(
         &self,
-        group: &DirectoryGroup,
+        _group: &DirectoryGroup,
     ) -> Result<GroupMembersResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
