@@ -31,6 +31,7 @@ dotenvy = "0.15"
 humantime = "2.1"
 # match ipnetwork version from sqlx
 ipnetwork = { version = "0.20", features = ["serde"] }
+jsonwebkey = { version = "0.3.5", features = ["pkcs-convert"] }
 jsonwebtoken = "9.3"
 ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
 lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }

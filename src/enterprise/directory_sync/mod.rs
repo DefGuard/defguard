@@ -40,19 +40,20 @@ pub enum DirectorySyncError {
 impl From<reqwest::Error> for DirectorySyncError {
     fn from(err: reqwest::Error) -> Self {
         if err.is_decode() {
-            DirectorySyncError::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
+            Self::RequestError(format!("There was an error while trying to decode provider's response, it may be malformed: {err}"))
         } else if err.is_timeout() {
-            DirectorySyncError::RequestError(format!(
+            Self::RequestError(format!(
                 "The request to the provider's API timed out: {err}"
             ))
         } else {
-            DirectorySyncError::RequestError(err.to_string())
+            Self::RequestError(err.to_string())
         }
     }
 }
 
 pub mod google;
 pub mod microsoft;
+pub mod okta;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryGroup {
@@ -68,6 +69,7 @@ pub struct DirectoryUser {
 }
 
 #[trait_variant::make(Send)]
+#[trait_variant::make(Sync)]
 trait DirectorySync {
     /// Get all groups in a directory
     async fn get_groups(&self) -> Result<Vec<DirectoryGroup>, DirectorySyncError>;
@@ -168,7 +170,7 @@ macro_rules! dirsync_clients {
     };
 }
 
-dirsync_clients!(Google, Microsoft);
+dirsync_clients!(Google, Microsoft, Okta);
 
 impl DirectorySyncClient {
     /// Builds the current directory sync client based on the current provider settings (provider name), if possible.
@@ -204,9 +206,28 @@ impl DirectorySyncClient {
                 debug!("Microsoft directory sync client created");
                 Ok(Self::Microsoft(client))
             }
-            _ => Err(DirectorySyncError::UnsupportedProvider(
-                provider_settings.name.clone(),
-            )),
+            _ => match &provider_settings.base_url {
+                // FIXME: Make okta a supported provider to avoid this check
+                url if url.contains("okta") => {
+                    if let (Some(jwk), Some(client_id)) = (
+                        provider_settings.okta_private_jwk.as_ref(),
+                        provider_settings.okta_dirsync_client_id.as_ref(),
+                    ) {
+                        debug!("Okta directory has all the configuration needed, proceeding with creating the sync client");
+                        let client = okta::OktaDirectorySync::new(jwk, client_id, url);
+                        debug!("Okta directory sync client created");
+                        Ok(Self::Okta(client))
+                    } else {
+                        Err(DirectorySyncError::InvalidProviderConfiguration(
+                            "Okta provider is not configured correctly for Directory Sync. Okta private key or client id is missing."
+                                .to_string(),
+                        ))
+                    }
+                }
+                _ => Err(DirectorySyncError::UnsupportedProvider(
+                    provider_settings.name.clone(),
+                )),
+            },
         }
     }
 }
@@ -444,16 +465,19 @@ async fn sync_all_users_groups<T: DirectorySync>(
 
 fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
     debug!("Checking if directory sync is enabled");
-    if let Some(provider_settings) = provider {
-        debug!(
-            "Directory sync enabled state: {}",
+    provider.map_or_else(
+        || {
+            debug!("No openid provider found, directory sync is disabled");
+            false
+        },
+        |provider_settings| {
+            debug!(
+                "Directory sync enabled state: {}",
+                provider_settings.directory_sync_enabled
+            );
             provider_settings.directory_sync_enabled
-        );
-        provider_settings.directory_sync_enabled
-    } else {
-        debug!("No openid provider found, directory sync is disabled");
-        false
-    }
+        },
+    )
 }
 
 async fn sync_all_users_state<T: DirectorySync>(
@@ -749,6 +773,8 @@ mod test {
             user_behavior,
             admin_behavior,
             target,
+            None,
+            None,
         )
         .save(pool)
         .await

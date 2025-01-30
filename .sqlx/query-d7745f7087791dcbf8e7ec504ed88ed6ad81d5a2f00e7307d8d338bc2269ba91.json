@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5,\"display_name\" = $6,\"google_service_account_key\" = $7,\"google_service_account_email\" = $8,\"admin_email\" = $9,\"directory_sync_enabled\" = $10,\"directory_sync_interval\" = $11,\"directory_sync_user_behavior\" = $12,\"directory_sync_admin_behavior\" = $13,\"directory_sync_target\" = $14 WHERE id = $1",
+  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5,\"display_name\" = $6,\"google_service_account_key\" = $7,\"google_service_account_email\" = $8,\"admin_email\" = $9,\"directory_sync_enabled\" = $10,\"directory_sync_interval\" = $11,\"directory_sync_user_behavior\" = $12,\"directory_sync_admin_behavior\" = $13,\"directory_sync_target\" = $14,\"okta_private_jwk\" = $15,\"okta_dirsync_client_id\" = $16 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -51,10 +51,12 @@
               ]
             }
           }
-        }
+        },
+        "Text",
+        "Text"
       ]
     },
     "nullable": []
   },
-  "hash": "c858bafd3e74f99d5720a9627f68677e44dea7faf04115dbe8200041b662040c"
+  "hash": "d7745f7087791dcbf8e7ec504ed88ed6ad81d5a2f00e7307d8d338bc2269ba91"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, base_url, client_id, client_secret, display_name, google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", directory_sync_target  \"directory_sync_target: DirectorySyncTarget\" FROM openidprovider LIMIT 1",
+  "query": "SELECT id, \"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\" \"directory_sync_user_behavior: _\",\"directory_sync_admin_behavior\" \"directory_sync_admin_behavior: _\",\"directory_sync_target\" \"directory_sync_target: _\",\"okta_private_jwk\",\"okta_dirsync_client_id\" FROM \"openidprovider\"",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 11,
-        "name": "directory_sync_user_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_user_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -76,7 +76,7 @@
       },
       {
         "ordinal": 12,
-        "name": "directory_sync_admin_behavior: DirectorySyncUserBehavior",
+        "name": "directory_sync_admin_behavior: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_user_behavior",
@@ -92,7 +92,7 @@
       },
       {
         "ordinal": 13,
-        "name": "directory_sync_target: DirectorySyncTarget",
+        "name": "directory_sync_target: _",
         "type_info": {
           "Custom": {
             "name": "dirsync_target",
@@ -105,6 +105,16 @@
             }
           }
         }
+      },
+      {
+        "ordinal": 14,
+        "name": "okta_private_jwk",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "okta_dirsync_client_id",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -124,8 +134,10 @@
       false,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "bd1ba52cce3e0529d93f54da70cc77b3a2445b02bba1b6de399fa576acd82025"
+  "hash": "e756cd7ed9f2695631f9162e8c7e49921e469e97b86196b5608b3c79e4c7a7df"
 }

@@ -1147,6 +1147,15 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             uploaded: 'Przesłany plik',
             uploadPrompt: 'Prześlij plik klucza konta usługi',
           },
+          okta_client_id: {
+            label: 'ID klienta synchronizacji Okta',
+            helper: 'ID klienta dla aplikacji synchronizacji Okta.',
+          },
+          okta_client_key: {
+            label: 'Klucz prywatny klienta synchronizacji Okta',
+            helper:
+              'Klucz prywatny dla aplikacji synchronizacji Okta w formacie JWK. Klucz nie jest wyświetlany ponownie po wgraniu.',
+          },
         },
       },
     },

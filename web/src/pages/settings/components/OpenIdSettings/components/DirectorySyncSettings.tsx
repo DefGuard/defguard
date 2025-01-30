@@ -17,7 +17,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
-const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft'];
+const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft', 'Okta'];
 
 export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
@@ -75,11 +75,16 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   );
 
   const providerName = useWatch({ control, name: 'name' }) as string;
+  const providerUrl = useWatch({ control, name: 'base_url' }) as string;
   const dirsyncEnabled: boolean = useWatch({
     control,
     name: 'directory_sync_enabled',
   }) as boolean;
-  const showDirsync = SUPPORTED_SYNC_PROVIDERS.includes(providerName ?? '');
+  const showDirsync =
+    SUPPORTED_SYNC_PROVIDERS.includes(providerName ?? '') ||
+    SUPPORTED_SYNC_PROVIDERS.some((provider) =>
+      providerUrl.includes(provider.toLowerCase()),
+    );
 
   return (
     <section id="dirsync-settings">
@@ -150,6 +155,28 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               }
               disabled={isLoading}
             />
+            {providerUrl.includes('okta') ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'okta_dirsync_client_id' }}
+                  label={localLL.form.labels.okta_client_id.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.okta_client_id.helper())}</Helper>
+                  }
+                  required={dirsyncEnabled}
+                />
+                <FormInput
+                  controller={{ control, name: 'okta_private_jwk' }}
+                  label={localLL.form.labels.okta_client_key.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.okta_client_key.helper())}</Helper>
+                  }
+                  required={dirsyncEnabled}
+                />
+              </>
+            ) : null}
             {providerName === 'Google' ? (
               <>
                 <FormInput
