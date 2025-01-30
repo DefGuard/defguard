@@ -475,7 +475,7 @@ mod tests {
     #[tokio::test]
     async fn test_token() {
         let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-9002972.okta.com");
+            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
 
         // no token
         assert!(dirsync.is_token_expired());
@@ -501,7 +501,7 @@ mod tests {
     #[tokio::test]
     async fn test_all_users() {
         let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-9002972.okta.com");
+            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
         dirsync.refresh_access_token().await.unwrap();
 
         let users = dirsync.get_all_users().await.unwrap();
@@ -514,7 +514,7 @@ mod tests {
     #[tokio::test]
     async fn test_groups() {
         let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-9002972.okta.com");
+            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
         dirsync.refresh_access_token().await.unwrap();
 
         let groups = dirsync.get_groups().await.unwrap();
@@ -530,7 +530,7 @@ mod tests {
     #[tokio::test]
     async fn test_user_groups() {
         let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-9002972.okta.com");
+            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
         dirsync.refresh_access_token().await.unwrap();
 
         let groups = dirsync.get_user_groups("testuser").await.unwrap();
@@ -542,7 +542,7 @@ mod tests {
     #[tokio::test]
     async fn test_group_members() {
         let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-9002972.okta.com");
+            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
         dirsync.refresh_access_token().await.unwrap();
 
         let groups = dirsync.get_groups().await.unwrap();
