@@ -5,12 +5,11 @@ use reqwest::{header::AUTHORIZATION, Url};
 use serde::Deserialize;
 use tokio::time::sleep;
 
-use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
-
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
     DirectoryUser,
 };
+use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
 
 #[allow(dead_code)]
 pub(crate) struct MicrosoftDirectorySync {

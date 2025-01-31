@@ -7,9 +7,8 @@ use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
 
-use crate::enterprise::directory_sync::make_get_request;
-
 use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use crate::enterprise::directory_sync::make_get_request;
 
 // Okta suggests using the maximum limit of 200 for the number of results per page.
 // If this is an issue, we would need to add resource pagination.
