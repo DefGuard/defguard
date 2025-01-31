@@ -7,23 +7,27 @@ use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
 
+use crate::enterprise::directory_sync::make_get_request;
+
 use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
 
 // Okta suggests using the maximum limit of 200 for the number of results per page.
 // If this is an issue, we would need to add resource pagination.
 #[cfg(not(test))]
 const ACCESS_TOKEN_URL: &str = "{BASE_URL}/oauth2/v1/token";
-const GROUPS_URL: &str = "{BASE_URL}/api/v1/groups?limit=200";
+const GROUPS_URL: &str = "{BASE_URL}/api/v1/groups";
 #[cfg(not(test))]
 const GRANT_TYPE: &str = "client_credentials";
 #[cfg(not(test))]
 const CLIENT_ASSERTION_TYPE: &str = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 #[cfg(not(test))]
 const TOKEN_SCOPE: &str = "okta.users.read okta.groups.read";
-const ALL_USERS_URL: &str = "{BASE_URL}/api/v1/users?limit=200";
+const ALL_USERS_URL: &str = "{BASE_URL}/api/v1/users";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
-const GROUP_MEMBERS: &str = "{BASE_URL}/api/v1/groups/{GROUP_ID}/users?limit=200";
-const USER_GROUPS: &str = "{BASE_URL}/api/v1/users/{USER_ID}/groups?limit=200";
+const GROUP_MEMBERS: &str = "{BASE_URL}/api/v1/groups/{GROUP_ID}/users";
+const USER_GROUPS: &str = "{BASE_URL}/api/v1/users/{USER_ID}/groups";
+const MAX_RESULTS: &str = "200";
+const MAX_REQUESTS: usize = 50;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -116,17 +120,6 @@ impl From<Group> for DirectoryGroup {
     }
 }
 
-async fn make_get_request(url: Url, token: &str) -> Result<reqwest::Response, DirectorySyncError> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(url)
-        .header(AUTHORIZATION, format!("Bearer {token}"))
-        .timeout(REQUEST_TIMEOUT)
-        .send()
-        .await?;
-    Ok(response)
-}
-
 impl OktaDirectorySync {
     #[must_use]
     pub fn new(private_key: &str, client_id: &str, base_url: &str) -> Self {
@@ -167,14 +160,12 @@ impl OktaDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(
-            &ALL_USERS_URL
-                .replace("{BASE_URL}", &self.base_url)
-                .replace("?limit=200", "?limit=1"),
+        let response = make_get_request(
+            &ALL_USERS_URL.replace("{BASE_URL}", &self.base_url),
+            access_token,
+            Some(&[("limit", "1")]),
         )
-        .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-
-        let response = make_get_request(url, access_token).await?;
+        .await?;
         let _result: Vec<User> =
             parse_response(response, "Failed to test connection to Okta API.").await?;
         Ok(())
@@ -190,22 +181,40 @@ impl OktaDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(
-            &USER_GROUPS
-                .replace("{BASE_URL}", &self.base_url)
-                .replace("{USER_ID}", user_id),
-        )
-        .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
 
         #[cfg(not(test))]
         {
-            let response = make_get_request(url, access_token).await?;
-            parse_response(response, "Failed to query user groups from Okta API.").await
+            let mut url = &USER_GROUPS
+                .replace("{BASE_URL}", &self.base_url)
+                .replace("{USER_ID}", user_id);
+            let mut combined_response: Vec<Group> = Vec::new();
+
+            for _ in 0..MAX_REQUESTS {
+                let response =
+                    make_get_request(url, access_token, Some(&[("limit", MAX_RESULTS)])).await?;
+                let result: Vec<Group> =
+                    parse_response(response, "Failed to query user groups in the Okta API.")
+                        .await?;
+                combined_response.extend(result);
+
+                let next_link = response
+                    .headers()
+                    .get("link")
+                    .and_then(|link| link.to_str().ok());
+
+                if let Some(next_link) = next_link {
+                    url = next_link;
+                } else {
+                    break;
+                }
+            }
+
+            Ok(combined_response)
         }
 
         #[cfg(test)]
         {
-            let _ = (url, access_token);
+            let _ = access_token;
             Ok(vec![Group {
                 id: "1".into(),
                 profile: GroupProfile {
@@ -223,18 +232,36 @@ impl OktaDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(&GROUPS_URL.replace("{BASE_URL}", &self.base_url))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-
         #[cfg(not(test))]
         {
-            let response = make_get_request(url, access_token).await?;
-            parse_response(response, "Failed to query groups from Okta API.").await
+            let mut url = &GROUPS_URL.replace("{BASE_URL}", &self.base_url);
+            let mut combined_response: Vec<Group> = Vec::new();
+
+            for _ in 0..MAX_REQUESTS {
+                let response =
+                    make_get_request(url, access_token, Some(&[("limit", MAX_RESULTS)])).await?;
+                let result: Vec<Group> =
+                    parse_response(response, "Failed to query groups in the Okta API.").await?;
+                combined_response.extend(result);
+
+                let next_link = response
+                    .headers()
+                    .get("link")
+                    .and_then(|link| link.to_str().ok());
+
+                if let Some(next_link) = next_link {
+                    url = next_link;
+                } else {
+                    break;
+                }
+            }
+
+            Ok(combined_response)
         }
 
         #[cfg(test)]
         {
-            let _ = (url, access_token);
+            let _ = access_token;
             Ok(vec![
                 Group {
                     id: "1".into(),
@@ -269,22 +296,39 @@ impl OktaDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(
-            &GROUP_MEMBERS
-                .replace("{BASE_URL}", &self.base_url)
-                .replace("{GROUP_ID}", &group.id),
-        )
-        .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-
         #[cfg(not(test))]
         {
-            let response = make_get_request(url, access_token).await?;
-            parse_response(response, "Failed to query group members from Okta API.").await
+            let mut url = &GROUP_MEMBERS
+                .replace("{BASE_URL}", &self.base_url)
+                .replace("{GROUP_ID}", &group.id);
+            let mut combined_response: Vec<User> = Vec::new();
+
+            for _ in 0..MAX_REQUESTS {
+                let response =
+                    make_get_request(url, access_token, Some(&[("limit", MAX_RESULTS)])).await?;
+                let result: Vec<User> =
+                    parse_response(response, "Failed to query group members in the Okta API.")
+                        .await?;
+                combined_response.extend(result);
+
+                let next_link = response
+                    .headers()
+                    .get("link")
+                    .and_then(|link| link.to_str().ok());
+
+                if let Some(next_link) = next_link {
+                    url = next_link;
+                } else {
+                    break;
+                }
+            }
+
+            Ok(combined_response)
         }
 
         #[cfg(test)]
         {
-            let _ = (url, access_token);
+            let _ = access_token;
             Ok(vec![
                 User {
                     status: "ACTIVE".into(),
@@ -340,14 +384,11 @@ impl OktaDirectorySync {
     #[cfg(not(test))]
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
-        let url = Url::parse(&ACCESS_TOKEN_URL.replace("{BASE_URL}", &self.base_url))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-
         #[cfg(not(test))]
         {
-            let client = reqwest::Client::builder().build()?;
+            let client = reqwest::Client::new();
             let response = client
-                .post(url)
+                .post(&ACCESS_TOKEN_URL.replace("{BASE_URL}", &self.base_url))
                 .form(&[
                     ("grant_type", GRANT_TYPE),
                     ("client_assertion_type", CLIENT_ASSERTION_TYPE),
@@ -385,18 +426,36 @@ impl OktaDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(&ALL_USERS_URL.replace("{BASE_URL}", &self.base_url))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-
         #[cfg(not(test))]
         {
-            let response = make_get_request(url, access_token).await?;
-            parse_response(response, "Failed to query all users in the Okta API.").await
+            let mut url = &ALL_USERS_URL.replace("{BASE_URL}", &self.base_url);
+            let mut combined_response: Vec<User> = Vec::new();
+
+            for _ in 0..MAX_REQUESTS {
+                let response =
+                    make_get_request(url, access_token, Some(&[("limit", MAX_RESULTS)])).await?;
+                let result: Vec<User> =
+                    parse_response(response, "Failed to query all users in the Okta API.").await?;
+                combined_response.extend(result);
+
+                let next_link = response
+                    .headers()
+                    .get("link")
+                    .and_then(|link| link.to_str().ok());
+
+                if let Some(next_link) = next_link {
+                    url = next_link;
+                } else {
+                    break;
+                }
+            }
+
+            Ok(combined_response)
         }
 
         #[cfg(test)]
         {
-            let _ = (url, access_token);
+            let _ = access_token;
             Ok(vec![
                 User {
                     status: "ACTIVE".into(),

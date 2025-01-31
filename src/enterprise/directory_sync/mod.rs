@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use paste::paste;
+use reqwest::{header::AUTHORIZATION, Url};
 use sqlx::error::Error as SqlxError;
 use sqlx::PgPool;
 use thiserror::Error;
@@ -12,6 +16,8 @@ use crate::{
     db::{Group, Id, User},
     enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
 };
+
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {
@@ -735,6 +741,23 @@ where
             response.text().await?
         ))),
     }
+}
+
+async fn make_get_request(
+    url: &str,
+    token: &str,
+    query: Option<&[(&str, &str)]>,
+) -> Result<reqwest::Response, DirectorySyncError> {
+    let client = reqwest::Client::new();
+    let query = query.unwrap_or_default();
+    let response = client
+        .get(url)
+        .query(query)
+        .header(AUTHORIZATION, format!("Bearer {token}"))
+        .timeout(REQUEST_TIMEOUT)
+        .send()
+        .await?;
+    Ok(response)
 }
 
 #[cfg(test)]

@@ -3,8 +3,14 @@ use std::time::Duration;
 use chrono::{TimeDelta, Utc};
 use reqwest::{header::AUTHORIZATION, Url};
 use serde::Deserialize;
+use tokio::time::sleep;
 
-use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
+
+use super::{
+    make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
+    DirectoryUser,
+};
 
 #[allow(dead_code)]
 pub(crate) struct MicrosoftDirectorySync {
@@ -18,18 +24,19 @@ pub(crate) struct MicrosoftDirectorySync {
 #[cfg(not(test))]
 const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
 #[cfg(not(test))]
-const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups?$top=999";
+const GROUPS_URL: &str = "https://graph.microsoft.com/v1.0/groups";
 #[cfg(not(test))]
-const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf?$top=999";
+const USER_GROUPS: &str = "https://graph.microsoft.com/v1.0/users/{user_id}/memberOf";
 #[cfg(not(test))]
-const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members?$select=accountEnabled,displayName,mail,otherMails&$top=999";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const GROUP_MEMBERS: &str = "https://graph.microsoft.com/v1.0/groups/{group_id}/members";
 const ALL_USERS_URL: &str =
-    "https://graph.microsoft.com/v1.0/users?$select=accountEnabled,displayName,mail,otherMails&$top=999";
+    "https://graph.microsoft.com/v1.0/users?$select=accountEnabled,displayName,mail,otherMails";
 #[cfg(not(test))]
 const MICROSOFT_DEFAULT_SCOPE: &str = "https://graph.microsoft.com/.default";
 #[cfg(not(test))]
 const GRANT_TYPE: &str = "client_credentials";
+const MAX_RESULTS: &str = "100";
+const MAX_REQUESTS: usize = 50;
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -45,13 +52,17 @@ struct GroupDetails {
     id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct GroupsResponse {
+    #[serde(rename = "@odata.nextLink")]
+    next_page: Option<String>,
     value: Vec<GroupDetails>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct GroupMembersResponse {
+    #[serde(rename = "@odata.nextLink")]
+    next_page: Option<String>,
     value: Vec<User>,
 }
 
@@ -66,23 +77,11 @@ struct User {
     other_mails: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct UsersResponse {
+    #[serde(rename = "@odata.nextLink")]
+    next_page: Option<String>,
     value: Vec<User>,
-}
-
-async fn make_get_request(
-    url: Url,
-    token: String,
-) -> Result<reqwest::Response, DirectorySyncError> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(url)
-        .header(AUTHORIZATION, format!("Bearer {token}"))
-        .timeout(REQUEST_TIMEOUT)
-        .send()
-        .await?;
-    Ok(response)
 }
 
 #[cfg(not(test))]
@@ -100,6 +99,7 @@ impl MicrosoftDirectorySync {
                 ("scope", &MICROSOFT_DEFAULT_SCOPE.to_string()),
                 ("grant_type", &GRANT_TYPE.to_string()),
             ])
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
         let token_response: TokenResponse = response.json().await?;
@@ -116,10 +116,26 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(GROUPS_URL)
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let response = make_get_request(url, access_token.to_string()).await?;
-        parse_response(response, "Failed to query all Microsoft groups.").await
+        let mut combined_response = GroupsResponse::default();
+        let mut url = GROUPS_URL.to_string();
+
+        for _ in 0..MAX_REQUESTS {
+            let response =
+                make_get_request(&url, access_token, Some(&[("$top", MAX_RESULTS)])).await?;
+            let response: GroupsResponse =
+                parse_response(response, "Failed to query Microsoft groups.").await?;
+            combined_response.value.extend(response.value);
+
+            if let Some(next_page) = response.next_page {
+                url = next_page;
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
@@ -133,10 +149,26 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(&USER_GROUPS.replace("{user_id}", user_id))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let response = make_get_request(url, access_token.to_string()).await?;
-        parse_response(response, "Failed to query user groups from Microsoft API.").await
+        let mut url = USER_GROUPS.replace("{user_id}", user_id);
+        let mut combined_response = GroupsResponse::default();
+
+        for _ in 0..MAX_REQUESTS {
+            let response =
+                make_get_request(&url, access_token, Some(&[("$top", MAX_RESULTS)])).await?;
+            let response: GroupsResponse =
+                parse_response(response, "Failed to query user groups from Microsoft API.").await?;
+            combined_response.value.extend(response.value);
+
+            if let Some(next_page) = response.next_page {
+                url = next_page;
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     async fn query_group_members(
@@ -153,15 +185,29 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        let mut combined_response = GroupMembersResponse::default();
+        let mut url = GROUP_MEMBERS.replace("{group_id}", &group.id);
 
-        let url = Url::parse(&GROUP_MEMBERS.replace("{group_id}", &group.id))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let response = make_get_request(url, access_token.to_string()).await?;
-        parse_response(
-            response,
-            "Failed to query group members from Microsoft API.",
-        )
-        .await
+        for _ in 0..MAX_REQUESTS {
+            let response =
+                make_get_request(&url, access_token, Some(&[("$top", MAX_RESULTS)])).await?;
+            let response: GroupMembersResponse = parse_response(
+                response,
+                "Failed to query group members from Microsoft API.",
+            )
+            .await?;
+            combined_response.value.extend(response.value);
+
+            if let Some(next_page) = response.next_page {
+                url = next_page;
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
@@ -173,10 +219,26 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(ALL_USERS_URL)
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let response = make_get_request(url, access_token.to_string()).await?;
-        parse_response(response, "Failed to query all users in the Microsoft API.").await
+        let mut combined_response = UsersResponse::default();
+        let mut url = ALL_USERS_URL.to_string();
+
+        for _ in 0..MAX_REQUESTS {
+            let response =
+                make_get_request(&url, access_token, Some(&[("$top", MAX_RESULTS)])).await?;
+            let response: UsersResponse =
+                parse_response(response, "Failed to query all users in the Microsoft API.").await?;
+            combined_response.value.extend(response.value);
+
+            if let Some(next_page) = response.next_page {
+                url = next_page;
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 }
 
@@ -234,9 +296,15 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let url = Url::parse(&format!("{ALL_USERS_URL}?$top=1"))
-            .map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        let response = make_get_request(url, access_token.to_string()).await?;
+        let response = make_get_request(
+            ALL_USERS_URL,
+            access_token,
+            Some(&[
+                ("$top", "1"),
+                ("$select", "accountEnabled,displayName,mail,otherMails"),
+            ]),
+        )
+        .await?;
         let _result: UsersResponse =
             parse_response(response, "Failed to test connection to Microsoft API.").await?;
         Ok(())
@@ -361,6 +429,7 @@ impl MicrosoftDirectorySync {
                 display_name: "group1".into(),
                 id: "1".into(),
             }],
+            next_page: None,
         })
     }
 
@@ -389,6 +458,7 @@ impl MicrosoftDirectorySync {
                     id: "3".into(),
                 },
             ],
+            next_page: None,
         })
     }
 
@@ -429,6 +499,7 @@ impl MicrosoftDirectorySync {
                     other_mails: vec![],
                 },
             ],
+            next_page: None,
         })
     }
 
@@ -468,6 +539,7 @@ impl MicrosoftDirectorySync {
                     other_mails: vec![],
                 },
             ],
+            next_page: None,
         })
     }
 }

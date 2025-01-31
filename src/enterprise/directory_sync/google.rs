@@ -1,11 +1,15 @@
-use std::{str::FromStr, time::Duration};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 use chrono::{DateTime, TimeDelta, Utc};
 #[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use reqwest::{header::AUTHORIZATION, Url};
+use tokio::time::sleep;
 
-use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use super::{
+    make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
+    DirectoryUser, REQUEST_TIMEOUT,
+};
 
 #[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
@@ -15,7 +19,8 @@ const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 #[cfg(not(test))]
 const AUD: &str = "https://oauth2.googleapis.com/token";
 const ALL_USERS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/users";
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_REQUESTS: usize = 50;
+const MAX_RESULTS: &str = "100";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -77,9 +82,11 @@ struct GroupMember {
     status: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct GroupMembersResponse {
     members: Option<Vec<GroupMember>>,
+    #[serde(rename = "nextPageToken")]
+    page_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,14 +105,18 @@ impl From<User> for DirectoryUser {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct UsersResponse {
     users: Vec<User>,
+    #[serde(rename = "nextPageToken")]
+    page_token: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 struct GroupsResponse {
     groups: Vec<DirectoryGroup>,
+    #[serde(rename = "nextPageToken")]
+    page_token: Option<String>,
 }
 
 impl GoogleDirectorySync {
@@ -141,20 +152,18 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
-        url.query_pairs_mut()
-            .append_pair("customer", "my_customer")
-            .append_pair("maxResults", "1")
-            .append_pair("showDeleted", "false");
-        let client = reqwest::Client::builder().build()?;
-        let result = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
-            .await?;
+        let response = make_get_request(
+            ALL_USERS_URL,
+            access_token,
+            Some(&[
+                ("customer", "my_customer"),
+                ("maxResults", MAX_RESULTS),
+                ("showDeleted", "false"),
+            ]),
+        )
+        .await?;
         let _result: UsersResponse =
-            parse_response(result, "Failed to test connection to Google API.").await?;
+            parse_response(response, "Failed to test connection to Google API.").await?;
         Ok(())
     }
 }
@@ -169,18 +178,42 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).unwrap();
-        url.query_pairs_mut()
-            .append_pair("userKey", user_id)
-            .append_pair("maxResults", "500");
-        let client = reqwest::Client::new();
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
+        let mut combined_response = GroupsResponse::default();
+        let mut query = HashMap::from([
+            ("userKey".to_string(), user_id.to_string()),
+            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+        ]);
+        for _ in 0..MAX_REQUESTS {
+            let response = make_get_request(
+                GROUPS_URL,
+                access_token,
+                Some(
+                    &query
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect::<Vec<_>>(),
+                ),
+            )
             .await?;
-        parse_response(response, "Failed to query user groups from Google API.").await
+            let response: GroupsResponse =
+                parse_response(response, "Failed to query user groups from Google API.").await?;
+
+            if combined_response.groups.is_empty() {
+                combined_response.groups = response.groups;
+            } else {
+                combined_response.groups.extend(response.groups);
+            }
+
+            if let Some(next_page_token) = response.page_token {
+                query.insert("pageToken".to_string(), next_page_token);
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
@@ -192,20 +225,43 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).unwrap();
+        let mut combined_response = GroupsResponse::default();
+        let mut query = HashMap::from([
+            ("customer".to_string(), "my_customer".to_string()),
+            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+        ]);
 
-        url.query_pairs_mut()
-            .append_pair("customer", "my_customer")
-            .append_pair("maxResults", "500");
-
-        let client = reqwest::Client::builder().build()?;
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
+        for _ in 0..MAX_REQUESTS {
+            let response = make_get_request(
+                GROUPS_URL,
+                access_token,
+                Some(
+                    &query
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect::<Vec<_>>(),
+                ),
+            )
             .await?;
-        parse_response(response, "Failed to query groups from Google API.").await
+            let response: GroupsResponse =
+                parse_response(response, "Failed to query groups from Google API.").await?;
+
+            if combined_response.groups.is_empty() {
+                combined_response.groups = response.groups;
+            } else {
+                combined_response.groups.extend(response.groups);
+            }
+
+            if let Some(next_page_token) = response.page_token {
+                query.insert("pageToken".to_string(), next_page_token);
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     async fn query_group_members(
@@ -220,23 +276,50 @@ impl GoogleDirectorySync {
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
 
-        let url_str = format!(
+        let url = format!(
             "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
             group.id
         );
-        let mut url =
-            Url::parse(&url_str).map_err(|err| DirectorySyncError::InvalidUrl(err.to_string()))?;
-        url.query_pairs_mut()
-            .append_pair("includeDerivedMembership", "true")
-            .append_pair("maxResults", "500");
-        let client = reqwest::Client::builder().build()?;
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
+        let mut combined_response = GroupMembersResponse::default();
+        let mut query = HashMap::from([
+            ("includeDerivedMembership".to_string(), "true".to_string()),
+            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+        ]);
+
+        for _ in 0..MAX_REQUESTS {
+            let response = make_get_request(
+                &url,
+                &access_token,
+                Some(
+                    &query
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect::<Vec<_>>(),
+                ),
+            )
             .await?;
-        parse_response(response, "Failed to query group members from Google API.").await
+            let response: GroupMembersResponse =
+                parse_response(response, "Failed to query group members from Google API.").await?;
+
+            if combined_response.members.is_none() {
+                combined_response.members = response.members;
+            } else {
+                combined_response.members = combined_response.members.map(|mut members| {
+                    members.extend(response.members.unwrap_or_default());
+                    members
+                });
+            }
+
+            if let Some(next_page_token) = response.page_token {
+                query.insert("pageToken".to_string(), next_page_token);
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 
     #[cfg(not(test))]
@@ -249,14 +332,12 @@ impl GoogleDirectorySync {
 
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
-        let mut url = Url::parse(ACCESS_TOKEN_URL).unwrap();
-        url.query_pairs_mut()
-            .append_pair("grant_type", GRANT_TYPE)
-            .append_pair("assertion", &token);
-        let client = reqwest::Client::builder().build()?;
+        let client = reqwest::Client::new();
         let response = client
-            .post(url)
+            .post(ACCESS_TOKEN_URL)
+            .query(&[("grant_type", GRANT_TYPE), ("assertion", &token)])
             .header(reqwest::header::CONTENT_LENGTH, 0)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await?;
         parse_response(response, "Failed to get access token from Google API.").await
@@ -270,19 +351,44 @@ impl GoogleDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(ALL_USERS_URL).unwrap();
-        url.query_pairs_mut()
-            .append_pair("customer", "my_customer")
-            .append_pair("maxResults", "500")
-            .append_pair("showDeleted", "false");
-        let client = reqwest::Client::builder().build()?;
-        let response = client
-            .get(url)
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .timeout(REQUEST_TIMEOUT)
-            .send()
+        let mut combined_response = UsersResponse::default();
+        let mut query = HashMap::from([
+            ("customer".to_string(), "my_customer".to_string()),
+            ("maxResults".to_string(), MAX_RESULTS.to_string()),
+            ("showDeleted".to_string(), "false".to_string()),
+        ]);
+
+        for _ in 0..MAX_REQUESTS {
+            let response = make_get_request(
+                ALL_USERS_URL,
+                access_token,
+                Some(
+                    &query
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect::<Vec<_>>(),
+                ),
+            )
             .await?;
-        parse_response(response, "Failed to query all users in the Google API.").await
+            let response: UsersResponse =
+                parse_response(response, "Failed to query all users in the Google API.").await?;
+
+            if combined_response.users.is_empty() {
+                combined_response.users = response.users;
+            } else {
+                combined_response.users.extend(response.users);
+            }
+
+            if let Some(next_page_token) = response.page_token {
+                query.insert("pageToken".to_string(), next_page_token);
+            } else {
+                break;
+            }
+
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        Ok(combined_response)
     }
 }
 
@@ -372,6 +478,7 @@ impl GoogleDirectorySync {
                 id: "1".into(),
                 name: "group1".into(),
             }],
+            page_token: None,
         })
     }
 
@@ -405,6 +512,7 @@ impl GoogleDirectorySync {
                     name: "group3".into(),
                 },
             ],
+            page_token: None,
         })
     }
 
@@ -444,6 +552,7 @@ impl GoogleDirectorySync {
                     status: Some("ACTIVE".into()),
                 },
             ]),
+            page_token: None,
         })
     }
 
@@ -487,6 +596,7 @@ impl GoogleDirectorySync {
                     suspended: false,
                 },
             ],
+            page_token: None,
         })
     }
 }
