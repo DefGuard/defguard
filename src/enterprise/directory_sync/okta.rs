@@ -142,8 +142,13 @@ impl OktaDirectorySync {
     }
 
     pub async fn refresh_access_token(&mut self) -> Result<(), DirectorySyncError> {
+        debug!("Refreshing Okta directory sync access token");
         let token_response = self.query_access_token().await?;
         let expires_in = TimeDelta::seconds(token_response.expires_in);
+        debug!(
+            "Access token refreshed, the new token expires in {} seconds",
+            token_response.expires_in
+        );
         self.access_token = Some(token_response.token);
         self.token_expiry = Some(Utc::now() + expires_in);
         Ok(())
@@ -152,7 +157,9 @@ impl OktaDirectorySync {
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Okta directory sync token is expired");
         // No token = expired token
-        self.token_expiry.map_or(true, |expiry| expiry < Utc::now())
+        let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
+        debug!("Token is expired: {}", result);
+        result
     }
 
     async fn query_test_connection(&self) -> Result<(), DirectorySyncError> {
@@ -303,10 +310,13 @@ impl OktaDirectorySync {
 
     #[cfg(not(test))]
     fn build_token(&self) -> Result<String, DirectorySyncError> {
+        debug!("Building Okta directory sync auth token");
         let claims = Claims::new(&self.client_id, &self.base_url);
+        debug!("Using the following token claims: {:?}", claims);
         // Users provide a JWK format private key. The jsonwebtoken library currently doesn't support
         // converting JWK to PEM or encoding key so the jsonwebkey library is used to convert the key
         // to a PEM format.
+        debug!("Building Okta directory sync encoding key");
         let jwk = jsonwebkey::JsonWebKey::from_str(&self.jwk_private_key)
             .map_err(|e| DirectorySyncError::InvalidProviderConfiguration(e.to_string()))?;
         let kid = jwk
@@ -319,9 +329,11 @@ impl OktaDirectorySync {
             .try_to_pem()
             .map_err(|e| DirectorySyncError::InvalidProviderConfiguration(e.to_string()))?;
         let key = EncodingKey::from_rsa_pem(encoding_key_pem.as_bytes())?;
+        debug!("Successfully built Okta directory sync encoding key for encoding the auth token");
         let mut header = Header::new(Algorithm::RS256);
         header.kid = Some(kid);
         let token = encode(&header, &claims, &key)?;
+        debug!("Successfully built Okta directory sync auth token");
         Ok(token)
     }
 
