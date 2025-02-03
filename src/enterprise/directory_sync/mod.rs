@@ -4,7 +4,7 @@ use std::{
 };
 
 use paste::paste;
-use reqwest::{header::AUTHORIZATION, Url};
+use reqwest::header::AUTHORIZATION;
 use sqlx::error::Error as SqlxError;
 use sqlx::PgPool;
 use thiserror::Error;

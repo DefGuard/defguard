@@ -75,16 +75,11 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   );
 
   const providerName = useWatch({ control, name: 'name' }) as string;
-  const providerUrl = useWatch({ control, name: 'base_url' }) as string;
   const dirsyncEnabled: boolean = useWatch({
     control,
     name: 'directory_sync_enabled',
   }) as boolean;
-  const showDirsync =
-    SUPPORTED_SYNC_PROVIDERS.includes(providerName ?? '') ||
-    SUPPORTED_SYNC_PROVIDERS.some((provider) =>
-      providerUrl.includes(provider.toLowerCase()),
-    );
+  const showDirsync = SUPPORTED_SYNC_PROVIDERS.includes(providerName ?? '');
 
   return (
     <section id="dirsync-settings">
@@ -155,7 +150,7 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               }
               disabled={isLoading}
             />
-            {providerUrl.includes('okta') ? (
+            {providerName === 'Okta' ? (
               <>
                 <FormInput
                   controller={{ control, name: 'okta_dirsync_client_id' }}

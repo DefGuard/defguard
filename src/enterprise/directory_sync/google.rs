@@ -1,26 +1,33 @@
-use std::{collections::HashMap, str::FromStr, time::Duration};
+use std::collections::HashMap;
+#[cfg(not(test))]
+use std::time::Duration;
 
 use chrono::{DateTime, TimeDelta, Utc};
 #[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use reqwest::{header::AUTHORIZATION, Url};
+#[cfg(not(test))]
 use tokio::time::sleep;
 
+#[cfg(not(test))]
+use super::REQUEST_TIMEOUT;
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser, REQUEST_TIMEOUT,
+    DirectoryUser,
 };
 
 #[cfg(not(test))]
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
 const ACCESS_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+#[cfg(not(test))]
 const GROUPS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/groups";
+#[cfg(not(test))]
 const GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 #[cfg(not(test))]
 const AUD: &str = "https://oauth2.googleapis.com/token";
 const ALL_USERS_URL: &str = "https://admin.googleapis.com/admin/directory/v1/users";
+#[cfg(not(test))]
 const MAX_REQUESTS: usize = 50;
-const MAX_RESULTS: &str = "100";
+const MAX_RESULTS: &str = "200";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -166,23 +173,25 @@ impl GoogleDirectorySync {
             parse_response(response, "Failed to test connection to Google API.").await?;
         Ok(())
     }
-}
 
-#[cfg(not(test))]
-impl GoogleDirectorySync {
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
+        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response = GroupsResponse::default();
+        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = HashMap::from([
             ("userKey".to_string(), user_id.to_string()),
             ("maxResults".to_string(), MAX_RESULTS.to_string()),
         ]);
+
+        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
                 GROUPS_URL,
@@ -205,12 +214,25 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
+                debug!("Found next page of results, using the following token to query it: {next_page_token}");
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
+                debug!("No more pages of results found, finishing query.");
                 break;
             }
 
             sleep(Duration::from_millis(100)).await;
+        }
+
+        #[cfg(test)]
+        {
+            combined_response = GroupsResponse {
+                groups: vec![DirectoryGroup {
+                    id: "1".into(),
+                    name: "group1".into(),
+                }],
+                page_token: None,
+            };
         }
 
         Ok(combined_response)
@@ -221,16 +243,20 @@ impl GoogleDirectorySync {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
 
+        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response = GroupsResponse::default();
+        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = HashMap::from([
             ("customer".to_string(), "my_customer".to_string()),
             ("maxResults".to_string(), MAX_RESULTS.to_string()),
         ]);
 
+        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
                 GROUPS_URL,
@@ -253,12 +279,35 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
+                debug!("Found next page of results, using the following token to query it: {next_page_token}");
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
+                debug!("No more pages of results found, finishing query.");
                 break;
             }
 
             sleep(Duration::from_millis(100)).await;
+        }
+
+        #[cfg(test)]
+        {
+            combined_response = GroupsResponse {
+                groups: vec![
+                    DirectoryGroup {
+                        id: "1".into(),
+                        name: "group1".into(),
+                    },
+                    DirectoryGroup {
+                        id: "2".into(),
+                        name: "group2".into(),
+                    },
+                    DirectoryGroup {
+                        id: "3".into(),
+                        name: "group3".into(),
+                    },
+                ],
+                page_token: None,
+            };
         }
 
         Ok(combined_response)
@@ -271,25 +320,30 @@ impl GoogleDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
+        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
 
+        #[cfg_attr(test, allow(unused))]
         let url = format!(
             "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
             group.id
         );
+        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response = GroupMembersResponse::default();
+        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = HashMap::from([
             ("includeDerivedMembership".to_string(), "true".to_string()),
             ("maxResults".to_string(), MAX_RESULTS.to_string()),
         ]);
 
+        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
                 &url,
-                &access_token,
+                access_token,
                 Some(
                     &query
                         .iter()
@@ -311,12 +365,35 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
+                debug!("Found next page of results, using the following token to query it: {next_page_token}");
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
+                debug!("No more pages of results found, finishing query.");
                 break;
             }
 
             sleep(Duration::from_millis(100)).await;
+        }
+
+        #[cfg(test)]
+        {
+            combined_response = GroupMembersResponse {
+                members: Some(vec![
+                    GroupMember {
+                        email: "testuser@email.com".into(),
+                        status: Some("ACTIVE".into()),
+                    },
+                    GroupMember {
+                        email: "testuserdisabled@email.com".into(),
+                        status: Some("SUSPENDED".into()),
+                    },
+                    GroupMember {
+                        email: "testuser2@email.com".into(),
+                        status: Some("ACTIVE".into()),
+                    },
+                ]),
+                page_token: None,
+            };
         }
 
         Ok(combined_response)
@@ -330,6 +407,7 @@ impl GoogleDirectorySync {
         Ok(token)
     }
 
+    #[cfg(not(test))]
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
         let client = reqwest::Client::new();
@@ -343,21 +421,37 @@ impl GoogleDirectorySync {
         parse_response(response, "Failed to get access token from Google API.").await
     }
 
+    #[cfg(test)]
+    async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
+        use reqwest::Url;
+        let _url: Url = ACCESS_TOKEN_URL
+            .parse()
+            .expect("Invalid ACCESS_TOKEN_URL has been set.");
+        Ok(AccessTokenResponse {
+            token: "test_token_refreshed".into(),
+            expires_in: 3600,
+        })
+    }
+
     async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
+        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
+        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response = UsersResponse::default();
+        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = HashMap::from([
             ("customer".to_string(), "my_customer".to_string()),
             ("maxResults".to_string(), MAX_RESULTS.to_string()),
             ("showDeleted".to_string(), "false".to_string()),
         ]);
 
+        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(
                 ALL_USERS_URL,
@@ -380,12 +474,35 @@ impl GoogleDirectorySync {
             }
 
             if let Some(next_page_token) = response.page_token {
+                debug!("Found next page of results, using the following token to query it: {next_page_token}");
                 query.insert("pageToken".to_string(), next_page_token);
             } else {
+                debug!("No more pages of results found, finishing query.");
                 break;
             }
 
             sleep(Duration::from_millis(100)).await;
+        }
+
+        #[cfg(test)]
+        {
+            combined_response = UsersResponse {
+                users: vec![
+                    User {
+                        primary_email: "testuser@email.com".into(),
+                        suspended: false,
+                    },
+                    User {
+                        primary_email: "testuserdisabled@email.com".into(),
+                        suspended: true,
+                    },
+                    User {
+                        primary_email: "testuser2@email.com".into(),
+                        suspended: false,
+                    },
+                ],
+                page_token: None,
+            }
         }
 
         Ok(combined_response)
@@ -453,151 +570,6 @@ impl DirectorySync for GoogleDirectorySync {
         self.query_test_connection().await?;
         info!("Successfully tested connection to Google API, connection is working.");
         Ok(())
-    }
-}
-
-#[cfg(test)]
-impl GoogleDirectorySync {
-    async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
-        if self.is_token_expired() {
-            return Err(DirectorySyncError::AccessTokenExpired);
-        }
-
-        let _access_token = self
-            .access_token
-            .as_ref()
-            .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).expect("Invalid USER_GROUPS_URL has been set.");
-
-        url.query_pairs_mut()
-            .append_pair("userKey", user_id)
-            .append_pair("max_results", "999");
-
-        Ok(GroupsResponse {
-            groups: vec![DirectoryGroup {
-                id: "1".into(),
-                name: "group1".into(),
-            }],
-            page_token: None,
-        })
-    }
-
-    async fn query_groups(&self) -> Result<GroupsResponse, DirectorySyncError> {
-        if self.is_token_expired() {
-            return Err(DirectorySyncError::AccessTokenExpired);
-        }
-
-        let _access_token = self
-            .access_token
-            .as_ref()
-            .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str(GROUPS_URL).expect("Invalid USER_GROUPS_URL has been set.");
-
-        url.query_pairs_mut()
-            .append_pair("customer", "my_customer")
-            .append_pair("max_results", "999");
-
-        Ok(GroupsResponse {
-            groups: vec![
-                DirectoryGroup {
-                    id: "1".into(),
-                    name: "group1".into(),
-                },
-                DirectoryGroup {
-                    id: "2".into(),
-                    name: "group2".into(),
-                },
-                DirectoryGroup {
-                    id: "3".into(),
-                    name: "group3".into(),
-                },
-            ],
-            page_token: None,
-        })
-    }
-
-    async fn query_group_members(
-        &self,
-        group: &DirectoryGroup,
-    ) -> Result<GroupMembersResponse, DirectorySyncError> {
-        if self.is_token_expired() {
-            return Err(DirectorySyncError::AccessTokenExpired);
-        }
-
-        let _access_token = self
-            .access_token
-            .as_ref()
-            .ok_or(DirectorySyncError::AccessTokenExpired)?;
-
-        let url_str = format!(
-            "https://admin.googleapis.com/admin/directory/v1/groups/{}/members",
-            group.id
-        );
-        let mut url = Url::from_str(&url_str).expect("Invalid GROUP_MEMBERS_URL has been set.");
-        url.query_pairs_mut()
-            .append_pair("includeDerivedMembership", "true");
-
-        Ok(GroupMembersResponse {
-            members: Some(vec![
-                GroupMember {
-                    email: "testuser@email.com".into(),
-                    status: Some("ACTIVE".into()),
-                },
-                GroupMember {
-                    email: "testuserdisabled@email.com".into(),
-                    status: Some("SUSPENDED".into()),
-                },
-                GroupMember {
-                    email: "testuser2@email.com".into(),
-                    status: Some("ACTIVE".into()),
-                },
-            ]),
-            page_token: None,
-        })
-    }
-
-    async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
-        let mut url: Url = ACCESS_TOKEN_URL
-            .parse()
-            .expect("Invalid ACCESS_TOKEN_URL has been set.");
-        url.query_pairs_mut()
-            .append_pair("grant_type", GRANT_TYPE)
-            .append_pair("assertion", "test_assertion");
-        Ok(AccessTokenResponse {
-            token: "test_token_refreshed".into(),
-            expires_in: 3600,
-        })
-    }
-
-    async fn query_all_users(&self) -> Result<UsersResponse, DirectorySyncError> {
-        if self.is_token_expired() {
-            return Err(DirectorySyncError::AccessTokenExpired);
-        }
-        let _access_token = self
-            .access_token
-            .as_ref()
-            .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = Url::from_str("https://admin.googleapis.com/admin/directory/v1/users")
-            .expect("Invalid USERS_URL has been set.");
-        url.query_pairs_mut().append_pair("customer", "my_customer");
-
-        Ok(UsersResponse {
-            users: vec![
-                User {
-                    primary_email: "testuser@email.com".into(),
-                    suspended: false,
-                },
-                User {
-                    primary_email: "testuserdisabled@email.com".into(),
-                    suspended: true,
-                },
-                User {
-                    primary_email: "testuser2@email.com".into(),
-                    suspended: false,
-                },
-            ],
-            page_token: None,
-        })
     }
 }
 

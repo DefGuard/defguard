@@ -1073,6 +1073,7 @@ dependencies = [
  "mime_guess",
  "model_derive",
  "openidconnect",
+ "parse_link_header",
  "paste",
  "pgp",
  "prost",
@@ -3109,6 +3110,17 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f2a05b18d44e2957b88f96ba460715e295bc1d7510468a2f3d3b44535d26c24"
 dependencies = [
+ "regex",
+]
+
+[[package]]
+name = "parse_link_header"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbc23fdb8bbf668d582b0c17120bf6b7f91d85ccad3a5b39706f019a4efda005"
+dependencies = [
+ "http 1.2.0",
+ "lazy_static",
  "regex",
 ]
 
