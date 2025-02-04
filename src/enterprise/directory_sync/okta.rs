@@ -1,13 +1,9 @@
-#[cfg(not(test))]
 use std::str::FromStr;
-#[cfg(not(test))]
 use std::time::Duration;
 
 use chrono::{DateTime, TimeDelta, Utc};
-#[cfg(not(test))]
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use parse_link_header::parse_with_rel;
-#[cfg(not(test))]
 use tokio::time::sleep;
 
 use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
@@ -15,20 +11,15 @@ use crate::enterprise::directory_sync::make_get_request;
 
 // Okta suggests using the maximum limit of 200 for the number of results per page.
 // If this is an issue, we would need to add resource pagination.
-#[cfg(not(test))]
 const ACCESS_TOKEN_URL: &str = "{BASE_URL}/oauth2/v1/token";
 const GROUPS_URL: &str = "{BASE_URL}/api/v1/groups";
-#[cfg(not(test))]
 const GRANT_TYPE: &str = "client_credentials";
-#[cfg(not(test))]
 const CLIENT_ASSERTION_TYPE: &str = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-#[cfg(not(test))]
 const TOKEN_SCOPE: &str = "okta.users.read okta.groups.read";
 const ALL_USERS_URL: &str = "{BASE_URL}/api/v1/users";
 const GROUP_MEMBERS: &str = "{BASE_URL}/api/v1/groups/{GROUP_ID}/users";
 const USER_GROUPS: &str = "{BASE_URL}/api/v1/users/{USER_ID}/groups";
 const MAX_RESULTS: &str = "200";
-#[cfg(not(test))]
 const MAX_REQUESTS: usize = 50;
 
 pub fn extract_next_link(
@@ -53,7 +44,6 @@ struct Claims {
     iat: i64,
 }
 
-#[cfg(not(test))]
 impl Claims {
     #[must_use]
     fn new(client_id: &str, base_url: &str) -> Self {
@@ -101,6 +91,15 @@ struct User {
     profile: UserProfile,
 }
 
+impl From<User> for DirectoryUser {
+    fn from(val: User) -> Self {
+        Self {
+            email: val.profile.email,
+            active: ACTIVE_STATUS.contains(&val.status.as_str()),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct GroupProfile {
     name: String,
@@ -112,20 +111,6 @@ struct Group {
     profile: GroupProfile,
 }
 
-// The status may be:
-// "ACTIVE" "DEPROVISIONED" "LOCKED_OUT" "PASSWORD_EXPIRED" "PROVISIONED" "RECOVERY" "STAGED" "SUSPENDED"
-// We currently consider only ACTIVE users as active. Change this if needed.
-const ACTIVE_STATUS: [&str; 1] = ["ACTIVE"];
-
-impl From<User> for DirectoryUser {
-    fn from(val: User) -> Self {
-        Self {
-            email: val.profile.email,
-            active: ACTIVE_STATUS.contains(&val.status.as_str()),
-        }
-    }
-}
-
 impl From<Group> for DirectoryGroup {
     fn from(val: Group) -> Self {
         Self {
@@ -134,6 +119,11 @@ impl From<Group> for DirectoryGroup {
         }
     }
 }
+
+// The status may be:
+// "ACTIVE" "DEPROVISIONED" "LOCKED_OUT" "PASSWORD_EXPIRED" "PROVISIONED" "RECOVERY" "STAGED" "SUSPENDED"
+// We currently consider only ACTIVE users as active. Change this if needed.
+const ACTIVE_STATUS: [&str; 1] = ["ACTIVE"];
 
 impl OktaDirectorySync {
     #[must_use]
@@ -190,21 +180,16 @@ impl OktaDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut url = USER_GROUPS
             .replace("{BASE_URL}", &self.base_url)
             .replace("{USER_ID}", user_id);
-        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response: Vec<Group> = Vec::new();
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = Some([("limit", MAX_RESULTS)].as_slice());
 
-        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
             let link_header = {
@@ -234,16 +219,6 @@ impl OktaDirectorySync {
             sleep(Duration::from_millis(100)).await;
         }
 
-        #[cfg(test)]
-        {
-            combined_response = vec![Group {
-                id: "1".into(),
-                profile: GroupProfile {
-                    name: "group1".into(),
-                },
-            }];
-        }
-
         Ok(combined_response)
     }
 
@@ -251,19 +226,14 @@ impl OktaDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut url = GROUPS_URL.replace("{BASE_URL}", &self.base_url);
-        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response: Vec<Group> = Vec::new();
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = Some([("limit", MAX_RESULTS)].as_slice());
 
-        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
             let link_header = {
@@ -293,31 +263,6 @@ impl OktaDirectorySync {
             sleep(Duration::from_millis(100)).await;
         }
 
-        #[cfg(test)]
-        {
-            let _ = access_token;
-            combined_response = vec![
-                Group {
-                    id: "1".into(),
-                    profile: GroupProfile {
-                        name: "group1".into(),
-                    },
-                },
-                Group {
-                    id: "2".into(),
-                    profile: GroupProfile {
-                        name: "group2".into(),
-                    },
-                },
-                Group {
-                    id: "3".into(),
-                    profile: GroupProfile {
-                        name: "group3".into(),
-                    },
-                },
-            ];
-        }
-
         Ok(combined_response)
     }
 
@@ -328,21 +273,16 @@ impl OktaDirectorySync {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut url = GROUP_MEMBERS
             .replace("{BASE_URL}", &self.base_url)
             .replace("{GROUP_ID}", &group.id);
-        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response: Vec<User> = Vec::new();
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = Some([("limit", MAX_RESULTS)].as_slice());
 
-        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
             let link_header = {
@@ -372,34 +312,9 @@ impl OktaDirectorySync {
             sleep(Duration::from_millis(100)).await;
         }
 
-        #[cfg(test)]
-        {
-            combined_response = vec![
-                User {
-                    status: "ACTIVE".into(),
-                    profile: UserProfile {
-                        email: "testuser@email.com".into(),
-                    },
-                },
-                User {
-                    status: "SUSPENDED".into(),
-                    profile: UserProfile {
-                        email: "testuserdisabled@email.com".into(),
-                    },
-                },
-                User {
-                    status: "ACTIVE".into(),
-                    profile: UserProfile {
-                        email: "testuser2@email.com".into(),
-                    },
-                },
-            ];
-        }
-
         Ok(combined_response)
     }
 
-    #[cfg(not(test))]
     fn build_token(&self) -> Result<String, DirectorySyncError> {
         debug!("Building Okta directory sync auth token");
         let claims = Claims::new(&self.client_id, &self.base_url);
@@ -428,60 +343,34 @@ impl OktaDirectorySync {
         Ok(token)
     }
 
-    #[cfg(not(test))]
     async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
         let token = self.build_token()?;
-        #[cfg(not(test))]
-        {
-            let client = reqwest::Client::new();
-            let response = client
-                .post(ACCESS_TOKEN_URL.replace("{BASE_URL}", &self.base_url))
-                .form(&[
-                    ("grant_type", GRANT_TYPE),
-                    ("client_assertion_type", CLIENT_ASSERTION_TYPE),
-                    ("client_assertion", &token),
-                    ("scope", TOKEN_SCOPE),
-                ])
-                .send()
-                .await?;
-            parse_response(response, "Failed to get access token from Okta API.").await
-        }
-
-        #[cfg(test)]
-        {
-            let _ = (url, token);
-            Ok(AccessTokenResponse {
-                token: "test_token_refreshed".into(),
-                expires_in: 3600,
-            })
-        }
-    }
-
-    #[cfg(test)]
-    async fn query_access_token(&self) -> Result<AccessTokenResponse, DirectorySyncError> {
-        Ok(AccessTokenResponse {
-            token: "test_token_refreshed".into(),
-            expires_in: 3600,
-        })
+        let client = reqwest::Client::new();
+        let response = client
+            .post(ACCESS_TOKEN_URL.replace("{BASE_URL}", &self.base_url))
+            .form(&[
+                ("grant_type", GRANT_TYPE),
+                ("client_assertion_type", CLIENT_ASSERTION_TYPE),
+                ("client_assertion", &token),
+                ("scope", TOKEN_SCOPE),
+            ])
+            .send()
+            .await?;
+        parse_response(response, "Failed to get access token from Okta API.").await
     }
 
     async fn query_all_users(&self) -> Result<Vec<User>, DirectorySyncError> {
         if self.is_token_expired() {
             return Err(DirectorySyncError::AccessTokenExpired);
         }
-        #[cfg_attr(test, allow(unused))]
         let access_token = self
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut url = ALL_USERS_URL.replace("{BASE_URL}", &self.base_url);
-        #[cfg_attr(test, allow(unused, unused_mut))]
         let mut query = Some([("limit", MAX_RESULTS)].as_slice());
-        #[cfg_attr(test, allow(unused_assignments))]
         let mut combined_response: Vec<User> = Vec::new();
 
-        #[cfg(not(test))]
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
             let link_header = {
@@ -508,30 +397,6 @@ impl OktaDirectorySync {
             }
 
             sleep(Duration::from_millis(100)).await;
-        }
-
-        #[cfg(test)]
-        {
-            combined_response = vec![
-                User {
-                    status: "ACTIVE".into(),
-                    profile: UserProfile {
-                        email: "testuser@email.com".into(),
-                    },
-                },
-                User {
-                    status: "SUSPENDED".into(),
-                    profile: UserProfile {
-                        email: "testuserdisabled@email.com".into(),
-                    },
-                },
-                User {
-                    status: "ACTIVE".into(),
-                    profile: UserProfile {
-                        email: "testuser2@email.com".into(),
-                    },
-                },
-            ];
         }
 
         Ok(combined_response)
@@ -618,66 +483,69 @@ mod tests {
         dirsync.access_token = Some("test_token".into());
         dirsync.token_expiry = Some(Utc::now() + TimeDelta::seconds(10000));
         assert!(!dirsync.is_token_expired());
-
-        // no token
-        dirsync.access_token = Some("test_token".into());
-        dirsync.token_expiry = Some(Utc::now() - TimeDelta::seconds(10000));
-        dirsync.refresh_access_token().await.unwrap();
-        assert!(!dirsync.is_token_expired());
-        assert_eq!(dirsync.access_token, Some("test_token_refreshed".into()));
     }
 
     #[tokio::test]
-    async fn test_all_users() {
-        let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
-        dirsync.refresh_access_token().await.unwrap();
+    async fn test_header() {
+        let link_header =
+            "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\""
+                .to_string();
+        let next_link = extract_next_link(Some(&link_header)).unwrap();
+        assert_eq!(
+            next_link,
+            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_string())
+        );
 
-        let users = dirsync.get_all_users().await.unwrap();
+        let next_link = extract_next_link(None).unwrap();
+        assert_eq!(next_link, None);
 
-        assert_eq!(users.len(), 3);
-        assert_eq!(users[1].email, "testuserdisabled@email.com");
-        assert!(!users[1].active);
+        let link_header = "invalid".to_string();
+        let next_link = extract_next_link(Some(&link_header));
+        assert!(next_link.is_err());
+
+        let link_header = "<https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"next\", <https://trial-0000000.okta.com/api/v1/users?after=4&limit=200>; rel=\"prev\"".to_string();
+        let next_link = extract_next_link(Some(&link_header)).unwrap();
+        assert_eq!(
+            next_link,
+            Some("https://trial-0000000.okta.com/api/v1/users?after=4&limit=200".to_string())
+        );
     }
 
     #[tokio::test]
-    async fn test_groups() {
-        let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
-        dirsync.refresh_access_token().await.unwrap();
-
-        let groups = dirsync.get_groups().await.unwrap();
-
-        assert_eq!(groups.len(), 3);
-
-        for (i, group) in groups.iter().enumerate().take(3) {
-            assert_eq!(group.id, (i + 1).to_string());
-            assert_eq!(group.name, format!("group{}", i + 1));
-        }
+    async fn test_group_parse() {
+        let group = Group {
+            id: "test_id".to_string(),
+            profile: GroupProfile {
+                name: "test_name".to_string(),
+            },
+        };
+        let dir_group: DirectoryGroup = group.into();
+        assert_eq!(dir_group.id, "test_id");
+        assert_eq!(dir_group.name, "test_name");
     }
 
     #[tokio::test]
-    async fn test_user_groups() {
-        let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
-        dirsync.refresh_access_token().await.unwrap();
+    async fn test_user_parse() {
+        let user = User {
+            status: "ACTIVE".to_string(),
+            profile: UserProfile {
+                email: "test_email".to_string(),
+            },
+        };
 
-        let groups = dirsync.get_user_groups("testuser").await.unwrap();
-        assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].id, "1");
-        assert_eq!(groups[0].name, "group1");
-    }
+        let dir_user: DirectoryUser = user.into();
+        assert_eq!(dir_user.email, "test_email");
+        assert!(dir_user.active);
 
-    #[tokio::test]
-    async fn test_group_members() {
-        let mut dirsync =
-            OktaDirectorySync::new("private_key", "client_id", "https://trial-0000000.okta.com");
-        dirsync.refresh_access_token().await.unwrap();
+        let user = User {
+            status: "INACTIVE".to_string(),
+            profile: UserProfile {
+                email: "test_email".to_string(),
+            },
+        };
 
-        let groups = dirsync.get_groups().await.unwrap();
-        let members = dirsync.get_group_members(&groups[0]).await.unwrap();
-
-        assert_eq!(members.len(), 3);
-        assert_eq!(members[0], "testuser@email.com");
+        let dir_user: DirectoryUser = user.into();
+        assert_eq!(dir_user.email, "test_email");
+        assert!(!dir_user.active);
     }
 }

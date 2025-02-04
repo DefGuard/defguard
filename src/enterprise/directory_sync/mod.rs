@@ -63,6 +63,8 @@ impl From<reqwest::Error> for DirectorySyncError {
 pub mod google;
 pub mod microsoft;
 pub mod okta;
+#[cfg(test)]
+pub mod testprovider;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirectoryGroup {
@@ -179,6 +181,10 @@ macro_rules! dirsync_clients {
     };
 }
 
+#[cfg(test)]
+dirsync_clients!(Google, Microsoft, Okta, TestProvider);
+
+#[cfg(not(test))]
 dirsync_clients!(Google, Microsoft, Okta);
 
 impl DirectorySyncClient {
@@ -232,6 +238,8 @@ impl DirectorySyncClient {
                     ))
                 }
             }
+            #[cfg(test)]
+            "Test" => Ok(Self::TestProvider(testprovider::TestProviderDirectorySync)),
             _ => Err(DirectorySyncError::UnsupportedProvider(
                 provider_settings.name.clone(),
             )),
@@ -239,6 +247,7 @@ impl DirectorySyncClient {
     }
 }
 
+/// Update gateway state based on the newly synced groups and user state
 async fn update_users_network_access(
     pool: &PgPool,
     wg_tx: &Sender<GatewayEvent>,
@@ -370,6 +379,7 @@ pub(crate) async fn sync_user_groups_if_configured(
     Ok(())
 }
 
+/// Create a group if it doesn't exist and add a user to it if they are not already a member
 async fn create_and_add_to_group(
     user: &User<Id>,
     group_name: &str,
@@ -534,7 +544,6 @@ async fn sync_all_users_state<T: DirectorySync>(
 
     let emails = all_users
         .iter()
-        // We want to filter out the main admin user, as he shouldn't be deleted
         .map(|u| u.email.as_str())
         .collect::<Vec<&str>>();
     let missing_users = User::exclude(&mut *transaction, &emails)
@@ -585,6 +594,7 @@ async fn sync_all_users_state<T: DirectorySync>(
         user_behavior,
         admin_behavior
     );
+    // Keep the admin count to prevent deleting the last admin
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
     for mut user in missing_users {
         if user.is_admin(&mut *transaction).await? {
@@ -698,6 +708,7 @@ async fn sync_all_users_state<T: DirectorySync>(
 // The default inverval for the directory sync job
 const DIRECTORY_SYNC_INTERVAL: u64 = 60 * 10;
 
+/// Used to inform the utility thread how often it should perform the directory sync job. See [`run_utility_thread`] for more details.
 pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
     if let Ok(Some(provider_settings)) = OpenIdProvider::get_current(pool).await {
         provider_settings
@@ -709,6 +720,7 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
     }
 }
 
+// Performs the directory sync job. This function is called by the utility thread.
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
     wireguard_tx: &Sender<GatewayEvent>,
@@ -719,7 +731,7 @@ pub(crate) async fn do_directory_sync(
         return Ok(());
     }
 
-    // TODO: The settings are retrieved many times
+    // TODO: Reduce the amount of times those settings are retrieved in the whole directory sync process
     let provider = OpenIdProvider::get_current(pool).await?;
 
     if !is_directory_sync_enabled(provider.as_ref()) {
@@ -758,6 +770,10 @@ pub(crate) async fn do_directory_sync(
     Ok(())
 }
 
+//
+// Helpers shared between the directory sync providers
+//
+
 /// Parse a reqwest response and return the JSON body if the response is OK, otherwise map an error to a DirectorySyncError::RequestError
 /// The context_message is used to provide more context to the error message.
 async fn parse_response<T>(
@@ -782,6 +798,7 @@ where
     }
 }
 
+/// Make a GET request to the given URL with the given token and query parameters
 async fn make_get_request(
     url: &str,
     token: &str,
@@ -801,9 +818,6 @@ async fn make_get_request(
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
-
-    use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
     use tokio::sync::broadcast;
 
@@ -828,7 +842,7 @@ mod test {
         }
 
         OpenIdProvider::new(
-            "Google".to_string(),
+            "Test".to_string(),
             "base_url".to_string(),
             "client_id".to_string(),
             "client_secret".to_string(),
@@ -1069,10 +1083,10 @@ mod test {
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
 
-        assert!(!Session::find_by_id(&pool, &disabled_user_session.id)
+        assert!(Session::find_by_id(&pool, &disabled_user_session.id)
             .await
             .unwrap()
-            .is_some());
+            .is_none());
         assert!(user1.is_active);
         assert!(!user2.is_active);
         assert!(testuser.is_active);
@@ -1183,7 +1197,6 @@ mod test {
     async fn test_sync_user_groups(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
-        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
