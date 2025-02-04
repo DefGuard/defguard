@@ -105,7 +105,7 @@ struct User {
 
 impl From<User> for DirectoryUser {
     fn from(val: User) -> Self {
-        DirectoryUser {
+        Self {
             email: val.primary_email,
             active: !val.suspended,
         }

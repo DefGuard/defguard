@@ -212,28 +212,26 @@ impl DirectorySyncClient {
                 debug!("Microsoft directory sync client created");
                 Ok(Self::Microsoft(client))
             }
-            _ => match &provider_settings.base_url {
-                // FIXME: Make okta a supported provider to avoid this check
-                url if url.contains("okta") => {
-                    if let (Some(jwk), Some(client_id)) = (
-                        provider_settings.okta_private_jwk.as_ref(),
-                        provider_settings.okta_dirsync_client_id.as_ref(),
-                    ) {
-                        debug!("Okta directory has all the configuration needed, proceeding with creating the sync client");
-                        let client = okta::OktaDirectorySync::new(jwk, client_id, url);
-                        debug!("Okta directory sync client created");
-                        Ok(Self::Okta(client))
-                    } else {
-                        Err(DirectorySyncError::InvalidProviderConfiguration(
-                            "Okta provider is not configured correctly for Directory Sync. Okta private key or client id is missing."
-                                .to_string(),
-                        ))
-                    }
+            "Okta" => {
+                if let (Some(jwk), Some(client_id)) = (
+                    provider_settings.okta_private_jwk.as_ref(),
+                    provider_settings.okta_dirsync_client_id.as_ref(),
+                ) {
+                    debug!("Okta directory has all the configuration needed, proceeding with creating the sync client");
+                    let client =
+                        okta::OktaDirectorySync::new(jwk, client_id, &provider_settings.base_url);
+                    debug!("Okta directory sync client created");
+                    Ok(Self::Okta(client))
+                } else {
+                    Err(DirectorySyncError::InvalidProviderConfiguration(
+                        "Okta provider is not configured correctly for Directory Sync. Okta private key or client id is missing."
+                            .to_string(),
+                    ))
                 }
-                _ => Err(DirectorySyncError::UnsupportedProvider(
-                    provider_settings.name.clone(),
-                )),
-            },
+            }
+            _ => Err(DirectorySyncError::UnsupportedProvider(
+                provider_settings.name.clone(),
+            )),
         }
     }
 }
