@@ -1,6 +1,6 @@
 pub mod common;
 
-use std::{str::FromStr, time::SystemTime};
+use std::time::SystemTime;
 
 use chrono::NaiveDateTime;
 use claims::{assert_err, assert_ok};
@@ -11,7 +11,6 @@ use defguard::{
         models::settings::update_current_settings, MFAInfo, MFAMethod, Settings, User, UserDetails,
     },
     handlers::{Auth, AuthCode, AuthResponse, AuthTotp},
-    secret::SecretStringWrapper,
 };
 use reqwest::{header::USER_AGENT, StatusCode};
 use serde::Deserialize;
@@ -301,8 +300,6 @@ async fn test_email_mfa() {
     let mut settings = Settings::get_current_settings();
     settings.smtp_server = Some("smtp_server".into());
     settings.smtp_port = Some(587);
-    settings.smtp_user = Some("dummy_user".into());
-    settings.smtp_password = Some(SecretStringWrapper::from_str("dummy_password").unwrap());
     settings.smtp_sender = Some("smtp@sender.pl".into());
     update_current_settings(&pool, settings).await.unwrap();
 
