@@ -1,9 +1,13 @@
 use std::time::Duration;
 
 use sqlx::PgPool;
-use tokio::time::{sleep, Instant};
+use tokio::{
+    sync::broadcast::Sender,
+    time::{sleep, Instant},
+};
 
 use crate::{
+    db::GatewayEvent,
     enterprise::{
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         limits::do_count_update,
@@ -15,13 +19,16 @@ const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 
-pub async fn run_utility_thread(pool: &PgPool) -> Result<(), anyhow::Error> {
+pub async fn run_utility_thread(
+    pool: &PgPool,
+    wireguard_tx: Sender<GatewayEvent>,
+) -> Result<(), anyhow::Error> {
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
     let mut last_updates_check = Instant::now();
 
     let directory_sync_task = || async {
-        if let Err(e) = do_directory_sync(pool).await {
+        if let Err(e) = do_directory_sync(pool, &wireguard_tx).await {
             error!("There was an error while performing directory sync job: {e:?}",);
         }
     };

@@ -8,12 +8,13 @@ use reqwest::header::AUTHORIZATION;
 use sqlx::error::Error as SqlxError;
 use sqlx::PgPool;
 use thiserror::Error;
+use tokio::sync::broadcast::Sender;
 
 use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
 #[cfg(not(test))]
 use super::is_enterprise_enabled;
 use crate::{
-    db::{Group, Id, User},
+    db::{GatewayEvent, Group, Id, User, WireguardNetwork},
     enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
 };
 
@@ -41,6 +42,8 @@ pub enum DirectorySyncError {
     InvalidProviderConfiguration(String),
     #[error("Couldn't construct URL from the given string: {0}")]
     InvalidUrl(String),
+    #[error("Failed to update network state: {0}")]
+    NetworkUpdateError(String),
 }
 
 impl From<reqwest::Error> for DirectorySyncError {
@@ -236,6 +239,34 @@ impl DirectorySyncClient {
     }
 }
 
+async fn update_users_network_access(
+    pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
+) -> Result<(), DirectorySyncError> {
+    let mut transaction = pool.begin().await?;
+    let networks = WireguardNetwork::all(&mut *transaction).await?;
+    for network in networks {
+        let gateway_events = network
+            .sync_allowed_devices(&mut transaction, None)
+            .await
+            .map_err(|err| {
+                DirectorySyncError::NetworkUpdateError(format!(
+                    "Failed to sync allowed devices for network {}: {err}",
+                    network.name
+                ))
+            })?;
+        for event in gateway_events {
+            if let Err(err) = wg_tx.send(event) {
+                error!("Failed to send allowed device update event to gateway in network {} during directory synchronization: {err}. \
+                Gateway allowed devices list may be invalid since we couldn't update it.", network.name);
+            }
+        }
+    }
+    transaction.commit().await?;
+
+    Ok(())
+}
+
 async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
@@ -374,6 +405,7 @@ async fn create_and_add_to_group(
 async fn sync_all_users_groups<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
+    wireguard_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' groups with the directory, this may take a while...");
     let directory_groups = directory_sync.get_groups().await?;
@@ -462,6 +494,7 @@ async fn sync_all_users_groups<T: DirectorySync>(
         }
     }
     transaction.commit().await?;
+    update_users_network_access(pool, wireguard_tx).await?;
 
     info!("Syncing all users' groups done.");
     Ok(())
@@ -487,6 +520,7 @@ fn is_directory_sync_enabled(provider: Option<&OpenIdProvider<Id>>) -> bool {
 async fn sync_all_users_state<T: DirectorySync>(
     directory_sync: &T,
     pool: &PgPool,
+    wireguard_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing all users' state with the directory, this may take a while...");
     let mut transaction = pool.begin().await?;
@@ -536,6 +570,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                 user.email
             );
             user.is_active = false;
+            user.logout_all_sessions(&mut *transaction).await?;
             user.save(&mut *transaction).await?;
         } else {
             debug!("User {} is already disabled, skipping", user.email);
@@ -575,6 +610,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                             user.email
                         );
                         user.is_active = false;
+                        user.logout_all_sessions(&mut *transaction).await?;
                         user.save(&mut *transaction).await?;
                         admin_count -= 1;
                     } else {
@@ -615,6 +651,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                             user.email
                         );
                         user.is_active = false;
+                        user.logout_all_sessions(&mut *transaction).await?;
                         user.save(&mut *transaction).await?;
                     } else {
                         debug!(
@@ -653,6 +690,7 @@ async fn sync_all_users_state<T: DirectorySync>(
     }
     debug!("Done processing enabled users");
     transaction.commit().await?;
+    update_users_network_access(pool, wireguard_tx).await?;
     info!("Syncing all users' state with the directory done");
     Ok(())
 }
@@ -671,7 +709,10 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
     }
 }
 
-pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySyncError> {
+pub(crate) async fn do_directory_sync(
+    pool: &PgPool,
+    wireguard_tx: &Sender<GatewayEvent>,
+) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_enterprise_enabled() {
         debug!("Enterprise is not enabled, skipping performing directory sync");
@@ -700,13 +741,13 @@ pub(crate) async fn do_directory_sync(pool: &PgPool) -> Result<(), DirectorySync
                 sync_target,
                 DirectorySyncTarget::All | DirectorySyncTarget::Users
             ) {
-                sync_all_users_state(&dir_sync, pool).await?;
+                sync_all_users_state(&dir_sync, pool, wireguard_tx).await?;
             }
             if matches!(
                 sync_target,
                 DirectorySyncTarget::All | DirectorySyncTarget::Groups
             ) {
-                sync_all_users_groups(&dir_sync, pool).await?;
+                sync_all_users_groups(&dir_sync, pool, wireguard_tx).await?;
             }
         }
         Err(err) => {
@@ -760,11 +801,17 @@ async fn make_get_request(
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
+    use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
+    use tokio::sync::broadcast;
 
     use super::*;
     use crate::{
-        config::DefGuardConfig, enterprise::db::models::openid_provider::DirectorySyncTarget,
+        config::DefGuardConfig,
+        db::{Session, SessionState},
+        enterprise::db::models::openid_provider::DirectorySyncTarget,
         SERVER_CONFIG,
     };
 
@@ -830,6 +877,7 @@ mod test {
     async fn test_users_state_keep_both(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -848,7 +896,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
@@ -860,6 +908,7 @@ mod test {
     async fn test_users_state_delete_users(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -879,7 +928,7 @@ mod test {
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
 
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_none());
@@ -894,6 +943,7 @@ mod test {
         User::init_admin_user(&pool, config.default_admin_password.expose_secret())
             .await
             .unwrap();
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         let _ = make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -914,7 +964,7 @@ mod test {
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         assert!(
             get_test_user(&pool, "user1").await.is_none()
@@ -932,6 +982,7 @@ mod test {
     async fn test_users_state_delete_both(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -955,7 +1006,7 @@ mod test {
         assert!(get_test_user(&pool, "user1").await.is_some());
         assert!(get_test_user(&pool, "user2").await.is_some());
         assert!(get_test_user(&pool, "testuser").await.is_some());
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         assert!(
             get_test_user(&pool, "user1").await.is_none()
@@ -973,6 +1024,7 @@ mod test {
     async fn test_users_state_disable_users(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Disable,
@@ -993,19 +1045,34 @@ mod test {
         let user2 = get_test_user(&pool, "user2").await.unwrap();
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
+        let disabled_user_session = Session::new(
+            testuserdisabled.id,
+            SessionState::PasswordVerified,
+            "127.0.0.1".into(),
+            None,
+        );
+        disabled_user_session.save(&pool).await.unwrap();
+        assert!(Session::find_by_id(&pool, &disabled_user_session.id)
+            .await
+            .unwrap()
+            .is_some());
 
         assert!(user1.is_active);
         assert!(user2.is_active);
         assert!(testuser.is_active);
         assert!(testuserdisabled.is_active);
 
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
         let testuser = get_test_user(&pool, "testuser").await.unwrap();
         let testuserdisabled = get_test_user(&pool, "testuserdisabled").await.unwrap();
 
+        assert!(!Session::find_by_id(&pool, &disabled_user_session.id)
+            .await
+            .unwrap()
+            .is_some());
         assert!(user1.is_active);
         assert!(!user2.is_active);
         assert!(testuser.is_active);
@@ -1016,6 +1083,7 @@ mod test {
     async fn test_users_state_disable_admins(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Keep,
@@ -1045,7 +1113,7 @@ mod test {
         assert!(testuser.is_active);
         assert!(testuserdisabled.is_active);
 
-        sync_all_users_state(&client, &pool).await.unwrap();
+        sync_all_users_state(&client, &pool, &wg_tx).await.unwrap();
 
         let user1 = get_test_user(&pool, "user1").await.unwrap();
         let user2 = get_test_user(&pool, "user2").await.unwrap();
@@ -1064,6 +1132,7 @@ mod test {
     async fn test_users_groups(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1077,7 +1146,7 @@ mod test {
         make_test_user("testuser", &pool).await;
         make_test_user("testuser2", &pool).await;
         make_test_user("testuserdisabled", &pool).await;
-        sync_all_users_groups(&client, &pool).await.unwrap();
+        sync_all_users_groups(&client, &pool, &wg_tx).await.unwrap();
 
         let mut groups = Group::all(&pool).await.unwrap();
 
@@ -1114,6 +1183,7 @@ mod test {
     async fn test_sync_user_groups(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1137,6 +1207,7 @@ mod test {
     async fn test_sync_target_users(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1149,7 +1220,7 @@ mod test {
         let user = make_test_user("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
     }
@@ -1158,6 +1229,7 @@ mod test {
     async fn test_sync_target_all(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1171,7 +1243,7 @@ mod test {
         make_test_user("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
@@ -1182,6 +1254,7 @@ mod test {
     async fn test_sync_target_groups(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1195,7 +1268,7 @@ mod test {
         make_test_user("user2", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 3);
         let user2 = get_test_user(&pool, "user2").await;
@@ -1206,6 +1279,7 @@ mod test {
     async fn test_sync_unassign_last_admin_group(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1224,7 +1298,7 @@ mod test {
         assert_eq!(user_groups.len(), 1);
         assert!(user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
 
         // He should still be an admin as it's the last one
         assert!(user.is_admin(&pool).await.unwrap());
@@ -1233,7 +1307,7 @@ mod test {
         let user2 = make_test_user("testuser2", &pool).await;
         user2.add_to_group(&pool, &admin_grp).await.unwrap();
 
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
 
         let admins = User::find_admins(&pool).await.unwrap();
         // There should be only one admin left
@@ -1242,13 +1316,14 @@ mod test {
         let defguard_user = make_test_user("defguard", &pool).await;
         make_admin(&pool, &defguard_user).await;
 
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
     }
 
     #[sqlx::test]
     async fn test_sync_delete_last_admin_user(pool: PgPool) {
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
+        let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
         make_test_provider(
             &pool,
             DirectorySyncUserBehavior::Delete,
@@ -1264,7 +1339,7 @@ mod test {
         make_admin(&pool, &defguard_user).await;
         assert!(defguard_user.is_admin(&pool).await.unwrap());
 
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
 
         // The user should still be an admin
         assert!(defguard_user.is_admin(&pool).await.unwrap());
@@ -1276,7 +1351,7 @@ mod test {
             .await
             .unwrap();
 
-        do_directory_sync(&pool).await.unwrap();
+        do_directory_sync(&pool, &wg_tx).await.unwrap();
         let user = User::find_by_username(&pool, "defguard").await.unwrap();
         assert!(user.is_none());
     }
