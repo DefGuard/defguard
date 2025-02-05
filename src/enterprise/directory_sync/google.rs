@@ -90,6 +90,9 @@ impl From<GroupMembersResponse> for Vec<String> {
         val.members
             .unwrap_or_default()
             .into_iter()
+            // There may be arbitrary members in the group, we want only one that are also directory members
+            // Members without a status field don't belong to the directory
+            .filter(|m| m.status.is_some())
             .map(|m| m.email)
             .collect()
     }
