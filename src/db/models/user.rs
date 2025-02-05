@@ -9,7 +9,11 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecutor, PgPool, Type};
+use sqlx::{
+    query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
+    Type,
+};
+use tokio::sync::broadcast::Sender;
 use totp_lite::{totp_custom, Sha1};
 use utoipa::ToSchema;
 
@@ -21,8 +25,9 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, Id, NoId, Session},
+    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
     error::WebError,
+    grpc::gateway::send_multiple_wireguard_events,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
@@ -308,14 +313,34 @@ impl User<Id> {
         Ok(())
     }
 
-    /// Disable and automatically log out all sessions.
-    /// Make sure you also update the gateways state when you want to disable a user.
-    pub async fn disable_and_logout<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
+    /// Disable user, log out all his sessions and update gateways state.
+    pub async fn disable(
+        &mut self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
         self.is_active = false;
-        self.logout_all_sessions(executor).await?;
+        self.save(&mut *transaction).await?;
+        self.logout_all_sessions(&mut *transaction).await?;
+        self.sync_allowed_devices(transaction, wg_tx).await?;
+        Ok(())
+    }
+
+    /// Update gateway state based on this user device access rights
+    pub async fn sync_allowed_devices(
+        &self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
+        debug!("Syncing allowed devices of {}", self.username);
+        let networks = WireguardNetwork::all(&mut *transaction).await?;
+        for network in networks {
+            let gateway_events = network
+                .sync_allowed_devices_for_user(transaction, &self, None)
+                .await?;
+            send_multiple_wireguard_events(gateway_events, wg_tx);
+        }
+        info!("Allowed devices of {} synced", self.username);
         Ok(())
     }
 

@@ -401,6 +401,33 @@ impl WireguardNetworkDevice {
         Ok(res)
     }
 
+    /// Get all devices for a given network and user
+    /// Note: doesn't return network devices added by the user
+    /// as they are not considered to be bound to the user
+    pub(crate) async fn all_for_network_and_user<'e, E>(
+        executor: E,
+        network_id: Id,
+        user_id: Id,
+    ) -> Result<Vec<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let res = query_as!(
+            Self,
+            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
+            preshared_key, is_authorized, authorized_at \
+            FROM wireguard_network_device \
+            WHERE wireguard_network_id = $1 AND device_id IN \
+            (SELECT id FROM device WHERE user_id = $2 AND device_type = 'user'::device_type)",
+            network_id,
+            user_id
+        )
+        .fetch_all(executor)
+        .await?;
+
+        Ok(res)
+    }
+
     pub(crate) async fn network<'e, E>(
         &self,
         executor: E,
@@ -855,6 +882,8 @@ impl Device<Id> {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use claims::{assert_err, assert_ok};
 
     use super::*;
@@ -944,5 +973,126 @@ mod test {
 
         let valid_test_key = "sejIy0WCLvOR7vWNchP9Elsayp3UTK/QCnEJmhsHKTc=";
         assert_ok!(Device::validate_pubkey(valid_test_key));
+    }
+
+    #[sqlx::test]
+    fn test_all_for_network_and_user(pool: PgPool) {
+        let user = User::new(
+            "testuser",
+            Some("hunter2"),
+            "Tester",
+            "Test",
+            "email@email.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "testuser2",
+            Some("hunter2"),
+            "Tester",
+            "Test",
+            "email2@email.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/24").unwrap();
+        let network = network.save(&pool).await.unwrap();
+        let mut network2 = WireguardNetwork::default();
+        network2.name = "testnetwork2".into();
+        network2.try_set_address("10.1.2.1/24").unwrap();
+        let network2 = network2.save(&pool).await.unwrap();
+
+        let device = Device::new(
+            "testdevice".into(),
+            "key".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device2 = Device::new(
+            "testdevice2".into(),
+            "key2".into(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device3 = Device::new(
+            "testdevice3".into(),
+            "key3".into(),
+            user2.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device4 = Device::new(
+            "testdevice4".into(),
+            "key4".into(),
+            user.id,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+
+        network
+            .add_device_to_network(&mut transaction, &device, None)
+            .await
+            .unwrap();
+        network2
+            .add_device_to_network(&mut transaction, &device, None)
+            .await
+            .unwrap();
+        network2
+            .add_device_to_network(&mut transaction, &device2, None)
+            .await
+            .unwrap();
+        network
+            .add_device_to_network(&mut transaction, &device3, None)
+            .await
+            .unwrap();
+        WireguardNetworkDevice::new(
+            network.id,
+            device4.id,
+            IpAddr::from_str("10.1.1.10").unwrap(),
+        )
+        .insert(&mut *transaction)
+        .await
+        .unwrap();
+
+        transaction.commit().await.unwrap();
+
+        let devices = WireguardNetworkDevice::all_for_network_and_user(&pool, network.id, user.id)
+            .await
+            .unwrap();
+
+        println!("{:?}", devices);
+
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].device_id, device.id);
     }
 }
