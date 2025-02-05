@@ -27,7 +27,6 @@ export const OpenidAllowPage = () => {
   const [scope, setScope] = useState<string | null>('');
   const [responseType, setResponseType] = useState<string | null>('');
   const [clientId, setClientId] = useState<string | null>('');
-  const [nonce, setNonce] = useState<string | null>('');
   const [redirectUri, setRedirectUri] = useState<string | null>('');
   const [state, setState] = useState<string | null>('');
   const [name, setName] = useState<string | null>('');
@@ -42,7 +41,8 @@ export const OpenidAllowPage = () => {
   const { LL } = useI18nContext();
 
   const paramsValid = useMemo(() => {
-    const check = [scope, responseType, clientId, nonce, redirectUri, state];
+    // nonce is optional in the auth code flow, just pass it as is further if it's in the params
+    const check = [scope, responseType, clientId, redirectUri, state];
     for (const item of check) {
       if (typeof item === 'undefined' || item === null) {
         toaster.error('OpenID Params invalid.');
@@ -50,7 +50,7 @@ export const OpenidAllowPage = () => {
       }
     }
     return true;
-  }, [clientId, nonce, redirectUri, responseType, scope, state, toaster]);
+  }, [clientId, redirectUri, responseType, scope, state, toaster]);
 
   const handleSubmit = useCallback(
     (allow: boolean) => {
@@ -68,7 +68,6 @@ export const OpenidAllowPage = () => {
     setScope(params.get('scope'));
     setResponseType(params.get('response_type'));
     setClientId(params.get('client_id'));
-    setNonce(params.get('nonce'));
     setState(params.get('state'));
     setRedirectUri(params.get('redirect_uri'));
   }, [params]);

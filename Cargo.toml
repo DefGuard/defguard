@@ -1,6 +1,6 @@
 [package]
 name = "defguard"
-version = "1.2.1"
+version = "1.2.2"
 edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
@@ -86,7 +86,7 @@ tokio = { version = "1", features = [
 ] }
 tokio-stream = "0.1"
 tokio-util = "0.7"
-tonic = { version = "0.12", features = ["gzip", "tls", "tls-roots"] }
+tonic = { version = "0.12", features = ["gzip", "tls", "tls-native-roots"] }
 tonic-health = "0.12"
 totp-lite = { version = "2.0" }
 tower-http = { version = "0.6", features = ["fs", "trace"] }
