@@ -308,6 +308,17 @@ impl User<Id> {
         Ok(())
     }
 
+    /// Disable and automatically log out all sessions.
+    /// Make sure you also update the gateways state when you want to disable a user.
+    pub async fn disable_and_logout<'e, E>(&mut self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        self.is_active = false;
+        self.logout_all_sessions(executor).await?;
+        Ok(())
+    }
+
     /// Enable MFA. At least one of the authenticator factors must be configured.
     pub async fn enable_mfa(&mut self, pool: &PgPool) -> Result<(), WebError> {
         if !self.mfa_enabled {
