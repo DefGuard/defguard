@@ -6,7 +6,7 @@ use tokio::time::sleep;
 
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser,
+    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
 };
 use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
 
@@ -243,7 +243,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -279,7 +279,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -321,7 +321,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -355,7 +355,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)

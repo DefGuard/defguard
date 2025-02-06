@@ -19,6 +19,7 @@ use crate::{
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
+const REQUEST_PAGINATION_SLOWDOWN: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Error)]
 pub enum DirectorySyncError {

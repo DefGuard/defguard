@@ -6,7 +6,10 @@ use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use parse_link_header::parse_with_rel;
 use tokio::time::sleep;
 
-use super::{parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser};
+use super::{
+    parse_response, DirectoryGroup, DirectorySync, DirectorySyncError, DirectoryUser,
+    REQUEST_PAGINATION_SLOWDOWN,
+};
 use crate::enterprise::directory_sync::make_get_request;
 
 // Okta suggests using the maximum limit of 200 for the number of results per page.
@@ -216,7 +219,7 @@ impl OktaDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -260,7 +263,7 @@ impl OktaDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -309,7 +312,7 @@ impl OktaDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -396,7 +399,7 @@ impl OktaDirectorySync {
                 break;
             }
 
-            sleep(Duration::from_millis(100)).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
