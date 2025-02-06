@@ -197,6 +197,16 @@ export interface DeleteAuthenticationKeyModal {
   authenticationKey?: AuthenticationKey;
 }
 
+export interface AddApiTokenModal {
+  visible: boolean;
+  user?: User;
+}
+
+export interface DeleteApiTokenModal {
+  visible: boolean;
+  apiToken?: ApiToken;
+}
+
 export interface DeleteOpenidClientModal {
   visible: boolean;
   client?: OpenidClient;
@@ -380,6 +390,24 @@ export type AddAuthenticationKeyRequest = {
   key_type: string;
 } & AuthenticationKeyRequestBase;
 
+export type ApiTokenInfo = {
+  id: number;
+  name?: string;
+};
+
+export type ApiTokenRequestBase = {
+  username: string;
+};
+
+export type RenameApiTokenRequest = {
+  id: number;
+  name: string;
+} & ApiTokenRequestBase;
+
+export type AddApiTokenRequest = {
+  name: string;
+} & ApiTokenRequestBase;
+
 export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
@@ -401,6 +429,11 @@ export type AuthenticationKey = {
   name: string;
   key_type: AuthenticationKeyType;
   key: string;
+};
+
+export type ApiToken = {
+  id: number;
+  name: string;
 };
 
 export type EnterpriseInfoResponse = {
@@ -455,6 +488,14 @@ export interface ApiHook {
       name: string;
     }) => EmptyApiResponse;
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
+    getApiTokensInfo: (data: ApiTokenRequestBase) => Promise<ApiToken[]>;
+    addApiToken: (data: AddApiTokenRequest) => EmptyApiResponse;
+    deleteApiToken: (data: { id: number; username: string }) => EmptyApiResponse;
+    renameApiToken: (data: {
+      id: number;
+      username: string;
+      name: string;
+    }) => EmptyApiResponse;
   };
   standaloneDevice: {
     createManualDevice: (

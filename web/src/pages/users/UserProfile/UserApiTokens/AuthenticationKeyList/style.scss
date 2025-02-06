@@ -1,0 +1,130 @@
+@use '@scssutils' as *;
+
+.api-token-list {
+  display: flex;
+  flex-flow: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  row-gap: 15px;
+  width: 100%;
+  max-width: 100%;
+
+  .api-token-item {
+    --controls-size: 40px;
+    background-color: var(--surface-default-modal);
+    border: 1px solid transparent;
+    border-radius: 15px;
+    box-sizing: border-box;
+    position: relative;
+    transition-property: border;
+    transition-timing-function: ease-in-out;
+    transition-duration: 200ms;
+    max-width: 100%;
+    width: 100%;
+    overflow: hidden;
+
+    &.yubikey {
+      --controls-size: 90px;
+    }
+
+    & > header {
+      .top {
+        padding-right: var(--controls-size);
+        box-sizing: border-box;
+      }
+    }
+
+    .controls {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      display: flex;
+      flex-flow: row;
+      row-gap: 5px;
+
+      & > * {
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+      }
+
+      .expand-button {
+        border: 0px solid transparent;
+        background-color: transparent;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        padding: 0;
+        margin: 0;
+      }
+    }
+
+    .expandable-section {
+      width: 100%;
+      display: grid;
+      grid-template-rows: 0fr;
+
+      & > div {
+        overflow: hidden;
+      }
+
+      .item-content {
+        border-top: 1px solid var(--border-primary);
+      }
+    }
+
+    .item-content {
+      box-sizing: border-box;
+      padding: 20px 25px;
+
+      .avatar-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        max-width: 40px;
+      }
+
+      .top {
+        padding-bottom: 18px;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        column-gap: 8px;
+
+        p {
+          @include typography(app-side-bar);
+        }
+      }
+
+      .top,
+      .bottom {
+        overflow: hidden;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .bottom {
+        & > label {
+          padding-bottom: 8px;
+        }
+
+        p {
+          @include typography(app-button-xl);
+        }
+      }
+    }
+
+    &.active {
+      border-color: var(--border-primary);
+    }
+
+    &.expanded {
+      .expandable-section {
+        grid-template-rows: auto;
+      }
+    }
+  }
+}

@@ -386,6 +386,22 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteYubiKey: ApiHook['user']['deleteYubiKey'] = (data) =>
     client.delete(`/user/${data.username}/yubikey/${data.id}`).then(unpackRequest);
 
+  const getApiTokensInfo: ApiHook['user']['getApiTokensInfo'] = (data) =>
+    client.get(`/user/${data.username}/api_token`).then(unpackRequest);
+
+  const addApiToken: ApiHook['user']['addApiToken'] = (data) =>
+    client.post(`/user/${data.username}/api_token`, data).then(unpackRequest);
+
+  const renameApiToken: ApiHook['user']['renameApiToken'] = (data) =>
+    client
+      .post(`/user/${data.username}/api_token/${data.id}/rename`, {
+        name: data.name,
+      })
+      .then(unpackRequest);
+
+  const deleteApiToken: ApiHook['user']['deleteApiToken'] = (data) =>
+    client.delete(`/user/${data.username}/api_token/${data.id}`).then(unpackRequest);
+
   const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
@@ -554,12 +570,16 @@ const useApi = (props?: HookProps): ApiHook => {
       removeFromGroup,
       startEnrollment,
       startDesktopActivation,
-      getAuthenticationKeysInfo: getAuthenticationKeysInfo,
+      getAuthenticationKeysInfo,
       addAuthenticationKey,
       deleteAuthenticationKey,
       renameAuthenticationKey,
       deleteYubiKey,
       renameYubikey,
+      getApiTokensInfo,
+      addApiToken,
+      deleteApiToken,
+      renameApiToken,
     },
     device: {
       addDevice: addDevice,

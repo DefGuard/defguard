@@ -873,6 +873,39 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
       },
     },
+    apiTokens: {
+      header: 'User API Tokens',
+      addToken: 'Add new API Token',
+      tokensList: {
+        common: {
+          rename: 'Rename',
+          token: 'Token',
+          copy: 'Copy',
+          delete: 'Delete',
+        },
+      },
+      deleteModal: {
+        title: 'Delete API Token',
+        confirmMessage: 'API token {name: string} will be deleted permanently.',
+      },
+      addModal: {
+        header: 'Add new API Token',
+        tokenForm: {
+          placeholders: {
+            name: 'API Token Name',
+          },
+          labels: {
+            name: 'Name',
+          },
+          submit: 'Add API token',
+        },
+        messages: {
+          tokenAdded: 'API token added.',
+          tokenExists: 'API token has already been added.',
+          genericError: 'Could not add API token. Please try again later.',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Users',

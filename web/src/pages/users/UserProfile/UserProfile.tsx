@@ -26,6 +26,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
+import { UserApiTokens } from './UserApiTokens/UserApiTokens';
 import { UserAuthenticationKeys } from './UserAuthenticationKeys/UserAuthenticationKeys';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
@@ -102,6 +103,9 @@ export const UserProfile = () => {
         </div>
         <div className="cards-2">
           <UserAuthenticationKeys />
+        </div>
+        <div className="cards-3">
+          <UserApiTokens />
         </div>
       </div>
     </section>
