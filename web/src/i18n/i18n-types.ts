@@ -2872,6 +2872,26 @@ type RootTranslation = {
 						 */
 						uploadPrompt: string
 					}
+					okta_client_id: {
+						/**
+						 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​I​D
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​I​D​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​.
+						 */
+						helper: string
+					}
+					okta_client_key: {
+						/**
+						 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​C​l​i​e​n​t​ ​P​r​i​v​a​t​e​ ​K​e​y
+						 */
+						label: string
+						/**
+						 * C​l​i​e​n​t​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​ ​i​n​ ​t​h​e​ ​J​W​K​ ​f​o​r​m​a​t​.​ ​I​t​ ​w​o​n​'​t​ ​b​e​ ​s​h​o​w​n​ ​a​g​a​i​n​ ​h​e​r​e​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -7674,6 +7694,26 @@ export type TranslationFunctions = {
 						 * Upload a service account key file
 						 */
 						uploadPrompt: () => LocalizedString
+					}
+					okta_client_id: {
+						/**
+						 * Directory Sync Client ID
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client ID for the Okta directory sync application.
+						 */
+						helper: () => LocalizedString
+					}
+					okta_client_key: {
+						/**
+						 * Directory Sync Client Private Key
+						 */
+						label: () => LocalizedString
+						/**
+						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
 					}
 				}
 			}

@@ -1048,7 +1048,7 @@ dependencies = [
 
 [[package]]
 name = "defguard"
-version = "1.2.2"
+version = "1.2.3"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1064,6 +1064,7 @@ dependencies = [
  "dotenvy",
  "humantime",
  "ipnetwork",
+ "jsonwebkey",
  "jsonwebtoken",
  "ldap3",
  "lettre",
@@ -1072,6 +1073,7 @@ dependencies = [
  "mime_guess",
  "model_derive",
  "openidconnect",
+ "parse_link_header",
  "paste",
  "pgp",
  "prost",
@@ -2411,6 +2413,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonwebkey"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c57c852b14147e2bd58c14fde40398864453403ef632b1101db130282ee6e2cc"
+dependencies = [
+ "base64 0.13.1",
+ "bitflags 1.3.2",
+ "generic-array",
+ "num-bigint",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "yasna",
+ "zeroize",
+]
+
+[[package]]
 name = "jsonwebtoken"
 version = "9.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3091,6 +3110,17 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f2a05b18d44e2957b88f96ba460715e295bc1d7510468a2f3d3b44535d26c24"
 dependencies = [
+ "regex",
+]
+
+[[package]]
+name = "parse_link_header"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbc23fdb8bbf668d582b0c17120bf6b7f91d85ccad3a5b39706f019a4efda005"
+dependencies = [
+ "http 1.2.0",
+ "lazy_static",
  "regex",
 ]
 
@@ -5963,6 +5993,15 @@ dependencies = [
  "rusticata-macros",
  "thiserror 1.0.69",
  "time",
+]
+
+[[package]]
+name = "yasna"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e262a29d0e61ccf2b6190d7050d4b237535fc76ce4c1210d9caa316f71dffa75"
+dependencies = [
+ "num-bigint",
 ]
 
 [[package]]

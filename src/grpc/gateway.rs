@@ -27,6 +27,26 @@ use crate::{
 
 tonic::include_proto!("gateway");
 
+/// Sends given `GatewayEvent` to be handled by gateway GRPC server
+///
+/// If you want to use it inside the API context, use [`crate::AppState::send_wireguard_event`] instead
+pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
+    debug!("Sending the following WireGuard event to the gateway: {event:?}");
+    if let Err(err) = wg_tx.send(event) {
+        error!("Error sending WireGuard event {err}");
+    }
+}
+
+/// Sends multiple events to be handled by gateway GRPC server
+///
+/// If you want to use it inside the API context, use [`crate::AppState::send_multiple_wireguard_events`] instead
+pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<GatewayEvent>) {
+    debug!("Sending {} wireguard events", events.len());
+    for event in events {
+        send_wireguard_event(event, wg_tx);
+    }
+}
+
 pub struct GatewayServer {
     pool: PgPool,
     state: Arc<Mutex<GatewayMap>>,

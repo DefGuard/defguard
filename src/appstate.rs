@@ -18,6 +18,7 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, WebHook},
+    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
 };
@@ -26,7 +27,7 @@ use crate::{
 pub struct AppState {
     pub pool: PgPool,
     tx: UnboundedSender<AppEvent>,
-    wireguard_tx: Sender<GatewayEvent>,
+    pub wireguard_tx: Sender<GatewayEvent>,
     pub mail_tx: UnboundedSender<Mail>,
     pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
@@ -79,19 +80,16 @@ impl AppState {
         }
     }
 
-    /// Sends given `GatewayEvent` to be handled by gateway GRPC server
+    /// Sends given `GatewayEvent` to be handled by gateway GRPC server.
+    /// Convenience wrapper around [`send_wireguard_event`]
     pub fn send_wireguard_event(&self, event: GatewayEvent) {
-        if let Err(err) = self.wireguard_tx.send(event) {
-            error!("Error sending WireGuard event {err}");
-        }
+        send_wireguard_event(event, &self.wireguard_tx);
     }
 
-    /// Sends multiple events to be handled by gateway GRPC server
+    /// Sends multiple events to be handled by gateway GRPC server.
+    /// Convenience wrapper around [`send_multiple_wireguard_events`]
     pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
-        debug!("Sending {} wireguard events", events.len());
-        for event in events {
-            self.send_wireguard_event(event);
-        }
+        send_multiple_wireguard_events(events, &self.wireguard_tx);
     }
 
     /// Create application state

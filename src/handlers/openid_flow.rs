@@ -144,6 +144,7 @@ struct FieldResponseTypes(Vec<CoreResponseType>);
 
 impl Deref for FieldResponseTypes {
     type Target = Vec<CoreResponseType>;
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }

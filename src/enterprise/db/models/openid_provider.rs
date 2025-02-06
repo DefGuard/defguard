@@ -106,6 +106,10 @@ pub struct OpenIdProvider<I = NoId> {
     pub directory_sync_admin_behavior: DirectorySyncUserBehavior,
     #[model(enum)]
     pub directory_sync_target: DirectorySyncTarget,
+    // Specific stuff for Okta
+    pub okta_private_jwk: Option<String>,
+    // The client ID of the directory sync app specifically
+    pub okta_dirsync_client_id: Option<String>,
 }
 
 impl OpenIdProvider {
@@ -124,6 +128,8 @@ impl OpenIdProvider {
         directory_sync_user_behavior: DirectorySyncUserBehavior,
         directory_sync_admin_behavior: DirectorySyncUserBehavior,
         directory_sync_target: DirectorySyncTarget,
+        okta_private_jwk: Option<String>,
+        okta_dirsync_client_id: Option<String>,
     ) -> Self {
         Self {
             id: NoId,
@@ -140,6 +146,8 @@ impl OpenIdProvider {
             directory_sync_user_behavior,
             directory_sync_admin_behavior,
             directory_sync_target,
+            okta_private_jwk,
+            okta_dirsync_client_id,
         }
     }
 
@@ -149,9 +157,10 @@ impl OpenIdProvider {
                 "UPDATE openidprovider SET name = $1, \
                 base_url = $2, client_id = $3, client_secret = $4, \
                 display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, \
-                directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12, \
-                directory_sync_target = $13 \
-                WHERE id = $14",
+                directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, \
+                directory_sync_admin_behavior = $12, directory_sync_target = $13, \
+                okta_private_jwk = $14, okta_dirsync_client_id = $15 \
+                WHERE id = $16",
                 self.name,
                 self.base_url,
                 self.client_id,
@@ -165,6 +174,8 @@ impl OpenIdProvider {
                 self.directory_sync_user_behavior as DirectorySyncUserBehavior,
                 self.directory_sync_admin_behavior as DirectorySyncUserBehavior,
                 self.directory_sync_target as DirectorySyncTarget,
+                self.okta_private_jwk,
+                self.okta_dirsync_client_id,
                 provider.id,
             )
             .execute(pool)
@@ -185,7 +196,8 @@ impl OpenIdProvider<Id> {
             google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, 
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
-            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\" \
+            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
+            okta_private_jwk, okta_dirsync_client_id \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -200,7 +212,8 @@ impl OpenIdProvider<Id> {
             google_service_account_key, google_service_account_email, admin_email, directory_sync_enabled, \
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
-            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\" \
+            directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
+            okta_private_jwk, okta_dirsync_client_id \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(pool)

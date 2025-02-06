@@ -1182,6 +1182,15 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             uploaded: 'File uploaded',
             uploadPrompt: 'Upload a service account key file',
           },
+          okta_client_id: {
+            label: 'Directory Sync Client ID',
+            helper: 'Client ID for the Okta directory sync application.',
+          },
+          okta_client_key: {
+            label: 'Directory Sync Client Private Key',
+            helper:
+              "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
+          },
         },
       },
     },

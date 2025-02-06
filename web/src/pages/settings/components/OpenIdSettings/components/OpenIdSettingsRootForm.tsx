@@ -96,6 +96,8 @@ export const OpenIdSettingsRootForm = () => {
           directory_sync_admin_behavior: z.string(),
           directory_sync_target: z.string(),
           create_account: z.boolean(),
+          okta_private_jwk: z.string(),
+          okta_dirsync_client_id: z.string(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -104,6 +106,16 @@ export const OpenIdSettingsRootForm = () => {
               message: LL.form.error.required(),
               path: ['name'],
             });
+          }
+
+          if (val.directory_sync_enabled && val.base_url.includes('okta')) {
+            if (val.okta_dirsync_client_id.length === 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: LL.form.error.required(),
+                path: ['okta_dirsync_client_id'],
+              });
+            }
           }
 
           if (val.directory_sync_enabled && val.name === 'Google') {
@@ -144,6 +156,8 @@ export const OpenIdSettingsRootForm = () => {
       directory_sync_admin_behavior: 'keep',
       directory_sync_target: 'all',
       create_account: false,
+      okta_private_jwk: '',
+      okta_dirsync_client_id: '',
     };
 
     if (openidData) {

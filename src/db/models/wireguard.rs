@@ -29,7 +29,10 @@ use super::{
 use crate::{
     appstate::AppState,
     db::{Id, NoId},
-    grpc::{gateway::Peer, GatewayState},
+    grpc::{
+        gateway::{send_multiple_wireguard_events, Peer},
+        GatewayState,
+    },
     wg_config::ImportedDevice,
 };
 
@@ -213,7 +216,7 @@ impl WireguardNetwork<Id> {
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            app.send_multiple_wireguard_events(gateway_events);
+            send_multiple_wireguard_events(gateway_events, &app.wireguard_tx);
         }
         transaction.commit().await?;
         Ok(())
@@ -255,6 +258,7 @@ impl WireguardNetwork<Id> {
 
     /// Get a list of all devices belonging to users in allowed groups.
     /// Admin users should always be allowed to access a network.
+    /// Note: Doesn't check if the devices are really in the network.
     async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
@@ -291,6 +295,57 @@ impl WireguardNetwork<Id> {
                     WHERE u.is_active = true \
                     AND d.device_type = 'user'::device_type \
                     ORDER BY d.id ASC"
+                )
+                .fetch_all(&mut *transaction)
+                .await?
+            }
+        };
+
+        Ok(devices)
+    }
+
+    /// Get a list of devices belonging to a user which are also in the network's allowed groups.
+    /// Admin users should always be allowed to access a network.
+    /// Note: Doesn't check if the devices are really in the network.
+    async fn get_allowed_devices_for_user(
+        &self,
+        transaction: &mut PgConnection,
+        user_id: Id,
+    ) -> Result<Vec<Device<Id>>, ModelError> {
+        debug!("Fetching all allowed devices for network {}", self);
+        let devices = match self.get_allowed_groups(&mut *transaction).await? {
+            // devices need to be filtered by allowed group
+            Some(allowed_groups) => {
+                query_as!(
+                Device,
+                "SELECT DISTINCT ON (d.id) d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                configured
+                FROM device d \
+                JOIN \"user\" u ON d.user_id = u.id \
+                JOIN group_user gu ON u.id = gu.user_id \
+                JOIN \"group\" g ON gu.group_id = g.id \
+                WHERE g.\"name\" IN (SELECT * FROM UNNEST($1::text[])) \
+                AND u.is_active = true \
+                AND d.device_type = 'user'::device_type \
+                AND d.user_id = $2 \
+                ORDER BY d.id ASC",
+                &allowed_groups, user_id
+            )
+                .fetch_all(&mut *transaction)
+                .await?
+            }
+            // all devices of enabled users are allowed
+            None => {
+                query_as!(
+                    Device,
+                    "SELECT d.id, d.name, d.wireguard_pubkey, d.user_id, d.created, d.description, d.device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device d \
+                    JOIN \"user\" u ON d.user_id = u.id \
+                    WHERE u.is_active = true \
+                    AND d.device_type = 'user'::device_type \
+                    AND d.user_id = $1 \
+                    ORDER BY d.id ASC", user_id
                 )
                 .fetch_all(&mut *transaction)
                 .await?
@@ -355,42 +410,19 @@ impl WireguardNetwork<Id> {
         Ok(wireguard_network_device)
     }
 
-    /// Refresh network IPs for all relevant devices
-    /// If the list of allowed devices has changed add/remove devices accordingly
-    /// If the network address has changed readdress existing devices
-    pub(crate) async fn sync_allowed_devices(
+    /// Works out which devices need to be added, removed, or readdressed
+    /// based on the list of currently configured devices and the list of devices which should be allowed
+    async fn process_device_access_changes(
         &self,
         transaction: &mut PgConnection,
+        mut allowed_devices: HashMap<Id, Device<Id>>,
+        currently_configured_devices: Vec<WireguardNetworkDevice>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        info!("Synchronizing IPs in network {self} for all allowed devices ");
-        // list all allowed devices
-        let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
-        // network devices are always allowed, make sure to take only network devices already assigned to that network
-        let network_devices =
-            Device::find_by_type_and_network(&mut *transaction, DeviceType::Network, self.id)
-                .await?;
-        allowed_devices.extend(network_devices);
-
-        // convert to a map for easier processing
-        let mut allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
-            .into_iter()
-            .map(|dev| (dev.id, dev))
-            .collect();
-
-        // check if all devices can fit within network
-        // include address, network, and broadcast in the calculation
-        let count = allowed_devices.len() + 3;
-        self.validate_network_size(count)?;
-
-        // list all assigned IPs
-        let assigned_ips =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
-
-        // loop through assigned IPs; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
+        // loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
         // initial list should now contain only devices to be added
-        let mut events = Vec::new();
-        for device_network_config in assigned_ips {
+        let mut events: Vec<GatewayEvent> = Vec::new();
+        for device_network_config in currently_configured_devices {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
                 // network address changed and IP needs to be updated
@@ -450,6 +482,93 @@ impl WireguardNetwork<Id> {
                 }],
             }));
         }
+
+        Ok(events)
+    }
+
+    /// Refresh network IPs for all relevant devices of a given user
+    /// If the list of allowed devices has changed add/remove devices accordingly
+    /// If the network address has changed readdress existing devices
+    pub(crate) async fn sync_allowed_devices_for_user(
+        &self,
+        transaction: &mut PgConnection,
+        user: &User<Id>,
+        reserved_ips: Option<&[IpAddr]>,
+    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+        info!("Synchronizing IPs in network {self} for all allowed devices ");
+        // list all allowed devices
+        let allowed_devices = self
+            .get_allowed_devices_for_user(&mut *transaction, user.id)
+            .await?;
+
+        // convert to a map for easier processing
+        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
+            .into_iter()
+            .map(|dev| (dev.id, dev))
+            .collect();
+
+        // check if all devices can fit within network
+        // include address, network, and broadcast in the calculation
+        let count = allowed_devices.len() + 3;
+        self.validate_network_size(count)?;
+
+        // list all assigned IPs
+        let assigned_ips =
+            WireguardNetworkDevice::all_for_network_and_user(&mut *transaction, self.id, user.id)
+                .await?;
+
+        let events = self
+            .process_device_access_changes(
+                &mut *transaction,
+                allowed_devices,
+                assigned_ips,
+                reserved_ips,
+            )
+            .await?;
+
+        Ok(events)
+    }
+
+    /// Refresh network IPs for all relevant devices
+    /// If the list of allowed devices has changed add/remove devices accordingly
+    /// If the network address has changed readdress existing devices
+    pub(crate) async fn sync_allowed_devices(
+        &self,
+        transaction: &mut PgConnection,
+        reserved_ips: Option<&[IpAddr]>,
+    ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
+        info!("Synchronizing IPs in network {self} for all allowed devices ");
+        // list all allowed devices
+        let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        // network devices are always allowed, make sure to take only network devices already assigned to that network
+        let network_devices =
+            Device::find_by_type_and_network(&mut *transaction, DeviceType::Network, self.id)
+                .await?;
+        allowed_devices.extend(network_devices);
+
+        // convert to a map for easier processing
+        let allowed_devices: HashMap<Id, Device<Id>> = allowed_devices
+            .into_iter()
+            .map(|dev| (dev.id, dev))
+            .collect();
+
+        // check if all devices can fit within network
+        // include address, network, and broadcast in the calculation
+        let count = allowed_devices.len() + 3;
+        self.validate_network_size(count)?;
+
+        // list all assigned IPs
+        let assigned_ips =
+            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+
+        let events = self
+            .process_device_access_changes(
+                &mut *transaction,
+                allowed_devices,
+                assigned_ips,
+                reserved_ips,
+            )
+            .await?;
 
         Ok(events)
     }
@@ -1041,6 +1160,7 @@ mod test {
     use chrono::{SubsecRound, TimeDelta};
 
     use super::*;
+    use crate::db::Group;
 
     #[sqlx::test]
     async fn test_connected_at_reconnection(pool: PgPool) {
@@ -1164,5 +1284,422 @@ mod test {
             // PostgreSQL stores 6 sub-second digits while chrono stores 9.
             (now - TimeDelta::minutes(samples)).trunc_subsecs(6),
         );
+    }
+
+    #[sqlx::test]
+    async fn test_get_allowed_devices_for_user(pool: PgPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user1 = User::new(
+            "user1",
+            Some("pass1"),
+            "Test",
+            "User1",
+            "user1@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "user2",
+            Some("pass2"),
+            "Test",
+            "User2",
+            "user2@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device1 = Device::new(
+            "device1".into(),
+            "key1".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device2 = Device::new(
+            "device2".into(),
+            "key2".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device3 = Device::new(
+            "device3".into(),
+            "key3".into(),
+            user2.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let devices = network
+            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), user1.id)
+            .await
+            .unwrap();
+        assert_eq!(devices.len(), 2);
+        assert!(devices.iter().any(|d| d.id == device1.id));
+        assert!(devices.iter().any(|d| d.id == device2.id));
+
+        let devices = network
+            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), user2.id)
+            .await
+            .unwrap();
+        assert_eq!(devices.len(), 1);
+        assert!(devices.iter().any(|d| d.id == device3.id));
+
+        let devices = network
+            .get_allowed_devices_for_user(&mut pool.acquire().await.unwrap(), Id::from(999))
+            .await
+            .unwrap();
+        assert!(devices.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_get_allowed_devices_for_user_with_groups(pool: PgPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user1 = User::new(
+            "user1",
+            Some("pass1"),
+            "Test",
+            "User1",
+            "user1@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "user2",
+            Some("pass2"),
+            "Test",
+            "User2",
+            "user2@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let group1 = Group::new("group1").save(&pool).await.unwrap();
+        let group2 = Group::new("group2").save(&pool).await.unwrap();
+
+        user1.add_to_group(&pool, &group1).await.unwrap();
+        user2.add_to_group(&pool, &group2).await.unwrap();
+
+        let device1 = Device::new(
+            "device1".into(),
+            "key1".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        Device::new(
+            "device2".into(),
+            "key2".into(),
+            user2.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+
+        network
+            .set_allowed_groups(&mut transaction, vec![group1.name])
+            .await
+            .unwrap();
+
+        let devices = network
+            .get_allowed_devices_for_user(&mut transaction, user1.id)
+            .await
+            .unwrap();
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].id, device1.id);
+
+        let devices = network
+            .get_allowed_devices_for_user(&mut transaction, user2.id)
+            .await
+            .unwrap();
+        assert!(devices.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_sync_allowed_devices_for_user(pool: PgPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user1 = User::new(
+            "testuser1",
+            Some("pass1"),
+            "Tester1",
+            "Test1",
+            "test1@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "testuser2",
+            Some("pass2"),
+            "Tester2",
+            "Test2",
+            "test2@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device1 = Device::new(
+            "device1".into(),
+            "key1".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device2 = Device::new(
+            "device2".into(),
+            "key2".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device3 = Device::new(
+            "device3".into(),
+            "key3".into(),
+            user2.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+
+        // user1 sync
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
+            .await
+            .unwrap();
+
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().any(|e| match e {
+            GatewayEvent::DeviceCreated(info) => info.device.id == device1.id,
+            _ => false,
+        }));
+        assert!(events.iter().any(|e| match e {
+            GatewayEvent::DeviceCreated(info) => info.device.id == device2.id,
+            _ => false,
+        }));
+
+        // user 2 sync
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user2, None)
+            .await
+            .unwrap();
+
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            GatewayEvent::DeviceCreated(info) => {
+                assert_eq!(info.device.id, device3.id);
+            }
+            _ => panic!("Expected DeviceCreated event"),
+        }
+
+        // Second sync should not generate any events
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
+            .await
+            .unwrap();
+        assert_eq!(events.len(), 0);
+
+        transaction.commit().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_sync_allowed_devices_for_user_with_groups(pool: PgPool) {
+        let mut network = WireguardNetwork::default();
+        network.try_set_address("10.1.1.1/29").unwrap();
+        let network = network.save(&pool).await.unwrap();
+
+        let user1 = User::new(
+            "testuser1",
+            Some("pass1"),
+            "Tester1",
+            "Test1",
+            "test1@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "testuser2",
+            Some("pass2"),
+            "Tester2",
+            "Test2",
+            "test2@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user3 = User::new(
+            "testuser3",
+            Some("pass3"),
+            "Tester3",
+            "Test3",
+            "test3@test.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device1 = Device::new(
+            "device1".into(),
+            "key1".into(),
+            user1.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device2 = Device::new(
+            "device2".into(),
+            "key2".into(),
+            user2.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device3 = Device::new(
+            "device3".into(),
+            "key3".into(),
+            user3.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let group1 = Group::new("group1").save(&pool).await.unwrap();
+        let group2 = Group::new("group2").save(&pool).await.unwrap();
+
+        let mut transaction = pool.begin().await.unwrap();
+
+        network
+            .set_allowed_groups(
+                &mut transaction,
+                vec![group1.name.clone(), group2.name.clone()],
+            )
+            .await
+            .unwrap();
+
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
+            .await
+            .unwrap();
+        assert_eq!(events.len(), 0);
+
+        user1.add_to_group(&pool, &group1).await.unwrap();
+        user2.add_to_group(&pool, &group1).await.unwrap();
+        user3.add_to_group(&pool, &group2).await.unwrap();
+
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user1, None)
+            .await
+            .unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            GatewayEvent::DeviceCreated(info) => {
+                assert_eq!(info.device.id, device1.id);
+            }
+            _ => panic!("Expected DeviceCreated event"),
+        }
+
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user2, None)
+            .await
+            .unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            GatewayEvent::DeviceCreated(info) => {
+                assert_eq!(info.device.id, device2.id);
+            }
+            _ => panic!("Expected DeviceCreated event"),
+        }
+
+        let events = network
+            .sync_allowed_devices_for_user(&mut transaction, &user3, None)
+            .await
+            .unwrap();
+        assert_eq!(events.len(), 1);
+        match &events[0] {
+            GatewayEvent::DeviceCreated(info) => {
+                assert_eq!(info.device.id, device3.id);
+            }
+            _ => panic!("Expected DeviceCreated event"),
+        }
+
+        transaction.commit().await.unwrap();
     }
 }

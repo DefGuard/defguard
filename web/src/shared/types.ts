@@ -909,6 +909,8 @@ export interface OpenIdProvider {
   directory_sync_user_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_admin_behavior: 'keep' | 'disable' | 'delete';
   directory_sync_target: 'all' | 'users' | 'groups';
+  okta_private_jwk?: string;
+  okta_dirsync_client_id?: string;
 }
 
 export interface EditOpenidClientRequest {
