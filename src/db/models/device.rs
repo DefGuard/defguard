@@ -1090,8 +1090,6 @@ mod test {
             .await
             .unwrap();
 
-        println!("{:?}", devices);
-
         assert_eq!(devices.len(), 1);
         assert_eq!(devices[0].device_id, device.id);
     }

@@ -31,6 +31,7 @@ tonic::include_proto!("gateway");
 ///
 /// If you want to use it inside the API context, use [`crate::AppState::send_wireguard_event`] instead
 pub fn send_wireguard_event(event: GatewayEvent, wg_tx: &Sender<GatewayEvent>) {
+    debug!("Sending the following WireGuard event to the gateway: {event:?}");
     if let Err(err) = wg_tx.send(event) {
         error!("Error sending WireGuard event {err}");
     }
