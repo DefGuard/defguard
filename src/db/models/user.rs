@@ -18,7 +18,7 @@ use totp_lite::{totp_custom, Sha1};
 use utoipa::ToSchema;
 
 use super::{
-    device::{Device, DeviceType, UserDevice},
+    device::{Device, DeviceInfo, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
@@ -28,6 +28,7 @@ use crate::{
     db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
     error::WebError,
     grpc::gateway::send_multiple_wireguard_events,
+    ldap::utils::ldap_delete_user,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
@@ -336,11 +337,39 @@ impl User<Id> {
         let networks = WireguardNetwork::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network
-                .sync_allowed_devices_for_user(transaction, &self, None)
+                .sync_allowed_devices_for_user(transaction, self, None)
                 .await?;
             send_multiple_wireguard_events(gateway_events, wg_tx);
         }
         info!("Allowed devices of {} synced", self.username);
+        Ok(())
+    }
+
+    /// Deletes the user and cleans up his devices from gateways
+    pub async fn delete_and_cleanup(
+        self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
+        let username = self.username.clone();
+        debug!(
+            "Deleting user {}, removing his devices from gateways and updating ldap...",
+            &username
+        );
+        let devices = self.devices(&mut *transaction).await?;
+        let mut events = Vec::new();
+        for device in devices {
+            events.push(GatewayEvent::DeviceDeleted(
+                DeviceInfo::from_device(&mut *transaction, device).await?,
+            ));
+        }
+        self.delete(&mut *transaction).await?;
+        send_multiple_wireguard_events(events, wg_tx);
+        let _result = ldap_delete_user(&username).await;
+        info!(
+            "The user {} has been deleted and his devices removed from gateways.",
+            &username
+        );
         Ok(())
     }
 
