@@ -9,20 +9,26 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
-use sqlx::{query, query_as, query_scalar, Error as SqlxError, FromRow, PgExecutor, PgPool, Type};
+use sqlx::{
+    query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
+    Type,
+};
+use tokio::sync::broadcast::Sender;
 use totp_lite::{totp_custom, Sha1};
 use utoipa::ToSchema;
 
 use super::{
-    device::{Device, DeviceType, UserDevice},
+    device::{Device, DeviceInfo, DeviceType, UserDevice},
     group::Group,
     webauthn::WebAuthn,
     MFAInfo, OAuth2AuthorizedAppInfo, SecurityKey,
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, Id, NoId, Session},
+    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
     error::WebError,
+    grpc::gateway::send_multiple_wireguard_events,
+    ldap::utils::ldap_delete_user,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
@@ -305,6 +311,65 @@ impl User<Id> {
                 }
             }
         };
+        Ok(())
+    }
+
+    /// Disable user, log out all his sessions and update gateways state.
+    pub async fn disable(
+        &mut self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
+        self.is_active = false;
+        self.save(&mut *transaction).await?;
+        self.logout_all_sessions(&mut *transaction).await?;
+        self.sync_allowed_devices(transaction, wg_tx).await?;
+        Ok(())
+    }
+
+    /// Update gateway state based on this user device access rights
+    pub async fn sync_allowed_devices(
+        &self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
+        debug!("Syncing allowed devices of {}", self.username);
+        let networks = WireguardNetwork::all(&mut *transaction).await?;
+        for network in networks {
+            let gateway_events = network
+                .sync_allowed_devices_for_user(transaction, self, None)
+                .await?;
+            send_multiple_wireguard_events(gateway_events, wg_tx);
+        }
+        info!("Allowed devices of {} synced", self.username);
+        Ok(())
+    }
+
+    /// Deletes the user and cleans up his devices from gateways
+    pub async fn delete_and_cleanup(
+        self,
+        transaction: &mut PgConnection,
+        wg_tx: &Sender<GatewayEvent>,
+    ) -> Result<(), WebError> {
+        let username = self.username.clone();
+        debug!(
+            "Deleting user {}, removing his devices from gateways and updating ldap...",
+            &username
+        );
+        let devices = self.devices(&mut *transaction).await?;
+        let mut events = Vec::new();
+        for device in devices {
+            events.push(GatewayEvent::DeviceDeleted(
+                DeviceInfo::from_device(&mut *transaction, device).await?,
+            ));
+        }
+        self.delete(&mut *transaction).await?;
+        send_multiple_wireguard_events(events, wg_tx);
+        let _result = ldap_delete_user(&username).await;
+        info!(
+            "The user {} has been deleted and his devices removed from gateways.",
+            &username
+        );
         Ok(())
     }
 

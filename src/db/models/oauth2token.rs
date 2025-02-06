@@ -135,6 +135,7 @@ impl OAuth2Token {
             Err(err) => Err(err),
         }
     }
+
     // Find by authorized app id
     pub async fn find_by_authorized_app_id(
         pool: &PgPool,

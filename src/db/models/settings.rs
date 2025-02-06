@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
@@ -257,19 +257,15 @@ impl Settings {
     }
 
     /// Check if all required SMTP options are configured.
+    /// User & password can be empty for no-auth servers.
     ///
     /// Meant to be used to check if sending emails is enabled in current instance.
     #[must_use]
     pub fn smtp_configured(&self) -> bool {
         self.smtp_server.is_some()
             && self.smtp_port.is_some()
-            && self.smtp_user.is_some()
-            && self.smtp_password.is_some()
             && self.smtp_sender.is_some()
             && self.smtp_server != Some(String::new())
-            && self.smtp_user != Some(String::new())
-            && self.smtp_password
-                != Some(SecretStringWrapper::from_str("").expect("Failed to convert empty string"))
             && self.smtp_sender != Some(String::new())
     }
 }
@@ -352,4 +348,35 @@ Star us on GitHub! https://github.com/defguard/defguard\
 ";
 
     pub static WELCOME_EMAIL_SUBJECT: &str = "[defguard] Welcome message after enrollment";
+}
+
+#[cfg(test)]
+mod test {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn test_smtp_config() {
+        let mut settings = Settings::default();
+        assert!(!settings.smtp_configured());
+
+        // incomplete SMTP config
+        settings.smtp_server = Some("localhost".into());
+        settings.smtp_port = Some(587);
+        assert!(!settings.smtp_configured());
+
+        // no-auth SMTP config
+        settings.smtp_sender = Some("no-reply@defguard.net".into());
+        assert!(settings.smtp_configured());
+
+        // add non-default encryption
+        settings.smtp_encryption = SmtpEncryption::StartTls;
+        assert!(settings.smtp_configured());
+
+        // add auth info
+        settings.smtp_user = Some("smtp_user".into());
+        settings.smtp_password = Some(SecretStringWrapper::from_str("hunter2").unwrap());
+        assert!(settings.smtp_configured());
+    }
 }

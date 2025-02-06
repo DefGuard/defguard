@@ -49,6 +49,7 @@ impl ClientMfaServer {
             sessions: HashMap::new(),
         }
     }
+
     fn generate_token(pubkey: &str) -> Result<String, Status> {
         Claims::new(
             ClaimsType::DesktopClient,

@@ -33,6 +33,8 @@ pub struct AddProviderData {
     pub directory_sync_admin_behavior: String,
     pub directory_sync_target: String,
     pub create_account: bool,
+    pub okta_private_jwk: Option<String>,
+    pub okta_dirsync_client_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -77,6 +79,31 @@ pub async fn add_openid_provider(
         None => None,
     };
 
+    let okta_private_jwk = match &provider_data.okta_private_jwk {
+        Some(key) => {
+            if serde_json::from_str::<serde_json::Value>(key).is_ok() {
+                debug!(
+                    "User {} provided a valid JWK private key for provider's Okta directory sync, using it",
+                    session.user.username
+                );
+                provider_data.okta_private_jwk.clone()
+            } else if let Some(provider) = &current_provider {
+                debug!(
+                    "User {} did not provide a valid JWK private key for provider's Okta directory sync or the key did not change, using the existing key",
+                    session.user.username
+                );
+                provider.okta_private_jwk.clone()
+            } else {
+                warn!(
+                    "User {} did not provide a valid JWK private key for provider's Okta directory sync",
+                    session.user.username
+                );
+                None
+            }
+        }
+        None => None,
+    };
+
     let mut settings = Settings::get_current_settings();
     settings.openid_create_account = provider_data.create_account;
     update_current_settings(&appstate.pool, settings).await?;
@@ -96,6 +123,8 @@ pub async fn add_openid_provider(
         provider_data.directory_sync_user_behavior.into(),
         provider_data.directory_sync_admin_behavior.into(),
         provider_data.directory_sync_target.into(),
+        okta_private_jwk,
+        provider_data.okta_dirsync_client_id,
     )
     .upsert(&appstate.pool)
     .await?;
@@ -125,6 +154,7 @@ pub async fn get_current_openid_provider(
         Some(mut provider) => {
             // Get rid of it, it should stay on the backend only.
             provider.google_service_account_key = None;
+            provider.okta_private_jwk = None;
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),

@@ -23,10 +23,12 @@ use reqwest::{header::HeaderName, StatusCode, Url};
 use secrecy::ExposeSecret;
 use serde_json::{json, Value};
 use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
-use tokio::net::TcpListener;
-use tokio::sync::{
-    broadcast::{self, Receiver},
-    mpsc::{unbounded_channel, UnboundedReceiver},
+use tokio::{
+    net::TcpListener,
+    sync::{
+        broadcast::{self, Receiver},
+        mpsc::{unbounded_channel, UnboundedReceiver},
+    },
 };
 
 use self::client::TestClient;

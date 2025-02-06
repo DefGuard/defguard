@@ -442,7 +442,7 @@ pub async fn run_grpc_bidi_stream(
     let enrollment_server =
         EnrollmentServer::new(pool.clone(), wireguard_tx.clone(), mail_tx.clone());
     let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
-    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx);
+    let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone());
     let polling_server = PollingServer::new(pool.clone());
 
     let endpoint = Endpoint::from_shared(config.proxy_url.as_deref().unwrap())?;
@@ -677,8 +677,12 @@ pub async fn run_grpc_bidi_stream(
                                     {
                                         Ok(user) => {
                                             user.clear_unused_enrollment_tokens(&pool).await?;
-                                            if let Err(err) =
-                                                sync_user_groups_if_configured(&user, &pool).await
+                                            if let Err(err) = sync_user_groups_if_configured(
+                                                &user,
+                                                &pool,
+                                                &wireguard_tx,
+                                            )
+                                            .await
                                             {
                                                 error!(
                                                     "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",

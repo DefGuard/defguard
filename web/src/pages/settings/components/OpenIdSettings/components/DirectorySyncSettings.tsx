@@ -17,7 +17,7 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { titleCase } from '../../../../../shared/utils/titleCase';
 
-const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft'];
+const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft', 'Okta'];
 
 export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
@@ -150,6 +150,28 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               }
               disabled={isLoading}
             />
+            {providerName === 'Okta' ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'okta_dirsync_client_id' }}
+                  label={localLL.form.labels.okta_client_id.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.okta_client_id.helper())}</Helper>
+                  }
+                  required={dirsyncEnabled}
+                />
+                <FormInput
+                  controller={{ control, name: 'okta_private_jwk' }}
+                  label={localLL.form.labels.okta_client_key.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.okta_client_key.helper())}</Helper>
+                  }
+                  required={dirsyncEnabled}
+                />
+              </>
+            ) : null}
             {providerName === 'Google' ? (
               <>
                 <FormInput

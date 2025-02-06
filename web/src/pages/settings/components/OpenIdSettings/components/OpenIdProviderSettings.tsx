@@ -37,9 +37,14 @@ export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
         key: 2,
       },
       {
+        value: 'Okta',
+        label: 'Okta',
+        key: 3,
+      },
+      {
         value: 'Custom',
         label: localLL.form.custom(),
-        key: 3,
+        key: 4,
       },
     ],
     [localLL.form],
@@ -65,6 +70,8 @@ export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
         return 'https://accounts.google.com';
       case 'Microsoft':
         return `https://login.microsoftonline.com/<TENANT_ID>/v2.0`;
+      case 'Okta':
+        return `<YOUR_OKTA_URL>`;
       default:
         return null;
     }
@@ -77,6 +84,8 @@ export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
           return 'Google';
         case 'Microsoft':
           return 'Microsoft';
+        case 'Okta':
+          return 'Okta';
         default:
           return null;
       }

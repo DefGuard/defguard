@@ -12,16 +12,12 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::{
-            device::DeviceInfo,
-            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
-        },
-        AppEvent, GatewayEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
-        WireguardNetwork,
+        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
     },
     enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
     error::WebError,
-    ldap::utils::{ldap_add_user, ldap_change_password, ldap_delete_user, ldap_modify_user},
+    ldap::utils::{ldap_add_user, ldap_change_password, ldap_modify_user},
     mail::Mail,
     server_config, templates,
 };
@@ -660,12 +656,8 @@ pub async fn modify_user(
                 "User {} changed {username} groups or status, syncing allowed network devices.",
                 session.user.username
             );
-            let networks = WireguardNetwork::all(&mut *transaction).await?;
-            for network in networks {
-                let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-                appstate.send_multiple_wireguard_events(gateway_events);
-            }
-            info!("Allowed network devices of {username} synced");
+            user.sync_allowed_devices(&mut transaction, &appstate.wireguard_tx)
+                .await?;
         };
         user_info.into_user_all_fields(&mut user)?;
     } else {
@@ -726,18 +718,9 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let devices = user.devices(&mut *transaction).await?;
-        let mut events = Vec::new();
-        for device in devices {
-            events.push(GatewayEvent::DeviceDeleted(
-                DeviceInfo::from_device(&mut *transaction, device).await?,
-            ));
-        }
-        appstate.send_multiple_wireguard_events(events);
-        debug!("Devices of user {username} purged from networks.");
+        user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
+            .await?;
 
-        user.delete(&mut *transaction).await?;
-        let _result = ldap_delete_user(&username).await;
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
