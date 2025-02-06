@@ -486,7 +486,9 @@ pub(crate) async fn auth_callback(
     }
 
     if let Some(user_info) = user_info {
-        if let Err(err) = sync_user_groups_if_configured(&user, &appstate.pool).await {
+        if let Err(err) =
+            sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
+        {
             error!(
                 "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
                 user.username

@@ -251,6 +251,7 @@ async fn sync_user_groups<T: DirectorySync>(
     directory_sync: &T,
     user: &User<Id>,
     pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     info!("Syncing groups of user {} with the directory", user.email);
     let directory_groups = directory_sync.get_user_groups(&user.email).await?;
@@ -293,6 +294,14 @@ async fn sync_user_groups<T: DirectorySync>(
         }
     }
 
+    user.sync_allowed_devices(&mut transaction, wg_tx)
+        .await
+        .map_err(|err| {
+            DirectorySyncError::NetworkUpdateError(format!(
+            "Failed to sync allowed devices for user {} during directory synchronization: {err}",
+            user.email
+        ))
+        })?;
     transaction.commit().await?;
 
     Ok(())
@@ -324,6 +333,7 @@ pub(crate) async fn test_directory_sync_connection(
 pub(crate) async fn sync_user_groups_if_configured(
     user: &User<Id>,
     pool: &PgPool,
+    wg_tx: &Sender<GatewayEvent>,
 ) -> Result<(), DirectorySyncError> {
     #[cfg(not(test))]
     if !is_enterprise_enabled() {
@@ -340,7 +350,7 @@ pub(crate) async fn sync_user_groups_if_configured(
     match DirectorySyncClient::build(pool).await {
         Ok(mut dir_sync) => {
             dir_sync.prepare().await?;
-            sync_user_groups(&dir_sync, user, pool).await?;
+            sync_user_groups(&dir_sync, user, pool, wg_tx).await?;
         }
         Err(err) => {
             error!("Failed to build directory sync client: {err}");
@@ -598,7 +608,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                             the admin behavior setting is set to disable",
                             user.email
                         );
-                        user.disable(&mut *transaction, wg_tx).await.map_err(|err| {
+                        user.disable(&mut transaction, wg_tx).await.map_err(|err| {
                             DirectorySyncError::NetworkUpdateError(format!(
                                 "Failed to disable admin {} during directory synchronization: {err}",
                                 user.email
@@ -1195,7 +1205,9 @@ mod test {
         let user = make_test_user("testuser", &pool).await;
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 0);
-        sync_user_groups_if_configured(&user, &pool).await.unwrap();
+        sync_user_groups_if_configured(&user, &pool, &wg_tx)
+            .await
+            .unwrap();
         let user_groups = user.member_of(&pool).await.unwrap();
         assert_eq!(user_groups.len(), 1);
         let group = Group::find_by_name(&pool, "group1").await.unwrap().unwrap();
