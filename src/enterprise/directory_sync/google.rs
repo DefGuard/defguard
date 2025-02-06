@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::Duration;
 
 use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
@@ -7,9 +6,8 @@ use tokio::time::sleep;
 
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser,
+    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN, REQUEST_TIMEOUT,
 };
-use super::{REQUEST_PAGINATION_SLOWDOWN, REQUEST_TIMEOUT};
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
 const ACCESS_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
@@ -61,9 +59,7 @@ pub(crate) struct GoogleDirectorySync {
     admin_email: String,
 }
 
-///
 /// Google Directory API responses
-///
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AccessTokenResponse {

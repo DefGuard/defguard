@@ -5,8 +5,7 @@ use std::{
 
 use paste::paste;
 use reqwest::header::AUTHORIZATION;
-use sqlx::error::Error as SqlxError;
-use sqlx::PgPool;
+use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
@@ -118,7 +117,6 @@ trait DirectorySync {
 /// - You implemented some way to initialize the provider client and added an initialization step in the [`DirectorySyncClient::build`] function
 /// - You added the provider name to the macro invocation below the macro definition
 /// - You've implemented your provider logic in a file called the same as your provider but lowercase, e.g. google.rs
-///
 // If you have time to refactor the whole thing to use boxes instead, go ahead.
 macro_rules! dirsync_clients {
     ($($variant:ident),*) => {
@@ -765,7 +763,6 @@ pub(crate) async fn do_directory_sync(
     Ok(())
 }
 
-//
 // Helpers shared between the directory sync providers
 //
 

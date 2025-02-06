@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::time::Duration;
 
 use chrono::{DateTime, TimeDelta, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
@@ -72,9 +71,7 @@ pub struct OktaDirectorySync {
     base_url: String,
 }
 
-///
 /// Okta Directory API responses
-///
 
 #[derive(Debug, Deserialize)]
 pub struct AccessTokenResponse {
