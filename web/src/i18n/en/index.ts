@@ -899,9 +899,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
           submit: 'Add API token',
         },
+        copyToken: {
+          warningMessage:
+            "Please copy the API token below now. You won't be able to see it again.",
+          header: 'Copy new API Token',
+        },
         messages: {
           tokenAdded: 'API token added.',
-          tokenExists: 'API token has already been added.',
           genericError: 'Could not add API token. Please try again later.',
         },
       },

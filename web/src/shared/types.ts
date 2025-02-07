@@ -408,6 +408,10 @@ export type AddApiTokenRequest = {
   name: string;
 } & ApiTokenRequestBase;
 
+export type AddApiTokenResponse = {
+  token: string;
+};
+
 export type ModifyGroupsRequest = {
   name: string;
   // array of usernames
@@ -489,7 +493,7 @@ export interface ApiHook {
     }) => EmptyApiResponse;
     deleteYubiKey: (data: { id: number; username: string }) => EmptyApiResponse;
     getApiTokensInfo: (data: ApiTokenRequestBase) => Promise<ApiToken[]>;
-    addApiToken: (data: AddApiTokenRequest) => EmptyApiResponse;
+    addApiToken: (data: AddApiTokenRequest) => Promise<AddApiTokenResponse>;
     deleteApiToken: (data: { id: number; username: string }) => EmptyApiResponse;
     renameApiToken: (data: {
       id: number;

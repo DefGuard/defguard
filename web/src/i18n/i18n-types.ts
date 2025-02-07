@@ -2082,15 +2082,21 @@ type RootTranslation = {
 					 */
 					submit: string
 				}
+				copyToken: {
+					/**
+					 * P​l​e​a​s​e​ ​c​o​p​y​ ​t​h​e​ ​A​P​I​ ​t​o​k​e​n​ ​b​e​l​o​w​ ​n​o​w​.​ ​Y​o​u​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​e​ ​i​t​ ​a​g​a​i​n​.
+					 */
+					warningMessage: string
+					/**
+					 * C​o​p​y​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+					 */
+					header: string
+				}
 				messages: {
 					/**
 					 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d​.
 					 */
 					tokenAdded: string
-					/**
-					 * A​P​I​ ​t​o​k​e​n​ ​h​a​s​ ​a​l​r​e​a​d​y​ ​b​e​e​n​ ​a​d​d​e​d​.
-					 */
-					tokenExists: string
 					/**
 					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​A​P​I​ ​t​o​k​e​n​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
 					 */
@@ -6969,15 +6975,21 @@ export type TranslationFunctions = {
 					 */
 					submit: () => LocalizedString
 				}
+				copyToken: {
+					/**
+					 * Please copy the API token below now. You won't be able to see it again.
+					 */
+					warningMessage: () => LocalizedString
+					/**
+					 * Copy new API Token
+					 */
+					header: () => LocalizedString
+				}
 				messages: {
 					/**
 					 * API token added.
 					 */
 					tokenAdded: () => LocalizedString
-					/**
-					 * API token has already been added.
-					 */
-					tokenExists: () => LocalizedString
 					/**
 					 * Could not add API token. Please try again later.
 					 */

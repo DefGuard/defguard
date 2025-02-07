@@ -12,3 +12,13 @@
     }
   }
 }
+
+.copy-generated-token-content {
+  & > .message-box {
+    margin-bottom: 25px;
+  }
+
+  & > .expandable-card {
+    margin-bottom: 25px;
+  }
+}
