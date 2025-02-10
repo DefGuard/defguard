@@ -133,10 +133,10 @@ impl LDAPConnection {
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
-    async fn test_bind_user(&self, dn: &str, passward: &str) -> Result<(), LdapError> {
+    async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
         let (conn, mut ldap) = LdapConnAsync::new(&self.url).await?;
         drive!(conn);
-        ldap.simple_bind(dn, passward).await?.success()?;
+        ldap.simple_bind(dn, password).await?.success()?;
         ldap.unbind().await?;
         Ok(())
     }
@@ -207,7 +207,7 @@ impl LDAPConnection {
             ))
             .await;
         match users {
-            Ok(users) => users.len() == 1,
+            Ok(users) => users.is_empty(),
             _ => true,
         }
     }
