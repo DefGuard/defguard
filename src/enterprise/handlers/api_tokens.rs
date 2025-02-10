@@ -9,7 +9,6 @@ use serde_json::json;
 use crate::{
     appstate::AppState,
     auth::SessionInfo,
-    db::models::user::hash_password,
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
@@ -43,18 +42,11 @@ pub async fn add_api_token(
     // all API tokens start with a `dg-` prefix
     let token_string = format!("dg-{}", gen_alphanumeric(API_TOKEN_LENGTH));
 
-    // hash generated token string
-    // use the same hashing algorithm we are using for passwords
-    let token_hash = hash_password(&token_string).map_err(|err| {
-        error!("Failed to hash generated API token: {err}");
-        WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
-    })?;
-
     ApiToken::new(
         user.id,
         Utc::now().naive_utc(),
         data.name.clone(),
-        token_hash,
+        &token_string,
     )
     .save(&appstate.pool)
     .await?;

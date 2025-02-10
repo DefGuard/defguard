@@ -15,8 +15,8 @@ pub(crate) struct ApiToken<I = NoId> {
 }
 
 impl ApiToken {
-    #[must_use]
-    pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_hash: String) -> Self {
+    pub fn new(user_id: Id, created_at: NaiveDateTime, name: String, token_string: &str) -> Self {
+        let token_hash = Self::hash_token(token_string);
         Self {
             id: NoId,
             user_id,
@@ -24,6 +24,11 @@ impl ApiToken {
             name,
             token_hash,
         }
+    }
+
+    /// Generates an SHA256 hash which can be stored in a database based on a token string.
+    fn hash_token(token_string: &str) -> String {
+        sha256::digest(token_string)
     }
 }
 
@@ -40,6 +45,25 @@ impl ApiToken<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    pub async fn try_find_by_auth_token<'e, E>(
+        executor: E,
+        auth_token: &str,
+    ) -> Result<Option<Self>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let token_hash = ApiToken::hash_token(auth_token);
+        let maybe_token = query_as!(
+            Self,
+            "SELECT id, user_id, created_at, name, token_hash \
+                    FROM api_token WHERE token_hash = $1",
+            token_hash
+        )
+        .fetch_optional(executor)
+        .await?;
+        Ok(maybe_token)
     }
 }
 
