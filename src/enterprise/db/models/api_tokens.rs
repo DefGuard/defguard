@@ -6,7 +6,7 @@ use crate::db::{Id, NoId};
 
 #[derive(Deserialize, Model, Serialize)]
 #[table(api_token)]
-pub(crate) struct ApiToken<I = NoId> {
+pub struct ApiToken<I = NoId> {
     id: I,
     pub user_id: Id,
     pub created_at: NaiveDateTime,
@@ -40,7 +40,7 @@ impl ApiToken<Id> {
         query_as!(
             Self,
             "SELECT id, user_id, created_at, name, token_hash \
-                    FROM api_token WHERE user_id = $1",
+                    FROM api_token WHERE user_id = $1 ORDER BY id",
             user_id
         )
         .fetch_all(executor)
@@ -68,10 +68,10 @@ impl ApiToken<Id> {
 }
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct ApiTokenInfo {
-    id: Id,
-    name: String,
-    created_at: NaiveDateTime,
+pub struct ApiTokenInfo {
+    pub id: Id,
+    pub name: String,
+    pub created_at: NaiveDateTime,
 }
 
 impl From<ApiToken<Id>> for ApiTokenInfo {

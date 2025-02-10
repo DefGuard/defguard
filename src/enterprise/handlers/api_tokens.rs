@@ -21,7 +21,7 @@ const API_TOKEN_LENGTH: usize = 32;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct AddApiTokenData {
-    name: String,
+    pub name: String,
 }
 
 pub async fn add_api_token(
@@ -36,6 +36,17 @@ pub async fn add_api_token(
 
     // authorize request
     let user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+
+    // prevent creating tokens for non-admin users
+    if !user.is_admin(&appstate.pool).await? {
+        error!(
+            "User {} attempted to create API token for non-admin user {username}",
+            session.user.username
+        );
+        return Err(WebError::Forbidden(
+            "Cannot create API token for non-admin user".into(),
+        ));
+    };
 
     // TODO: check if the name is already used
 
@@ -106,9 +117,9 @@ pub async fn delete_api_token(
     })
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct RenameRequest {
-    name: String,
+    pub name: String,
 }
 
 pub async fn rename_api_token(

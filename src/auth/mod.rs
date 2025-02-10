@@ -243,7 +243,7 @@ where
 
             // non-admin users are not allowed to use token auth
             if !is_admin && session.state == SessionState::ApiTokenVerified {
-                return Err(WebError::Authorization(
+                return Err(WebError::Forbidden(
                     "Token authentication is not allowed for normal users".into(),
                 ));
             }
