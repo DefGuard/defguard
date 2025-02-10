@@ -26,7 +26,7 @@ use crate::{
         models::group::Permission, Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session,
         SessionState, User,
     },
-    enterprise::db::models::api_tokens::ApiToken,
+    enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
 };
@@ -134,37 +134,39 @@ where
         let appstate = AppState::from_ref(state);
 
         // first try to authenticate by API token if one is found in header
-        let maybe_auth_header: Option<TypedHeader<Authorization<Bearer>>> =
-            <TypedHeader<_> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
-                .await
-                .map_err(|err| {
-                    error!("Failed to extract optional auth header: {err}");
-                    WebError::Authorization("Invalid auth header".into())
-                })?;
-        if let Some(header) = maybe_auth_header {
-            let token_string = header.token();
-            debug!("Trying to authorize request using API token: {token_string}");
-            return match ApiToken::try_find_by_auth_token(&appstate.pool, token_string).await {
-                Ok(Some(api_token)) => {
-                    // create a dummy session and don't store it in the DB
-                    // since each request needs to be authorized anyway
-                    let ip_address = InsecureClientIp::from_request_parts(parts, state)
-                        .await
-                        .map_err(|err| {
+        if is_enterprise_enabled() {
+            let maybe_auth_header: Option<TypedHeader<Authorization<Bearer>>> =
+                <TypedHeader<_> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to extract optional auth header: {err}");
+                        WebError::Authorization("Invalid auth header".into())
+                    })?;
+            if let Some(header) = maybe_auth_header {
+                let token_string = header.token();
+                debug!("Trying to authorize request using API token: {token_string}");
+                return match ApiToken::try_find_by_auth_token(&appstate.pool, token_string).await {
+                    Ok(Some(api_token)) => {
+                        // create a dummy session and don't store it in the DB
+                        // since each request needs to be authorized anyway
+                        let ip_address = InsecureClientIp::from_request_parts(parts, state)
+                            .await
+                            .map_err(|err| {
                             error!("Failed to get client IP: {err:?}");
                             WebError::ClientIpError
                         })?;
-                    Ok(Session::new(
-                        api_token.user_id,
-                        SessionState::ApiTokenVerified,
-                        ip_address.0.to_string(),
-                        None,
-                    ))
-                }
-                Ok(None) => Err(WebError::Authorization("Invalid API token".into())),
-                Err(err) => Err(err.into()),
+                        Ok(Session::new(
+                            api_token.user_id,
+                            SessionState::ApiTokenVerified,
+                            ip_address.0.to_string(),
+                            None,
+                        ))
+                    }
+                    Ok(None) => Err(WebError::Authorization("Invalid API token".into())),
+                    Err(err) => Err(err.into()),
+                };
             };
-        };
+        }
 
         let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;
         if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
