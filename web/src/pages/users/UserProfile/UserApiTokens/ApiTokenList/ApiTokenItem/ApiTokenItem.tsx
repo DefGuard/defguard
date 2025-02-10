@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
@@ -6,13 +7,12 @@ import { DeviceAvatar } from '../../../../../../shared/defguard-ui/components/La
 import { EditButton } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { TextContainer } from '../../../../../../shared/defguard-ui/components/Layout/TextContainer/TextContainer';
 import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUserProfileStore';
 import { ApiToken } from '../../../../../../shared/types';
 import { useRenameApiTokenModal } from '../../../../shared/modals/RenameApiTokenModal/useRenameApiTokenModal';
 import { useDeleteApiTokenModal } from '../../DeleteApiTokenModal/useDeleteApiTokenModal';
-import dayjs from 'dayjs';
-import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
 
 type Props = {
   tokenData: ApiToken;
