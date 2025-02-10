@@ -128,7 +128,7 @@ export const GatewayNotificationsForm = () => {
             labelPlacement="right"
           />
           <Helper>
-            {parse(LL.settingsPage.enterprise.fields.deviceManagement.helper())}
+            {parse(localLL.form.fields.disconnectNotificationsEnabled.help())}
           </Helper>
         </div>
         <FormInput

@@ -19,6 +19,7 @@ import {
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
@@ -26,6 +27,7 @@ import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import { ProfileDetails } from './ProfileDetails/ProfileDetails';
+import { UserApiTokens } from './UserApiTokens/UserApiTokens';
 import { UserAuthenticationKeys } from './UserAuthenticationKeys/UserAuthenticationKeys';
 import { UserAuthInfo } from './UserAuthInfo/UserAuthInfo';
 import { UserDevices } from './UserDevices/UserDevices';
@@ -41,6 +43,9 @@ export const UserProfile = () => {
   const {
     user: { getUser },
   } = useApi();
+
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const showApiTokens = enterpriseEnabled && currentUser?.is_admin;
 
   const username = useMemo(() => {
     if (paramsUsername) {
@@ -92,7 +97,7 @@ export const UserProfile = () => {
           {editMode ? <EditModeControls /> : <ViewModeControls />}
         </div>
       </header>
-      <div className="content">
+      <div className={`content${showApiTokens ? ' content-enterprise-enabled' : ''}`}>
         <div className="wide-cards">
           <ProfileDetails />
           <UserAuthInfo />
@@ -103,6 +108,11 @@ export const UserProfile = () => {
         <div className="cards-2">
           <UserAuthenticationKeys />
         </div>
+        {showApiTokens && (
+          <div className="cards-3">
+            <UserApiTokens />
+          </div>
+        )}
       </div>
     </section>
   );

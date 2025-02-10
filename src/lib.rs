@@ -13,6 +13,7 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
+    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
@@ -357,6 +358,17 @@ pub fn build_webapp(
             .route(
                 "/user/{username}/yubikey/{key_id}/rename",
                 post(rename_yubikey),
+            )
+            // API tokens
+            .route("/user/{username}/api_token", get(fetch_api_tokens))
+            .route("/user/{username}/api_token", post(add_api_token))
+            .route(
+                "/user/{username}/api_token/{token_id}",
+                delete(delete_api_token),
+            )
+            .route(
+                "/user/{username}/api_token/{token_id}/rename",
+                post(rename_api_token),
             )
             .route(
                 "/user/{username}/security_key/{id}",

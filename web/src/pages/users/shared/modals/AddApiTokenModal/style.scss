@@ -1,0 +1,60 @@
+#add-api-token-modal {
+  width: 100%;
+  max-width: 700px;
+
+  --modal-content-gap: 20px;
+
+  & > .content {
+    padding: 0 30px 30px;
+
+    .type-selection {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--modal-content-gap);
+      padding-bottom: var(--modal-content-gap);
+
+      & > .buttons {
+        display: flex;
+        flex-flow: row;
+        column-gap: 10px;
+        row-gap: var(--modal-content-gap);
+
+        .btn {
+          height: 40px;
+          min-width: 110px;
+
+          span,
+          p {
+            @include typography(button-s);
+          }
+
+          svg {
+            height: 18px;
+            width: 18px;
+
+            path {
+              fill: var(--surface-icon-primary);
+            }
+          }
+
+          &.active {
+            svg {
+              path {
+                fill: var(--surface-icon-secondary);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    & > form {
+      margin: 0;
+      padding: 0;
+
+      .controls {
+        padding-top: var(--modal-content-gap);
+      }
+    }
+  }
+}
