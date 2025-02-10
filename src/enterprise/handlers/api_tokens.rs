@@ -8,7 +8,7 @@ use serde_json::json;
 
 use crate::{
     appstate::AppState,
-    auth::SessionInfo,
+    auth::{AdminRole, SessionInfo},
     enterprise::db::models::api_tokens::{ApiToken, ApiTokenInfo},
     error::WebError,
     handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
@@ -26,6 +26,7 @@ pub struct AddApiTokenData {
 
 pub async fn add_api_token(
     _license: LicenseInfo,
+    _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(username): Path<String>,
@@ -62,6 +63,7 @@ pub async fn add_api_token(
 // GET on user, returns ApiTokenInfo vector in JSON
 pub async fn fetch_api_tokens(
     _license: LicenseInfo,
+    _admin: AdminRole,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
@@ -81,6 +83,7 @@ pub async fn fetch_api_tokens(
 
 pub async fn delete_api_token(
     _license: LicenseInfo,
+    _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path((username, token_id)): Path<(String, i64)>,
@@ -110,6 +113,7 @@ pub struct RenameRequest {
 
 pub async fn rename_api_token(
     _license: LicenseInfo,
+    _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path((username, token_id)): Path<(String, i64)>,

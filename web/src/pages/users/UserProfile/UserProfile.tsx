@@ -45,6 +45,7 @@ export const UserProfile = () => {
   } = useApi();
 
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const showApiTokens = enterpriseEnabled && currentUser?.is_admin;
 
   const username = useMemo(() => {
     if (paramsUsername) {
@@ -96,7 +97,7 @@ export const UserProfile = () => {
           {editMode ? <EditModeControls /> : <ViewModeControls />}
         </div>
       </header>
-      <div className={`content${enterpriseEnabled ? ' content-enterprise-enabled' : ''}`}>
+      <div className={`content${showApiTokens ? ' content-enterprise-enabled' : ''}`}>
         <div className="wide-cards">
           <ProfileDetails />
           <UserAuthInfo />
@@ -107,7 +108,7 @@ export const UserProfile = () => {
         <div className="cards-2">
           <UserAuthenticationKeys />
         </div>
-        {enterpriseEnabled && (
+        {showApiTokens && (
           <div className="cards-3">
             <UserApiTokens />
           </div>
