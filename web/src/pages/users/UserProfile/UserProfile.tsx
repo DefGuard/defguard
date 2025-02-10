@@ -19,6 +19,7 @@ import {
 import { EditButton } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import { useModalStore } from '../../../shared/hooks/store/useModalStore';
 import { useUserProfileStore } from '../../../shared/hooks/store/useUserProfileStore';
@@ -42,6 +43,8 @@ export const UserProfile = () => {
   const {
     user: { getUser },
   } = useApi();
+
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const username = useMemo(() => {
     if (paramsUsername) {
@@ -93,7 +96,7 @@ export const UserProfile = () => {
           {editMode ? <EditModeControls /> : <ViewModeControls />}
         </div>
       </header>
-      <div className="content">
+      <div className={`content${enterpriseEnabled ? ' content-enterprise-enabled' : ''}`}>
         <div className="wide-cards">
           <ProfileDetails />
           <UserAuthInfo />
@@ -104,9 +107,11 @@ export const UserProfile = () => {
         <div className="cards-2">
           <UserAuthenticationKeys />
         </div>
-        <div className="cards-3">
-          <UserApiTokens />
-        </div>
+        {enterpriseEnabled && (
+          <div className="cards-3">
+            <UserApiTokens />
+          </div>
+        )}
       </div>
     </section>
   );

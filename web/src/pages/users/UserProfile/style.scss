@@ -127,7 +127,6 @@
     grid-template-areas:
       'wide-cards'
       'cards-2'
-      'cards-3'
       'cards-1';
 
     @include media-breakpoint-up(xl) {
@@ -136,13 +135,12 @@
       grid-template-rows: auto;
       grid-template-areas:
         'wide-cards cards-2'
-        'wide-cards cards-3'
         'wide-cards cards-1';
     }
 
     @include media-breakpoint-up(xxl) {
-      grid-template-columns: 1fr 440px 384px 384px;
-      grid-template-areas: 'wide-cards cards-1 cards-2 cards-3';
+      grid-template-columns: 1fr 440px 384px;
+      grid-template-areas: 'wide-cards cards-1 cards-2';
     }
 
     & > div > section > header {
@@ -188,6 +186,26 @@
 
     & > .cards-3 {
       grid-area: cards-3;
+    }
+  }
+
+  & > .content-enterprise-enabled {
+    grid-template-areas:
+      'wide-cards'
+      'cards-2'
+      'cards-3'
+      'cards-1';
+
+    @include media-breakpoint-up(xl) {
+      grid-template-areas:
+        'wide-cards cards-2'
+        'wide-cards cards-3'
+        'wide-cards cards-1';
+    }
+
+    @include media-breakpoint-up(xxl) {
+      grid-template-columns: 1fr 440px 384px 384px;
+      grid-template-areas: 'wide-cards cards-1 cards-2 cards-3';
     }
   }
 }
