@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"api_token\" (\"user_id\",\"created_at\",\"name\",\"token_hash\") VALUES ($1,$2,$3,$4) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamp",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fee9434e2efe66928950035aef780f907a064aa46fb0625f9d7b58b373c9a397"
+}

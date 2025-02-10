@@ -93,7 +93,7 @@ pub async fn delete_api_token(
         }
         token.delete(&appstate.pool).await?;
     } else {
-        error!("API token with id {} not found", token_id);
+        error!("API token with id {token_id} not found");
         return Err(WebError::BadRequest("Key not found".into()));
     }
 
