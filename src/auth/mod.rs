@@ -230,13 +230,24 @@ where
         let user = User::find_by_id(&appstate.pool, session.user_id).await?;
 
         if let Some(user) = user {
-            if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+            if user.mfa_enabled
+                && (session.state != SessionState::MultiFactorVerified
+                    && session.state != SessionState::ApiTokenVerified)
+            {
                 return Err(WebError::Authorization("MFA not verified".into()));
             }
             let Ok(groups) = user.member_of(&appstate.pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
             let is_admin = user.is_admin(&appstate.pool).await?;
+
+            // non-admin users are not allowed to use token auth
+            if !is_admin && session.state == SessionState::ApiTokenVerified {
+                return Err(WebError::Authorization(
+                    "Token authentication is not allowed for normal users".into(),
+                ));
+            }
+
             Ok(SessionInfo {
                 session,
                 user,
