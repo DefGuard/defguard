@@ -11,9 +11,15 @@ import { useUserProfileStore } from '../../../../../../shared/hooks/store/useUse
 import { ApiToken } from '../../../../../../shared/types';
 import { useRenameApiTokenModal } from '../../../../shared/modals/RenameApiTokenModal/useRenameApiTokenModal';
 import { useDeleteApiTokenModal } from '../../DeleteApiTokenModal/useDeleteApiTokenModal';
+import dayjs from 'dayjs';
+import { Label } from '../../../../../../shared/defguard-ui/components/Layout/Label/Label';
 
 type Props = {
   tokenData: ApiToken;
+};
+const formatDate = (date: string) => {
+  const day = dayjs(date);
+  return day.format('DD.MM.YYYY | HH:mm');
 };
 
 export const ApiTokenItem = ({ tokenData: token }: Props) => {
@@ -42,6 +48,10 @@ export const ApiTokenItem = ({ tokenData: token }: Props) => {
         <div className="top">
           <DeviceAvatar deviceId={token.id} active={false} />
           <TextContainer text={token.name} />
+        </div>
+        <div className="bottom">
+          <Label>{localLL.common.createdAt()}</Label>
+          <TextContainer text={formatDate(token.created_at)} />
         </div>
         <div className="controls">
           <EditButton>

@@ -865,6 +865,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           token: 'Token',
           copy: 'Skopiuj',
           delete: 'Usuń',
+          createdAt: 'Utworzono'
         },
       },
       deleteModal: {

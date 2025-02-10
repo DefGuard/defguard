@@ -2046,6 +2046,10 @@ type RootTranslation = {
 					 * D​e​l​e​t​e
 					 */
 					'delete': string
+					/**
+					 * C​r​e​a​t​e​d​ ​a​t
+					 */
+					createdAt: string
 				}
 			}
 			deleteModal: {
@@ -6940,6 +6944,10 @@ export type TranslationFunctions = {
 					 * Delete
 					 */
 					'delete': () => LocalizedString
+					/**
+					 * Created at
+					 */
+					createdAt: () => LocalizedString
 				}
 			}
 			deleteModal: {

@@ -7,7 +7,7 @@ import { useUserProfileStore } from '../../../../shared/hooks/store/useUserProfi
 import { AddComponentBox } from '../../shared/components/AddComponentBox/AddComponentBox';
 import { useAddApiTokenModal } from '../../shared/modals/AddApiTokenModal/useAddApiTokenModal';
 import { RenameApiTokenModal } from '../../shared/modals/RenameApiTokenModal/RenameApiTokenModal';
-import { ApiTokenList } from './AuthenticationKeyList/ApiTokenList';
+import { ApiTokenList } from './ApiTokenList/ApiTokenList';
 import { DeleteApiTokenModal } from './DeleteApiTokenModal/DeleteApiTokenModal';
 
 export const UserApiTokens = () => {

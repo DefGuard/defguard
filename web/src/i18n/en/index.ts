@@ -882,6 +882,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           token: 'Token',
           copy: 'Copy',
           delete: 'Delete',
+          createdAt: 'Created at'
         },
       },
       deleteModal: {
