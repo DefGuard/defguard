@@ -1,5 +1,3 @@
-import './style.scss';
-
 import classNames from 'classnames';
 import { saveAs } from 'file-saver';
 import { useCallback, useMemo, useState } from 'react';
