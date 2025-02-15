@@ -222,17 +222,18 @@ impl LDAPConnection {
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await?;
-        if entries.len() == 0 {
-            return Err(LdapError::ObjectNotFound(format!(
-                "User {username} not found",
-            )));
-        } else if entries.len() > 1 {
+        if entries.len() > 1 {
             return Err(LdapError::TooManyObjects);
         }
-        // now the length of entries equals 1, so we can unwrap it safely
-        let entry = entries.pop().unwrap();
-        self.test_bind_user(&entry.dn, password).await?;
-        Ok(User::from_searchentry(&entry, username, password))
+        if let Some(entry) = entries.pop() {
+            info!("Performed LDAP user search: {username}");
+            self.test_bind_user(&entry.dn, password).await?;
+            Ok(User::from_searchentry(&entry, username, password))
+        } else {
+            Err(LdapError::ObjectNotFound(format!(
+                "User {username} not found",
+            )))
+        }
     }
 
     /// Adds user to LDAP.
