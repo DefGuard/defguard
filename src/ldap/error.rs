@@ -18,7 +18,7 @@ impl fmt::Display for LdapError {
             Self::MissingSettings => {
                 write!(f, "LDAP settings are missing")
             }
-            Self::TooManyObjects => write!(f, "Find more than one objects"),
+            Self::TooManyObjects => write!(f, "Found multiple objects"),
             Self::Database => write!(f, "Database error"),
         }
     }
