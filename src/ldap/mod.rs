@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -95,6 +95,7 @@ impl TryFrom<Settings> for LDAPConfig {
 pub struct LDAPConnection {
     config: LDAPConfig,
     ldap: Ldap,
+    url: String,
 }
 
 impl LDAPConnection {
@@ -112,7 +113,7 @@ impl LDAPConnection {
             .await?
             .success()?;
 
-        Ok(Self { config, ldap })
+        Ok(Self { config, ldap, url })
     }
 
     /// Searches LDAP for users.
@@ -130,6 +131,14 @@ impl LDAPConnection {
         info!("Performed LDAP user search with filter = {filter}");
 
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
+    }
+
+    async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
+        let (conn, mut ldap) = LdapConnAsync::new(&self.url).await?;
+        drive!(conn);
+        ldap.simple_bind(dn, password).await?.success()?;
+        ldap.unbind().await?;
+        Ok(())
     }
 
     // /// Searches LDAP for groups.
@@ -190,9 +199,10 @@ impl LDAPConnection {
 
     // Checks if cn is available, including default LDAP admin class
     pub async fn is_username_available(&mut self, username: &str) -> bool {
+        let username_escape = ldap_escape(username);
         let users = self
             .search_users(&format!(
-                "(&({}={username})(|(objectClass={})))",
+                "(&({}={username_escape})(|(objectClass={})))",
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await;
@@ -203,17 +213,21 @@ impl LDAPConnection {
     }
 
     /// Retrieves user with given username from LDAP.
-    /// TODO: Password must agree with the password stored in LDAP.
     pub async fn get_user(&mut self, username: &str, password: &str) -> Result<User, LdapError> {
         debug!("Performing LDAP user search: {username}");
+        let username_escape = ldap_escape(username);
         let mut entries = self
             .search_users(&format!(
-                "(&({}={username})(objectClass={}))",
+                "(&({}={username_escape})(objectClass={}))",
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await?;
+        if entries.len() > 1 {
+            return Err(LdapError::TooManyObjects);
+        }
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search: {username}");
+            self.test_bind_user(&entry.dn, password).await?;
             Ok(User::from_searchentry(&entry, username, password))
         } else {
             Err(LdapError::ObjectNotFound(format!(
