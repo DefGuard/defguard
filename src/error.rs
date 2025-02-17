@@ -76,7 +76,7 @@ impl From<LdapError> for WebError {
             LdapError::Ldap(msg) => Self::Ldap(msg),
             LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".into()),
             LdapError::Database => Self::Ldap("Database problem".into()),
-            LdapError::TooManyObjects => Self::Ldap(LdapError::TooManyObjects.into())
+            LdapError::TooManyObjects => Self::Ldap(LdapError::TooManyObjects.into()),
         }
     }
 }
