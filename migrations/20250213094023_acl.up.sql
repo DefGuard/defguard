@@ -1,9 +1,10 @@
 CREATE TABLE aclrule (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
+    allow_all_users boolean NOT NULL,
+    deny_all_users boolean NOT NULL,
+    all_networks boolean NOT NULL,
     destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
-    all_users boolean NOT NULL,
-    all_locations boolean NOT NULL,
     ports int4range[] NOT NULL,
     expires timestamp without time zone
 );
