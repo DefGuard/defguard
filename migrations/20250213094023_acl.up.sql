@@ -1,6 +1,7 @@
 CREATE TABLE aclrule (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
+    destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
     all_users boolean NOT NULL,
     all_locations boolean NOT NULL,
     ports int4range[] NOT NULL,

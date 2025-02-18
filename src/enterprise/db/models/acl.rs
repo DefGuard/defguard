@@ -16,6 +16,7 @@ pub struct AclRuleInfo {
     pub users: Vec<User<Id>>,
     pub groups: Vec<Group<Id>>,
     // destination
+    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<AclAlias<Id>>,
     pub ports: Vec<PgRange<i32>>,
 }
@@ -56,6 +57,8 @@ pub struct AclRule<I = NoId> {
     pub all_users: bool,
     pub all_locations: bool,
     #[model(ref)]
+    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     pub expires: Option<NaiveDateTime>,
 }
@@ -66,6 +69,7 @@ impl AclRule {
         name: S,
         all_users: bool,
         all_locations: bool,
+        destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         expires: Option<NaiveDateTime>,
     ) -> Self {
@@ -74,6 +78,7 @@ impl AclRule {
             name: name.into(),
             all_users,
             all_locations,
+            destination,
             ports,
             expires,
         }
@@ -189,6 +194,7 @@ impl AclRule<Id> {
             name: self.name.clone(),
             all_users: self.all_users,
             all_locations: self.all_locations,
+            destination: self.destination.clone(),
             ports: self.ports.clone(),
             expires: self.expires,
             aliases,
@@ -265,7 +271,7 @@ mod test {
 
     #[sqlx::test]
     async fn test_rule_relations(pool: PgPool) {
-        let mut rule = AclRule::new("rule", false, false, Vec::new(), None)
+        let mut rule = AclRule::new("rule", false, false, Vec::new(), Vec::new(), None)
             .save(&pool)
             .await
             .unwrap();
