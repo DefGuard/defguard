@@ -4,6 +4,9 @@ use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{postgres::types::PgRange, query_as, Error as SqlxError, PgExecutor, PgPool};
 
+/// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
+type Protocol = i32;
+
 /// Helper struct combining all DB objects related to given [`AclRule`]
 pub struct AclRuleInfo {
     pub id: Id,
@@ -35,6 +38,8 @@ pub struct AclRule<I = NoId> {
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
+    #[model(ref)]
+    pub protocols: Vec<Protocol>,
     pub expires: Option<NaiveDateTime>,
 }
 
@@ -47,6 +52,7 @@ impl AclRule {
         all_networks: bool,
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
+        protocols: Vec<Protocol>,
         expires: Option<NaiveDateTime>,
     ) -> Self {
         Self {
@@ -57,6 +63,7 @@ impl AclRule {
             all_networks,
             destination,
             ports,
+            protocols,
             expires,
         }
     }
@@ -97,7 +104,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, destination, ports, created_at \
+            "SELECT a.id, name, destination, ports, protocols, created_at \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -108,7 +115,10 @@ impl AclRule<Id> {
         .await
     }
 
-    pub(crate) async fn get_allowed_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -144,7 +154,10 @@ impl AclRule<Id> {
         }
     }
 
-    pub(crate) async fn get_denied_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_denied_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -180,7 +193,10 @@ impl AclRule<Id> {
         }
     }
 
-    pub(crate) async fn get_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_groups<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -198,7 +214,10 @@ impl AclRule<Id> {
         .await
     }
 
-    pub(crate) async fn get_denied_groups<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn get_denied_groups<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -252,6 +271,8 @@ pub struct AclAlias<I = NoId> {
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
+    #[model(ref)]
+    pub protocols: Vec<Protocol>,
     pub created_at: NaiveDateTime,
 }
 
@@ -261,12 +282,14 @@ impl AclAlias {
         name: S,
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
+        protocols: Vec<Protocol>,
     ) -> Self {
         Self {
             id: NoId,
             name: name.into(),
             destination,
             ports,
+            protocols,
             created_at: Utc::now().naive_utc(),
         }
     }
@@ -504,7 +527,7 @@ mod test {
         let denied_users = rule.get_denied_users(&pool).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
-        assert_eq!(allowed_users.len(), 0);
+        assert_eq!(denied_users.len(), 0);
 
         // ensure only active users are returned with `deny_all_users = true`
         rule.allow_all_users = false;
@@ -516,8 +539,7 @@ mod test {
         let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
         let denied_users = rule.get_denied_users(&pool).await.unwrap();
         assert_eq!(allowed_users.len(), 0);
-        assert_eq!(allowed_users.len(), 1);
-        assert_eq!(allowed_users[0], user2);
-
+        assert_eq!(denied_users.len(), 1);
+        assert_eq!(denied_users[0], user2);
     }
 }
