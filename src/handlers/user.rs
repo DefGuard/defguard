@@ -786,10 +786,6 @@ pub async fn delete_user(
     security(
         ("cookie" = []),
         ("api_token" = []) 
-    ),
-    security(
-        ("cookie" = []),
-        ("api_token" = []) 
     )
 )]
 pub async fn change_self_password(
