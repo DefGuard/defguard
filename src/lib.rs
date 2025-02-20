@@ -176,9 +176,12 @@ mod openapi {
         user, wireguard as device,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username,
+        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     };
-    use utoipa::OpenApi;
+    use utoipa::{
+        openapi::security::{HttpAuthScheme, HttpBuilder},
+        OpenApi,
+    };
 
     use super::*;
 
@@ -201,13 +204,6 @@ mod openapi {
             user::delete_security_key,
             user::me,
             user::delete_authorized_app,
-            // /device
-            device::add_device,
-            device::modify_device,
-            device::get_device,
-            device::delete_device,
-            device::list_devices,
-            device::list_user_devices,
             // /group
             group::bulk_assign_to_groups,
             group::list_groups_info,
@@ -218,6 +214,15 @@ mod openapi {
             group::delete_group,
             group::add_group_member,
             group::remove_group_member,
+            // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
+            // /network
+            // wireguard::create_network,
         ),
         components(
             schemas(
@@ -258,10 +263,15 @@ Available actions:
     impl Modify for SecurityAddon {
         fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
             if let Some(components) = openapi.components.as_mut() {
-                // TODO: add an appropriate security schema
+                // session cookie auth
                 components.add_security_scheme(
-                    "api_key",
-                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                    "cookie",
+                    SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_COOKIE_NAME))),
+                );
+                // API token auth
+                components.add_security_scheme(
+                    "api_token",
+                    SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
                 );
             }
         }
