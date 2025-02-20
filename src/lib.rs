@@ -173,7 +173,7 @@ mod openapi {
     };
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
-        user, wireguard as device,
+        user, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
         StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
@@ -222,7 +222,11 @@ mod openapi {
             device::list_devices,
             device::list_user_devices,
             // /network
-            // wireguard::create_network,
+            network::create_network,
+            network::modify_network,
+            network::delete_network,
+            network::list_networks,
+            network::network_details,
         ),
         components(
             schemas(
