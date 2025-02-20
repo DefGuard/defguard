@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclrulenetwork\" SET \"rule_id\" = $2,\"network_id\" = $3 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a9da2f7aa1ba647eee4ddb4dee6995abb5e2c0657024f583fe8dfa3a83c06a7d"
+}
