@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::db::{Group, Id, NoId, User, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -108,7 +110,10 @@ impl AclRule<Id> {
         .await
     }
 
-    pub(crate) async fn get_allowed_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -144,7 +149,10 @@ impl AclRule<Id> {
         }
     }
 
-    pub(crate) async fn get_denied_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_denied_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -180,7 +188,10 @@ impl AclRule<Id> {
         }
     }
 
-    pub(crate) async fn get_allowed_groups<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_groups<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -198,7 +209,10 @@ impl AclRule<Id> {
         .await
     }
 
-    pub(crate) async fn get_denied_groups<'e, E>(&self, executor: E) -> Result<Vec<Group<Id>>, SqlxError>
+    pub(crate) async fn get_denied_groups<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -214,6 +228,78 @@ impl AclRule<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// Wrapper function which combines explicitly specified allowed users with members of allowed
+    /// groups to generate a list of all unique allowed users for a given ACL.
+    pub(crate) async fn get_all_allowed_users(
+        &self,
+        pool: &PgPool,
+    ) -> Result<Vec<User<Id>>, SqlxError> {
+        // fetch explicitly allowed users
+        let mut allowed_users = self.get_allowed_users(pool).await?;
+
+        // fetch allowed groups
+        let allowed_groups = self.get_allowed_groups(pool).await?;
+        let allowed_group_ids: Vec<Id> = allowed_groups.iter().map(|group| group.id).collect();
+
+        // fetch all active members of allowed groups
+        let allowed_groups_users: Vec<User<Id>> = query_as!(
+            User,
+            "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" u \
+            JOIN group_user gu ON u.id=gu.user_id \
+                WHERE u.is_active=true AND gu.group_id=ANY($1)",
+            &allowed_group_ids
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // get unique users from both lists
+        allowed_users.extend(allowed_groups_users);
+        let unique_allowed_users: HashSet<_> = allowed_users.into_iter().collect();
+
+        // convert HashSet to output Vec
+        Ok(unique_allowed_users.into_iter().collect())
+    }
+
+    /// Wrapper function which combines explicitly specified denied users with members of denied
+    /// groups to generate a list of all unique denied users for a given ACL.
+    pub(crate) async fn get_all_denied_users(
+        &self,
+        pool: &PgPool,
+    ) -> Result<Vec<User<Id>>, SqlxError> {
+        // fetch explicitly denied users
+        let mut denied_users = self.get_denied_users(pool).await?;
+
+        // fetch denied groups
+        let denied_groups = self.get_denied_groups(pool).await?;
+        let denied_group_ids: Vec<Id> = denied_groups.iter().map(|group| group.id).collect();
+
+        // fetch all active members of denied groups
+        let denied_groups_users: Vec<User<Id>> = query_as!(
+            User,
+            "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" u \
+            JOIN group_user gu ON u.id=gu.user_id \
+                WHERE u.is_active=true AND gu.group_id=ANY($1)",
+            &denied_group_ids
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // get unique users from both lists
+        denied_users.extend(denied_groups_users);
+        let unique_denied_users: HashSet<_> = denied_users.into_iter().collect();
+
+        // convert HashSet to output Vec
+        Ok(unique_denied_users.into_iter().collect())
     }
 
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo, SqlxError> {
@@ -518,6 +604,5 @@ mod test {
         assert_eq!(allowed_users.len(), 0);
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
-
     }
 }

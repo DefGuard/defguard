@@ -15,18 +15,11 @@ enum Verdict {
   DENY = 1;
 }
 
-// we could maybe trim some of those
 enum Protocol {
   TCP = 0;
   UDP = 1;
-  UDPLITE = 2;
-  ESP = 3;
-  AH = 4;
   ICMP = 5;
   ICMPV6 = 6;
-  COMP = 7;
-  DCCP = 8;
-  SCTP = 9;
 }
 
 enum IpVersion {
@@ -69,5 +62,5 @@ message FirewallRule {
   repeated Port destination_port = 5;
   repeated Protocol protocol = 6;
   Verdict verdict = 7;
-  string comment = 8;
+  optional string comment = 8;
 }

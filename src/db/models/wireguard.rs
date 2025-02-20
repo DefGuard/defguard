@@ -312,7 +312,7 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
-        debug!("Fetching all allowed devices for network {}", self);
+        debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
         let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
