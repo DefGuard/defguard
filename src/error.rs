@@ -55,6 +55,8 @@ pub enum WebError {
     ServerConfigMissing,
     #[error("License error: {0}")]
     LicenseError(#[from] LicenseError),
+    #[error("Failed to get client IP address")]
+    ClientIpError,
 }
 
 impl From<tonic::Status> for WebError {

@@ -18,16 +18,13 @@ import { ModalWithTitle } from '../../../../../shared/defguard-ui/components/Lay
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
-import { useRenameAuthenticationKeyModal } from './useRenameAuthenticationKeyModal';
+import { useRenameApiTokenModal } from './useRenameApiTokenModal';
 
-export const RenameAuthenticationKeyModal = () => {
+export const RenameApiTokenModal = () => {
   const { LL } = useI18nContext();
-  const isOpen = useRenameAuthenticationKeyModal((s) => s.visible);
-  const keyName = useRenameAuthenticationKeyModal((s) => s.keyData?.name);
-  const [close, reset] = useRenameAuthenticationKeyModal(
-    (s) => [s.close, s.reset],
-    shallow,
-  );
+  const isOpen = useRenameApiTokenModal((s) => s.visible);
+  const keyName = useRenameApiTokenModal((s) => s.tokenData?.name);
+  const [close, reset] = useRenameApiTokenModal((s) => [s.close, s.reset], shallow);
   return (
     <ModalWithTitle
       title={`${LL.common.controls.rename()} ${LL.common.key().toLowerCase()} ${keyName}`}
@@ -46,10 +43,10 @@ type FormFields = {
 
 const ModalContent = () => {
   const {
-    user: { renameAuthenticationKey, renameYubikey },
+    user: { renameApiToken },
   } = useApi();
-  const closeModal = useRenameAuthenticationKeyModal((s) => s.close, shallow);
-  const keyData = useRenameAuthenticationKeyModal((s) => s.keyData);
+  const closeModal = useRenameApiTokenModal((s) => s.close, shallow);
+  const tokenData = useRenameApiTokenModal((s) => s.tokenData);
   const { LL } = useI18nContext();
   const toaster = useToaster();
 
@@ -68,7 +65,7 @@ const ModalContent = () => {
 
   const onSuccess = useCallback(() => {
     void queryClient.invalidateQueries({
-      queryKey: [QueryKeys.FETCH_AUTHENTICATION_KEYS_INFO],
+      queryKey: [QueryKeys.FETCH_API_TOKENS_INFO],
     });
     toaster.success(LL.messages.success());
     closeModal();
@@ -82,17 +79,8 @@ const ModalContent = () => {
     [LL.messages, toaster],
   );
 
-  const { mutate: renameYubiKeyMutation, isPending: isLoadingYubikey } = useMutation({
-    mutationFn: renameYubikey,
-    onSuccess,
-    onError,
-  });
-
-  const {
-    mutate: renameAuthenticationKeyMutation,
-    isPending: isLoadingAuthenticationKey,
-  } = useMutation({
-    mutationFn: renameAuthenticationKey,
+  const { mutate: renameApiTokenMutation, isPending } = useMutation({
+    mutationFn: renameApiToken,
     onSuccess,
     onError,
   });
@@ -104,7 +92,7 @@ const ModalContent = () => {
     setError,
   } = useForm({
     defaultValues: {
-      name: keyData?.name ?? '',
+      name: tokenData?.name ?? '',
     },
     resolver: zodResolver(schema),
     mode: 'all',
@@ -112,7 +100,7 @@ const ModalContent = () => {
 
   const submitValid: SubmitHandler<FormFields> = (values) => {
     const name = values.name.trim();
-    if (name === keyData?.name) {
+    if (name === tokenData?.name) {
       setError(
         'name',
         {
@@ -124,25 +112,16 @@ const ModalContent = () => {
       );
       return;
     }
-    if (keyData) {
-      if (keyData.key_type === 'yubikey') {
-        renameYubiKeyMutation({
-          id: keyData.id,
-          username: keyData.username,
-          name,
-        });
-      } else {
-        renameAuthenticationKeyMutation({
-          id: keyData.id,
-          username: keyData.username,
-          name,
-        });
-      }
+    if (tokenData) {
+      renameApiTokenMutation({
+        id: tokenData.id,
+        username: tokenData.username,
+        name,
+      });
     }
   };
-
   return (
-    <form onSubmit={handleSubmit(submitValid)} id="rename-authentication-key-form">
+    <form onSubmit={handleSubmit(submitValid)} id="rename-api-token-form">
       <FormInput controller={{ control, name: 'name' }} label={`${LL.common.name()}`} />
       <div className="controls">
         <Button
@@ -157,8 +136,8 @@ const ModalContent = () => {
           type="submit"
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          disabled={isValidating || isUndefined(keyData)}
-          loading={isLoadingAuthenticationKey || isLoadingYubikey}
+          disabled={isValidating || isUndefined(tokenData)}
+          loading={isPending}
           text={LL.common.controls.submit()}
         />
       </div>

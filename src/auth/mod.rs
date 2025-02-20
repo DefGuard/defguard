@@ -6,10 +6,15 @@ use std::{
 };
 
 use axum::{
-    extract::{FromRef, FromRequestParts},
+    extract::{FromRef, FromRequestParts, OptionalFromRequestParts},
     http::{header::AUTHORIZATION, request::Parts},
 };
-use axum_extra::extract::cookie::CookieJar;
+use axum_client_ip::InsecureClientIp;
+use axum_extra::{
+    extract::cookie::CookieJar,
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
+};
 use jsonwebtoken::{
     decode, encode, errors::Error as JWTError, DecodingKey, EncodingKey, Header, Validation,
 };
@@ -21,6 +26,7 @@ use crate::{
         models::group::Permission, Group, Id, OAuth2AuthorizedApp, OAuth2Token, Session,
         SessionState, User,
     },
+    enterprise::{db::models::api_tokens::ApiToken, is_enterprise_enabled},
     error::WebError,
     handlers::SESSION_COOKIE_NAME,
 };
@@ -126,6 +132,42 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let appstate = AppState::from_ref(state);
+
+        // first try to authenticate by API token if one is found in header
+        if is_enterprise_enabled() {
+            let maybe_auth_header: Option<TypedHeader<Authorization<Bearer>>> =
+                <TypedHeader<_> as OptionalFromRequestParts<S>>::from_request_parts(parts, state)
+                    .await
+                    .map_err(|err| {
+                        error!("Failed to extract optional auth header: {err}");
+                        WebError::Authorization("Invalid auth header".into())
+                    })?;
+            if let Some(header) = maybe_auth_header {
+                let token_string = header.token();
+                debug!("Trying to authorize request using API token: {token_string}");
+                return match ApiToken::try_find_by_auth_token(&appstate.pool, token_string).await {
+                    Ok(Some(api_token)) => {
+                        // create a dummy session and don't store it in the DB
+                        // since each request needs to be authorized anyway
+                        let ip_address = InsecureClientIp::from_request_parts(parts, state)
+                            .await
+                            .map_err(|err| {
+                            error!("Failed to get client IP: {err:?}");
+                            WebError::ClientIpError
+                        })?;
+                        Ok(Session::new(
+                            api_token.user_id,
+                            SessionState::ApiTokenVerified,
+                            ip_address.0.to_string(),
+                            None,
+                        ))
+                    }
+                    Ok(None) => Err(WebError::Authorization("Invalid API token".into())),
+                    Err(err) => Err(err.into()),
+                };
+            };
+        }
+
         let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;
         if let Some(session_cookie) = cookies.get(SESSION_COOKIE_NAME) {
             return {
@@ -183,18 +225,29 @@ where
     type Rejection = WebError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let appstate = AppState::from_ref(state);
         let session = Session::from_request_parts(parts, state).await?;
+        let appstate = AppState::from_ref(state);
         let user = User::find_by_id(&appstate.pool, session.user_id).await?;
 
         if let Some(user) = user {
-            if user.mfa_enabled && session.state != SessionState::MultiFactorVerified {
+            if user.mfa_enabled
+                && (session.state != SessionState::MultiFactorVerified
+                    && session.state != SessionState::ApiTokenVerified)
+            {
                 return Err(WebError::Authorization("MFA not verified".into()));
             }
             let Ok(groups) = user.member_of(&appstate.pool).await else {
                 return Err(WebError::DbError("cannot fetch groups".into()));
             };
             let is_admin = user.is_admin(&appstate.pool).await?;
+
+            // non-admin users are not allowed to use token auth
+            if !is_admin && session.state == SessionState::ApiTokenVerified {
+                return Err(WebError::Forbidden(
+                    "Token authentication is not allowed for normal users".into(),
+                ));
+            }
+
             Ok(SessionInfo {
                 session,
                 user,

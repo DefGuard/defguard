@@ -13,6 +13,7 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
+    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
     openid_login::{auth_callback, get_auth_info},
@@ -172,12 +173,15 @@ mod openapi {
     };
     use handlers::{
         group::{self, BulkAssignToGroupsRequest, Groups},
-        user, wireguard as device,
+        user, wireguard as device, wireguard as network,
         wireguard::AddDeviceResult,
         ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
-        StartEnrollmentRequest, Username,
+        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
     };
-    use utoipa::OpenApi;
+    use utoipa::{
+        openapi::security::{HttpAuthScheme, HttpBuilder},
+        OpenApi,
+    };
 
     use super::*;
 
@@ -200,13 +204,6 @@ mod openapi {
             user::delete_security_key,
             user::me,
             user::delete_authorized_app,
-            // /device
-            device::add_device,
-            device::modify_device,
-            device::get_device,
-            device::delete_device,
-            device::list_devices,
-            device::list_user_devices,
             // /group
             group::bulk_assign_to_groups,
             group::list_groups_info,
@@ -217,6 +214,19 @@ mod openapi {
             group::delete_group,
             group::add_group_member,
             group::remove_group_member,
+            // /device
+            device::add_device,
+            device::modify_device,
+            device::get_device,
+            device::delete_device,
+            device::list_devices,
+            device::list_user_devices,
+            // /network
+            network::create_network,
+            network::modify_network,
+            network::delete_network,
+            network::list_networks,
+            network::network_details,
         ),
         components(
             schemas(
@@ -233,13 +243,6 @@ Available actions:
 - operations on security key and authorized app
 - change user password.
             "),
-            (name = "device", description = "
-Endpoints that allow to control devices in your network.
-
-Available actions:
-- list all devices or user devices
-- CRUD mechanism for handling devices.
-            "),
             (name = "group", description = "
 Endpoints that allow to control groups in your network.
 
@@ -247,7 +250,21 @@ Available actions:
 - list all groups
 - CRUD mechanism for handling groups
 - add or delete a group member.
-            ")
+            "),
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "nework", description = "
+Endpoints that allow to control your networks.
+
+Available actions:
+- list all wireguard networks
+- CRUD mechanism for handling devices.
+            "),
         )
     )]
     pub struct ApiDoc;
@@ -257,10 +274,15 @@ Available actions:
     impl Modify for SecurityAddon {
         fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
             if let Some(components) = openapi.components.as_mut() {
-                // TODO: add an appropriate security schema
+                // session cookie auth
                 components.add_security_scheme(
-                    "api_key",
-                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("user_apikey"))),
+                    "cookie",
+                    SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_COOKIE_NAME))),
+                );
+                // API token auth
+                components.add_security_scheme(
+                    "api_token",
+                    SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
                 );
             }
         }
@@ -357,6 +379,17 @@ pub fn build_webapp(
             .route(
                 "/user/{username}/yubikey/{key_id}/rename",
                 post(rename_yubikey),
+            )
+            // API tokens
+            .route("/user/{username}/api_token", get(fetch_api_tokens))
+            .route("/user/{username}/api_token", post(add_api_token))
+            .route(
+                "/user/{username}/api_token/{token_id}",
+                delete(delete_api_token),
+            )
+            .route(
+                "/user/{username}/api_token/{token_id}/rename",
+                post(rename_api_token),
             )
             .route(
                 "/user/{username}/security_key/{id}",

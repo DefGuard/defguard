@@ -1,0 +1,24 @@
+#add-api-token-modal-form {
+  .controls {
+    display: flex;
+    flex-flow: row;
+    column-gap: 10px;
+
+    .btn {
+      height: 40px;
+      min-width: 100px;
+      max-width: 150px;
+      width: unset;
+    }
+  }
+}
+
+.copy-generated-token-content {
+  & > .message-box {
+    margin-bottom: 25px;
+  }
+
+  & > .expandable-card {
+    margin-bottom: 25px;
+  }
+}

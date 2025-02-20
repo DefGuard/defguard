@@ -1,3 +1,4 @@
+import { AddApiTokenModal } from './shared/modals/AddApiTokenModal/AddApiTokenModal';
 import { AddAuthenticationKeyModal } from './shared/modals/AddAuthenticationKeyModal/AddAuthenticationKeyModal';
 import { ChangePasswordModal } from './shared/modals/ChangeUserPasswordModal/ChangeUserPasswordModal';
 import { DeleteUserModal } from './shared/modals/DeleteUserModal/DeleteUserModal';
@@ -13,6 +14,7 @@ export const UsersSharedModals = () => {
       <DeleteUserModal />
       <ToggleUserModal />
       <AddAuthenticationKeyModal />
+      <AddApiTokenModal />
     </>
   );
 };

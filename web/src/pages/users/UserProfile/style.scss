@@ -161,7 +161,8 @@
 
     & > .wide-cards,
     & > .cards-1,
-    & > .cards-2 {
+    & > .cards-2,
+    & > .cards-3 {
       display: flex;
       flex-flow: column;
       justify-content: flex-start;
@@ -181,6 +182,32 @@
 
     & > .cards-2 {
       grid-area: cards-2;
+    }
+  }
+
+  & > .content-enterprise-enabled {
+    & > .cards-3 {
+      grid-area: cards-3;
+    }
+
+    grid-template-areas:
+      'wide-cards'
+      'cards-1'
+      'cards-2'
+      'cards-3';
+
+    @include media-breakpoint-up(xl) {
+      grid-template-areas:
+        'wide-cards cards-1'
+        'wide-cards cards-2'
+        'wide-cards cards-3';
+    }
+
+    @include media-breakpoint-up(xxl) {
+      grid-template-columns: 1fr 440px 384px;
+      grid-template-areas:
+        'wide-cards cards-1 cards-2'
+        'wide-cards cards-1 cards-3';
     }
   }
 }

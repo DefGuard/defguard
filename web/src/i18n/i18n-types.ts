@@ -2019,6 +2019,95 @@ type RootTranslation = {
 				}
 			}
 		}
+		apiTokens: {
+			/**
+			 * U​s​e​r​ ​A​P​I​ ​T​o​k​e​n​s
+			 */
+			header: string
+			/**
+			 * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+			 */
+			addToken: string
+			tokensList: {
+				common: {
+					/**
+					 * R​e​n​a​m​e
+					 */
+					rename: string
+					/**
+					 * T​o​k​e​n
+					 */
+					token: string
+					/**
+					 * C​o​p​y
+					 */
+					copy: string
+					/**
+					 * D​e​l​e​t​e
+					 */
+					'delete': string
+					/**
+					 * C​r​e​a​t​e​d​ ​a​t
+					 */
+					createdAt: string
+				}
+			}
+			deleteModal: {
+				/**
+				 * D​e​l​e​t​e​ ​A​P​I​ ​T​o​k​e​n
+				 */
+				title: string
+				/**
+				 * A​P​I​ ​t​o​k​e​n​ ​{​n​a​m​e​}​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​ ​p​e​r​m​a​n​e​n​t​l​y​.
+				 * @param {string} name
+				 */
+				confirmMessage: RequiredParams<'name'>
+			}
+			addModal: {
+				/**
+				 * A​d​d​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+				 */
+				header: string
+				tokenForm: {
+					placeholders: {
+						/**
+						 * A​P​I​ ​T​o​k​e​n​ ​N​a​m​e
+						 */
+						name: string
+					}
+					labels: {
+						/**
+						 * N​a​m​e
+						 */
+						name: string
+					}
+					/**
+					 * A​d​d​ ​A​P​I​ ​t​o​k​e​n
+					 */
+					submit: string
+				}
+				copyToken: {
+					/**
+					 * P​l​e​a​s​e​ ​c​o​p​y​ ​t​h​e​ ​A​P​I​ ​t​o​k​e​n​ ​b​e​l​o​w​ ​n​o​w​.​ ​Y​o​u​ ​w​o​n​'​t​ ​b​e​ ​a​b​l​e​ ​t​o​ ​s​e​e​ ​i​t​ ​a​g​a​i​n​.
+					 */
+					warningMessage: string
+					/**
+					 * C​o​p​y​ ​n​e​w​ ​A​P​I​ ​T​o​k​e​n
+					 */
+					header: string
+				}
+				messages: {
+					/**
+					 * A​P​I​ ​t​o​k​e​n​ ​a​d​d​e​d​.
+					 */
+					tokenAdded: string
+					/**
+					 * C​o​u​l​d​ ​n​o​t​ ​a​d​d​ ​A​P​I​ ​t​o​k​e​n​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​.
+					 */
+					genericError: string
+				}
+			}
+		}
 	}
 	usersOverview: {
 		/**
@@ -6843,6 +6932,94 @@ export type TranslationFunctions = {
 					unsupportedKeyFormat: () => LocalizedString
 					/**
 					 * Could not add the key. Please try again later.
+					 */
+					genericError: () => LocalizedString
+				}
+			}
+		}
+		apiTokens: {
+			/**
+			 * User API Tokens
+			 */
+			header: () => LocalizedString
+			/**
+			 * Add new API Token
+			 */
+			addToken: () => LocalizedString
+			tokensList: {
+				common: {
+					/**
+					 * Rename
+					 */
+					rename: () => LocalizedString
+					/**
+					 * Token
+					 */
+					token: () => LocalizedString
+					/**
+					 * Copy
+					 */
+					copy: () => LocalizedString
+					/**
+					 * Delete
+					 */
+					'delete': () => LocalizedString
+					/**
+					 * Created at
+					 */
+					createdAt: () => LocalizedString
+				}
+			}
+			deleteModal: {
+				/**
+				 * Delete API Token
+				 */
+				title: () => LocalizedString
+				/**
+				 * API token {name} will be deleted permanently.
+				 */
+				confirmMessage: (arg: { name: string }) => LocalizedString
+			}
+			addModal: {
+				/**
+				 * Add new API Token
+				 */
+				header: () => LocalizedString
+				tokenForm: {
+					placeholders: {
+						/**
+						 * API Token Name
+						 */
+						name: () => LocalizedString
+					}
+					labels: {
+						/**
+						 * Name
+						 */
+						name: () => LocalizedString
+					}
+					/**
+					 * Add API token
+					 */
+					submit: () => LocalizedString
+				}
+				copyToken: {
+					/**
+					 * Please copy the API token below now. You won't be able to see it again.
+					 */
+					warningMessage: () => LocalizedString
+					/**
+					 * Copy new API Token
+					 */
+					header: () => LocalizedString
+				}
+				messages: {
+					/**
+					 * API token added.
+					 */
+					tokenAdded: () => LocalizedString
+					/**
+					 * Could not add API token. Please try again later.
 					 */
 					genericError: () => LocalizedString
 				}

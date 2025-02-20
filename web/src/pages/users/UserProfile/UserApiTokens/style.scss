@@ -1,0 +1,11 @@
+@use '@scssutils' as *;
+
+#user-api-tokens {
+  .add-component {
+    height: 80px;
+  }
+
+  .api-token-list {
+    padding-bottom: 15px;
+  }
+}

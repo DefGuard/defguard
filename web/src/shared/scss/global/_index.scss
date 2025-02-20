@@ -1,6 +1,5 @@
 // this is prepended to all .scss files so all mixins and helpers can be used anywhere
 @forward './bootstrap/';
 @forward './mixins';
-@forward './animations';
 @forward '../../defguard-ui/scss/typography';
 @forward '../../defguard-ui/scss/helpers/mixins';

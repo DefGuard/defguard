@@ -856,6 +856,44 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
     },
+    apiTokens: {
+      header: 'API Tokeny użytkownika',
+      addToken: 'Dodaj nowy API Token',
+      tokensList: {
+        common: {
+          rename: 'Zmień nazwę',
+          token: 'Token',
+          copy: 'Skopiuj',
+          delete: 'Usuń',
+          createdAt: 'Utworzono',
+        },
+      },
+      deleteModal: {
+        title: 'Usuń API Token',
+        confirmMessage: 'API token {name: string} zostanie trwale usunięty.',
+      },
+      addModal: {
+        header: 'Dodaj nowy API Token',
+        tokenForm: {
+          placeholders: {
+            name: 'Nazwa API Tokena',
+          },
+          labels: {
+            name: 'Nazwa',
+          },
+          submit: 'Dodaj API token',
+        },
+        copyToken: {
+          warningMessage:
+            'Skopiuj poniższy API token teraz. Nie będzie on dostępny w późniejszym czasie.',
+          header: 'Skopiuj nowy API Token',
+        },
+        messages: {
+          tokenAdded: 'API token dodany.',
+          genericError: 'Nie udało się dodać API tokena. Spróbuj ponownie później.',
+        },
+      },
+    },
   },
   usersOverview: {
     pageTitle: 'Użytkownicy',

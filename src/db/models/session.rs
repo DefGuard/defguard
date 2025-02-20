@@ -10,6 +10,7 @@ pub enum SessionState {
     NotVerified,
     PasswordVerified,
     MultiFactorVerified,
+    ApiTokenVerified,
 }
 
 // Representation of a Defguard server user session
