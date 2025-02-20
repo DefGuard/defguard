@@ -91,17 +91,21 @@ pub struct ImportedNetworkData {
     pub devices: Vec<ImportedDevice>,
 }
 
-// #[utoipa::path(
-//     get,
-//     path = "/api/v1/network",
-//     request_body = WireguardNetworkData,
-//     responses(
-//         (status = 201, description = "Successfully created network.", body = WireguardNetwork),
-//         (status = 401, description = "Unauthorized to create network.", body = Json, example = json!({"msg": "Session is required"})),
-//         (status = 403, description = "You don't have permission to return details about user.", body = Json, body = Json, example = json!({"msg": "access denied"})),
-//         (status = 500, description = "Unable to create network.", body = Json, example = json!({"msg": "Invalid network address"}))
-//     )
-// )]
+#[utoipa::path(
+    post,
+    path = "/api/v1/network",
+    request_body = WireguardNetworkData,
+    responses(
+        (status = 201, description = "Successfully created network.", body = WireguardNetwork),
+        (status = 401, description = "Unauthorized to create network.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to create a network.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to create network.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
+    )
+)]
 pub(crate) async fn create_network(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -159,6 +163,22 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
         .ok_or_else(|| WebError::ObjectNotFound(format!("Network {id} not found")))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/v1/network/{network_id}",
+    request_body = WireguardNetworkData,
+    responses(
+        (status = 200, description = "Successfully modified network.", body = WireguardNetwork),
+        (status = 401, description = "Unauthorized to modify network.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to modify a network.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Network not found", body = ApiResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to modify network.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
+    )
+)]
 pub(crate) async fn modify_network(
     _role: AdminRole,
     Path(network_id): Path<i64>,
@@ -211,6 +231,21 @@ pub(crate) async fn modify_network(
     })
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/v1/network/{network_id}",
+    responses(
+        (status = 200, description = "Successfully deleted network.", body = ApiResponse),
+        (status = 401, description = "Unauthorized to delete network.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to delete a network.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Network not found", body = ApiResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to delete network.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
+    )
+)]
 pub(crate) async fn delete_network(
     _role: AdminRole,
     Path(network_id): Path<i64>,
@@ -242,6 +277,20 @@ pub(crate) async fn delete_network(
     Ok(ApiResponse::default())
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/network",
+    responses(
+        (status = 200, description = "List of all networks", body = [WireguardNetworkInfo]),
+        (status = 401, description = "Unauthorized to list all networks.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to list all networks.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 500, description = "Unable to list all networks.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
+    )
+)]
 pub(crate) async fn list_networks(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -274,6 +323,21 @@ pub(crate) async fn list_networks(
     })
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/network/{network_id}",
+    responses(
+        (status = 200, description = "Network details", body = WireguardNetworkInfo),
+        (status = 401, description = "Unauthorized to get network details.", body = ApiResponse, example = json!({"msg": "Session is required"})),
+        (status = 403, description = "You don't have permission to get network details.", body = ApiResponse, example = json!({"msg": "access denied"})),
+        (status = 404, description = "Network not found", body = ApiResponse, example = json!({"msg": "network not found"})),
+        (status = 500, description = "Unable to get network details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
+    )
+)]
 pub(crate) async fn network_details(
     Path(network_id): Path<i64>,
     _role: AdminRole,
@@ -511,6 +575,10 @@ pub struct AddDeviceResult {
         (status = 401, description = "Unauthorized to add a new device for a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to add a new device for a user. You can't add a new device for a disabled user.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Cannot add a new device for a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn add_device(
@@ -660,6 +728,10 @@ pub(crate) async fn add_device(
         (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"})),
         (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn modify_device(
@@ -746,6 +818,10 @@ pub(crate) async fn modify_device(
         (status = 400, description = "Bad request, no networks found or device with pubkey that you want to send with is a server's pubkey.", body = ApiResponse, example = json!({"msg": "device's pubkey must be different from server's pubkey"})),
         (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn get_device(
@@ -779,6 +855,10 @@ pub(crate) async fn get_device(
         (status = 401, description = "Unauthorized to update a device.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Device not found.", body = ApiResponse, example = json!({"msg": "device id <id> not found"})),
         (status = 500, description = "Cannot update a device.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn delete_device(
@@ -817,6 +897,10 @@ pub(crate) async fn delete_device(
         ])),
         (status = 401, description = "Unauthorized to list all devices.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to list all devices.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -854,6 +938,10 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
         ])),
         (status = 401, description = "Unauthorized to list user devices.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to list user devices.", body = ApiResponse, example = json!({"msg": "Admin access required"})),
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn list_user_devices(

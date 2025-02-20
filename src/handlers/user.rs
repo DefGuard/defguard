@@ -148,6 +148,10 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
         (status = 401, description = "Unauthorized to list all users.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to list all users.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable return list of users.", body = ApiResponse, example = json!({"msg": "Internal error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -223,6 +227,10 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
         (status = 401, description = "Unauthorized to return details about user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to return details about user.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to return user details.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn get_user(
@@ -273,6 +281,10 @@ pub async fn get_user(
         (status = 401, description = "Unauthorized to create a user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to create a user.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to create a user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn add_user(
@@ -369,6 +381,10 @@ pub async fn add_user(
         (status = 403, description = "You don't have permission to start enrollment.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to start enrollment.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn start_enrollment(
@@ -462,6 +478,10 @@ pub async fn start_enrollment(
         (status = 401, description = "Unauthorized to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "Can't create desktop configuration enrollment token for disabled user <username>"})),
         (status = 404, description = "Provided user does not exist.", body = ApiResponse, example = json!({"msg": "user <username> not found"})),
         (status = 500, description = "Unable to start remote desktop configuration.", body = ApiResponse, example = json!({"msg": "unexpected error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn start_remote_desktop_configuration(
@@ -552,6 +572,10 @@ pub async fn start_remote_desktop_configuration(
         (status = 401, description = "Unauthorized to check is username available.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to check is username available.", body = ApiResponse,  example = json!({"msg": "access denied"})),
         (status = 500, description = "Unable to check is username available.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn username_available(
@@ -598,6 +622,10 @@ pub async fn username_available(
         (status = 400, description = "Bad request, unable to change user data. Verify user data that you want to update.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to modify user.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to modify user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn modify_user(
@@ -695,6 +723,10 @@ pub async fn modify_user(
         (status = 403, description = "You don't have permission to delete user.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "User does not exist with username: <username>", body = ApiResponse, example = json!({"msg": "User <username> not found"})),
         (status = 500, description = "Unable to delete user.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn delete_user(
@@ -750,6 +782,10 @@ pub async fn delete_user(
         (status = 400, description = "Bad request, provided passwords are not same or new password does not satisfy requirements.", body = ApiResponse, example = json!({})),
         (status = 401, description = "Unauthorized to change password.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Unable to change your password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn change_self_password(
@@ -809,6 +845,10 @@ pub async fn change_self_password(
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Cannot change user password that does not exist.", body = ApiResponse, example = json!({})),
         (status = 500, description = "Unable to change user password", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn change_password(
@@ -887,6 +927,10 @@ pub async fn change_password(
         (status = 403, description = "You don't have permission to change user password.", body = ApiResponse, example = json!({"msg": "access denied"})),
         (status = 404, description = "Cannot reset user password that does not exist.", body = ApiResponse, example = json!({})),
         (status = 500, description = "Unable to send reset password to email", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn reset_password(
@@ -990,6 +1034,10 @@ pub async fn reset_password(
         (status = 403, description = "You don't have permission to delete security key.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Incorrect authorized app, not found.", body = ApiResponse, example = json!({"msg": "security key not found"})),
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn delete_security_key(
@@ -1059,6 +1107,10 @@ pub async fn delete_security_key(
         )),
         (status = 401, description = "Unauthorized return own user data.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Cannot retrive own user data.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
@@ -1088,6 +1140,10 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
         (status = 403, description = "You don't have permission to delete authorized app.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Incorrect authorized app, not found.", body = ApiResponse, example = json!({"msg": "Authorized app not found"})),
         (status = 500, description = "Cannot delete authorized app.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub async fn delete_authorized_app(
