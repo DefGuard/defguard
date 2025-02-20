@@ -243,13 +243,6 @@ Available actions:
 - operations on security key and authorized app
 - change user password.
             "),
-            (name = "device", description = "
-Endpoints that allow to control devices in your network.
-
-Available actions:
-- list all devices or user devices
-- CRUD mechanism for handling devices.
-            "),
             (name = "group", description = "
 Endpoints that allow to control groups in your network.
 
@@ -257,7 +250,21 @@ Available actions:
 - list all groups
 - CRUD mechanism for handling groups
 - add or delete a group member.
-            ")
+            "),
+            (name = "device", description = "
+Endpoints that allow to control devices in your network.
+
+Available actions:
+- list all devices or user devices
+- CRUD mechanism for handling devices.
+            "),
+            (name = "nework", description = "
+Endpoints that allow to control your networks.
+
+Available actions:
+- list all wireguard networks
+- CRUD mechanism for handling devices.
+            "),
         )
     )]
     pub struct ApiDoc;
