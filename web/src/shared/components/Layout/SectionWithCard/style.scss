@@ -1,0 +1,12 @@
+.section-with-title {
+  & > h2 {
+    @include typography(body-1);
+    padding-bottom: var(--spacing-s);
+  }
+
+  & > .card {
+    box-sizing: border-box;
+    width: 100%;
+    padding: var(--spacing-m);
+  }
+}

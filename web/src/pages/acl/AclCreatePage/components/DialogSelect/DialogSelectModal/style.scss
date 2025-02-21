@@ -1,0 +1,57 @@
+.modal.modal-dialog-select {
+  min-height: 100dvh;
+  justify-items: center;
+  align-items: start;
+  padding: 10dvh 0 40px !important;
+
+  .modal-content {
+    width: 100%;
+    max-width: 580px;
+    border-radius: 10px;
+    padding: 18px 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+
+    hr {
+      border: 0.5px solid var(--border-primary);
+      margin: var(--spacing-xs) 0;
+    }
+
+    .option {
+      min-height: 24px;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-xs);
+      cursor: pointer;
+      user-select: none;
+
+      p,
+      span {
+        @include typography(app-modal-1);
+      }
+
+      span {
+        color: var(--text-body-tertiary);
+      }
+    }
+
+    .options {
+      list-style: none;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-xs);
+      min-height: calc(24px * 6 + 50px);
+    }
+
+    .controls {
+      padding-top: var(--spacing-xs);
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-s);
+    }
+  }
+}

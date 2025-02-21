@@ -8,6 +8,7 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      accept: 'Accept',
       next: 'Next',
       back: 'Back',
       cancel: 'Cancel',
@@ -962,6 +963,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       support: 'Support',
       groups: 'Groups',
       devices: 'Network Devices',
+      acl: 'Access Control',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -2109,6 +2111,17 @@ Any other requests you can reach us at: support@defguard.net
         actionLabels: {
           config: 'View config',
           generateToken: 'Generate auth token',
+        },
+      },
+    },
+  },
+  acl: {
+    listPage: {},
+    createPage: {
+      title: 'Access Control List',
+      sections: {
+        rule: {
+          title: 'Create Rule',
         },
       },
     },

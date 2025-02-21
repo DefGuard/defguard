@@ -145,7 +145,7 @@ importers:
         version: 6.21.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-tracked:
         specifier: ^2.0.1
-        version: 2.0.1(react@18.2.0)(scheduler@0.23.0)
+        version: 2.0.1(react@18.2.0)(scheduler@0.25.0)
       react-virtualized-auto-sizer:
         specifier: ^1.0.25
         version: 1.0.25(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -167,6 +167,9 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.1
+      scheduler:
+        specifier: ^0.25.0
+        version: 0.25.0
       typesafe-i18n:
         specifier: ^5.26.2
         version: 5.26.2(typescript@5.7.2)
@@ -3465,6 +3468,9 @@ packages:
 
   scheduler@0.23.0:
     resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==}
+
+  scheduler@0.25.0:
+    resolution: {integrity: sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA==}
 
   semver@5.7.2:
     resolution: {integrity: sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==}
@@ -7516,12 +7522,12 @@ snapshots:
       react-dom: 18.2.0(react@18.2.0)
       react-transition-group: 4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
 
-  react-tracked@2.0.1(react@18.2.0)(scheduler@0.23.0):
+  react-tracked@2.0.1(react@18.2.0)(scheduler@0.25.0):
     dependencies:
       proxy-compare: 3.0.1
       react: 18.2.0
-      scheduler: 0.23.0
-      use-context-selector: 2.0.0(react@18.2.0)(scheduler@0.23.0)
+      scheduler: 0.25.0
+      use-context-selector: 2.0.0(react@18.2.0)(scheduler@0.25.0)
 
   react-transition-group@4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
@@ -7803,6 +7809,8 @@ snapshots:
   scheduler@0.23.0:
     dependencies:
       loose-envify: 1.4.0
+
+  scheduler@0.25.0: {}
 
   semver@5.7.2: {}
 
@@ -8341,10 +8349,10 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  use-context-selector@2.0.0(react@18.2.0)(scheduler@0.23.0):
+  use-context-selector@2.0.0(react@18.2.0)(scheduler@0.25.0):
     dependencies:
       react: 18.2.0
-      scheduler: 0.23.0
+      scheduler: 0.25.0
 
   use-deep-compare-effect@1.8.1(react@18.2.0):
     dependencies:

@@ -110,6 +110,13 @@ export const Navigation = () => {
         enabled: true,
       },
       {
+        title: LL.navigation.bar.acl(),
+        linkPath: '/admin/acl',
+        icon: <div></div>,
+        adminOnly: true,
+        enabled: true,
+      },
+      {
         title: LL.navigation.bar.devices(),
         linkPath: '/admin/devices',
         icon: <DevicePageNavigationIcon />,

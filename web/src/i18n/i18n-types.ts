@@ -32,6 +32,10 @@ type RootTranslation = {
 		}
 		controls: {
 			/**
+			 * A​c​c​e​p​t
+			 */
+			accept: string
+			/**
 			 * N​e​x​t
 			 */
 			next: string
@@ -2261,6 +2265,10 @@ type RootTranslation = {
 			 * N​e​t​w​o​r​k​ ​D​e​v​i​c​e​s
 			 */
 			devices: string
+			/**
+			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l
+			 */
+			acl: string
 		}
 		mobileTitles: {
 			/**
@@ -4949,6 +4957,24 @@ type RootTranslation = {
 			}
 		}
 	}
+	acl: {
+		listPage: {
+		}
+		createPage: {
+			/**
+			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
+			 */
+			title: string
+			sections: {
+				rule: {
+					/**
+					 * C​r​e​a​t​e​ ​R​u​l​e
+					 */
+					title: string
+				}
+			}
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -4968,6 +4994,10 @@ export type TranslationFunctions = {
 			equal: () => LocalizedString
 		}
 		controls: {
+			/**
+			 * Accept
+			 */
+			accept: () => LocalizedString
 			/**
 			 * Next
 			 */
@@ -7178,6 +7208,10 @@ export type TranslationFunctions = {
 			 * Network Devices
 			 */
 			devices: () => LocalizedString
+			/**
+			 * Access Control
+			 */
+			acl: () => LocalizedString
 		}
 		mobileTitles: {
 			/**
@@ -9842,6 +9876,24 @@ export type TranslationFunctions = {
 					 * Generate auth token
 					 */
 					generateToken: () => LocalizedString
+				}
+			}
+		}
+	}
+	acl: {
+		listPage: {
+		}
+		createPage: {
+			/**
+			 * Access Control List
+			 */
+			title: () => LocalizedString
+			sections: {
+				rule: {
+					/**
+					 * Create Rule
+					 */
+					title: () => LocalizedString
 				}
 			}
 		}

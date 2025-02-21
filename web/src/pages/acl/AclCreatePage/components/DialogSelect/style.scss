@@ -1,0 +1,100 @@
+.dialog-select {
+  width: 100%;
+  display: inline-grid;
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 40px;
+  column-gap: var(--spacing-xs);
+  align-items: center;
+
+  .open-button {
+    grid-row: 1;
+    grid-column: 2 / 3;
+    background-color: var(--surface-icon-on-dark);
+    border: none;
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    transition-duration: 250ms;
+    transition-property: background-color;
+
+    svg {
+      path {
+        transition-duration: 250ms;
+        transition-property: stroke;
+
+        stroke: var(--surface-icon-primary);
+      }
+    }
+
+    &:hover {
+      background-color: var(--surface-main-primary);
+
+      svg {
+        path {
+          stroke: var(--surface-icon-secondary);
+        }
+      }
+    }
+  }
+
+  & > .track {
+    grid-row: 1;
+    grid-column: 1 / 2;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px k8px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border-primary);
+    min-height: 50px;
+    background-color: var(--surface-frame-bg);
+    position: relative;
+    overflow: hidden;
+
+    .options {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: 8px;
+      z-index: 1;
+
+      .dialog-select-tag {
+        display: inline-flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        box-sizing: border-box;
+        padding: 7px 10px;
+        border: 1px solid var(--border-primary);
+        column-gap: 10px;
+
+        span,
+        p {
+          @include typography(app-input);
+          user-select: none;
+        }
+      }
+    }
+
+    & > svg {
+      border-radius: 10px;
+      user-select: none;
+      z-index: 2;
+      position: absolute;
+      right: 0px;
+      top: 0px;
+    }
+  }
+}
+
+.dialog-select-spacer {
+  & > label {
+    padding-bottom: var(--spacing-xs);
+  }
+}
