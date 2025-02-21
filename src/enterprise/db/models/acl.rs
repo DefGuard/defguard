@@ -1,4 +1,5 @@
 use crate::db::{Group, Id, NoId, User, WireguardNetwork};
+use std::ops::Range;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
