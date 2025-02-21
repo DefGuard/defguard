@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_openid_provider","delete_openid_provider","get_current_openid_provider","list_openid_providers","modify_openid_provider","test_dirsync_connection"],"struct":["AddProviderData","DeleteProviderData"]};

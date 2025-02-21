@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["worker_service_client","worker_service_server"],"struct":["GetJobResponse","JobStatus","Worker","WorkerServer"]};
