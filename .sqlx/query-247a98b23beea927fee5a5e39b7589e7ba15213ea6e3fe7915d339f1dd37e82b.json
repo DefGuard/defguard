@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"aclalias\" (\"name\",\"destination\",\"ports\",\"protocols\",\"created_at\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "247a98b23beea927fee5a5e39b7589e7ba15213ea6e3fe7915d339f1dd37e82b"
+}

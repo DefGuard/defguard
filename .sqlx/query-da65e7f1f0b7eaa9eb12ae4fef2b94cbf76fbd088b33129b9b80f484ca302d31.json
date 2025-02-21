@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"name\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"created_at\" FROM \"aclalias\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "destination: _",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "ports: _",
+        "type_info": "Int4RangeArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "protocols: _",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "da65e7f1f0b7eaa9eb12ae4fef2b94cbf76fbd088b33129b9b80f484ca302d31"
+}

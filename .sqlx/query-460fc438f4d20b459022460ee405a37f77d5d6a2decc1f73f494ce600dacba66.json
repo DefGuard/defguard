@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"expires\" FROM \"aclrule\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "allow_all_users",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "deny_all_users",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "all_networks",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "destination: _",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "ports: _",
+        "type_info": "Int4RangeArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "protocols: _",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 8,
+        "name": "expires",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "460fc438f4d20b459022460ee405a37f77d5d6a2decc1f73f494ce600dacba66"
+}

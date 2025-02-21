@@ -6,6 +6,7 @@ CREATE TABLE aclrule (
     all_networks boolean NOT NULL,
     destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
     ports int4range[] NOT NULL,
+    protocols int[] NOT NULL,
     expires timestamp without time zone
 );
 
@@ -14,6 +15,7 @@ CREATE TABLE aclalias (
     name text NOT NULL,
     destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
     ports int4range[] NOT NULL,
+    protocols int[] NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT now()
 );
 
