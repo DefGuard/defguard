@@ -73,18 +73,19 @@ impl AclRule {
         }
     }
 
+    /// Creates new [`AclRule`] and all related objects based on [`ApiAclRule`]
     pub(crate) async fn create(
         pool: &PgPool,
         api_rule: ApiAclRule<NoId>,
     ) -> Result<ApiAclRule<Id>, SqlxError> {
         let mut transaction = pool.begin().await?;
+
         // save the rule
-        let networks = api_rule.networks.clone();
-        let rule: AclRule<NoId> = api_rule.into();
+        let rule: AclRule<NoId> = api_rule.clone().into();
         let rule = rule.save(&mut *transaction).await?;
 
         // save related networks
-        for network_id in networks {
+        for network_id in api_rule.networks {
             let obj = AclRuleNetwork {
                 id: NoId,
                 rule_id: rule.id,
@@ -92,6 +93,61 @@ impl AclRule {
             };
             obj.save(&mut *transaction).await?;
         }
+
+        // allowed users
+        for user_id in api_rule.allowed_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: true,
+                rule_id: rule.id,
+                user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied users
+        for user_id in api_rule.denied_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: false,
+                rule_id: rule.id,
+                user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed groups
+        for group_id in api_rule.allowed_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: true,
+                rule_id: rule.id,
+                group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied groups
+        for group_id in api_rule.denied_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: false,
+                rule_id: rule.id,
+                group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // save related aliases
+        for alias_id in api_rule.aliases {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id: rule.id,
+                alias_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
         transaction.commit().await?;
         Ok(rule.to_info(pool).await?.into())
     }
