@@ -8,12 +8,7 @@ use crate::db::{Id, User, WireguardNetwork};
 
 use super::db::models::acl::AclRule;
 
-tonic::include_proto!("acl");
-
-pub enum Policy {
-    Allow,
-    Deny,
-}
+tonic::include_proto!("firewall");
 
 pub enum NetworkAddressingType {
     IpV4,
@@ -33,7 +28,8 @@ pub enum DestinationIp {
 
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
-    default_location_policy: Policy,
+    default_location_policy: FirewallPolicy,
+    ip_version: IpVersion,
     acl_rules: Vec<AclRule<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, SqlxError> {
@@ -43,8 +39,8 @@ pub async fn generate_firewall_rules_from_acls(
     // for example if by default the firewall denies all traffic it only makes sense to add allow
     // rules
     let firewall_rule_verdict = match default_location_policy {
-        Policy::Allow => Verdict::Deny,
-        Policy::Deny => Verdict::Accept,
+        FirewallPolicy::Allow => FirewallPolicy::Deny,
+        FirewallPolicy::Deny => FirewallPolicy::Allow,
     };
     for acl in acl_rules {
         // fetch allowed users
@@ -61,12 +57,12 @@ pub async fn generate_firewall_rules_from_acls(
         // - denied users if default policy is `Allow`
         let users: Vec<User<Id>> = match default_location_policy {
             // start with allowed users and remove those explicitly denied
-            Policy::Deny => allowed_users
+            FirewallPolicy::Deny => allowed_users
                 .into_iter()
                 .filter(|user| !denied_users.contains(user))
                 .collect(),
             // start with denied users and remove those explicitly allowed
-            Policy::Allow => denied_users
+            FirewallPolicy::Allow => denied_users
                 .into_iter()
                 .filter(|user| !allowed_users.contains(user))
                 .collect(),
@@ -85,38 +81,26 @@ pub async fn generate_firewall_rules_from_acls(
         )
         .fetch_all(pool)
         .await?;
-        let source_addr = user_device_ips
+        // TODO: filter out incompatible IP version
+        let source_addrs = user_device_ips
             .into_iter()
-            .map(|ip| match ip {
-                IpAddr::V4(ipv4_addr) => IpAddress {
-                    version: IpVersion::Ipv4.into(),
-                    address: Some(Address::Ip(ipv4_addr.to_string())),
-                },
-                IpAddr::V6(ipv6_addr) => IpAddress {
-                    version: IpVersion::Ipv6.into(),
-                    address: Some(Address::Ip(ipv6_addr.to_string())),
-                },
+            .map(|ip| IpAddress {
+                address: Some(Address::Ip(ip.to_string())),
             })
             .collect();
 
         // prepare destination addresses
-        let destination_addr = acl
+        // TODO: filter out incompatible IP version
+        let destination_addrs = acl
             .destination
             .into_iter()
-            .map(|dst| match dst {
-                IpNetwork::V4(ipv4_network) => IpAddress {
-                    version: IpVersion::Ipv4.into(),
-                    address: Some(Address::IpSubnet(ipv4_network.to_string())),
-                },
-                IpNetwork::V6(ipv6_network) => IpAddress {
-                    version: IpVersion::Ipv6.into(),
-                    address: Some(Address::IpSubnet(ipv6_network.to_string())),
-                },
+            .map(|dst| IpAddress {
+                address: Some(Address::IpSubnet(dst.to_string())),
             })
             .collect();
 
         // prepare destination ports
-        let destination_port = acl
+        let destination_ports = acl
             .ports
             .into_iter()
             .map(|port_range| Port {
@@ -139,18 +123,13 @@ pub async fn generate_firewall_rules_from_acls(
 
         // TODO: process aliases
 
-        // FIXME: actually determine the family
-        // determine rule family based on network subnet type
-        let family = Family::Ip.into();
-
         // prepare firewall rule for this ACL
         let firewall_rule = FirewallRule {
-            family,
-            index: None,
-            source_addr,
-            destination_addr,
-            destination_port,
-            protocol: Vec::new(),
+            id: acl.id,
+            source_addrs,
+            destination_addrs,
+            destination_ports,
+            protocols: Vec::new(),
             verdict: firewall_rule_verdict.into(),
             comment: None,
         };
@@ -171,7 +150,7 @@ impl WireguardNetwork<Id> {
         query_as!(
             AclRule,
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
-                destination, ports, expires \
+                destination, ports, protocols, expires \
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
@@ -187,9 +166,18 @@ impl WireguardNetwork<Id> {
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
 
+        // TODO: determine IP version based on location subnet
+        let ip_version = IpVersion::Ipv4;
+
         // TODO: add default policy to location model
-        let firewall_rules =
-            generate_firewall_rules_from_acls(self.id, Policy::Deny, location_acls, pool).await?;
+        let firewall_rules = generate_firewall_rules_from_acls(
+            self.id,
+            FirewallPolicy::Deny,
+            ip_version,
+            location_acls,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }
