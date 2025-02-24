@@ -13,10 +13,15 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
-    acl::{create_acl_rule, get_acl_rules}, api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token}, check_enterprise_info, enterprise_settings::{get_enterprise_settings, patch_enterprise_settings}, openid_login::{auth_callback, get_auth_info}, openid_providers::{
+    acl::{create_acl_rule, get_acl_rules, update_acl_rule},
+    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+    check_enterprise_info,
+    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+    openid_login::{auth_callback, get_auth_info},
+    openid_providers::{
         add_openid_provider, delete_openid_provider, get_current_openid_provider,
         test_dirsync_connection,
-    }
+    },
 };
 use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
@@ -458,6 +463,7 @@ pub fn build_webapp(
         Router::new()
             .route("/rule", get(get_acl_rules))
             .route("/rule", post(create_acl_rule))
+            .route("/rule", put(update_acl_rule)),
     );
 
     #[cfg(feature = "wireguard")]

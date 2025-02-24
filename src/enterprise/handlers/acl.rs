@@ -98,9 +98,25 @@ pub async fn create_acl_rule(
     session: SessionInfo,
     Json(data): Json<ApiAclRule>,
 ) -> ApiResult {
-    debug!("User {} creating ACL rule", session.user.username);
-    let rule = AclRule::create(&appstate.pool, data).await?;
+    debug!("User {} creating ACL rule {data:?}", session.user.username);
+    let rule = AclRule::create(&appstate.pool, &data).await?;
     info!("User {} created ACL rule", session.user.username);
+    Ok(ApiResponse {
+        json: json!(rule),
+        status: StatusCode::OK,
+    })
+}
+
+pub async fn update_acl_rule(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApiAclRule<Id>>,
+) -> ApiResult {
+    debug!("User {} updating ACL rule {data:?}", session.user.username);
+    let rule = AclRule::update(&appstate.pool, &data).await?;
+    info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse {
         json: json!(rule),
         status: StatusCode::OK,

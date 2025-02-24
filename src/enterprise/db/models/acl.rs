@@ -5,7 +5,9 @@ use crate::{
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
-use sqlx::{postgres::types::PgRange, query_as, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{
+    postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+};
 use std::ops::{Bound, Range};
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -73,10 +75,10 @@ impl AclRule {
         }
     }
 
-    /// Creates new [`AclRule`] and all related objects based on [`ApiAclRule`]
+    /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
     pub(crate) async fn create(
         pool: &PgPool,
-        api_rule: ApiAclRule<NoId>,
+        api_rule: &ApiAclRule<NoId>,
     ) -> Result<ApiAclRule<Id>, SqlxError> {
         let mut transaction = pool.begin().await?;
 
@@ -84,69 +86,29 @@ impl AclRule {
         let rule: AclRule<NoId> = api_rule.clone().into();
         let rule = rule.save(&mut *transaction).await?;
 
-        // save related networks
-        for network_id in api_rule.networks {
-            let obj = AclRuleNetwork {
-                id: NoId,
-                rule_id: rule.id,
-                network_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+        // create related objects
+        Self::create_related_objects(&mut transaction, rule.id, api_rule).await?;
 
-        // allowed users
-        for user_id in api_rule.allowed_users {
-            let obj = AclRuleUser {
-                id: NoId,
-                allow: true,
-                rule_id: rule.id,
-                user_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+        transaction.commit().await?;
+        Ok(rule.to_info(pool).await?.into())
+    }
 
-        // denied users
-        for user_id in api_rule.denied_users {
-            let obj = AclRuleUser {
-                id: NoId,
-                allow: false,
-                rule_id: rule.id,
-                user_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+    /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
+    pub(crate) async fn update(
+        pool: &PgPool,
+        api_rule: &ApiAclRule<Id>,
+    ) -> Result<ApiAclRule<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
 
-        // allowed groups
-        for group_id in api_rule.allowed_groups {
-            let obj = AclRuleGroup {
-                id: NoId,
-                allow: true,
-                rule_id: rule.id,
-                group_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+        // save the rule
+        let mut rule: AclRule<Id> = api_rule.clone().into();
+        rule.save(&mut *transaction).await?;
 
-        // denied groups
-        for group_id in api_rule.denied_groups {
-            let obj = AclRuleGroup {
-                id: NoId,
-                allow: false,
-                rule_id: rule.id,
-                group_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, rule.id).await?;
 
-        // save related aliases
-        for alias_id in api_rule.aliases {
-            let obj = AclRuleAlias {
-                id: NoId,
-                rule_id: rule.id,
-                alias_id,
-            };
-            obj.save(&mut *transaction).await?;
-        }
+        // create related objects
+        AclRule::<Id>::create_related_objects(&mut transaction, rule.id, api_rule).await?;
 
         transaction.commit().await?;
         Ok(rule.to_info(pool).await?.into())
@@ -175,6 +137,107 @@ impl AclRule {
 }
 
 impl<I> AclRule<I> {
+    /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
+    async fn create_related_objects(
+        transaction: &mut PgConnection,
+        rule_id: Id,
+        api_rule: &ApiAclRule<I>,
+    ) -> Result<(), SqlxError> {
+        // save related networks
+        for network_id in &api_rule.networks {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id,
+                network_id: *network_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed users
+        for user_id in &api_rule.allowed_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: true,
+                rule_id,
+                user_id: *user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied users
+        for user_id in &api_rule.denied_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: false,
+                rule_id,
+                user_id: *user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed groups
+        for group_id in &api_rule.allowed_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: true,
+                rule_id,
+                group_id: *group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied groups
+        for group_id in &api_rule.denied_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: false,
+                rule_id,
+                group_id: *group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // save related aliases
+        for alias_id in &api_rule.aliases {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id,
+                alias_id: *alias_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Deletes relation objects for given [`AclRule`]
+    async fn delete_related_objects(
+        transaction: &mut PgConnection,
+        rule_id: Id,
+    ) -> Result<(), SqlxError> {
+        // networks
+        query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // users
+        query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // groups
+        query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // aliases
+        query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        Ok(())
+    }
+
     /// Converts ports to `Vec<std::ops::Range<i32>>`
     fn get_ports(&self) -> Vec<Range<i32>> {
         let mut ports = Vec::with_capacity(self.ports.len());
