@@ -205,7 +205,7 @@ pub async fn generate_firewall_rules_from_acls(
     Ok(firewall_rules)
 }
 
-/// TODO: Implement once data model is finalized
+/// TODO: Implement once data model is finalized and address processing can be generalized
 /// Helper function which prepares a list of IP addresses by doing the following:
 /// - filter out addresses of different type than the VPN subnet
 /// - remove duplicate elements
@@ -279,5 +279,52 @@ impl WireguardNetwork<Id> {
             IpNetwork::V4(_ipv4_network) => IpVersion::Ipv4,
             IpNetwork::V6(_ipv6_network) => IpVersion::Ipv6,
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_non_overlapping_addrs() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_get_relevant_users() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_process_source_addrs_v4() {
+        unimplemented!()
+    }
+    #[test]
+    fn test_process_source_addrs_v6() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_process_destination_addrs_v4() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_process_destination_addrs_v6() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_process_ports() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_process_protocols() {
+        unimplemented!()
+    }
+
+    #[sqlx::test]
+    async fn test_generate_firewall_rules() {
+        unimplemented!()
     }
 }
