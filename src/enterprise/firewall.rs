@@ -142,6 +142,9 @@ pub async fn generate_firewall_rules_from_acls(
         // TODO: prepare protocols
         let protocols = protocols.iter().map(|protocol| todo!()).collect();
 
+        // prepare comment
+        let comment = Some(format!("ACL {} - {}", acl.id, acl.name));
+
         // prepare firewall rule for this ACL
         let firewall_rule = FirewallRule {
             id: acl.id,
@@ -150,7 +153,7 @@ pub async fn generate_firewall_rules_from_acls(
             destination_ports,
             protocols,
             verdict: firewall_rule_verdict.into(),
-            comment: None,
+            comment,
         };
         rules.push(firewall_rule)
     }
