@@ -1,16 +1,19 @@
-use crate::db::{Group, Id, NoId, User, WireguardNetwork};
-use std::ops::Range;
+use crate::{
+    db::{Group, Id, NoId, User, WireguardNetwork},
+    enterprise::handlers::acl::ApiAclRule,
+};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{postgres::types::PgRange, query_as, Error as SqlxError, PgExecutor, PgPool};
+use std::ops::{Bound, Range};
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
-type Protocol = i32;
+pub type Protocol = i32;
 
 /// Helper struct combining all DB objects related to given [`AclRule`]
-pub struct AclRuleInfo {
-    pub id: Id,
+pub struct AclRuleInfo<I = NoId> {
+    pub id: I,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
@@ -25,7 +28,8 @@ pub struct AclRuleInfo {
     // destination
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<AclAlias<Id>>,
-    pub ports: Vec<PgRange<i32>>,
+    pub ports: Vec<Range<i32>>,
+    pub protocols: Vec<Protocol>,
 }
 
 #[derive(Clone, Debug, Model, PartialEq)]
@@ -66,6 +70,87 @@ impl AclRule {
             ports,
             protocols,
             expires,
+        }
+    }
+
+    pub(crate) async fn create(
+        pool: &PgPool,
+        api_rule: ApiAclRule<NoId>,
+    ) -> Result<ApiAclRule<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+        // save the rule
+        let networks = api_rule.networks.clone();
+        let rule: AclRule<NoId> = api_rule.into();
+        let rule = rule.save(&mut *transaction).await?;
+
+        // save related networks
+        for network_id in networks {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+        transaction.commit().await?;
+        Ok(rule.to_info(pool).await?.into())
+    }
+
+    /// Converts [`AclRule`] instance to [`AclRuleInfo`]
+    pub async fn to_info(&self) -> AclRuleInfo<NoId> {
+        AclRuleInfo {
+            id: NoId,
+            name: self.name.clone(),
+            allow_all_users: self.allow_all_users,
+            deny_all_users: self.deny_all_users,
+            all_networks: self.all_networks,
+            destination: self.destination.clone(),
+            ports: self.get_ports(),
+            protocols: self.protocols.clone(),
+            expires: self.expires,
+            aliases: Vec::new(),
+            networks: Vec::new(),
+            allowed_users: Vec::new(),
+            denied_users: Vec::new(),
+            allowed_groups: Vec::new(),
+            denied_groups: Vec::new(),
+        }
+    }
+}
+
+impl<I> AclRule<I> {
+    /// Converts ports to `Vec<std::ops::Range<i32>>`
+    fn get_ports(&self) -> Vec<Range<i32>> {
+        let mut ports = Vec::with_capacity(self.ports.len());
+        for r in &self.ports {
+            let start = match r.start {
+                Bound::Included(start) => start,
+                Bound::Excluded(start) => start + 1,
+                Bound::Unbounded => 0,
+            };
+            let end = match r.end {
+                Bound::Included(end) => end,
+                Bound::Excluded(end) => end - 1,
+                Bound::Unbounded => 0,
+            };
+            ports.push(start..end);
+        }
+        ports
+    }
+}
+
+impl<I> From<ApiAclRule<I>> for AclRule<I> {
+    fn from(rule: ApiAclRule<I>) -> Self {
+        Self {
+            ports: rule.get_ports(),
+            id: rule.id,
+            name: rule.name,
+            allow_all_users: rule.allow_all_users,
+            deny_all_users: rule.deny_all_users,
+            all_networks: rule.all_networks,
+            destination: rule.destination,
+            protocols: rule.protocols,
+            expires: rule.expires,
         }
     }
 }
@@ -247,7 +332,7 @@ impl AclRule<Id> {
     }
 
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
-    pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo, SqlxError> {
+    pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
         let networks = self.get_networks(pool).await?;
         let allowed_users = self.get_allowed_users(pool).await?;
@@ -262,7 +347,8 @@ impl AclRule<Id> {
             deny_all_users: self.deny_all_users,
             all_networks: self.all_networks,
             destination: self.destination.clone(),
-            ports: self.ports.clone(),
+            ports: self.get_ports(),
+            protocols: self.protocols.clone(),
             expires: self.expires,
             aliases,
             networks,

@@ -1,14 +1,14 @@
-use axum::{extract::State, http::StatusCode};
+use axum::{extract::State, http::StatusCode, Json};
 use chrono::NaiveDateTime;
-use futures::future::try_join_all;
 use ipnetwork::IpNetwork;
 use sqlx::postgres::types::PgRange;
+use std::ops::{Bound, Range};
 
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::Id,
-    enterprise::db::models::acl::{AclRule, AclRuleInfo},
+    db::{Id, NoId},
+    enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol},
     handlers::{ApiResponse, ApiResult},
 };
 use serde_json::json;
@@ -17,8 +17,8 @@ use super::LicenseInfo;
 
 /// API representation of [`AclRule`]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiAclRule {
-    pub id: Id,
+pub struct ApiAclRule<I = NoId> {
+    pub id: I,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<Id>,
@@ -33,11 +33,24 @@ pub struct ApiAclRule {
     // destination
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<Id>,
-    pub ports: Vec<PgRange<i32>>,
+    pub ports: Vec<Range<i32>>,
+    pub protocols: Vec<Protocol>,
 }
 
-impl From<AclRuleInfo> for ApiAclRule {
-    fn from(info: AclRuleInfo) -> Self {
+impl<I> ApiAclRule<I> {
+    pub fn get_ports(&self) -> Vec<PgRange<i32>> {
+        self.ports
+            .iter()
+            .map(|r| PgRange {
+                start: Bound::Included(r.start),
+                end: Bound::Included(r.end),
+            })
+            .collect()
+    }
+}
+
+impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
+    fn from(info: AclRuleInfo<I>) -> Self {
         Self {
             id: info.id,
             name: info.name,
@@ -53,6 +66,7 @@ impl From<AclRuleInfo> for ApiAclRule {
             destination: info.destination,
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             ports: info.ports,
+            protocols: info.protocols,
         }
     }
 }
@@ -65,25 +79,30 @@ pub async fn get_acl_rules(
 ) -> ApiResult {
     debug!("User {} listing ACL rules", session.user.username);
     let rules = AclRule::all(&appstate.pool).await?;
-    let mut api_rules: Vec<ApiAclRule> = Vec::with_capacity(rules.len());
+    let mut api_rules: Vec<ApiAclRule<Id>> = Vec::with_capacity(rules.len());
     for r in rules.iter() {
         let info = r.to_info(&appstate.pool).await?;
         api_rules.push(info.into());
     }
-    // let rules: Vec<ApiAclRule> = try_join_all(rules.iter().map(|r| r.to_info(&appstate.pool)))
-    //     .await?
-    //     .iter()
-    //     .map(Into::into)
-    //     .collect();
-    // let rules: Vec<ApiAclRule> = AclRule::all(&appstate.pool)
-    //     .await?
-    //     .iter()
-    //     .map(async |r| r.to_info(&appstate.pool).await?)
-    //     .map(Into::into)
-    //     .collect();
     info!("User {} listed ACL rules", session.user.username);
     Ok(ApiResponse {
         json: json!(api_rules),
+        status: StatusCode::OK,
+    })
+}
+
+pub async fn create_acl_rule(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApiAclRule>,
+) -> ApiResult {
+    debug!("User {} creating ACL rule", session.user.username);
+    let rule = AclRule::create(&appstate.pool, data).await?;
+    info!("User {} created ACL rule", session.user.username);
+    Ok(ApiResponse {
+        json: json!(rule),
         status: StatusCode::OK,
     })
 }
