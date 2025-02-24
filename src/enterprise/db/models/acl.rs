@@ -117,10 +117,7 @@ impl AclRule {
     }
 
     /// Deletes [`AclRule`] with all it's related objects
-    pub(crate) async fn delete_from_api(
-        pool: &PgPool,
-        id: Id,
-    ) -> Result<(), SqlxError> {
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
         let mut transaction = pool.begin().await?;
 
         // delete related objects

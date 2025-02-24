@@ -1,4 +1,8 @@
-use axum::{extract::{Path, State}, http::StatusCode, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use sqlx::postgres::types::PgRange;
@@ -11,7 +15,7 @@ use crate::{
     enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol},
     handlers::{ApiResponse, ApiResult},
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 use super::LicenseInfo;
 
@@ -92,6 +96,28 @@ pub async fn list_acl_rules(
     })
 }
 
+pub async fn get_acl_rule(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path(id): Path<Id>,
+) -> ApiResult {
+    debug!("User {} retrieving ACL rule {id}", session.user.username);
+    let (rule, status) = match AclRule::find_by_id(&appstate.pool, id).await? {
+        Some(rule) => (
+            json!(Into::<ApiAclRule<Id>>::into(
+                rule.to_info(&appstate.pool).await?
+            )),
+            StatusCode::OK,
+        ),
+        None => (Value::Null, StatusCode::NOT_FOUND),
+    };
+
+    info!("User {} retrieved ACL rule {id}", session.user.username);
+    Ok(ApiResponse { json: rule, status })
+}
+
 pub async fn create_acl_rule(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -101,7 +127,10 @@ pub async fn create_acl_rule(
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
     let rule = AclRule::create_from_api(&appstate.pool, &data).await?;
-    info!("User {} created ACL rule {}", session.user.username, rule.id);
+    info!(
+        "User {} created ACL rule {}",
+        session.user.username, rule.id
+    );
     Ok(ApiResponse {
         json: json!(rule),
         status: StatusCode::CREATED,
