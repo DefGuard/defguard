@@ -259,7 +259,7 @@ impl WireguardNetwork<Id> {
     /// Get a list of all devices belonging to users in allowed groups.
     /// Admin users should always be allowed to access a network.
     /// Note: Doesn't check if the devices are really in the network.
-    async fn get_allowed_devices(
+    pub(crate) async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
