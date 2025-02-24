@@ -12,15 +12,22 @@ import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput
 import { ActivityIcon } from '../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
 import { ActivityIconVariant } from '../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { LabeledCheckbox } from '../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
-import { Network } from '../../../shared/types';
+import { GroupInfo, Network, StandaloneDevice, User } from '../../../shared/types';
 import { useAclLoadedContext } from '../acl-context';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
+
+type Alias = {
+  id: number;
+  name: string;
+};
+
+const mockedAliases: Alias[] = [];
 
 export const AlcCreatePage = () => {
   const { LL } = useI18nContext();
   const localLL = LL.acl.createPage;
   const formErrors = LL.form.error;
-  const { networks } = useAclLoadedContext();
+  const { networks, devices, groups, users } = useAclLoadedContext();
   const [neverExpires, setNeverExpires] = useState(true);
 
   const schema = useMemo(
@@ -45,6 +52,7 @@ export const AlcCreatePage = () => {
         ports: z.string({
           required_error: formErrors.required(),
         }),
+        protocols: z.string(),
       }),
     [formErrors],
   );
@@ -58,6 +66,7 @@ export const AlcCreatePage = () => {
       aliases: [],
       ports: '',
       expires: '',
+      protocols: '',
       allow_all_users: false,
       allowed_devices: [],
       allowed_groups: [],
@@ -94,7 +103,7 @@ export const AlcCreatePage = () => {
         id="acl-sections"
         onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
       >
-        <SectionWithCard title={localLL.sections.rule.title()}>
+        <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <FormDialogSelect
             controller={{ control, name: 'networks' }}
@@ -108,6 +117,66 @@ export const AlcCreatePage = () => {
             label="Never Expire"
             value={neverExpires}
             onChange={() => setNeverExpires((s) => !s)}
+          />
+        </SectionWithCard>
+        <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
+          <LabeledCheckbox label="All Active Users" value={false} onChange={() => {}} />
+          <FormDialogSelect
+            label="Users"
+            controller={{ control, name: 'allowed_users' }}
+            options={users}
+            renderTagContent={renderUserTag}
+            identKey="id"
+          />
+          <FormDialogSelect
+            label="Groups"
+            controller={{ control, name: 'allowed_groups' }}
+            options={groups}
+            renderTagContent={renderGroup}
+            identKey="name"
+          />
+          <FormDialogSelect
+            label="Network Devices"
+            controller={{ control, name: 'allowed_devices' }}
+            options={devices}
+            renderTagContent={renderNetworkDevice}
+            identKey="id"
+          />
+        </SectionWithCard>
+        <SectionWithCard title="Destination" id="destination-card">
+          <FormDialogSelect
+            controller={{ control, name: 'aliases' }}
+            options={mockedAliases}
+            label="Aliases"
+            identKey="id"
+            renderTagContent={renderAlias}
+          />
+          <CardHeader title="Manual Input" />
+          <FormInput controller={{ control, name: 'ports' }} label="Ports" />
+          <FormInput controller={{ control, name: 'protocols' }} label="Protocols" />
+        </SectionWithCard>
+        <SectionWithCard title="Denied Users/Devices/Groups" id="denied-card">
+          <LabeledCheckbox value={false} onChange={() => {}} label="All Active Users" />
+          <FormDialogSelect
+            label="Users"
+            controller={{ control, name: 'denied_users' }}
+            options={users}
+            renderTagContent={renderUserTag}
+            identKey="id"
+          />
+          <FormDialogSelect
+            label="Groups"
+            controller={{ control, name: 'denied_groups' }}
+            options={groups}
+            renderTagContent={renderGroup}
+            identKey="name"
+          />
+          <FormDialogSelect
+            label="Network Devices"
+            controller={{ control, name: 'denied_devices' }}
+            options={devices}
+            renderTagContent={renderNetworkDevice}
+            identKey="id"
           />
         </SectionWithCard>
       </form>
@@ -130,3 +199,11 @@ const renderNetworkSelectTag = (network: Network) => (
     <ActivityIcon status={ActivityIconVariant.ERROR_FILLED} />
   </>
 );
+
+const renderUserTag = (user: User) => <p>{user.username}</p>;
+
+const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
+
+const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
+
+const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;
