@@ -1,6 +1,6 @@
-pub mod acl;
 pub mod db;
 pub mod directory_sync;
+pub mod firewall;
 pub mod grpc;
 pub mod handlers;
 pub mod license;
