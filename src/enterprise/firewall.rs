@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::{collections::HashMap, net::IpAddr};
 
 use ip_address::Address;
 use ipnetwork::IpNetwork;
@@ -6,7 +6,7 @@ use sqlx::{query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool};
 
 use crate::db::{Id, User, WireguardNetwork};
 
-use super::db::models::acl::AclRule;
+use super::db::models::acl::{AclAlias, AclRule};
 
 tonic::include_proto!("firewall");
 
@@ -31,6 +31,7 @@ pub async fn generate_firewall_rules_from_acls(
     default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
     acl_rules: Vec<AclRule<Id>>,
+    aliases: HashMap<Id, AclAlias<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, SqlxError> {
     let mut rules = Vec::new();
@@ -48,6 +49,10 @@ pub async fn generate_firewall_rules_from_acls(
 
         // fetch denied users
         let denied_users = acl.get_all_denied_users(pool).await?;
+
+        // fetch aliases used by ACL
+        // FIXME: prefetch a map to reduce number of queries
+        let aliases = acl.get_aliases(pool).await?;
 
         // prepare a list of all relevant users whose device IPs we'll need to prepare a firewall
         // rule
@@ -81,28 +86,43 @@ pub async fn generate_firewall_rules_from_acls(
         )
         .fetch_all(pool)
         .await?;
+
         // TODO: filter out incompatible IP version
+        // TODO: process into non-overlapping elements
         let source_addrs = user_device_ips
-            .into_iter()
+            .iter()
             .map(|ip| IpAddress {
                 address: Some(Address::Ip(ip.to_string())),
             })
             .collect();
 
+        let AclRule {
+            mut destination,
+            mut ports,
+            mut protocols,
+            ..
+        } = acl;
+
+        // process aliases
+        for alias in aliases {
+            destination.extend(alias.destination);
+            ports.extend(alias.ports);
+            protocols.extend(alias.protocols);
+        }
+
         // prepare destination addresses
         // TODO: filter out incompatible IP version
-        let destination_addrs = acl
-            .destination
-            .into_iter()
+        // TODO: process into non-overlapping elements
+        let destination_addrs = destination
+            .iter()
             .map(|dst| IpAddress {
                 address: Some(Address::IpSubnet(dst.to_string())),
             })
             .collect();
 
         // prepare destination ports
-        let destination_ports = acl
-            .ports
-            .into_iter()
+        let destination_ports = ports
+            .iter()
             .map(|port_range| Port {
                 port: Some(port::Port::PortRange(PortRange {
                     start: match port_range.start {
@@ -120,8 +140,7 @@ pub async fn generate_firewall_rules_from_acls(
             .collect();
 
         // TODO: prepare protocols
-
-        // TODO: process aliases
+        let protocols = protocols.iter().map(|protocol| todo!()).collect();
 
         // prepare firewall rule for this ACL
         let firewall_rule = FirewallRule {
@@ -129,7 +148,7 @@ pub async fn generate_firewall_rules_from_acls(
             source_addrs,
             destination_addrs,
             destination_ports,
-            protocols: Vec::new(),
+            protocols,
             verdict: firewall_rule_verdict.into(),
             comment: None,
         };
@@ -166,8 +185,12 @@ impl WireguardNetwork<Id> {
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
 
-        // TODO: determine IP version based on location subnet
-        let ip_version = IpVersion::Ipv4;
+        // determine IP version based on location subnet
+        let ip_version = self.get_ip_version();
+
+        // pre-fetch all aliases for reuse when processing ACLs
+        let aliases = AclAlias::all(pool).await?;
+        let aliases = aliases.into_iter().map(|alias| (alias.id, alias)).collect();
 
         // TODO: add default policy to location model
         let firewall_rules = generate_firewall_rules_from_acls(
@@ -175,10 +198,25 @@ impl WireguardNetwork<Id> {
             FirewallPolicy::Deny,
             ip_version,
             location_acls,
+            aliases,
             pool,
         )
         .await?;
 
         Ok(())
+    }
+
+    fn get_ip_version(&self) -> IpVersion {
+        // get the subnet from which device IPs are being assigned
+        // by default only the first configured subnet is being used
+        let vpn_subnet = self
+            .address
+            .first()
+            .expect("WireguardNetwork must have an address");
+
+        match vpn_subnet {
+            IpNetwork::V4(_ipv4_network) => IpVersion::Ipv4,
+            IpNetwork::V6(_ipv6_network) => IpVersion::Ipv6,
+        }
     }
 }
