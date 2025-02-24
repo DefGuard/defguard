@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::{Path, State}, http::StatusCode, Json};
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use sqlx::postgres::types::PgRange;
@@ -71,7 +71,7 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
     }
 }
 
-pub async fn get_acl_rules(
+pub async fn list_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
@@ -81,6 +81,7 @@ pub async fn get_acl_rules(
     let rules = AclRule::all(&appstate.pool).await?;
     let mut api_rules: Vec<ApiAclRule<Id>> = Vec::with_capacity(rules.len());
     for r in rules.iter() {
+        // TODO: may require optimisation wrt. sql queries
         let info = r.to_info(&appstate.pool).await?;
         api_rules.push(info.into());
     }
@@ -99,11 +100,11 @@ pub async fn create_acl_rule(
     Json(data): Json<ApiAclRule>,
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
-    let rule = AclRule::create(&appstate.pool, &data).await?;
-    info!("User {} created ACL rule", session.user.username);
+    let rule = AclRule::create_from_api(&appstate.pool, &data).await?;
+    info!("User {} created ACL rule {}", session.user.username, rule.id);
     Ok(ApiResponse {
         json: json!(rule),
-        status: StatusCode::OK,
+        status: StatusCode::CREATED,
     })
 }
 
@@ -112,13 +113,27 @@ pub async fn update_acl_rule(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
+    Path(id): Path<Id>,
     Json(data): Json<ApiAclRule<Id>>,
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
-    let rule = AclRule::update(&appstate.pool, &data).await?;
+    let rule = AclRule::update_from_api(&appstate.pool, id, &data).await?;
     info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse {
         json: json!(rule),
-        status: StatusCode::OK,
+        status: StatusCode::CREATED,
     })
+}
+
+pub async fn delete_acl_rule(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path(id): Path<i64>,
+) -> ApiResult {
+    debug!("User {} deleting ACL rule {id}", session.user.username);
+    AclRule::delete_from_api(&appstate.pool, id).await?;
+    info!("User {} deleted ACL rule {id}", session.user.username);
+    Ok(ApiResponse::default())
 }

@@ -76,7 +76,7 @@ impl AclRule {
     }
 
     /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
-    pub(crate) async fn create(
+    pub(crate) async fn create_from_api(
         pool: &PgPool,
         api_rule: &ApiAclRule<NoId>,
     ) -> Result<ApiAclRule<Id>, SqlxError> {
@@ -94,14 +94,16 @@ impl AclRule {
     }
 
     /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
-    pub(crate) async fn update(
+    pub(crate) async fn update_from_api(
         pool: &PgPool,
+        id: Id,
         api_rule: &ApiAclRule<Id>,
     ) -> Result<ApiAclRule<Id>, SqlxError> {
         let mut transaction = pool.begin().await?;
 
         // save the rule
         let mut rule: AclRule<Id> = api_rule.clone().into();
+        rule.id = id; // frontend may PUT an object with incorrect id
         rule.save(&mut *transaction).await?;
 
         // delete related objects
@@ -112,6 +114,25 @@ impl AclRule {
 
         transaction.commit().await?;
         Ok(rule.to_info(pool).await?.into())
+    }
+
+    /// Deletes [`AclRule`] with all it's related objects
+    pub(crate) async fn delete_from_api(
+        pool: &PgPool,
+        id: Id,
+    ) -> Result<(), SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, id).await?;
+
+        // delete the rule
+        query!("DELETE FROM aclrule WHERE id = $1", id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+        Ok(())
     }
 
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
