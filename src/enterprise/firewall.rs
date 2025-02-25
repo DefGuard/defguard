@@ -214,7 +214,7 @@ pub async fn generate_firewall_rules_from_acls(
 /// - remove duplicate elements
 /// - transform subnets, ranges, IPs into non-overlapping elements
 /// - convert to format expected by `FirewallRule` gRPC struct
-fn process_ip_addrs(addrs: Vec<IpAddr>, location_ip_version: IpVersion) {
+fn process_ip_addrs(_addrs: Vec<IpAddr>, _location_ip_version: IpVersion) {
     unimplemented!()
 }
 

@@ -47,7 +47,7 @@ pub fn hex_decode<T: AsRef<[u8]>>(hex: T) -> Result<Vec<u8>, HexError> {
     for chunk in hex.chunks(2) {
         let msd = hex_value(chunk[0])?;
         let lsd = hex_value(chunk[1])?;
-        bytes.push(msd << 4 | lsd);
+        bytes.push((msd << 4) | lsd);
     }
 
     Ok(bytes)
