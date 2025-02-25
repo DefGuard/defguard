@@ -372,11 +372,19 @@ impl AclRule<Id> {
         .await
     }
 
+    /// Returns **active** [`User`]s that are allowed or denied by the rule
+    async fn get_users<'e, E>(&self, executor: E, allowed: bool) -> Result<Vec<User<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        Ok(match allowed {
+            true => self.get_allowed_users(executor).await?,
+            false => self.get_denied_users(executor).await?,
+        })
+    }
+
     /// Returns **active** [`User`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    async fn get_allowed_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -415,10 +423,7 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
-    pub(crate) async fn get_denied_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    async fn get_denied_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -456,10 +461,11 @@ impl AclRule<Id> {
         }
     }
 
-    /// Returns [`Group`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_groups<'e, E>(
+    /// Returns [`Group`]s that are allowed or denied by the rule
+    pub(crate) async fn get_groups<'e, E>(
         &self,
         executor: E,
+        allowed: bool,
     ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -471,39 +477,19 @@ impl AclRule<Id> {
             JOIN \"group\" g \
             ON g.id = r.group_id \
             WHERE r.rule_id = $1 \
-            AND r.allow",
+            AND r.allow = $2",
             self.id,
+            allowed,
         )
         .fetch_all(executor)
         .await
     }
 
-    /// Returns [`Group`]s that are denied by the rule
-    pub(crate) async fn get_denied_groups<'e, E>(
+    /// Returns [`Device`]s that are allowed or denied by the rule
+    pub(crate) async fn get_devices<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<Group<Id>>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
-            Group,
-            "SELECT g.id, name, is_admin \
-            FROM aclrulegroup r \
-            JOIN \"group\" g \
-            ON g.id = r.group_id \
-            WHERE r.rule_id = $1 \
-            AND NOT r.allow",
-            self.id,
-        )
-        .fetch_all(executor)
-        .await
-    }
-
-    /// Returns [`Device`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_devices<'e, E>(
-        &self,
-        executor: E,
+        allowed: bool,
     ) -> Result<Vec<Device<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -516,31 +502,9 @@ impl AclRule<Id> {
             JOIN device d \
             ON d.id = r.device_id \
             WHERE r.rule_id = $1 \
-            AND r.allow",
+            AND r.allow = $2",
             self.id,
-        )
-        .fetch_all(executor)
-        .await
-    }
-
-    /// Returns [`Device`]s that are allowed by the rule
-    pub(crate) async fn get_denied_devices<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<Device<Id>>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
-            Device,
-            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
-            FROM aclruledevice r \
-            JOIN device d \
-            ON d.id = r.device_id \
-            WHERE r.rule_id = $1 \
-            AND NOT r.allow",
-            self.id,
+            allowed,
         )
         .fetch_all(executor)
         .await
@@ -550,12 +514,12 @@ impl AclRule<Id> {
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
         let networks = self.get_networks(pool).await?;
-        let allowed_users = self.get_allowed_users(pool).await?;
-        let denied_users = self.get_denied_users(pool).await?;
-        let allowed_groups = self.get_allowed_groups(pool).await?;
-        let denied_groups = self.get_denied_groups(pool).await?;
-        let allowed_devices = self.get_allowed_devices(pool).await?;
-        let denied_devices = self.get_denied_devices(pool).await?;
+        let allowed_users = self.get_users(pool, true).await?;
+        let denied_users = self.get_users(pool, false).await?;
+        let allowed_groups = self.get_groups(pool, true).await?;
+        let denied_groups = self.get_groups(pool, false).await?;
+        let allowed_devices = self.get_devices(pool, true).await?;
+        let denied_devices = self.get_devices(pool, false).await?;
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -901,8 +865,8 @@ mod test {
         assert_eq!(rule.get_networks(&pool).await.unwrap().len(), 2);
 
         // test allowed/denied users
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user1);
         assert_eq!(denied_users.len(), 1);
@@ -912,15 +876,15 @@ mod test {
         rule.allow_all_users = true;
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_allowed_users(&pool).await.unwrap().len(), 2);
-        assert_eq!(rule.get_denied_users(&pool).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 0);
 
         // test `deny_all_users` flag
         rule.allow_all_users = false;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_allowed_users(&pool).await.unwrap().len(), 0);
-        assert_eq!(rule.get_denied_users(&pool).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // TODO: what if both `allow_all_users` and `deny_all_users` are true?
 
@@ -933,8 +897,8 @@ mod test {
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
 
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
         assert_eq!(denied_users.len(), 0);
@@ -945,8 +909,8 @@ mod test {
         rule.save(&pool).await.unwrap();
         ru2.allow = true; // allow user2
         ru2.save(&pool).await.unwrap();
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
         assert_eq!(denied_users.len(), 0);
@@ -956,8 +920,8 @@ mod test {
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
 
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
@@ -968,8 +932,8 @@ mod test {
         rule.save(&pool).await.unwrap();
         ru2.allow = false; // deny user2
         ru2.save(&pool).await.unwrap();
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
