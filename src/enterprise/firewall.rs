@@ -1,14 +1,18 @@
 use std::net::IpAddr;
 
-use ip_address::Address;
 use ipnetwork::IpNetwork;
 use sqlx::{query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool};
 
-use crate::db::{models::error::ModelError, Id, User, WireguardNetwork};
-
 use super::db::models::acl::AclRule;
 
-tonic::include_proto!("firewall");
+use crate::{
+    db::{models::error::ModelError, Id, User, WireguardNetwork},
+    grpc::proto::enterprise::firewall::{
+        ip_address::Address, port, FirewallConfig, FirewallPolicy, FirewallRule, IpAddress,
+        IpVersion, Port, PortRange,
+    },
+};
+
 #[derive(Debug, thiserror::Error)]
 pub enum FirewallError {
     #[error("Database error")]

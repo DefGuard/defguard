@@ -11,12 +11,13 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-use crate::db::{
-    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    AppEvent, HWKeyUserData, User, YubiKey,
+use crate::{
+    db::{
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        AppEvent, HWKeyUserData, User, YubiKey,
+    },
+    grpc::proto::worker::{worker_service_server, GetJobResponse, JobStatus, Worker},
 };
-
-tonic::include_proto!("worker");
 
 impl WorkerInfo {
     /// Create new `Worker` instance.

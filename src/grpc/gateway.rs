@@ -25,7 +25,10 @@ use crate::{
     mail::Mail,
 };
 
-tonic::include_proto!("gateway");
+pub use crate::grpc::proto::gateway::{
+    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
+    PeerStats, StatsUpdate, Update,
+};
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
@@ -162,6 +165,7 @@ fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration
         prvkey: network.prvkey.clone(),
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
+        firewall_config: todo!(),
     }
 }
 
@@ -349,6 +353,7 @@ impl GatewayUpdatesHandler {
                     addresses: network.address.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
+                    firewall_config: todo!(),
                 })),
             }))
             .await
@@ -384,6 +389,7 @@ impl GatewayUpdatesHandler {
                     addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
+                    firewall_config: todo!(),
                 })),
             }))
             .await

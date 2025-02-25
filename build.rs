@@ -16,16 +16,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[
             "proto/core/auth.proto",
             "proto/core/proxy.proto",
-            "src/enterprise/proto/license.proto",
-            "proto/enterprise/firewall.proto",
             "proto/worker/worker.proto",
             "proto/wireguard/gateway.proto",
+            "proto/enterprise/firewall/firewall.proto",
+            "src/enterprise/proto/license.proto",
         ],
         &[
             "proto/core",
             "proto/worker",
             "proto/wireguard",
-            "proto/enterprise",
+            "proto/enterprise/firewall",
             "src/enterprise/proto",
         ],
     )?;
