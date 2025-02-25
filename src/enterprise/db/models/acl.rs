@@ -254,6 +254,17 @@ impl<I> AclRule<I> {
             obj.save(&mut *transaction).await?;
         }
 
+        // destination ranges
+        for range in &api_rule.destination_ranges {
+            let obj = AclRuleDestinationRange {
+                id: NoId,
+                rule_id,
+                start: range.start,
+                end: range.end,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
         Ok(())
     }
 
@@ -286,6 +297,14 @@ impl<I> AclRule<I> {
         query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+
+        // destination ranges
+        query!(
+            "DELETE FROM aclruledestinationrange WHERE rule_id = $1",
+            rule_id
+        )
+        .execute(&mut *transaction)
+        .await?;
 
         Ok(())
     }
@@ -541,7 +560,12 @@ impl AclRule<Id> {
         let denied_groups = self.get_groups(pool, false).await?;
         let allowed_devices = self.get_devices(pool, true).await?;
         let denied_devices = self.get_devices(pool, false).await?;
-        let destination_ranges = self.get_destination_ranges(pool).await?;
+        let destination_ranges = self
+            .get_destination_ranges(pool)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         Ok(AclRuleInfo {
             id: self.id,

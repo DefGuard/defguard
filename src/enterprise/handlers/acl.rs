@@ -38,7 +38,7 @@ pub struct ApiAclRule<I = NoId> {
     pub denied_devices: Vec<Id>,
     // destination
     pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
+    pub destination_ranges: Vec<ApiAclRuleDestinationRange>,
     pub aliases: Vec<Id>,
     pub ports: Vec<Range<i32>>,
     pub protocols: Vec<Protocol>,
@@ -73,10 +73,41 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
             denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
             destination: info.destination,
-            destination_ranges: info.destination_ranges,
+            destination_ranges: info
+                .destination_ranges
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             ports: info.ports,
             protocols: info.protocols,
+        }
+    }
+}
+
+/// API representation of [`AclRuleDestinationRange`]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiAclRuleDestinationRange {
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+impl ApiAclRuleDestinationRange {
+    pub fn to_db(&self, rule_id: i64) -> AclRuleDestinationRange<NoId> {
+        AclRuleDestinationRange {
+            id: NoId,
+            start: self.start,
+            end: self.end,
+            rule_id,
+        }
+    }
+}
+
+impl<I> From<AclRuleDestinationRange<I>> for ApiAclRuleDestinationRange {
+    fn from(rule: AclRuleDestinationRange<I>) -> Self {
+        Self {
+            start: rule.start,
+            end: rule.end,
         }
     }
 }
