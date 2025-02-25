@@ -6,6 +6,7 @@ import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { DateInput } from '../../../shared/components/Layout/DateInput/DateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -49,9 +50,51 @@ export const AlcCreatePage = () => {
         allowed_devices: z.number().array(),
         denied_devices: z.number().array(),
         aliases: z.number().array(),
-        ports: z.string({
-          required_error: formErrors.required(),
-        }),
+        ports: z
+          .string({
+            required_error: formErrors.required(),
+          })
+          .min(1, formErrors.required())
+          .regex(/^(?:\d+(?:-\d+)*)(?:[ ,]+\d+(?:-\d+)*)*$/, formErrors.invalid())
+          .refine((value) => {
+            // check if there is no duplicates in given port field
+            const trimmed = value
+              .replaceAll(' ', '')
+              .replaceAll('-', ' ')
+              .replaceAll(',', ' ')
+              .split(' ')
+              .filter((v) => v !== '');
+            const found: number[] = [];
+            for (const entry of trimmed) {
+              const num = parseInt(entry);
+              if (isNaN(num)) {
+                return false;
+              }
+              if (found.includes(num)) {
+                return false;
+              }
+              found.push(num);
+            }
+            return true;
+          }, formErrors.invalid())
+          .refine((value) => {
+            // check if ranges in input are valid means follow pattern <start>-<end>
+            const matches = value.match(/\b\d+-\d+\b/g);
+            if (Array.isArray(matches)) {
+              for (const match of matches) {
+                const split = match.split('-');
+                if (split.length !== 2) {
+                  return false;
+                }
+                const start = split[0];
+                const end = split[1];
+                if (start >= end) {
+                  return false;
+                }
+              }
+            }
+            return true;
+          }),
         protocols: z.string(),
       }),
     [formErrors],
@@ -118,6 +161,7 @@ export const AlcCreatePage = () => {
             value={neverExpires}
             onChange={() => setNeverExpires((s) => !s)}
           />
+          <DateInput />
         </SectionWithCard>
         <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
           <LabeledCheckbox label="All Active Users" value={false} onChange={() => {}} />

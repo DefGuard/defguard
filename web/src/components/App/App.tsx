@@ -1,6 +1,7 @@
 import 'react-loading-skeleton/dist/skeleton.css';
 import './App.scss';
 
+// import 'react-datepicker/dist/react-datepicker.css';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AclRoutes } from '../../pages/acl/AclRoutes';
