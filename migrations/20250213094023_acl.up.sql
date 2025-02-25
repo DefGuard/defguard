@@ -73,5 +73,6 @@ CREATE TABLE aclruledestinationrange (
     "start" inet NOT NULL,
     "end" inet NOT NULL,
     FOREIGN KEY(rule_id) REFERENCES "aclrule"(id) ON DELETE CASCADE,
-    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end")
+    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end"),
+    CONSTRAINT range_order CHECK ("start" < "end")
 );
