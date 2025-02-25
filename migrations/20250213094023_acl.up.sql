@@ -4,7 +4,7 @@ CREATE TABLE aclrule (
     allow_all_users boolean NOT NULL,
     deny_all_users boolean NOT NULL,
     all_networks boolean NOT NULL,
-    destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
+    destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
     expires timestamp without time zone
@@ -13,7 +13,7 @@ CREATE TABLE aclrule (
 CREATE TABLE aclalias (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
-    destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
+    destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
     created_at timestamp without time zone NOT NULL DEFAULT now()

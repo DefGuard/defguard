@@ -46,7 +46,7 @@ pub struct AclRule<I = NoId> {
     pub deny_all_users: bool,
     pub all_networks: bool,
     #[model(ref)]
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
@@ -597,7 +597,7 @@ pub struct AclAlias<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
