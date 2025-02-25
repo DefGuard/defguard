@@ -1,3 +1,4 @@
+DROP TABLE aclruledevice;
 DROP TABLE aclrulealias;
 DROP TABLE aclrulenetwork;
 DROP TABLE aclruleuser;

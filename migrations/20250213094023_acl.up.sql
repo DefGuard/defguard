@@ -56,3 +56,13 @@ CREATE TABLE aclrulegroup (
     FOREIGN KEY(group_id) REFERENCES "group"(id) ON DELETE CASCADE,
     CONSTRAINT rule_group UNIQUE (rule_id, group_id)
 );
+
+CREATE TABLE aclruledevice (
+    id bigserial PRIMARY KEY,
+    rule_id bigint NOT NULL,
+    device_id bigint NOT NULL,
+    allow bool NOT NULL,
+    FOREIGN KEY(rule_id) REFERENCES "aclrule"(id) ON DELETE CASCADE,
+    FOREIGN KEY(device_id) REFERENCES "device"(id) ON DELETE CASCADE,
+    CONSTRAINT rule_device UNIQUE (rule_id, device_id)
+);

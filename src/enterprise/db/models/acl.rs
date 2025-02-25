@@ -1,15 +1,22 @@
-use crate::db::{Group, Id, NoId, User, WireguardNetwork};
+use crate::{
+    db::{Device, Group, Id, NoId, User, WireguardNetwork},
+    enterprise::handlers::acl::ApiAclRule,
+    DeviceType,
+};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
-use sqlx::{postgres::types::PgRange, query_as, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{
+    postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+};
+use std::ops::{Bound, Range};
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
-type Protocol = i32;
+pub type Protocol = i32;
 
 /// Helper struct combining all DB objects related to given [`AclRule`]
-pub struct AclRuleInfo {
-    pub id: Id,
+pub struct AclRuleInfo<I = NoId> {
+    pub id: I,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
@@ -21,10 +28,13 @@ pub struct AclRuleInfo {
     pub denied_users: Vec<User<Id>>,
     pub allowed_groups: Vec<Group<Id>>,
     pub denied_groups: Vec<Group<Id>>,
+    pub allowed_devices: Vec<Device<Id>>,
+    pub denied_devices: Vec<Device<Id>>,
     // destination
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<AclAlias<Id>>,
-    pub ports: Vec<PgRange<i32>>,
+    pub ports: Vec<Range<i32>>,
+    pub protocols: Vec<Protocol>,
 }
 
 #[derive(Clone, Debug, Model, PartialEq)]
@@ -65,6 +75,251 @@ impl AclRule {
             ports,
             protocols,
             expires,
+        }
+    }
+
+    /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
+    pub(crate) async fn create_from_api(
+        pool: &PgPool,
+        api_rule: &ApiAclRule<NoId>,
+    ) -> Result<ApiAclRule<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the rule
+        let rule: AclRule<NoId> = api_rule.clone().into();
+        let rule = rule.save(&mut *transaction).await?;
+
+        // create related objects
+        Self::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+
+        transaction.commit().await?;
+        Ok(rule.to_info(pool).await?.into())
+    }
+
+    /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
+    pub(crate) async fn update_from_api(
+        pool: &PgPool,
+        id: Id,
+        api_rule: &ApiAclRule<Id>,
+    ) -> Result<ApiAclRule<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the rule
+        let mut rule: AclRule<Id> = api_rule.clone().into();
+        rule.id = id; // frontend may PUT an object with incorrect id
+        rule.save(&mut *transaction).await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, rule.id).await?;
+
+        // create related objects
+        AclRule::<Id>::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+
+        transaction.commit().await?;
+        Ok(rule.to_info(pool).await?.into())
+    }
+
+    /// Deletes [`AclRule`] with all it's related objects
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, id).await?;
+
+        // delete the rule
+        query!("DELETE FROM aclrule WHERE id = $1", id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    /// Converts [`AclRule`] instance to [`AclRuleInfo`]
+    pub async fn to_info(&self) -> AclRuleInfo<NoId> {
+        AclRuleInfo {
+            id: NoId,
+            name: self.name.clone(),
+            allow_all_users: self.allow_all_users,
+            deny_all_users: self.deny_all_users,
+            all_networks: self.all_networks,
+            destination: self.destination.clone(),
+            ports: self.get_ports(),
+            protocols: self.protocols.clone(),
+            expires: self.expires,
+            aliases: Vec::new(),
+            networks: Vec::new(),
+            allowed_users: Vec::new(),
+            denied_users: Vec::new(),
+            allowed_groups: Vec::new(),
+            denied_groups: Vec::new(),
+            allowed_devices: Vec::new(),
+            denied_devices: Vec::new(),
+        }
+    }
+}
+
+impl<I> AclRule<I> {
+    /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
+    async fn create_related_objects(
+        transaction: &mut PgConnection,
+        rule_id: Id,
+        api_rule: &ApiAclRule<I>,
+    ) -> Result<(), SqlxError> {
+        // save related networks
+        for network_id in &api_rule.networks {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id,
+                network_id: *network_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed users
+        for user_id in &api_rule.allowed_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: true,
+                rule_id,
+                user_id: *user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied users
+        for user_id in &api_rule.denied_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: false,
+                rule_id,
+                user_id: *user_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed groups
+        for group_id in &api_rule.allowed_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: true,
+                rule_id,
+                group_id: *group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied groups
+        for group_id in &api_rule.denied_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: false,
+                rule_id,
+                group_id: *group_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // save related aliases
+        for alias_id in &api_rule.aliases {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id,
+                alias_id: *alias_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // allowed devices
+        for device_id in &api_rule.allowed_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: true,
+                rule_id,
+                device_id: *device_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied devices
+        for device_id in &api_rule.denied_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: false,
+                rule_id,
+                device_id: *device_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Deletes relation objects for given [`AclRule`]
+    async fn delete_related_objects(
+        transaction: &mut PgConnection,
+        rule_id: Id,
+    ) -> Result<(), SqlxError> {
+        // networks
+        query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // users
+        query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // groups
+        query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // aliases
+        query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // devices
+        query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        Ok(())
+    }
+
+    /// Converts ports to `Vec<std::ops::Range<i32>>`
+    fn get_ports(&self) -> Vec<Range<i32>> {
+        let mut ports = Vec::with_capacity(self.ports.len());
+        for r in &self.ports {
+            let start = match r.start {
+                Bound::Included(start) => start,
+                Bound::Excluded(start) => start + 1,
+                Bound::Unbounded => 0,
+            };
+            let end = match r.end {
+                Bound::Included(end) => end,
+                Bound::Excluded(end) => end - 1,
+                Bound::Unbounded => 0,
+            };
+            ports.push(start..end);
+        }
+        ports
+    }
+}
+
+impl<I> From<ApiAclRule<I>> for AclRule<I> {
+    fn from(rule: ApiAclRule<I>) -> Self {
+        Self {
+            ports: rule.get_ports(),
+            id: rule.id,
+            name: rule.name,
+            allow_all_users: rule.allow_all_users,
+            deny_all_users: rule.deny_all_users,
+            all_networks: rule.all_networks,
+            destination: rule.destination,
+            protocols: rule.protocols,
+            expires: rule.expires,
         }
     }
 }
@@ -117,11 +372,19 @@ impl AclRule<Id> {
         .await
     }
 
+    /// Returns **active** [`User`]s that are allowed or denied by the rule
+    async fn get_users<'e, E>(&self, executor: E, allowed: bool) -> Result<Vec<User<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        Ok(match allowed {
+            true => self.get_allowed_users(executor).await?,
+            false => self.get_denied_users(executor).await?,
+        })
+    }
+
     /// Returns **active** [`User`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    async fn get_allowed_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -160,10 +423,7 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
-    pub(crate) async fn get_denied_users<'e, E>(
-        &self,
-        executor: E,
-    ) -> Result<Vec<User<Id>>, SqlxError>
+    async fn get_denied_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -201,10 +461,11 @@ impl AclRule<Id> {
         }
     }
 
-    /// Returns [`Group`]s that are allowed by the rule
-    pub(crate) async fn get_allowed_groups<'e, E>(
+    /// Returns [`Group`]s that are allowed or denied by the rule
+    pub(crate) async fn get_groups<'e, E>(
         &self,
         executor: E,
+        allowed: bool,
     ) -> Result<Vec<Group<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
@@ -216,43 +477,49 @@ impl AclRule<Id> {
             JOIN \"group\" g \
             ON g.id = r.group_id \
             WHERE r.rule_id = $1 \
-            AND r.allow",
+            AND r.allow = $2",
             self.id,
+            allowed,
         )
         .fetch_all(executor)
         .await
     }
 
-    /// Returns [`Group`]s that are denied by the rule
-    pub(crate) async fn get_denied_groups<'e, E>(
+    /// Returns [`Device`]s that are allowed or denied by the rule
+    pub(crate) async fn get_devices<'e, E>(
         &self,
         executor: E,
-    ) -> Result<Vec<Group<Id>>, SqlxError>
+        allowed: bool,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
         query_as!(
-            Group,
-            "SELECT g.id, name, is_admin \
-            FROM aclrulegroup r \
-            JOIN \"group\" g \
-            ON g.id = r.group_id \
+            Device,
+            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM aclruledevice r \
+            JOIN device d \
+            ON d.id = r.device_id \
             WHERE r.rule_id = $1 \
-            AND NOT r.allow",
+            AND r.allow = $2",
             self.id,
+            allowed,
         )
         .fetch_all(executor)
         .await
     }
 
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
-    pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo, SqlxError> {
+    pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
         let networks = self.get_networks(pool).await?;
-        let allowed_users = self.get_allowed_users(pool).await?;
-        let denied_users = self.get_denied_users(pool).await?;
-        let allowed_groups = self.get_allowed_groups(pool).await?;
-        let denied_groups = self.get_denied_groups(pool).await?;
+        let allowed_users = self.get_users(pool, true).await?;
+        let denied_users = self.get_users(pool, false).await?;
+        let allowed_groups = self.get_groups(pool, true).await?;
+        let denied_groups = self.get_groups(pool, false).await?;
+        let allowed_devices = self.get_devices(pool, true).await?;
+        let denied_devices = self.get_devices(pool, false).await?;
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -261,7 +528,8 @@ impl AclRule<Id> {
             deny_all_users: self.deny_all_users,
             all_networks: self.all_networks,
             destination: self.destination.clone(),
-            ports: self.ports.clone(),
+            ports: self.get_ports(),
+            protocols: self.protocols.clone(),
             expires: self.expires,
             aliases,
             networks,
@@ -269,6 +537,8 @@ impl AclRule<Id> {
             denied_users,
             allowed_groups,
             denied_groups,
+            allowed_devices,
+            denied_devices,
         })
     }
 }
@@ -335,6 +605,14 @@ pub struct AclRuleAlias<I = NoId> {
     pub id: I,
     pub rule_id: i64,
     pub alias_id: i64,
+}
+
+#[derive(Clone, Debug, Model, PartialEq)]
+pub struct AclRuleDevice<I = NoId> {
+    pub id: I,
+    pub rule_id: i64,
+    pub device_id: i64,
+    pub allow: bool,
 }
 
 #[cfg(test)]
@@ -488,6 +766,52 @@ mod test {
         .await
         .unwrap();
 
+        // create 2 devices
+        let device1 = Device::new(
+            "device1".to_string(),
+            String::new(),
+            1,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let device2 = Device::new(
+            "device2".to_string(),
+            String::new(),
+            1,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // device1 allowed
+        let _rd = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device1.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // device2 denied
+        let _rd = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device2.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
         // create 2 aliases
         let alias1 = AclAlias::new("alias1", Vec::new(), Vec::new(), Vec::new())
             .save(&pool)
@@ -526,6 +850,12 @@ mod test {
         assert_eq!(info.denied_groups.len(), 1);
         assert_eq!(info.denied_groups[0], group2);
 
+        assert_eq!(info.allowed_devices.len(), 1);
+        assert_eq!(info.allowed_devices[0].id, device1.id); // db modifies datetime precision
+
+        assert_eq!(info.denied_devices.len(), 1);
+        assert_eq!(info.denied_devices[0].id, device2.id); // db modifies datetime precision
+
         assert_eq!(info.networks.len(), 1);
         assert_eq!(info.networks[0], network1);
 
@@ -535,8 +865,8 @@ mod test {
         assert_eq!(rule.get_networks(&pool).await.unwrap().len(), 2);
 
         // test allowed/denied users
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user1);
         assert_eq!(denied_users.len(), 1);
@@ -546,15 +876,15 @@ mod test {
         rule.allow_all_users = true;
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_allowed_users(&pool).await.unwrap().len(), 2);
-        assert_eq!(rule.get_denied_users(&pool).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 0);
 
         // test `deny_all_users` flag
         rule.allow_all_users = false;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_allowed_users(&pool).await.unwrap().len(), 0);
-        assert_eq!(rule.get_denied_users(&pool).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // TODO: what if both `allow_all_users` and `deny_all_users` are true?
 
@@ -567,8 +897,8 @@ mod test {
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
 
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
         assert_eq!(denied_users.len(), 0);
@@ -579,8 +909,8 @@ mod test {
         rule.save(&pool).await.unwrap();
         ru2.allow = true; // allow user2
         ru2.save(&pool).await.unwrap();
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
         assert_eq!(denied_users.len(), 0);
@@ -590,8 +920,8 @@ mod test {
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
 
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
@@ -602,8 +932,8 @@ mod test {
         rule.save(&pool).await.unwrap();
         ru2.allow = false; // deny user2
         ru2.save(&pool).await.unwrap();
-        let allowed_users = rule.get_allowed_users(&pool).await.unwrap();
-        let denied_users = rule.get_denied_users(&pool).await.unwrap();
+        let allowed_users = rule.get_users(&pool, true).await.unwrap();
+        let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
