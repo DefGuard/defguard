@@ -34,6 +34,8 @@ pub struct ApiAclRule<I = NoId> {
     pub denied_users: Vec<Id>,
     pub allowed_groups: Vec<Id>,
     pub denied_groups: Vec<Id>,
+    pub allowed_devices: Vec<Id>,
+    pub denied_devices: Vec<Id>,
     // destination
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<Id>,
@@ -67,6 +69,8 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             denied_users: info.denied_users.iter().map(|v| v.id).collect(),
             allowed_groups: info.allowed_groups.iter().map(|v| v.id).collect(),
             denied_groups: info.denied_groups.iter().map(|v| v.id).collect(),
+            allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
+            denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
             destination: info.destination,
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             ports: info.ports,

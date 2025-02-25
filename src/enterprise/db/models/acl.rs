@@ -1,6 +1,7 @@
 use crate::{
-    db::{Group, Id, NoId, User, WireguardNetwork},
+    db::{Device, Group, Id, NoId, User, WireguardNetwork},
     enterprise::handlers::acl::ApiAclRule,
+    DeviceType,
 };
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -27,6 +28,8 @@ pub struct AclRuleInfo<I = NoId> {
     pub denied_users: Vec<User<Id>>,
     pub allowed_groups: Vec<Group<Id>>,
     pub denied_groups: Vec<Group<Id>>,
+    pub allowed_devices: Vec<Device<Id>>,
+    pub denied_devices: Vec<Device<Id>>,
     // destination
     pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
     pub aliases: Vec<AclAlias<Id>>,
@@ -150,6 +153,8 @@ impl AclRule {
             denied_users: Vec::new(),
             allowed_groups: Vec::new(),
             denied_groups: Vec::new(),
+            allowed_devices: Vec::new(),
+            denied_devices: Vec::new(),
         }
     }
 }
@@ -225,6 +230,28 @@ impl<I> AclRule<I> {
             obj.save(&mut *transaction).await?;
         }
 
+        // allowed devices
+        for device_id in &api_rule.allowed_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: true,
+                rule_id,
+                device_id: *device_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        // denied devices
+        for device_id in &api_rule.denied_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: false,
+                rule_id,
+                device_id: *device_id,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
         Ok(())
     }
 
@@ -250,6 +277,11 @@ impl<I> AclRule<I> {
 
         // aliases
         query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        // devices
+        query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
 
@@ -468,6 +500,52 @@ impl AclRule<Id> {
         .await
     }
 
+    /// Returns [`Device`]s that are allowed by the rule
+    pub(crate) async fn get_allowed_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Device,
+            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM aclruledevice r \
+            JOIN device d \
+            ON d.id = r.device_id \
+            WHERE r.rule_id = $1 \
+            AND r.allow",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    /// Returns [`Device`]s that are allowed by the rule
+    pub(crate) async fn get_denied_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            Device,
+            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+            configured \
+            FROM aclruledevice r \
+            JOIN device d \
+            ON d.id = r.device_id \
+            WHERE r.rule_id = $1 \
+            AND NOT r.allow",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
@@ -476,6 +554,8 @@ impl AclRule<Id> {
         let denied_users = self.get_denied_users(pool).await?;
         let allowed_groups = self.get_allowed_groups(pool).await?;
         let denied_groups = self.get_denied_groups(pool).await?;
+        let allowed_devices = self.get_allowed_devices(pool).await?;
+        let denied_devices = self.get_denied_devices(pool).await?;
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -493,6 +573,8 @@ impl AclRule<Id> {
             denied_users,
             allowed_groups,
             denied_groups,
+            allowed_devices,
+            denied_devices,
         })
     }
 }
@@ -559,6 +641,14 @@ pub struct AclRuleAlias<I = NoId> {
     pub id: I,
     pub rule_id: i64,
     pub alias_id: i64,
+}
+
+#[derive(Clone, Debug, Model, PartialEq)]
+pub struct AclRuleDevice<I = NoId> {
+    pub id: I,
+    pub rule_id: i64,
+    pub device_id: i64,
+    pub allow: bool,
 }
 
 #[cfg(test)]
@@ -712,6 +802,52 @@ mod test {
         .await
         .unwrap();
 
+        // create 2 devices
+        let device1 = Device::new(
+            "device1".to_string(),
+            String::new(),
+            1,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let device2 = Device::new(
+            "device2".to_string(),
+            String::new(),
+            1,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // device1 allowed
+        let _rd = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device1.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // device2 denied
+        let _rd = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device2.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
         // create 2 aliases
         let alias1 = AclAlias::new("alias1", Vec::new(), Vec::new(), Vec::new())
             .save(&pool)
@@ -749,6 +885,12 @@ mod test {
 
         assert_eq!(info.denied_groups.len(), 1);
         assert_eq!(info.denied_groups[0], group2);
+
+        assert_eq!(info.allowed_devices.len(), 1);
+        assert_eq!(info.allowed_devices[0].id, device1.id); // db modifies datetime precision
+
+        assert_eq!(info.denied_devices.len(), 1);
+        assert_eq!(info.denied_devices[0].id, device2.id); // db modifies datetime precision
 
         assert_eq!(info.networks.len(), 1);
         assert_eq!(info.networks[0], network1);
