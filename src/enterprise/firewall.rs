@@ -21,22 +21,6 @@ pub enum FirewallError {
     ModelError(#[from] ModelError),
 }
 
-pub enum NetworkAddressingType {
-    IpV4,
-    IpV6,
-}
-
-pub enum DestinationPort {
-    SinglePort { port: u16 },
-    PortRange { start: u16, end: u16 },
-}
-
-pub enum DestinationIp {
-    SingleIp(IpAddr),
-    IpRange { start: IpAddr, end: IpAddr },
-    Subnet(IpNetwork),
-}
-
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
     default_location_policy: FirewallPolicy,
