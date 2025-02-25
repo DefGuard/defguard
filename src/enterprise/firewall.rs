@@ -140,7 +140,6 @@ pub async fn generate_firewall_rules_from_acls(
         }
 
         // prepare destination addresses
-        // TODO: filter out incompatible IP version
         // TODO: convert into non-overlapping elements
         let destination_addrs = destination
             .iter()
@@ -243,10 +242,12 @@ impl WireguardNetwork<Id> {
     }
 
     /// Prepares firewall configuration for a gateway based on location config and ACLs
-    pub async fn get_firewall_config(
+    /// Returns `None` if firewall management is disabled for a given location.
+    /// TODO: actually determine if a config should be generated
+    pub async fn try_get_firewall_config(
         &self,
         pool: &PgPool,
-    ) -> Result<FirewallConfig, FirewallError> {
+    ) -> Result<Option<FirewallConfig>, FirewallError> {
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
 
@@ -264,11 +265,11 @@ impl WireguardNetwork<Id> {
         )
         .await?;
 
-        Ok(FirewallConfig {
+        Ok(Some(FirewallConfig {
             ip_version: ip_version.into(),
             default_policy: default_policy.into(),
             rules: firewall_rules,
-        })
+        }))
     }
 
     fn get_ip_version(&self) -> IpVersion {
