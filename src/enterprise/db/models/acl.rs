@@ -31,7 +31,8 @@ pub struct AclRuleInfo<I = NoId> {
     pub allowed_devices: Vec<Device<Id>>,
     pub denied_devices: Vec<Device<Id>>,
     // destination
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
+    pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
     pub aliases: Vec<AclAlias<Id>>,
     pub ports: Vec<Range<i32>>,
     pub protocols: Vec<Protocol>,
@@ -149,6 +150,7 @@ impl AclRule {
             expires: self.expires,
             aliases: Vec::new(),
             networks: Vec::new(),
+            destination_ranges: Vec::new(),
             allowed_users: Vec::new(),
             denied_users: Vec::new(),
             allowed_groups: Vec::new(),
@@ -510,6 +512,25 @@ impl AclRule<Id> {
         .await
     }
 
+    /// Returns all [`AclDestinationRanges`]es the rule applies to
+    pub(crate) async fn get_destination_ranges<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<AclRuleDestinationRange<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            AclRuleDestinationRange,
+            "SELECT id, rule_id, \"start\", \"end\" \
+            FROM aclruledestinationrange r \
+            WHERE rule_id = $1",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
@@ -520,6 +541,7 @@ impl AclRule<Id> {
         let denied_groups = self.get_groups(pool, false).await?;
         let allowed_devices = self.get_devices(pool, true).await?;
         let denied_devices = self.get_devices(pool, false).await?;
+        let destination_ranges = self.get_destination_ranges(pool).await?;
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -531,6 +553,7 @@ impl AclRule<Id> {
             ports: self.get_ports(),
             protocols: self.protocols.clone(),
             expires: self.expires,
+            destination_ranges,
             aliases,
             networks,
             allowed_users,
@@ -613,6 +636,14 @@ pub struct AclRuleDevice<I = NoId> {
     pub rule_id: i64,
     pub device_id: i64,
     pub allow: bool,
+}
+
+#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+pub struct AclRuleDestinationRange<I = NoId> {
+    pub id: I,
+    pub rule_id: i64,
+    pub start: IpNetwork,
+    pub end: IpNetwork,
 }
 
 #[cfg(test)]

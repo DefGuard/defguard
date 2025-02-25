@@ -66,3 +66,12 @@ CREATE TABLE aclruledevice (
     FOREIGN KEY(device_id) REFERENCES "device"(id) ON DELETE CASCADE,
     CONSTRAINT rule_device UNIQUE (rule_id, device_id)
 );
+
+CREATE TABLE aclruledestinationrange (
+    id bigserial PRIMARY KEY,
+    rule_id bigint NOT NULL,
+    "start" inet NOT NULL,
+    "end" inet NOT NULL,
+    FOREIGN KEY(rule_id) REFERENCES "aclrule"(id) ON DELETE CASCADE,
+    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end")
+);

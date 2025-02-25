@@ -12,7 +12,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::acl::{AclRule, AclRuleInfo, Protocol},
+    enterprise::db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, Protocol},
     handlers::{ApiResponse, ApiResult},
 };
 use serde_json::{json, Value};
@@ -37,7 +37,8 @@ pub struct ApiAclRule<I = NoId> {
     pub allowed_devices: Vec<Id>,
     pub denied_devices: Vec<Id>,
     // destination
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
+    pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
     pub aliases: Vec<Id>,
     pub ports: Vec<Range<i32>>,
     pub protocols: Vec<Protocol>,
@@ -72,6 +73,7 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
             denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
             destination: info.destination,
+            destination_ranges: info.destination_ranges,
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             ports: info.ports,
             protocols: info.protocols,
