@@ -15,6 +15,7 @@ use std::ops::{Bound, Range};
 pub type Protocol = i32;
 
 /// Helper struct combining all DB objects related to given [`AclRule`]
+#[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
     pub id: I,
     pub name: String,
@@ -134,30 +135,6 @@ impl AclRule {
 
         transaction.commit().await?;
         Ok(())
-    }
-
-    /// Converts [`AclRule`] instance to [`AclRuleInfo`]
-    pub async fn to_info(&self) -> AclRuleInfo<NoId> {
-        AclRuleInfo {
-            id: NoId,
-            name: self.name.clone(),
-            allow_all_users: self.allow_all_users,
-            deny_all_users: self.deny_all_users,
-            all_networks: self.all_networks,
-            destination: self.destination.clone(),
-            ports: self.get_ports(),
-            protocols: self.protocols.clone(),
-            expires: self.expires,
-            aliases: Vec::new(),
-            networks: Vec::new(),
-            destination_ranges: Vec::new(),
-            allowed_users: Vec::new(),
-            denied_users: Vec::new(),
-            allowed_groups: Vec::new(),
-            denied_groups: Vec::new(),
-            allowed_devices: Vec::new(),
-            denied_devices: Vec::new(),
-        }
     }
 }
 
@@ -531,7 +508,7 @@ impl AclRule<Id> {
         .await
     }
 
-    /// Returns all [`AclDestinationRanges`]es the rule applies to
+    /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
     pub(crate) async fn get_destination_ranges<'e, E>(
         &self,
         executor: E,
@@ -590,6 +567,33 @@ impl AclRule<Id> {
     }
 }
 
+/// Helper struct combining all DB objects related to given [`AclAlias`]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclAliasInfo<I = NoId> {
+    pub id: I,
+    pub name: String,
+    pub destination: Vec<IpNetwork>,
+    pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
+    pub ports: Vec<Range<i32>>,
+    pub protocols: Vec<Protocol>,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclAliasDestinationRangeInfo {
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+impl<I> From<AclAliasDestinationRange<I>> for AclAliasDestinationRangeInfo {
+    fn from(range: AclAliasDestinationRange<I>) -> Self {
+        Self {
+            start: range.start,
+            end: range.end,
+        }
+    }
+}
+
 /// Defines an alias for ACL destination. Aliases can be
 /// used to define the destination part of the rule.
 #[derive(Clone, Debug, Model, PartialEq)]
@@ -621,6 +625,46 @@ impl AclAlias {
             protocols,
             created_at: Utc::now().naive_utc(),
         }
+    }
+}
+
+impl AclAlias<Id> {
+    /// Returns all [`AclAliasDestinationRanges`]es the alias applies to
+    pub(crate) async fn get_destination_ranges<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<AclAliasDestinationRange<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            AclAliasDestinationRange,
+            "SELECT id, alias_id, \"start\", \"end\" \
+            FROM aclaliasdestinationrange r \
+            WHERE alias_id = $1",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let destination_ranges = self
+            .get_destination_ranges(pool)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        Ok(AclAliasInfo {
+            id: self.id,
+            name: self.name.clone(),
+            destination: self.destination.clone(),
+            ports: self.ports.clone(),
+            protocols: self.protocols.clone(),
+            created_at: self.created_at,
+            destination_ranges,
+        })
     }
 }
 
@@ -666,6 +710,14 @@ pub struct AclRuleDevice<I = NoId> {
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
     pub rule_id: i64,
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+pub struct AclAliasDestinationRange<I = NoId> {
+    pub id: I,
+    pub alias_id: i64,
     pub start: IpNetwork,
     pub end: IpNetwork,
 }

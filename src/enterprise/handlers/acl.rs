@@ -12,7 +12,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, Protocol},
+    enterprise::db::models::acl::{AclAlias, AclAliasInfo, AclRule, AclRuleDestinationRange, AclRuleInfo, Protocol},
     handlers::{ApiResponse, ApiResult},
 };
 use serde_json::{json, Value};
@@ -202,4 +202,25 @@ pub async fn delete_acl_rule(
     AclRule::delete_from_api(&appstate.pool, id).await?;
     info!("User {} deleted ACL rule {id}", session.user.username);
     Ok(ApiResponse::default())
+}
+
+pub async fn list_acl_aliases(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+) -> ApiResult {
+    debug!("User {} listing ACL aliases", session.user.username);
+    let aliases = AclAlias::all(&appstate.pool).await?;
+    let mut api_aliases: Vec<AclAliasInfo<Id>> = Vec::with_capacity(aliases.len());
+    for r in aliases.iter() {
+        // TODO: may require optimisation wrt. sql queries
+        let info = r.to_info(&appstate.pool).await?;
+        api_aliases.push(info.into());
+    }
+    info!("User {} listed ACL aliases", session.user.username);
+    Ok(ApiResponse {
+        json: json!(api_aliases),
+        status: StatusCode::OK,
+    })
 }

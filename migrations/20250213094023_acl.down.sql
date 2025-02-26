@@ -1,3 +1,4 @@
+DROP TABLE aclaliasdestinationrange;
 DROP TABLE aclruledestinationrange;
 DROP TABLE aclruledevice;
 DROP TABLE aclrulealias;

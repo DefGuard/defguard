@@ -76,3 +76,13 @@ CREATE TABLE aclruledestinationrange (
     CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end"),
     CONSTRAINT range_order CHECK ("start" < "end")
 );
+
+CREATE TABLE aclaliasdestinationrange (
+    id bigserial PRIMARY KEY,
+    alias_id bigint NOT NULL,
+    "start" inet NOT NULL,
+    "end" inet NOT NULL,
+    FOREIGN KEY(alias_id) REFERENCES "aclalias"(id) ON DELETE CASCADE,
+    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end"),
+    CONSTRAINT range_order CHECK ("start" < "end")
+);
