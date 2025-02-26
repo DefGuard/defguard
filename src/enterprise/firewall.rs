@@ -1,15 +1,17 @@
 use std::net::IpAddr;
 
 use ipnetwork::IpNetwork;
-use sqlx::{query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool};
+use sqlx::{
+    postgres::types::PgRange, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool,
+};
 
 use super::db::models::acl::AclRule;
 
 use crate::{
     db::{models::error::ModelError, Id, User, WireguardNetwork},
     grpc::proto::enterprise::firewall::{
-        ip_address::Address, port, FirewallConfig, FirewallPolicy, FirewallRule, IpAddress,
-        IpVersion, Port, PortRange,
+        ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
+        IpAddress, IpVersion, Port, PortRange,
     },
 };
 
@@ -150,24 +152,7 @@ pub async fn generate_firewall_rules_from_acls(
             .collect();
 
         // prepare destination ports
-        // TODO: convert to non-overlapping ranges
-        let destination_ports = ports
-            .iter()
-            .map(|port_range| Port {
-                port: Some(port::Port::PortRange(PortRange {
-                    start: match port_range.start {
-                        std::ops::Bound::Included(s) => s as u32,
-                        std::ops::Bound::Excluded(s) => s as u32,
-                        std::ops::Bound::Unbounded => 0,
-                    },
-                    end: match port_range.end {
-                        std::ops::Bound::Included(e) => e as u32,
-                        std::ops::Bound::Excluded(e) => e as u32,
-                        std::ops::Bound::Unbounded => u16::MAX as u32,
-                    },
-                })),
-            })
-            .collect();
+        let destination_ports = merge_port_ranges(ports);
 
         // prepare protocols
         // remove duplicates
@@ -200,6 +185,89 @@ pub async fn generate_firewall_rules_from_acls(
 /// - convert to format expected by `FirewallRule` gRPC struct
 fn process_ip_addrs(_addrs: Vec<IpAddr>, _location_ip_version: IpVersion) {
     unimplemented!()
+}
+
+/// Helper to extract actual starp port value from `Bound` enum used by `PgRange`.
+fn get_start_port_from_range(range: &PgRange<i32>) -> u32 {
+    match range.start {
+        std::ops::Bound::Included(value) => value as u32,
+        std::ops::Bound::Excluded(value) => (value + 1) as u32,
+        std::ops::Bound::Unbounded => u32::MIN,
+    }
+}
+
+/// Helper to extract actual end port value from `Bound` enum used by `PgRange`.
+fn get_end_port_from_range(range: &PgRange<i32>) -> u32 {
+    match range.end {
+        std::ops::Bound::Included(value) => value as u32,
+        std::ops::Bound::Excluded(value) => (value - 1) as u32,
+        // type casting because protobuf doesn't have u16, but max port number is u16::MAX
+        std::ops::Bound::Unbounded => u16::MAX as u32,
+    }
+}
+
+/// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
+fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
+    // return early if list is empty
+    if port_ranges.is_empty() {
+        return Vec::new();
+    }
+
+    // sort elements by range start
+    port_ranges.sort_by(|a, b| {
+        let a_start = get_start_port_from_range(a);
+        let b_start = get_start_port_from_range(b);
+        a_start.cmp(&b_start)
+    });
+
+    let mut merged_ranges = Vec::new();
+    // start with first range
+    let current_range = port_ranges.remove(0);
+    let mut current_range_start = get_start_port_from_range(&current_range);
+    let mut current_range_end = get_end_port_from_range(&current_range);
+
+    // iterate over remaining ranges
+    for range in port_ranges {
+        let range_start = get_start_port_from_range(&range);
+        let range_end = get_end_port_from_range(&range);
+
+        // compare with current range
+        if range_start <= current_range_end {
+            // ranges are overlapping, merge them
+            current_range_end = range_end;
+        } else {
+            // ranges are not overlapping, add current range to result
+            let port_range = PortInner::PortRange(PortRange {
+                start: current_range_start,
+                end: current_range_end,
+            });
+            merged_ranges.push(port_range);
+            current_range_start = range_start;
+            current_range_end = range_end;
+        }
+    }
+
+    // add last range
+    let port_range = PortInner::PortRange(PortRange {
+        start: current_range_start,
+        end: current_range_end,
+    });
+    merged_ranges.push(port_range);
+
+    // convert single-element ranges
+    merged_ranges
+        .into_iter()
+        .map(|port| {
+            if let PortInner::PortRange(range) = port {
+                if range.start == range.end {
+                    return Port {
+                        port: Some(PortInner::SinglePort(range.start)),
+                    };
+                }
+            }
+            Port { port: Some(port) }
+        })
+        .collect()
 }
 
 impl WireguardNetwork<Id> {
@@ -273,6 +341,14 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use std::ops::Bound;
+
+    use sqlx::postgres::types::PgRange;
+
+    use crate::grpc::proto::enterprise::firewall::{port::Port as PortInner, Port, PortRange};
+
+    use super::merge_port_ranges;
+
     #[test]
     fn test_non_overlapping_addrs() {
         unimplemented!()
@@ -303,8 +379,155 @@ mod test {
     }
 
     #[test]
-    fn test_process_ports() {
-        unimplemented!()
+    fn test_merge_port_ranges() {
+        // single port
+        let input_ranges = vec![PgRange {
+            start: Bound::Included(100),
+            end: Bound::Included(100),
+        }];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![Port {
+                port: Some(PortInner::SinglePort(100))
+            }]
+        );
+
+        // overlapping ranges
+        let input_ranges = vec![
+            PgRange {
+                start: Bound::Included(100),
+                end: Bound::Included(200),
+            },
+            PgRange {
+                start: Bound::Included(150),
+                end: Bound::Included(220),
+            },
+            PgRange {
+                start: Bound::Included(210),
+                end: Bound::Included(300),
+            },
+        ];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![Port {
+                port: Some(PortInner::PortRange(PortRange {
+                    start: 100,
+                    end: 300
+                }))
+            }]
+        );
+
+        // duplicate ranges
+        let input_ranges = vec![
+            PgRange {
+                start: Bound::Included(100),
+                end: Bound::Included(200),
+            },
+            PgRange {
+                start: Bound::Included(100),
+                end: Bound::Included(200),
+            },
+            PgRange {
+                start: Bound::Included(150),
+                end: Bound::Included(220),
+            },
+            PgRange {
+                start: Bound::Included(150),
+                end: Bound::Included(220),
+            },
+            PgRange {
+                start: Bound::Included(210),
+                end: Bound::Included(300),
+            },
+            PgRange {
+                start: Bound::Included(210),
+                end: Bound::Included(300),
+            },
+            PgRange {
+                start: Bound::Included(350),
+                end: Bound::Included(400),
+            },
+            PgRange {
+                start: Bound::Included(350),
+                end: Bound::Included(400),
+            },
+            PgRange {
+                start: Bound::Included(350),
+                end: Bound::Included(400),
+            },
+        ];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![
+                Port {
+                    port: Some(PortInner::PortRange(PortRange {
+                        start: 100,
+                        end: 300
+                    }))
+                },
+                Port {
+                    port: Some(PortInner::PortRange(PortRange {
+                        start: 350,
+                        end: 400
+                    }))
+                }
+            ]
+        );
+
+        // non-consecutive ranges
+        let input_ranges = vec![
+            PgRange {
+                start: Bound::Excluded(500),
+                end: Bound::Excluded(700),
+            },
+            PgRange {
+                start: Bound::Excluded(150),
+                end: Bound::Included(220),
+            },
+            PgRange {
+                start: Bound::Included(210),
+                end: Bound::Included(300),
+            },
+            PgRange {
+                start: Bound::Included(800),
+                end: Bound::Included(800),
+            },
+            PgRange {
+                start: Bound::Included(200),
+                end: Bound::Included(210),
+            },
+            PgRange {
+                start: Bound::Included(50),
+                end: Bound::Excluded(51),
+            },
+        ];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![
+                Port {
+                    port: Some(PortInner::SinglePort(50))
+                },
+                Port {
+                    port: Some(PortInner::PortRange(PortRange {
+                        start: 151,
+                        end: 300
+                    }))
+                },
+                Port {
+                    port: Some(PortInner::PortRange(PortRange {
+                        start: 501,
+                        end: 699
+                    }))
+                },
+                Port {
+                    port: Some(PortInner::SinglePort(800))
+                }
+            ]
+        );
     }
 
     #[test]
