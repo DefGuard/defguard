@@ -2,33 +2,72 @@ import './style.scss';
 
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { forwardRef, HTMLAttributes, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { forwardRef, HTMLAttributes } from 'react';
 import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
 import { useAppStore } from '../../../hooks/store/useAppStore';
+import { DateInputProps } from './types';
 
-export const DateInput = () => {
+const pickerToOutput = (value: Date | null): string | null => {
+  if (value === null) return null;
+  return dayjs(value).utc().toISOString();
+};
+
+const inputToPicker = (value: string | null): Date | null => {
+  if (typeof value === 'string') {
+    return dayjs(value).utc().toDate();
+  }
+  return null;
+};
+
+export const DateInput = ({
+  selected,
+  onChange,
+  label,
+  errorMessage,
+}: DateInputProps) => {
   const locale = useAppStore((s) => s.language);
-  const [selected, setSelected] = useState<Date | null>(new Date());
   return (
-    <>
-      <DatePicker
-        selected={selected}
-        onChange={(val) => {
-          console.log(val);
-          console.log(typeof val);
-          setSelected(val);
-        }}
-        customInput={<DisplayField selected={selected} />}
-        renderCustomHeader={CustomHeader}
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        renderDayContents={(day, _) => <CustomDay day={day} />}
-        open={true}
-        locale={locale}
-        showTimeSelect={false}
-        closeOnScroll
-      />
-    </>
+    <div className="date-input-spacer">
+      <div className="inner">
+        {label !== undefined && <p className="label">{label}:</p>}
+        <DatePicker
+          selected={inputToPicker(selected)}
+          onChange={(val) => {
+            onChange(pickerToOutput(val));
+          }}
+          customInput={<DisplayField selected={selected} />}
+          renderCustomHeader={CustomHeader}
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          renderDayContents={(day, _) => <CustomDay day={day} />}
+          locale={locale}
+          showTimeSelect={false}
+          closeOnScroll
+        />
+        <AnimatePresence>
+          {errorMessage !== undefined && errorMessage !== '' && (
+            <motion.p
+              className="error"
+              initial={{
+                x: 0,
+                opacity: 0,
+              }}
+              animate={{
+                x: 20,
+                opacity: 1,
+              }}
+              exit={{
+                opacity: 0,
+                x: 0,
+              }}
+            >
+              {errorMessage}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 };
 
@@ -96,7 +135,7 @@ const CustomHeader = ({
 };
 
 type DisplayProps = {
-  selected?: Date | null;
+  selected?: string | null;
 } & HTMLAttributes<HTMLButtonElement>;
 
 const DisplayField = forwardRef<HTMLButtonElement, DisplayProps>(
@@ -109,7 +148,7 @@ const DisplayField = forwardRef<HTMLButtonElement, DisplayProps>(
           ref={ref}
           type="button"
         >
-          <span>{selected?.toISOString()}</span>
+          {selected !== null && <span>{dayjs(selected).format('L')}</span>}
         </button>
       </div>
     );

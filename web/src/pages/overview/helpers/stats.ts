@@ -1,5 +1,4 @@
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { isUndefined, sortBy, sumBy } from 'lodash-es';
 
 import {
@@ -7,8 +6,6 @@ import {
   NetworkSpeedStats,
   NetworkUserStats,
 } from './../../../shared/types';
-
-dayjs.extend(utc);
 
 interface MergeStruct {
   [key: string]: Pick<NetworkSpeedStats, 'download' | 'upload'>;

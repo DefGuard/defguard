@@ -1,3 +1,28 @@
+.date-input-spacer {
+  & > .inner {
+    position: relative;
+
+    & > .label {
+      user-select: none;
+      @include typography(app-wizard-1);
+      color: var(--text-body-tertiary);
+      padding-bottom: var(--spacing-xs);
+    }
+
+    & > .error {
+      position: absolute;
+      @include typography(app-wizard-1);
+      @include text-overflow-dots;
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      bottom: 5px;
+
+      color: var(--text-alert);
+    }
+  }
+}
+
 .date-input-container {
   .date-input {
     display: flex;
@@ -90,6 +115,16 @@
       span {
         color: var(--white);
       }
+    }
+  }
+}
+
+.react-datepicker__day--selected {
+  & > .custom-day {
+    background-color: var(--surface-main-primary);
+
+    span {
+      color: var(--white);
     }
   }
 }

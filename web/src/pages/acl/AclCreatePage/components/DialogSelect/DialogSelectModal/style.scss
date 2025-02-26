@@ -17,6 +17,18 @@
       margin: var(--spacing-xs) 0;
     }
 
+    & > .search {
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .no-data {
+      width: 100%;
+      text-align: center;
+      color: var(--text-body-tertiary);
+
+      @include typography(app-body-2);
+    }
+
     .option {
       min-height: 24px;
       display: flex;
@@ -50,8 +62,8 @@
       display: flex;
       flex-flow: row;
       align-items: center;
-      justify-content: flex-start;
-      column-gap: var(--spacing-s);
+      justify-content: center;
+      column-gap: var(--spacing-l);
     }
   }
 }

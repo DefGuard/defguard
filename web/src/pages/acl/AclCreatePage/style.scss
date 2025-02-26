@@ -79,6 +79,10 @@
       }
     }
 
+    .spacer {
+      padding-bottom: var(--spacing-s);
+    }
+
     .header {
       display: flex;
       flex-flow: row nowrap;

@@ -2,7 +2,6 @@ import './style.scss';
 
 import classNames from 'classnames';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { TargetAndTransition } from 'framer-motion';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
@@ -30,8 +29,6 @@ import { sortByDate } from '../../../../../shared/utils/sortByDate';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
-
-dayjs.extend(utc);
 
 const dateFormat = 'DD.MM.YYYY | HH:mm';
 

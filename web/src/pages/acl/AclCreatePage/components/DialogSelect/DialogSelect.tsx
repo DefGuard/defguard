@@ -14,6 +14,9 @@ export const DialogSelect = <T extends object, I extends number | string>({
   label,
   onChange,
   renderTagContent,
+  renderDialogListItem,
+  searchFn,
+  searchKeys,
 }: DialogSelectProps<T, I>) => {
   const [modalOpen, setModalOpen] = useState(false);
   const getIdent = useCallback((val: T): I => val[identKey] as I, [identKey]);
@@ -47,6 +50,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
             onClick={() => {
               setModalOpen(true);
             }}
+            type="button"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -62,12 +66,14 @@ export const DialogSelect = <T extends object, I extends number | string>({
         </div>
       </div>
       <DialogSelectModal
+        searchFn={searchFn}
+        searchKeys={searchKeys}
         open={modalOpen}
         setOpen={setModalOpen}
         options={options}
         getIdent={getIdent}
         initiallySelected={selected}
-        getLabel={renderTagContent}
+        getLabel={renderDialogListItem ? renderDialogListItem : renderTagContent}
         onChange={(vals) => {
           onChange?.(vals);
         }}

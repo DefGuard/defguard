@@ -11,6 +11,9 @@ import {
 import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { Modal } from '../../../../../../shared/defguard-ui/components/Layout/modals/Modal/Modal';
 import { Search } from '../../../../../../shared/defguard-ui/components/Layout/Search/Search';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
+import { searchByKeys } from '../../../../../../shared/utils/searchByKeys';
+import { DialogSelectProps } from '../types';
 
 type Props<T, I> = {
   initiallySelected: I[];
@@ -20,18 +23,18 @@ type Props<T, I> = {
   open: boolean;
   setOpen: (val: boolean) => void;
   onChange: (selected: I[]) => void;
-  search?: (options: T[], searchValue: string) => T[];
-};
+} & Pick<DialogSelectProps<T, I>, 'searchFn' | 'searchKeys'>;
 
 export const DialogSelectModal = <T extends object, I extends number | string>({
   getIdent,
   initiallySelected,
-  search,
   getLabel,
   open,
   setOpen,
   options,
   onChange,
+  searchFn,
+  searchKeys,
 }: Props<T, I>) => {
   const { LL } = useI18nContext();
   const [searchValue, setSearch] = useState('');
@@ -53,10 +56,18 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
     }
   };
 
+  const searchEnabled = isPresent(searchFn) || isPresent(searchKeys);
+
   const filteredOptions = useMemo(() => {
-    if (searchValue === '' || search === undefined) return options;
-    return search(options, searchValue);
-  }, [searchValue, search, options]);
+    if (!searchEnabled) return options;
+    if (searchFn) {
+      return options.filter((o) => searchFn(o, searchValue));
+    }
+    if (searchKeys) {
+      return options.filter((o) => searchByKeys(o, searchKeys, searchValue));
+    }
+    return options;
+  }, [searchEnabled, searchFn, options, searchValue, searchKeys]);
 
   useEffect(() => {
     setSelected(initiallySelected);
@@ -73,7 +84,7 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
       }}
       className="modal-dialog-select"
     >
-      {search !== undefined && (
+      {searchEnabled && (
         <Search
           onDebounce={(value) => {
             setSearch(value);
@@ -92,7 +103,12 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
       </div>
       <hr />
       <ul className="options">
-        {filteredOptions.length === 0 && <p className="no-data">Not found</p>}
+        {filteredOptions.length === 0 && searchValue === '' && (
+          <p className="no-data">No options</p>
+        )}
+        {filteredOptions.length === 0 && searchValue !== '' && (
+          <p className="no-data">Not found</p>
+        )}
         {filteredOptions.map((o) => {
           const id = getIdent(o);
           const isSelected = selected.includes(id);

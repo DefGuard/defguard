@@ -6,13 +6,19 @@ import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { DateInput } from '../../../shared/components/Layout/DateInput/DateInput';
+import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormTextarea } from '../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
 import { ActivityIcon } from '../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
 import { ActivityIconVariant } from '../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { LabeledCheckbox } from '../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import {
+  MessageBoxStyleVariant,
+  MessageBoxType,
+} from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { GroupInfo, Network, StandaloneDevice, User } from '../../../shared/types';
 import { useAclLoadedContext } from '../acl-context';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
@@ -40,7 +46,7 @@ export const AlcCreatePage = () => {
           })
           .min(1, formErrors.required()),
         networks: z.number().array(),
-        expires: z.string(),
+        expires: z.string().nullable(),
         allow_all_users: z.boolean(),
         deny_all_users: z.boolean(),
         allowed_users: z.number().array(),
@@ -50,12 +56,16 @@ export const AlcCreatePage = () => {
         allowed_devices: z.number().array(),
         denied_devices: z.number().array(),
         aliases: z.number().array(),
+        cidr: z.string(),
         ports: z
           .string({
             required_error: formErrors.required(),
           })
           .min(1, formErrors.required())
-          .regex(/^(?:\d+(?:-\d+)*)(?:[ ,]+\d+(?:-\d+)*)*$/, formErrors.invalid())
+          .regex(
+            /^(?:\d+(?:-\d+)*)(?:(?:\s*,\s*|\s+)\d+(?:-\d+)*)*$/,
+            formErrors.invalid(),
+          )
           .refine((value) => {
             // check if there is no duplicates in given port field
             const trimmed = value
@@ -108,7 +118,7 @@ export const AlcCreatePage = () => {
       networks: [],
       aliases: [],
       ports: '',
-      expires: '',
+      expires: null,
       protocols: '',
       allow_all_users: false,
       allowed_devices: [],
@@ -118,6 +128,7 @@ export const AlcCreatePage = () => {
       denied_groups: [],
       denied_users: [],
       deny_all_users: false,
+      cidr: '',
     }),
     [],
   );
@@ -154,6 +165,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderNetworkSelectTag}
             identKey="id"
             label="Locations"
+            searchKeys={['name']}
           />
           <CardHeader title="Expiration Date" />
           <LabeledCheckbox
@@ -161,16 +173,26 @@ export const AlcCreatePage = () => {
             value={neverExpires}
             onChange={() => setNeverExpires((s) => !s)}
           />
-          <DateInput />
+          <FormDateInput
+            controller={{ control, name: 'expires' }}
+            label="Expiration Date"
+          />
         </SectionWithCard>
         <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
-          <LabeledCheckbox label="All Active Users" value={false} onChange={() => {}} />
+          <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
+            <p>
+              Specify one or more fields (Users or Groups) to define this rule. The rule
+              will consider all inputs provided for matching conditions. Leave any fields
+              blank if not needed.
+            </p>
+          </MessageBox>
           <FormDialogSelect
             label="Users"
             controller={{ control, name: 'allowed_users' }}
             options={users}
             renderTagContent={renderUserTag}
             identKey="id"
+            searchKeys={['email', 'last_name', 'first_name']}
           />
           <FormDialogSelect
             label="Groups"
@@ -178,6 +200,7 @@ export const AlcCreatePage = () => {
             options={groups}
             renderTagContent={renderGroup}
             identKey="name"
+            searchKeys={['name']}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -185,28 +208,51 @@ export const AlcCreatePage = () => {
             options={devices}
             renderTagContent={renderNetworkDevice}
             identKey="id"
+            searchKeys={['name']}
           />
         </SectionWithCard>
         <SectionWithCard title="Destination" id="destination-card">
+          <MessageBox
+            styleVariant={MessageBoxStyleVariant.OUTLINED}
+            type={MessageBoxType.INFO}
+          >
+            <p>
+              Specify one or more fields (Aliases, IPs, or Ports) to define this rule. The
+              rule will consider all inputs provided for matching conditions. Leave any
+              fields blank if not needed.
+            </p>
+          </MessageBox>
           <FormDialogSelect
             controller={{ control, name: 'aliases' }}
             options={mockedAliases}
             label="Aliases"
             identKey="id"
             renderTagContent={renderAlias}
+            searchKeys={['name']}
           />
           <CardHeader title="Manual Input" />
+          <FormTextarea
+            controller={{ control, name: 'cidr' }}
+            label="IPv4/6 CIDR range or address"
+          />
           <FormInput controller={{ control, name: 'ports' }} label="Ports" />
           <FormInput controller={{ control, name: 'protocols' }} label="Protocols" />
         </SectionWithCard>
         <SectionWithCard title="Denied Users/Devices/Groups" id="denied-card">
-          <LabeledCheckbox value={false} onChange={() => {}} label="All Active Users" />
+          <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
+            <p>
+              Specify one or more fields (Users or Groups) to define this rule. The rule
+              will consider all inputs provided for matching conditions. Leave any fields
+              blank if not needed.
+            </p>
+          </MessageBox>
           <FormDialogSelect
             label="Users"
             controller={{ control, name: 'denied_users' }}
             options={users}
             renderTagContent={renderUserTag}
             identKey="id"
+            searchKeys={['username', 'first_name', 'last_name']}
           />
           <FormDialogSelect
             label="Groups"
@@ -214,6 +260,7 @@ export const AlcCreatePage = () => {
             options={groups}
             renderTagContent={renderGroup}
             identKey="name"
+            searchKeys={['name']}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -221,6 +268,7 @@ export const AlcCreatePage = () => {
             options={devices}
             renderTagContent={renderNetworkDevice}
             identKey="id"
+            searchKeys={['name']}
           />
         </SectionWithCard>
       </form>
