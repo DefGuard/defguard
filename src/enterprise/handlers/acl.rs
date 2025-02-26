@@ -5,14 +5,14 @@ use axum::{
 };
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
-use sqlx::postgres::types::PgRange;
-use std::ops::{Bound, Range};
 
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::acl::{AclAlias, AclAliasInfo, AclRule, AclRuleDestinationRange, AclRuleInfo, Protocol},
+    enterprise::db::models::acl::{
+        AclAlias, AclAliasInfo, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange, Protocol,
+    },
     handlers::{ApiResponse, ApiResult},
 };
 use serde_json::{json, Value};
@@ -40,20 +40,8 @@ pub struct ApiAclRule<I = NoId> {
     pub destination: Vec<IpNetwork>,
     pub destination_ranges: Vec<ApiAclRuleDestinationRange>,
     pub aliases: Vec<Id>,
-    pub ports: Vec<Range<i32>>,
+    pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
-}
-
-impl<I> ApiAclRule<I> {
-    pub fn get_ports(&self) -> Vec<PgRange<i32>> {
-        self.ports
-            .iter()
-            .map(|r| PgRange {
-                start: Bound::Included(r.start),
-                end: Bound::Included(r.end),
-            })
-            .collect()
-    }
 }
 
 impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {

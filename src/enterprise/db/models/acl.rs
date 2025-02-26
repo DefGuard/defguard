@@ -14,6 +14,34 @@ use std::ops::{Bound, Range};
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
 pub type Protocol = i32;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PortRange(Range<i32>);
+
+impl From<PgRange<i32>> for PortRange {
+    fn from(range: PgRange<i32>) -> Self {
+        let start = match range.start {
+            Bound::Included(start) => start,
+            Bound::Excluded(start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+        let end = match range.end {
+            Bound::Included(end) => end,
+            Bound::Excluded(end) => end - 1,
+            Bound::Unbounded => 0,
+        };
+        Self(Range { start, end })
+    }
+}
+
+impl From<PortRange> for PgRange<i32> {
+    fn from(range: PortRange) -> PgRange<i32> {
+        PgRange {
+            start: Bound::Included(range.0.start),
+            end: Bound::Included(range.0.end),
+        }
+    }
+}
+
 /// Helper struct combining all DB objects related to given [`AclRule`]
 #[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
@@ -35,7 +63,7 @@ pub struct AclRuleInfo<I = NoId> {
     pub destination: Vec<IpNetwork>,
     pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
     pub aliases: Vec<AclAlias<Id>>,
-    pub ports: Vec<Range<i32>>,
+    pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
 }
 
@@ -285,31 +313,12 @@ impl<I> AclRule<I> {
 
         Ok(())
     }
-
-    /// Converts ports to `Vec<std::ops::Range<i32>>`
-    fn get_ports(&self) -> Vec<Range<i32>> {
-        let mut ports = Vec::with_capacity(self.ports.len());
-        for r in &self.ports {
-            let start = match r.start {
-                Bound::Included(start) => start,
-                Bound::Excluded(start) => start + 1,
-                Bound::Unbounded => 0,
-            };
-            let end = match r.end {
-                Bound::Included(end) => end,
-                Bound::Excluded(end) => end - 1,
-                Bound::Unbounded => 0,
-            };
-            ports.push(start..end);
-        }
-        ports
-    }
 }
 
 impl<I> From<ApiAclRule<I>> for AclRule<I> {
     fn from(rule: ApiAclRule<I>) -> Self {
         Self {
-            ports: rule.get_ports(),
+            ports: rule.ports.into_iter().map(Into::into).collect(),
             id: rule.id,
             name: rule.name,
             allow_all_users: rule.allow_all_users,
@@ -543,6 +552,7 @@ impl AclRule<Id> {
             .into_iter()
             .map(Into::into)
             .collect();
+        let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -551,10 +561,10 @@ impl AclRule<Id> {
             deny_all_users: self.deny_all_users,
             all_networks: self.all_networks,
             destination: self.destination.clone(),
-            ports: self.get_ports(),
             protocols: self.protocols.clone(),
             expires: self.expires,
             destination_ranges,
+            ports,
             aliases,
             networks,
             allowed_users,
@@ -574,7 +584,7 @@ pub struct AclAliasInfo<I = NoId> {
     pub name: String,
     pub destination: Vec<IpNetwork>,
     pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
-    pub ports: Vec<Range<i32>>,
+    pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
     pub created_at: NaiveDateTime,
 }
@@ -660,7 +670,7 @@ impl AclAlias<Id> {
             id: self.id,
             name: self.name.clone(),
             destination: self.destination.clone(),
-            ports: self.ports.clone(),
+            ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
             created_at: self.created_at,
             destination_ranges,
