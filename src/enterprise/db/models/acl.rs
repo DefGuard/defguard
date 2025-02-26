@@ -548,12 +548,7 @@ impl AclRule<Id> {
         let denied_groups = self.get_groups(pool, false).await?;
         let allowed_devices = self.get_devices(pool, true).await?;
         let denied_devices = self.get_devices(pool, false).await?;
-        let destination_ranges = self
-            .get_destination_ranges(pool)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let destination_ranges = self.get_destination_ranges(pool).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
         Ok(AclRuleInfo {
@@ -683,7 +678,7 @@ impl AclAlias {
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        Ok(alias.to_info(pool).await?.into())
+        alias.to_info(pool).await
     }
 
     /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
@@ -706,7 +701,7 @@ impl AclAlias {
         AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        Ok(alias.to_info(pool).await?.into())
+        alias.to_info(pool).await
     }
 
     /// Deletes [`AclAlias`] with all it's related objects

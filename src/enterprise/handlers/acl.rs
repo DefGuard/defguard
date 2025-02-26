@@ -178,7 +178,7 @@ pub async fn list_acl_aliases(
     for r in aliases.iter() {
         // TODO: may require optimisation wrt. sql queries
         let info = r.to_info(&appstate.pool).await?;
-        api_aliases.push(info.into());
+        api_aliases.push(info);
     }
     info!("User {} listed ACL aliases", session.user.username);
     Ok(ApiResponse {
