@@ -149,7 +149,7 @@ pub async fn update_acl_rule(
     info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse {
         json: json!(rule),
-        status: StatusCode::CREATED,
+        status: StatusCode::OK,
     })
 }
 
@@ -244,7 +244,7 @@ pub async fn update_acl_alias(
     info!("User {} updated ACL alias", session.user.username);
     Ok(ApiResponse {
         json: json!(alias),
-        status: StatusCode::CREATED,
+        status: StatusCode::OK,
     })
 }
 

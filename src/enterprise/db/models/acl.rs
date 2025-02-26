@@ -22,11 +22,13 @@ impl From<PgRange<i32>> for PortRange {
         let start = match range.start {
             Bound::Included(start) => start,
             Bound::Excluded(start) => start + 1,
+            // should not happen if the value is created from PortRange
             Bound::Unbounded => 0,
         };
         let end = match range.end {
-            Bound::Included(end) => end,
-            Bound::Excluded(end) => end - 1,
+            Bound::Included(end) => end + 1,
+            Bound::Excluded(end) => end,
+            // should not happen if the value is created from PortRange
             Bound::Unbounded => 0,
         };
         Self(Range { start, end })
@@ -37,7 +39,7 @@ impl From<PortRange> for PgRange<i32> {
     fn from(range: PortRange) -> PgRange<i32> {
         PgRange {
             start: Bound::Included(range.0.start),
-            end: Bound::Included(range.0.end),
+            end: Bound::Excluded(range.0.end),
         }
     }
 }
