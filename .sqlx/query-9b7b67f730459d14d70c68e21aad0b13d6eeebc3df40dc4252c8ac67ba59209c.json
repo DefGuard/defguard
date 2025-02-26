@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9b7b67f730459d14d70c68e21aad0b13d6eeebc3df40dc4252c8ac67ba59209c"
+}

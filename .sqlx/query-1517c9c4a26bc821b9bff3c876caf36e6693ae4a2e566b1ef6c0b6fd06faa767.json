@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclaliasdestinationrange\" SET \"alias_id\" = $2,\"start\" = $3,\"end\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Inet",
+        "Inet"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1517c9c4a26bc821b9bff3c876caf36e6693ae4a2e566b1ef6c0b6fd06faa767"
+}
