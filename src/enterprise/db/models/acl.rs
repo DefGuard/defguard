@@ -619,6 +619,19 @@ pub struct AclAlias<I = NoId> {
     pub created_at: NaiveDateTime,
 }
 
+impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
+    fn from(rule: AclAliasInfo<I>) -> Self {
+        Self {
+            ports: rule.ports.into_iter().map(Into::into).collect(),
+            id: rule.id,
+            name: rule.name,
+            destination: rule.destination,
+            protocols: rule.protocols,
+            created_at: rule.created_at,
+        }
+    }
+}
+
 impl AclAlias {
     #[must_use]
     pub fn new<S: Into<String>>(
@@ -635,6 +648,98 @@ impl AclAlias {
             protocols,
             created_at: Utc::now().naive_utc(),
         }
+    }
+
+    /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`]
+    pub(crate) async fn create_from_api(
+        pool: &PgPool,
+        api_alias: &AclAliasInfo<NoId>,
+    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the alias
+        let alias: AclAlias<NoId> = api_alias.clone().into();
+        let alias = alias.save(&mut *transaction).await?;
+
+        // create related objects
+        Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
+
+        transaction.commit().await?;
+        Ok(alias.to_info(pool).await?.into())
+    }
+
+    /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
+    pub(crate) async fn update_from_api(
+        pool: &PgPool,
+        id: Id,
+        api_alias: &AclAliasInfo<Id>,
+    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the alias
+        let mut alias: AclAlias<Id> = api_alias.clone().into();
+        alias.id = id; // frontend may PUT an object with incorrect id
+        alias.save(&mut *transaction).await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, alias.id).await?;
+
+        // create related objects
+        AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias).await?;
+
+        transaction.commit().await?;
+        Ok(alias.to_info(pool).await?.into())
+    }
+
+    /// Deletes [`AclAlias`] with all it's related objects
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, id).await?;
+
+        // delete the alias
+        query!("DELETE FROM aclalias WHERE id = $1", id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+        Ok(())
+    }
+}
+
+impl<I> AclAlias<I> {
+    /// Creates relation objects for given [`AclAlias`] based on [`AclAliasInfo`] object
+    async fn create_related_objects(
+        transaction: &mut PgConnection,
+        alias_id: Id,
+        api_alias: &AclAliasInfo<I>,
+    ) -> Result<(), SqlxError> {
+        // save related destination ranges
+        for range in &api_alias.destination_ranges {
+            let obj = AclAliasDestinationRange {
+                id: NoId,
+                alias_id,
+                start: range.start,
+                end: range.end,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Deletes relation objects for given [`AclAlias`]
+    async fn delete_related_objects(
+        transaction: &mut PgConnection,
+        alias_id: Id,
+    ) -> Result<(), SqlxError> {
+        // destination ranges
+        query!("DELETE FROM aclaliasdestinationrange WHERE alias_id = $1", alias_id)
+            .execute(&mut *transaction)
+            .await?;
+
+        Ok(())
     }
 }
 

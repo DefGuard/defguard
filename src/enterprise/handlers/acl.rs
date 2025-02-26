@@ -212,3 +212,74 @@ pub async fn list_acl_aliases(
         status: StatusCode::OK,
     })
 }
+
+pub async fn get_acl_alias(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path(id): Path<Id>,
+) -> ApiResult {
+    debug!("User {} retrieving ACL alias {id}", session.user.username);
+    let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
+        Some(alias) => (
+            json!(Into::<AclAliasInfo<Id>>::into(
+                alias.to_info(&appstate.pool).await?
+            )),
+            StatusCode::OK,
+        ),
+        None => (Value::Null, StatusCode::NOT_FOUND),
+    };
+
+    info!("User {} retrieved ACL alias {id}", session.user.username);
+    Ok(ApiResponse { json: alias, status })
+}
+
+pub async fn create_acl_alias(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<AclAliasInfo>,
+) -> ApiResult {
+    debug!("User {} creating ACL alias {data:?}", session.user.username);
+    let alias = AclAlias::create_from_api(&appstate.pool, &data).await?;
+    info!(
+        "User {} created ACL alias {}",
+        session.user.username, alias.id
+    );
+    Ok(ApiResponse {
+        json: json!(alias),
+        status: StatusCode::CREATED,
+    })
+}
+
+pub async fn update_acl_alias(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path(id): Path<Id>,
+    Json(data): Json<AclAliasInfo<Id>>,
+) -> ApiResult {
+    debug!("User {} updating ACL alias {data:?}", session.user.username);
+    let alias = AclAlias::update_from_api(&appstate.pool, id, &data).await?;
+    info!("User {} updated ACL alias", session.user.username);
+    Ok(ApiResponse {
+        json: json!(alias),
+        status: StatusCode::CREATED,
+    })
+}
+
+pub async fn delete_acl_alias(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Path(id): Path<i64>,
+) -> ApiResult {
+    debug!("User {} deleting ACL alias {id}", session.user.username);
+    AclAlias::delete_from_api(&appstate.pool, id).await?;
+    info!("User {} deleted ACL alias {id}", session.user.username);
+    Ok(ApiResponse::default())
+}
