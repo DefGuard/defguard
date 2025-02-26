@@ -11,7 +11,8 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
     enterprise::db::models::acl::{
-        AclAlias, AclAliasInfo, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange, Protocol,
+        AclAlias, AclAliasInfo, AclRule, AclRuleDestinationRangeInfo, AclRuleInfo, PortRange,
+        Protocol,
     },
     handlers::{ApiResponse, ApiResult},
 };
@@ -38,7 +39,7 @@ pub struct ApiAclRule<I = NoId> {
     pub denied_devices: Vec<Id>,
     // destination
     pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<ApiAclRuleDestinationRange>,
+    pub destination_ranges: Vec<AclRuleDestinationRangeInfo>,
     pub aliases: Vec<Id>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
@@ -69,33 +70,6 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             ports: info.ports,
             protocols: info.protocols,
-        }
-    }
-}
-
-/// API representation of [`AclRuleDestinationRange`]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiAclRuleDestinationRange {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
-
-impl ApiAclRuleDestinationRange {
-    pub fn to_db(&self, rule_id: i64) -> AclRuleDestinationRange<NoId> {
-        AclRuleDestinationRange {
-            id: NoId,
-            start: self.start,
-            end: self.end,
-            rule_id,
-        }
-    }
-}
-
-impl<I> From<AclRuleDestinationRange<I>> for ApiAclRuleDestinationRange {
-    fn from(rule: AclRuleDestinationRange<I>) -> Self {
-        Self {
-            start: rule.start,
-            end: rule.end,
         }
     }
 }
@@ -232,7 +206,10 @@ pub async fn get_acl_alias(
     };
 
     info!("User {} retrieved ACL alias {id}", session.user.username);
-    Ok(ApiResponse { json: alias, status })
+    Ok(ApiResponse {
+        json: alias,
+        status,
+    })
 }
 
 pub async fn create_acl_alias(

@@ -577,6 +577,22 @@ impl AclRule<Id> {
     }
 }
 
+/// API representation of [`AclRuleDestinationRange`]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclRuleDestinationRangeInfo {
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+impl<I> From<AclRuleDestinationRange<I>> for AclRuleDestinationRangeInfo {
+    fn from(rule: AclRuleDestinationRange<I>) -> Self {
+        Self {
+            start: rule.start,
+            end: rule.end,
+        }
+    }
+}
+
 /// Helper struct combining all DB objects related to given [`AclAlias`]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AclAliasInfo<I = NoId> {
@@ -735,9 +751,12 @@ impl<I> AclAlias<I> {
         alias_id: Id,
     ) -> Result<(), SqlxError> {
         // destination ranges
-        query!("DELETE FROM aclaliasdestinationrange WHERE alias_id = $1", alias_id)
-            .execute(&mut *transaction)
-            .await?;
+        query!(
+            "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
+            alias_id
+        )
+        .execute(&mut *transaction)
+        .await?;
 
         Ok(())
     }
