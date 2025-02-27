@@ -8,7 +8,7 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
-    enterprise::license::LicenseError,
+    enterprise::{db::models::acl::AclError, license::LicenseError},
     grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
@@ -57,6 +57,8 @@ pub enum WebError {
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
+    #[error("Acl error: {0}")]
+    AclError(#[from] AclError),
 }
 
 impl From<tonic::Status> for WebError {
