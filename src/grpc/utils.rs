@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use tonic::Status;
 
 use super::{
-    proto::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse},
+    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse},
     InstanceInfo,
 };
 use crate::{

@@ -16,7 +16,7 @@ use tokio::{
 use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
 
-use super::GatewayMap;
+use super::{proto::enterprise::firewall::FirewallConfig, GatewayMap};
 use crate::{
     db::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
@@ -25,7 +25,10 @@ use crate::{
     mail::Mail,
 };
 
-tonic::include_proto!("gateway");
+pub use crate::grpc::proto::gateway::{
+    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
+    PeerStats, StatsUpdate, Update,
+};
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
 ///
@@ -155,13 +158,18 @@ impl GatewayServer {
     }
 }
 
-fn gen_config(network: &WireguardNetwork<Id>, peers: Vec<Peer>) -> Configuration {
+fn gen_config(
+    network: &WireguardNetwork<Id>,
+    peers: Vec<Peer>,
+    maybe_firewall_config: Option<FirewallConfig>,
+) -> Configuration {
     Configuration {
         name: network.name.clone(),
         port: network.port as u32,
         prvkey: network.prvkey.clone(),
         addresses: network.address.iter().map(ToString::to_string).collect(),
         peers,
+        firewall_config: maybe_firewall_config,
     }
 }
 
@@ -194,6 +202,7 @@ struct GatewayUpdatesHandler {
     gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
     tx: mpsc::Sender<Result<Update, Status>>,
+    pool: PgPool,
 }
 
 impl GatewayUpdatesHandler {
@@ -203,6 +212,7 @@ impl GatewayUpdatesHandler {
         gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
+        pool: PgPool,
     ) -> Self {
         Self {
             network_id,
@@ -210,6 +220,7 @@ impl GatewayUpdatesHandler {
             gateway_hostname,
             events_rx,
             tx,
+            pool,
         }
     }
 
@@ -339,6 +350,23 @@ impl GatewayUpdatesHandler {
         update_type: i32,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {network}");
+        let maybe_firewall_config =
+            network
+                .try_get_firewall_config(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!(
+                        "Failed to generate firewall config for network {}: {err}",
+                        self.network_id
+                    );
+                    Status::new(
+                        Code::Internal,
+                        format!(
+                            "Failed to generate firewall config for network: {}",
+                            self.network_id
+                        ),
+                    )
+                })?;
         if let Err(err) = self
             .tx
             .send(Ok(Update {
@@ -349,6 +377,7 @@ impl GatewayUpdatesHandler {
                     addresses: network.address.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
+                    firewall_config: maybe_firewall_config,
                 })),
             }))
             .await
@@ -384,6 +413,7 @@ impl GatewayUpdatesHandler {
                     addresses: Vec::new(),
                     port: 0,
                     peers: Vec::new(),
+                    firewall_config: None,
                 })),
             }))
             .await
@@ -609,10 +639,25 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 format!("Failed to retrieve peers from the database for network: {network_id}"),
             )
         })?;
+        let maybe_firewall_config =
+            network
+                .try_get_firewall_config(&self.pool)
+                .await
+                .map_err(|err| {
+                    error!("Failed to generate firewall config for network {network_id}: {err}");
+                    Status::new(
+                        Code::Internal,
+                        format!("Failed to generate firewall config for network: {network_id}"),
+                    )
+                })?;
 
         info!("Configuration sent to gateway client, network {network}.");
 
-        Ok(Response::new(gen_config(&network, peers)))
+        Ok(Response::new(gen_config(
+            &network,
+            peers,
+            maybe_firewall_config,
+        )))
     }
 
     async fn updates(&self, request: Request<()>) -> Result<Response<Self::UpdatesStream>, Status> {
@@ -652,6 +697,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
+        let pool = self.pool.clone();
         let handle = tokio::spawn(async move {
             let mut update_handler = GatewayUpdatesHandler::new(
                 gateway_network_id,
@@ -659,6 +705,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 gateway_hostname,
                 events_rx,
                 tx,
+                pool,
             );
             update_handler.run().await;
         });

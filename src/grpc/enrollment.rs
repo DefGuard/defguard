@@ -4,7 +4,7 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
 use super::{
-    proto::{
+    proto::proxy::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
         InitialUserInfo, NewDevice,
@@ -205,11 +205,11 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::Settings {
+            let enrollment_settings = super::proto::proxy::Settings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
             };
-            let response = super::proto::EnrollmentStartResponse {
+            let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
@@ -236,7 +236,7 @@ impl EnrollmentServer {
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
@@ -352,7 +352,7 @@ impl EnrollmentServer {
     pub async fn create_device(
         &self,
         request: NewDevice,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;

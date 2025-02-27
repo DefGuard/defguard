@@ -1,9 +1,11 @@
 pub mod db;
 pub mod directory_sync;
+pub mod firewall;
 pub mod grpc;
 pub mod handlers;
 pub mod license;
 pub mod limits;
+
 use license::{get_cached_license, validate_license};
 use limits::get_counts;
 

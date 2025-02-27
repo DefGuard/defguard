@@ -5,7 +5,7 @@ use crate::{
     db::{models::polling_token::PollingToken, Device, Id, User},
     enterprise::is_enterprise_enabled,
     grpc::{
-        proto::{InstanceInfoRequest, InstanceInfoResponse},
+        proto::proxy::{InstanceInfoRequest, InstanceInfoResponse},
         utils::build_device_config_response,
     },
 };

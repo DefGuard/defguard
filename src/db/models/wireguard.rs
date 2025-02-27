@@ -259,7 +259,7 @@ impl WireguardNetwork<Id> {
     /// Get a list of all devices belonging to users in allowed groups.
     /// Admin users should always be allowed to access a network.
     /// Note: Doesn't check if the devices are really in the network.
-    async fn get_allowed_devices(
+    pub(crate) async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
@@ -312,7 +312,7 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
-        debug!("Fetching all allowed devices for network {}", self);
+        debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
         let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
