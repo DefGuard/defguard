@@ -155,7 +155,7 @@ impl OktaDirectorySync {
     pub fn is_token_expired(&self) -> bool {
         debug!("Checking if Okta directory sync token is expired");
         // No token = expired token
-        let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
+        let result = self.token_expiry.is_none_or(|expiry| expiry < Utc::now());
         debug!("Token is expired: {}", result);
         result
     }
