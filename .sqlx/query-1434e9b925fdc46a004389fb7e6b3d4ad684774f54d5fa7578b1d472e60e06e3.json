@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"alias_id\",\"start\",\"end\" FROM \"aclaliasdestinationrange\" WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "alias_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "start",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 3,
+        "name": "end",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1434e9b925fdc46a004389fb7e6b3d4ad684774f54d5fa7578b1d472e60e06e3"
+}
