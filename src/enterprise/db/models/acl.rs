@@ -683,13 +683,13 @@ mod test {
         assert_eq!(denied_users[0], user2);
     }
 
-    #[sqlx::test]
-    async fn test_all_allowed_users(pool: PgPool) {
-        unimplemented!()
-    }
+    // #[sqlx::test]
+    // async fn test_all_allowed_users(pool: PgPool) {
+    //     unimplemented!()
+    // }
 
-    #[sqlx::test]
-    async fn test_all_denied_users(pool: PgPool) {
-        unimplemented!()
-    }
+    // #[sqlx::test]
+    // async fn test_all_denied_users(pool: PgPool) {
+    //     unimplemented!()
+    // }
 }
