@@ -7,3 +7,4 @@ DROP TABLE aclruleuser;
 DROP TABLE aclrulegroup;
 DROP TABLE aclalias;
 DROP TABLE aclrule;
+DROP FUNCTION all_ranges_bounded;

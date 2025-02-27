@@ -1,3 +1,15 @@
+CREATE FUNCTION all_ranges_bounded(ranges int4range[]) RETURNS boolean AS $$
+BEGIN
+    RETURN (
+        NOT EXISTS (
+            SELECT 1
+            FROM unnest(ranges) AS p
+            WHERE lower(p) IS NULL OR upper(p) IS NULL
+        )
+    );
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
 CREATE TABLE aclrule (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
@@ -7,7 +19,8 @@ CREATE TABLE aclrule (
     destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
-    expires timestamp without time zone
+    expires timestamp without time zone,
+    CONSTRAINT bounded_ports CHECK (all_ranges_bounded(ports))
 );
 
 CREATE TABLE aclalias (
@@ -16,7 +29,7 @@ CREATE TABLE aclalias (
     destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT now()
+    CONSTRAINT bounded_ports CHECK (all_ranges_bounded(ports))
 );
 
 CREATE TABLE aclrulealias (

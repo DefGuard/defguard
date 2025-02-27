@@ -370,7 +370,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, destination, ports, protocols, created_at \
+            "SELECT a.id, name, destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -599,7 +599,6 @@ pub struct AclAliasInfo<I = NoId> {
     pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
-    pub created_at: NaiveDateTime,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -629,7 +628,6 @@ pub struct AclAlias<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
-    pub created_at: NaiveDateTime,
 }
 
 impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
@@ -640,7 +638,6 @@ impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
             name: rule.name,
             destination: rule.destination,
             protocols: rule.protocols,
-            created_at: rule.created_at,
         }
     }
 }
@@ -659,7 +656,6 @@ impl AclAlias {
             destination,
             ports,
             protocols,
-            created_at: Utc::now().naive_utc(),
         }
     }
 
@@ -793,7 +789,6 @@ impl AclAlias<Id> {
             destination: self.destination.clone(),
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
-            created_at: self.created_at,
             destination_ranges,
         })
     }
