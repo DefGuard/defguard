@@ -1,22 +1,35 @@
+CREATE FUNCTION all_ranges_bounded(ranges int4range[]) RETURNS boolean AS $$
+BEGIN
+    RETURN (
+        NOT EXISTS (
+            SELECT 1
+            FROM unnest(ranges) AS p
+            WHERE lower(p) IS NULL OR upper(p) IS NULL
+        )
+    );
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
 CREATE TABLE aclrule (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
     allow_all_users boolean NOT NULL,
     deny_all_users boolean NOT NULL,
     all_networks boolean NOT NULL,
-    destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
+    destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
-    expires timestamp without time zone
+    expires timestamp without time zone,
+    CONSTRAINT bounded_ports CHECK (all_ranges_bounded(ports))
 );
 
 CREATE TABLE aclalias (
     id bigserial PRIMARY KEY,
     name text NOT NULL,
-    destination inet[] NOT NULL, -- TODO: does not solve the "IP range" case
+    destination inet[] NOT NULL,
     ports int4range[] NOT NULL,
     protocols int[] NOT NULL,
-    created_at timestamp without time zone NOT NULL DEFAULT now()
+    CONSTRAINT bounded_ports CHECK (all_ranges_bounded(ports))
 );
 
 CREATE TABLE aclrulealias (
@@ -65,4 +78,24 @@ CREATE TABLE aclruledevice (
     FOREIGN KEY(rule_id) REFERENCES "aclrule"(id) ON DELETE CASCADE,
     FOREIGN KEY(device_id) REFERENCES "device"(id) ON DELETE CASCADE,
     CONSTRAINT rule_device UNIQUE (rule_id, device_id)
+);
+
+CREATE TABLE aclruledestinationrange (
+    id bigserial PRIMARY KEY,
+    rule_id bigint NOT NULL,
+    "start" inet NOT NULL,
+    "end" inet NOT NULL,
+    FOREIGN KEY(rule_id) REFERENCES "aclrule"(id) ON DELETE CASCADE,
+    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end"),
+    CONSTRAINT range_order CHECK ("start" < "end")
+);
+
+CREATE TABLE aclaliasdestinationrange (
+    id bigserial PRIMARY KEY,
+    alias_id bigint NOT NULL,
+    "start" inet NOT NULL,
+    "end" inet NOT NULL,
+    FOREIGN KEY(alias_id) REFERENCES "aclalias"(id) ON DELETE CASCADE,
+    CONSTRAINT no_networks CHECK (host("start")::inet = "start" AND host("end")::inet = "end"),
+    CONSTRAINT range_order CHECK ("start" < "end")
 );

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"rule_id\",\"start\",\"end\" FROM \"aclruledestinationrange\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "start",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 3,
+        "name": "end",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a2ab42e3bfd3185864b4edccac5c0f4298a2cd2bea8bfa5432e4688a2be111d8"
+}

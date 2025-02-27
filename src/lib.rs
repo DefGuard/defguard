@@ -13,7 +13,10 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
-    acl::{create_acl_rule, delete_acl_rule, get_acl_rule, list_acl_rules, update_acl_rule},
+    acl::{
+        create_acl_alias, create_acl_rule, delete_acl_alias, delete_acl_rule, get_acl_alias,
+        get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias, update_acl_rule,
+    },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
@@ -465,7 +468,12 @@ pub fn build_webapp(
             .route("/rule", post(create_acl_rule))
             .route("/rule/{id}", get(get_acl_rule))
             .route("/rule/{id}", put(update_acl_rule))
-            .route("/rule/{id}", delete(delete_acl_rule)),
+            .route("/rule/{id}", delete(delete_acl_rule))
+            .route("/alias", get(list_acl_aliases))
+            .route("/alias", post(create_acl_alias))
+            .route("/alias/{id}", get(get_acl_alias))
+            .route("/alias/{id}", put(update_acl_alias))
+            .route("/alias/{id}", delete(delete_acl_alias)),
     );
 
     #[cfg(feature = "wireguard")]

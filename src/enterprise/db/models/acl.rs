@@ -3,7 +3,7 @@ use crate::{
     enterprise::handlers::acl::ApiAclRule,
     DeviceType,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{
@@ -14,7 +14,38 @@ use std::ops::{Bound, Range};
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
 pub type Protocol = i32;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PortRange(Range<i32>);
+
+impl From<PgRange<i32>> for PortRange {
+    fn from(range: PgRange<i32>) -> Self {
+        let start = match range.start {
+            Bound::Included(start) => start,
+            Bound::Excluded(start) => start + 1,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
+        };
+        let end = match range.end {
+            Bound::Included(end) => end + 1,
+            Bound::Excluded(end) => end,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
+        };
+        Self(Range { start, end })
+    }
+}
+
+impl From<PortRange> for PgRange<i32> {
+    fn from(range: PortRange) -> PgRange<i32> {
+        PgRange {
+            start: Bound::Included(range.0.start),
+            end: Bound::Excluded(range.0.end),
+        }
+    }
+}
+
 /// Helper struct combining all DB objects related to given [`AclRule`]
+#[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
     pub id: I,
     pub name: String,
@@ -31,9 +62,10 @@ pub struct AclRuleInfo<I = NoId> {
     pub allowed_devices: Vec<Device<Id>>,
     pub denied_devices: Vec<Device<Id>>,
     // destination
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
+    pub destination_ranges: Vec<AclRuleDestinationRange<Id>>,
     pub aliases: Vec<AclAlias<Id>>,
-    pub ports: Vec<Range<i32>>,
+    pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
 }
 
@@ -45,7 +77,7 @@ pub struct AclRule<I = NoId> {
     pub deny_all_users: bool,
     pub all_networks: bool,
     #[model(ref)]
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
@@ -133,29 +165,6 @@ impl AclRule {
 
         transaction.commit().await?;
         Ok(())
-    }
-
-    /// Converts [`AclRule`] instance to [`AclRuleInfo`]
-    pub async fn to_info(&self) -> AclRuleInfo<NoId> {
-        AclRuleInfo {
-            id: NoId,
-            name: self.name.clone(),
-            allow_all_users: self.allow_all_users,
-            deny_all_users: self.deny_all_users,
-            all_networks: self.all_networks,
-            destination: self.destination.clone(),
-            ports: self.get_ports(),
-            protocols: self.protocols.clone(),
-            expires: self.expires,
-            aliases: Vec::new(),
-            networks: Vec::new(),
-            allowed_users: Vec::new(),
-            denied_users: Vec::new(),
-            allowed_groups: Vec::new(),
-            denied_groups: Vec::new(),
-            allowed_devices: Vec::new(),
-            denied_devices: Vec::new(),
-        }
     }
 }
 
@@ -252,6 +261,17 @@ impl<I> AclRule<I> {
             obj.save(&mut *transaction).await?;
         }
 
+        // destination ranges
+        for range in &api_rule.destination_ranges {
+            let obj = AclRuleDestinationRange {
+                id: NoId,
+                rule_id,
+                start: range.start,
+                end: range.end,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
         Ok(())
     }
 
@@ -285,33 +305,22 @@ impl<I> AclRule<I> {
             .execute(&mut *transaction)
             .await?;
 
-        Ok(())
-    }
+        // destination ranges
+        query!(
+            "DELETE FROM aclruledestinationrange WHERE rule_id = $1",
+            rule_id
+        )
+        .execute(&mut *transaction)
+        .await?;
 
-    /// Converts ports to `Vec<std::ops::Range<i32>>`
-    fn get_ports(&self) -> Vec<Range<i32>> {
-        let mut ports = Vec::with_capacity(self.ports.len());
-        for r in &self.ports {
-            let start = match r.start {
-                Bound::Included(start) => start,
-                Bound::Excluded(start) => start + 1,
-                Bound::Unbounded => 0,
-            };
-            let end = match r.end {
-                Bound::Included(end) => end,
-                Bound::Excluded(end) => end - 1,
-                Bound::Unbounded => 0,
-            };
-            ports.push(start..end);
-        }
-        ports
+        Ok(())
     }
 }
 
 impl<I> From<ApiAclRule<I>> for AclRule<I> {
     fn from(rule: ApiAclRule<I>) -> Self {
         Self {
-            ports: rule.get_ports(),
+            ports: rule.ports.into_iter().map(Into::into).collect(),
             id: rule.id,
             name: rule.name,
             allow_all_users: rule.allow_all_users,
@@ -361,7 +370,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, destination, ports, protocols, created_at \
+            "SELECT a.id, name, destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -510,6 +519,25 @@ impl AclRule<Id> {
         .await
     }
 
+    /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
+    pub(crate) async fn get_destination_ranges<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<AclRuleDestinationRange<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            AclRuleDestinationRange,
+            "SELECT id, rule_id, \"start\", \"end\" \
+            FROM aclruledestinationrange r \
+            WHERE rule_id = $1",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
@@ -520,6 +548,8 @@ impl AclRule<Id> {
         let denied_groups = self.get_groups(pool, false).await?;
         let allowed_devices = self.get_devices(pool, true).await?;
         let denied_devices = self.get_devices(pool, false).await?;
+        let destination_ranges = self.get_destination_ranges(pool).await?;
+        let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
         Ok(AclRuleInfo {
             id: self.id,
@@ -528,9 +558,10 @@ impl AclRule<Id> {
             deny_all_users: self.deny_all_users,
             all_networks: self.all_networks,
             destination: self.destination.clone(),
-            ports: self.get_ports(),
             protocols: self.protocols.clone(),
             expires: self.expires,
+            destination_ranges,
+            ports,
             aliases,
             networks,
             allowed_users,
@@ -543,6 +574,48 @@ impl AclRule<Id> {
     }
 }
 
+/// API representation of [`AclRuleDestinationRange`]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclRuleDestinationRangeInfo {
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+impl<I> From<AclRuleDestinationRange<I>> for AclRuleDestinationRangeInfo {
+    fn from(rule: AclRuleDestinationRange<I>) -> Self {
+        Self {
+            start: rule.start,
+            end: rule.end,
+        }
+    }
+}
+
+/// Helper struct combining all DB objects related to given [`AclAlias`]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclAliasInfo<I = NoId> {
+    pub id: I,
+    pub name: String,
+    pub destination: Vec<IpNetwork>,
+    pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
+    pub ports: Vec<PortRange>,
+    pub protocols: Vec<Protocol>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AclAliasDestinationRangeInfo {
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+impl<I> From<AclAliasDestinationRange<I>> for AclAliasDestinationRangeInfo {
+    fn from(range: AclAliasDestinationRange<I>) -> Self {
+        Self {
+            start: range.start,
+            end: range.end,
+        }
+    }
+}
+
 /// Defines an alias for ACL destination. Aliases can be
 /// used to define the destination part of the rule.
 #[derive(Clone, Debug, Model, PartialEq)]
@@ -550,12 +623,23 @@ pub struct AclAlias<I = NoId> {
     pub id: I,
     pub name: String,
     #[model(ref)]
-    pub destination: Vec<IpNetwork>, // TODO: does not solve the "IP range" case
+    pub destination: Vec<IpNetwork>,
     #[model(ref)]
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
-    pub created_at: NaiveDateTime,
+}
+
+impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
+    fn from(rule: AclAliasInfo<I>) -> Self {
+        Self {
+            ports: rule.ports.into_iter().map(Into::into).collect(),
+            id: rule.id,
+            name: rule.name,
+            destination: rule.destination,
+            protocols: rule.protocols,
+        }
+    }
 }
 
 impl AclAlias {
@@ -572,8 +656,141 @@ impl AclAlias {
             destination,
             ports,
             protocols,
-            created_at: Utc::now().naive_utc(),
         }
+    }
+
+    /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`]
+    pub(crate) async fn create_from_api(
+        pool: &PgPool,
+        api_alias: &AclAliasInfo<NoId>,
+    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the alias
+        let alias: AclAlias<NoId> = api_alias.clone().into();
+        let alias = alias.save(&mut *transaction).await?;
+
+        // create related objects
+        Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
+
+        transaction.commit().await?;
+        alias.to_info(pool).await
+    }
+
+    /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
+    pub(crate) async fn update_from_api(
+        pool: &PgPool,
+        id: Id,
+        api_alias: &AclAliasInfo<Id>,
+    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // save the alias
+        let mut alias: AclAlias<Id> = api_alias.clone().into();
+        alias.id = id; // frontend may PUT an object with incorrect id
+        alias.save(&mut *transaction).await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, alias.id).await?;
+
+        // create related objects
+        AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias).await?;
+
+        transaction.commit().await?;
+        alias.to_info(pool).await
+    }
+
+    /// Deletes [`AclAlias`] with all it's related objects
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+        let mut transaction = pool.begin().await?;
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, id).await?;
+
+        // delete the alias
+        query!("DELETE FROM aclalias WHERE id = $1", id)
+            .execute(&mut *transaction)
+            .await?;
+
+        transaction.commit().await?;
+        Ok(())
+    }
+}
+
+impl<I> AclAlias<I> {
+    /// Creates relation objects for given [`AclAlias`] based on [`AclAliasInfo`] object
+    async fn create_related_objects(
+        transaction: &mut PgConnection,
+        alias_id: Id,
+        api_alias: &AclAliasInfo<I>,
+    ) -> Result<(), SqlxError> {
+        // save related destination ranges
+        for range in &api_alias.destination_ranges {
+            let obj = AclAliasDestinationRange {
+                id: NoId,
+                alias_id,
+                start: range.start,
+                end: range.end,
+            };
+            obj.save(&mut *transaction).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Deletes relation objects for given [`AclAlias`]
+    async fn delete_related_objects(
+        transaction: &mut PgConnection,
+        alias_id: Id,
+    ) -> Result<(), SqlxError> {
+        // destination ranges
+        query!(
+            "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
+            alias_id
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        Ok(())
+    }
+}
+
+impl AclAlias<Id> {
+    /// Returns all [`AclAliasDestinationRanges`]es the alias applies to
+    pub(crate) async fn get_destination_ranges<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<AclAliasDestinationRange<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            AclAliasDestinationRange,
+            "SELECT id, alias_id, \"start\", \"end\" \
+            FROM aclaliasdestinationrange r \
+            WHERE alias_id = $1",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
+    pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo<Id>, SqlxError> {
+        let destination_ranges = self
+            .get_destination_ranges(pool)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        Ok(AclAliasInfo {
+            id: self.id,
+            name: self.name.clone(),
+            destination: self.destination.clone(),
+            ports: self.ports.clone().into_iter().map(Into::into).collect(),
+            protocols: self.protocols.clone(),
+            destination_ranges,
+        })
     }
 }
 
@@ -613,6 +830,22 @@ pub struct AclRuleDevice<I = NoId> {
     pub rule_id: i64,
     pub device_id: i64,
     pub allow: bool,
+}
+
+#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+pub struct AclRuleDestinationRange<I = NoId> {
+    pub id: I,
+    pub rule_id: i64,
+    pub start: IpNetwork,
+    pub end: IpNetwork,
+}
+
+#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+pub struct AclAliasDestinationRange<I = NoId> {
+    pub id: I,
+    pub alias_id: i64,
+    pub start: IpNetwork,
+    pub end: IpNetwork,
 }
 
 #[cfg(test)]
