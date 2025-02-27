@@ -9,8 +9,10 @@ use model_derive::Model;
 use sqlx::{
     postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
 };
-use std::collections::HashSet;
-use std::ops::{Bound, Range};
+use std::{
+    collections::HashSet,
+    ops::{Bound, Range},
+};
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
 pub type Protocol = i32;
