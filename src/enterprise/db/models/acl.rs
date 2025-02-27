@@ -3,7 +3,7 @@ use crate::{
     enterprise::handlers::acl::ApiAclRule,
     DeviceType,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{
@@ -23,14 +23,14 @@ impl From<PgRange<i32>> for PortRange {
         let start = match range.start {
             Bound::Included(start) => start,
             Bound::Excluded(start) => start + 1,
-            // should not happen if the value is created from PortRange
-            Bound::Unbounded => 0,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
         };
         let end = match range.end {
             Bound::Included(end) => end + 1,
             Bound::Excluded(end) => end,
-            // should not happen if the value is created from PortRange
-            Bound::Unbounded => 0,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
         };
         Self(Range { start, end })
     }
@@ -371,7 +371,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, destination, ports, protocols, created_at \
+            "SELECT a.id, name, destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -560,7 +560,7 @@ impl AclRule<Id> {
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
                 FROM \"user\" u \
-            JOIN group_user gu ON u.id=gu.user_id \
+                JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
             &allowed_group_ids
         )
@@ -672,7 +672,6 @@ pub struct AclAliasInfo<I = NoId> {
     pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
-    pub created_at: NaiveDateTime,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -702,7 +701,6 @@ pub struct AclAlias<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
-    pub created_at: NaiveDateTime,
 }
 
 impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
@@ -713,7 +711,6 @@ impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
             name: rule.name,
             destination: rule.destination,
             protocols: rule.protocols,
-            created_at: rule.created_at,
         }
     }
 }
@@ -732,7 +729,6 @@ impl AclAlias {
             destination,
             ports,
             protocols,
-            created_at: Utc::now().naive_utc(),
         }
     }
 
@@ -866,7 +862,6 @@ impl AclAlias<Id> {
             destination: self.destination.clone(),
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
-            created_at: self.created_at,
             destination_ranges,
         })
     }

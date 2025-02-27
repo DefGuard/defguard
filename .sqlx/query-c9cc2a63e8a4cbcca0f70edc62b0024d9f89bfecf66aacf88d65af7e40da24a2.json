@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT a.id, name, destination, ports, protocols, created_at FROM aclrulealias r JOIN aclalias a ON a.id = r.alias_id WHERE r.rule_id = $1",
+  "query": "SELECT id, \"name\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\" FROM \"aclalias\"",
   "describe": {
     "columns": [
       {
@@ -15,32 +15,24 @@
       },
       {
         "ordinal": 2,
-        "name": "destination",
+        "name": "destination: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 3,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 4,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
-      },
-      {
-        "ordinal": 5,
-        "name": "created_at",
-        "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
-      false,
       false,
       false,
       false,
@@ -48,5 +40,5 @@
       false
     ]
   },
-  "hash": "789c4ddd3c0d71f5ed99dbd0e1e3dced7da78b476fe51efc7e0d0eef2fa9fe94"
+  "hash": "c9cc2a63e8a4cbcca0f70edc62b0024d9f89bfecf66aacf88d65af7e40da24a2"
 }
