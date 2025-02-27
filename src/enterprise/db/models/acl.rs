@@ -3,7 +3,7 @@ use crate::{
     enterprise::handlers::acl::ApiAclRule,
     DeviceType,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{
@@ -22,14 +22,14 @@ impl From<PgRange<i32>> for PortRange {
         let start = match range.start {
             Bound::Included(start) => start,
             Bound::Excluded(start) => start + 1,
-            // should not happen if the value is created from PortRange
-            Bound::Unbounded => 0,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
         };
         let end = match range.end {
             Bound::Included(end) => end + 1,
             Bound::Excluded(end) => end,
-            // should not happen if the value is created from PortRange
-            Bound::Unbounded => 0,
+            // should not happen - database constraint
+            Bound::Unbounded => panic!("Unbounded port range"),
         };
         Self(Range { start, end })
     }
