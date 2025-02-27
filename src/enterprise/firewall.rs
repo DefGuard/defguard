@@ -271,7 +271,9 @@ fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
 }
 
 impl WireguardNetwork<Id> {
-    /// Fetches all active ACL rules for a given location
+    /// Fetches all active ACL rules for a given location.
+    /// Filters out rules which are disabled, expired or have not been deployed yet.
+    /// TODO: actually filter out unwanted rules once drafts etc are implemented
     pub(crate) async fn get_active_acl_rules<'e, E>(
         &self,
         executor: E,
