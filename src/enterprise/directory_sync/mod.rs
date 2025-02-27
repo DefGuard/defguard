@@ -46,6 +46,12 @@ pub enum DirectorySyncError {
     NetworkUpdateError(String),
     #[error("Failed to update user state: {0}")]
     UserUpdateError(String),
+    #[error("Failed to find user: {0}")]
+    UserNotFound(String),
+    #[error(
+        "Found multiple users with given parameters ({0}) but expected one. Won't proceed further."
+    )]
+    MultipleUsersFound(String),
 }
 
 impl From<reqwest::Error> for DirectorySyncError {

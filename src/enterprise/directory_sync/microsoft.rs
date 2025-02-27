@@ -27,6 +27,10 @@ const GRANT_TYPE: &str = "client_credentials";
 const MAX_RESULTS: &str = "200";
 const MAX_REQUESTS: usize = 50;
 const USER_QUERY_FIELDS: &str = "accountEnabled,displayName,mail,otherMails";
+const USER_SEARCH_URL: &str =
+    "https://graph.microsoft.com/v1.0/users?$select=id&$filter=mail eq '{email}'";
+const USER_SEARCH_URL_FALLBACK: &str =
+    "https://graph.microsoft.com/v1.0/users?$select=id&$filter=(otherMails/any(p:p eq '{email}'))";
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -38,7 +42,7 @@ struct TokenResponse {
 #[derive(Deserialize)]
 struct GroupDetails {
     #[serde(rename = "displayName")]
-    display_name: String,
+    display_name: Option<String>,
     id: String,
 }
 
@@ -54,9 +58,15 @@ impl From<GroupsResponse> for Vec<DirectoryGroup> {
         response
             .value
             .into_iter()
-            .map(|group| DirectoryGroup {
-                id: group.id,
-                name: group.display_name,
+            .filter_map(|group| match group.display_name {
+                Some(name) => Some(DirectoryGroup { id: group.id, name }),
+                None => {
+                    warn!(
+                        "Group with ID {} doesn't have a display name set, skipping it.",
+                        group.id
+                    );
+                    None
+                }
             })
             .collect()
     }
@@ -125,6 +135,16 @@ impl From<UsersResponse> for Vec<DirectoryUser> {
             })
             .collect()
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UserId {
+    id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct IdResponse {
+    value: Vec<UserId>,
 }
 
 impl MicrosoftDirectorySync {
@@ -258,7 +278,37 @@ impl MicrosoftDirectorySync {
             .access_token
             .as_ref()
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
-        let mut url = USER_GROUPS.replace("{user_id}", user_id);
+
+        // Get the user ID from their email address first
+        let user_search = USER_SEARCH_URL
+            .replace("{email}", user_id)
+            .replace("{query_fields}", USER_QUERY_FIELDS);
+        let response = make_get_request(&user_search, access_token, None).await?;
+        let response: IdResponse =
+            parse_response(response, "Failed to query user from Microsoft API.").await?;
+
+        let user_id = if response.value.len() > 1 {
+            return Err(DirectorySyncError::MultipleUsersFound(user_id.to_string()));
+        } else if let Some(user) = response.value.into_iter().next() {
+            user.id
+        } else {
+            debug!("User with email {user_id} not found in Microsoft API, trying fallback search of additional email addresses",);
+            let user_search = USER_SEARCH_URL_FALLBACK
+                .replace("{email}", user_id)
+                .replace("{query_fields}", USER_QUERY_FIELDS);
+            let response = make_get_request(&user_search, access_token, None).await?;
+            let response: IdResponse =
+                parse_response(response, "Failed to query user from Microsoft API.").await?;
+            if response.value.len() > 1 {
+                return Err(DirectorySyncError::MultipleUsersFound(user_id.to_string()));
+            } else if let Some(user) = response.value.into_iter().next() {
+                user.id
+            } else {
+                return Err(DirectorySyncError::UserNotFound(user_id.to_string()));
+            }
+        };
+
+        let mut url = USER_GROUPS.replace("{user_id}", &user_id);
         let mut combined_response = GroupsResponse::default();
         let mut query = Some([("$top", MAX_RESULTS)].as_slice());
 
@@ -459,11 +509,11 @@ mod tests {
             next_page: None,
             value: vec![
                 GroupDetails {
-                    display_name: "Group 1".to_string(),
+                    display_name: Some("Group 1".to_string()),
                     id: "1".to_string(),
                 },
                 GroupDetails {
-                    display_name: "Group 2".to_string(),
+                    display_name: Some("Group 2".to_string()),
                     id: "2".to_string(),
                 },
             ],
