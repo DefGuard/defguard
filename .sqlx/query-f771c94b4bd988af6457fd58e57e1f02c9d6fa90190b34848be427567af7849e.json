@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"rule_id\",\"device_id\",\"allow\" FROM \"aclruledevice\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "allow",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f771c94b4bd988af6457fd58e57e1f02c9d6fa90190b34848be427567af7849e"
+}

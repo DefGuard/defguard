@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT g.id, name, is_admin FROM aclrulegroup r JOIN \"group\" g ON g.id = r.group_id WHERE r.rule_id = $1 AND NOT r.allow",
+  "query": "SELECT id, \"rule_id\",\"device_id\",\"allow\" FROM \"aclruledevice\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -10,12 +10,17 @@
       },
       {
         "ordinal": 1,
-        "name": "name",
-        "type_info": "Text"
+        "name": "rule_id",
+        "type_info": "Int8"
       },
       {
         "ordinal": 2,
-        "name": "is_admin",
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "allow",
         "type_info": "Bool"
       }
     ],
@@ -27,8 +32,9 @@
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "81a30f4b5e7cec3ef51fe7ed67842fccc43cfc2670936974ea895f212f8b813a"
+  "hash": "0d2260c6966b9f01be4a39e08bdc3ebd9c71d014e5a392f840259f9534cacbd9"
 }
