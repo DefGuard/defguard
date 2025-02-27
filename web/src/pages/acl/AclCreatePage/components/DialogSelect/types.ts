@@ -11,6 +11,7 @@ export type DialogSelectProps<T, I> = {
   label?: string;
   // Can replace searchFn, when given only keys it will use util searchByKeys, searchFn prop takes priority if both given.
   searchKeys?: Array<keyof T>;
+  disabled?: boolean;
   searchFn?: DialogSelectSearch<T>;
   onChange?: (values: I[]) => void;
 };

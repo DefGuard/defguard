@@ -30,3 +30,9 @@ export type AclCreateContextLoaded = {
   devices: StandaloneDevice[];
   networks: Network[];
 };
+
+export enum AclProtocol {
+  TCP = 6,
+  UDP = 17,
+  ICMP = 1,
+}

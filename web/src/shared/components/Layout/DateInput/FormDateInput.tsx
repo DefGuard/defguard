@@ -8,12 +8,14 @@ type Props<T extends FieldValues> = {
   onChange?: (value: string | null) => void;
   controller: UseControllerProps<T>;
   label?: string;
+  disabled?: boolean;
 };
 
 export const FormDateInput = <T extends FieldValues>({
   onChange,
   controller,
   label,
+  disabled = false,
 }: Props<T>) => {
   const {
     field: { value, onChange: fieldChange },
@@ -40,6 +42,7 @@ export const FormDateInput = <T extends FieldValues>({
       }}
       label={label}
       errorMessage={errorMessage}
+      disabled={disabled}
     />
   );
 };

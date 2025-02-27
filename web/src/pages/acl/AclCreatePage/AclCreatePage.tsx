@@ -9,7 +9,9 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
+import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { FormTextarea } from '../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
 import { ActivityIcon } from '../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
 import { ActivityIconVariant } from '../../../shared/defguard-ui/components/icons/ActivityIcon/types';
@@ -19,8 +21,10 @@ import {
   MessageBoxStyleVariant,
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { GroupInfo, Network, StandaloneDevice, User } from '../../../shared/types';
 import { useAclLoadedContext } from '../acl-context';
+import { AclProtocol } from '../types';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 type Alias = {
@@ -36,6 +40,8 @@ export const AlcCreatePage = () => {
   const formErrors = LL.form.error;
   const { networks, devices, groups, users } = useAclLoadedContext();
   const [neverExpires, setNeverExpires] = useState(true);
+  const [allowAllUsers, setAllowAllUsers] = useState(false);
+  const [denyAllUsers, setDenyAllUsers] = useState(false);
 
   const schema = useMemo(
     () =>
@@ -47,8 +53,7 @@ export const AlcCreatePage = () => {
           .min(1, formErrors.required()),
         networks: z.number().array(),
         expires: z.string().nullable(),
-        allow_all_users: z.boolean(),
-        deny_all_users: z.boolean(),
+        all_networks: z.boolean(),
         allowed_users: z.number().array(),
         denied_users: z.number().array(),
         allowed_groups: z.number().array(),
@@ -56,7 +61,7 @@ export const AlcCreatePage = () => {
         allowed_devices: z.number().array(),
         denied_devices: z.number().array(),
         aliases: z.number().array(),
-        cidr: z.string(),
+        destination: z.string(),
         ports: z
           .string({
             required_error: formErrors.required(),
@@ -105,7 +110,7 @@ export const AlcCreatePage = () => {
             }
             return true;
           }),
-        protocols: z.string(),
+        protocols: z.number().array(),
       }),
     [formErrors],
   );
@@ -119,16 +124,15 @@ export const AlcCreatePage = () => {
       aliases: [],
       ports: '',
       expires: null,
-      protocols: '',
-      allow_all_users: false,
+      protocols: [],
       allowed_devices: [],
       allowed_groups: [],
       allowed_users: [],
       denied_devices: [],
       denied_groups: [],
       denied_users: [],
-      deny_all_users: false,
-      cidr: '',
+      all_networks: false,
+      destination: '',
     }),
     [],
   );
@@ -159,6 +163,11 @@ export const AlcCreatePage = () => {
       >
         <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
+          <FormCheckBox
+            label="Allow all locations"
+            controller={{ control, name: 'all_networks' }}
+            labelPlacement="right"
+          />
           <FormDialogSelect
             controller={{ control, name: 'networks' }}
             options={networks}
@@ -186,6 +195,16 @@ export const AlcCreatePage = () => {
               blank if not needed.
             </p>
           </MessageBox>
+          <LabeledCheckbox
+            value={allowAllUsers}
+            onChange={(val) => {
+              if (val) {
+                setDenyAllUsers(false);
+              }
+              setAllowAllUsers(val);
+            }}
+            label="Allow all users"
+          />
           <FormDialogSelect
             label="Users"
             controller={{ control, name: 'allowed_users' }}
@@ -232,11 +251,18 @@ export const AlcCreatePage = () => {
           />
           <CardHeader title="Manual Input" />
           <FormTextarea
-            controller={{ control, name: 'cidr' }}
+            controller={{ control, name: 'destination' }}
             label="IPv4/6 CIDR range or address"
           />
           <FormInput controller={{ control, name: 'ports' }} label="Ports" />
-          <FormInput controller={{ control, name: 'protocols' }} label="Protocols" />
+          <FormSelect
+            controller={{ control, name: 'protocols' }}
+            label="Protocols"
+            options={protocolOptions}
+            searchable={false}
+            renderSelected={(val) => ({ displayValue: protocolToString(val), key: val })}
+            disposable
+          />
         </SectionWithCard>
         <SectionWithCard title="Denied Users/Devices/Groups" id="denied-card">
           <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
@@ -246,6 +272,16 @@ export const AlcCreatePage = () => {
               blank if not needed.
             </p>
           </MessageBox>
+          <LabeledCheckbox
+            label="Deny all users"
+            value={denyAllUsers}
+            onChange={(val) => {
+              if (val) {
+                setAllowAllUsers(false);
+              }
+              setDenyAllUsers(val);
+            }}
+          />
           <FormDialogSelect
             label="Users"
             controller={{ control, name: 'denied_users' }}
@@ -299,3 +335,32 @@ const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
 
 const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;
+
+const protocolToString = (value: AclProtocol): string => {
+  switch (value) {
+    case AclProtocol.TCP:
+      return 'TCP';
+    case AclProtocol.UDP:
+      return 'UDP';
+    case AclProtocol.ICMP:
+      return 'ICMP';
+  }
+};
+
+const protocolOptions: SelectOption<number>[] = [
+  {
+    key: AclProtocol.TCP,
+    label: 'TCP',
+    value: AclProtocol.TCP,
+  },
+  {
+    key: AclProtocol.UDP,
+    label: 'UDP',
+    value: AclProtocol.UDP,
+  },
+  {
+    key: AclProtocol.ICMP,
+    label: 'ICMP',
+    value: AclProtocol.ICMP,
+  },
+];

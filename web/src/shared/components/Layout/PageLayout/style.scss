@@ -1,0 +1,26 @@
+.page-layout {
+  & > .page-content {
+    box-sizing: border-box;
+    padding: var(--spacing-s);
+
+    @include media-breakpoint-up(md) {
+      padding: var(--spacing-m);
+    }
+
+    @include media-breakpoint-up(lg) {
+      padding: var(--spacing-xl);
+    }
+
+    h1 {
+      @include typography(app-title);
+    }
+
+    h2 {
+      @include typography(app-body-1);
+    }
+
+    h3 {
+      @include typography(app-side-bar);
+    }
+  }
+}

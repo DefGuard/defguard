@@ -1,5 +1,6 @@
 #acl-create-page {
-  .labeled-checkbox {
+  .labeled-checkbox,
+  .form-checkbox {
     label {
       @include typography(app-modal-1);
       color: var(--text-body-primary);
@@ -73,14 +74,12 @@
     .input,
     .dialog-select-spacer,
     .labeled-checkbox,
+    .form-checkbox,
+    .spacer,
     & > .header {
       &:not(:last-child) {
         padding-bottom: var(--spacing-s);
       }
-    }
-
-    .spacer {
-      padding-bottom: var(--spacing-s);
     }
 
     .header {

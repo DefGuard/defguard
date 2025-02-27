@@ -1,9 +1,11 @@
 import './style.scss';
 
 import clsx from 'clsx';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useId, useMemo, useState } from 'react';
 
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
+import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { DialogSelectModal } from './DialogSelectModal/DialogSelectModal';
 import { DialogSelectProps } from './types';
 
@@ -17,6 +19,8 @@ export const DialogSelect = <T extends object, I extends number | string>({
   renderDialogListItem,
   searchFn,
   searchKeys,
+  errorMessage,
+  disabled = false,
 }: DialogSelectProps<T, I>) => {
   const [modalOpen, setModalOpen] = useState(false);
   const getIdent = useCallback((val: T): I => val[identKey] as I, [identKey]);
@@ -30,7 +34,12 @@ export const DialogSelect = <T extends object, I extends number | string>({
     <>
       <div className="dialog-select-spacer">
         {label !== undefined && <Label>{label}</Label>}
-        <div className={clsx('dialog-select')}>
+        <div
+          className={clsx('dialog-select', {
+            disabled,
+            invalid: isPresent(errorMessage),
+          })}
+        >
           <div className={clsx('track')}>
             <div className="options">
               {renderTagContent !== undefined &&
@@ -63,6 +72,27 @@ export const DialogSelect = <T extends object, I extends number | string>({
               <path d="M11 5.5L11 16.5" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
+          <AnimatePresence>
+            {errorMessage !== undefined && errorMessage !== '' && (
+              <motion.p
+                className="error"
+                initial={{
+                  x: 0,
+                  opacity: 0,
+                }}
+                animate={{
+                  x: 20,
+                  opacity: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                  x: 0,
+                }}
+              >
+                {errorMessage}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
       </div>
       <DialogSelectModal

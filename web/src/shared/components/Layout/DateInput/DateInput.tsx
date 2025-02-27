@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { forwardRef, HTMLAttributes } from 'react';
 import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../hooks/store/useAppStore';
 import { DateInputProps } from './types';
 
@@ -26,18 +27,31 @@ export const DateInput = ({
   onChange,
   label,
   errorMessage,
+  disabled = false,
 }: DateInputProps) => {
   const locale = useAppStore((s) => s.language);
   return (
     <div className="date-input-spacer">
-      <div className="inner">
+      <div
+        className={clsx('inner', {
+          disabled,
+        })}
+      >
         {label !== undefined && <p className="label">{label}:</p>}
         <DatePicker
           selected={inputToPicker(selected)}
           onChange={(val) => {
             onChange(pickerToOutput(val));
           }}
-          customInput={<DisplayField selected={selected} />}
+          customInput={
+            <DisplayField
+              selected={selected}
+              className={clsx({
+                disabled,
+                invalid: isPresent(errorMessage),
+              })}
+            />
+          }
           renderCustomHeader={CustomHeader}
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           renderDayContents={(day, _) => <CustomDay day={day} />}
