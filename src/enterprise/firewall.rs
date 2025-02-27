@@ -6,7 +6,7 @@ use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
 use super::db::models::acl::{AclRule, AclRuleInfo, PortRange};
 
 use crate::{
-    db::{models::error::ModelError, Id, User, WireguardNetwork},
+    db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpVersion, Port, PortRange as PortRangeProto,
@@ -47,30 +47,13 @@ pub async fn generate_firewall_rules_from_acls(
         let denied_users = acl.get_all_denied_users(pool).await?;
 
         // fetch aliases used by ACL
-        // TODO: prefetch a map to reduce number of queries
         let aliases = acl.aliases;
 
-        // prepare a list of all relevant users whose device IPs we'll need to prepare a firewall
-        // rule
-        //
-        // depending on the default policy we either need:
-        // - allowed users if default policy is `Deny`
-        // - denied users if default policy is `Allow`
-        let users: Vec<User<Id>> = match default_location_policy {
-            // start with allowed users and remove those explicitly denied
-            FirewallPolicy::Deny => allowed_users
-                .into_iter()
-                .filter(|user| !denied_users.contains(user))
-                .collect(),
-            // start with denied users and remove those explicitly allowed
-            FirewallPolicy::Allow => denied_users
-                .into_iter()
-                .filter(|user| !allowed_users.contains(user))
-                .collect(),
-        };
+        // get relevant users for determining source IPs
+        let users = get_source_users(allowed_users, denied_users, default_location_policy);
         let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
 
-        // get network IPs for devices belonging to those users and convert them to source IPs
+        // get network IPs for devices belonging to those users
         // NOTE: only consider user devices since network devices will be handled separately
         let user_device_ips: Vec<IpAddr> = query_scalar!(
             "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
@@ -83,10 +66,30 @@ pub async fn generate_firewall_rules_from_acls(
         .fetch_all(pool)
         .await?;
 
-        // prepare source addrs
+        // get network device IPs for rule source
+        let network_devices = get_source_network_devices(
+            acl.allowed_devices,
+            acl.denied_devices,
+            default_location_policy,
+        );
+        let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
+        let network_device_ips: Vec<IpAddr> = query_scalar!(
+            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            FROM wireguard_network_device wnd \
+            WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
+            location_id,
+            &network_device_ids,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // combine source IPs
+        let source_ips = user_device_ips.into_iter().chain(network_device_ips);
+
+        // prepare source addrs by removing incompatible IP version elements
+        // and converting them to expected gRPC format
         // TODO: convert into non-overlapping elements
-        let source_addrs = user_device_ips
-            .iter()
+        let source_addrs = source_ips
             .filter_map(|ip| match ip_version {
                 IpVersion::Ipv4 => {
                     if ip.is_ipv4() {
@@ -179,6 +182,56 @@ pub async fn generate_firewall_rules_from_acls(
         firewall_rules.push(firewall_rule)
     }
     Ok(firewall_rules)
+}
+
+/// Prepares a list of all relevant users whose device IPs we'll need to prepare
+/// source config for a firewall rule.
+///
+/// Depending on the default policy we either need:
+/// - allowed users if default policy is `Deny`
+/// - denied users if default policy is `Allow`
+fn get_source_users(
+    allowed_users: Vec<User<Id>>,
+    denied_users: Vec<User<Id>>,
+    default_location_policy: FirewallPolicy,
+) -> Vec<User<Id>> {
+    match default_location_policy {
+        // start with allowed users and remove those explicitly denied
+        FirewallPolicy::Deny => allowed_users
+            .into_iter()
+            .filter(|user| !denied_users.contains(user))
+            .collect(),
+        // start with denied users and remove those explicitly allowed
+        FirewallPolicy::Allow => denied_users
+            .into_iter()
+            .filter(|user| !allowed_users.contains(user))
+            .collect(),
+    }
+}
+
+/// Prepares a list of all relevant network devices whose IPs we'll need to prepare
+/// source config for a firewall rule.
+///
+/// Depending on the default policy we either need:
+/// - allowed devices if default policy is `Deny`
+/// - denied devices if default policy is `Allow`
+fn get_source_network_devices(
+    allowed_devices: Vec<Device<Id>>,
+    denied_devices: Vec<Device<Id>>,
+    default_location_policy: FirewallPolicy,
+) -> Vec<Device<Id>> {
+    match default_location_policy {
+        // start with allowed devices and remove those explicitly denied
+        FirewallPolicy::Deny => allowed_devices
+            .into_iter()
+            .filter(|device| !denied_devices.contains(device))
+            .collect(),
+        // start with denied devices and remove those explicitly allowed
+        FirewallPolicy::Allow => denied_devices
+            .into_iter()
+            .filter(|device| !allowed_devices.contains(device))
+            .collect(),
+    }
 }
 
 /// TODO: Implement once data model is finalized and address processing can be generalized
