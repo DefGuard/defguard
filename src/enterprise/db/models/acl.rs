@@ -20,6 +20,26 @@ pub type Protocol = i32;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PortRange(Range<i32>);
 
+impl PortRange {
+    pub fn new(start: i32, end: i32) -> Self {
+        Self(Range {
+            start,
+            // end in exclusive in `Range`
+            end: end + 1,
+        })
+    }
+
+    // Returns first port in range
+    pub fn start(&self) -> i32 {
+        self.0.start
+    }
+
+    // Returns last port in range
+    pub fn end(&self) -> i32 {
+        self.0.end - 1
+    }
+}
+
 impl From<PgRange<i32>> for PortRange {
     fn from(range: PgRange<i32>) -> Self {
         let start = match range.start {
@@ -541,78 +561,6 @@ impl AclRule<Id> {
         .await
     }
 
-    /// Wrapper function which combines explicitly specified allowed users with members of allowed
-    /// groups to generate a list of all unique allowed users for a given ACL.
-    pub(crate) async fn get_all_allowed_users(
-        &self,
-        pool: &PgPool,
-    ) -> Result<Vec<User<Id>>, SqlxError> {
-        // fetch explicitly allowed users
-        let mut allowed_users = self.get_allowed_users(pool).await?;
-
-        // fetch allowed groups
-        let allowed_groups = self.get_groups(pool, true).await?;
-        let allowed_group_ids: Vec<Id> = allowed_groups.iter().map(|group| group.id).collect();
-
-        // fetch all active members of allowed groups
-        let allowed_groups_users: Vec<User<Id>> = query_as!(
-            User,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-                FROM \"user\" u \
-                JOIN group_user gu ON u.id=gu.user_id \
-                WHERE u.is_active=true AND gu.group_id=ANY($1)",
-            &allowed_group_ids
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // get unique users from both lists
-        allowed_users.extend(allowed_groups_users);
-        let unique_allowed_users: HashSet<_> = allowed_users.into_iter().collect();
-
-        // convert HashSet to output Vec
-        Ok(unique_allowed_users.into_iter().collect())
-    }
-
-    /// Wrapper function which combines explicitly specified denied users with members of denied
-    /// groups to generate a list of all unique denied users for a given ACL.
-    pub(crate) async fn get_all_denied_users(
-        &self,
-        pool: &PgPool,
-    ) -> Result<Vec<User<Id>>, SqlxError> {
-        // fetch explicitly denied users
-        let mut denied_users = self.get_denied_users(pool).await?;
-
-        // fetch denied groups
-        let denied_groups = self.get_groups(pool, false).await?;
-        let denied_group_ids: Vec<Id> = denied_groups.iter().map(|group| group.id).collect();
-
-        // fetch all active members of denied groups
-        let denied_groups_users: Vec<User<Id>> = query_as!(
-            User,
-            "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-                FROM \"user\" u \
-            JOIN group_user gu ON u.id=gu.user_id \
-                WHERE u.is_active=true AND gu.group_id=ANY($1)",
-            &denied_group_ids
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // get unique users from both lists
-        denied_users.extend(denied_groups_users);
-        let unique_denied_users: HashSet<_> = denied_users.into_iter().collect();
-
-        // convert HashSet to output Vec
-        Ok(unique_denied_users.into_iter().collect())
-    }
-
     /// Converts [`AclRule`] instance to [`AclRuleInfo`]
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
@@ -646,6 +594,78 @@ impl AclRule<Id> {
             allowed_devices,
             denied_devices,
         })
+    }
+}
+
+impl AclRuleInfo<Id> {
+    /// Wrapper function which combines explicitly specified allowed users with members of allowed
+    /// groups to generate a list of all unique allowed users for a given ACL.
+    pub(crate) async fn get_all_allowed_users(
+        &self,
+        pool: &PgPool,
+    ) -> Result<Vec<User<Id>>, SqlxError> {
+        // get explicitly allowed users
+        let mut allowed_users = self.allowed_users.clone();
+
+        // get allowed groups IDs
+        let allowed_group_ids: Vec<Id> = self.allowed_groups.iter().map(|group| group.id).collect();
+
+        // fetch all active members of allowed groups
+        let allowed_groups_users: Vec<User<Id>> = query_as!(
+            User,
+            "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" u \
+                JOIN group_user gu ON u.id=gu.user_id \
+                WHERE u.is_active=true AND gu.group_id=ANY($1)",
+            &allowed_group_ids
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // get unique users from both lists
+        allowed_users.extend(allowed_groups_users);
+        let unique_allowed_users: HashSet<_> = allowed_users.into_iter().collect();
+
+        // convert HashSet to output Vec
+        Ok(unique_allowed_users.into_iter().collect())
+    }
+
+    /// Wrapper function which combines explicitly specified denied users with members of denied
+    /// groups to generate a list of all unique denied users for a given ACL.
+    pub(crate) async fn get_all_denied_users(
+        &self,
+        pool: &PgPool,
+    ) -> Result<Vec<User<Id>>, SqlxError> {
+        // get explicitly denied users
+        let mut denied_users = self.denied_users.clone();
+
+        // get denied groups IDs
+        let denied_group_ids: Vec<Id> = self.denied_groups.iter().map(|group| group.id).collect();
+
+        // fetch all active members of denied groups
+        let denied_groups_users: Vec<User<Id>> = query_as!(
+            User,
+            "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" u \
+            JOIN group_user gu ON u.id=gu.user_id \
+                WHERE u.is_active=true AND gu.group_id=ANY($1)",
+            &denied_group_ids
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // get unique users from both lists
+        denied_users.extend(denied_groups_users);
+        let unique_denied_users: HashSet<_> = denied_users.into_iter().collect();
+
+        // convert HashSet to output Vec
+        Ok(unique_denied_users.into_iter().collect())
     }
 }
 

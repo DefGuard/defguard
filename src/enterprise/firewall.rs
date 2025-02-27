@@ -1,17 +1,15 @@
 use std::net::IpAddr;
 
 use ipnetwork::IpNetwork;
-use sqlx::{
-    postgres::types::PgRange, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool,
-};
+use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
 
-use super::db::models::acl::AclRule;
+use super::db::models::acl::{AclRule, AclRuleInfo, PortRange};
 
 use crate::{
     db::{models::error::ModelError, Id, User, WireguardNetwork},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpVersion, Port, PortRange,
+        IpAddress, IpVersion, Port, PortRange as PortRangeProto,
     },
 };
 
@@ -27,7 +25,7 @@ pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
     default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
-    acl_rules: Vec<AclRule<Id>>,
+    acl_rules: Vec<AclRuleInfo<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
     let mut firewall_rules = Vec::new();
@@ -50,7 +48,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         // fetch aliases used by ACL
         // TODO: prefetch a map to reduce number of queries
-        let aliases = acl.get_aliases(pool).await?;
+        let aliases = acl.aliases;
 
         // prepare a list of all relevant users whose device IPs we'll need to prepare a firewall
         // rule
@@ -111,7 +109,7 @@ pub async fn generate_firewall_rules_from_acls(
             })
             .collect();
 
-        let AclRule {
+        let AclRuleInfo {
             mut destination,
             mut ports,
             mut protocols,
@@ -121,7 +119,13 @@ pub async fn generate_firewall_rules_from_acls(
         // process aliases
         for alias in aliases {
             destination.extend(alias.destination);
-            ports.extend(alias.ports);
+            ports.extend(
+                alias
+                    .ports
+                    .into_iter()
+                    .map(|port_range| port_range.into())
+                    .collect::<Vec<PortRange>>(),
+            );
             protocols.extend(alias.protocols);
         }
 
@@ -187,27 +191,8 @@ fn process_ip_addrs(_addrs: Vec<IpAddr>, _location_ip_version: IpVersion) {
     unimplemented!()
 }
 
-/// Helper to extract actual starp port value from `Bound` enum used by `PgRange`.
-fn get_start_port_from_range(range: &PgRange<i32>) -> u32 {
-    match range.start {
-        std::ops::Bound::Included(value) => value as u32,
-        std::ops::Bound::Excluded(value) => (value + 1) as u32,
-        std::ops::Bound::Unbounded => u32::MIN,
-    }
-}
-
-/// Helper to extract actual end port value from `Bound` enum used by `PgRange`.
-fn get_end_port_from_range(range: &PgRange<i32>) -> u32 {
-    match range.end {
-        std::ops::Bound::Included(value) => value as u32,
-        std::ops::Bound::Excluded(value) => (value - 1) as u32,
-        // type casting because protobuf doesn't have u16, but max port number is u16::MAX
-        std::ops::Bound::Unbounded => u16::MAX as u32,
-    }
-}
-
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
-fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
+fn merge_port_ranges(mut port_ranges: Vec<PortRange>) -> Vec<Port> {
     // return early if list is empty
     if port_ranges.is_empty() {
         return Vec::new();
@@ -215,21 +200,21 @@ fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
 
     // sort elements by range start
     port_ranges.sort_by(|a, b| {
-        let a_start = get_start_port_from_range(a);
-        let b_start = get_start_port_from_range(b);
+        let a_start = a.start();
+        let b_start = b.start();
         a_start.cmp(&b_start)
     });
 
     let mut merged_ranges = Vec::new();
     // start with first range
     let current_range = port_ranges.remove(0);
-    let mut current_range_start = get_start_port_from_range(&current_range);
-    let mut current_range_end = get_end_port_from_range(&current_range);
+    let mut current_range_start = current_range.start();
+    let mut current_range_end = current_range.end();
 
     // iterate over remaining ranges
     for range in port_ranges {
-        let range_start = get_start_port_from_range(&range);
-        let range_end = get_end_port_from_range(&range);
+        let range_start = range.start();
+        let range_end = range.end();
 
         // compare with current range
         if range_start <= current_range_end {
@@ -237,9 +222,9 @@ fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
             current_range_end = range_end;
         } else {
             // ranges are not overlapping, add current range to result
-            let port_range = PortInner::PortRange(PortRange {
-                start: current_range_start,
-                end: current_range_end,
+            let port_range = PortInner::PortRange(PortRangeProto {
+                start: current_range_start as u32,
+                end: current_range_end as u32,
             });
             merged_ranges.push(port_range);
             current_range_start = range_start;
@@ -248,9 +233,9 @@ fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
     }
 
     // add last range
-    let port_range = PortInner::PortRange(PortRange {
-        start: current_range_start,
-        end: current_range_end,
+    let port_range = PortInner::PortRange(PortRangeProto {
+        start: current_range_start as u32,
+        end: current_range_end as u32,
     });
     merged_ranges.push(port_range);
 
@@ -274,14 +259,11 @@ impl WireguardNetwork<Id> {
     /// Fetches all active ACL rules for a given location.
     /// Filters out rules which are disabled, expired or have not been deployed yet.
     /// TODO: actually filter out unwanted rules once drafts etc are implemented
-    pub(crate) async fn get_active_acl_rules<'e, E>(
+    pub(crate) async fn get_active_acl_rules(
         &self,
-        executor: E,
-    ) -> Result<Vec<AclRule<Id>>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
+        pool: &PgPool,
+    ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
+        let rules = query_as!(
             AclRule,
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
                 destination, ports, protocols, expires \
@@ -291,8 +273,16 @@ impl WireguardNetwork<Id> {
                 WHERE an.network_id = $1",
             self.id,
         )
-        .fetch_all(executor)
-        .await
+        .fetch_all(pool)
+        .await?;
+
+        // convert to `AclRuleInfo`
+        let mut rules_info = Vec::new();
+        for rule in rules {
+            let rule_info = rule.to_info(pool).await?;
+            rules_info.push(rule_info);
+        }
+        Ok(rules_info)
     }
 
     /// Prepares firewall configuration for a gateway based on location config and ACLs
@@ -343,11 +333,12 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
-    use std::ops::Bound;
-
-    use sqlx::postgres::types::PgRange;
-
-    use crate::grpc::proto::enterprise::firewall::{port::Port as PortInner, Port, PortRange};
+    use crate::{
+        enterprise::db::models::acl::PortRange,
+        grpc::proto::enterprise::firewall::{
+            port::Port as PortInner, Port, PortRange as PortRangeProto,
+        },
+    };
 
     use super::merge_port_ranges;
 
@@ -384,10 +375,7 @@ mod test {
     #[test]
     fn test_merge_port_ranges() {
         // single port
-        let input_ranges = vec![PgRange {
-            start: Bound::Included(100),
-            end: Bound::Included(100),
-        }];
+        let input_ranges = vec![PortRange::new(100, 100)];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
@@ -398,24 +386,15 @@ mod test {
 
         // overlapping ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
+            PortRange::new(100, 200),
+            PortRange::new(150, 220),
+            PortRange::new(210, 300),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
             vec![Port {
-                port: Some(PortInner::PortRange(PortRange {
+                port: Some(PortInner::PortRange(PortRangeProto {
                     start: 100,
                     end: 300
                 }))
@@ -424,55 +403,28 @@ mod test {
 
         // duplicate ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
+            PortRange::new(100, 200),
+            PortRange::new(100, 200),
+            PortRange::new(150, 220),
+            PortRange::new(150, 220),
+            PortRange::new(210, 300),
+            PortRange::new(210, 300),
+            PortRange::new(350, 400),
+            PortRange::new(350, 400),
+            PortRange::new(350, 400),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
             vec![
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 100,
                         end: 300
                     }))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 350,
                         end: 400
                     }))
@@ -482,30 +434,12 @@ mod test {
 
         // non-consecutive ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Excluded(500),
-                end: Bound::Excluded(700),
-            },
-            PgRange {
-                start: Bound::Excluded(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(800),
-                end: Bound::Included(800),
-            },
-            PgRange {
-                start: Bound::Included(200),
-                end: Bound::Included(210),
-            },
-            PgRange {
-                start: Bound::Included(50),
-                end: Bound::Excluded(51),
-            },
+            PortRange::new(501, 699),
+            PortRange::new(151, 220),
+            PortRange::new(210, 300),
+            PortRange::new(800, 800),
+            PortRange::new(200, 210),
+            PortRange::new(50, 50),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
@@ -515,13 +449,13 @@ mod test {
                     port: Some(PortInner::SinglePort(50))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 151,
                         end: 300
                     }))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 501,
                         end: 699
                     }))
