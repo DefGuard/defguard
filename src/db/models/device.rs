@@ -61,7 +61,7 @@ impl From<DeviceType> for String {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct Device<I = NoId> {
     pub id: I,
     pub name: String,

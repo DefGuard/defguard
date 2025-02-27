@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT g.id, name, is_admin FROM aclrulegroup r JOIN \"group\" g ON g.id = r.group_id WHERE r.rule_id = $1 AND r.allow",
+  "query": "SELECT g.id, name, is_admin FROM aclrulegroup r JOIN \"group\" g ON g.id = r.group_id WHERE r.rule_id = $1 AND r.allow = $2",
   "describe": {
     "columns": [
       {
@@ -21,7 +21,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Bool"
       ]
     },
     "nullable": [
@@ -30,5 +31,5 @@
       false
     ]
   },
-  "hash": "0a3a8a8565747deaee4002e7462f6d3ee4700da7b64d2763906bcac73a9d93b0"
+  "hash": "6e706b1f2324ab3f7ede25b13745fb8547eb5e50c52dc9bcd50c6319a87183a7"
 }
