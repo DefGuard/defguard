@@ -99,27 +99,26 @@ pub struct AclRuleInfo<I = NoId> {
 impl<I> AclRuleInfo<I> {
     pub fn format_destination(&self) -> String {
         let addrs = match &self.destination {
-            d if d.len() == 0 => String::new(),
+            d if d.is_empty() => String::new(),
             d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
         };
         let ranges = match &self.destination_ranges {
-            r if r.len() == 0 => String::new(),
-            r => r
-                .iter()
-                .map(|r| format!("{}-{}, ", r.start, r.end))
-                .collect::<String>(),
+            r if r.is_empty() => String::new(),
+            r => r.iter().fold(String::new(), |acc, r| {
+                acc + &format!("{}-{}, ", r.start, r.end)
+            }),
         };
 
         let destination = (addrs + &ranges).replace("/32", "");
-        if destination.len() > 0 {
-            destination[..destination.len() - 2].to_string()
-        } else {
+        if destination.is_empty() {
             destination
+        } else {
+            destination[..destination.len() - 2].to_string()
         }
     }
 
     pub fn format_ports(&self) -> String {
-        if self.ports.len() == 0 {
+        if self.ports.is_empty() {
             String::new()
         } else {
             let ports = self
@@ -149,30 +148,6 @@ pub struct AclRule<I = NoId> {
 }
 
 impl AclRule {
-    #[must_use]
-    pub(crate) fn new<S: Into<String>>(
-        name: S,
-        allow_all_users: bool,
-        deny_all_users: bool,
-        all_networks: bool,
-        destination: Vec<IpNetwork>,
-        ports: Vec<PgRange<i32>>,
-        protocols: Vec<Protocol>,
-        expires: Option<NaiveDateTime>,
-    ) -> Self {
-        Self {
-            id: NoId,
-            name: name.into(),
-            allow_all_users,
-            deny_all_users,
-            all_networks,
-            destination,
-            ports,
-            protocols,
-            expires,
-        }
-    }
-
     /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
     pub(crate) async fn create_from_api(
         pool: &PgPool,
@@ -783,27 +758,26 @@ pub struct AclAliasInfo<I = NoId> {
 impl<I> AclAliasInfo<I> {
     pub fn format_destination(&self) -> String {
         let addrs = match &self.destination {
-            d if d.len() == 0 => String::new(),
+            d if d.is_empty() => String::new(),
             d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
         };
         let ranges = match &self.destination_ranges {
-            r if r.len() == 0 => String::new(),
-            r => r
-                .iter()
-                .map(|r| format!("{}-{}, ", r.start, r.end))
-                .collect::<String>(),
+            r if r.is_empty() => String::new(),
+            r => r.iter().fold(String::new(), |acc, r| {
+                acc + &format!("{}-{}, ", r.start, r.end)
+            }),
         };
 
         let destination = (addrs + &ranges).replace("/32", "");
-        if destination.len() > 0 {
-            destination[..destination.len() - 2].to_string()
-        } else {
+        if destination.is_empty() {
             destination
+        } else {
+            destination[..destination.len() - 2].to_string()
         }
     }
 
     pub fn format_ports(&self) -> String {
-        if self.ports.len() == 0 {
+        if self.ports.is_empty() {
             String::new()
         } else {
             let ports = self
@@ -1105,16 +1079,17 @@ mod test {
     #[sqlx::test]
     async fn test_rule_relations(pool: PgPool) {
         // create the rule
-        let mut rule = AclRule::new(
-            "rule",
-            false,
-            false,
-            false,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            None,
-        )
+        let mut rule = AclRule {
+            id: NoId,
+            name: "rule".to_string(),
+            allow_all_users: false,
+            deny_all_users: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            expires: None,
+        }
         .save(&pool)
         .await
         .unwrap();
