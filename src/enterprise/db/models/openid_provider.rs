@@ -111,6 +111,7 @@ pub struct OpenIdProvider<I = NoId> {
     // The client ID of the directory sync app specifically
     pub okta_dirsync_client_id: Option<String>,
     #[model(ref)]
+    // The groups to sync from the directory, exact match
     pub directory_sync_group_match: Vec<String>,
 }
 
