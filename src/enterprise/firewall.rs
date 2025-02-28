@@ -3,13 +3,13 @@ use std::net::IpAddr;
 use ipnetwork::IpNetwork;
 use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
 
-use super::db::models::acl::{AclRule, AclRuleInfo, PortRange};
+use super::db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange};
 
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpVersion, Port, PortRange as PortRangeProto,
+        IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
     },
 };
 
@@ -28,6 +28,7 @@ pub async fn generate_firewall_rules_from_acls(
     acl_rules: Vec<AclRuleInfo<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
+    // initialize empty result Vec
     let mut firewall_rules = Vec::new();
 
     // we only create rules which are opposite to the default policy
@@ -51,20 +52,9 @@ pub async fn generate_firewall_rules_from_acls(
 
         // get relevant users for determining source IPs
         let users = get_source_users(allowed_users, denied_users, default_location_policy);
-        let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
 
         // get network IPs for devices belonging to those users
-        // NOTE: only consider user devices since network devices will be handled separately
-        let user_device_ips: Vec<IpAddr> = query_scalar!(
-            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
-            FROM wireguard_network_device wnd \
-            JOIN device d ON d.id = wnd.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
-            location_id,
-            &user_ids
-        )
-        .fetch_all(pool)
-        .await?;
+        let user_device_ips = get_user_device_ips(&users, location_id, pool).await?;
 
         // get network device IPs for rule source
         let network_devices = get_source_network_devices(
@@ -72,45 +62,11 @@ pub async fn generate_firewall_rules_from_acls(
             acl.denied_devices,
             default_location_policy,
         );
-        let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
-        let network_device_ips: Vec<IpAddr> = query_scalar!(
-            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
-            FROM wireguard_network_device wnd \
-            WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
-            location_id,
-            &network_device_ids,
-        )
-        .fetch_all(pool)
-        .await?;
+        let network_device_ips =
+            get_network_device_ips(&network_devices, location_id, pool).await?;
 
-        // combine source IPs
-        let source_ips = user_device_ips.into_iter().chain(network_device_ips);
-
-        // prepare source addrs by removing incompatible IP version elements
-        // and converting them to expected gRPC format
-        // TODO: convert into non-overlapping elements
-        let source_addrs = source_ips
-            .filter_map(|ip| match ip_version {
-                IpVersion::Ipv4 => {
-                    if ip.is_ipv4() {
-                        Some(IpAddress {
-                            address: Some(Address::Ip(ip.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-                IpVersion::Ipv6 => {
-                    if ip.is_ipv6() {
-                        Some(IpAddress {
-                            address: Some(Address::Ip(ip.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-            })
-            .collect();
+        // convert device IPs into source addresses for a firewall rule
+        let source_addrs = get_source_addrs(user_device_ips, network_device_ips, ip_version);
 
         let AclRuleInfo {
             mut destination,
@@ -209,6 +165,29 @@ fn get_source_users(
     }
 }
 
+/// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
+// We specifically only fetch user devices since network devices are handled separately.
+async fn get_user_device_ips(
+    users: &[User<Id>],
+    location_id: Id,
+    pool: &PgPool,
+) -> Result<Vec<IpAddr>, SqlxError> {
+    // prepeare a list of user IDs
+    let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
+
+    // fetch network IPs
+    query_scalar!(
+            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            FROM wireguard_network_device wnd \
+            JOIN device d ON d.id = wnd.device_id \
+            WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
+            location_id,
+            &user_ids
+        )
+        .fetch_all(pool)
+        .await
+}
+
 /// Prepares a list of all relevant network devices whose IPs we'll need to prepare
 /// source config for a firewall rule.
 ///
@@ -232,6 +211,75 @@ fn get_source_network_devices(
             .filter(|device| !allowed_devices.contains(device))
             .collect(),
     }
+}
+
+/// Fetches all IPs of specified network devices within a given location's VPN subnet.
+async fn get_network_device_ips(
+    network_devices: &[Device<Id>],
+    location_id: Id,
+    pool: &PgPool,
+) -> Result<Vec<IpAddr>, SqlxError> {
+    // prepare a list of IDs
+    let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
+
+    // fetch network IPs
+    query_scalar!(
+        "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            FROM wireguard_network_device wnd \
+            WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
+        location_id,
+        &network_device_ids,
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// Combines user device IPs and network device IPs into a list of source addresses which can be
+/// used by a firewall rule.
+fn get_source_addrs(
+    user_device_ips: Vec<IpAddr>,
+    network_device_ips: Vec<IpAddr>,
+    ip_version: IpVersion,
+) -> Vec<IpAddress> {
+    // combine both lists into a single iterator
+    let source_ips = user_device_ips.into_iter().chain(network_device_ips);
+
+    // prepare source addrs by removing incompatible IP version elements
+    // and converting them to expected gRPC format
+    // TODO: combine into possible ranges and subnets
+    source_ips
+        .filter_map(|ip| match ip_version {
+            IpVersion::Ipv4 => {
+                if ip.is_ipv4() {
+                    Some(IpAddress {
+                        address: Some(Address::Ip(ip.to_string())),
+                    })
+                } else {
+                    None
+                }
+            }
+            IpVersion::Ipv6 => {
+                if ip.is_ipv6() {
+                    Some(IpAddress {
+                        address: Some(Address::Ip(ip.to_string())),
+                    })
+                } else {
+                    None
+                }
+            }
+        })
+        .collect()
+}
+
+fn process_destination_addrs(
+    destination_ips: Vec<IpAddr>,
+    destination_ranges: Vec<AclRuleDestinationRange>,
+) -> Vec<IpAddress> {
+    unimplemented!()
+}
+
+fn merge_addrs(addrs: Vec<IpAddress>) -> Vec<IpAddress> {
+    unimplemented!()
 }
 
 /// TODO: Implement once data model is finalized and address processing can be generalized
