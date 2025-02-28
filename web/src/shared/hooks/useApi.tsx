@@ -501,6 +501,11 @@ const useApi = (props?: HookProps): ApiHook => {
   const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
     (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
 
+  const createAclRule: ApiHook['acl']['rules']['createRule'] = (data) =>
+    client.post('/acl/rule', data).then(unpackRequest);
+
+  const getAclRules: ApiHook['acl']['rules']['getRules'] = () => client.get('/acl/rule');
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -533,6 +538,12 @@ const useApi = (props?: HookProps): ApiHook => {
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
+    acl: {
+      rules: {
+        createRule: createAclRule,
+        getRules: getAclRules,
+      },
+    },
     oAuth: {
       consent: oAuthConsent,
     },

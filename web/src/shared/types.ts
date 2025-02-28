@@ -445,11 +445,39 @@ export type EnterpriseInfoResponse = {
   license_info?: EnterpriseInfo;
 };
 
+export type CreateAclRuleRequest = Omit<AclRuleInfo, 'id'>;
+
+export type AclRuleInfo = {
+  id: number;
+  name: string;
+  all_networks: boolean;
+  allow_all_users: boolean;
+  deny_all_users: boolean;
+  networks: number[];
+  expires?: string;
+  allowed_users: number[];
+  denied_users: number[];
+  allowed_groups: number[];
+  denied_groups: number[];
+  allowed_devices: number[];
+  denied_devices: number[];
+  destination: string;
+  aliases: number[];
+  ports: string;
+  protocols: number[];
+};
+
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
+  acl: {
+    rules: {
+      getRules: () => Promise<AclRuleInfo[]>;
+      createRule: (data: CreateAclRuleRequest) => Promise<EmptyApiResponse>;
+    };
+  };
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
