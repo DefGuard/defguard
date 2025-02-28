@@ -82,7 +82,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         // process aliases by appending destination parameters from each of them to existing lists
         for alias in aliases {
-            // fetch destination ranges
+            // fetch destination ranges for a fiven alias
             alias_destination_ranges.extend(alias.get_destination_ranges(pool).await?);
 
             // extend existing parameter lists
@@ -108,8 +108,7 @@ pub async fn generate_firewall_rules_from_acls(
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
 
-        // prepare protocols
-        // remove duplicates
+        // remove duplicates protocol entries
         protocols.sort();
         protocols.dedup();
 
