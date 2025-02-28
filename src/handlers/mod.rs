@@ -100,7 +100,7 @@ impl From<WebError> for ApiResponse {
                         StatusCode::INTERNAL_SERVER_ERROR,
                     )
                 }
-            }
+            },
             WebError::Http(status) => {
                 error!("{status}");
                 ApiResponse::new(

@@ -218,7 +218,10 @@ pub async fn get_acl_alias(
     };
 
     info!("User {} retrieved ACL alias {id}", session.user.username);
-    Ok(ApiResponse { json: alias, status })
+    Ok(ApiResponse {
+        json: alias,
+        status,
+    })
 }
 
 pub async fn create_acl_alias(
@@ -269,4 +272,3 @@ pub async fn delete_acl_alias(
     info!("User {} deleted ACL alias {id}", session.user.username);
     Ok(ApiResponse::default())
 }
-

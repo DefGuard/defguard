@@ -105,9 +105,9 @@ impl<I> AclRuleInfo<I> {
         let ranges = match &self.destination_ranges {
             r if r.len() == 0 => String::new(),
             r => r
-            .iter()
-            .map(|r| format!("{}-{}, ", r.start, r.end))
-            .collect::<String>(),
+                .iter()
+                .map(|r| format!("{}-{}, ", r.start, r.end))
+                .collect::<String>(),
         };
 
         let destination = (addrs + &ranges).replace("/32", "");
@@ -789,9 +789,9 @@ impl<I> AclAliasInfo<I> {
         let ranges = match &self.destination_ranges {
             r if r.len() == 0 => String::new(),
             r => r
-            .iter()
-            .map(|r| format!("{}-{}, ", r.start, r.end))
-            .collect::<String>(),
+                .iter()
+                .map(|r| format!("{}-{}, ", r.start, r.end))
+                .collect::<String>(),
         };
 
         let destination = (addrs + &ranges).replace("/32", "");
