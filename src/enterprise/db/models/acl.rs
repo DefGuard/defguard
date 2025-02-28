@@ -10,8 +10,8 @@ use sqlx::{
     postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
 };
 use std::{
-    fmt,
     collections::HashSet,
+    fmt,
     ops::{Bound, Range},
 };
 use thiserror::Error;
@@ -98,25 +98,37 @@ pub struct AclRuleInfo<I = NoId> {
 
 impl<I> AclRuleInfo<I> {
     pub fn format_destination(&self) -> String {
-        let addrs = self
-            .destination
-            .iter()
-            .map(|a| a.to_string() + ", ")
-            .collect::<String>();
-        let ranges = self
-            .destination_ranges
+        let addrs = match &self.destination {
+            d if d.len() == 0 => String::new(),
+            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+        };
+        let ranges = match &self.destination_ranges {
+            r if r.len() == 0 => String::new(),
+            r => r
             .iter()
             .map(|r| format!("{}-{}, ", r.start, r.end))
-            .collect::<String>();
+            .collect::<String>(),
+        };
 
-        (addrs + &ranges).replace("/32", "")
+        let destination = (addrs + &ranges).replace("/32", "");
+        if destination.len() > 0 {
+            destination[..destination.len() - 2].to_string()
+        } else {
+            destination
+        }
     }
 
     pub fn format_ports(&self) -> String {
-        self.ports
-            .iter()
-            .map(|r| r.to_string() + ", ")
-            .collect::<String>()
+        if self.ports.len() == 0 {
+            String::new()
+        } else {
+            let ports = self
+                .ports
+                .iter()
+                .map(|r| r.to_string() + ", ")
+                .collect::<String>();
+            ports[..ports.len() - 2].to_string()
+        }
     }
 }
 
@@ -770,25 +782,37 @@ pub struct AclAliasInfo<I = NoId> {
 
 impl<I> AclAliasInfo<I> {
     pub fn format_destination(&self) -> String {
-        let addrs = self
-            .destination
-            .iter()
-            .map(|a| a.to_string() + ", ")
-            .collect::<String>();
-        let ranges = self
-            .destination_ranges
+        let addrs = match &self.destination {
+            d if d.len() == 0 => String::new(),
+            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+        };
+        let ranges = match &self.destination_ranges {
+            r if r.len() == 0 => String::new(),
+            r => r
             .iter()
             .map(|r| format!("{}-{}, ", r.start, r.end))
-            .collect::<String>();
+            .collect::<String>(),
+        };
 
-        (addrs + &ranges).replace("/32", "")
+        let destination = (addrs + &ranges).replace("/32", "");
+        if destination.len() > 0 {
+            destination[..destination.len() - 2].to_string()
+        } else {
+            destination
+        }
     }
 
     pub fn format_ports(&self) -> String {
-        self.ports
-            .iter()
-            .map(|r| r.to_string() + ", ")
-            .collect::<String>()
+        if self.ports.len() == 0 {
+            String::new()
+        } else {
+            let ports = self
+                .ports
+                .iter()
+                .map(|r| r.to_string() + ", ")
+                .collect::<String>();
+            ports[..ports.len() - 2].to_string()
+        }
     }
 }
 
