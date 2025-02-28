@@ -3,7 +3,9 @@ use std::net::IpAddr;
 use ipnetwork::IpNetwork;
 use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
 
-use super::db::models::acl::{AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange};
+use super::db::models::acl::{
+    AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
+};
 
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
@@ -47,9 +49,6 @@ pub async fn generate_firewall_rules_from_acls(
         // fetch denied users
         let denied_users = acl.get_all_denied_users(pool).await?;
 
-        // fetch aliases used by ACL
-        let aliases = acl.aliases;
-
         // get relevant users for determining source IPs
         let users = get_source_users(allowed_users, denied_users, default_location_policy);
 
@@ -68,15 +67,25 @@ pub async fn generate_firewall_rules_from_acls(
         // convert device IPs into source addresses for a firewall rule
         let source_addrs = get_source_addrs(user_device_ips, network_device_ips, ip_version);
 
+        // extract destination parameters from ACL rule
         let AclRuleInfo {
             mut destination,
+            destination_ranges,
             mut ports,
             mut protocols,
+            aliases,
             ..
         } = acl;
 
-        // process aliases
+        // store alias ranges separately since they use a different struct
+        let mut alias_destination_ranges = Vec::new();
+
+        // process aliases by appending destination parameters from each of them to existing lists
         for alias in aliases {
+            // fetch destination ranges
+            alias_destination_ranges.extend(alias.get_destination_ranges(pool).await?);
+
+            // extend existing parameter lists
             destination.extend(alias.destination);
             ports.extend(
                 alias
@@ -89,30 +98,12 @@ pub async fn generate_firewall_rules_from_acls(
         }
 
         // prepare destination addresses
-        // TODO: convert into non-overlapping elements
-        let destination_addrs = destination
-            .iter()
-            .filter_map(|dst| match ip_version {
-                IpVersion::Ipv4 => {
-                    if dst.is_ipv4() {
-                        Some(IpAddress {
-                            address: Some(Address::IpSubnet(dst.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-                IpVersion::Ipv6 => {
-                    if dst.is_ipv6() {
-                        Some(IpAddress {
-                            address: Some(Address::IpSubnet(dst.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-            })
-            .collect();
+        let destination_addrs = process_destination_addrs(
+            destination,
+            destination_ranges,
+            alias_destination_ranges,
+            ip_version,
+        );
 
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
@@ -271,11 +262,108 @@ fn get_source_addrs(
         .collect()
 }
 
+/// Convert destination networks and ranges configured in an ACL rule
+/// into the correct format for a firewall rule. This includes:
+/// - combining both lists
+/// - converting to gRPC IpAddress struct
+/// - filtering out incompatible IP version
+/// - merging into the smallest possible list of non-overlapping ranges,
+///   subnets and addresses
 fn process_destination_addrs(
-    destination_ips: Vec<IpAddr>,
-    destination_ranges: Vec<AclRuleDestinationRange>,
+    destination_ips: Vec<IpNetwork>,
+    destination_ranges: Vec<AclRuleDestinationRange<Id>>,
+    alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
+    ip_version: IpVersion,
 ) -> Vec<IpAddress> {
-    unimplemented!()
+    // filter out destinations with incompatible IP version and convert to target gRPC struct
+    let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
+        IpVersion::Ipv4 => {
+            if dst.is_ipv4() {
+                Some(IpAddress {
+                    address: Some(Address::IpSubnet(dst.to_string())),
+                })
+            } else {
+                None
+            }
+        }
+        IpVersion::Ipv6 => {
+            if dst.is_ipv6() {
+                Some(IpAddress {
+                    address: Some(Address::IpSubnet(dst.to_string())),
+                })
+            } else {
+                None
+            }
+        }
+    });
+
+    // filter out destination ranges with incompatible IP version and convert to target gRPC struct
+    let destination_range_iterator = destination_ranges
+        .iter()
+        .filter_map(|dst| match ip_version {
+            IpVersion::Ipv4 => {
+                if dst.start.is_ipv4() && dst.end.is_ipv4() {
+                    Some(IpAddress {
+                        address: Some(Address::IpRange(IpRange {
+                            start: dst.start.to_string(),
+                            end: dst.end.to_string(),
+                        })),
+                    })
+                } else {
+                    None
+                }
+            }
+            IpVersion::Ipv6 => {
+                if dst.start.is_ipv6() && dst.end.is_ipv6() {
+                    Some(IpAddress {
+                        address: Some(Address::IpRange(IpRange {
+                            start: dst.start.to_string(),
+                            end: dst.end.to_string(),
+                        })),
+                    })
+                } else {
+                    None
+                }
+            }
+        });
+    let alias_destination_range_iterator =
+        alias_destination_ranges
+            .iter()
+            .filter_map(|dst| match ip_version {
+                IpVersion::Ipv4 => {
+                    if dst.start.is_ipv4() && dst.end.is_ipv4() {
+                        Some(IpAddress {
+                            address: Some(Address::IpRange(IpRange {
+                                start: dst.start.to_string(),
+                                end: dst.end.to_string(),
+                            })),
+                        })
+                    } else {
+                        None
+                    }
+                }
+                IpVersion::Ipv6 => {
+                    if dst.start.is_ipv6() && dst.end.is_ipv6() {
+                        Some(IpAddress {
+                            address: Some(Address::IpRange(IpRange {
+                                start: dst.start.to_string(),
+                                end: dst.end.to_string(),
+                            })),
+                        })
+                    } else {
+                        None
+                    }
+                }
+            });
+
+    // combine both iterators to return a single list
+    let destination_addrs = destination_iterator
+        .chain(destination_range_iterator)
+        .chain(alias_destination_range_iterator)
+        .collect();
+
+    // merge address ranges into non-overlapping elements
+    merge_addrs(destination_addrs)
 }
 
 fn merge_addrs(addrs: Vec<IpAddress>) -> Vec<IpAddress> {
