@@ -1,10 +1,11 @@
 import './style.scss';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { PageLayout } from '../../../shared/components/Layout/PageLayout/PageLayout';
 import { CardTabs } from '../../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../../shared/defguard-ui/components/Layout/CardTabs/types';
+import { AclIndexRules } from './components/AclIndexRules/AclIndexRules';
 
 enum AclTab {
   ALIASES = 'aliases',
@@ -29,13 +30,22 @@ export const AclIndexPage = () => {
     },
   ];
 
+  const tabRender = useMemo(() => {
+    switch (activeTab) {
+      case AclTab.RULES:
+        return <AclIndexRules />;
+      case AclTab.ALIASES:
+        return <p>Dragons</p>;
+    }
+  }, [activeTab]);
+
   return (
     <PageLayout id="acl-index-page">
       <header>
         <h1>Access Control List</h1>
       </header>
       <CardTabs tabs={availableTabs} />
-      <div id="content-card">{}</div>
+      <div id="content-card">{tabRender}</div>
     </PageLayout>
   );
 };

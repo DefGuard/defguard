@@ -445,7 +445,9 @@ export type EnterpriseInfoResponse = {
   license_info?: EnterpriseInfo;
 };
 
-export type CreateAclRuleRequest = Omit<AclRuleInfo, 'id'>;
+export type CreateAclRuleRequest = Omit<AclRuleInfo, 'id' | 'expires'> & {
+  expires: string | null;
+};
 
 export type AclRuleInfo = {
   id: number;
