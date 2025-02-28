@@ -16,19 +16,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &[
             "proto/core/auth.proto",
             "proto/core/proxy.proto",
-            "src/enterprise/proto/license.proto",
             "proto/worker/worker.proto",
             "proto/wireguard/gateway.proto",
+            "proto/enterprise/firewall/firewall.proto",
+            "src/enterprise/proto/license.proto",
         ],
         &[
             "proto/core",
             "proto/worker",
             "proto/wireguard",
+            "proto/enterprise/firewall",
             "src/enterprise/proto",
         ],
     )?;
     println!("cargo:rerun-if-changed=migrations");
     println!("cargo:rerun-if-changed=proto");
     println!("cargo:rerun-if-changed=web/dist");
+    println!("cargo:rerun-if-changed=src/enterprise");
     Ok(())
 }

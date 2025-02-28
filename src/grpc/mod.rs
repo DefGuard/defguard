@@ -38,12 +38,12 @@ use self::{
     desktop_client_mfa::ClientMfaServer,
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
-    proto::core_response,
+    proto::proxy::core_response,
 };
 #[cfg(feature = "worker")]
 use self::{
-    interceptor::JwtInterceptor,
-    worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+    interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
+    worker::WorkerServer,
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
@@ -78,10 +78,29 @@ pub(crate) mod utils;
 pub mod worker;
 
 pub(crate) mod proto {
-    tonic::include_proto!("defguard.proxy");
+    pub(crate) mod proxy {
+        tonic::include_proto!("defguard.proxy");
+    }
+    pub(crate) mod gateway {
+        tonic::include_proto!("gateway");
+    }
+    pub(crate) mod auth {
+        tonic::include_proto!("auth");
+    }
+    pub(crate) mod worker {
+        tonic::include_proto!("worker");
+    }
+    pub(crate) mod enterprise {
+        pub(crate) mod license {
+            tonic::include_proto!("enterprise.license");
+        }
+        pub(crate) mod firewall {
+            tonic::include_proto!("enterprise.firewall");
+        }
+    }
 }
 
-use proto::{
+use proto::proxy::{
     core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
     CoreResponse,
 };
@@ -877,7 +896,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::InstanceInfo {
+impl From<InstanceInfo> for proto::proxy::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,
