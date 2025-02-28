@@ -1194,6 +1194,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             helper:
               'Klucz prywatny dla aplikacji synchronizacji Okta w formacie JWK. Klucz nie jest wyświetlany ponownie po wgraniu.',
           },
+          group_match: {
+            label: 'Synchronizuj tylko pasujące grupy',
+            helper:
+              'Podaj listę nazw grup oddzielonych przecinkami, które powinny być synchronizowane. Jeśli pole zostanie puste, wszystkie grupy dostawcy zostaną zsynchronizowane.',
+          },
         },
       },
     },

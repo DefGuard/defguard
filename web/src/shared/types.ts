@@ -957,6 +957,7 @@ export interface OpenIdProvider {
   directory_sync_target: 'all' | 'users' | 'groups';
   okta_private_jwk?: string;
   okta_dirsync_client_id?: string;
+  directory_sync_group_match?: string;
 }
 
 export interface EditOpenidClientRequest {

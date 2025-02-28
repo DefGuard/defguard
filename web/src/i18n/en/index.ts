@@ -1229,6 +1229,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             helper:
               "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
           },
+          group_match: {
+            label: 'Sync only matching groups',
+            helper:
+              'Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.',
+          },
         },
       },
     },

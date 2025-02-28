@@ -15,6 +15,7 @@ pub(crate) struct MicrosoftDirectorySync {
     client_id: String,
     client_secret: String,
     url: String,
+    group_filter: Vec<String>,
 }
 
 const ACCESS_TOKEN_URL: &str = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token";
@@ -31,6 +32,7 @@ const USER_SEARCH_URL: &str =
     "https://graph.microsoft.com/v1.0/users?$select=id&$filter=mail eq '{email}'";
 const USER_SEARCH_URL_FALLBACK: &str =
     "https://graph.microsoft.com/v1.0/users?$select=id&$filter=(otherMails/any(p:p eq '{email}'))";
+const GROUP_FILTER: &str = "displayName in ('{group_names}')";
 
 #[derive(Deserialize)]
 struct TokenResponse {
@@ -148,13 +150,19 @@ struct IdResponse {
 }
 
 impl MicrosoftDirectorySync {
-    pub(crate) const fn new(client_id: String, client_secret: String, url: String) -> Self {
+    pub(crate) const fn new(
+        client_id: String,
+        client_secret: String,
+        url: String,
+        match_groups: Vec<String>,
+    ) -> Self {
         Self {
             access_token: None,
             client_id,
             client_secret,
             url,
             token_expiry: None,
+            group_filter: match_groups,
         }
     }
 
@@ -244,7 +252,24 @@ impl MicrosoftDirectorySync {
             .ok_or(DirectorySyncError::AccessTokenExpired)?;
         let mut combined_response = GroupsResponse::default();
         let mut url = GROUPS_URL.to_string();
-        let mut query = Some([("$top", MAX_RESULTS)].as_slice());
+
+        let mut params = vec![("$top", MAX_RESULTS.to_string())];
+        if !self.group_filter.is_empty() {
+            info!(
+                "Applying defined group filter to user group query, only the following groups will be synced: {:?}",
+                self.group_filter
+            );
+            let group_filter =
+                GROUP_FILTER.replace("{group_names}", self.group_filter.join("','").as_str());
+            params.push(("$filter", group_filter));
+        } else {
+            debug!("No group filter defined, all groups will be synced.");
+        }
+        let params_slice = params
+            .iter()
+            .map(|(key, value)| (*key, value.as_str()))
+            .collect::<Vec<_>>();
+        let mut query = Some(params_slice.as_slice());
 
         for _ in 0..MAX_REQUESTS {
             let response = make_get_request(&url, access_token, query).await?;
@@ -254,6 +279,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
+                // Query none as the next page URL already contains the query parameters
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -268,9 +294,10 @@ impl MicrosoftDirectorySync {
     }
 
     async fn query_user_groups(&self, user_id: &str) -> Result<GroupsResponse, DirectorySyncError> {
+        let user_email = user_id;
         if self.is_token_expired() {
             debug!(
-                "Microsoft directory sync access token is expired, aborting query of user groups."
+                "Microsoft directory sync access token is expired, aborting query of user {user_email} groups."
             );
             return Err(DirectorySyncError::AccessTokenExpired);
         }
@@ -281,30 +308,34 @@ impl MicrosoftDirectorySync {
 
         // Get the user ID from their email address first
         let user_search = USER_SEARCH_URL
-            .replace("{email}", user_id)
+            .replace("{email}", user_email)
             .replace("{query_fields}", USER_QUERY_FIELDS);
         let response = make_get_request(&user_search, access_token, None).await?;
         let response: IdResponse =
             parse_response(response, "Failed to query user from Microsoft API.").await?;
 
         let user_id = if response.value.len() > 1 {
-            return Err(DirectorySyncError::MultipleUsersFound(user_id.to_string()));
+            return Err(DirectorySyncError::MultipleUsersFound(
+                user_email.to_string(),
+            ));
         } else if let Some(user) = response.value.into_iter().next() {
             user.id
         } else {
-            debug!("User with email {user_id} not found in Microsoft API, trying fallback search of additional email addresses",);
+            debug!("User with email {user_email} not found in Microsoft API, trying fallback search of additional email addresses",);
             let user_search = USER_SEARCH_URL_FALLBACK
-                .replace("{email}", user_id)
+                .replace("{email}", user_email)
                 .replace("{query_fields}", USER_QUERY_FIELDS);
             let response = make_get_request(&user_search, access_token, None).await?;
             let response: IdResponse =
                 parse_response(response, "Failed to query user from Microsoft API.").await?;
             if response.value.len() > 1 {
-                return Err(DirectorySyncError::MultipleUsersFound(user_id.to_string()));
+                return Err(DirectorySyncError::MultipleUsersFound(
+                    user_email.to_string(),
+                ));
             } else if let Some(user) = response.value.into_iter().next() {
                 user.id
             } else {
-                return Err(DirectorySyncError::UserNotFound(user_id.to_string()));
+                return Err(DirectorySyncError::UserNotFound(user_email.to_string()));
             }
         };
 
@@ -320,6 +351,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
+                // Query none as the next page URL already contains the query parameters
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -328,6 +360,28 @@ impl MicrosoftDirectorySync {
             }
 
             sleep(REQUEST_PAGINATION_SLOWDOWN).await;
+        }
+
+        // Simplest way to filter groups by display name, as $filter doesn't work on memberOf endpoint.
+        // An alternative $search query could be used, but it has different behavior than $filter, so would be inconsistent with the
+        // all groups endpoint and is less reliable. This is probably not a big deal, since it seems rare that a single user will have 200+ groups, so
+        // there is not much filtering to do on our end.
+        if !self.group_filter.is_empty() {
+            debug!(
+                "Applying defined group filter to user {user_email} group query, only the following groups will be synced: {:?}",
+                self.group_filter
+            );
+            combined_response.value.retain(|group| {
+                if let Some(display_name) = &group.display_name {
+                    self.group_filter.contains(display_name)
+                } else {
+                    warn!(
+                        "Group with ID {} doesn't have a display name set, skipping its synchronization.",
+                        group.id
+                    );
+                    false
+                }
+            });
         }
 
         Ok(combined_response)
@@ -362,6 +416,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
+                // Query none as the next page URL already contains the query parameters
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -396,6 +451,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
+                // Query none as the next page URL already contains the query parameters
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -476,6 +532,7 @@ mod tests {
             "client_id".to_string(),
             "client_secret".to_string(),
             "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+            vec![],
         );
         let tenant = provider.extract_tenant().unwrap();
         assert_eq!(tenant, "tenant-id-123");
@@ -487,6 +544,7 @@ mod tests {
             "id".to_string(),
             "secret".to_string(),
             "https://login.microsoftonline.com/tenant-id-123/v2.0".to_string(),
+            vec![],
         );
 
         // no token
