@@ -171,7 +171,7 @@ impl MicrosoftDirectorySync {
             "Checking if Microsoft directory sync token is expired, expiry date: {:?}",
             self.token_expiry
         );
-        let result = self.token_expiry.map_or(true, |expiry| expiry < Utc::now());
+        let result = self.token_expiry.is_none_or(|expiry| expiry < Utc::now());
         debug!("Token expiry check result: {result}");
         result
     }

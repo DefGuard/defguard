@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
-use super::proto::{
+use super::proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,
 };

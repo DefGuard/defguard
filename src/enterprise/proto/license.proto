@@ -1,5 +1,5 @@
 syntax = "proto3";
-package license;
+package enterprise.license;
 
 message LicenseLimits {
     uint32 users = 1;

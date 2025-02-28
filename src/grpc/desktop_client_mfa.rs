@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
-use super::proto::{
+use super::proto::proxy::{
     ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
     MfaMethod,
 };

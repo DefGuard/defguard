@@ -169,7 +169,10 @@ mod test {
     use chrono::{TimeDelta, Utc};
 
     use super::*;
-    use crate::enterprise::license::{set_cached_license, License, LicenseLimits};
+    use crate::{
+        enterprise::license::{set_cached_license, License},
+        grpc::proto::enterprise::license::LicenseLimits,
+    };
 
     #[test]
     fn test_counts() {

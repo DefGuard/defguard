@@ -36,7 +36,10 @@
         packages = with pkgs; [
           sqlx-cli
           just
+          # TS/JS LSP
           vtsls
+          # protobuf formatter
+          buf
         ];
 
         # Specify the rust-src path (many editors rely on this)

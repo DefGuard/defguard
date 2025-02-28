@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" u JOIN group_user gu ON u.id=gu.user_id WHERE u.is_active=true AND gu.group_id=ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "password_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "phone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "totp_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "totp_secret",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 10,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "email_mfa_secret",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 12,
+        "name": "mfa_method: _",
+        "type_info": {
+          "Custom": {
+            "name": "mfa_method",
+            "kind": {
+              "Enum": [
+                "none",
+                "one_time_password",
+                "webauthn",
+                "email"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "recovery_codes",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "openid_sub",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "95955bbd80543f65066df2d141270a9b367e73593475e937091df4825e70ebf3"
+}

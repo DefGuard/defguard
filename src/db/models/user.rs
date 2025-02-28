@@ -35,7 +35,7 @@ use crate::{
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, ToSchema, Type)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
@@ -71,7 +71,7 @@ pub struct UserDiagnostic {
     pub enrolled: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, FromRow)]
+#[derive(Clone, Debug, Model, PartialEq, Eq, Hash, Serialize, FromRow)]
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,

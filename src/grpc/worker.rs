@@ -1,6 +1,5 @@
 use std::{
     collections::hash_map::{Entry, HashMap},
-    env,
     net::{IpAddr, Ipv4Addr},
     sync::{Arc, Mutex},
     time::Instant,
@@ -11,12 +10,14 @@ use tokio::sync::mpsc::UnboundedSender;
 use tonic::{Request, Response, Status};
 
 use super::{Job, JobResponse, WorkerDetail, WorkerInfo, WorkerState};
-use crate::db::{
-    models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
-    AppEvent, HWKeyUserData, User, YubiKey,
+pub use crate::grpc::proto::worker::JobStatus;
+use crate::{
+    db::{
+        models::authentication_key::{AuthenticationKey, AuthenticationKeyType},
+        AppEvent, HWKeyUserData, User, YubiKey,
+    },
+    grpc::proto::worker::{worker_service_server, GetJobResponse, Worker},
 };
-
-tonic::include_proto!("worker");
 
 impl WorkerInfo {
     /// Create new `Worker` instance.
