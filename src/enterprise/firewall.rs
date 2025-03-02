@@ -236,8 +236,7 @@ fn get_source_addrs(
 
     // prepare source addrs by removing incompatible IP version elements
     // and converting them to expected gRPC format
-    // TODO: combine into possible ranges and subnets
-    source_ips
+    let source_addrs: Vec<IpAddress> = source_ips
         .filter_map(|ip| match ip_version {
             IpVersion::Ipv4 => {
                 if ip.is_ipv4() {
@@ -258,7 +257,11 @@ fn get_source_addrs(
                 }
             }
         })
-        .collect()
+        .collect();
+
+    // merge address ranges into non-overlapping elements
+    // merge_addrs(source_addrs)
+    todo!()
 }
 
 /// Convert destination networks and ranges configured in an ACL rule
@@ -356,53 +359,123 @@ fn process_destination_addrs(
             });
 
     // combine both iterators to return a single list
-    let destination_addrs = destination_iterator
+    let destination_addrs: Vec<IpAddress> = destination_iterator
         .chain(destination_range_iterator)
         .chain(alias_destination_range_iterator)
         .collect();
 
     // merge address ranges into non-overlapping elements
-    merge_addrs(destination_addrs)
+    // merge_addrs(destination_addrs)
+    todo!()
 }
 
-fn merge_addrs(addrs: Vec<IpAddress>) -> Vec<IpAddress> {
+/// Converts an arbitrary list of ip address ranges into the smallest possible list
+/// of non-overlapping elements which can be used in a firewall rule.
+/// It assumes that all ranges with an invalid IP version have already been filtered out.
+fn merge_addrs(mut addr_ranges: Vec<(IpAddr, IpAddr)>) -> Vec<IpAddress> {
     unimplemented!()
-}
-
-/// TODO: Implement once data model is finalized and address processing can be generalized
-/// Helper function which prepares a list of IP addresses by doing the following:
-/// - filter out addresses of different type than the VPN subnet
-/// - remove duplicate elements
-/// - transform subnets, ranges, IPs into non-overlapping elements
-/// - convert to format expected by `FirewallRule` gRPC struct
-fn process_ip_addrs(_addrs: Vec<IpAddr>, _location_ip_version: IpVersion) {
-    unimplemented!()
+    // // return early if list is empty
+    // if addr_ranges.is_empty() {
+    //     return Vec::new();
+    // }
+    //
+    // // sort ranges by range start
+    // addr_ranges.sort_by(|a, b| {
+    //     let a_start = a.0;
+    //     let b_start = b.0;
+    //     a_start.cmp(&b_start)
+    // });
+    //
+    // // initialize empty result list
+    // let mut result = Vec::new();
+    //
+    // // start with first range
+    // let current_range = addr_ranges.remove(0);
+    // let mut current_range_start = current_range.start();
+    // let mut current_range_end = current_range.end();
+    //
+    // // iterate over remaining ranges
+    // for range in port_ranges {
+    //     let range_start = range.start();
+    //     let range_end = range.end();
+    //
+    //     // compare with current range
+    //     if range_start <= current_range_end {
+    //         // ranges are overlapping, merge them
+    //         current_range_end = range_end;
+    //     } else {
+    //         // ranges are not overlapping, add current range to result
+    //         let port_range = PortInner::PortRange(PortRangeProto {
+    //             start: current_range_start as u32,
+    //             end: current_range_end as u32,
+    //         });
+    //         merged_ranges.push(port_range);
+    //         current_range_start = range_start;
+    //         current_range_end = range_end;
+    //     }
+    // }
+    // result
 }
 
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
-fn merge_port_ranges(mut port_ranges: Vec<PortRange>) -> Vec<Port> {
+fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
+    // convert ranges to a list of tuples for merging
+    let port_ranges = port_ranges
+        .into_iter()
+        .map(|range| (range.start(), range.end()))
+        .collect();
+
+    // merge into non-overlapping ranges
+    let port_ranges = merge_ranges(port_ranges);
+
+    // convert resulting ranges into gRPC format
+    port_ranges
+        .into_iter()
+        .map(|(range_start, range_end)| {
+            if range_start == range_end {
+                Port {
+                    port: Some(PortInner::SinglePort(range_start as u32)),
+                }
+            } else {
+                Port {
+                    port: Some(PortInner::PortRange(PortRangeProto {
+                        start: range_start as u32,
+                        end: range_end as u32,
+                    })),
+                }
+            }
+        })
+        .collect()
+}
+
+/// Helper function which implements merging a set of ranges of arbitrary elements
+/// into the smallest possible set of non-overlapping ranges.
+/// It can then be reused for merging port and address ranges.
+fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
     // return early if list is empty
-    if port_ranges.is_empty() {
+    if ranges.is_empty() {
         return Vec::new();
     }
 
     // sort elements by range start
-    port_ranges.sort_by(|a, b| {
-        let a_start = a.start();
-        let b_start = b.start();
-        a_start.cmp(&b_start)
+    ranges.sort_by(|a, b| {
+        let a_start = &a.0;
+        let b_start = &b.0;
+        a_start.cmp(b_start)
     });
 
+    // initialize result vector
     let mut merged_ranges = Vec::new();
+
     // start with first range
-    let current_range = port_ranges.remove(0);
-    let mut current_range_start = current_range.start();
-    let mut current_range_end = current_range.end();
+    let current_range = ranges.remove(0);
+    let mut current_range_start = current_range.0;
+    let mut current_range_end = current_range.1;
 
     // iterate over remaining ranges
-    for range in port_ranges {
-        let range_start = range.start();
-        let range_end = range.end();
+    for range in ranges {
+        let range_start = range.0;
+        let range_end = range.1;
 
         // compare with current range
         if range_start <= current_range_end {
@@ -410,37 +483,17 @@ fn merge_port_ranges(mut port_ranges: Vec<PortRange>) -> Vec<Port> {
             current_range_end = range_end;
         } else {
             // ranges are not overlapping, add current range to result
-            let port_range = PortInner::PortRange(PortRangeProto {
-                start: current_range_start as u32,
-                end: current_range_end as u32,
-            });
-            merged_ranges.push(port_range);
+            merged_ranges.push((current_range_start, current_range_end));
             current_range_start = range_start;
             current_range_end = range_end;
         }
     }
 
-    // add last range
-    let port_range = PortInner::PortRange(PortRangeProto {
-        start: current_range_start as u32,
-        end: current_range_end as u32,
-    });
-    merged_ranges.push(port_range);
+    // add last remaining range
+    merged_ranges.push((current_range_start, current_range_end));
 
-    // convert single-element ranges
+    // return resulting list
     merged_ranges
-        .into_iter()
-        .map(|port| {
-            if let PortInner::PortRange(range) = port {
-                if range.start == range.end {
-                    return Port {
-                        port: Some(PortInner::SinglePort(range.start)),
-                    };
-                }
-            }
-            Port { port: Some(port) }
-        })
-        .collect()
 }
 
 impl WireguardNetwork<Id> {
