@@ -20,6 +20,7 @@ use super::LicenseInfo;
 /// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiAclRule<I = NoId> {
+    #[serde(default)]
     pub id: I,
     pub name: String,
     pub all_networks: bool,
@@ -69,6 +70,7 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
 /// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiAclAlias<I = NoId> {
+    #[serde(default)]
     pub id: I,
     pub name: String,
     pub destination: String,
