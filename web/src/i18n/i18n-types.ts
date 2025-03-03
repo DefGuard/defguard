@@ -2981,6 +2981,16 @@ type RootTranslation = {
 						 */
 						helper: string
 					}
+					group_match: {
+						/**
+						 * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
+						 */
+						label: string
+						/**
+						 * P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​ ​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​ ​n​a​m​e​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.​ ​I​f​ ​l​e​f​t​ ​e​m​p​t​y​,​ ​a​l​l​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​v​i​d​e​r​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
+						 */
+						helper: string
+					}
 				}
 			}
 		}
@@ -7889,6 +7899,16 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 						/**
 						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
+					}
+					group_match: {
+						/**
+						 * Sync only matching groups
+						 */
+						label: () => LocalizedString
+						/**
+						 * Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.
 						 */
 						helper: () => LocalizedString
 					}

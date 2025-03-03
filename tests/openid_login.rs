@@ -57,6 +57,7 @@ async fn test_openid_providers() {
         create_account: false,
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
+        directory_sync_group_match: None,
     };
 
     let response = client
