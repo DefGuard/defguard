@@ -13,7 +13,7 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
-    enterprise::license::LicenseError,
+    enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     VERSION,
 };
@@ -86,6 +86,22 @@ impl From<WebError> for ApiResponse {
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::AclError(err) => match err {
+                AclError::ParseIntError(_)
+                | AclError::IpNetworkError(_)
+                | AclError::AddrParseError(_)
+                | AclError::InvalidPortsFormat(_) => ApiResponse::new(
+                    json!({"msg": "Unprocessable entity"}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
+                AclError::DbError(err) => {
+                    error!("{err}");
+                    ApiResponse::new(
+                        json!({"msg": "Internal server error"}),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )
+                }
+            },
             WebError::Http(status) => {
                 error!("{status}");
                 ApiResponse::new(

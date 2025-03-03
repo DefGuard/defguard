@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, rule_id, \"start\", \"end\" FROM aclruledestinationrange r WHERE rule_id = $1",
+  "query": "SELECT id, rule_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" FROM aclruledestinationrange WHERE rule_id = $1",
   "describe": {
     "columns": [
       {
@@ -15,12 +15,12 @@
       },
       {
         "ordinal": 2,
-        "name": "start",
+        "name": "start: IpAddr",
         "type_info": "Inet"
       },
       {
         "ordinal": 3,
-        "name": "end",
+        "name": "end: IpAddr",
         "type_info": "Inet"
       }
     ],
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "aa74ab06250fb7333af76b9718449b407e051f46b1f5176470a88c05e7ecd6d2"
+  "hash": "3c94a6a2aa89280654304527425cbf8fa62f2d91cfa0a01d784bc651a1de2fa6"
 }

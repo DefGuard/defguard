@@ -300,15 +300,14 @@ fn process_destination_addrs(
         .filter_map(|dst| match ip_version {
             IpVersion::Ipv4 => {
                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                    // FIXME: update once range types are fixed
-                    Some((dst.start.network(), dst.end.network()))
+                    Some((dst.start, dst.end))
                 } else {
                     None
                 }
             }
             IpVersion::Ipv6 => {
                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                    Some((dst.start.network(), dst.end.network()))
+                    Some((dst.start, dst.end))
                 } else {
                     None
                 }
@@ -320,14 +319,14 @@ fn process_destination_addrs(
             .filter_map(|dst| match ip_version {
                 IpVersion::Ipv4 => {
                     if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                        Some((dst.start.network(), dst.end.network()))
+                        Some((dst.start, dst.end))
                     } else {
                         None
                     }
                 }
                 IpVersion::Ipv6 => {
                     if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                        Some((dst.start.network(), dst.end.network()))
+                        Some((dst.start, dst.end))
                     } else {
                         None
                     }
