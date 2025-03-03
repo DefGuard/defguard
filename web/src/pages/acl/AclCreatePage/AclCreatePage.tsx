@@ -1,13 +1,12 @@
 import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
-import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
@@ -19,7 +18,10 @@ import { FormTextarea } from '../../../shared/defguard-ui/components/Form/FormTe
 import { ActivityIcon } from '../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
 import { ActivityIconVariant } from '../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../shared/defguard-ui/components/Layout/Button/types';
+import {
+  ButtonSize,
+  ButtonStyleVariant,
+} from '../../../shared/defguard-ui/components/Layout/Button/types';
 import { LabeledCheckbox } from '../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import {
@@ -28,15 +30,17 @@ import {
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../shared/queries';
 import {
+  AclRuleInfo,
   CreateAclRuleRequest,
+  EditAclRuleRequest,
   GroupInfo,
   Network,
   StandaloneDevice,
   User,
 } from '../../../shared/types';
 import { useAclLoadedContext } from '../acl-context';
-import { useAclContext } from '../store';
 import { AclProtocol } from '../types';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
@@ -50,27 +54,71 @@ const mockedAliases: Alias[] = [];
 export const AlcCreatePage = () => {
   const [searchParams] = useSearchParams();
   const editMode = ['1', 'true'].includes(searchParams.get('edit') ?? '');
-  const resetStore = useAclContext((s) => s.reset, shallow);
   const { LL } = useI18nContext();
   const localLL = LL.acl.createPage;
   const formErrors = LL.form.error;
-  const { networks, devices, groups, users } = useAclLoadedContext();
-  const initialValue = useAclContext((s) => s.formRuleInitialValue);
+  const { networks, devices, groups, users, ruleToEdit } = useAclLoadedContext();
+  const queryClient = useQueryClient();
+
+  const initialValue = useMemo(() => {
+    if (editMode) {
+      return ruleToEdit as AclRuleInfo;
+    }
+    const defaultValue: AclRuleInfo = {
+      aliases: [],
+      all_networks: false,
+      allow_all_users: false,
+      allowed_devices: [],
+      allowed_groups: [],
+      allowed_users: [],
+      denied_devices: [],
+      denied_groups: [],
+      denied_users: [],
+      deny_all_users: false,
+      destination: '',
+      id: 0,
+      name: '',
+      networks: [],
+      ports: '',
+      protocols: [],
+      expires: undefined,
+    };
+    return defaultValue;
+  }, [editMode, ruleToEdit]);
+
   const [neverExpires, setNeverExpires] = useState(!initialValue.expires);
   const [allowAllUsers, setAllowAllUsers] = useState(initialValue.allow_all_users);
   const [denyAllUsers, setDenyAllUsers] = useState(initialValue.deny_all_users);
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
+  const submitRef = useRef<HTMLInputElement | null>(null);
 
   const navigate = useNavigate();
 
   const {
     acl: {
-      rules: { createRule },
+      rules: { createRule, editRule },
     },
   } = useApi();
 
-  const { mutate, isPending: submitPending } = useMutation({
+  const handleSuccess = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: [QueryKeys.FETCH_ACL_RULES],
+    });
+    navigate('/admin/acl');
+  }, [navigate, queryClient]);
+
+  const { mutate: mutatePost, isPending: postPending } = useMutation({
     mutationFn: createRule,
+    onSuccess: () => {
+      handleSuccess();
+    },
+  });
+
+  const { mutate: mutatePut, isPending: putPending } = useMutation({
+    mutationFn: editRule,
+    onSuccess: () => {
+      handleSuccess();
+    },
   });
 
   const schema = useMemo(
@@ -177,27 +225,31 @@ export const AlcCreatePage = () => {
     if (neverExpires) {
       expires = null;
     }
-    const requestData: CreateAclRuleRequest = {
-      ...values,
-      allow_all_users: allowAllUsers,
-      deny_all_users: denyAllUsers,
-      all_networks: allowAllLocations,
-      expires: expires,
-    };
-    mutate(requestData);
+    if (editMode) {
+      const requestData: EditAclRuleRequest = {
+        ...values,
+        allow_all_users: allowAllUsers,
+        deny_all_users: denyAllUsers,
+        all_networks: allowAllLocations,
+        expires: expires,
+        id: initialValue.id,
+      };
+      mutatePut(requestData);
+    } else {
+      const requestData: CreateAclRuleRequest = {
+        ...values,
+        allow_all_users: allowAllUsers,
+        deny_all_users: denyAllUsers,
+        all_networks: allowAllLocations,
+        expires: expires,
+      };
+      mutatePost(requestData);
+    }
   };
 
   const handleInvalidSubmit: SubmitErrorHandler<FormFields> = (errors) => {
     console.table(errors);
   };
-
-  // when exiting the route reset the context to avoid outdated init info
-  useEffect(() => {
-    return () => {
-      resetStore();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <PageContainer id="acl-create-page">
@@ -209,13 +261,19 @@ export const AlcCreatePage = () => {
             onClick={() => {
               navigate('/admin/acl');
             }}
-            disabled={submitPending}
+            disabled={postPending || putPending}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.LINK}
           />
           <Button
             type="submit"
             text="Submit"
+            size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            loading={submitPending}
+            loading={postPending || putPending}
+            onClick={() => {
+              submitRef.current?.click();
+            }}
           />
         </div>
       </div>
@@ -369,6 +427,7 @@ export const AlcCreatePage = () => {
             searchKeys={['name']}
           />
         </SectionWithCard>
+        <input type="submit" ref={submitRef} className="hidden" />
       </form>
     </PageContainer>
   );

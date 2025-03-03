@@ -1,0 +1,35 @@
+#acl-rules {
+  width: 100%;
+
+  & > header {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-s);
+
+    & > .controls {
+      margin-left: auto;
+    }
+  }
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+
+    li {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-xs);
+
+      button {
+        cursor: pointer;
+      }
+    }
+  }
+}

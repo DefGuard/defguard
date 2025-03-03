@@ -64,7 +64,10 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
       return options.filter((o) => searchFn(o, searchValue));
     }
     if (searchKeys) {
-      return options.filter((o) => searchByKeys(o, searchKeys, searchValue));
+      return options.filter((o) => {
+        const res = searchByKeys(o, searchKeys, searchValue);
+        return res;
+      });
     }
     return options;
   }, [searchEnabled, searchFn, options, searchValue, searchKeys]);

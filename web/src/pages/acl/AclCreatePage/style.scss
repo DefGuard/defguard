@@ -26,6 +26,15 @@
       & > .btn {
         justify-self: flex-end;
       }
+
+      .controls {
+        margin-left: auto;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-end;
+        column-gap: var(--spacing-s);
+      }
     }
   }
 }

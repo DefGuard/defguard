@@ -9,6 +9,7 @@ const init: AclCreateContext = {
   groups: undefined,
   networks: undefined,
   users: undefined,
+  editRule: undefined,
 };
 
 const useValue = () => useState(init);
@@ -34,7 +35,8 @@ const useUpdateAclCreateContext = () => {
 };
 
 const useAclLoadedContext = () => {
-  const { devices, groups, networks, users } = useTrackedState();
+  const { devices, groups, networks, users, editRule } = useTrackedState();
+
   if (
     devices === undefined ||
     groups === undefined ||
@@ -48,6 +50,7 @@ const useAclLoadedContext = () => {
     groups,
     networks,
     users,
+    ruleToEdit: editRule,
   } as AclCreateContextLoaded;
 };
 

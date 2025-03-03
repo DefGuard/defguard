@@ -48,7 +48,7 @@
     grid-column: 1 / 2;
     width: 100%;
     box-sizing: border-box;
-    padding: 8px 10px k8px 18px;
+    padding: 8px 10px 8px 18px;
     border-radius: 10px;
     border: 1px solid var(--border-primary);
     min-height: 50px;
@@ -73,6 +73,8 @@
         padding: 7px 10px;
         border: 1px solid var(--border-primary);
         column-gap: 10px;
+        border-radius: 10px;
+        background-color: var(--surface-default-modal);
 
         span,
         p {

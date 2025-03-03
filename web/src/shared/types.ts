@@ -449,6 +449,10 @@ export type CreateAclRuleRequest = Omit<AclRuleInfo, 'id' | 'expires'> & {
   expires: string | null;
 };
 
+export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires'> & {
+  expires: string | null;
+};
+
 export type AclRuleInfo = {
   id: number;
   name: string;
@@ -476,8 +480,11 @@ export interface ApiHook {
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   acl: {
     rules: {
+      getRule: (id: number) => Promise<AclRuleInfo>;
       getRules: () => Promise<AclRuleInfo[]>;
       createRule: (data: CreateAclRuleRequest) => Promise<EmptyApiResponse>;
+      editRule: (data: EditAclRuleRequest) => Promise<EmptyApiResponse>;
+      deleteRule: (id: number) => Promise<AclRuleInfo>;
     };
   };
   oAuth: {

@@ -13,7 +13,7 @@ enum AclTab {
 }
 
 export const AclIndexPage = () => {
-  const [activeTab, setActiveTab] = useState(AclTab.ALIASES);
+  const [activeTab, setActiveTab] = useState(AclTab.RULES);
 
   const availableTabs: CardTabsData[] = [
     {
@@ -26,7 +26,7 @@ export const AclIndexPage = () => {
       key: AclTab.RULES,
       active: activeTab === AclTab.RULES,
       content: <p>Rules</p>,
-      onClick: () => setActiveTab(AclTab.ALIASES),
+      onClick: () => setActiveTab(AclTab.RULES),
     },
   ];
 

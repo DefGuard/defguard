@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import './style.scss';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import { Link } from 'react-router-dom';
 
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -12,11 +13,14 @@ import { QueryKeys } from '../../../../../shared/queries';
 
 export const AclIndexRules = () => {
   const navigate = useNavigate();
+
   const {
     acl: {
-      rules: { getRules },
+      rules: { getRules, deleteRule },
     },
   } = useApi();
+  const queryClient = useQueryClient();
+
   const { data: aclRules } = useQuery({
     queryFn: getRules,
     queryKey: [QueryKeys.FETCH_ACL_RULES],
@@ -33,16 +37,35 @@ export const AclIndexRules = () => {
             styleVariant={ButtonStyleVariant.PRIMARY}
             text="Add new"
             onClick={() => {
-              navigate('/admin/acl/create');
+              navigate('/admin/acl/form');
             }}
           />
         </div>
       </header>
-      {aclRules && (
+      {Array.isArray(aclRules) && (
         <ul>
           {aclRules.map((rule) => (
             <li key={rule.id}>
-              <Link to={`/admin/acl/edit?rule=${rule.id}`}>{rule.name}</Link>
+              <span>{rule.name}</span>
+              <button
+                onClick={() => {
+                  navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
+                }}
+                type="button"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  void deleteRule(rule.id).then(() => {
+                    void queryClient.invalidateQueries({
+                      queryKey: [QueryKeys.FETCH_ACL_RULES],
+                    });
+                  });
+                }}
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>

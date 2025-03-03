@@ -10,7 +10,7 @@ export const AclRoutes = () => {
     <Routes>
       <Route index element={<AclIndexPage />} />
       <Route
-        path="create"
+        path="form"
         element={
           <AclCreateTrackedProvider>
             <AclCreateDataProvider>
