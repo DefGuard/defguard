@@ -17,6 +17,7 @@ use serde_json::{json, Value};
 use super::LicenseInfo;
 
 /// API representation of [`AclRule`]
+/// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiAclRule<I = NoId> {
     pub id: I,
@@ -65,6 +66,7 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
 }
 
 /// API representation of [`AclAlias`]
+/// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiAclAlias<I = NoId> {
     pub id: I,
@@ -97,7 +99,10 @@ pub async fn list_acl_rules(
     let mut api_rules: Vec<ApiAclRule<Id>> = Vec::with_capacity(rules.len());
     for r in rules.iter() {
         // TODO: may require optimisation wrt. sql queries
-        let info = r.to_info(&appstate.pool).await?;
+        let info = r.to_info(&appstate.pool).await.map_err(|err| {
+            error!("Error retrieving ACL rule {r:?}: {err}");
+            err
+        })?;
         api_rules.push(info.into());
     }
     info!("User {} listed ACL rules", session.user.username);
@@ -118,7 +123,10 @@ pub async fn get_acl_rule(
     let (rule, status) = match AclRule::find_by_id(&appstate.pool, id).await? {
         Some(rule) => (
             json!(Into::<ApiAclRule<Id>>::into(
-                rule.to_info(&appstate.pool).await?
+                rule.to_info(&appstate.pool).await.map_err(|err| {
+                    error!("Error retrieving ACL rule {rule:?}: {err}");
+                    err
+                })?
             )),
             StatusCode::OK,
         ),
@@ -137,7 +145,12 @@ pub async fn create_acl_rule(
     Json(data): Json<ApiAclRule>,
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
-    let rule = AclRule::create_from_api(&appstate.pool, &data).await?;
+    let rule = AclRule::create_from_api(&appstate.pool, &data)
+        .await
+        .map_err(|err| {
+            error!("Error creating ACL rule {data:?}: {err}");
+            err
+        })?;
     info!(
         "User {} created ACL rule {}",
         session.user.username, rule.id
@@ -157,7 +170,12 @@ pub async fn update_acl_rule(
     Json(data): Json<ApiAclRule<Id>>,
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
-    let rule = AclRule::update_from_api(&appstate.pool, id, &data).await?;
+    let rule = AclRule::update_from_api(&appstate.pool, id, &data)
+        .await
+        .map_err(|err| {
+            error!("Error updating ACL rule {data:?}: {err}");
+            err
+        })?;
     info!("User {} updated ACL rule", session.user.username);
     Ok(ApiResponse {
         json: json!(rule),
@@ -173,7 +191,12 @@ pub async fn delete_acl_rule(
     Path(id): Path<i64>,
 ) -> ApiResult {
     debug!("User {} deleting ACL rule {id}", session.user.username);
-    AclRule::delete_from_api(&appstate.pool, id).await?;
+    AclRule::delete_from_api(&appstate.pool, id)
+        .await
+        .map_err(|err| {
+            error!("Error deleting ACL rule {id}: {err}");
+            err
+        })?;
     info!("User {} deleted ACL rule {id}", session.user.username);
     Ok(ApiResponse::default())
 }
@@ -187,9 +210,12 @@ pub async fn list_acl_aliases(
     debug!("User {} listing ACL aliases", session.user.username);
     let aliases = AclAlias::all(&appstate.pool).await?;
     let mut api_aliases: Vec<ApiAclAlias<Id>> = Vec::with_capacity(aliases.len());
-    for r in aliases.iter() {
+    for a in aliases.iter() {
         // TODO: may require optimisation wrt. sql queries
-        let info = r.to_info(&appstate.pool).await?;
+        let info = a.to_info(&appstate.pool).await.map_err(|err| {
+            error!("Error retrieving ACL alias {a:?}: {err}");
+            err
+        })?;
         api_aliases.push(info.into());
     }
     info!("User {} listed ACL aliases", session.user.username);
@@ -210,7 +236,10 @@ pub async fn get_acl_alias(
     let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
         Some(alias) => (
             json!(Into::<ApiAclAlias<Id>>::into(
-                alias.to_info(&appstate.pool).await?
+                alias.to_info(&appstate.pool).await.map_err(|err| {
+                    error!("Error retrieving ACL alias {alias:?}: {err}");
+                    err
+                })?
             )),
             StatusCode::OK,
         ),
@@ -232,7 +261,12 @@ pub async fn create_acl_alias(
     Json(data): Json<ApiAclAlias>,
 ) -> ApiResult {
     debug!("User {} creating ACL alias {data:?}", session.user.username);
-    let alias = AclAlias::create_from_api(&appstate.pool, &data).await?;
+    let alias = AclAlias::create_from_api(&appstate.pool, &data)
+        .await
+        .map_err(|err| {
+            error!("Error creating ACL alias {data:?}: {err}");
+            err
+        })?;
     info!(
         "User {} created ACL alias {}",
         session.user.username, alias.id
@@ -252,7 +286,12 @@ pub async fn update_acl_alias(
     Json(data): Json<ApiAclAlias<Id>>,
 ) -> ApiResult {
     debug!("User {} updating ACL alias {data:?}", session.user.username);
-    let alias = AclAlias::update_from_api(&appstate.pool, id, &data).await?;
+    let alias = AclAlias::update_from_api(&appstate.pool, id, &data)
+        .await
+        .map_err(|err| {
+            error!("Error updating ACL alias {data:?}: {err}");
+            err
+        })?;
     info!("User {} updated ACL alias", session.user.username);
     Ok(ApiResponse {
         json: json!(alias),
@@ -268,7 +307,12 @@ pub async fn delete_acl_alias(
     Path(id): Path<i64>,
 ) -> ApiResult {
     debug!("User {} deleting ACL alias {id}", session.user.username);
-    AclAlias::delete_from_api(&appstate.pool, id).await?;
+    AclAlias::delete_from_api(&appstate.pool, id)
+        .await
+        .map_err(|err| {
+            error!("Error deleting ACL alias {id}: {err}");
+            err
+        })?;
     info!("User {} deleted ACL alias {id}", session.user.username);
     Ok(ApiResponse::default())
 }
