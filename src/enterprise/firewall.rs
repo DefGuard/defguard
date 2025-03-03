@@ -30,6 +30,8 @@ pub async fn generate_firewall_rules_from_acls(
     acl_rules: Vec<AclRuleInfo<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
+    debug!("Generating firewall rules for location {location_id}");
+
     // initialize empty result Vec
     let mut firewall_rules = Vec::new();
 
@@ -469,6 +471,7 @@ impl WireguardNetwork<Id> {
         &self,
         pool: &PgPool,
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
+        debug!("Fetching active ACL rules for location {self}");
         let rules = query_as!(
             AclRule,
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
@@ -498,6 +501,7 @@ impl WireguardNetwork<Id> {
         &self,
         pool: &PgPool,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
+        info!("Generating firewall config for location {self}");
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
 
@@ -515,11 +519,14 @@ impl WireguardNetwork<Id> {
         )
         .await?;
 
-        Ok(Some(FirewallConfig {
+        let firewall_config = FirewallConfig {
             ip_version: ip_version.into(),
             default_policy: default_policy.into(),
             rules: firewall_rules,
-        }))
+        };
+
+        debug!("Generated firewall config for location {self}: {firewall_config:?}");
+        Ok(Some(firewall_config))
     }
 
     fn get_ip_version(&self) -> IpVersion {
