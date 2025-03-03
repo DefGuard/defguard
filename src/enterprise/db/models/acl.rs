@@ -1,24 +1,54 @@
 use crate::{
     db::{Device, Group, Id, NoId, User, WireguardNetwork},
-    enterprise::handlers::acl::ApiAclRule,
+    enterprise::handlers::acl::{ApiAclAlias, ApiAclRule},
     DeviceType,
 };
 use chrono::NaiveDateTime;
-use ipnetwork::IpNetwork;
+use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
     postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
 };
 use std::{
     collections::HashSet,
+    fmt,
+    net::IpAddr,
     ops::{Bound, Range},
 };
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum AclError {
+    #[error("InvalidPortsFormat: {0}")]
+    InvalidPortsFormat(String),
+    #[error(transparent)]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error(transparent)]
+    IpNetworkError(#[from] ipnetwork::IpNetworkError),
+    #[error(transparent)]
+    AddrParseError(#[from] std::net::AddrParseError),
+    #[error(transparent)]
+    DbError(#[from] SqlxError),
+}
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
 pub type Protocol = i32;
 
+/// Representation of port range. Those are stored in the db as [`PgRange<i32>`].
+/// Single ports are represented as single-element ranges, e.g. port 80 = Range(80, 81)
+/// since upper bound is excluded by convention.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PortRange(Range<i32>);
+pub struct PortRange(pub Range<i32>);
+
+impl fmt::Display for PortRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match (self.0.start, self.0.end) {
+            (start, end) if end == (start + 1) => start.to_string(),
+            (start, end) => format!("{start}-{}", end - 1),
+        };
+        write!(f, "{}", s)
+    }
+}
 
 impl From<PgRange<i32>> for PortRange {
     fn from(range: PgRange<i32>) -> Self {
@@ -47,7 +77,8 @@ impl From<PortRange> for PgRange<i32> {
     }
 }
 
-/// Helper struct combining all DB objects related to given [`AclRule`]
+/// Helper struct combining all DB objects related to given [`AclRule`].
+/// All related objects are stored in vectors.
 #[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
     pub id: I,
@@ -72,6 +103,59 @@ pub struct AclRuleInfo<I = NoId> {
     pub protocols: Vec<Protocol>,
 }
 
+impl<I> AclRuleInfo<I> {
+    /// Constructs a [`String`] of comma-separated addresses and address ranges
+    pub(crate) fn format_destination(&self) -> String {
+        // process single addresses
+        let addrs = match &self.destination {
+            d if d.is_empty() => String::new(),
+            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+        };
+        // process address ranges
+        let ranges = match &self.destination_ranges {
+            r if r.is_empty() => String::new(),
+            r => r.iter().fold(String::new(), |acc, r| {
+                acc + &format!("{}-{}, ", r.start, r.end)
+            }),
+        };
+
+        // remove full mask from resulting string
+        let destination = (addrs + &ranges).replace("/32", "");
+        if destination.is_empty() {
+            destination
+        } else {
+            // trim the last last ', '
+            destination[..destination.len() - 2].to_string()
+        }
+    }
+
+    /// Constructs a [`String`] of comma-separated ports and port ranges
+    pub(crate) fn format_ports(&self) -> String {
+        if self.ports.is_empty() {
+            String::new()
+        } else {
+            let ports = self
+                .ports
+                .iter()
+                .map(|r| r.to_string() + ", ")
+                .collect::<String>();
+            // trim the last last ', '
+            ports[..ports.len() - 2].to_string()
+        }
+    }
+}
+
+/// Database representation of an ACL rule. ACL rule has many related objects:
+/// * networks
+/// * users
+/// * groups
+/// * aliases
+/// * devices
+/// * ...
+///
+/// Those objects have their dedicated tables and structures so we provide
+/// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
+/// to combine all the related objects for easier downstream processing.
 #[derive(Clone, Debug, Model, PartialEq)]
 pub struct AclRule<I = NoId> {
     pub id: I,
@@ -89,39 +173,15 @@ pub struct AclRule<I = NoId> {
 }
 
 impl AclRule {
-    #[must_use]
-    pub(crate) fn new<S: Into<String>>(
-        name: S,
-        allow_all_users: bool,
-        deny_all_users: bool,
-        all_networks: bool,
-        destination: Vec<IpNetwork>,
-        ports: Vec<PgRange<i32>>,
-        protocols: Vec<Protocol>,
-        expires: Option<NaiveDateTime>,
-    ) -> Self {
-        Self {
-            id: NoId,
-            name: name.into(),
-            allow_all_users,
-            deny_all_users,
-            all_networks,
-            destination,
-            ports,
-            protocols,
-            expires,
-        }
-    }
-
     /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
     pub(crate) async fn create_from_api(
         pool: &PgPool,
         api_rule: &ApiAclRule<NoId>,
-    ) -> Result<ApiAclRule<Id>, SqlxError> {
+    ) -> Result<ApiAclRule<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let rule: AclRule<NoId> = api_rule.clone().into();
+        let rule: AclRule<NoId> = api_rule.clone().try_into()?;
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
@@ -136,11 +196,11 @@ impl AclRule {
         pool: &PgPool,
         id: Id,
         api_rule: &ApiAclRule<Id>,
-    ) -> Result<ApiAclRule<Id>, SqlxError> {
+    ) -> Result<ApiAclRule<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let mut rule: AclRule<Id> = api_rule.clone().into();
+        let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
         rule.id = id; // frontend may PUT an object with incorrect id
         rule.save(&mut *transaction).await?;
 
@@ -171,13 +231,57 @@ impl AclRule {
     }
 }
 
-impl<I> AclRule<I> {
+/// Perses a destination string into singular ip addresses or networks and address
+/// ranges. We should be able to parse a string like this one:
+/// `10.0.0.1/24, 10.1.1.10-10.1.1.20, 192.168.1.10, 10.1.1.1-10.10.1.1`
+pub fn parse_destination(
+    destination: &str,
+) -> Result<(Vec<IpNetwork>, Vec<(IpAddr, IpAddr)>), AclError> {
+    let mut addrs = Vec::new();
+    let mut ranges = Vec::new();
+    let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
+    for v in destination.split(',') {
+        match v.split('-').collect::<Vec<_>>() {
+            l if l.len() == 1 => addrs.push(l[0].parse::<IpNetwork>()?),
+            l if l.len() == 2 => ranges.push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
+            _ => return Err(IpNetworkError::InvalidAddr(destination))?,
+        };
+    }
+
+    Ok((addrs, ranges))
+}
+
+/// Perses a ports string into singular ports and port ranges
+/// We should be able to parse a string like this one:
+/// `22, 23, 8000-9000, 80-90`
+pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
+    let mut result = Vec::new();
+    let p: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
+    for v in p.split(',') {
+        match v.split('-').collect::<Vec<_>>() {
+            l if l.len() == 1 => result.push(PortRange(Range {
+                start: l[0].parse::<i32>()?,
+                end: l[0].parse::<i32>()? + 1,
+            })),
+            l if l.len() == 2 => result.push(PortRange(Range {
+                start: l[0].parse::<i32>()?,
+                end: l[1].parse::<i32>()? + 1,
+            })),
+            _ => return Err(AclError::InvalidPortsFormat(ports.to_string())),
+        };
+    }
+
+    Ok(result)
+}
+
+impl<I: std::fmt::Debug> AclRule<I> {
     /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
     async fn create_related_objects(
         transaction: &mut PgConnection,
         rule_id: Id,
         api_rule: &ApiAclRule<I>,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<(), AclError> {
+        debug!("Creating related objects for ACL rule {api_rule:?}");
         // save related networks
         for network_id in &api_rule.networks {
             let obj = AclRuleNetwork {
@@ -264,17 +368,19 @@ impl<I> AclRule<I> {
             obj.save(&mut *transaction).await?;
         }
 
-        // destination ranges
-        for range in &api_rule.destination_ranges {
+        // destination
+        let (_, ranges) = parse_destination(&api_rule.destination)?;
+        for range in ranges {
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,
-                start: range.start,
-                end: range.end,
+                start: range.0,
+                end: range.1,
             };
             obj.save(&mut *transaction).await?;
         }
 
+        info!("Created related objects for ACL rule {api_rule:?}");
         Ok(())
     }
 
@@ -283,6 +389,7 @@ impl<I> AclRule<I> {
         transaction: &mut PgConnection,
         rule_id: Id,
     ) -> Result<(), SqlxError> {
+        debug!("Deleting related objects for ACL rule {rule_id}");
         // networks
         query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
@@ -316,23 +423,28 @@ impl<I> AclRule<I> {
         .execute(&mut *transaction)
         .await?;
 
+        info!("Deleted related objects for ACL rule {rule_id}");
         Ok(())
     }
 }
 
-impl<I> From<ApiAclRule<I>> for AclRule<I> {
-    fn from(rule: ApiAclRule<I>) -> Self {
-        Self {
-            ports: rule.ports.into_iter().map(Into::into).collect(),
+impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
+    type Error = AclError;
+    fn try_from(rule: ApiAclRule<I>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            destination: parse_destination(&rule.destination)?.0,
+            ports: parse_ports(&rule.ports)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             id: rule.id,
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
             all_networks: rule.all_networks,
-            destination: rule.destination,
             protocols: rule.protocols,
             expires: rule.expires,
-        }
+        })
     }
 }
 
@@ -385,7 +497,11 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are allowed or denied by the rule
-    async fn get_users<'e, E>(&self, executor: E, allowed: bool) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_users<'e, E>(
+        &self,
+        executor: E,
+        allowed: bool,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -396,7 +512,10 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are allowed by the rule
-    async fn get_allowed_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_allowed_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -435,7 +554,10 @@ impl AclRule<Id> {
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
-    async fn get_denied_users<'e, E>(&self, executor: E) -> Result<Vec<User<Id>>, SqlxError>
+    pub(crate) async fn get_denied_users<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<User<Id>>, SqlxError>
     where
         E: PgExecutor<'e>,
     {
@@ -532,8 +654,8 @@ impl AclRule<Id> {
     {
         query_as!(
             AclRuleDestinationRange,
-            "SELECT id, rule_id, \"start\", \"end\" \
-            FROM aclruledestinationrange r \
+            "SELECT id, rule_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" \
+            FROM aclruledestinationrange \
             WHERE rule_id = $1",
             self.id,
         )
@@ -613,7 +735,8 @@ impl AclRule<Id> {
         Ok(unique_denied_users.into_iter().collect())
     }
 
-    /// Converts [`AclRule`] instance to [`AclRuleInfo`]
+    /// Retrieves all related objects from the db and converts [`AclRule`]
+    /// instance to [`AclRuleInfo`].
     pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
         let aliases = self.get_aliases(pool).await?;
         let networks = self.get_networks(pool).await?;
@@ -649,50 +772,81 @@ impl AclRule<Id> {
     }
 }
 
-/// API representation of [`AclRuleDestinationRange`]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AclRuleDestinationRangeInfo {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
-
-impl<I> From<AclRuleDestinationRange<I>> for AclRuleDestinationRangeInfo {
-    fn from(rule: AclRuleDestinationRange<I>) -> Self {
-        Self {
-            start: rule.start,
-            end: rule.end,
-        }
-    }
-}
-
-/// Helper struct combining all DB objects related to given [`AclAlias`]
+/// Helper struct combining all DB objects related to given [`AclAlias`].
+/// All related objects are stored in vectors.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub name: String,
     pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
+    pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AclAliasDestinationRangeInfo {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
+impl<I> AclAliasInfo<I> {
+    /// Constructs a [`String`] of comma-separated addresses and address ranges
+    pub fn format_destination(&self) -> String {
+        // process single addresses
+        let addrs = match &self.destination {
+            d if d.is_empty() => String::new(),
+            d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
+        };
+        // process address ranges
+        let ranges = match &self.destination_ranges {
+            r if r.is_empty() => String::new(),
+            r => r.iter().fold(String::new(), |acc, r| {
+                acc + &format!("{}-{}, ", r.start, r.end)
+            }),
+        };
 
-impl<I> From<AclAliasDestinationRange<I>> for AclAliasDestinationRangeInfo {
-    fn from(range: AclAliasDestinationRange<I>) -> Self {
-        Self {
-            start: range.start,
-            end: range.end,
+        // remove full mask from resulting string
+        let destination = (addrs + &ranges).replace("/32", "");
+        if destination.is_empty() {
+            destination
+        } else {
+            // trim the last last ', '
+            destination[..destination.len() - 2].to_string()
+        }
+    }
+
+    /// Constructs a [`String`] of comma-separated ports and port ranges
+    pub fn format_ports(&self) -> String {
+        if self.ports.is_empty() {
+            String::new()
+        } else {
+            let ports = self
+                .ports
+                .iter()
+                .map(|r| r.to_string() + ", ")
+                .collect::<String>();
+            // trim the last last ', '
+            ports[..ports.len() - 2].to_string()
         }
     }
 }
 
-/// Defines an alias for ACL destination. Aliases can be
-/// used to define the destination part of the rule.
+impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
+    type Error = AclError;
+    fn try_from(alias: ApiAclAlias<I>) -> Result<Self, Self::Error> {
+        Ok(Self {
+            destination: parse_destination(&alias.destination)?.0,
+            ports: parse_ports(&alias.ports)?
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            id: alias.id,
+            name: alias.name,
+            protocols: alias.protocols,
+        })
+    }
+}
+
+/// Database representation of an ACL alias. Aliases can be used to define
+/// the destination part of an ACL rule so that it's easier to create new
+/// rules with common restrictions. In addition to the [`AclAlias`] we provide
+/// [`AclAliasInfo`] and [`ApiAclAlias`] that combine all related objects for
+/// easier downstream processing.
 #[derive(Clone, Debug, Model, PartialEq)]
 pub struct AclAlias<I = NoId> {
     pub id: I,
@@ -703,18 +857,6 @@ pub struct AclAlias<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
-}
-
-impl<I> From<AclAliasInfo<I>> for AclAlias<I> {
-    fn from(rule: AclAliasInfo<I>) -> Self {
-        Self {
-            ports: rule.ports.into_iter().map(Into::into).collect(),
-            id: rule.id,
-            name: rule.name,
-            destination: rule.destination,
-            protocols: rule.protocols,
-        }
-    }
 }
 
 impl AclAlias {
@@ -737,31 +879,31 @@ impl AclAlias {
     /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`]
     pub(crate) async fn create_from_api(
         pool: &PgPool,
-        api_alias: &AclAliasInfo<NoId>,
-    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        api_alias: &ApiAclAlias<NoId>,
+    ) -> Result<ApiAclAlias<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the alias
-        let alias: AclAlias<NoId> = api_alias.clone().into();
+        let alias: AclAlias<NoId> = api_alias.clone().try_into()?;
         let alias = alias.save(&mut *transaction).await?;
 
         // create related objects
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        alias.to_info(pool).await
+        Ok(alias.to_info(pool).await?.into())
     }
 
     /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
-        api_alias: &AclAliasInfo<Id>,
-    ) -> Result<AclAliasInfo<Id>, SqlxError> {
+        api_alias: &ApiAclAlias<Id>,
+    ) -> Result<ApiAclAlias<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the alias
-        let mut alias: AclAlias<Id> = api_alias.clone().into();
+        let mut alias: AclAlias<Id> = api_alias.clone().try_into()?;
         alias.id = id; // frontend may PUT an object with incorrect id
         alias.save(&mut *transaction).await?;
 
@@ -772,11 +914,11 @@ impl AclAlias {
         AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        alias.to_info(pool).await
+        Ok(alias.to_info(pool).await?.into())
     }
 
     /// Deletes [`AclAlias`] with all it's related objects
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
         let mut transaction = pool.begin().await?;
 
         // delete related objects
@@ -792,24 +934,27 @@ impl AclAlias {
     }
 }
 
-impl<I> AclAlias<I> {
+impl<I: std::fmt::Debug> AclAlias<I> {
     /// Creates relation objects for given [`AclAlias`] based on [`AclAliasInfo`] object
     async fn create_related_objects(
         transaction: &mut PgConnection,
         alias_id: Id,
-        api_alias: &AclAliasInfo<I>,
-    ) -> Result<(), SqlxError> {
+        api_alias: &ApiAclAlias<I>,
+    ) -> Result<(), AclError> {
+        debug!("Creating related objects for ACL alias {api_alias:?}");
         // save related destination ranges
-        for range in &api_alias.destination_ranges {
+        let (_, ranges) = parse_destination(&api_alias.destination)?;
+        for range in ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,
-                start: range.start,
-                end: range.end,
+                start: range.0,
+                end: range.1,
             };
             obj.save(&mut *transaction).await?;
         }
 
+        info!("Created related objects for ACL alias {api_alias:?}");
         Ok(())
     }
 
@@ -817,7 +962,8 @@ impl<I> AclAlias<I> {
     async fn delete_related_objects(
         transaction: &mut PgConnection,
         alias_id: Id,
-    ) -> Result<(), SqlxError> {
+    ) -> Result<(), AclError> {
+        debug!("Deleting related objects for ACL alias {alias_id}");
         // destination ranges
         query!(
             "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
@@ -826,6 +972,7 @@ impl<I> AclAlias<I> {
         .execute(&mut *transaction)
         .await?;
 
+        info!("Deleted related objects for ACL alias {alias_id}");
         Ok(())
     }
 }
@@ -841,8 +988,8 @@ impl AclAlias<Id> {
     {
         query_as!(
             AclAliasDestinationRange,
-            "SELECT id, alias_id, \"start\", \"end\" \
-            FROM aclaliasdestinationrange r \
+            "SELECT id, alias_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" \
+            FROM aclaliasdestinationrange \
             WHERE alias_id = $1",
             self.id,
         )
@@ -850,13 +997,10 @@ impl AclAlias<Id> {
         .await
     }
 
+    /// Retrieves all related objects from the db and converts [`AclAlias`]
+    /// instance to [`AclAliasInfo`].
     pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo<Id>, SqlxError> {
-        let destination_ranges = self
-            .get_destination_ranges(pool)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let destination_ranges = self.get_destination_ranges(pool).await?;
 
         Ok(AclAliasInfo {
             id: self.id,
@@ -907,20 +1051,60 @@ pub struct AclRuleDevice<I = NoId> {
     pub allow: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
     pub rule_id: i64,
-    pub start: IpNetwork,
-    pub end: IpNetwork,
+    pub start: IpAddr,
+    pub end: IpAddr,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+impl AclRuleDestinationRange<NoId> {
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "INSERT INTO aclruledestinationrange \
+            (rule_id, \"start\", \"end\") \
+            VALUES ($1, $2, $3)",
+            self.rule_id,
+            IpNetwork::from(self.start),
+            IpNetwork::from(self.end),
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
     pub alias_id: i64,
-    pub start: IpNetwork,
-    pub end: IpNetwork,
+    pub start: IpAddr,
+    pub end: IpAddr,
+}
+
+impl AclAliasDestinationRange<NoId> {
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "INSERT INTO aclaliasdestinationrange \
+            (alias_id, \"start\", \"end\") \
+            VALUES ($1, $2, $3)",
+            self.alias_id,
+            IpNetwork::from(self.start),
+            IpNetwork::from(self.end),
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -960,16 +1144,17 @@ mod test {
     #[sqlx::test]
     async fn test_rule_relations(pool: PgPool) {
         // create the rule
-        let mut rule = AclRule::new(
-            "rule",
-            false,
-            false,
-            false,
-            Vec::new(),
-            Vec::new(),
-            Vec::new(),
-            None,
-        )
+        let mut rule = AclRule {
+            id: NoId,
+            name: "rule".to_string(),
+            allow_all_users: false,
+            deny_all_users: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            expires: None,
+        }
         .save(&pool)
         .await
         .unwrap();
