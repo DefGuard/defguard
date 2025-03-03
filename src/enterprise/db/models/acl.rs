@@ -792,13 +792,6 @@ impl AclRuleInfo<Id> {
     }
 }
 
-/// API representation of [`AclRuleDestinationRange`]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AclRuleDestinationRangeInfo {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
-
 /// Helper struct combining all DB objects related to given [`AclAlias`].
 /// All related objects are stored in vectors.
 #[derive(Clone, Debug, Serialize, Deserialize)]
