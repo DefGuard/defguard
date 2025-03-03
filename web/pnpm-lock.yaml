@@ -41,6 +41,9 @@ importers:
       '@tanstack/virtual-core':
         specifier: 3.0.0-beta.9
         version: 3.0.0-beta.9
+      '@use-gesture/react':
+        specifier: ^10.3.1
+        version: 10.3.1(react@18.2.0)
       axios:
         specifier: ^1.7.9
         version: 1.7.9
@@ -113,6 +116,9 @@ importers:
       react-click-away-listener:
         specifier: ^2.3.0
         version: 2.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      react-datepicker:
+        specifier: ^8.1.0
+        version: 8.1.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
@@ -145,7 +151,7 @@ importers:
         version: 6.21.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-tracked:
         specifier: ^2.0.1
-        version: 2.0.1(react@18.2.0)(scheduler@0.23.0)
+        version: 2.0.1(react@18.2.0)(scheduler@0.25.0)
       react-virtualized-auto-sizer:
         specifier: ^1.0.25
         version: 1.0.25(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -167,6 +173,12 @@ importers:
       rxjs:
         specifier: ^7.8.1
         version: 7.8.1
+      scheduler:
+        specifier: ^0.25.0
+        version: 0.25.0
+      string-similarity:
+        specifier: ^4.0.4
+        version: 4.0.4
       typesafe-i18n:
         specifier: ^5.26.2
         version: 5.26.2(typescript@5.7.2)
@@ -231,6 +243,9 @@ importers:
       '@types/react-window':
         specifier: ^1.8.8
         version: 1.8.8
+      '@types/string-similarity':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.19.1
         version: 8.19.1(@typescript-eslint/parser@8.19.1(eslint@9.17.0)(typescript@5.7.2))(eslint@9.17.0)(typescript@5.7.2)
@@ -1154,6 +1169,9 @@ packages:
   '@types/scheduler@0.16.8':
     resolution: {integrity: sha512-WZLiwShhwLRmeV6zH+GkbOFT6Z6VklCItrDioxUnv+u4Ll+8vKeFySoFyK/0ctcRpOmwAicELfmys1sDc/Rw+A==}
 
+  '@types/string-similarity@4.0.2':
+    resolution: {integrity: sha512-LkJQ/jsXtCVMK+sKYAmX/8zEq+/46f1PTQw7YtmQwb74jemS1SlNLmARM2Zml9DgdDTWKAtc5L13WorpHPDjDA==}
+
   '@types/unist@2.0.10':
     resolution: {integrity: sha512-IfYcSBWE3hLpBg8+X2SEa8LVkJdJEkT2Ese2aaLs3ptGdVtABxndrMaxuFlQ1qdFf9Q5rDvDpxI3WwgvKFAsQA==}
 
@@ -1209,6 +1227,14 @@ packages:
 
   '@ungap/structured-clone@1.2.0':
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
+
+  '@use-gesture/core@10.3.1':
+    resolution: {integrity: sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw==}
+
+  '@use-gesture/react@10.3.1':
+    resolution: {integrity: sha512-Yy19y6O2GJq8f7CHf7L0nxL8bf4PZCPaVOCgJrusOeFHY1LvHgYXnmnXg6N5iwAnbgbZCDjo60SiM6IPJi9C5g==}
+    peerDependencies:
+      react: '>= 16.8.0'
 
   '@vitejs/plugin-react-swc@3.7.2':
     resolution: {integrity: sha512-y0byko2b2tSVVf5Gpng1eEhX1OvPC7x8yns1Fx8jDzlJp4LS6CMkCPfLw47cjyoMrshQDoQw4qcgjsU9VvlCew==}
@@ -1668,6 +1694,9 @@ packages:
   data-view-byte-offset@1.0.1:
     resolution: {integrity: sha512-BS8PfmtDGnrgYdOonGZQdLZslWIeCGFP9tpan0hi1Co2Zr2NKADsvGYA8XxuG/4UWgJ6Cjtv+YJnB6MM69QGlQ==}
     engines: {node: '>= 0.4'}
+
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   dateformat@3.0.3:
     resolution: {integrity: sha512-jyCETtSl3VMZMWeRo7iY1FL19ges1t55hMo5yaam4Jrsm5EPL89UQkoQRyiI+Yf4k8r2ZpdngkV8hr1lIdjb3Q==}
@@ -3207,6 +3236,12 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  react-datepicker@8.1.0:
+    resolution: {integrity: sha512-11gIOrBGK1MOvl4+wxGv4YxTqXf+uoRPtKstYhb/P1cBdRdOP1sL26VE31apmDnvw8wSYfJe9AWwWbKqmM9tzw==}
+    peerDependencies:
+      react: ^16.9.0 || ^17 || ^18 || ^19 || ^19.0.0-rc
+      react-dom: ^16.9.0 || ^17 || ^18 || ^19 || ^19.0.0-rc
+
   react-dom@18.2.0:
     resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
     peerDependencies:
@@ -3466,6 +3501,9 @@ packages:
   scheduler@0.23.0:
     resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==}
 
+  scheduler@0.25.0:
+    resolution: {integrity: sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA==}
+
   semver@5.7.2:
     resolution: {integrity: sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==}
     hasBin: true
@@ -3581,6 +3619,10 @@ packages:
     resolution: {integrity: sha512-3zWJ/mmZQsOaO+fOlsa0+QK90pwhNd042qEcw6hKFNoLFs7peGyvPffpEBbK/DSGPbyOvli0mUIFv5A4qTjh2Q==}
     engines: {node: '>=10'}
     hasBin: true
+
+  string-similarity@4.0.4:
+    resolution: {integrity: sha512-/q/8Q4Bl4ZKAPjj8WerIBJWALKkaPRfrvhfF8k/B23i4nzrlRj2/go1m90In7nG/3XDSbOo0+pu6RvCTM9RGMQ==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -4888,6 +4930,8 @@ snapshots:
 
   '@types/scheduler@0.16.8': {}
 
+  '@types/string-similarity@4.0.2': {}
+
   '@types/unist@2.0.10': {}
 
   '@types/unist@3.0.2': {}
@@ -4970,6 +5014,13 @@ snapshots:
       eslint-visitor-keys: 4.2.0
 
   '@ungap/structured-clone@1.2.0': {}
+
+  '@use-gesture/core@10.3.1': {}
+
+  '@use-gesture/react@10.3.1(react@18.2.0)':
+    dependencies:
+      '@use-gesture/core': 10.3.1
+      react: 18.2.0
 
   '@vitejs/plugin-react-swc@3.7.2(vite@6.0.7(@types/node@22.10.5)(sass@1.70.0)(terser@5.37.0)(yaml@2.6.1))':
     dependencies:
@@ -5539,6 +5590,8 @@ snapshots:
       call-bound: 1.0.3
       es-errors: 1.3.0
       is-data-view: 1.0.2
+
+  date-fns@4.1.0: {}
 
   dateformat@3.0.3: {}
 
@@ -7437,6 +7490,14 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
+  react-datepicker@8.1.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      '@floating-ui/react': 0.27.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      clsx: 2.1.1
+      date-fns: 4.1.0
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+
   react-dom@18.2.0(react@18.2.0):
     dependencies:
       loose-envify: 1.4.0
@@ -7516,12 +7577,12 @@ snapshots:
       react-dom: 18.2.0(react@18.2.0)
       react-transition-group: 4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
 
-  react-tracked@2.0.1(react@18.2.0)(scheduler@0.23.0):
+  react-tracked@2.0.1(react@18.2.0)(scheduler@0.25.0):
     dependencies:
       proxy-compare: 3.0.1
       react: 18.2.0
-      scheduler: 0.23.0
-      use-context-selector: 2.0.0(react@18.2.0)(scheduler@0.23.0)
+      scheduler: 0.25.0
+      use-context-selector: 2.0.0(react@18.2.0)(scheduler@0.25.0)
 
   react-transition-group@4.4.5(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
@@ -7804,6 +7865,8 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
+  scheduler@0.25.0: {}
+
   semver@5.7.2: {}
 
   semver@6.3.1: {}
@@ -7948,6 +8011,8 @@ snapshots:
       semver: 7.5.4
       stringify-package: 1.0.1
       yargs: 16.2.0
+
+  string-similarity@4.0.4: {}
 
   string-width@4.2.3:
     dependencies:
@@ -8341,10 +8406,10 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  use-context-selector@2.0.0(react@18.2.0)(scheduler@0.23.0):
+  use-context-selector@2.0.0(react@18.2.0)(scheduler@0.25.0):
     dependencies:
       react: 18.2.0
-      scheduler: 0.23.0
+      scheduler: 0.25.0
 
   use-deep-compare-effect@1.8.1(react@18.2.0):
     dependencies:

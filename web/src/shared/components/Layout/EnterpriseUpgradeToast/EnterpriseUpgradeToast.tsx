@@ -26,7 +26,7 @@ export const EnterpriseUpgradeToast = ({ id }: ToastOptions) => {
       <div className="top">
         <div className="heading">
           <Badge
-            styleVariant={BadgeStyleVariant.PRIMARY}
+            type={BadgeStyleVariant.PRIMARY}
             icon={
               <svg
                 width="8"

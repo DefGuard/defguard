@@ -16,7 +16,7 @@ import { CheckBox } from '../../../../shared/defguard-ui/components/Layout/Check
 import { Input } from '../../../../shared/defguard-ui/components/Layout/Input/Input';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { Textarea } from '../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
+import { TextareaAutoResizable } from '../../../../shared/defguard-ui/components/Layout/TextareaAutoResizable/TextareaAutoResizable';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -104,7 +104,7 @@ export const EnrollmentEmail = () => {
           disabled={isLoading || isUndefined(settings)}
         />
         <div className="text-wrapper">
-          <Textarea
+          <TextareaAutoResizable
             value={email}
             onChange={(ev: ChangeEvent<HTMLTextAreaElement>) => setEmail(ev.target.value)}
             disabled={isLoading || isUndefined(settings)}

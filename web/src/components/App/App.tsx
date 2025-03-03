@@ -1,8 +1,10 @@
 import 'react-loading-skeleton/dist/skeleton.css';
 import './App.scss';
 
+// import 'react-datepicker/dist/react-datepicker.css';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 
+import { AclRoutes } from '../../pages/acl/AclRoutes';
 import { AddDevicePage } from '../../pages/addDevice/AddDevicePage';
 import { OpenidAllowPage } from '../../pages/allow/OpenidAllowPage';
 import { AuthPage } from '../../pages/auth/AuthPage';
@@ -55,6 +57,14 @@ const App = () => {
             <Route path="auth/*" element={<AuthPage />} />
             <Route path="admin/*">
               <Route index element={<Navigate to="users" />} />
+              <Route
+                path="acl/*"
+                element={
+                  <ProtectedRoute>
+                    <AclRoutes />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="groups/*"
                 element={

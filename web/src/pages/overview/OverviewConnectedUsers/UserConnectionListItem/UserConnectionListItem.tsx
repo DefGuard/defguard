@@ -1,7 +1,6 @@
 import './style.scss';
 
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { floor } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
@@ -23,8 +22,6 @@ import { getUserFullName } from '../../../../shared/helpers/getUserFullName';
 import { NetworkDeviceStats, NetworkUserStats } from '../../../../shared/types';
 import { summarizeDevicesStats } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
-
-dayjs.extend(utc);
 
 interface Props {
   data: NetworkUserStats;
@@ -203,8 +200,8 @@ interface DeviceIpsProps {
 const DeviceIps = ({ publicIp, wireguardIp }: DeviceIpsProps) => {
   return (
     <div className="device-ips">
-      <Badge styleVariant={BadgeStyleVariant.STANDARD} text={publicIp} />
-      <Badge styleVariant={BadgeStyleVariant.STANDARD} text={wireguardIp} />
+      <Badge type={BadgeStyleVariant.STANDARD} text={publicIp} />
+      <Badge type={BadgeStyleVariant.STANDARD} text={wireguardIp} />
     </div>
   );
 };

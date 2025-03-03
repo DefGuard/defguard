@@ -212,10 +212,10 @@ const NameBox = ({ name, publicIp, wireguardIp }: NameBoxProps) => {
       {(publicIp || wireguardIp) && (
         <div className="lower">
           {publicIp !== undefined && publicIp.length > 0 && (
-            <Badge styleVariant={BadgeStyleVariant.STANDARD} text={publicIp} />
+            <Badge type={BadgeStyleVariant.STANDARD} text={publicIp} />
           )}
           {wireguardIp !== undefined && wireguardIp.length > 0 && (
-            <Badge styleVariant={BadgeStyleVariant.STANDARD} text={wireguardIp} />
+            <Badge type={BadgeStyleVariant.STANDARD} text={wireguardIp} />
           )}
         </div>
       )}

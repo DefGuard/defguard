@@ -501,6 +501,21 @@ const useApi = (props?: HookProps): ApiHook => {
   const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
     (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
 
+  const createAclRule: ApiHook['acl']['rules']['createRule'] = (data) =>
+    client.post('/acl/rule', data).then(unpackRequest);
+
+  const editAclRule: ApiHook['acl']['rules']['editRule'] = ({ id, ...rest }) =>
+    client.put(`/acl/rule/${id}`, rest).then(unpackRequest);
+
+  const getAclRules: ApiHook['acl']['rules']['getRules'] = () =>
+    client.get('/acl/rule').then(unpackRequest);
+
+  const getAclRule: ApiHook['acl']['rules']['getRule'] = (id: number) =>
+    client.get(`/acl/rule/${id}`).then(unpackRequest);
+
+  const deleteAclRule: ApiHook['acl']['rules']['deleteRule'] = (id) =>
+    client.delete(`/acl/rule/${id}`).then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -533,6 +548,15 @@ const useApi = (props?: HookProps): ApiHook => {
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
+    acl: {
+      rules: {
+        createRule: createAclRule,
+        getRules: getAclRules,
+        getRule: getAclRule,
+        editRule: editAclRule,
+        deleteRule: deleteAclRule,
+      },
+    },
     oAuth: {
       consent: oAuthConsent,
     },

@@ -1,7 +1,4 @@
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-
-dayjs.extend(utc);
 
 /**
  * Sorts array of objects by date field that came from core
