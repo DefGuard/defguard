@@ -504,8 +504,8 @@ const useApi = (props?: HookProps): ApiHook => {
   const createAclRule: ApiHook['acl']['rules']['createRule'] = (data) =>
     client.post('/acl/rule', data).then(unpackRequest);
 
-  const editAclRule: ApiHook['acl']['rules']['editRule'] = (data) =>
-    client.put('/acl/rule', data).then(unpackRequest);
+  const editAclRule: ApiHook['acl']['rules']['editRule'] = ({ id, ...rest }) =>
+    client.put(`/acl/rule/${id}`, rest).then(unpackRequest);
 
   const getAclRules: ApiHook['acl']['rules']['getRules'] = () =>
     client.get('/acl/rule').then(unpackRequest);
