@@ -54,7 +54,7 @@ impl PortRange {
     pub fn new(start: i32, end: i32) -> Self {
         Self(Range {
             start,
-            // end in exclusive in `Range`
+            // end is exclusive in `Range`
             end: end + 1,
         })
     }
