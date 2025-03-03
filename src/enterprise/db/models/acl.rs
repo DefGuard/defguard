@@ -613,7 +613,7 @@ impl AclRule<Id> {
         query_as!(
             AclRuleDestinationRange,
             "SELECT id, rule_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" \
-            FROM aclruledestinationrange r \
+            FROM aclruledestinationrange \
             WHERE rule_id = $1",
             self.id,
         )
@@ -735,7 +735,7 @@ pub struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub name: String,
     pub destination: Vec<IpNetwork>,
-    pub destination_ranges: Vec<AclAliasDestinationRangeInfo>,
+    pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
 }
@@ -788,21 +788,6 @@ impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
             name: alias.name,
             protocols: alias.protocols,
         })
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AclAliasDestinationRangeInfo {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
-
-impl<I> From<AclAliasDestinationRange<I>> for AclAliasDestinationRangeInfo {
-    fn from(range: AclAliasDestinationRange<I>) -> Self {
-        Self {
-            start: range.start,
-            end: range.end,
-        }
     }
 }
 
@@ -945,8 +930,8 @@ impl AclAlias<Id> {
     {
         query_as!(
             AclAliasDestinationRange,
-            "SELECT id, alias_id, \"start\", \"end\" \
-            FROM aclaliasdestinationrange r \
+            "SELECT id, alias_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" \
+            FROM aclaliasdestinationrange \
             WHERE alias_id = $1",
             self.id,
         )
@@ -1039,12 +1024,32 @@ impl AclRuleDestinationRange<NoId> {
     }
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
     pub alias_id: i64,
-    pub start: IpNetwork,
-    pub end: IpNetwork,
+    pub start: IpAddr,
+    pub end: IpAddr,
+}
+
+impl AclAliasDestinationRange<NoId> {
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "INSERT INTO aclaliasdestinationrange \
+            (alias_id, \"start\", \"end\") \
+            VALUES ($1, $2, $3)",
+            self.alias_id,
+            IpNetwork::from(self.start),
+            IpNetwork::from(self.end),
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
