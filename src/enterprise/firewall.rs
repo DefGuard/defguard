@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use ipnetwork::IpNetwork;
+use ipnetwork::{IpNetwork, Ipv6Network};
 use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
 
 use super::db::models::acl::{
@@ -285,10 +285,10 @@ fn process_destination_addrs(
             }
         }
         IpVersion::Ipv6 => {
-            if dst.is_ipv6() {
-                // IPv6 does not have broadcast addresses, but we leverage invalid approach of the
-                // `IpNetwork` crate here
-                Some((dst.network(), dst.broadcast()))
+            if let IpNetwork::V6(subnet) = dst {
+                let range_start = subnet.network().into();
+                let range_end = get_last_ip_in_v6_subnet(subnet);
+                Some((range_start, range_end))
             } else {
                 None
             }
@@ -343,6 +343,15 @@ fn process_destination_addrs(
 
     // merge address ranges into non-overlapping elements
     merge_addrs(destination_addrs)
+}
+
+fn get_last_ip_in_v6_subnet(subnet: &Ipv6Network) -> IpAddr {
+    // get subnet IP portion as u128
+    let first_ip = subnet.ip().to_bits();
+
+    let last_ip = first_ip | (!u128::from(subnet.mask()));
+
+    IpAddr::V6(last_ip.into())
 }
 
 /// Converts an arbitrary list of ip address ranges into the smallest possible list
