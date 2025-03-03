@@ -1,17 +1,17 @@
 use std::net::IpAddr;
 
-use ipnetwork::IpNetwork;
-use sqlx::{
-    postgres::types::PgRange, query_as, query_scalar, Error as SqlxError, PgExecutor, PgPool,
+use ipnetwork::{IpNetwork, Ipv6Network};
+use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
+
+use super::db::models::acl::{
+    AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
 };
 
-use super::db::models::acl::AclRule;
-
 use crate::{
-    db::{models::error::ModelError, Id, User, WireguardNetwork},
+    db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpVersion, Port, PortRange,
+        IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
     },
 };
 
@@ -27,9 +27,12 @@ pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
     default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
-    acl_rules: Vec<AclRule<Id>>,
+    acl_rules: Vec<AclRuleInfo<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
+    debug!("Generating firewall rules for location {location_id}");
+
+    // initialize empty result Vec
     let mut firewall_rules = Vec::new();
 
     // we only create rules which are opposite to the default policy
@@ -48,114 +51,66 @@ pub async fn generate_firewall_rules_from_acls(
         // fetch denied users
         let denied_users = acl.get_all_denied_users(pool).await?;
 
-        // fetch aliases used by ACL
-        // TODO: prefetch a map to reduce number of queries
-        let aliases = acl.get_aliases(pool).await?;
+        // get relevant users for determining source IPs
+        let users = get_source_users(allowed_users, denied_users, default_location_policy);
 
-        // prepare a list of all relevant users whose device IPs we'll need to prepare a firewall
-        // rule
-        //
-        // depending on the default policy we either need:
-        // - allowed users if default policy is `Deny`
-        // - denied users if default policy is `Allow`
-        let users: Vec<User<Id>> = match default_location_policy {
-            // start with allowed users and remove those explicitly denied
-            FirewallPolicy::Deny => allowed_users
-                .into_iter()
-                .filter(|user| !denied_users.contains(user))
-                .collect(),
-            // start with denied users and remove those explicitly allowed
-            FirewallPolicy::Allow => denied_users
-                .into_iter()
-                .filter(|user| !allowed_users.contains(user))
-                .collect(),
-        };
-        let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
+        // get network IPs for devices belonging to those users
+        let user_device_ips = get_user_device_ips(&users, location_id, pool).await?;
 
-        // get network IPs for devices belonging to those users and convert them to source IPs
-        // NOTE: only consider user devices since network devices will be handled separately
-        let user_device_ips: Vec<IpAddr> = query_scalar!(
-            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
-            FROM wireguard_network_device wnd \
-            JOIN device d ON d.id = wnd.device_id \
-            WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
-            location_id,
-            &user_ids
-        )
-        .fetch_all(pool)
-        .await?;
+        // get network device IPs for rule source
+        let network_devices = get_source_network_devices(
+            acl.allowed_devices,
+            acl.denied_devices,
+            default_location_policy,
+        );
+        let network_device_ips =
+            get_network_device_ips(&network_devices, location_id, pool).await?;
 
-        // prepare source addrs
-        // TODO: convert into non-overlapping elements
-        let source_addrs = user_device_ips
-            .iter()
-            .filter_map(|ip| match ip_version {
-                IpVersion::Ipv4 => {
-                    if ip.is_ipv4() {
-                        Some(IpAddress {
-                            address: Some(Address::Ip(ip.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-                IpVersion::Ipv6 => {
-                    if ip.is_ipv6() {
-                        Some(IpAddress {
-                            address: Some(Address::Ip(ip.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-            })
-            .collect();
+        // convert device IPs into source addresses for a firewall rule
+        let source_addrs = get_source_addrs(user_device_ips, network_device_ips, ip_version);
 
-        let AclRule {
+        // extract destination parameters from ACL rule
+        let AclRuleInfo {
             mut destination,
+            destination_ranges,
             mut ports,
             mut protocols,
+            aliases,
             ..
         } = acl;
 
-        // process aliases
+        // store alias ranges separately since they use a different struct
+        let mut alias_destination_ranges = Vec::new();
+
+        // process aliases by appending destination parameters from each of them to existing lists
         for alias in aliases {
+            // fetch destination ranges for a fiven alias
+            alias_destination_ranges.extend(alias.get_destination_ranges(pool).await?);
+
+            // extend existing parameter lists
             destination.extend(alias.destination);
-            ports.extend(alias.ports);
+            ports.extend(
+                alias
+                    .ports
+                    .into_iter()
+                    .map(|port_range| port_range.into())
+                    .collect::<Vec<PortRange>>(),
+            );
             protocols.extend(alias.protocols);
         }
 
         // prepare destination addresses
-        // TODO: convert into non-overlapping elements
-        let destination_addrs = destination
-            .iter()
-            .filter_map(|dst| match ip_version {
-                IpVersion::Ipv4 => {
-                    if dst.is_ipv4() {
-                        Some(IpAddress {
-                            address: Some(Address::IpSubnet(dst.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-                IpVersion::Ipv6 => {
-                    if dst.is_ipv6() {
-                        Some(IpAddress {
-                            address: Some(Address::IpSubnet(dst.to_string())),
-                        })
-                    } else {
-                        None
-                    }
-                }
-            })
-            .collect();
+        let destination_addrs = process_destination_addrs(
+            destination,
+            destination_ranges,
+            alias_destination_ranges,
+            ip_version,
+        );
 
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
 
-        // prepare protocols
-        // remove duplicates
+        // remove duplicates protocol entries
         protocols.sort();
         protocols.dedup();
 
@@ -177,111 +132,359 @@ pub async fn generate_firewall_rules_from_acls(
     Ok(firewall_rules)
 }
 
-/// TODO: Implement once data model is finalized and address processing can be generalized
-/// Helper function which prepares a list of IP addresses by doing the following:
-/// - filter out addresses of different type than the VPN subnet
-/// - remove duplicate elements
-/// - transform subnets, ranges, IPs into non-overlapping elements
-/// - convert to format expected by `FirewallRule` gRPC struct
-fn process_ip_addrs(_addrs: Vec<IpAddr>, _location_ip_version: IpVersion) {
-    unimplemented!()
-}
-
-/// Helper to extract actual starp port value from `Bound` enum used by `PgRange`.
-fn get_start_port_from_range(range: &PgRange<i32>) -> u32 {
-    match range.start {
-        std::ops::Bound::Included(value) => value as u32,
-        std::ops::Bound::Excluded(value) => (value + 1) as u32,
-        std::ops::Bound::Unbounded => u32::MIN,
+/// Prepares a list of all relevant users whose device IPs we'll need to prepare
+/// source config for a firewall rule.
+///
+/// Depending on the default policy we either need:
+/// - allowed users if default policy is `Deny`
+/// - denied users if default policy is `Allow`
+fn get_source_users(
+    allowed_users: Vec<User<Id>>,
+    denied_users: Vec<User<Id>>,
+    default_location_policy: FirewallPolicy,
+) -> Vec<User<Id>> {
+    match default_location_policy {
+        // start with allowed users and remove those explicitly denied
+        FirewallPolicy::Deny => allowed_users
+            .into_iter()
+            .filter(|user| !denied_users.contains(user))
+            .collect(),
+        // start with denied users and remove those explicitly allowed
+        FirewallPolicy::Allow => denied_users
+            .into_iter()
+            .filter(|user| !allowed_users.contains(user))
+            .collect(),
     }
 }
 
-/// Helper to extract actual end port value from `Bound` enum used by `PgRange`.
-fn get_end_port_from_range(range: &PgRange<i32>) -> u32 {
-    match range.end {
-        std::ops::Bound::Included(value) => value as u32,
-        std::ops::Bound::Excluded(value) => (value - 1) as u32,
-        // type casting because protobuf doesn't have u16, but max port number is u16::MAX
-        std::ops::Bound::Unbounded => u16::MAX as u32,
+/// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
+// We specifically only fetch user devices since network devices are handled separately.
+async fn get_user_device_ips(
+    users: &[User<Id>],
+    location_id: Id,
+    pool: &PgPool,
+) -> Result<Vec<IpAddr>, SqlxError> {
+    // prepeare a list of user IDs
+    let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
+
+    // fetch network IPs
+    query_scalar!(
+            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            FROM wireguard_network_device wnd \
+            JOIN device d ON d.id = wnd.device_id \
+            WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
+            location_id,
+            &user_ids
+        )
+        .fetch_all(pool)
+        .await
+}
+
+/// Prepares a list of all relevant network devices whose IPs we'll need to prepare
+/// source config for a firewall rule.
+///
+/// Depending on the default policy we either need:
+/// - allowed devices if default policy is `Deny`
+/// - denied devices if default policy is `Allow`
+fn get_source_network_devices(
+    allowed_devices: Vec<Device<Id>>,
+    denied_devices: Vec<Device<Id>>,
+    default_location_policy: FirewallPolicy,
+) -> Vec<Device<Id>> {
+    match default_location_policy {
+        // start with allowed devices and remove those explicitly denied
+        FirewallPolicy::Deny => allowed_devices
+            .into_iter()
+            .filter(|device| !denied_devices.contains(device))
+            .collect(),
+        // start with denied devices and remove those explicitly allowed
+        FirewallPolicy::Allow => denied_devices
+            .into_iter()
+            .filter(|device| !allowed_devices.contains(device))
+            .collect(),
     }
+}
+
+/// Fetches all IPs of specified network devices within a given location's VPN subnet.
+async fn get_network_device_ips(
+    network_devices: &[Device<Id>],
+    location_id: Id,
+    pool: &PgPool,
+) -> Result<Vec<IpAddr>, SqlxError> {
+    // prepare a list of IDs
+    let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
+
+    // fetch network IPs
+    query_scalar!(
+        "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            FROM wireguard_network_device wnd \
+            WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
+        location_id,
+        &network_device_ids,
+    )
+    .fetch_all(pool)
+    .await
+}
+
+/// Combines user device IPs and network device IPs into a list of source addresses which can be
+/// used by a firewall rule.
+fn get_source_addrs(
+    user_device_ips: Vec<IpAddr>,
+    network_device_ips: Vec<IpAddr>,
+    ip_version: IpVersion,
+) -> Vec<IpAddress> {
+    // combine both lists into a single iterator
+    let source_ips = user_device_ips.into_iter().chain(network_device_ips);
+
+    // prepare source addrs by removing incompatible IP version elements
+    // and converting them to expected gRPC format
+    let source_addrs = source_ips
+        .filter_map(|ip| match ip_version {
+            IpVersion::Ipv4 => {
+                if ip.is_ipv4() {
+                    Some((ip, ip))
+                } else {
+                    None
+                }
+            }
+            IpVersion::Ipv6 => {
+                if ip.is_ipv6() {
+                    Some((ip, ip))
+                } else {
+                    None
+                }
+            }
+        })
+        .collect();
+
+    // merge address ranges into non-overlapping elements
+    merge_addrs(source_addrs)
+}
+
+/// Convert destination networks and ranges configured in an ACL rule
+/// into the correct format for a firewall rule. This includes:
+/// - combining both lists
+/// - converting to gRPC IpAddress struct
+/// - filtering out incompatible IP version
+/// - merging into the smallest possible list of non-overlapping ranges,
+///   subnets and addresses
+fn process_destination_addrs(
+    destination_ips: Vec<IpNetwork>,
+    destination_ranges: Vec<AclRuleDestinationRange<Id>>,
+    alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
+    ip_version: IpVersion,
+) -> Vec<IpAddress> {
+    // filter out destinations with incompatible IP version and convert to intermediate
+    // tuple representation for merging
+    let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
+        IpVersion::Ipv4 => {
+            if dst.is_ipv4() {
+                Some((dst.network(), dst.broadcast()))
+            } else {
+                None
+            }
+        }
+        IpVersion::Ipv6 => {
+            if let IpNetwork::V6(subnet) = dst {
+                let range_start = subnet.network().into();
+                let range_end = get_last_ip_in_v6_subnet(subnet);
+                Some((range_start, range_end))
+            } else {
+                None
+            }
+        }
+    });
+
+    // filter out destination ranges with incompatible IP version and convert to intermediate
+    // tuple representation for merging
+    let destination_range_iterator = destination_ranges
+        .iter()
+        .filter_map(|dst| match ip_version {
+            IpVersion::Ipv4 => {
+                if dst.start.is_ipv4() && dst.end.is_ipv4() {
+                    Some((dst.start, dst.end))
+                } else {
+                    None
+                }
+            }
+            IpVersion::Ipv6 => {
+                if dst.start.is_ipv6() && dst.end.is_ipv6() {
+                    Some((dst.start, dst.end))
+                } else {
+                    None
+                }
+            }
+        });
+    let alias_destination_range_iterator =
+        alias_destination_ranges
+            .iter()
+            .filter_map(|dst| match ip_version {
+                IpVersion::Ipv4 => {
+                    if dst.start.is_ipv4() && dst.end.is_ipv4() {
+                        Some((dst.start, dst.end))
+                    } else {
+                        None
+                    }
+                }
+                IpVersion::Ipv6 => {
+                    if dst.start.is_ipv6() && dst.end.is_ipv6() {
+                        Some((dst.start, dst.end))
+                    } else {
+                        None
+                    }
+                }
+            });
+
+    // combine both iterators to return a single list
+    let destination_addrs = destination_iterator
+        .chain(destination_range_iterator)
+        .chain(alias_destination_range_iterator)
+        .collect();
+
+    // merge address ranges into non-overlapping elements
+    merge_addrs(destination_addrs)
+}
+
+fn get_last_ip_in_v6_subnet(subnet: &Ipv6Network) -> IpAddr {
+    // get subnet IP portion as u128
+    let first_ip = subnet.ip().to_bits();
+
+    let last_ip = first_ip | (!u128::from(subnet.mask()));
+
+    IpAddr::V6(last_ip.into())
+}
+
+/// Converts an arbitrary list of ip address ranges into the smallest possible list
+/// of non-overlapping elements which can be used in a firewall rule.
+/// It assumes that all ranges with an invalid IP version have already been filtered out.
+fn merge_addrs(addr_ranges: Vec<(IpAddr, IpAddr)>) -> Vec<IpAddress> {
+    // merge into non-overlapping ranges
+    let addr_ranges = merge_ranges(addr_ranges);
+
+    // convert to gRPC format
+    let mut result = Vec::new();
+    for (range_start, range_end) in addr_ranges {
+        if range_start == range_end {
+            // single IP address
+            result.push(IpAddress {
+                address: Some(Address::Ip(range_start.to_string())),
+            });
+        } else {
+            // TODO: find largest subnet in range
+            // address range
+            result.push(IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: range_start.to_string(),
+                    end: range_end.to_string(),
+                })),
+            });
+        }
+    }
+
+    result
+}
+
+// Returns the largest subnet in given address range and the remaining address range.
+// TODO: figure out an implementation
+fn find_largest_subnet_in_range(
+    range_start: IpAddr,
+    range_end: IpAddr,
+) -> (Option<IpNetwork>, Option<(IpAddr, IpAddr)>) {
+    todo!()
 }
 
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
-fn merge_port_ranges(mut port_ranges: Vec<PgRange<i32>>) -> Vec<Port> {
+fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
+    // convert ranges to a list of tuples for merging
+    let port_ranges = port_ranges
+        .into_iter()
+        .map(|range| (range.start(), range.end()))
+        .collect();
+
+    // merge into non-overlapping ranges
+    let port_ranges = merge_ranges(port_ranges);
+
+    // convert resulting ranges into gRPC format
+    port_ranges
+        .into_iter()
+        .map(|(range_start, range_end)| {
+            if range_start == range_end {
+                Port {
+                    port: Some(PortInner::SinglePort(range_start as u32)),
+                }
+            } else {
+                Port {
+                    port: Some(PortInner::PortRange(PortRangeProto {
+                        start: range_start as u32,
+                        end: range_end as u32,
+                    })),
+                }
+            }
+        })
+        .collect()
+}
+
+/// Helper function which implements merging a set of ranges of arbitrary elements
+/// into the smallest possible set of non-overlapping ranges.
+/// It can then be reused for merging port and address ranges.
+fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
     // return early if list is empty
-    if port_ranges.is_empty() {
+    if ranges.is_empty() {
         return Vec::new();
     }
 
     // sort elements by range start
-    port_ranges.sort_by(|a, b| {
-        let a_start = get_start_port_from_range(a);
-        let b_start = get_start_port_from_range(b);
-        a_start.cmp(&b_start)
+    ranges.sort_by(|a, b| {
+        let a_start = &a.0;
+        let b_start = &b.0;
+        a_start.cmp(b_start)
     });
 
+    // initialize result vector
     let mut merged_ranges = Vec::new();
+
     // start with first range
-    let current_range = port_ranges.remove(0);
-    let mut current_range_start = get_start_port_from_range(&current_range);
-    let mut current_range_end = get_end_port_from_range(&current_range);
+    let current_range = ranges.remove(0);
+    let mut current_range_start = current_range.0;
+    let mut current_range_end = current_range.1;
 
     // iterate over remaining ranges
-    for range in port_ranges {
-        let range_start = get_start_port_from_range(&range);
-        let range_end = get_end_port_from_range(&range);
+    for range in ranges {
+        let range_start = range.0;
+        let range_end = range.1;
 
         // compare with current range
         if range_start <= current_range_end {
             // ranges are overlapping, merge them
-            current_range_end = range_end;
+            // if range is not contained within current range
+            if range_end > current_range_end {
+                current_range_end = range_end;
+            }
         } else {
             // ranges are not overlapping, add current range to result
-            let port_range = PortInner::PortRange(PortRange {
-                start: current_range_start,
-                end: current_range_end,
-            });
-            merged_ranges.push(port_range);
+            merged_ranges.push((current_range_start, current_range_end));
             current_range_start = range_start;
             current_range_end = range_end;
         }
     }
 
-    // add last range
-    let port_range = PortInner::PortRange(PortRange {
-        start: current_range_start,
-        end: current_range_end,
-    });
-    merged_ranges.push(port_range);
+    // add last remaining range
+    merged_ranges.push((current_range_start, current_range_end));
 
-    // convert single-element ranges
+    // return resulting list
     merged_ranges
-        .into_iter()
-        .map(|port| {
-            if let PortInner::PortRange(range) = port {
-                if range.start == range.end {
-                    return Port {
-                        port: Some(PortInner::SinglePort(range.start)),
-                    };
-                }
-            }
-            Port { port: Some(port) }
-        })
-        .collect()
 }
 
 impl WireguardNetwork<Id> {
     /// Fetches all active ACL rules for a given location.
     /// Filters out rules which are disabled, expired or have not been deployed yet.
     /// TODO: actually filter out unwanted rules once drafts etc are implemented
-    pub(crate) async fn get_active_acl_rules<'e, E>(
+    pub(crate) async fn get_active_acl_rules(
         &self,
-        executor: E,
-    ) -> Result<Vec<AclRule<Id>>, SqlxError>
-    where
-        E: PgExecutor<'e>,
-    {
-        query_as!(
+        pool: &PgPool,
+    ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
+        debug!("Fetching active ACL rules for location {self}");
+        let rules = query_as!(
             AclRule,
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
                 destination, ports, protocols, expires \
@@ -291,8 +494,16 @@ impl WireguardNetwork<Id> {
                 WHERE an.network_id = $1",
             self.id,
         )
-        .fetch_all(executor)
-        .await
+        .fetch_all(pool)
+        .await?;
+
+        // convert to `AclRuleInfo`
+        let mut rules_info = Vec::new();
+        for rule in rules {
+            let rule_info = rule.to_info(pool).await?;
+            rules_info.push(rule_info);
+        }
+        Ok(rules_info)
     }
 
     /// Prepares firewall configuration for a gateway based on location config and ACLs
@@ -302,6 +513,7 @@ impl WireguardNetwork<Id> {
         &self,
         pool: &PgPool,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
+        info!("Generating firewall config for location {self}");
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
 
@@ -319,11 +531,14 @@ impl WireguardNetwork<Id> {
         )
         .await?;
 
-        Ok(Some(FirewallConfig {
+        let firewall_config = FirewallConfig {
             ip_version: ip_version.into(),
             default_policy: default_policy.into(),
             rules: firewall_rules,
-        }))
+        };
+
+        debug!("Generated firewall config for location {self}: {firewall_config:?}");
+        Ok(Some(firewall_config))
     }
 
     fn get_ip_version(&self) -> IpVersion {
@@ -343,11 +558,12 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
-    use std::ops::Bound;
-
-    use sqlx::postgres::types::PgRange;
-
-    use crate::grpc::proto::enterprise::firewall::{port::Port as PortInner, Port, PortRange};
+    use crate::{
+        enterprise::db::models::acl::PortRange,
+        grpc::proto::enterprise::firewall::{
+            port::Port as PortInner, Port, PortRange as PortRangeProto,
+        },
+    };
 
     use super::merge_port_ranges;
 
@@ -384,10 +600,7 @@ mod test {
     #[test]
     fn test_merge_port_ranges() {
         // single port
-        let input_ranges = vec![PgRange {
-            start: Bound::Included(100),
-            end: Bound::Included(100),
-        }];
+        let input_ranges = vec![PortRange::new(100, 100)];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
@@ -398,24 +611,15 @@ mod test {
 
         // overlapping ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
+            PortRange::new(100, 200),
+            PortRange::new(150, 220),
+            PortRange::new(210, 300),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
             vec![Port {
-                port: Some(PortInner::PortRange(PortRange {
+                port: Some(PortInner::PortRange(PortRangeProto {
                     start: 100,
                     end: 300
                 }))
@@ -424,55 +628,28 @@ mod test {
 
         // duplicate ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(100),
-                end: Bound::Included(200),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
-            PgRange {
-                start: Bound::Included(350),
-                end: Bound::Included(400),
-            },
+            PortRange::new(100, 200),
+            PortRange::new(100, 200),
+            PortRange::new(150, 220),
+            PortRange::new(150, 220),
+            PortRange::new(210, 300),
+            PortRange::new(210, 300),
+            PortRange::new(350, 400),
+            PortRange::new(350, 400),
+            PortRange::new(350, 400),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
             merged,
             vec![
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 100,
                         end: 300
                     }))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 350,
                         end: 400
                     }))
@@ -482,30 +659,12 @@ mod test {
 
         // non-consecutive ranges
         let input_ranges = vec![
-            PgRange {
-                start: Bound::Excluded(500),
-                end: Bound::Excluded(700),
-            },
-            PgRange {
-                start: Bound::Excluded(150),
-                end: Bound::Included(220),
-            },
-            PgRange {
-                start: Bound::Included(210),
-                end: Bound::Included(300),
-            },
-            PgRange {
-                start: Bound::Included(800),
-                end: Bound::Included(800),
-            },
-            PgRange {
-                start: Bound::Included(200),
-                end: Bound::Included(210),
-            },
-            PgRange {
-                start: Bound::Included(50),
-                end: Bound::Excluded(51),
-            },
+            PortRange::new(501, 699),
+            PortRange::new(151, 220),
+            PortRange::new(210, 300),
+            PortRange::new(800, 800),
+            PortRange::new(200, 210),
+            PortRange::new(50, 50),
         ];
         let merged = merge_port_ranges(input_ranges);
         assert_eq!(
@@ -515,13 +674,13 @@ mod test {
                     port: Some(PortInner::SinglePort(50))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 151,
                         end: 300
                     }))
                 },
                 Port {
-                    port: Some(PortInner::PortRange(PortRange {
+                    port: Some(PortInner::PortRange(PortRangeProto {
                         start: 501,
                         end: 699
                     }))
@@ -530,6 +689,19 @@ mod test {
                     port: Some(PortInner::SinglePort(800))
                 }
             ]
+        );
+
+        // fully contained range
+        let input_ranges = vec![PortRange::new(100, 200), PortRange::new(120, 180)];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![Port {
+                port: Some(PortInner::PortRange(PortRangeProto {
+                    start: 100,
+                    end: 200
+                }))
+            }]
         );
     }
 
