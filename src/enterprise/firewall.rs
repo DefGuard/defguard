@@ -447,7 +447,10 @@ fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
         // compare with current range
         if range_start <= current_range_end {
             // ranges are overlapping, merge them
-            current_range_end = range_end;
+            // if range is not contained within current range
+            if range_end > current_range_end {
+                current_range_end = range_end;
+            }
         } else {
             // ranges are not overlapping, add current range to result
             merged_ranges.push((current_range_start, current_range_end));
@@ -677,6 +680,19 @@ mod test {
                     port: Some(PortInner::SinglePort(800))
                 }
             ]
+        );
+
+        // fully contained range
+        let input_ranges = vec![PortRange::new(100, 200), PortRange::new(120, 180)];
+        let merged = merge_port_ranges(input_ranges);
+        assert_eq!(
+            merged,
+            vec![Port {
+                port: Some(PortInner::PortRange(PortRangeProto {
+                    start: 100,
+                    end: 200
+                }))
+            }]
         );
     }
 
