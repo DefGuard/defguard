@@ -893,8 +893,8 @@ impl<I> AclAlias<I> {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,
-                start: range.0.into(),
-                end: range.1.into(),
+                start: range.0,
+                end: range.1,
             };
             obj.save(&mut *transaction).await?;
         }
@@ -940,12 +940,7 @@ impl AclAlias<Id> {
     }
 
     pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo<Id>, SqlxError> {
-        let destination_ranges = self
-            .get_destination_ranges(pool)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect();
+        let destination_ranges = self.get_destination_ranges(pool).await?;
 
         Ok(AclAliasInfo {
             id: self.id,
