@@ -1048,7 +1048,7 @@ dependencies = [
 
 [[package]]
 name = "defguard"
-version = "1.2.3"
+version = "1.2.4"
 dependencies = [
  "anyhow",
  "argon2",
@@ -5407,6 +5407,7 @@ dependencies = [
  "quote",
  "regex",
  "syn 2.0.96",
+ "uuid",
 ]
 
 [[package]]

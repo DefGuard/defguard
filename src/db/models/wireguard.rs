@@ -1093,7 +1093,7 @@ impl Default for WireguardNetwork {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, ToSchema)]
 pub struct WireguardNetworkInfo {
     #[serde(flatten)]
     pub network: WireguardNetwork<Id>,

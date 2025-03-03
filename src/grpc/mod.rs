@@ -29,6 +29,7 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[cfg(feature = "wireguard")]
@@ -292,7 +293,7 @@ impl Default for GatewayMap {
     }
 }
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, ToSchema)]
 pub struct GatewayState {
     pub uid: Uuid,
     pub connected: bool,

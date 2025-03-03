@@ -49,6 +49,10 @@ pub(crate) struct BulkAssignToGroupsRequest {
         (status = 401, description = "Unauthorized to assign users to groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to assign users to groups.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Cannot assign users to groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn bulk_assign_to_groups(
@@ -127,6 +131,10 @@ pub(crate) async fn bulk_assign_to_groups(
         (status = 401, description = "Unauthorized to assign users to groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 403, description = "You don't have permission to list groups info.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 500, description = "Cannot list groups info.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn list_groups_info(
@@ -166,6 +174,10 @@ pub(crate) async fn list_groups_info(
         (status = 200, description = "Retrieve all groups.", body = Groups, example = json!({"groups": ["admin"]})),
         (status = 401, description = "Unauthorized to retrive all groups.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 500, description = "Cannot retrive all groups.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn list_groups(
@@ -207,6 +219,10 @@ pub(crate) async fn list_groups(
         (status = 401, description = "Unauthorized to retrive a group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Incorrect name of the group.", body = ApiResponse, example = json!({"msg": "Group <name> not found"})),
         (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn get_group(
@@ -254,6 +270,10 @@ pub(crate) async fn get_group(
         (status = 403, description = "You don't have permission to list groups info.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Cannot create group: user don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find user <username>"})),
         (status = 500, description = "Cannot retrive a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn create_group(
@@ -310,6 +330,10 @@ pub(crate) async fn create_group(
         (status = 403, description = "You don't have permission to update user group.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Cannot update group: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Group <group_name> not found"})),
         (status = 500, description = "Cannot update a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn modify_group(
@@ -407,6 +431,10 @@ pub(crate) async fn modify_group(
         (status = 401, description = "Unauthorized to delete group.", body = ApiResponse, example = json!({"msg": "Session is required"})),
         (status = 404, description = "Cannot delete group: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
         (status = 500, description = "Cannot delete a group.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn delete_group(
@@ -463,6 +491,10 @@ pub(crate) async fn delete_group(
         (status = 403, description = "You don't have permission to add a new group member.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Cannot add a new group member: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
         (status = 500, description = "Cannot add a new group memmber.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn add_group_member(
@@ -512,6 +544,10 @@ pub(crate) async fn add_group_member(
         (status = 403, description = "You don't have permission to remove a group member.", body = ApiResponse, example = json!({"msg": "requires privileged access"})),
         (status = 404, description = "Cannot remove a  group member: user or group don't exist.", body = ApiResponse, example = json!({"msg": "Failed to find group <group_name>"})),
         (status = 500, description = "Cannot remove a group member.", body = ApiResponse, example = json!({"msg": "Internal server error"}))
+    ),
+    security(
+        ("cookie" = []),
+        ("api_token" = []) 
     )
 )]
 pub(crate) async fn remove_group_member(

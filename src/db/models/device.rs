@@ -1004,7 +1004,7 @@ mod test {
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/24").unwrap();
         let network = network.save(&pool).await.unwrap();
-        let mut network_2 = WireguardNetwork {
+        let mut network_2 = WireguardNetwork::<NoId> {
             name: "testnetwork2".into(),
             ..Default::default()
         };
