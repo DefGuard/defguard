@@ -236,22 +236,18 @@ fn get_source_addrs(
 
     // prepare source addrs by removing incompatible IP version elements
     // and converting them to expected gRPC format
-    let source_addrs: Vec<IpAddress> = source_ips
+    let source_addrs = source_ips
         .filter_map(|ip| match ip_version {
             IpVersion::Ipv4 => {
                 if ip.is_ipv4() {
-                    Some(IpAddress {
-                        address: Some(Address::Ip(ip.to_string())),
-                    })
+                    Some((ip, ip))
                 } else {
                     None
                 }
             }
             IpVersion::Ipv6 => {
                 if ip.is_ipv6() {
-                    Some(IpAddress {
-                        address: Some(Address::Ip(ip.to_string())),
-                    })
+                    Some((ip, ip))
                 } else {
                     None
                 }
@@ -260,8 +256,7 @@ fn get_source_addrs(
         .collect();
 
     // merge address ranges into non-overlapping elements
-    // merge_addrs(source_addrs)
-    todo!()
+    merge_addrs(source_addrs)
 }
 
 /// Convert destination networks and ranges configured in an ACL rule
@@ -277,52 +272,43 @@ fn process_destination_addrs(
     alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
     ip_version: IpVersion,
 ) -> Vec<IpAddress> {
-    // filter out destinations with incompatible IP version and convert to target gRPC struct
+    // filter out destinations with incompatible IP version and convert to intermediate
+    // tuple representation for merging
     let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
         IpVersion::Ipv4 => {
             if dst.is_ipv4() {
-                Some(IpAddress {
-                    address: Some(Address::IpSubnet(dst.to_string())),
-                })
+                Some((dst.network(), dst.broadcast()))
             } else {
                 None
             }
         }
         IpVersion::Ipv6 => {
             if dst.is_ipv6() {
-                Some(IpAddress {
-                    address: Some(Address::IpSubnet(dst.to_string())),
-                })
+                // IPv6 does not have broadcast addresses, but we leverage invalid approach of the
+                // `IpNetwork` crate here
+                Some((dst.network(), dst.broadcast()))
             } else {
                 None
             }
         }
     });
 
-    // filter out destination ranges with incompatible IP version and convert to target gRPC struct
+    // filter out destination ranges with incompatible IP version and convert to intermediate
+    // tuple representation for merging
     let destination_range_iterator = destination_ranges
         .iter()
         .filter_map(|dst| match ip_version {
             IpVersion::Ipv4 => {
                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                    Some(IpAddress {
-                        address: Some(Address::IpRange(IpRange {
-                            start: dst.start.to_string(),
-                            end: dst.end.to_string(),
-                        })),
-                    })
+                    // FIXME: update once range types are fixed
+                    Some((dst.start.network(), dst.end.network()))
                 } else {
                     None
                 }
             }
             IpVersion::Ipv6 => {
                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                    Some(IpAddress {
-                        address: Some(Address::IpRange(IpRange {
-                            start: dst.start.to_string(),
-                            end: dst.end.to_string(),
-                        })),
-                    })
+                    Some((dst.start.network(), dst.end.network()))
                 } else {
                     None
                 }
@@ -334,24 +320,14 @@ fn process_destination_addrs(
             .filter_map(|dst| match ip_version {
                 IpVersion::Ipv4 => {
                     if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                        Some(IpAddress {
-                            address: Some(Address::IpRange(IpRange {
-                                start: dst.start.to_string(),
-                                end: dst.end.to_string(),
-                            })),
-                        })
+                        Some((dst.start.network(), dst.end.network()))
                     } else {
                         None
                     }
                 }
                 IpVersion::Ipv6 => {
                     if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                        Some(IpAddress {
-                            address: Some(Address::IpRange(IpRange {
-                                start: dst.start.to_string(),
-                                end: dst.end.to_string(),
-                            })),
-                        })
+                        Some((dst.start.network(), dst.end.network()))
                     } else {
                         None
                     }
@@ -359,62 +335,52 @@ fn process_destination_addrs(
             });
 
     // combine both iterators to return a single list
-    let destination_addrs: Vec<IpAddress> = destination_iterator
+    let destination_addrs = destination_iterator
         .chain(destination_range_iterator)
         .chain(alias_destination_range_iterator)
         .collect();
 
     // merge address ranges into non-overlapping elements
-    // merge_addrs(destination_addrs)
-    todo!()
+    merge_addrs(destination_addrs)
 }
 
 /// Converts an arbitrary list of ip address ranges into the smallest possible list
 /// of non-overlapping elements which can be used in a firewall rule.
 /// It assumes that all ranges with an invalid IP version have already been filtered out.
-fn merge_addrs(mut addr_ranges: Vec<(IpAddr, IpAddr)>) -> Vec<IpAddress> {
-    unimplemented!()
-    // // return early if list is empty
-    // if addr_ranges.is_empty() {
-    //     return Vec::new();
-    // }
-    //
-    // // sort ranges by range start
-    // addr_ranges.sort_by(|a, b| {
-    //     let a_start = a.0;
-    //     let b_start = b.0;
-    //     a_start.cmp(&b_start)
-    // });
-    //
-    // // initialize empty result list
-    // let mut result = Vec::new();
-    //
-    // // start with first range
-    // let current_range = addr_ranges.remove(0);
-    // let mut current_range_start = current_range.start();
-    // let mut current_range_end = current_range.end();
-    //
-    // // iterate over remaining ranges
-    // for range in port_ranges {
-    //     let range_start = range.start();
-    //     let range_end = range.end();
-    //
-    //     // compare with current range
-    //     if range_start <= current_range_end {
-    //         // ranges are overlapping, merge them
-    //         current_range_end = range_end;
-    //     } else {
-    //         // ranges are not overlapping, add current range to result
-    //         let port_range = PortInner::PortRange(PortRangeProto {
-    //             start: current_range_start as u32,
-    //             end: current_range_end as u32,
-    //         });
-    //         merged_ranges.push(port_range);
-    //         current_range_start = range_start;
-    //         current_range_end = range_end;
-    //     }
-    // }
-    // result
+fn merge_addrs(addr_ranges: Vec<(IpAddr, IpAddr)>) -> Vec<IpAddress> {
+    // merge into non-overlapping ranges
+    let addr_ranges = merge_ranges(addr_ranges);
+
+    // convert to gRPC format
+    let mut result = Vec::new();
+    for (range_start, range_end) in addr_ranges {
+        if range_start == range_end {
+            // single IP address
+            result.push(IpAddress {
+                address: Some(Address::Ip(range_start.to_string())),
+            });
+        } else {
+            // TODO: find largest subnet in range
+            // address range
+            result.push(IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: range_start.to_string(),
+                    end: range_end.to_string(),
+                })),
+            });
+        }
+    }
+
+    result
+}
+
+// Returns the largest subnet in given address range and the remaining address range.
+// TODO: figure out an implementation
+fn find_largest_subnet_in_range(
+    range_start: IpAddr,
+    range_end: IpAddr,
+) -> (Option<IpNetwork>, Option<(IpAddr, IpAddr)>) {
+    todo!()
 }
 
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
