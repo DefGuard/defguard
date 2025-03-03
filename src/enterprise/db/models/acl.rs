@@ -12,6 +12,7 @@ use sqlx::{
 use std::{
     collections::HashSet,
     fmt,
+    net::IpAddr,
     ops::{Bound, Range},
 };
 use thiserror::Error;
@@ -24,6 +25,8 @@ pub enum AclError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error(transparent)]
     IpNetworkError(#[from] ipnetwork::IpNetworkError),
+    #[error(transparent)]
+    AddrParseError(#[from] std::net::AddrParseError),
     #[error(transparent)]
     DbError(#[from] SqlxError),
 }
@@ -97,7 +100,7 @@ pub struct AclRuleInfo<I = NoId> {
 }
 
 impl<I> AclRuleInfo<I> {
-    pub fn format_destination(&self) -> String {
+    pub(crate) fn format_destination(&self) -> String {
         let addrs = match &self.destination {
             d if d.is_empty() => String::new(),
             d => d.iter().map(|a| a.to_string() + ", ").collect::<String>(),
@@ -117,7 +120,7 @@ impl<I> AclRuleInfo<I> {
         }
     }
 
-    pub fn format_ports(&self) -> String {
+    pub(crate) fn format_ports(&self) -> String {
         if self.ports.is_empty() {
             String::new()
         } else {
@@ -208,16 +211,14 @@ impl AclRule {
 
 pub fn parse_destination(
     destination: &str,
-) -> Result<(Vec<IpNetwork>, Vec<(IpNetwork, IpNetwork)>), AclError> {
+) -> Result<(Vec<IpNetwork>, Vec<(IpAddr, IpAddr)>), AclError> {
     let mut addrs = Vec::new();
     let mut ranges = Vec::new();
     let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
     for v in destination.split(',') {
         match v.split('-').collect::<Vec<_>>() {
             l if l.len() == 1 => addrs.push(l[0].parse::<IpNetwork>()?),
-            l if l.len() == 2 => {
-                ranges.push((l[0].parse::<IpNetwork>()?, l[1].parse::<IpNetwork>()?))
-            }
+            l if l.len() == 2 => ranges.push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
             _ => return Err(IpNetworkError::InvalidAddr(destination))?,
         };
     }
@@ -611,7 +612,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclRuleDestinationRange,
-            "SELECT id, rule_id, \"start\", \"end\" \
+            "SELECT id, rule_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" \
             FROM aclruledestinationrange r \
             WHERE rule_id = $1",
             self.id,
@@ -725,22 +726,6 @@ impl AclRule<Id> {
             allowed_devices,
             denied_devices,
         })
-    }
-}
-
-/// API representation of [`AclRuleDestinationRange`]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AclRuleDestinationRangeInfo {
-    pub start: IpNetwork,
-    pub end: IpNetwork,
-}
-
-impl<I> From<AclRuleDestinationRange<I>> for AclRuleDestinationRangeInfo {
-    fn from(rule: AclRuleDestinationRange<I>) -> Self {
-        Self {
-            start: rule.start,
-            end: rule.end,
-        }
     }
 }
 
@@ -923,8 +908,8 @@ impl<I> AclAlias<I> {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,
-                start: range.0,
-                end: range.1,
+                start: range.0.into(),
+                end: range.1.into(),
             };
             obj.save(&mut *transaction).await?;
         }
@@ -1026,12 +1011,32 @@ pub struct AclRuleDevice<I = NoId> {
     pub allow: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
     pub rule_id: i64,
-    pub start: IpNetwork,
-    pub end: IpNetwork,
+    pub start: IpAddr,
+    pub end: IpAddr,
+}
+
+impl AclRuleDestinationRange<NoId> {
+    pub async fn save<'e, E>(&self, executor: E) -> Result<(), SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query!(
+            "INSERT INTO aclruledestinationrange \
+            (rule_id, \"start\", \"end\") \
+            VALUES ($1, $2, $3)",
+            self.rule_id,
+            IpNetwork::from(self.start),
+            IpNetwork::from(self.end),
+        )
+        .execute(executor)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Model, PartialEq, Serialize, Deserialize)]

@@ -89,6 +89,7 @@ impl From<WebError> for ApiResponse {
             WebError::AclError(err) => match err {
                 AclError::ParseIntError(_)
                 | AclError::IpNetworkError(_)
+                | AclError::AddrParseError(_)
                 | AclError::InvalidPortsFormat(_) => ApiResponse::new(
                     json!({"msg": "Unprocessable entity"}),
                     StatusCode::UNPROCESSABLE_ENTITY,
