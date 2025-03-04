@@ -4315,6 +4315,18 @@ type RootTranslation = {
 					 */
 					label: string
 				}
+				acl_enabled: {
+					/**
+					 * E​n​a​b​l​e​ ​A​C​L​ ​f​o​r​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n
+					 */
+					label: string
+				}
+				acl_default_allow: {
+					/**
+					 * D​e​f​a​u​l​t​ ​A​C​L​ ​p​o​l​i​c​y
+					 */
+					label: string
+				}
 			}
 			controls: {
 				/**
@@ -9239,6 +9251,18 @@ export type TranslationFunctions = {
 				peer_disconnect_threshold: {
 					/**
 					 * Peer disconnect threshold [seconds]
+					 */
+					label: () => LocalizedString
+				}
+				acl_enabled: {
+					/**
+					 * Enable ACL for this location
+					 */
+					label: () => LocalizedString
+				}
+				acl_default_allow: {
+					/**
+					 * Default ACL policy
 					 */
 					label: () => LocalizedString
 				}

@@ -126,6 +126,8 @@ export interface Network {
   mfa_enabled: boolean;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
+  acl_enabled: boolean;
+  acl_default_allow: boolean;
 }
 
 export type ModifyNetworkRequest = {
