@@ -566,7 +566,7 @@ impl WireguardNetwork<Id> {
 mod test {
     use std::net::{IpAddr, Ipv6Addr};
 
-    use ipnetwork::{IpNetwork, Ipv6Network};
+    use ipnetwork::Ipv6Network;
 
     use crate::{
         enterprise::db::models::acl::PortRange,
@@ -577,35 +577,35 @@ mod test {
 
     use super::{get_last_ip_in_v6_subnet, merge_port_ranges};
 
-    // #[test]
-    // fn test_non_overlapping_addrs() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_non_overlapping_addrs() {
+        unimplemented!()
+    }
 
-    // #[test]
-    // fn test_get_relevant_users() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_get_relevant_users() {
+        unimplemented!()
+    }
 
-    // #[test]
-    // fn test_process_source_addrs_v4() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_process_source_addrs_v4() {
+        unimplemented!()
+    }
 
-    // #[test]
-    // fn test_process_source_addrs_v6() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_process_source_addrs_v6() {
+        unimplemented!()
+    }
 
-    // #[test]
-    // fn test_process_destination_addrs_v4() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_process_destination_addrs_v4() {
+        unimplemented!()
+    }
 
-    // #[test]
-    // fn test_process_destination_addrs_v6() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_process_destination_addrs_v6() {
+        unimplemented!()
+    }
 
     #[test]
     fn test_merge_port_ranges() {
@@ -738,13 +738,13 @@ mod test {
         )
     }
 
-    // #[test]
-    // fn test_process_protocols() {
-    //     unimplemented!()
-    // }
+    #[test]
+    fn test_process_protocols() {
+        unimplemented!()
+    }
 
-    // #[sqlx::test]
-    // async fn test_generate_firewall_rules() {
-    //     unimplemented!()
-    // }
+    #[sqlx::test]
+    async fn test_generate_firewall_rules() {
+        unimplemented!()
+    }
 }
