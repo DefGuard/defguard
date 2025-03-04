@@ -564,7 +564,7 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
-    use std::net::{IpAddr, Ipv6Addr};
+    use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     use ipnetwork::Ipv6Network;
     use rand::{thread_rng, Rng};
@@ -573,11 +573,12 @@ mod test {
         db::{models::device::DeviceType, Device, Id, User},
         enterprise::{db::models::acl::PortRange, firewall::get_source_network_devices},
         grpc::proto::enterprise::firewall::{
-            port::Port as PortInner, FirewallPolicy, Port, PortRange as PortRangeProto,
+            ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange, Port,
+            PortRange as PortRangeProto,
         },
     };
 
-    use super::{get_last_ip_in_v6_subnet, get_source_users, merge_port_ranges};
+    use super::{get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges};
 
     fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
         let mut user: User<Id> = rng.gen();
@@ -590,11 +591,6 @@ mod test {
         device.id = id;
         device.device_type = DeviceType::Network;
         device
-    }
-
-    #[test]
-    fn test_non_overlapping_addrs() {
-        unimplemented!()
     }
 
     #[test]
@@ -673,6 +669,65 @@ mod test {
     #[test]
     fn test_process_destination_addrs_v6() {
         unimplemented!()
+    }
+
+    #[test]
+    fn test_merge_v4_addrs() {
+        let addr_ranges = vec![
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
+                IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
+            ),
+        ];
+
+        let merged_addrs = merge_addrs(addr_ranges);
+        assert_eq!(
+            merged_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.8.51".to_string(),
+                        end: "10.0.10.32".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("10.0.20.20".to_string())),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.60.20".to_string(),
+                        end: "10.0.60.25".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("192.168.0.20".to_string())),
+                },
+            ]
+        );
     }
 
     #[test]
