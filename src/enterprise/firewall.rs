@@ -564,6 +564,10 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use std::net::{IpAddr, Ipv6Addr};
+
+    use ipnetwork::{IpNetwork, Ipv6Network};
+
     use crate::{
         enterprise::db::models::acl::PortRange,
         grpc::proto::enterprise::firewall::{
@@ -571,7 +575,7 @@ mod test {
         },
     };
 
-    use super::merge_port_ranges;
+    use super::{get_last_ip_in_v6_subnet, merge_port_ranges};
 
     // #[test]
     // fn test_non_overlapping_addrs() {
@@ -709,6 +713,29 @@ mod test {
                 }))
             }]
         );
+    }
+
+    #[test]
+    fn test_last_ip_in_v6_subnet() {
+        let subnet: Ipv6Network = "2001:db8:85a3::8a2e:370:7334/64".parse().unwrap();
+        let last_ip = get_last_ip_in_v6_subnet(&subnet);
+        assert_eq!(
+            last_ip,
+            IpAddr::V6(Ipv6Addr::new(
+                0x2001, 0x0db8, 0x85a3, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff
+            ))
+        );
+
+        let subnet: Ipv6Network = "280b:47f8:c9d7:634c:cb35:11f3:14e1:5016/119"
+            .parse()
+            .unwrap();
+        let last_ip = get_last_ip_in_v6_subnet(&subnet);
+        assert_eq!(
+            last_ip,
+            IpAddr::V6(Ipv6Addr::new(
+                0x280b, 0x47f8, 0xc9d7, 0x634c, 0xcb35, 0x11f3, 0x14e1, 0x51ff
+            ))
+        )
     }
 
     // #[test]
