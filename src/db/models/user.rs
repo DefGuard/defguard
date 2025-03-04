@@ -9,6 +9,12 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
+#[cfg(test)]
+use rand::{
+    distributions::{Alphanumeric, DistString, Standard},
+    prelude::Distribution,
+    Rng,
+};
 use sqlx::{
     query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
     Type,
@@ -1045,6 +1051,42 @@ impl User<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+}
+
+#[cfg(test)]
+impl Distribution<User<Id>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> User<Id> {
+        User {
+            id: rng.gen(),
+            username: Alphanumeric.sample_string(rng, 8),
+            password_hash: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            last_name: Alphanumeric.sample_string(rng, 8),
+            first_name: Alphanumeric.sample_string(rng, 8),
+            email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
+            // FIXME: generate an actual phone number
+            phone: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 9)),
+            mfa_enabled: rng.gen(),
+            is_active: rng.gen(),
+            openid_sub: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            totp_enabled: rng.gen(),
+            email_mfa_enabled: rng.gen(),
+            totp_secret: (0..20).map(|_| rng.gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
+            mfa_method: match rng.gen_range(0..4) {
+                0 => MFAMethod::None,
+                1 => MFAMethod::Webauthn,
+                2 => MFAMethod::OneTimePassword,
+                _ => MFAMethod::Email,
+            },
+            recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+        }
     }
 }
 

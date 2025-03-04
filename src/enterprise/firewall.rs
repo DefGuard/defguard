@@ -567,15 +567,23 @@ mod test {
     use std::net::{IpAddr, Ipv6Addr};
 
     use ipnetwork::Ipv6Network;
+    use rand::{thread_rng, Rng};
 
     use crate::{
+        db::{Id, User},
         enterprise::db::models::acl::PortRange,
         grpc::proto::enterprise::firewall::{
-            port::Port as PortInner, Port, PortRange as PortRangeProto,
+            port::Port as PortInner, FirewallPolicy, Port, PortRange as PortRangeProto,
         },
     };
 
-    use super::{get_last_ip_in_v6_subnet, merge_port_ranges};
+    use super::{get_last_ip_in_v6_subnet, get_source_users, merge_port_ranges};
+
+    fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
+        let mut user: User<Id> = rng.gen();
+        user.id = id;
+        user
+    }
 
     #[test]
     fn test_non_overlapping_addrs() {
@@ -584,7 +592,27 @@ mod test {
 
     #[test]
     fn test_get_relevant_users() {
-        unimplemented!()
+        let mut rng = thread_rng();
+        // prepare allowed and denied users lists with shared elements
+        let user_1 = random_user_with_id(&mut rng, 1);
+        let user_2 = random_user_with_id(&mut rng, 2);
+        let user_3 = random_user_with_id(&mut rng, 3);
+        let user_4 = random_user_with_id(&mut rng, 4);
+        let user_5 = random_user_with_id(&mut rng, 5);
+        let allowed_users = vec![user_1.clone(), user_2.clone(), user_4.clone()];
+        let denied_users = vec![user_3.clone(), user_4, user_5.clone()];
+
+        // default policy is `Allow`, so we should get explicitly denied users
+        let users = get_source_users(
+            allowed_users.clone(),
+            denied_users.clone(),
+            FirewallPolicy::Allow,
+        );
+        assert_eq!(users, vec![user_3, user_5]);
+        //
+        // default policy is `Deny`, so we should get explicitly allowed users
+        let users = get_source_users(allowed_users, denied_users, FirewallPolicy::Deny);
+        assert_eq!(users, vec![user_1, user_2]);
     }
 
     #[test]
