@@ -247,7 +247,9 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -264,7 +266,9 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -282,6 +286,8 @@ pub(crate) fn make_network() -> Value {
         "allowed_groups": [],
         "mfa_enabled": false,
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
     })
 }
