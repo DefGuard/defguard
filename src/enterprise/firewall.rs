@@ -30,7 +30,7 @@ pub async fn generate_firewall_rules_from_acls(
     acl_rules: Vec<AclRuleInfo<Id>>,
     pool: &PgPool,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
-    debug!("Generating firewall rules for location {location_id}");
+    debug!("Generating firewall rules for location {location_id} with default policy {default_location_policy:?} and IP version {ip_version:?}");
 
     // initialize empty result Vec
     let mut firewall_rules = Vec::new();
@@ -45,6 +45,7 @@ pub async fn generate_firewall_rules_from_acls(
 
     // convert each ACL into a corresponding `FirewallRule`
     for acl in acl_rules {
+        debug!("Processing ACL rule: {acl:?}");
         // fetch allowed users
         let allowed_users = acl.get_all_allowed_users(pool).await?;
 
@@ -127,6 +128,7 @@ pub async fn generate_firewall_rules_from_acls(
             verdict: firewall_rule_verdict.into(),
             comment,
         };
+        debug!("Firewall rule generated from ACL: {firewall_rule:?}");
         firewall_rules.push(firewall_rule)
     }
     Ok(firewall_rules)
@@ -516,6 +518,10 @@ impl WireguardNetwork<Id> {
         info!("Generating firewall config for location {self}");
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
+        debug!(
+            "Found {0} active ACL rules for location {self}",
+            location_acls.len()
+        );
 
         // determine IP version based on location subnet
         let ip_version = self.get_ip_version();
@@ -537,7 +543,7 @@ impl WireguardNetwork<Id> {
             rules: firewall_rules,
         };
 
-        debug!("Generated firewall config for location {self}: {firewall_config:?}");
+        debug!("Firewall config generated for location {self}: {firewall_config:?}");
         Ok(Some(firewall_config))
     }
 
