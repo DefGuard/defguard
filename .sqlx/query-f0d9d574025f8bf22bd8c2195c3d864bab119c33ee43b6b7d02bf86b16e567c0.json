@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold FROM wireguard_network WHERE mfa_enabled = true",
+  "query": "SELECT id, \"name\",\"address\" \"address: _\",\"port\",\"pubkey\",\"prvkey\",\"endpoint\",\"dns\",\"allowed_ips\" \"allowed_ips: _\",\"connected_at\",\"mfa_enabled\",\"acl_enabled\",\"acl_default_allow\",\"keepalive_interval\",\"peer_disconnect_threshold\" FROM \"wireguard_network\"",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "address",
+        "name": "address: _",
         "type_info": "InetArray"
       },
       {
@@ -45,7 +45,7 @@
       },
       {
         "ordinal": 8,
-        "name": "allowed_ips",
+        "name": "allowed_ips: _",
         "type_info": "InetArray"
       },
       {
@@ -60,11 +60,21 @@
       },
       {
         "ordinal": 11,
+        "name": "acl_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "acl_default_allow",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
         "name": "keepalive_interval",
         "type_info": "Int4"
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "peer_disconnect_threshold",
         "type_info": "Int4"
       }
@@ -85,8 +95,10 @@
       true,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "5678d744e1e6ba8e7301a3b9e200b61fcc18530d40e13549b4b0d99ed10cb86c"
+  "hash": "f0d9d574025f8bf22bd8c2195c3d864bab119c33ee43b6b7d02bf86b16e567c0"
 }
