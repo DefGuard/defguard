@@ -1,9 +1,17 @@
 use std::{fmt, net::IpAddr};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
+#[cfg(test)]
+use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
+#[cfg(test)]
+use rand::{
+    distributions::{Alphanumeric, DistString, Standard},
+    prelude::Distribution,
+    Rng,
+};
 use sqlx::{
     postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
     PgExecutor, PgPool, Type,
@@ -88,6 +96,38 @@ impl fmt::Display for Device<NoId> {
 impl fmt::Display for Device<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[ID {}] {}", self.id, self.name)
+    }
+}
+
+#[cfg(test)]
+impl Distribution<Device<Id>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
+        Device {
+            id: rng.gen(),
+            name: Alphanumeric.sample_string(rng, 8),
+            wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
+            user_id: rng.gen(),
+            created: NaiveDate::from_ymd_opt(
+                rng.gen_range(2000..2026),
+                rng.gen_range(1..13),
+                rng.gen_range(1..29),
+            )
+            .unwrap()
+            .and_hms_opt(
+                rng.gen_range(1..24),
+                rng.gen_range(1..60),
+                rng.gen_range(1..60),
+            )
+            .unwrap(),
+            device_type: match rng.gen_range(0..2) {
+                0 => DeviceType::Network,
+                _ => DeviceType::User,
+            },
+            description: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 20)),
+            configured: rng.gen(),
+        }
     }
 }
 

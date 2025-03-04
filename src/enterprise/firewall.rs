@@ -570,8 +570,8 @@ mod test {
     use rand::{thread_rng, Rng};
 
     use crate::{
-        db::{Id, User},
-        enterprise::db::models::acl::PortRange,
+        db::{models::device::DeviceType, Device, Id, User},
+        enterprise::{db::models::acl::PortRange, firewall::get_source_network_devices},
         grpc::proto::enterprise::firewall::{
             port::Port as PortInner, FirewallPolicy, Port, PortRange as PortRangeProto,
         },
@@ -585,6 +585,13 @@ mod test {
         user
     }
 
+    fn random_network_device_with_id<R: Rng>(rng: &mut R, id: Id) -> Device<Id> {
+        let mut device: Device<Id> = rng.gen();
+        device.id = id;
+        device.device_type = DeviceType::Network;
+        device
+    }
+
     #[test]
     fn test_non_overlapping_addrs() {
         unimplemented!()
@@ -593,6 +600,7 @@ mod test {
     #[test]
     fn test_get_relevant_users() {
         let mut rng = thread_rng();
+
         // prepare allowed and denied users lists with shared elements
         let user_1 = random_user_with_id(&mut rng, 1);
         let user_2 = random_user_with_id(&mut rng, 2);
@@ -613,6 +621,38 @@ mod test {
         // default policy is `Deny`, so we should get explicitly allowed users
         let users = get_source_users(allowed_users, denied_users, FirewallPolicy::Deny);
         assert_eq!(users, vec![user_1, user_2]);
+    }
+
+    #[test]
+    fn test_get_relevant_network_devices() {
+        let mut rng = thread_rng();
+
+        // prepare allowed and denied network devices lists with shared elements
+        let device_1 = random_network_device_with_id(&mut rng, 1);
+        let device_2 = random_network_device_with_id(&mut rng, 2);
+        let device_3 = random_network_device_with_id(&mut rng, 3);
+        let device_4 = random_network_device_with_id(&mut rng, 4);
+        let device_5 = random_network_device_with_id(&mut rng, 5);
+        let allowed_devices = vec![
+            device_1.clone(),
+            device_3.clone(),
+            device_4.clone(),
+            device_5.clone(),
+        ];
+        let denied_devices = vec![device_2.clone(), device_4, device_5.clone()];
+
+        // default policy is `Allow`, so we should get explicitly denied devices
+        let devices = get_source_network_devices(
+            allowed_devices.clone(),
+            denied_devices.clone(),
+            FirewallPolicy::Allow,
+        );
+        assert_eq!(devices, vec![device_2]);
+        //
+        // default policy is `Deny`, so we should get explicitly allowed devices
+        let devices =
+            get_source_network_devices(allowed_devices, denied_devices, FirewallPolicy::Deny);
+        assert_eq!(devices, vec![device_1, device_3]);
     }
 
     #[test]
