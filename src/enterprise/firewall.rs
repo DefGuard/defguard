@@ -731,6 +731,50 @@ mod test {
     }
 
     #[test]
+    fn test_merge_v6_addrs() {
+        let addr_ranges = vec![
+            (
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x1)),
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x5)),
+            ),
+            (
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x3)),
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x8)),
+            ),
+            (
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
+            ),
+            (
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x1)),
+                IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x3)),
+            ),
+        ];
+
+        let merged_addrs = merge_addrs(addr_ranges);
+        assert_eq!(
+            merged_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:1::1".to_string(),
+                        end: "2001:db8:1::8".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("2001:db8:2::1".to_string())),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:3::1".to_string(),
+                        end: "2001:db8:3::3".to_string(),
+                    })),
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn test_merge_port_ranges() {
         // single port
         let input_ranges = vec![PortRange::new(100, 100)];
