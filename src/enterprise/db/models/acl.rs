@@ -106,6 +106,7 @@ pub struct AclRuleInfo<I = NoId> {
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
     pub expires: Option<NaiveDateTime>,
+    pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -189,6 +190,7 @@ pub struct AclRule<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
+    pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
 }
 
@@ -463,6 +465,7 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
             deny_all_users: rule.deny_all_users,
             all_networks: rule.all_networks,
             protocols: rule.protocols,
+            enabled: rule.enabled,
             expires: rule.expires,
         })
     }
@@ -706,6 +709,7 @@ impl AclRule<Id> {
             all_networks: self.all_networks,
             destination: self.destination.clone(),
             protocols: self.protocols.clone(),
+            enabled: self.enabled,
             expires: self.expires,
             destination_ranges,
             ports,
@@ -1168,6 +1172,7 @@ mod test {
         let mut rule = AclRule {
             id: NoId,
             name: "rule".to_string(),
+            enabled: true,
             allow_all_users: false,
             deny_all_users: false,
             all_networks: false,

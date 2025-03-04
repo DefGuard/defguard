@@ -55,6 +55,8 @@ async fn test_network() {
         mfa_enabled: false,
         keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
         peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        acl_enabled: false,
+        acl_default_allow: false,
     };
     let response = client
         .put(format!("/api/v1/network/{}", network.id))
