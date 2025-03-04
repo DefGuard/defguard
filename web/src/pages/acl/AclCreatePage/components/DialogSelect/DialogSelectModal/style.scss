@@ -55,6 +55,9 @@
       flex-flow: column;
       row-gap: var(--spacing-xs);
       min-height: calc(24px * 6 + 50px);
+      max-height: calc(240px + (9 * var(--spacing-xs)));
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .controls {

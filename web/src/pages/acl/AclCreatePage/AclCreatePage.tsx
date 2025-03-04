@@ -3,7 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { SubmitErrorHandler, SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -40,6 +40,8 @@ import {
   StandaloneDevice,
   User,
 } from '../../../shared/types';
+import { removeEmptyStringKeys } from '../../../shared/utils/removeEmptyStrings';
+import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
 import { AclProtocol } from '../types';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
@@ -140,15 +142,16 @@ export const AlcCreatePage = () => {
         aliases: z.number().array(),
         destination: z.string(),
         ports: z
-          .string({
-            required_error: formErrors.required(),
+          .string()
+          .refine((value: string) => {
+            if (value === '') return true;
+            const regexp = new RegExp(
+              /^(?:\d+(?:-\d+)*)(?:(?:\s*,\s*|\s+)\d+(?:-\d+)*)*$/,
+            );
+            return regexp.test(value);
           })
-          .min(1, formErrors.required())
-          .regex(
-            /^(?:\d+(?:-\d+)*)(?:(?:\s*,\s*|\s+)\d+(?:-\d+)*)*$/,
-            formErrors.invalid(),
-          )
-          .refine((value) => {
+          .refine((value: string) => {
+            if (value === '') return true;
             // check if there is no duplicates in given port field
             const trimmed = value
               .replaceAll(' ', '')
@@ -169,7 +172,8 @@ export const AlcCreatePage = () => {
             }
             return true;
           }, formErrors.invalid())
-          .refine((value) => {
+          .refine((value: string) => {
+            if (value === '') return true;
             // check if ranges in input are valid means follow pattern <start>-<end>
             const matches = value.match(/\b\d+-\d+\b/g);
             if (Array.isArray(matches)) {
@@ -186,7 +190,7 @@ export const AlcCreatePage = () => {
               }
             }
             return true;
-          }),
+          }, formErrors.invalid()),
         protocols: z.number().array(),
       }),
     [formErrors],
@@ -213,42 +217,35 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit } = useForm<FormFields>({
+  const { control, handleSubmit, watch, setValue } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
   });
 
+  const watchedExpires = watch('expires');
+
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
-    console.table(values);
-    let expires = values.expires;
-    if (neverExpires) {
-      expires = null;
-    }
+    const cleaned = trimObjectStrings(removeEmptyStringKeys(values)) as FormFields;
+
     if (editMode) {
       const requestData: EditAclRuleRequest = {
-        ...values,
+        ...cleaned,
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
-        expires: expires,
         id: initialValue.id,
       };
       mutatePut(requestData);
     } else {
       const requestData: CreateAclRuleRequest = {
-        ...values,
+        ...cleaned,
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
-        expires: expires,
       };
       mutatePost(requestData);
     }
-  };
-
-  const handleInvalidSubmit: SubmitErrorHandler<FormFields> = (errors) => {
-    console.table(errors);
   };
 
   return (
@@ -277,10 +274,7 @@ export const AlcCreatePage = () => {
           />
         </div>
       </div>
-      <form
-        id="acl-sections"
-        onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
-      >
+      <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
         <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <LabeledCheckbox
@@ -299,8 +293,16 @@ export const AlcCreatePage = () => {
           <CardHeader title="Expiration Date" />
           <LabeledCheckbox
             label="Never Expire"
-            value={neverExpires}
-            onChange={() => setNeverExpires((s) => !s)}
+            value={neverExpires && watchedExpires === null}
+            onChange={(change) => {
+              if (change) {
+                setValue('expires', null, {
+                  shouldValidate: false,
+                  shouldDirty: true,
+                });
+              }
+              setNeverExpires(change);
+            }}
           />
           <FormDateInput
             controller={{ control, name: 'expires' }}
@@ -378,6 +380,7 @@ export const AlcCreatePage = () => {
           <FormSelect
             controller={{ control, name: 'protocols' }}
             label="Protocols"
+            placeholder="All protocols"
             options={protocolOptions}
             searchable={false}
             renderSelected={(val) => ({ displayValue: protocolToString(val), key: val })}
