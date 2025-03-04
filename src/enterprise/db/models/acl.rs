@@ -483,7 +483,8 @@ impl AclRule<Id> {
             query_as!(
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+                acl_enabled, acl_default_allow \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \
@@ -1190,6 +1191,8 @@ mod test {
             false,
             100,
             100,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)
@@ -1205,6 +1208,8 @@ mod test {
             false,
             200,
             200,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)

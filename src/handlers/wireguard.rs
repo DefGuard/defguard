@@ -61,6 +61,8 @@ pub struct WireguardNetworkData {
     pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    pub acl_enabled: bool,
+    pub acl_default_allow: bool,
 }
 
 impl WireguardNetworkData {
@@ -128,6 +130,8 @@ pub(crate) async fn create_network(
         data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
+        data.acl_enabled,
+        data.acl_default_allow,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -204,6 +208,8 @@ pub(crate) async fn modify_network(
     network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+    network.acl_enabled = data.acl_enabled;
+    network.acl_default_allow = data.acl_default_allow;
 
     network.save(&mut *transaction).await?;
     network
