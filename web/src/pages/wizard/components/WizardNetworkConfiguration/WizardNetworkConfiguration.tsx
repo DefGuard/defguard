@@ -131,6 +131,8 @@ export const WizardNetworkConfiguration = () => {
             invalid_type_error: LL.form.error.invalid(),
           })
           .refine((v) => v >= 120, LL.form.error.minimumLength()),
+        acl_enabled: z.boolean(),
+        acl_default_allow: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -222,6 +224,16 @@ export const WizardNetworkConfiguration = () => {
         <FormCheckBox
           controller={{ control, name: 'mfa_enabled' }}
           label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'acl_enabled' }}
+          label={LL.networkConfiguration.form.fields.acl_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'acl_default_allow' }}
+          label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
           labelPlacement="right"
         />
         <FormInput
