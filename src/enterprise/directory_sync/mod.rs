@@ -875,6 +875,8 @@ mod test {
             false,
             32,
             32,
+            false,
+            false,
         )
         .unwrap()
         .save(pool)

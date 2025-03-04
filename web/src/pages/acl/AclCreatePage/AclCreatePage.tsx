@@ -12,6 +12,7 @@ import { useI18nContext } from '../../../i18n/i18n-react';
 import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
+import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { FormTextarea } from '../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
@@ -84,6 +85,7 @@ export const AlcCreatePage = () => {
       ports: '',
       protocols: [],
       expires: undefined,
+      enabled: true,
     };
     return defaultValue;
   }, [editMode, ruleToEdit]);
@@ -103,9 +105,12 @@ export const AlcCreatePage = () => {
   } = useApi();
 
   const handleSuccess = useCallback(() => {
-    void queryClient.invalidateQueries({
-      queryKey: [QueryKeys.FETCH_ACL_RULES],
-    });
+    const keys = [QueryKeys.FETCH_ACL_RULES, QueryKeys.FETCH_ACL_RULE_EDIT];
+    for (const key of keys) {
+      void queryClient.refetchQueries({
+        queryKey: [key],
+      });
+    }
     navigate('/admin/acl');
   }, [navigate, queryClient]);
 
@@ -133,6 +138,7 @@ export const AlcCreatePage = () => {
           .min(1, formErrors.required()),
         networks: z.number().array(),
         expires: z.string().nullable(),
+        enabled: z.boolean(),
         allowed_users: z.number().array(),
         denied_users: z.number().array(),
         allowed_groups: z.number().array(),
@@ -213,6 +219,7 @@ export const AlcCreatePage = () => {
       networks: initialValue.networks,
       ports: initialValue.ports,
       protocols: initialValue.protocols,
+      enabled: initialValue.enabled,
     };
     return res;
   }, [initialValue]);
@@ -281,6 +288,11 @@ export const AlcCreatePage = () => {
             label="Allow all locations"
             value={allowAllLocations}
             onChange={setAllowAllLocations}
+          />
+          <FormCheckBox
+            controller={{ control, name: 'enabled' }}
+            label="Enabled"
+            labelPlacement="right"
           />
           <FormDialogSelect
             controller={{ control, name: 'networks' }}

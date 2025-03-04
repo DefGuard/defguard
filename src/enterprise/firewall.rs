@@ -487,7 +487,7 @@ impl WireguardNetwork<Id> {
         let rules = query_as!(
             AclRule,
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
-                destination, ports, protocols, expires \
+                destination, ports, protocols, expires, enabled \
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \

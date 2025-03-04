@@ -1826,6 +1826,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         peer_disconnect_threshold: {
           label: 'Peer disconnect threshold [seconds]',
         },
+        acl_enabled: {
+          label: 'Enable ACL for this location',
+        },
+        acl_default_allow: {
+          label: 'Default ACL policy',
+        },
       },
       controls: {
         submit: 'Save changes',

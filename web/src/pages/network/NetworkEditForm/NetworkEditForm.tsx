@@ -38,6 +38,8 @@ type FormFields = {
   mfa_enabled: boolean;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
+  acl_enabled: boolean;
+  acl_default_allow: boolean;
 };
 
 const defaultValues: FormFields = {
@@ -51,6 +53,8 @@ const defaultValues: FormFields = {
   mfa_enabled: false,
   keepalive_interval: 25,
   peer_disconnect_threshold: 180,
+  acl_enabled: false,
+  acl_default_allow: false,
 };
 
 const networkToForm = (data?: Network): FormFields => {
@@ -211,6 +215,8 @@ export const NetworkEditForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .min(120, LL.form.error.invalid()),
+        acl_enabled: z.boolean(),
+        acl_default_allow: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -310,6 +316,16 @@ export const NetworkEditForm = () => {
         <FormCheckBox
           controller={{ control, name: 'mfa_enabled' }}
           label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'acl_enabled' }}
+          label={LL.networkConfiguration.form.fields.acl_enabled.label()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'acl_default_allow' }}
+          label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
           labelPlacement="right"
         />
         <FormInput

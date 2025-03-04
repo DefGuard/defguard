@@ -55,6 +55,8 @@ async fn test_config_import() {
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
+        false,
+        false,
     )
     .unwrap();
     initial_network.save(&pool).await.unwrap();

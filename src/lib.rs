@@ -670,6 +670,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
+            false,
+            false,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -753,6 +755,8 @@ pub async fn init_vpn_location(
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
+        false,
+        false,
     )?
     .save(pool)
     .await?;

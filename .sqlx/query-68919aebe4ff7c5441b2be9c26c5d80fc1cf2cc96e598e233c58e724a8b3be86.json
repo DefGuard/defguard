@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"expires\" FROM \"aclrule\" WHERE id = $1",
+  "query": "SELECT id, \"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\"",
   "describe": {
     "columns": [
       {
@@ -45,16 +45,20 @@
       },
       {
         "ordinal": 8,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
         "name": "expires",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -66,5 +70,5 @@
       true
     ]
   },
-  "hash": "460fc438f4d20b459022460ee405a37f77d5d6a2decc1f73f494ce600dacba66"
+  "hash": "68919aebe4ff7c5441b2be9c26c5d80fc1cf2cc96e598e233c58e724a8b3be86"
 }

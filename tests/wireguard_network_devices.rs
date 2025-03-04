@@ -25,7 +25,9 @@ fn make_network() -> Value {
         "allowed_groups": [],
         "mfa_enabled": false,
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
     })
 }
 
@@ -40,7 +42,9 @@ fn make_second_network() -> Value {
         "allowed_groups": [],
         "mfa_enabled": false,
         "keepalive_interval": 25,
-        "peer_disconnect_threshold": 180
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
     })
 }
 

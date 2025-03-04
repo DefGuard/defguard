@@ -106,6 +106,7 @@ pub struct AclRuleInfo<I = NoId> {
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
     pub expires: Option<NaiveDateTime>,
+    pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -189,6 +190,7 @@ pub struct AclRule<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
+    pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
 }
 
@@ -463,6 +465,7 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
             deny_all_users: rule.deny_all_users,
             all_networks: rule.all_networks,
             protocols: rule.protocols,
+            enabled: rule.enabled,
             expires: rule.expires,
         })
     }
@@ -483,7 +486,8 @@ impl AclRule<Id> {
             query_as!(
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+                acl_enabled, acl_default_allow \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \
@@ -705,6 +709,7 @@ impl AclRule<Id> {
             all_networks: self.all_networks,
             destination: self.destination.clone(),
             protocols: self.protocols.clone(),
+            enabled: self.enabled,
             expires: self.expires,
             destination_ranges,
             ports,
@@ -1167,6 +1172,7 @@ mod test {
         let mut rule = AclRule {
             id: NoId,
             name: "rule".to_string(),
+            enabled: true,
             allow_all_users: false,
             deny_all_users: false,
             all_networks: false,
@@ -1190,6 +1196,8 @@ mod test {
             false,
             100,
             100,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)
@@ -1205,6 +1213,8 @@ mod test {
             false,
             200,
             200,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)
