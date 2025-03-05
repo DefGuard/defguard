@@ -12,7 +12,7 @@ use sqlx::{
 use std::{
     collections::HashSet,
     fmt,
-    net::IpAddr,
+    net::{IpAddr, Ipv4Addr},
     ops::{Bound, Range},
 };
 use thiserror::Error;
@@ -1074,9 +1074,20 @@ pub struct AclRuleDevice<I = NoId> {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
-    pub rule_id: i64,
+    pub rule_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
+}
+
+impl Default for AclRuleDestinationRange<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            rule_id: Id::default(),
+            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        }
+    }
 }
 
 impl AclRuleDestinationRange<NoId> {
@@ -1102,9 +1113,20 @@ impl AclRuleDestinationRange<NoId> {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
-    pub alias_id: i64,
+    pub alias_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
+}
+
+impl Default for AclAliasDestinationRange<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            alias_id: Id::default(),
+            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        }
+    }
 }
 
 impl AclAliasDestinationRange<NoId> {

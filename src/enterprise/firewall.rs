@@ -284,7 +284,7 @@ fn process_destination_addrs(
     let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
         IpVersion::Ipv4 => {
             if dst.is_ipv4() {
-                Some(ip_to_range(dst.network(), next_ip(dst.broadcast())))
+                Some(ip_to_range(dst.network(), dst.broadcast()))
             } else {
                 None
             }
@@ -502,7 +502,7 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
 /// Helper function which implements merging a set of ranges of arbitrary elements
 /// into the smallest possible set of non-overlapping ranges.
 /// It can then be reused for merging port and address ranges.
-fn merge_ranges<T: Ord>(mut ranges: Vec<Range<T>>) -> Vec<Range<T>> {
+fn merge_ranges<T: Ord + std::fmt::Debug>(mut ranges: Vec<Range<T>>) -> Vec<Range<T>> {
     // return early if list is empty
     if ranges.is_empty() {
         return Vec::new();
@@ -514,6 +514,7 @@ fn merge_ranges<T: Ord>(mut ranges: Vec<Range<T>>) -> Vec<Range<T>> {
         let b_start = &b.start;
         a_start.cmp(b_start)
     });
+    println!("RANGES: {ranges:#?}");
 
     // initialize result vector
     let mut merged_ranges = Vec::new();
@@ -648,10 +649,11 @@ mod test {
     use ipnetwork::Ipv6Network;
     use rand::{thread_rng, Rng};
 
+    use super::process_destination_addrs;
     use crate::{
         db::{models::device::DeviceType, Device, Id, User},
         enterprise::{
-            db::models::acl::PortRange,
+            db::models::acl::{AclAliasDestinationRange, AclRuleDestinationRange, PortRange},
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
             },
@@ -841,12 +843,182 @@ mod test {
 
     #[test]
     fn test_process_destination_addrs_v4() {
-        unimplemented!()
+        // Test data with mixed IPv4 and IPv6 networks
+        let destination_ips = vec![
+            "10.0.1.0/24".parse().unwrap(),
+            "10.0.2.0/24".parse().unwrap(),
+            "2001:db8::/64".parse().unwrap(), // Should be filtered out
+            "192.168.1.0/24".parse().unwrap(),
+        ];
+
+        let destination_ranges = vec![
+            AclRuleDestinationRange {
+                start: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 1)),
+                end: IpAddr::V4(Ipv4Addr::new(10, 0, 3, 100)),
+                ..Default::default()
+            },
+            AclRuleDestinationRange {
+                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)), // Should be filtered out
+                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 100)),
+                ..Default::default()
+            },
+        ];
+
+        let alias_destination_ranges = vec![
+            AclAliasDestinationRange {
+                start: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 1)),
+                end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 50)),
+                ..Default::default()
+            },
+            AclAliasDestinationRange {
+                start: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 40)),
+                end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 100)),
+                ..Default::default()
+            },
+        ];
+
+        let destination_addrs = process_destination_addrs(
+            destination_ips,
+            destination_ranges,
+            alias_destination_ranges,
+            IpVersion::Ipv4,
+        );
+
+        assert_eq!(
+            destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.0".to_string(),
+                        end: "10.0.2.255".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.3.1".to_string(),
+                        end: "10.0.3.100".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.4.1".to_string(),
+                        end: "10.0.4.100".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "192.168.1.0".to_string(),
+                        end: "192.168.1.255".to_string(),
+                    })),
+                },
+            ]
+        );
+
+        // Test with empty input
+        let empty_addrs = process_destination_addrs(vec![], vec![], vec![], IpVersion::Ipv4);
+        assert!(empty_addrs.is_empty());
+
+        // Test with only IPv6 addresses - should return empty result for IPv4
+        let ipv6_only = process_destination_addrs(
+            vec!["2001:db8::/64".parse().unwrap()],
+            vec![],
+            vec![],
+            IpVersion::Ipv4,
+        );
+        assert!(ipv6_only.is_empty());
     }
 
     #[test]
     fn test_process_destination_addrs_v6() {
-        unimplemented!()
+        // Test data with mixed IPv4 and IPv6 networks
+        let destination_ips = vec![
+            "2001:db8:1::/64".parse().unwrap(),
+            "2001:db8:2::/64".parse().unwrap(),
+            "10.0.1.0/24".parse().unwrap(), // Should be filtered out
+            "2001:db8:3::/64".parse().unwrap(),
+        ];
+
+        let destination_ranges = vec![
+            AclRuleDestinationRange {
+                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 1)),
+                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 4, 0, 0, 0, 0, 100)),
+                ..Default::default()
+            },
+            AclRuleDestinationRange {
+                start: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)), // Should be filtered out
+                end: IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
+                ..Default::default()
+            },
+        ];
+
+        let alias_destination_ranges = vec![
+            AclAliasDestinationRange {
+                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 1)),
+                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 50)),
+                ..Default::default()
+            },
+            AclAliasDestinationRange {
+                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 40)),
+                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 100)),
+                ..Default::default()
+            },
+        ];
+
+        let destination_addrs = process_destination_addrs(
+            destination_ips,
+            destination_ranges,
+            alias_destination_ranges,
+            IpVersion::Ipv6,
+        );
+
+        assert_eq!(
+            destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:1::".to_string(),
+                        end: "2001:db8:1:0:ffff:ffff:ffff:ffff".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:2::".to_string(),
+                        end: "2001:db8:2:0:ffff:ffff:ffff:ffff".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:3::".to_string(),
+                        end: "2001:db8:3:0:ffff:ffff:ffff:ffff".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:4::1".to_string(),
+                        end: "2001:db8:4::64".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8:5::1".to_string(),
+                        end: "2001:db8:5::64".to_string(),
+                    })),
+                },
+            ]
+        );
+
+        // Test with empty input
+        let empty_addrs = process_destination_addrs(vec![], vec![], vec![], IpVersion::Ipv6);
+        assert!(empty_addrs.is_empty());
+
+        // Test with only IPv4 addresses - should return empty result for IPv6
+        let ipv4_only = process_destination_addrs(
+            vec!["192.168.1.0/24".parse().unwrap()],
+            vec![],
+            vec![],
+            IpVersion::Ipv6,
+        );
+        assert!(ipv4_only.is_empty());
     }
 
     #[test]
@@ -1105,6 +1277,8 @@ mod test {
         // Test IPv4
         let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
         assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)));
+        let ip = IpAddr::V4(Ipv4Addr::new(10, 0, 2, 255));
+        assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(10, 0, 3, 0)));
 
         // Test IPv4 overflow
         let ip = IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255));
@@ -1132,6 +1306,8 @@ mod test {
         // Test IPv4
         let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2));
         assert_eq!(previous_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+        let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0));
+        assert_eq!(previous_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255)));
 
         // Test IPv4 underflow
         let ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
@@ -1178,11 +1354,6 @@ mod test {
                 0x280b, 0x47f8, 0xc9d7, 0x634c, 0xcb35, 0x11f3, 0x14e1, 0x51ff
             ))
         )
-    }
-
-    #[test]
-    fn test_process_protocols() {
-        unimplemented!()
     }
 
     #[sqlx::test]
