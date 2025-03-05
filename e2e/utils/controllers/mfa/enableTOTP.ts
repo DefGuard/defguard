@@ -16,7 +16,7 @@ export type EnableTOTPResult = {
 
 export const enableTOTP = async (
   browser: Browser,
-  user: User
+  user: User,
 ): Promise<EnableTOTPResult> => {
   const context = await browser.newContext();
   const page = await context.newPage();

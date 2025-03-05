@@ -65,7 +65,7 @@ test.describe('Reset password', () => {
     // A message should be displayed that the code is invalid
     const message = await page.locator('.message').textContent();
     expect(message).toBe(
-      'The entered code is invalid. Please start the process from the beginning.'
+      'The entered code is invalid. Please start the process from the beginning.',
     );
 
     // The password input should not be visible

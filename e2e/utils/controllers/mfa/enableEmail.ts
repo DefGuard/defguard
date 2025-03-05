@@ -38,7 +38,7 @@ export const setupSMTP = async (browser: Browser) => {
 
 export const enableEmailMFA = async (
   browser: Browser,
-  user: User
+  user: User,
 ): Promise<EnableEmailResult> => {
   await setupSMTP(browser);
   const context = await browser.newContext();
@@ -56,7 +56,7 @@ export const enableEmailMFA = async (
   await requestPromise;
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
-  const {otp: code } = TOTP.generate(secret, {
+  const { otp: code } = TOTP.generate(secret, {
     digits: 6,
     period: 60,
   });

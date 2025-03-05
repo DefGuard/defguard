@@ -1,6 +1,6 @@
 export const mergeObjects = <T extends object>(
   partialObj: Partial<T>,
-  defaultObj: T
+  defaultObj: T,
 ): T => {
   const res: T = defaultObj;
   for (const key of Object.keys(defaultObj)) {

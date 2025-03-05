@@ -40,7 +40,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
 export const loginRecoveryCodes = async (
   page: Page,
   userInfo: AuthInfo,
-  code: string
+  code: string,
 ): Promise<void> => {
   await loginBasic(page, userInfo);
   await page.goto(routes.base + routes.auth.recovery, {

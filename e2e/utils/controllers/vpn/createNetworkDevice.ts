@@ -42,7 +42,7 @@ export const doAction = async ({
 export const createNetworkDevice = async (
   browser: Browser,
   user: User,
-  device: NetworkDeviceForm
+  device: NetworkDeviceForm,
 ) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -73,7 +73,7 @@ export const createNetworkDevice = async (
 export const startNetworkDeviceEnrollment = async (
   browser: Browser,
   user: User,
-  device: NetworkDeviceForm
+  device: NetworkDeviceForm,
 ) => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -101,7 +101,7 @@ export const editNetworkDevice = async (
   browser: Browser,
   user: User,
   currentDeviceName: string,
-  device: EditNetworkDeviceForm
+  device: EditNetworkDeviceForm,
 ) => {
   const context = await browser.newContext();
   const page = await context.newPage();
