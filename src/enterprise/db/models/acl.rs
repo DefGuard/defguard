@@ -253,33 +253,50 @@ impl AclRule {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct ParsedDestination {
+    addrs: Vec<IpNetwork>,
+    ranges: Vec<(IpAddr, IpAddr)>,
+}
+
 /// Perses a destination string into singular ip addresses or networks and address
 /// ranges. We should be able to parse a string like this one:
 /// `10.0.0.1/24, 10.1.1.10-10.1.1.20, 192.168.1.10, 10.1.1.1-10.10.1.1`
-pub fn parse_destination(
-    destination: &str,
-) -> Result<(Vec<IpNetwork>, Vec<(IpAddr, IpAddr)>), AclError> {
-    let mut addrs = Vec::new();
-    let mut ranges = Vec::new();
+pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclError> {
+    debug!("Parsing destination string: {destination}");
     let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
+    let mut result = ParsedDestination::default();
+    if destination.is_empty() {
+        return Ok(result);
+    }
     for v in destination.split(',') {
         match v.split('-').collect::<Vec<_>>() {
-            l if l.len() == 1 => addrs.push(l[0].parse::<IpNetwork>()?),
-            l if l.len() == 2 => ranges.push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
-            _ => return Err(IpNetworkError::InvalidAddr(destination))?,
+            l if l.len() == 1 => result.addrs.push(l[0].parse::<IpNetwork>()?),
+            l if l.len() == 2 => result
+                .ranges
+                .push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
+            _ => {
+                error!("Failed to parse destination string: \"{destination}\"");
+                return Err(IpNetworkError::InvalidAddr(destination))?;
+            }
         };
     }
 
-    Ok((addrs, ranges))
+    debug!("Parsed destination: {result:?}");
+    Ok(result)
 }
 
 /// Perses a ports string into singular ports and port ranges
 /// We should be able to parse a string like this one:
 /// `22, 23, 8000-9000, 80-90`
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
+    debug!("Parsing ports string: {ports}");
     let mut result = Vec::new();
-    let p: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
-    for v in p.split(',') {
+    let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
+    if ports.is_empty() {
+        return Ok(result);
+    }
+    for v in ports.split(',') {
         match v.split('-').collect::<Vec<_>>() {
             l if l.len() == 1 => result.push(PortRange(Range {
                 start: l[0].parse::<i32>()?,
@@ -289,10 +306,14 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
                 start: l[0].parse::<i32>()?,
                 end: l[1].parse::<i32>()? + 1,
             })),
-            _ => return Err(AclError::InvalidPortsFormat(ports.to_string())),
+            _ => {
+                error!("Failed to parse ports string: \"{ports}\"");
+                return Err(AclError::InvalidPortsFormat(ports.to_string()));
+            }
         };
     }
 
+    debug!("Parsed ports: {result:?}");
     Ok(result)
 }
 
@@ -391,8 +412,8 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // destination
-        let (_, ranges) = parse_destination(&api_rule.destination)?;
-        for range in ranges {
+        let destination = parse_destination(&api_rule.destination)?;
+        for range in destination.ranges {
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,
@@ -454,7 +475,7 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
     type Error = AclError;
     fn try_from(rule: ApiAclRule<I>) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&rule.destination)?.0,
+            destination: parse_destination(&rule.destination)?.addrs,
             ports: parse_ports(&rule.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -855,7 +876,7 @@ impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
     type Error = AclError;
     fn try_from(alias: ApiAclAlias<I>) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&alias.destination)?.0,
+            destination: parse_destination(&alias.destination)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -968,8 +989,8 @@ impl<I: std::fmt::Debug> AclAlias<I> {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {api_alias:?}");
         // save related destination ranges
-        let (_, ranges) = parse_destination(&api_alias.destination)?;
-        for range in ranges {
+        let destination = parse_destination(&api_alias.destination)?;
+        for range in destination.ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,

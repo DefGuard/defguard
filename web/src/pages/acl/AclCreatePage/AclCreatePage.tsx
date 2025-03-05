@@ -41,7 +41,6 @@ import {
   StandaloneDevice,
   User,
 } from '../../../shared/types';
-import { removeEmptyStringKeys } from '../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
 import { AclProtocol } from '../types';
@@ -233,7 +232,7 @@ export const AlcCreatePage = () => {
   const watchedExpires = watch('expires');
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
-    const cleaned = trimObjectStrings(removeEmptyStringKeys(values)) as FormFields;
+    const cleaned = trimObjectStrings(values);
 
     if (editMode) {
       const requestData: EditAclRuleRequest = {
