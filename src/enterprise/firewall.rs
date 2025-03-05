@@ -1,4 +1,7 @@
-use std::net::IpAddr;
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    ops::Range,
+};
 
 use ipnetwork::{IpNetwork, Ipv6Network};
 use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
@@ -244,14 +247,14 @@ fn get_source_addrs(
         .filter_map(|ip| match ip_version {
             IpVersion::Ipv4 => {
                 if ip.is_ipv4() {
-                    Some((ip, ip))
+                    Some(ip_to_range(ip, ip))
                 } else {
                     None
                 }
             }
             IpVersion::Ipv6 => {
                 if ip.is_ipv6() {
-                    Some((ip, ip))
+                    Some(ip_to_range(ip, ip))
                 } else {
                     None
                 }
@@ -265,7 +268,7 @@ fn get_source_addrs(
 
 /// Convert destination networks and ranges configured in an ACL rule
 /// into the correct format for a firewall rule. This includes:
-/// - combining both lists
+/// - combining all addr lists
 /// - converting to gRPC IpAddress struct
 /// - filtering out incompatible IP version
 /// - merging into the smallest possible list of non-overlapping ranges,
@@ -277,11 +280,11 @@ fn process_destination_addrs(
     ip_version: IpVersion,
 ) -> Vec<IpAddress> {
     // filter out destinations with incompatible IP version and convert to intermediate
-    // tuple representation for merging
+    // range representation for merging
     let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
         IpVersion::Ipv4 => {
             if dst.is_ipv4() {
-                Some((dst.network(), dst.broadcast()))
+                Some(ip_to_range(dst.network(), next_ip(dst.broadcast())))
             } else {
                 None
             }
@@ -290,7 +293,7 @@ fn process_destination_addrs(
             if let IpNetwork::V6(subnet) = dst {
                 let range_start = subnet.network().into();
                 let range_end = get_last_ip_in_v6_subnet(subnet);
-                Some((range_start, range_end))
+                Some(ip_to_range(range_start, range_end))
             } else {
                 None
             }
@@ -298,20 +301,20 @@ fn process_destination_addrs(
     });
 
     // filter out destination ranges with incompatible IP version and convert to intermediate
-    // tuple representation for merging
+    // range representation for merging
     let destination_range_iterator = destination_ranges
         .iter()
         .filter_map(|dst| match ip_version {
             IpVersion::Ipv4 => {
                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                    Some((dst.start, dst.end))
+                    Some(ip_to_range(dst.start, dst.end))
                 } else {
                     None
                 }
             }
             IpVersion::Ipv6 => {
                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                    Some((dst.start, dst.end))
+                    Some(ip_to_range(dst.start, dst.end))
                 } else {
                     None
                 }
@@ -323,14 +326,14 @@ fn process_destination_addrs(
             .filter_map(|dst| match ip_version {
                 IpVersion::Ipv4 => {
                     if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                        Some((dst.start, dst.end))
+                        Some(ip_to_range(dst.start, dst.end))
                     } else {
                         None
                     }
                 }
                 IpVersion::Ipv6 => {
                     if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                        Some((dst.start, dst.end))
+                        Some(ip_to_range(dst.start, dst.end))
                     } else {
                         None
                     }
@@ -347,6 +350,76 @@ fn process_destination_addrs(
     merge_addrs(destination_addrs)
 }
 
+fn ip_to_range(first_ip: IpAddr, last_ip: IpAddr) -> Range<IpAddr> {
+    Range {
+        start: first_ip,
+        end: next_ip(last_ip),
+    }
+}
+
+fn range_to_ip(ip_range: Range<IpAddr>) -> (IpAddr, IpAddr) {
+    let first_ip = ip_range.start;
+    let last_ip = previous_ip(ip_range.end);
+
+    (first_ip, last_ip)
+}
+
+/// Returns the next IP address in sequence, handling overflow via wrapping
+fn next_ip(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            let octets = ipv4.octets();
+            let mut num: u32 = ((octets[0] as u32) << 24)
+                | ((octets[1] as u32) << 16)
+                | ((octets[2] as u32) << 8)
+                | octets[3] as u32;
+            num = num.wrapping_add(1);
+            IpAddr::V4(Ipv4Addr::from(num))
+        }
+        IpAddr::V6(ipv6) => {
+            let segments = ipv6.segments();
+            let mut num: u128 = ((segments[0] as u128) << 112)
+                | ((segments[1] as u128) << 96)
+                | ((segments[2] as u128) << 80)
+                | ((segments[3] as u128) << 64)
+                | ((segments[4] as u128) << 48)
+                | ((segments[5] as u128) << 32)
+                | ((segments[6] as u128) << 16)
+                | segments[7] as u128;
+            num = num.wrapping_add(1);
+            IpAddr::V6(Ipv6Addr::from(num))
+        }
+    }
+}
+
+/// Returns the previous IP address in sequence, handling underflow via wrapping
+fn previous_ip(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            let octets = ipv4.octets();
+            let mut num: u32 = ((octets[0] as u32) << 24)
+                | ((octets[1] as u32) << 16)
+                | ((octets[2] as u32) << 8)
+                | octets[3] as u32;
+            num = num.wrapping_sub(1);
+            IpAddr::V4(Ipv4Addr::from(num))
+        }
+        IpAddr::V6(ipv6) => {
+            let segments = ipv6.segments();
+            let mut num: u128 = ((segments[0] as u128) << 112)
+                | ((segments[1] as u128) << 96)
+                | ((segments[2] as u128) << 80)
+                | ((segments[3] as u128) << 64)
+                | ((segments[4] as u128) << 48)
+                | ((segments[5] as u128) << 32)
+                | ((segments[6] as u128) << 16)
+                | segments[7] as u128;
+            num = num.wrapping_sub(1);
+            IpAddr::V6(Ipv6Addr::from(num))
+        }
+    }
+}
+
 fn get_last_ip_in_v6_subnet(subnet: &Ipv6Network) -> IpAddr {
     // get subnet IP portion as u128
     let first_ip = subnet.ip().to_bits();
@@ -359,13 +432,14 @@ fn get_last_ip_in_v6_subnet(subnet: &Ipv6Network) -> IpAddr {
 /// Converts an arbitrary list of ip address ranges into the smallest possible list
 /// of non-overlapping elements which can be used in a firewall rule.
 /// It assumes that all ranges with an invalid IP version have already been filtered out.
-fn merge_addrs(addr_ranges: Vec<(IpAddr, IpAddr)>) -> Vec<IpAddress> {
+fn merge_addrs(addr_ranges: Vec<Range<IpAddr>>) -> Vec<IpAddress> {
     // merge into non-overlapping ranges
     let addr_ranges = merge_ranges(addr_ranges);
 
     // convert to gRPC format
     let mut result = Vec::new();
-    for (range_start, range_end) in addr_ranges {
+    for range in addr_ranges {
+        let (range_start, range_end) = range_to_ip(range);
         if range_start == range_end {
             // single IP address
             result.push(IpAddress {
@@ -398,10 +472,7 @@ fn find_largest_subnet_in_range(
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
 fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
     // convert ranges to a list of tuples for merging
-    let port_ranges = port_ranges
-        .into_iter()
-        .map(|range| (range.start(), range.end()))
-        .collect();
+    let port_ranges = port_ranges.into_iter().map(|range| range.0).collect();
 
     // merge into non-overlapping ranges
     let port_ranges = merge_ranges(port_ranges);
@@ -409,7 +480,9 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
     // convert resulting ranges into gRPC format
     port_ranges
         .into_iter()
-        .map(|(range_start, range_end)| {
+        .map(|range| {
+            let range_start = range.start;
+            let range_end = range.end - 1;
             if range_start == range_end {
                 Port {
                     port: Some(PortInner::SinglePort(range_start as u32)),
@@ -426,38 +499,10 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
         .collect()
 }
 
-/// Returns the next IP address in sequence, handling overflow via wrapping
-fn next_ip(ip: IpAddr) -> IpAddr {
-    match ip {
-        IpAddr::V4(ipv4) => {
-            let octets = ipv4.octets();
-            let mut num: u32 = ((octets[0] as u32) << 24)
-                | ((octets[1] as u32) << 16)
-                | ((octets[2] as u32) << 8)
-                | octets[3] as u32;
-            num = num.wrapping_add(1);
-            IpAddr::V4(Ipv4Addr::from(num))
-        }
-        IpAddr::V6(ipv6) => {
-            let segments = ipv6.segments();
-            let mut num: u128 = ((segments[0] as u128) << 112)
-                | ((segments[1] as u128) << 96)
-                | ((segments[2] as u128) << 80)
-                | ((segments[3] as u128) << 64)
-                | ((segments[4] as u128) << 48)
-                | ((segments[5] as u128) << 32)
-                | ((segments[6] as u128) << 16)
-                | segments[7] as u128;
-            num = num.wrapping_add(1);
-            IpAddr::V6(Ipv6Addr::from(num))
-        }
-    }
-}
-
 /// Helper function which implements merging a set of ranges of arbitrary elements
 /// into the smallest possible set of non-overlapping ranges.
 /// It can then be reused for merging port and address ranges.
-fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
+fn merge_ranges<T: Ord>(mut ranges: Vec<Range<T>>) -> Vec<Range<T>> {
     // return early if list is empty
     if ranges.is_empty() {
         return Vec::new();
@@ -465,8 +510,8 @@ fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
 
     // sort elements by range start
     ranges.sort_by(|a, b| {
-        let a_start = &a.0;
-        let b_start = &b.0;
+        let a_start = &a.start;
+        let b_start = &b.start;
         a_start.cmp(b_start)
     });
 
@@ -475,13 +520,13 @@ fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
 
     // start with first range
     let current_range = ranges.remove(0);
-    let mut current_range_start = current_range.0;
-    let mut current_range_end = current_range.1;
+    let mut current_range_start = current_range.start;
+    let mut current_range_end = current_range.end;
 
     // iterate over remaining ranges
     for range in ranges {
-        let range_start = range.0;
-        let range_end = range.1;
+        let range_start = range.start;
+        let range_end = range.end;
 
         // compare with current range
         if range_start <= current_range_end {
@@ -492,14 +537,20 @@ fn merge_ranges<T: Ord>(mut ranges: Vec<(T, T)>) -> Vec<(T, T)> {
             }
         } else {
             // ranges are not overlapping, add current range to result
-            merged_ranges.push((current_range_start, current_range_end));
+            merged_ranges.push(Range {
+                start: current_range_start,
+                end: current_range_end,
+            });
             current_range_start = range_start;
             current_range_end = range_end;
         }
     }
 
     // add last remaining range
-    merged_ranges.push((current_range_start, current_range_end));
+    merged_ranges.push(Range {
+        start: current_range_start,
+        end: current_range_end,
+    });
 
     // return resulting list
     merged_ranges
@@ -599,10 +650,15 @@ mod test {
 
     use crate::{
         db::{models::device::DeviceType, Device, Id, User},
-        enterprise::{db::models::acl::PortRange, firewall::get_source_network_devices},
+        enterprise::{
+            db::models::acl::PortRange,
+            firewall::{
+                get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
+            },
+        },
         grpc::proto::enterprise::firewall::{
-            ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange, Port,
-            PortRange as PortRangeProto,
+            ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
+            IpVersion, Port, PortRange as PortRangeProto,
         },
     };
 
@@ -749,31 +805,31 @@ mod test {
     #[test]
     fn test_merge_v4_addrs() {
         let addr_ranges = vec![
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
                 IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
             ),
@@ -806,23 +862,23 @@ mod test {
 
         // merge single IPs into a range
         let addr_ranges = vec![
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
                 IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
             ),
@@ -848,19 +904,19 @@ mod test {
     #[test]
     fn test_merge_v6_addrs() {
         let addr_ranges = vec![
-            (
+            ip_to_range(
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x1)),
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x5)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x3)),
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x8)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
             ),
-            (
+            ip_to_range(
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x1)),
                 IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x3)),
             ),
@@ -1021,6 +1077,36 @@ mod test {
         assert_eq!(
             next_ip(ip),
             IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))
+        );
+    }
+
+    #[test]
+    fn test_previous_ip() {
+        // Test IPv4
+        let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2));
+        assert_eq!(previous_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+
+        // Test IPv4 underflow
+        let ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+        assert_eq!(
+            previous_ip(ip),
+            IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255))
+        );
+
+        // Test IPv6
+        let ip = IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2));
+        assert_eq!(
+            previous_ip(ip),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))
+        );
+
+        // Test IPv6 underflow
+        let ip = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
+        assert_eq!(
+            previous_ip(ip),
+            IpAddr::V6(Ipv6Addr::new(
+                0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
+            ))
         );
     }
 

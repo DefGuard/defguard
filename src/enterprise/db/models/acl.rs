@@ -60,12 +60,12 @@ impl PortRange {
     }
 
     // Returns first port in range
-    pub fn start(&self) -> i32 {
+    pub fn first_port(&self) -> i32 {
         self.0.start
     }
 
     // Returns last port in range
-    pub fn end(&self) -> i32 {
+    pub fn last_port(&self) -> i32 {
         self.0.end - 1
     }
 }
