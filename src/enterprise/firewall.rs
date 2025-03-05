@@ -775,6 +775,46 @@ mod test {
                 },
             ]
         );
+
+        // merge single IPs into a range
+        let addr_ranges = vec![
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
+            ),
+            (
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
+                IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
+            ),
+        ];
+
+        let merged_addrs = merge_addrs(addr_ranges);
+        assert_eq!(
+            merged_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.10.1".to_string(),
+                        end: "10.0.10.4".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("10.0.10.20".to_string())),
+                },
+            ]
+        );
     }
 
     #[test]
