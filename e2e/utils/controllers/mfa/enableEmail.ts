@@ -1,5 +1,5 @@
 import { Browser } from 'playwright';
-import totp from 'totp-generator';
+import { TOTP } from 'totp-generator';
 
 import { defaultUserAdmin, routes } from '../../../config';
 import { User } from '../../../types';
@@ -56,7 +56,7 @@ export const enableEmailMFA = async (
   await requestPromise;
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
-  const code = totp(secret, {
+  const {otp: code } = TOTP.generate(secret, {
     digits: 6,
     period: 60,
   });

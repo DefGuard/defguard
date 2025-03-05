@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import totp from 'totp-generator';
+import { TOTP } from 'totp-generator';
 
 import { defaultUserAdmin, routes, testUserTemplate } from '../config';
 import { User } from '../types';
@@ -78,7 +78,7 @@ test.describe('Test user authentication', () => {
     const { secret } = await enableEmailMFA(browser, testUser);
     await loginBasic(page, testUser);
     await page.goto(routes.base + routes.auth.email);
-    const code = totp(secret, {
+    const { otp: code } = TOTP.generate(secret, {
       digits: 6,
       period: 60,
     });
