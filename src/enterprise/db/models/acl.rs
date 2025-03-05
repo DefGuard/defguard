@@ -253,7 +253,7 @@ impl AclRule {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ParsedDestination {
     addrs: Vec<IpNetwork>,
     ranges: Vec<(IpAddr, IpAddr)>,
