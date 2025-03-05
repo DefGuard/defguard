@@ -789,7 +789,54 @@ mod test {
 
     #[test]
     fn test_process_source_addrs_v6() {
-        unimplemented!()
+        // Test data with mixed IPv4 and IPv6 addresses
+        let user_device_ips = vec![
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 5)),
+            IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)), // Should be filtered out
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 1, 0, 0, 0, 1)),
+        ];
+
+        let network_device_ips = vec![
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 3)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 4)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 1)), // Should be filtered out
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 2, 0, 0, 0, 1)),
+        ];
+
+        let source_addrs = get_source_addrs(user_device_ips, network_device_ips, IpVersion::Ipv6);
+
+        // Should merge consecutive IPs into ranges and keep separate non-consecutive ranges
+        assert_eq!(
+            source_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "2001:db8::1".to_string(),
+                        end: "2001:db8::5".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("2001:db8:0:1::1".to_string())),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("2001:db8:0:2::1".to_string())),
+                },
+            ]
+        );
+
+        // Test with empty input
+        let empty_addrs = get_source_addrs(vec![], vec![], IpVersion::Ipv6);
+        assert!(empty_addrs.is_empty());
+
+        // Test with only IPv4 addresses - should return empty result for IPv6
+        let ipv4_only = get_source_addrs(
+            vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))],
+            vec![IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2))],
+            IpVersion::Ipv6,
+        );
+        assert!(ipv4_only.is_empty());
     }
 
     #[test]
