@@ -653,7 +653,54 @@ mod test {
 
     #[test]
     fn test_process_source_addrs_v4() {
-        unimplemented!()
+        // Test data with mixed IPv4 and IPv6 addresses
+        let user_device_ips = vec![
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 1)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 2)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 5)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1)), // Should be filtered out
+            IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
+        ];
+
+        let network_device_ips = vec![
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 3)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 1, 4)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2)), // Should be filtered out
+            IpAddr::V4(Ipv4Addr::new(172, 16, 1, 1)),
+        ];
+
+        let source_addrs = get_source_addrs(user_device_ips, network_device_ips, IpVersion::Ipv4);
+
+        // Should merge consecutive IPs into ranges and keep separate non-consecutive ranges
+        assert_eq!(
+            source_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.1".to_string(),
+                        end: "10.0.1.5".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("172.16.1.1".to_string())),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("192.168.1.100".to_string())),
+                },
+            ]
+        );
+
+        // Test with empty input
+        let empty_addrs = get_source_addrs(vec![], vec![], IpVersion::Ipv4);
+        assert!(empty_addrs.is_empty());
+
+        // Test with only IPv6 addresses - should return empty result for IPv4
+        let ipv6_only = get_source_addrs(
+            vec![IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))],
+            vec![IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2))],
+            IpVersion::Ipv4,
+        );
+        assert!(ipv6_only.is_empty());
     }
 
     #[test]
