@@ -426,6 +426,34 @@ fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
         .collect()
 }
 
+/// Returns the next IP address in sequence, handling overflow via wrapping
+fn next_ip(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            let octets = ipv4.octets();
+            let mut num: u32 = ((octets[0] as u32) << 24)
+                | ((octets[1] as u32) << 16)
+                | ((octets[2] as u32) << 8)
+                | octets[3] as u32;
+            num = num.wrapping_add(1);
+            IpAddr::V4(Ipv4Addr::from(num))
+        }
+        IpAddr::V6(ipv6) => {
+            let segments = ipv6.segments();
+            let mut num: u128 = ((segments[0] as u128) << 112)
+                | ((segments[1] as u128) << 96)
+                | ((segments[2] as u128) << 80)
+                | ((segments[3] as u128) << 64)
+                | ((segments[4] as u128) << 48)
+                | ((segments[5] as u128) << 32)
+                | ((segments[6] as u128) << 16)
+                | segments[7] as u128;
+            num = num.wrapping_add(1);
+            IpAddr::V6(Ipv6Addr::from(num))
+        }
+    }
+}
+
 /// Helper function which implements merging a set of ranges of arbitrary elements
 /// into the smallest possible set of non-overlapping ranges.
 /// It can then be reused for merging port and address ranges.
@@ -966,6 +994,33 @@ mod test {
                     end: 200
                 }))
             }]
+        );
+    }
+
+    #[test]
+    fn test_next_ip() {
+        // Test IPv4
+        let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
+        assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)));
+
+        // Test IPv4 overflow
+        let ip = IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255));
+        assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+
+        // Test IPv6
+        let ip = IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1));
+        assert_eq!(
+            next_ip(ip),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2))
+        );
+
+        // Test IPv6 overflow
+        let ip = IpAddr::V6(Ipv6Addr::new(
+            0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+        ));
+        assert_eq!(
+            next_ip(ip),
+            IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))
         );
     }
 
