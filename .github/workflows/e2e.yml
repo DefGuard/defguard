@@ -26,9 +26,9 @@ jobs:
           node-version-file: "./e2e/.nvmrc"
       - name: Install pnpm
         id: pnpm-install
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10
           run_install: false
       - name: Get pnpm store directory
         id: pnpm-cache

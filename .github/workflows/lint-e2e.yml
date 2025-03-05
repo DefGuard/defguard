@@ -20,11 +20,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: "./e2e/.nvmrc"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
       - name: install deps
         working-directory: ./e2e
-        run: |
-          npm i -g pnpm
-          pnpm i --frozen-lockfile
+        run: pnpm i --frozen-lockfile
       - name: Lint
         working-directory: ./e2e
         run: pnpm lint
