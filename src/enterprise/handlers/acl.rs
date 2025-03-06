@@ -18,7 +18,7 @@ use super::LicenseInfo;
 
 /// API representation of [`AclRule`]
 /// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiAclRule<I = NoId> {
     #[serde(default)]
     pub id: I,
