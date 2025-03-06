@@ -1380,7 +1380,7 @@ mod test {
         let info = rule.to_info(&pool).await.unwrap();
 
         assert_eq!(info.aliases.len(), 1);
-        assert_eq!(info.aliases[0].id, alias1.id); // db modifies datetime precision
+        assert_eq!(info.aliases[0], alias1);
 
         assert_eq!(info.allowed_users.len(), 1);
         assert_eq!(info.allowed_users[0], user1);
@@ -1430,7 +1430,12 @@ mod test {
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
-        // TODO: what if both `allow_all_users` and `deny_all_users` are true?
+        // favor `deny_all_users` if both flags are set
+        rule.allow_all_users = true;
+        rule.deny_all_users = true;
+        rule.save(&pool).await.unwrap();
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // deactivate user1
         user1.is_active = false;

@@ -1,4 +1,4 @@
-use common::{exceed_enterprise_limits, omit_id};
+use common::{client::TestClient, exceed_enterprise_limits, omit_id};
 use defguard::{
     db::{Id, NoId},
     enterprise::{
@@ -12,6 +12,12 @@ use reqwest::StatusCode;
 use self::common::make_test_client;
 
 pub mod common;
+
+async fn authenticate(client: &TestClient) {
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+}
 
 fn make_rule() -> ApiAclRule {
     ApiAclRule {
@@ -49,10 +55,7 @@ fn make_alias() -> ApiAclAlias {
 #[tokio::test]
 async fn test_rule_crud() {
     let (client, _) = make_test_client().await;
-
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    authenticate(&client).await;
 
     let rule = make_rule();
 
@@ -100,10 +103,7 @@ async fn test_rule_crud() {
 #[tokio::test]
 async fn test_rule_enterprise() {
     let (client, _) = make_test_client().await;
-
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -142,10 +142,7 @@ async fn test_rule_enterprise() {
 #[tokio::test]
 async fn test_alias_crud() {
     let (client, _) = make_test_client().await;
-
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    authenticate(&client).await;
 
     let alias = make_alias();
 
@@ -194,10 +191,7 @@ async fn test_alias_crud() {
 #[tokio::test]
 async fn test_alias_enterprise() {
     let (client, _) = make_test_client().await;
-
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
+    authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
 
@@ -231,4 +225,30 @@ async fn test_alias_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn test_empty_strings() {
+    let (client, _) = make_test_client().await;
+    authenticate(&client).await;
+
+    // rule
+    let mut rule = make_rule();
+    rule.destination = String::new();
+    rule.ports = String::new();
+
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response_rule: ApiAclRule<NoId> = omit_id(response.json().await);
+    assert_eq!(response_rule, rule);
+
+    // alias
+    let mut alias = make_alias();
+    alias.destination = String::new();
+    alias.ports = String::new();
+
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response_alias: ApiAclAlias<NoId> = omit_id(response.json().await);
+    assert_eq!(response_alias, alias);
 }
