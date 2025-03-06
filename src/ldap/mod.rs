@@ -34,6 +34,7 @@ pub struct LDAPConfig {
     pub ldap_groupname_attr: String,
     pub ldap_group_member_attr: String,
     pub ldap_member_attr: String,
+    pub ldap_samba_enabled: bool,
 }
 
 impl LDAPConfig {
@@ -88,6 +89,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_group_search_base: settings
                 .ldap_group_search_base
                 .ok_or(LdapError::MissingSettings)?,
+            ldap_samba_enabled: settings.ldap_samba_enabled,
         })
     }
 }

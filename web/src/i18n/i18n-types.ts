@@ -2739,6 +2739,10 @@ type RootTranslation = {
 					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_group_obj_class: string
+					/**
+					 * S​a​m​b​a​ ​s​u​p​p​o​r​t​ ​e​n​a​b​l​e​d
+					 */
+					ldap_samba_enabled: string
 				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
@@ -8051,6 +8055,10 @@ export type TranslationFunctions = {
 					 * Group Object Class
 					 */
 					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * Samba support enabled
+					 */
+					ldap_samba_enabled: () => LocalizedString
 				}
 				/**
 				 * Delete configuration

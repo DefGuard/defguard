@@ -3,7 +3,10 @@ use std::collections::HashSet;
 use ldap3::{Mod, SearchEntry};
 
 use super::LDAPConfig;
-use crate::{db::User, hashset};
+use crate::{
+    db::{Settings, User},
+    hashset,
+};
 
 impl User {
     #[must_use]
@@ -46,6 +49,7 @@ impl<I> User<I> {
         ssha_password: &'a str,
         nt_password: &'a str,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
+        let settings = Settings::get_current_settings();
         let mut attrs = vec![
             (
                 "objectClass",
@@ -59,10 +63,14 @@ impl<I> User<I> {
             ("uid", hashset![self.username.as_str()]),
             // simpleSecurityObject
             ("userPassword", hashset![ssha_password]),
-            // sambaSamAccount
-            ("sambaSID", hashset!["0"]),
-            ("sambaNTPassword", hashset![nt_password]),
         ];
+        if settings.ldap_samba_enabled {
+            // sambaSamAccount
+            attrs.extend_from_slice(&[
+                ("sambaSID", hashset!["0"]),
+                ("sambaNTPassword", hashset![nt_password]),
+            ]);
+        }
         if let Some(phone) = &self.phone {
             if !phone.is_empty() {
                 attrs.push(("mobile", hashset![phone.as_str()]));
