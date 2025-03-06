@@ -252,3 +252,40 @@ async fn test_empty_strings() {
     let response_alias: ApiAclAlias<NoId> = omit_id(response.json().await);
     assert_eq!(response_alias, alias);
 }
+
+#[tokio::test]
+async fn test_nonadmin() {
+    let (client, _) = make_test_client().await;
+
+    let auth = Auth::new("hpotter", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // rule
+    let rule = make_rule();
+
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.get("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.get("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.delete("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // alias
+    let alias = make_alias();
+
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.get("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.get("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = client.delete("/api/v1/acl/alias/1").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
