@@ -70,7 +70,7 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
 
 /// API representation of [`AclAlias`]
 /// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiAclAlias<I = NoId> {
     #[serde(default)]
     pub id: I,
