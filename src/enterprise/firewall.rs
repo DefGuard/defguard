@@ -658,8 +658,8 @@ mod test {
         },
         enterprise::{
             db::models::acl::{
-                AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo,
-                AclRuleNetwork, PortRange,
+                AclAliasDestinationRange, AclRule, AclRuleAlias, AclRuleDestinationRange,
+                AclRuleDevice, AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, PortRange,
             },
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
@@ -1371,8 +1371,10 @@ mod test {
         denied_users: Vec<Id>,
         allowed_groups: Vec<Id>,
         denied_groups: Vec<Id>,
-        allowed_devices: Vec<Id>,
-        denied_devices: Vec<Id>,
+        allowed_network_devices: Vec<Id>,
+        denied_network_devices: Vec<Id>,
+        destination_ranges: Vec<(IpAddr, IpAddr)>,
+        aliases: Vec<Id>,
     ) -> AclRuleInfo<Id> {
         // create base rule
         let rule = rule.save(pool).await.unwrap();
@@ -1390,18 +1392,91 @@ mod test {
         }
 
         // allowed users
+        for user_id in allowed_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: true,
+                rule_id,
+                user_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // denied users
+        for user_id in denied_users {
+            let obj = AclRuleUser {
+                id: NoId,
+                allow: false,
+                rule_id,
+                user_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // allowed groups
+        for group_id in allowed_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: true,
+                rule_id,
+                group_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // denied groups
+        for group_id in denied_groups {
+            let obj = AclRuleGroup {
+                id: NoId,
+                allow: false,
+                rule_id,
+                group_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // allowed devices
+        for device_id in allowed_network_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: true,
+                rule_id,
+                device_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // denied devices
+        for device_id in denied_network_devices {
+            let obj = AclRuleDevice {
+                id: NoId,
+                allow: false,
+                rule_id,
+                device_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // destination ranges
+        for range in destination_ranges {
+            let obj = AclRuleDestinationRange {
+                id: NoId,
+                rule_id,
+                start: range.0,
+                end: range.1,
+            };
+            obj.save(pool).await.unwrap();
+        }
+
+        // aliases
+        for alias_id in aliases {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id,
+                alias_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
 
         // convert to output format
         rule.to_info(pool).await.unwrap()
@@ -1430,7 +1505,7 @@ mod test {
         let user_5: User<NoId> = rng.gen();
         let user_5 = user_5.save(&pool).await.unwrap();
 
-        for user in vec![&user_1, &user_2, &user_3, &user_4, &user_5] {
+        for user in [&user_1, &user_2, &user_3, &user_4, &user_5] {
             // Create 2 devices per user
             for device_num in 1..3 {
                 let device = Device {
@@ -1493,7 +1568,10 @@ mod test {
             }
         }
 
-        // Create test ACL rules
+        // Create some network devices
+
+        // Create aliases
+
         // Create first ACL rule - Web access
         let acl_rule_1 = AclRule {
             id: NoId,
@@ -1516,6 +1594,9 @@ mod test {
         let denied_groups = vec![];
         let allowed_devices = vec![];
         let denied_devices = vec![];
+        let destination_ranges = vec![];
+        let aliases = vec![];
+
         let acl_rule_1 = create_acl_rule(
             &pool,
             acl_rule_1,
@@ -1526,6 +1607,8 @@ mod test {
             denied_groups,
             allowed_devices,
             denied_devices,
+            destination_ranges,
+            aliases,
         )
         .await;
 
@@ -1548,6 +1631,8 @@ mod test {
         let denied_groups_2 = vec![];
         let allowed_devices_2 = vec![];
         let denied_devices_2 = vec![];
+        let destination_ranges_2 = vec![];
+        let aliases_2 = vec![];
 
         let acl_rule_2 = create_acl_rule(
             &pool,
@@ -1559,6 +1644,8 @@ mod test {
             denied_groups_2,
             allowed_devices_2,
             denied_devices_2,
+            destination_ranges_2,
+            aliases_2,
         )
         .await;
 
