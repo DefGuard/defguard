@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Removes all test databases
 # Test databases are named with UUID strings
 
