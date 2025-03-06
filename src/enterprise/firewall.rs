@@ -648,19 +648,26 @@ mod test {
 
     use ipnetwork::Ipv6Network;
     use rand::{thread_rng, Rng};
+    use sqlx::{query, PgPool};
 
-    use super::process_destination_addrs;
+    use super::{generate_firewall_rules_from_acls, process_destination_addrs};
     use crate::{
-        db::{models::device::DeviceType, Device, Id, User},
+        db::{
+            models::device::{DeviceType, WireguardNetworkDevice},
+            Device, Group, Id, NoId, User, WireguardNetwork,
+        },
         enterprise::{
-            db::models::acl::{AclAliasDestinationRange, AclRuleDestinationRange, PortRange},
+            db::models::acl::{
+                AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo,
+                AclRuleNetwork, PortRange,
+            },
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
             },
         },
         grpc::proto::enterprise::firewall::{
             ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
-            IpVersion, Port, PortRange as PortRangeProto,
+            IpVersion, Port, PortRange as PortRangeProto, Protocol,
         },
     };
 
@@ -1356,8 +1363,217 @@ mod test {
         )
     }
 
+    async fn create_acl_rule(
+        pool: &PgPool,
+        rule: AclRule,
+        locations: Vec<Id>,
+        allowed_users: Vec<Id>,
+        denied_users: Vec<Id>,
+        allowed_groups: Vec<Id>,
+        denied_groups: Vec<Id>,
+        allowed_devices: Vec<Id>,
+        denied_devices: Vec<Id>,
+    ) -> AclRuleInfo<Id> {
+        // create base rule
+        let rule = rule.save(pool).await.unwrap();
+        let rule_id = rule.id;
+
+        // create related objects
+        // locations
+        for location_id in locations {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id,
+                network_id: location_id,
+            };
+            obj.save(pool).await.unwrap();
+        }
+
+        // allowed users
+
+        // denied users
+
+        // allowed groups
+
+        // denied groups
+
+        // allowed devices
+
+        // denied devices
+
+        // destination ranges
+
+        // convert to output format
+        rule.to_info(pool).await.unwrap()
+    }
+
     #[sqlx::test]
-    async fn test_generate_firewall_rules() {
-        unimplemented!()
+    async fn test_generate_firewall_rules(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // Setup test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+        let user_3: User<NoId> = rng.gen();
+        let user_3 = user_3.save(&pool).await.unwrap();
+        let user_4: User<NoId> = rng.gen();
+        let user_4 = user_4.save(&pool).await.unwrap();
+        let user_5: User<NoId> = rng.gen();
+        let user_5 = user_5.save(&pool).await.unwrap();
+
+        for user in vec![&user_1, &user_2, &user_3, &user_4, &user_5] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    preshared_key: None,
+                    is_authorized: false,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // Setup test groups
+        let group_1 = Group {
+            id: NoId,
+            name: "group_1".into(),
+            ..Default::default()
+        };
+        let group_1 = group_1.save(&pool).await.unwrap();
+        let group_2 = Group {
+            id: NoId,
+            name: "group_2".into(),
+            ..Default::default()
+        };
+        let group_2 = group_2.save(&pool).await.unwrap();
+
+        // Assign users to groups:
+        // Group 1: users 1,2
+        // Group 2: users 3,4
+        let group_assignments = vec![
+            (&group_1, vec![&user_1, &user_2]),
+            (&group_2, vec![&user_3, &user_4]),
+        ];
+
+        for (group, users) in group_assignments {
+            for user in users {
+                query!(
+                    "INSERT INTO group_user (user_id, group_id) VALUES ($1, $2)",
+                    user.id,
+                    group.id
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
+            }
+        }
+
+        // Create test ACL rules
+        // Create first ACL rule - Web access
+        let acl_rule_1 = AclRule {
+            id: NoId,
+            name: "Web Access".into(),
+            all_networks: false,
+            expires: None,
+            allow_all_users: false,
+            deny_all_users: false,
+            destination: vec!["192.168.1.0/24".parse().unwrap()],
+            ports: vec![
+                PortRange::new(80, 80).into(),
+                PortRange::new(443, 443).into(),
+            ],
+            protocols: vec![Protocol::Tcp.into()],
+        };
+        let locations = vec![1];
+        let allowed_users = vec![1, 2]; // First two users can access web
+        let denied_users = vec![3]; // Third user explicitly denied
+        let allowed_groups = vec![1]; // First group allowed
+        let denied_groups = vec![];
+        let allowed_devices = vec![];
+        let denied_devices = vec![];
+        let acl_rule_1 = create_acl_rule(
+            &pool,
+            acl_rule_1,
+            locations,
+            allowed_users,
+            denied_users,
+            allowed_groups,
+            denied_groups,
+            allowed_devices,
+            denied_devices,
+        )
+        .await;
+
+        // Create second ACL rule - DNS access
+        let acl_rule_2 = AclRule {
+            id: NoId,
+            name: "DNS Access".into(),
+            all_networks: false,
+            expires: None,
+            allow_all_users: true, // Allow all users
+            deny_all_users: false,
+            destination: vec![], // Will use destination ranges instead
+            ports: vec![PortRange::new(53, 53).into()],
+            protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
+        };
+        let locations_2 = vec![1];
+        let allowed_users_2 = vec![];
+        let denied_users_2 = vec![5]; // Fifth user denied DNS
+        let allowed_groups_2 = vec![];
+        let denied_groups_2 = vec![];
+        let allowed_devices_2 = vec![];
+        let denied_devices_2 = vec![];
+
+        let acl_rule_2 = create_acl_rule(
+            &pool,
+            acl_rule_2,
+            locations_2,
+            allowed_users_2,
+            denied_users_2,
+            allowed_groups_2,
+            denied_groups_2,
+            allowed_devices_2,
+            denied_devices_2,
+        )
+        .await;
+
+        let acl_rules = vec![acl_rule_1, acl_rule_2];
+
+        let generated_firewall_rules = generate_firewall_rules_from_acls(
+            location.id,
+            FirewallPolicy::Allow,
+            IpVersion::Ipv4,
+            acl_rules,
+            &pool,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 }

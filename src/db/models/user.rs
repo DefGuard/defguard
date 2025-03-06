@@ -1091,6 +1091,42 @@ impl Distribution<User<Id>> for Standard {
 }
 
 #[cfg(test)]
+impl Distribution<User<NoId>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> User<NoId> {
+        User {
+            id: NoId,
+            username: Alphanumeric.sample_string(rng, 8),
+            password_hash: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            last_name: Alphanumeric.sample_string(rng, 8),
+            first_name: Alphanumeric.sample_string(rng, 8),
+            email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
+            // FIXME: generate an actual phone number
+            phone: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 9)),
+            mfa_enabled: rng.gen(),
+            is_active: rng.gen(),
+            openid_sub: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            totp_enabled: rng.gen(),
+            email_mfa_enabled: rng.gen(),
+            totp_secret: (0..20).map(|_| rng.gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
+            mfa_method: match rng.gen_range(0..4) {
+                0 => MFAMethod::None,
+                1 => MFAMethod::Webauthn,
+                2 => MFAMethod::OneTimePassword,
+                _ => MFAMethod::Email,
+            },
+            recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod test {
     use super::*;
     use crate::{

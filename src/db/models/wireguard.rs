@@ -118,6 +118,27 @@ impl fmt::Display for WireguardNetwork<Id> {
     }
 }
 
+#[cfg(test)]
+impl Default for WireguardNetwork<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            name: String::default(),
+            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            port: i32::default(),
+            pubkey: String::default(),
+            prvkey: String::default(),
+            endpoint: String::default(),
+            dns: Option::default(),
+            allowed_ips: Vec::default(),
+            connected_at: Option::default(),
+            mfa_enabled: false,
+            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum WireguardNetworkError {
     #[error("Network address space cannot fit all devices")]
