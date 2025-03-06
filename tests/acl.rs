@@ -2,11 +2,10 @@ use common::{exceed_enterprise_limits, omit_id};
 use defguard::{
     db::{Id, NoId},
     enterprise::{
-        handlers::acl::{ApiAclRule, ApiAclAlias},
+        handlers::acl::{ApiAclAlias, ApiAclRule},
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
-
 };
 use reqwest::StatusCode;
 
@@ -14,7 +13,6 @@ use self::common::make_test_client;
 
 pub mod common;
 
-#[allow(dead_code)]
 fn make_rule() -> ApiAclRule {
     ApiAclRule {
         id: NoId,
@@ -38,7 +36,6 @@ fn make_rule() -> ApiAclRule {
     }
 }
 
-#[allow(dead_code)]
 fn make_alias() -> ApiAclAlias {
     ApiAclAlias {
         id: NoId,
@@ -140,7 +137,6 @@ async fn test_rule_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
 }
 
 #[tokio::test]
@@ -180,7 +176,8 @@ async fn test_alias_crud() {
     assert_eq!(response.status(), StatusCode::OK);
     let response_alias: ApiAclAlias<Id> = response.json().await;
     assert_eq!(response_alias, alias);
-    let response_alias: ApiAclAlias<Id> = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let response_alias: ApiAclAlias<Id> =
+        client.get("/api/v1/acl/alias/1").send().await.json().await;
     assert_eq!(response_alias, alias);
 
     // delete
@@ -234,5 +231,4 @@ async fn test_alias_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-
 }
