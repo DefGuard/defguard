@@ -1,17 +1,29 @@
-use common::{client::TestClient, exceed_enterprise_limits, omit_id};
+use common::{client::TestClient, exceed_enterprise_limits, init_config, init_test_db, omit_id};
 use defguard::{
-    db::{Id, NoId},
+    config::DefGuardConfig,
+    db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
+        db::models::acl::{AclAlias, AclRuleNetwork},
         handlers::acl::{ApiAclAlias, ApiAclRule},
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
 };
 use reqwest::StatusCode;
+use sqlx::PgPool;
+use tokio::net::TcpListener;
 
-use self::common::make_test_client;
+use self::common::{make_base_client, make_test_client};
 
 pub mod common;
+
+async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Could not bind ephemeral socket");
+    let (client, _) = make_base_client(pool, config, listener).await;
+    client
+}
 
 async fn authenticate(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
@@ -286,6 +298,108 @@ async fn test_nonadmin() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.delete("/api/v1/acl/alias/1").json(&alias).send().await;
+    let response = client
+        .delete("/api/v1/acl/alias/1")
+        .json(&alias)
+        .send()
+        .await;
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_related_objects() {
+    let config = init_config(None);
+    let pool = init_test_db(&config).await;
+    let client = make_client_v2(pool.clone(), config).await;
+    authenticate(&client).await;
+
+    // create related objects
+    // networks
+    for net in vec!["net 1", "net 2"] {
+        WireguardNetwork::new(
+            net.to_string(),
+            Vec::new(),
+            1000,
+            "endpoint1".to_string(),
+            None,
+            Vec::new(),
+            false,
+            100,
+            100,
+            false,
+            false,
+        )
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+    }
+
+    // users
+    User::new("user1", None, "", "", "u1@mail.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+    User::new("user2", None, "", "", "u2@mail.com", None)
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // grups
+    Group::new("group1").save(&pool).await.unwrap();
+    Group::new("group2").save(&pool).await.unwrap();
+
+    // devices
+    Device::new(
+        "device1".to_string(),
+        String::new(),
+        1,
+        DeviceType::Network,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    Device::new(
+        "device2".to_string(),
+        String::new(),
+        1,
+        DeviceType::Network,
+        None,
+        true,
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+
+    // aliases
+    AclAlias::new("alias1", Vec::new(), Vec::new(), Vec::new())
+        .save(&pool)
+        .await
+        .unwrap();
+    AclAlias::new("alias2", Vec::new(), Vec::new(), Vec::new())
+        .save(&pool)
+        .await
+        .unwrap();
+
+    // create an acl rule with related objects
+    let mut rule = make_rule();
+    rule.networks = vec![1, 2];
+    rule.allowed_users = vec![1, 2];
+    rule.allowed_groups = vec![1, 2];
+    rule.allowed_devices = vec![1, 2];
+    rule.aliases = vec![1, 2];
+
+    // create
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response_rule: ApiAclRule<NoId> = omit_id(response.json().await);
+    assert_eq!(response_rule, rule);
+
+    // retrieve
+    let response = client.get("/api/v1/acl/rule/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_rule: ApiAclRule<NoId> = omit_id(response.json().await);
+    assert_eq!(response_rule, rule);
 }
