@@ -90,6 +90,7 @@ pub struct Settings {
     pub ldap_groupname_attr: Option<String>,
     pub ldap_group_member_attr: Option<String>,
     pub ldap_member_attr: Option<String>,
+    pub ldap_samba_enabled: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -116,7 +117,7 @@ impl Settings {
             ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
-            ldap_group_member_attr, ldap_member_attr, openid_create_account, \
+            ldap_group_member_attr, ldap_member_attr, ldap_samba_enabled \"ldap_samba_enabled!\", openid_create_account, \
             license, gateway_disconnect_notifications_enabled, \
             gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled \
@@ -179,7 +180,8 @@ impl Settings {
             license = $33, \
             gateway_disconnect_notifications_enabled = $34, \
             gateway_disconnect_notifications_inactivity_threshold = $35, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $36 \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $36, \
+            ldap_samba_enabled = $37 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -216,7 +218,8 @@ impl Settings {
             self.license,
             self.gateway_disconnect_notifications_enabled,
             self.gateway_disconnect_notifications_inactivity_threshold,
-            self.gateway_disconnect_notifications_reconnect_notification_enabled
+            self.gateway_disconnect_notifications_reconnect_notification_enabled,
+            self.ldap_samba_enabled
         )
         .execute(executor)
         .await?;

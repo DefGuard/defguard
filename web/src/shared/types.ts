@@ -872,6 +872,7 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
+  ldap_samba_enabled: boolean;
 };
 
 export type SettingsOpenID = {

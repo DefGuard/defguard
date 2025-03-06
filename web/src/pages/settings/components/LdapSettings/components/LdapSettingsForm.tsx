@@ -17,6 +17,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 
 type FormFields = SettingsLDAP;
 
@@ -64,6 +65,7 @@ export const LdapSettingsForm = () => {
         ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
+        ldap_samba_enabled: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -81,6 +83,7 @@ export const LdapSettingsForm = () => {
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
+      ldap_samba_enabled: settings?.ldap_samba_enabled ?? false,
     }),
     [settings],
   );
@@ -98,6 +101,7 @@ export const LdapSettingsForm = () => {
       ldap_groupname_attr: '',
       ldap_bind_password: '',
       ldap_bind_username: '',
+      ldap_samba_enabled: false,
     }),
     [],
   );
@@ -187,6 +191,11 @@ export const LdapSettingsForm = () => {
         <FormInput
           controller={{ control, name: 'ldap_group_search_base' }}
           label={localLL.form.labels.ldap_group_search_base()}
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_samba_enabled' }}
+          label={localLL.form.labels.ldap_samba_enabled()}
+          labelPlacement="right"
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
       </form>
