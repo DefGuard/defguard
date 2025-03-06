@@ -5,14 +5,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use client::TestResponse;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,
     db::{
         init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Id, NoId,
-        User, UserDetails, WireguardNetwork,
+        User, UserDetails,
     },
     enterprise::license::{set_cached_license, License},
     grpc::{GatewayMap, WorkerState},
@@ -237,66 +236,69 @@ pub(crate) async fn fetch_user_details(client: &TestClient, username: &str) -> U
 pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
-    client
-        .post("/api/v1/network")
-        .json(&json!(WireguardNetwork::new(
-            "network1".to_string(),
-            vec!["10.1.1.1/24".parse().unwrap()],
-            5555,
-            "192.168.4.14".to_string(),
-            Some("1.1.1.1".to_string()),
-            vec!["10.1.1.0/24".parse().unwrap()],
-            false,
-            25,
-            180,
-            false,
-            false,
-        )
-        .unwrap()))
-        .send()
-        .await;
 
-    client
+    let response = client
         .post("/api/v1/network")
-        .json(&json!(WireguardNetwork::new(
-            "network2".to_string(),
-            vec!["10.1.1.1/24".parse().unwrap()],
-            5555,
-            "192.168.4.14".to_string(),
-            Some("1.1.1.1".to_string()),
-            vec!["10.1.1.0/24".parse().unwrap()],
-            false,
-            25,
-            180,
-            false,
-            false,
-        )
-        .unwrap()))
+        .json(&json!({
+            "name": "network1",
+            "address": "10.1.1.1/24",
+            "port": 55555,
+            "endpoint": "192.168.4.14",
+            "allowed_ips": "10.1.1.0/24",
+            "dns": "1.1.1.1",
+            "allowed_groups": [],
+            "mfa_enabled": false,
+            "keepalive_interval": 25,
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
+        }))
         .send()
         .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client
+        .post("/api/v1/network")
+        .json(&json!({
+                "name": "network2",
+                "address": "10.1.1.1/24",
+                "port": 55555,
+                "endpoint": "192.168.4.14",
+                "allowed_ips": "10.1.1.0/24",
+                "dns": "1.1.1.1",
+                "allowed_groups": [],
+                "mfa_enabled": false,
+                "keepalive_interval": 25,
+                "peer_disconnect_threshold": 180,
+                "acl_enabled": false,
+                "acl_default_allow": false
+        }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[allow(dead_code)]
 pub(crate) fn make_network() -> Value {
-    json!(WireguardNetwork::new(
-        "network".to_string(),
-        vec!["10.1.1.1/24".parse().unwrap()],
-        5555,
-        "192.168.4.14".to_string(),
-        Some("1.1.1.1".to_string()),
-        vec!["10.1.1.0/24".parse().unwrap()],
-        false,
-        25,
-        180,
-        false,
-        false,
-    )
-    .unwrap())
+    json!({
+        "name": "network",
+        "address": "10.1.1.1/24",
+        "port": 55555,
+        "endpoint": "192.168.4.14",
+        "allowed_ips": "10.1.1.0/24",
+        "dns": "1.1.1.1",
+        "allowed_groups": [],
+        "mfa_enabled": false,
+        "keepalive_interval": 25,
+        "peer_disconnect_threshold": 180,
+        "acl_enabled": false,
+        "acl_default_allow": false
+    })
 }
 
 /// Replaces id field in json response with NoId
 #[allow(dead_code)]
-pub(crate) fn omit_id<T: DeserializeOwned>(mut response: serde_json::Value) -> T {
-    *response.get_mut("id").unwrap() = json!(NoId);
-    serde_json::from_value(response).unwrap()
+pub(crate) fn omit_id<T: DeserializeOwned>(mut value: serde_json::Value) -> T {
+    *value.get_mut("id").unwrap() = json!(NoId);
+    serde_json::from_value(value).unwrap()
 }

@@ -1,35 +1,22 @@
-use common::{init_config, init_test_db, omit_id};
+use common::{exceed_enterprise_limits, omit_id};
 use defguard::{
-    db::{
-        models::{oauth2client::OAuth2Client, NewOpenIDClient},
-        AddDevice, Id, NoId, UserInfo, WireguardNetwork,
+    db::{Id, NoId},
+    enterprise::{
+        handlers::acl::ApiAclRule,
+        license::{get_cached_license, set_cached_license},
     },
-    enterprise::{db::models::acl::PortRange, handlers::acl::ApiAclRule},
-    handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
+    handlers::Auth,
+
 };
-use reqwest::{header::USER_AGENT, StatusCode};
-use tokio_stream::{self as stream, StreamExt};
+use reqwest::StatusCode;
 
-use self::common::{client::TestClient, fetch_user_details, make_network, make_test_client};
-
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
+use self::common::make_test_client;
 
 pub mod common;
 
-#[tokio::test]
-async fn test_rule_crud() {
-    let client = make_client().await;
-    let config = init_config(None);
-    let pool = init_test_db(&config).await;
-
-    let auth = Auth::new("admin", "pass123");
-    let response = client.post("/api/v1/auth").json(&auth).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let rule = ApiAclRule {
+#[allow(dead_code)]
+fn make_rule() -> ApiAclRule {
+    ApiAclRule {
         id: NoId,
         name: "rule".to_string(),
         all_networks: false,
@@ -48,7 +35,18 @@ async fn test_rule_crud() {
         enabled: true,
         protocols: vec![],
         ports: "10-20, 30-40".to_string(),
-    };
+    }
+}
+
+#[tokio::test]
+async fn test_rule_crud() {
+    let (client, _) = make_test_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let rule = make_rule();
 
     // create
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
@@ -93,39 +91,29 @@ async fn test_rule_crud() {
 
 #[tokio::test]
 async fn test_rule_enterprise() {
-    // // prepare related objects
-    // let network1 = WireguardNetwork::new(
-    //     "net1".to_string(),
-    //     vec!["192.168.1.10".parse().unwrap()],
-    //     5555,
-    //     "test.com".to_string(),
-    //     None,
-    //     Vec::new(),
-    //     false,
-    //     100,
-    //     200,
-    //     false,
-    //     false,
-    // )
-    // .unwrap()
-    // .save(&pool)
-    // .await
-    // .unwrap();
-    // let network2 = WireguardNetwork::new(
-    //     "net2".to_string(),
-    //     vec!["192.168.2.10".parse().unwrap()],
-    //     5555,
-    //     "test.com".to_string(),
-    //     None,
-    //     Vec::new(),
-    //     false,
-    //     100,
-    //     200,
-    //     false,
-    //     false,
-    // )
-    // .unwrap()
-    // .save(&pool)
-    // .await
-    // .unwrap();
+    let (client, _) = make_test_client().await;
+
+    let auth = Auth::new("admin", "pass123");
+    let response = client.post("/api/v1/auth").json(&auth).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    exceed_enterprise_limits(&client).await;
+
+    // unset the license
+    let license = get_cached_license().clone();
+    set_cached_license(None);
+
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+
+    // restore valid license and try again
+    set_cached_license(license);
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client.get("/api/v1/acl/rule").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_rules: Vec<serde_json::Value> = response.json().await;
+    assert_eq!(response_rules.len(), 1);
 }
