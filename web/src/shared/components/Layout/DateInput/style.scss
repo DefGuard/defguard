@@ -8,18 +8,6 @@
       color: var(--text-body-tertiary);
       padding-bottom: var(--spacing-xs);
     }
-
-    & > .error {
-      position: absolute;
-      @include typography(app-wizard-1);
-      @include text-overflow-dots;
-      white-space: nowrap;
-      max-width: 100%;
-      overflow: hidden;
-      bottom: 5px;
-
-      color: var(--text-alert);
-    }
   }
 }
 
@@ -38,11 +26,30 @@
     margin: 0;
     padding: 8px 20px;
     cursor: pointer;
+    opacity: 1;
+
+    @include animate-field;
+    transition-property: border-color, opacity;
 
     span {
       width: 100%;
       text-align: left;
       @include typography(app-input);
+    }
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+
+    & > .date-input {
+      cursor: not-allowed;
+      opacity: var(--disabled-opacity);
+    }
+  }
+
+  &.error {
+    & > .date-input {
+      border-color: var(--border-alert);
     }
   }
 }

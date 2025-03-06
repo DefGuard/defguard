@@ -2,6 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
@@ -30,6 +31,7 @@ import {
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import {
@@ -89,7 +91,7 @@ export const AlcCreatePage = () => {
     return defaultValue;
   }, [editMode, ruleToEdit]);
 
-  const [neverExpires, setNeverExpires] = useState(!initialValue.expires);
+  const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
   const [allowAllUsers, setAllowAllUsers] = useState(initialValue.allow_all_users);
   const [denyAllUsers, setDenyAllUsers] = useState(initialValue.deny_all_users);
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
@@ -233,6 +235,11 @@ export const AlcCreatePage = () => {
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
+    let expires = cleaned.expires;
+    // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
+    if (expires) {
+      expires = dayjs(expires).utc().startOf('day').toISOString();
+    }
 
     if (editMode) {
       const requestData: EditAclRuleRequest = {
@@ -241,6 +248,7 @@ export const AlcCreatePage = () => {
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
         id: initialValue.id,
+        expires,
       };
       mutatePut(requestData);
     } else {
@@ -249,6 +257,7 @@ export const AlcCreatePage = () => {
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
+        expires,
       };
       mutatePost(requestData);
     }
@@ -300,6 +309,7 @@ export const AlcCreatePage = () => {
             identKey="id"
             label="Locations"
             searchKeys={['name']}
+            disabled={allowAllLocations}
           />
           <CardHeader title="Expiration Date" />
           <LabeledCheckbox
@@ -318,6 +328,7 @@ export const AlcCreatePage = () => {
           <FormDateInput
             controller={{ control, name: 'expires' }}
             label="Expiration Date"
+            disabled={neverExpires}
           />
         </SectionWithCard>
         <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
@@ -343,8 +354,10 @@ export const AlcCreatePage = () => {
             controller={{ control, name: 'allowed_users' }}
             options={users}
             renderTagContent={renderUserTag}
+            renderDialogListItem={renderUserListItem}
             identKey="id"
             searchKeys={['email', 'last_name', 'first_name']}
+            disabled={allowAllUsers}
           />
           <FormDialogSelect
             label="Groups"
@@ -353,6 +366,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderGroup}
             identKey="name"
             searchKeys={['name']}
+            disabled={allowAllUsers}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -421,8 +435,10 @@ export const AlcCreatePage = () => {
             controller={{ control, name: 'denied_users' }}
             options={users}
             renderTagContent={renderUserTag}
+            renderDialogListItem={renderUserListItem}
             identKey="id"
             searchKeys={['username', 'first_name', 'last_name']}
+            disabled={denyAllUsers}
           />
           <FormDialogSelect
             label="Groups"
@@ -431,6 +447,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderGroup}
             identKey="name"
             searchKeys={['name']}
+            disabled={denyAllUsers}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -459,11 +476,23 @@ const CardHeader = ({ title }: { title: string }) => {
 const renderNetworkSelectTag = (network: Network) => (
   <>
     <p>{network.name}</p>
-    <ActivityIcon status={ActivityIconVariant.ERROR_FILLED} />
+    <ActivityIcon
+      status={
+        network.acl_default_allow
+          ? ActivityIconVariant.CONNECTED
+          : ActivityIconVariant.ERROR_FILLED
+      }
+    />
   </>
 );
 
 const renderUserTag = (user: User) => <p>{user.username}</p>;
+
+const renderUserListItem = (user: User) => (
+  <>
+    <p>{`${user.first_name} ${user.last_name} (${user.username})`}</p>
+  </>
+);
 
 const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 
