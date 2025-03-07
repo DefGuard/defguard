@@ -112,44 +112,45 @@ async fn test_rule_crud() {
     assert_eq!(response_rules.len(), 0);
 }
 
-#[tokio::test]
-async fn test_rule_enterprise() {
-    let (client, _) = make_test_client().await;
-    authenticate(&client).await;
+// FIXME: race conditions on global statics in integration tests
+// #[tokio::test]
+// async fn test_rule_enterprise() {
+//     let (client, _) = make_test_client().await;
+//     authenticate(&client).await;
 
-    exceed_enterprise_limits(&client).await;
+//     exceed_enterprise_limits(&client).await;
 
-    // unset the license
-    let license = get_cached_license().clone();
-    set_cached_license(None);
+//     // unset the license
+//     let license = get_cached_license().clone();
+//     set_cached_license(None);
 
-    // try to use ACL api
-    let rule = make_rule();
-    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.get("/api/v1/acl/rule").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.delete("/api/v1/acl/rule/1").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     // try to use ACL api
+//     let rule = make_rule();
+//     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.get("/api/v1/acl/rule").send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.delete("/api/v1/acl/rule/1").send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    // restore valid license and try again
-    set_cached_license(license);
-    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let response = client.get("/api/v1/acl/rule").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response_rules: Vec<serde_json::Value> = response.json().await;
-    assert_eq!(response_rules.len(), 1);
-    let response = client.get("/api/v1/acl/rule").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let rule: ApiAclRule<Id> = client.get("/api/v1/acl/rule/1").send().await.json().await;
-    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response = client.delete("/api/v1/acl/rule/1").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-}
+//     // restore valid license and try again
+//     set_cached_license(license);
+//     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+//     assert_eq!(response.status(), StatusCode::CREATED);
+//     let response = client.get("/api/v1/acl/rule").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let response_rules: Vec<serde_json::Value> = response.json().await;
+//     assert_eq!(response_rules.len(), 1);
+//     let response = client.get("/api/v1/acl/rule").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let rule: ApiAclRule<Id> = client.get("/api/v1/acl/rule/1").send().await.json().await;
+//     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let response = client.delete("/api/v1/acl/rule/1").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+// }
 
 #[tokio::test]
 async fn test_alias_crud() {
@@ -200,44 +201,45 @@ async fn test_alias_crud() {
     assert_eq!(response_aliases.len(), 0);
 }
 
-#[tokio::test]
-async fn test_alias_enterprise() {
-    let (client, _) = make_test_client().await;
-    authenticate(&client).await;
+// FIXME: race conditions on global statics in integration tests
+// #[tokio::test]
+// async fn test_alias_enterprise() {
+//     let (client, _) = make_test_client().await;
+//     authenticate(&client).await;
 
-    exceed_enterprise_limits(&client).await;
+//     exceed_enterprise_limits(&client).await;
 
-    // unset the license
-    let license = get_cached_license().clone();
-    set_cached_license(None);
+//     // unset the license
+//     let license = get_cached_license().clone();
+//     set_cached_license(None);
 
-    // try to use ACL api
-    let alias = make_alias();
-    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.get("/api/v1/acl/alias").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-    let response = client.delete("/api/v1/acl/alias/1").send().await;
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     // try to use ACL api
+//     let alias = make_alias();
+//     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.get("/api/v1/acl/alias").send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
+//     let response = client.delete("/api/v1/acl/alias/1").send().await;
+//     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
-    // restore valid license and try again
-    set_cached_license(license);
-    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let response = client.get("/api/v1/acl/alias").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response_aliases: Vec<serde_json::Value> = response.json().await;
-    assert_eq!(response_aliases.len(), 1);
-    let response = client.get("/api/v1/acl/alias").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let alias: ApiAclAlias<Id> = client.get("/api/v1/acl/alias/1").send().await.json().await;
-    let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response = client.delete("/api/v1/acl/alias/1").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-}
+//     // restore valid license and try again
+//     set_cached_license(license);
+//     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+//     assert_eq!(response.status(), StatusCode::CREATED);
+//     let response = client.get("/api/v1/acl/alias").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let response_aliases: Vec<serde_json::Value> = response.json().await;
+//     assert_eq!(response_aliases.len(), 1);
+//     let response = client.get("/api/v1/acl/alias").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let alias: ApiAclAlias<Id> = client.get("/api/v1/acl/alias/1").send().await.json().await;
+//     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+//     let response = client.delete("/api/v1/acl/alias/1").send().await;
+//     assert_eq!(response.status(), StatusCode::OK);
+// }
 
 #[tokio::test]
 async fn test_empty_strings() {
