@@ -1,11 +1,10 @@
-use common::{client::TestClient, exceed_enterprise_limits, init_config, init_test_db, omit_id};
+use common::{client::TestClient, init_config, init_test_db, omit_id};
 use defguard::{
     config::DefGuardConfig,
     db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
-        db::models::acl::{AclAlias, AclRuleNetwork},
+        db::models::acl::AclAlias,
         handlers::acl::{ApiAclAlias, ApiAclRule},
-        license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
 };
@@ -404,4 +403,86 @@ async fn test_related_objects() {
     assert_eq!(response.status(), StatusCode::OK);
     let response_rule: ApiAclRule<NoId> = omit_id(response.json().await);
     assert_eq!(response_rule, rule);
+}
+
+#[tokio::test]
+async fn test_invalid_related_objects() {
+    let (client, _) = make_test_client().await;
+    authenticate(&client).await;
+
+    let rule = make_rule();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // networks
+    let mut rule = make_rule();
+    rule.networks = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // allowed_users
+    let mut rule = make_rule();
+    rule.allowed_users = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // denied_users
+    let mut rule = make_rule();
+    rule.denied_users = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // denied_users
+    let mut rule = make_rule();
+    rule.denied_users = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // allowed_groups
+    let mut rule = make_rule();
+    rule.allowed_groups = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // denied_groups
+    let mut rule = make_rule();
+    rule.denied_groups = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // allowed_devices
+    let mut rule = make_rule();
+    rule.allowed_devices = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // denied_devices
+    let mut rule = make_rule();
+    rule.denied_devices = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // aliases
+    let mut rule = make_rule();
+    rule.aliases = vec![100];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }

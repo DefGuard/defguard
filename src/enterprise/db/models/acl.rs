@@ -7,7 +7,9 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+    error::{DatabaseError, ErrorKind},
+    postgres::types::PgRange,
+    query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
 };
 use std::{
     collections::HashSet,
@@ -29,6 +31,8 @@ pub enum AclError {
     AddrParseError(#[from] std::net::AddrParseError),
     #[error(transparent)]
     DbError(#[from] SqlxError),
+    #[error("InvalidRelationError: {0}")]
+    InvalidRelationError(String),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -317,6 +321,16 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     Ok(result)
 }
 
+/// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
+fn map_relation_error(err: SqlxError, class: &str, id: &Id) -> AclError {
+        if let SqlxError::Database(dberror) = &err {
+            if dberror.kind() == ErrorKind::ForeignKeyViolation {
+                return AclError::InvalidRelationError(format!("{class}({id})"));
+            }
+        }
+        AclError::DbError(err)
+}
+
 impl<I: std::fmt::Debug> AclRule<I> {
     /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
     async fn create_related_objects(
@@ -332,7 +346,19 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 network_id: *network_id,
             };
-            obj.save(&mut *transaction).await?;
+            // obj.save(&mut *transaction).await?;
+            // obj.save(&mut *transaction).await.map_err(|err| match err {
+            //     SqlxError::Database(ref dberror) => match dberror.kind() {
+            //         ErrorKind::ForeignKeyViolation => {
+            //             AclError::InvalidRelationError(format!("WireguardNetwork({network_id})"))
+            //         }
+            //         _ => AclError::DbError(err),
+            //     },
+            //     _ => AclError::DbError(err),
+            // })?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "WireguardNetwork", network_id))?;
         }
 
         // allowed users
