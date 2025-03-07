@@ -460,15 +460,6 @@ fn merge_addrs(addr_ranges: Vec<Range<IpAddr>>) -> Vec<IpAddress> {
     result
 }
 
-// Returns the largest subnet in given address range and the remaining address range.
-// TODO: figure out an implementation
-fn find_largest_subnet_in_range(
-    range_start: IpAddr,
-    range_end: IpAddr,
-) -> (Option<IpNetwork>, Option<(IpAddr, IpAddr)>) {
-    todo!()
-}
-
 /// Takes a list of port ranges and returns the smallest possible non-overlapping list of `Port`s.
 fn merge_port_ranges(port_ranges: Vec<PortRange>) -> Vec<Port> {
     // convert ranges to a list of tuples for merging
@@ -514,7 +505,6 @@ fn merge_ranges<T: Ord + std::fmt::Debug>(mut ranges: Vec<Range<T>>) -> Vec<Rang
         let b_start = &b.start;
         a_start.cmp(b_start)
     });
-    println!("RANGES: {ranges:#?}");
 
     // initialize result vector
     let mut merged_ranges = Vec::new();

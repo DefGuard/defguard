@@ -1071,7 +1071,7 @@ impl Distribution<User<Id>> for Standard {
                 .gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 9)),
             mfa_enabled: rng.gen(),
-            is_active: rng.gen(),
+            is_active: true,
             openid_sub: rng
                 .gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
@@ -1107,7 +1107,7 @@ impl Distribution<User<NoId>> for Standard {
                 .gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 9)),
             mfa_enabled: rng.gen(),
-            is_active: rng.gen(),
+            is_active: true,
             openid_sub: rng
                 .gen::<bool>()
                 .then_some(Alphanumeric.sample_string(rng, 8)),
