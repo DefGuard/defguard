@@ -7,9 +7,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::{DatabaseError, ErrorKind},
-    postgres::types::PgRange,
-    query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection,
+    PgExecutor, PgPool,
 };
 use std::{
     collections::HashSet,
@@ -323,12 +322,14 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
 
 /// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
 fn map_relation_error(err: SqlxError, class: &str, id: &Id) -> AclError {
-        if let SqlxError::Database(dberror) = &err {
-            if dberror.kind() == ErrorKind::ForeignKeyViolation {
-                return AclError::InvalidRelationError(format!("{class}({id})"));
-            }
+    if let SqlxError::Database(dberror) = &err {
+        if dberror.kind() == ErrorKind::ForeignKeyViolation {
+            error!("Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}");
+            return AclError::InvalidRelationError(format!("{class}({id})"));
         }
-        AclError::DbError(err)
+    }
+    error!("Failed to create ACL related object: {err}");
+    AclError::DbError(err)
 }
 
 impl<I: std::fmt::Debug> AclRule<I> {
@@ -346,16 +347,6 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 network_id: *network_id,
             };
-            // obj.save(&mut *transaction).await?;
-            // obj.save(&mut *transaction).await.map_err(|err| match err {
-            //     SqlxError::Database(ref dberror) => match dberror.kind() {
-            //         ErrorKind::ForeignKeyViolation => {
-            //             AclError::InvalidRelationError(format!("WireguardNetwork({network_id})"))
-            //         }
-            //         _ => AclError::DbError(err),
-            //     },
-            //     _ => AclError::DbError(err),
-            // })?;
             obj.save(&mut *transaction)
                 .await
                 .map_err(|err| map_relation_error(err, "WireguardNetwork", network_id))?;
@@ -369,7 +360,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // denied users
@@ -380,7 +373,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // allowed groups
@@ -391,7 +386,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // denied groups
@@ -402,7 +399,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // save related aliases
@@ -412,7 +411,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 alias_id: *alias_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "AclAlias", alias_id))?;
         }
 
         // allowed devices
@@ -423,7 +424,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // denied devices
@@ -434,7 +437,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // destination
