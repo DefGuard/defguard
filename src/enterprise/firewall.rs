@@ -1559,6 +1559,69 @@ mod test {
         }
 
         // Create some network devices
+        let network_device_1 = Device {
+            id: NoId,
+            name: "network-device-1".into(),
+            user_id: user_1.id, // Owned by user 1
+            device_type: DeviceType::Network,
+            description: Some("Test network device 1".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_1 = network_device_1.save(&pool).await.unwrap();
+
+        let network_device_2 = Device {
+            id: NoId,
+            name: "network-device-2".into(),
+            user_id: user_2.id, // Owned by user 2
+            device_type: DeviceType::Network,
+            description: Some("Test network device 2".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_2 = network_device_2.save(&pool).await.unwrap();
+
+        let network_device_3 = Device {
+            id: NoId,
+            name: "network-device-3".into(),
+            user_id: user_3.id, // Owned by user 3
+            device_type: DeviceType::Network,
+            description: Some("Test network device 3".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_3 = network_device_3.save(&pool).await.unwrap();
+
+        // Add network devices to location's VPN network
+        let network_devices = vec![
+            (
+                network_device_1.id,
+                IpAddr::V4(Ipv4Addr::new(10, 0, 100, 1)),
+            ),
+            (
+                network_device_2.id,
+                IpAddr::V4(Ipv4Addr::new(10, 0, 100, 2)),
+            ),
+            (
+                network_device_3.id,
+                IpAddr::V4(Ipv4Addr::new(10, 0, 100, 3)),
+            ),
+        ];
+
+        for (device_id, ip) in network_devices {
+            let network_device = WireguardNetworkDevice {
+                device_id,
+                wireguard_network_id: location.id,
+                wireguard_ip: ip,
+                preshared_key: None,
+                is_authorized: true,
+                authorized_at: None,
+            };
+            network_device.insert(&pool).await.unwrap();
+        }
 
         // Create aliases
 
@@ -1577,13 +1640,13 @@ mod test {
             ],
             protocols: vec![Protocol::Tcp.into()],
         };
-        let locations = vec![1];
-        let allowed_users = vec![1, 2]; // First two users can access web
-        let denied_users = vec![3]; // Third user explicitly denied
-        let allowed_groups = vec![1]; // First group allowed
+        let locations = vec![location.id];
+        let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
+        let denied_users = vec![user_3.id]; // Third user explicitly denied
+        let allowed_groups = vec![group_1.id]; // First group allowed
         let denied_groups = vec![];
-        let allowed_devices = vec![];
-        let denied_devices = vec![];
+        let allowed_devices = vec![network_device_1.id];
+        let denied_devices = vec![network_device_2.id, network_device_3.id];
         let destination_ranges = vec![];
         let aliases = vec![];
 
@@ -1614,13 +1677,13 @@ mod test {
             ports: vec![PortRange::new(53, 53).into()],
             protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         };
-        let locations_2 = vec![1];
+        let locations_2 = vec![location.id];
         let allowed_users_2 = vec![];
-        let denied_users_2 = vec![5]; // Fifth user denied DNS
+        let denied_users_2 = vec![user_5.id]; // Fifth user denied DNS
         let allowed_groups_2 = vec![];
-        let denied_groups_2 = vec![];
-        let allowed_devices_2 = vec![];
-        let denied_devices_2 = vec![];
+        let denied_groups_2 = vec![group_1.id, group_2.id];
+        let allowed_devices_2 = vec![network_device_1.id, network_device_2.id]; // First two network devices allowed
+        let denied_devices_2 = vec![network_device_3.id]; // Third network device denied
         let destination_ranges_2 = vec![];
         let aliases_2 = vec![];
 
@@ -1641,9 +1704,23 @@ mod test {
 
         let acl_rules = vec![acl_rule_1, acl_rule_2];
 
+        // generate rules for default policy Allow
         let generated_firewall_rules = generate_firewall_rules_from_acls(
             location.id,
             FirewallPolicy::Allow,
+            IpVersion::Ipv4,
+            acl_rules.clone(),
+            &pool,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(generated_firewall_rules.len(), 2);
+
+        // generate rules for default policy Deny
+        let generated_firewall_rules = generate_firewall_rules_from_acls(
+            location.id,
+            FirewallPolicy::Deny,
             IpVersion::Ipv4,
             acl_rules,
             &pool,
