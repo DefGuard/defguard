@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclrule\" SET \"parent_id\" = $2,\"state\" = $3,\"name\" = $4,\"allow_all_users\" = $5,\"deny_all_users\" = $6,\"all_networks\" = $7,\"destination\" = $8,\"ports\" = $9,\"protocols\" = $10,\"enabled\" = $11,\"expires\" = $12 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "aclrule_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "new",
+                "modified",
+                "deleted"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array",
+        "Bool",
+        "Timestamp"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ccfd120a484accbc5f30f72544112c5df6a0dd91e72baa8559245c523095fd68"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\" WHERE id = $1",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\"",
   "describe": {
     "columns": [
       {
@@ -10,56 +10,78 @@
       },
       {
         "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "aclrule_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "new",
+                "modified",
+                "deleted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "name",
         "type_info": "Text"
       },
       {
-        "ordinal": 2,
+        "ordinal": 4,
         "name": "allow_all_users",
         "type_info": "Bool"
       },
       {
-        "ordinal": 3,
+        "ordinal": 5,
         "name": "deny_all_users",
         "type_info": "Bool"
       },
       {
-        "ordinal": 4,
+        "ordinal": 6,
         "name": "all_networks",
         "type_info": "Bool"
       },
       {
-        "ordinal": 5,
+        "ordinal": 7,
         "name": "destination: _",
         "type_info": "InetArray"
       },
       {
-        "ordinal": 6,
+        "ordinal": 8,
         "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "expires",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
+      true,
       false,
       false,
       false,
@@ -72,5 +94,5 @@
       true
     ]
   },
-  "hash": "8d6aa539fbe61387d41a5b993e2d12b9ca935a044bbceb553356904f2ea87c8f"
+  "hash": "64bf992b0fbedf187441515020a87f80ce513848080e97a8df1b2e37c5219613"
 }
