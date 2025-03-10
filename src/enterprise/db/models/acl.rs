@@ -539,9 +539,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_users {
-            Ok(Vec::new())
-        } else if self.allow_all_users {
+        if self.allow_all_users {
             query_as!(
                 User,
                 "SELECT id, username, password_hash, last_name, first_name, email, \
@@ -593,8 +591,6 @@ impl AclRule<Id> {
             )
             .fetch_all(executor)
             .await
-        } else if self.allow_all_users {
-            Ok(Vec::new())
         } else {
             query_as!(
                 User,
