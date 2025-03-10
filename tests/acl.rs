@@ -33,6 +33,8 @@ async fn authenticate(client: &TestClient) {
 fn make_rule() -> ApiAclRule {
     ApiAclRule {
         id: NoId,
+        parent_id: Default::default(),
+        state: Default::default(),
         name: "rule".to_string(),
         all_networks: false,
         networks: vec![],

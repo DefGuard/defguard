@@ -552,16 +552,15 @@ impl WireguardNetwork<Id> {
         pool: &PgPool,
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
-        let rules = query_as!(
-            AclRule,
+        let rules: Vec<AclRule<Id>> = query_as(
             "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
-                destination, ports, protocols, expires, enabled \
+                destination, ports, protocols, expires, enabled, parent_id, state \
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
                 WHERE an.network_id = $1",
-            self.id,
         )
+        .bind(self.id)
         .fetch_all(pool)
         .await?;
 

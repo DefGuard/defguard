@@ -7,8 +7,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection,
-    PgExecutor, PgPool,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
+    PgConnection, PgExecutor, PgPool, Type,
 };
 use std::{
     collections::HashSet,
@@ -96,11 +96,28 @@ impl From<PortRange> for PgRange<i32> {
     }
 }
 
+/// ACL rule can be in one of the following states:
+/// - New: the rule has been created and not yet applied on the gateway
+/// - Modified: the rule has been modified and not yet applied
+/// - Deleted: the rule has been marked for deletion but not yed removed from the gateway
+/// - Applied: the rule was applied on the gateways
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
+pub enum RuleState {
+    #[default]
+    New,
+    Modified,
+    Deleted,
+    Applied,
+}
+
 /// Helper struct combining all DB objects related to given [`AclRule`].
 /// All related objects are stored in vectors.
 #[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
     pub id: I,
+    pub parent_id: Option<Id>,
+    pub state: RuleState,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
@@ -176,9 +193,12 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, Model, PartialEq)]
+#[derive(Clone, Debug, Model, PartialEq, Eq, FromRow)]
 pub struct AclRule<I = NoId> {
     pub id: I,
+    pub parent_id: Option<Id>,
+    #[model(enum)]
+    pub state: RuleState,
     pub name: String,
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -508,6 +528,8 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
                 .map(Into::into)
                 .collect(),
             id: rule.id,
+            parent_id: rule.parent_id,
+            state: rule.state,
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
@@ -747,6 +769,8 @@ impl AclRule<Id> {
 
         Ok(AclRuleInfo {
             id: self.id,
+            parent_id: self.parent_id,
+            state: self.state.clone(),
             name: self.name.clone(),
             allow_all_users: self.allow_all_users,
             deny_all_users: self.deny_all_users,
@@ -1238,6 +1262,8 @@ mod test {
         // create the rule
         let mut rule = AclRule {
             id: NoId,
+            parent_id: Default::default(),
+            state: Default::default(),
             name: "rule".to_string(),
             enabled: true,
             allow_all_users: false,

@@ -9,7 +9,9 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::acl::{AclAlias, AclAliasInfo, AclRule, AclRuleInfo, Protocol},
+    enterprise::db::models::acl::{
+        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, Protocol, RuleState,
+    },
     handlers::{ApiResponse, ApiResult},
 };
 use serde_json::{json, Value};
@@ -22,6 +24,8 @@ use super::LicenseInfo;
 pub struct ApiAclRule<I = NoId> {
     #[serde(default)]
     pub id: I,
+    pub parent_id: Option<Id>,
+    pub state: RuleState,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<Id>,
@@ -49,6 +53,8 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             destination: info.format_destination(),
             ports: info.format_ports(),
             id: info.id,
+            parent_id: info.parent_id,
+            state: info.state,
             name: info.name,
             all_networks: info.all_networks,
             networks: info.networks.iter().map(|v| v.id).collect(),
