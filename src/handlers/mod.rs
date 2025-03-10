@@ -95,6 +95,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": "Unprocessable entity"}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
+                AclError::RuleNotFoundError(id) => ApiResponse::new(
+                    json!({"msg": format!("Rule {id} not found")}),
+                    StatusCode::NOT_FOUND,
+                ),
                 AclError::DbError(err) => {
                     error!("{err}");
                     ApiResponse::new(

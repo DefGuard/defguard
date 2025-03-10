@@ -24,7 +24,9 @@ use super::LicenseInfo;
 pub struct ApiAclRule<I = NoId> {
     #[serde(default)]
     pub id: I,
+    #[serde(skip_deserializing)]
     pub parent_id: Option<Id>,
+    #[serde(skip_deserializing)]
     pub state: RuleState,
     pub name: String,
     pub all_networks: bool,

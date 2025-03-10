@@ -32,6 +32,8 @@ pub enum AclError {
     DbError(#[from] SqlxError),
     #[error("InvalidRelationError: {0}")]
     InvalidRelationError(String),
+    #[error("RuleNotFoundError: {0}")]
+    RuleNotFoundError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -200,6 +202,7 @@ impl<I> AclRuleInfo<I> {
 #[derive(Clone, Debug, Model, PartialEq, Eq, FromRow)]
 pub struct AclRule<I = NoId> {
     pub id: I,
+    // if present points to the original rule before modification / deletion
     pub parent_id: Option<Id>,
     #[model(enum)]
     pub state: RuleState,
@@ -226,7 +229,7 @@ impl AclRule {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let rule: AclRule<NoId> = api_rule.clone().try_into()?;
+        let rule: AclRule = api_rule.clone().try_into()?;
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
@@ -244,32 +247,78 @@ impl AclRule {
     ) -> Result<ApiAclRule<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
-        // save the rule
+        let rule_prev = AclRule::find_by_id(&mut *transaction, id).await?;
+        let rule_prev = rule_prev.ok_or_else(|| {
+            warn!("Update of nonexistent rule ({id}) failed");
+            AclError::RuleNotFoundError(id)
+        })?;
         let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
-        rule.id = id; // frontend may PUT an object with incorrect id
-        rule.save(&mut *transaction).await?;
+        if rule_prev.state == RuleState::Applied {
+            // create new `RuleState::Modified` rule
+            // let mut rule: AclRule = api_rule.clone().try_into()?;
+            // delete previous modification
+            query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                .execute(&mut *transaction)
+                .await?;
+            let mut rule = rule.as_noid();
+            rule.state = RuleState::Modified;
+            rule.parent_id = Some(id);
+            let rule = rule.save(&mut *transaction).await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, rule.id).await?;
+            // create related objects
+            AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+        } else {
+            // let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
+            rule.id = id; // frontend may PUT an object with incorrect id
+            rule.save(&mut *transaction).await?;
+            // delete related objects
+            Self::delete_related_objects(&mut transaction, rule.id).await?;
 
-        // create related objects
-        AclRule::<Id>::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+            // create related objects
+            AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+        }
+
+        // // save the rule
+        // let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
+        // rule.id = id; // frontend may PUT an object with incorrect id
+        // rule.save(&mut *transaction).await?;
+
+        // // delete related objects
+        // Self::delete_related_objects(&mut transaction, rule.id).await?;
+
+        // // create related objects
+        // AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
 
         transaction.commit().await?;
-        Ok(rule.to_info(pool).await?.into())
+        Ok(api_rule.clone())
     }
 
     /// Deletes [`AclRule`] with all it's related objects
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
         let mut transaction = pool.begin().await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, id).await?;
+        let rule_prev = AclRule::find_by_id(&mut *transaction, id).await?;
+        let rule_prev = rule_prev.ok_or_else(|| {
+            warn!("Deletion of nonexistent rule ({id}) failed");
+            AclError::RuleNotFoundError(id)
+        })?;
+        if rule_prev.state == RuleState::Applied {
+            query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                .execute(&mut *transaction)
+                .await?;
+            let mut rule = rule_prev.as_noid();
+            rule.state = RuleState::Deleted;
+            rule.parent_id = Some(id);
+            rule.save(&mut *transaction).await?;
+        } else {
+            // delete related objects
+            Self::delete_related_objects(&mut transaction, id).await?;
 
-        // delete the rule
-        query!("DELETE FROM aclrule WHERE id = $1", id)
-            .execute(&mut *transaction)
-            .await?;
+            // delete the rule
+            query!("DELETE FROM aclrule WHERE id = $1", id)
+                .execute(&mut *transaction)
+                .await?;
+        }
 
         transaction.commit().await?;
         Ok(())
