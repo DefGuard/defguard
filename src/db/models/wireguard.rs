@@ -97,6 +97,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,
+    pub acl_enabled: bool,
+    pub acl_default_allow: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
 }
@@ -135,6 +137,8 @@ impl Default for WireguardNetwork<Id> {
             mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+            acl_default_allow: false,
+            acl_enabled: false,
         }
     }
 }
@@ -170,6 +174,8 @@ impl WireguardNetwork {
         mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
+        acl_enabled: bool,
+        acl_default_allow: bool,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
@@ -187,6 +193,8 @@ impl WireguardNetwork {
             mfa_enabled,
             keepalive_interval,
             peer_disconnect_threshold,
+            acl_enabled,
+            acl_default_allow,
         })
     }
 
@@ -216,7 +224,8 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE name = $1",
             name
         )
@@ -1110,6 +1119,8 @@ impl Default for WireguardNetwork {
             mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+            acl_enabled: false,
+            acl_default_allow: false,
         }
     }
 }

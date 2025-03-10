@@ -57,7 +57,7 @@ test.describe('Setup VPN (wizard) ', () => {
       __dirname.split('e2e')[0],
       'e2e',
       'assets',
-      'test.config'
+      'test.config',
     );
     fs.accessSync(filePath, fs.constants.F_OK);
     const configData = fs.readFileSync(filePath, null);

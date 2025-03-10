@@ -19,7 +19,7 @@ export const copyOpenIdClientId = async (browser: Browser, clientId: number) => 
 
 export const copyOpenIdClientIdAndSecret = async (
   browser: Browser,
-  clientName: string
+  clientName: string,
 ) => {
   const context = await browser.newContext();
   const page = await context.newPage();

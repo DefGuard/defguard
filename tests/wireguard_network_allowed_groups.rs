@@ -143,7 +143,9 @@ async fn test_create_new_network() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -185,7 +187,9 @@ async fn test_modify_network() {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -216,7 +220,9 @@ async fn test_modify_network() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -241,7 +247,9 @@ async fn test_modify_network() {
             "allowed_groups": ["allowed group", "not allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -267,7 +275,9 @@ async fn test_modify_network() {
             "allowed_groups": ["not allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -292,7 +302,9 @@ async fn test_modify_network() {
             "allowed_groups": [],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -530,7 +542,9 @@ async fn test_modify_user() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;
@@ -625,7 +639,9 @@ async fn test_delete_only_allowed_group() {
             "allowed_groups": ["allowed group"],
             "mfa_enabled": false,
             "keepalive_interval": 25,
-            "peer_disconnect_threshold": 180
+            "peer_disconnect_threshold": 180,
+            "acl_enabled": false,
+            "acl_default_allow": false
         }))
         .send()
         .await;

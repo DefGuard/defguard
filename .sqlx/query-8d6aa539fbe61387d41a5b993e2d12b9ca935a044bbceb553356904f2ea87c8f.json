@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, destination, ports, protocols, expires FROM aclrule a JOIN aclrulenetwork an ON a.id = an.rule_id WHERE an.network_id = $1",
+  "query": "SELECT id, \"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -30,21 +30,26 @@
       },
       {
         "ordinal": 5,
-        "name": "destination",
+        "name": "destination: _",
         "type_info": "InetArray"
       },
       {
         "ordinal": 6,
-        "name": "ports",
+        "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
         "ordinal": 7,
-        "name": "protocols",
+        "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
         "ordinal": 8,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
         "name": "expires",
         "type_info": "Timestamp"
       }
@@ -63,8 +68,9 @@
       false,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "2e4f4dadcaf092bfc3786486662c143cfe80db071ccb04624e495e1367aa21eb"
+  "hash": "8d6aa539fbe61387d41a5b993e2d12b9ca935a044bbceb553356904f2ea87c8f"
 }

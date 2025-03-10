@@ -50,7 +50,7 @@ export default defineConfig({
     },
     screenshot: 'only-on-failure',
     contextOptions: {
-      permissions: ['clipboard-read', 'clipboard-write', 'accessibility-events'],
+      permissions: ['clipboard-read', 'clipboard-write'],
     },
   },
 

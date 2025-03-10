@@ -7,7 +7,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection,
+    PgExecutor, PgPool,
 };
 use std::{
     collections::HashSet,
@@ -29,6 +30,8 @@ pub enum AclError {
     AddrParseError(#[from] std::net::AddrParseError),
     #[error(transparent)]
     DbError(#[from] SqlxError),
+    #[error("InvalidRelationError: {0}")]
+    InvalidRelationError(String),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -106,6 +109,7 @@ pub struct AclRuleInfo<I = NoId> {
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
     pub expires: Option<NaiveDateTime>,
+    pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -189,6 +193,7 @@ pub struct AclRule<I = NoId> {
     pub ports: Vec<PgRange<i32>>,
     #[model(ref)]
     pub protocols: Vec<Protocol>,
+    pub enabled: bool,
     pub expires: Option<NaiveDateTime>,
 }
 
@@ -251,33 +256,50 @@ impl AclRule {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct ParsedDestination {
+    addrs: Vec<IpNetwork>,
+    ranges: Vec<(IpAddr, IpAddr)>,
+}
+
 /// Perses a destination string into singular ip addresses or networks and address
 /// ranges. We should be able to parse a string like this one:
 /// `10.0.0.1/24, 10.1.1.10-10.1.1.20, 192.168.1.10, 10.1.1.1-10.10.1.1`
-pub fn parse_destination(
-    destination: &str,
-) -> Result<(Vec<IpNetwork>, Vec<(IpAddr, IpAddr)>), AclError> {
-    let mut addrs = Vec::new();
-    let mut ranges = Vec::new();
+pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclError> {
+    debug!("Parsing destination string: {destination}");
     let destination: String = destination.chars().filter(|c| !c.is_whitespace()).collect();
+    let mut result = ParsedDestination::default();
+    if destination.is_empty() {
+        return Ok(result);
+    }
     for v in destination.split(',') {
         match v.split('-').collect::<Vec<_>>() {
-            l if l.len() == 1 => addrs.push(l[0].parse::<IpNetwork>()?),
-            l if l.len() == 2 => ranges.push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
-            _ => return Err(IpNetworkError::InvalidAddr(destination))?,
+            l if l.len() == 1 => result.addrs.push(l[0].parse::<IpNetwork>()?),
+            l if l.len() == 2 => result
+                .ranges
+                .push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
+            _ => {
+                error!("Failed to parse destination string: \"{destination}\"");
+                return Err(IpNetworkError::InvalidAddr(destination))?;
+            }
         };
     }
 
-    Ok((addrs, ranges))
+    debug!("Parsed destination: {result:?}");
+    Ok(result)
 }
 
 /// Perses a ports string into singular ports and port ranges
 /// We should be able to parse a string like this one:
 /// `22, 23, 8000-9000, 80-90`
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
+    debug!("Parsing ports string: {ports}");
     let mut result = Vec::new();
-    let p: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
-    for v in p.split(',') {
+    let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
+    if ports.is_empty() {
+        return Ok(result);
+    }
+    for v in ports.split(',') {
         match v.split('-').collect::<Vec<_>>() {
             l if l.len() == 1 => result.push(PortRange(Range {
                 start: l[0].parse::<i32>()?,
@@ -287,11 +309,27 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
                 start: l[0].parse::<i32>()?,
                 end: l[1].parse::<i32>()? + 1,
             })),
-            _ => return Err(AclError::InvalidPortsFormat(ports.to_string())),
+            _ => {
+                error!("Failed to parse ports string: \"{ports}\"");
+                return Err(AclError::InvalidPortsFormat(ports.to_string()));
+            }
         };
     }
 
+    debug!("Parsed ports: {result:?}");
     Ok(result)
+}
+
+/// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
+fn map_relation_error(err: SqlxError, class: &str, id: &Id) -> AclError {
+    if let SqlxError::Database(dberror) = &err {
+        if dberror.kind() == ErrorKind::ForeignKeyViolation {
+            error!("Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}");
+            return AclError::InvalidRelationError(format!("{class}({id})"));
+        }
+    }
+    error!("Failed to create ACL related object: {err}");
+    AclError::DbError(err)
 }
 
 impl<I: std::fmt::Debug> AclRule<I> {
@@ -309,7 +347,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 network_id: *network_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "WireguardNetwork", network_id))?;
         }
 
         // allowed users
@@ -320,7 +360,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // denied users
@@ -331,7 +373,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // allowed groups
@@ -342,7 +386,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // denied groups
@@ -353,7 +399,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // save related aliases
@@ -363,7 +411,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 alias_id: *alias_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "AclAlias", alias_id))?;
         }
 
         // allowed devices
@@ -374,7 +424,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // denied devices
@@ -385,12 +437,14 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // destination
-        let (_, ranges) = parse_destination(&api_rule.destination)?;
-        for range in ranges {
+        let destination = parse_destination(&api_rule.destination)?;
+        for range in destination.ranges {
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,
@@ -452,7 +506,7 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
     type Error = AclError;
     fn try_from(rule: ApiAclRule<I>) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&rule.destination)?.0,
+            destination: parse_destination(&rule.destination)?.addrs,
             ports: parse_ports(&rule.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -463,6 +517,7 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
             deny_all_users: rule.deny_all_users,
             all_networks: rule.all_networks,
             protocols: rule.protocols,
+            enabled: rule.enabled,
             expires: rule.expires,
         })
     }
@@ -483,7 +538,8 @@ impl AclRule<Id> {
             query_as!(
                 WireguardNetwork,
                 "SELECT n.id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+                connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+                acl_enabled, acl_default_allow \
                 FROM aclrulenetwork r \
                 JOIN wireguard_network n \
                 ON n.id = r.network_id \
@@ -701,6 +757,7 @@ impl AclRule<Id> {
             all_networks: self.all_networks,
             destination: self.destination.clone(),
             protocols: self.protocols.clone(),
+            enabled: self.enabled,
             expires: self.expires,
             destination_ranges,
             ports,
@@ -846,7 +903,7 @@ impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
     type Error = AclError;
     fn try_from(alias: ApiAclAlias<I>) -> Result<Self, Self::Error> {
         Ok(Self {
-            destination: parse_destination(&alias.destination)?.0,
+            destination: parse_destination(&alias.destination)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
@@ -959,8 +1016,8 @@ impl<I: std::fmt::Debug> AclAlias<I> {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {api_alias:?}");
         // save related destination ranges
-        let (_, ranges) = parse_destination(&api_alias.destination)?;
-        for range in ranges {
+        let destination = parse_destination(&api_alias.destination)?;
+        for range in destination.ranges {
             let obj = AclAliasDestinationRange {
                 id: NoId,
                 alias_id,
@@ -1186,6 +1243,7 @@ mod test {
         let mut rule = AclRule {
             id: NoId,
             name: "rule".to_string(),
+            enabled: true,
             allow_all_users: false,
             deny_all_users: false,
             all_networks: false,
@@ -1209,6 +1267,8 @@ mod test {
             false,
             100,
             100,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)
@@ -1224,6 +1284,8 @@ mod test {
             false,
             200,
             200,
+            false,
+            false,
         )
         .unwrap()
         .save(&pool)
@@ -1368,7 +1430,7 @@ mod test {
         let info = rule.to_info(&pool).await.unwrap();
 
         assert_eq!(info.aliases.len(), 1);
-        assert_eq!(info.aliases[0].id, alias1.id); // db modifies datetime precision
+        assert_eq!(info.aliases[0], alias1);
 
         assert_eq!(info.allowed_users.len(), 1);
         assert_eq!(info.allowed_users[0], user1);
@@ -1418,7 +1480,12 @@ mod test {
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
-        // TODO: what if both `allow_all_users` and `deny_all_users` are true?
+        // favor `deny_all_users` if both flags are set
+        rule.allow_all_users = true;
+        rule.deny_all_users = true;
+        rule.save(&pool).await.unwrap();
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // deactivate user1
         user1.is_active = false;
@@ -1537,6 +1604,7 @@ mod test {
             ports: Vec::new(),
             protocols: Vec::new(),
             expires: None,
+            enabled: true,
         }
         .save(&pool)
         .await
@@ -1644,6 +1712,7 @@ mod test {
             ports: Vec::new(),
             protocols: Vec::new(),
             expires: None,
+            enabled: true,
         }
         .save(&pool)
         .await

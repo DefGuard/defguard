@@ -18,7 +18,7 @@ use super::LicenseInfo;
 
 /// API representation of [`AclRule`]
 /// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiAclRule<I = NoId> {
     #[serde(default)]
     pub id: I,
@@ -26,6 +26,7 @@ pub struct ApiAclRule<I = NoId> {
     pub all_networks: bool,
     pub networks: Vec<Id>,
     pub expires: Option<NaiveDateTime>,
+    pub enabled: bool,
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -62,13 +63,14 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
             aliases: info.aliases.iter().map(|v| v.id).collect(),
             protocols: info.protocols,
+            enabled: info.enabled,
         }
     }
 }
 
 /// API representation of [`AclAlias`]
 /// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ApiAclAlias<I = NoId> {
     #[serde(default)]
     pub id: I,

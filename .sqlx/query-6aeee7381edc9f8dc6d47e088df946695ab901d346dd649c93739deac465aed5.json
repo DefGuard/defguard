@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclrule\" (\"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"expires\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "query": "INSERT INTO \"aclrule\" (\"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"enabled\",\"expires\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -18,6 +18,7 @@
         "InetArray",
         "Int4RangeArray",
         "Int4Array",
+        "Bool",
         "Timestamp"
       ]
     },
@@ -25,5 +26,5 @@
       false
     ]
   },
-  "hash": "dfc28cbe83e83c7c76ecd2ef64fcc7018bc61d30d751a353d8328e93976288ea"
+  "hash": "6aeee7381edc9f8dc6d47e088df946695ab901d346dd649c93739deac465aed5"
 }

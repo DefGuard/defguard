@@ -114,7 +114,7 @@ test.describe('Authorize OpenID client.', () => {
 
 const fillAndSubmitOpenIDDebugger = async (
   page: Page,
-  client: OpenIdClient
+  client: OpenIdClient,
 ): Promise<void> => {
   await page.goto('https://oidcdebugger.com/');
   const authorizeUriInput = page.locator('#authorizeUri');

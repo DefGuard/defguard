@@ -15,7 +15,7 @@ export const apiGetUsers = async (page: Page): Promise<ApiUser[]> => {
 
 export const apiGetUserProfile = async (
   page: Page,
-  username: string
+  username: string,
 ): Promise<ApiUserProfile> => {
   const url = testsConfig.CORE_BASE_URL + '/user/' + username;
   const userProfile = await page.evaluate(async (url) => {
@@ -38,7 +38,7 @@ export const apiGetMe = async (page: Page): Promise<ApiUser> => {
 
 export const apiGetUserAuthKeys = async (
   page: Page,
-  username: string
+  username: string,
 ): Promise<ApiUserAuthKey[]> => {
   const url = testsConfig.CORE_BASE_URL + `/user/${username}/auth_key`;
   const userData = await page.evaluate(async (url) => {
@@ -79,6 +79,6 @@ export const apiCreateUser = async (page: Page, user: User): Promise<void> => {
     {
       user,
       url,
-    }
+    },
   );
 };

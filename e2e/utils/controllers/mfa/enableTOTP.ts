@@ -1,5 +1,5 @@
 import { Browser } from 'playwright';
-import totp from 'totp-generator';
+import { TOTP } from 'totp-generator';
 
 import { routes } from '../../../config';
 import { User } from '../../../types';
@@ -16,7 +16,7 @@ export type EnableTOTPResult = {
 
 export const enableTOTP = async (
   browser: Browser,
-  user: User
+  user: User,
 ): Promise<EnableTOTPResult> => {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -29,7 +29,7 @@ export const enableTOTP = async (
   await page.getByTestId('enable-totp-option').click();
   await page.getByTestId('copy-totp').click();
   const totpSecret = await getPageClipboard(page);
-  const token = totp(totpSecret);
+  const { otp: token } = TOTP.generate(totpSecret);
   const totpForm = page.getByTestId('register-totp-form');
   await totpForm.getByTestId('field-code').type(token);
   await totpForm.locator('button[type="submit"]').click();

@@ -40,10 +40,13 @@
           vtsls
           # protobuf formatter
           buf
+          # e2e
+          playwright
         ];
 
         # Specify the rust-src path (many editors rely on this)
         RUST_SRC_PATH = "${rustToolchain}/lib/rustlib/src/rust/library";
+        PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
       };
     });
 }

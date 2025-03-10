@@ -1779,6 +1779,12 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         peer_disconnect_threshold: {
           label: 'Próg rozłączania [sekundy]',
         },
+        acl_enabled: {
+          label: 'Włącz ACL dla tej lokacji',
+        },
+        acl_default_allow: {
+          label: 'Domyślna polityka ACL',
+        },
       },
       controls: {
         submit: 'Zapisz zmiany',

@@ -17,7 +17,7 @@ type EnrollmentResponse = {
 
 export const createUserEnrollment = async (
   browser: Browser,
-  user: User
+  user: User,
 ): Promise<EnrollmentResponse> => {
   const context = await browser.newContext();
   const page = await context.newPage();

@@ -478,7 +478,8 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
         )
@@ -852,7 +853,8 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
