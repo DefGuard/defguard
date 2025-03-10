@@ -172,6 +172,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         }
         None
     });
+    let struct_fields_clone = struct_fields.clone();
 
     // queries
     let all_query = format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\"");
@@ -227,7 +228,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
                 Ok(())
             }
+
+            pub fn as_noid(self) -> #name {
+                #name { id: NoId, #(#struct_fields_clone,)* }
+            }
+
         }
+
     }
     .into()
 }

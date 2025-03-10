@@ -32,6 +32,8 @@ pub enum AclError {
     DbError(#[from] SqlxError),
     #[error("InvalidRelationError: {0}")]
     InvalidRelationError(String),
+    #[error("RuleNotFoundError: {0}")]
+    RuleNotFoundError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -196,6 +198,7 @@ impl<I> AclRuleInfo<I> {
 #[derive(Clone, Debug, Model, PartialEq, Eq, FromRow)]
 pub struct AclRule<I = NoId> {
     pub id: I,
+    // if present points to the original rule before modification / deletion
     pub parent_id: Option<Id>,
     #[model(enum)]
     pub state: RuleState,
@@ -222,7 +225,7 @@ impl AclRule {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let rule: AclRule<NoId> = api_rule.clone().try_into()?;
+        let rule: AclRule = api_rule.clone().try_into()?;
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
@@ -233,6 +236,16 @@ impl AclRule {
     }
 
     /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
+    ///
+    /// State handling:
+    /// - For rules in `RuleState::Applied` state (rules that are currently active):
+    ///   1. Any existing modifications of this rule are deleted
+    ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
+    ///   This preserves the original rule while tracking the modification.
+    /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
+    ///   since they haven't been applied to the gateways yet.
+    ///
+    /// This approach allows us to track changes to applied rules while maintaining their history.
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
@@ -240,32 +253,96 @@ impl AclRule {
     ) -> Result<ApiAclRule<Id>, AclError> {
         let mut transaction = pool.begin().await?;
 
-        // save the rule
+        // find the existing rule
+        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Update of nonexistent rule ({id}) failed");
+                AclError::RuleNotFoundError(id)
+            })?;
+
+        // convert API rule to model
         let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
-        rule.id = id; // frontend may PUT an object with incorrect id
-        rule.save(&mut *transaction).await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, rule.id).await?;
+        // perform appropriate updates depending on existing rule's state
+        match existing_rule.state {
+            RuleState::Applied => {
+                // create new `RuleState::Modified` rule
+                // remove old modifications of this rule
+                query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                    .await?;
 
-        // create related objects
-        AclRule::<Id>::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+                // save as a new rule with appropriate parent_id and state
+                let mut rule = rule.as_noid();
+                rule.state = RuleState::Modified;
+                rule.parent_id = Some(id);
+                let rule = rule.save(&mut *transaction).await?;
+
+                // create related objects
+                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+            }
+            _ => {
+                // update the not-yet applied modification itself
+                rule.id = id; // frontend may PUT an object with incorrect id
+                rule.save(&mut *transaction).await?;
+
+                // recreate related objects
+                Self::delete_related_objects(&mut transaction, rule.id).await?;
+                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+            }
+        };
 
         transaction.commit().await?;
-        Ok(rule.to_info(pool).await?.into())
+        Ok(api_rule.clone())
     }
 
-    /// Deletes [`AclRule`] with all it's related objects
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+    /// Deletes [`AclRule`] with all it's related objects.
+    /// 
+    /// For rules in `RuleState::Applied` state (rules that are currently active):
+    ///   - Any existing modifications of this rule are deleted
+    ///   - A copy of the rule is created with `RuleState::Deleted` state and the original rule as parent
+    ///   This preserves the original rule while tracking the deletion.
+    /// 
+    /// For rules in other states (`New`, `Modified` or `Deleted`):
+    ///   - All related objects are deleted
+    ///   - The rule itself is deleted from the database
+    ///   Since these rules were not yet applied, we can safely remove them completely.
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
         let mut transaction = pool.begin().await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, id).await?;
+        // find the existing rule
+        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Deletion of nonexistent rule ({id}) failed");
+                AclError::RuleNotFoundError(id)
+            })?;
 
-        // delete the rule
-        query!("DELETE FROM aclrule WHERE id = $1", id)
-            .execute(&mut *transaction)
-            .await?;
+        // perform appropriate modifications depending on existing rule's state
+        match existing_rule.state {
+            RuleState::Applied => {
+                // create new `RuleState::Modified` rule
+                // delete all modifications of this rule
+                query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                .await?;
+
+                // save as a new rule with appropriate parent_id and state
+                let mut rule = existing_rule.as_noid();
+                rule.state = RuleState::Deleted;
+                rule.parent_id = Some(id);
+                rule.save(&mut *transaction).await?;
+            }
+            _ => {
+                // delete the not-yet applied modification itself
+                // delete related objects
+                Self::delete_related_objects(&mut transaction, id).await?;
+
+                // delete the rule
+                existing_rule.delete(&mut *transaction).await?;
+            }
+        };
 
         transaction.commit().await?;
         Ok(())
