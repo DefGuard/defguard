@@ -298,7 +298,7 @@ pub(crate) fn make_network() -> Value {
 
 /// Replaces id field in json response with NoId
 #[allow(dead_code)]
-pub(crate) fn omit_id<T: DeserializeOwned>(mut value: serde_json::Value) -> T {
+pub(crate) fn omit_id<T: DeserializeOwned>(mut value: Value) -> T {
     *value.get_mut("id").unwrap() = json!(NoId);
     serde_json::from_value(value).unwrap()
 }
