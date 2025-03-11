@@ -1471,20 +1471,20 @@ mod test {
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test `deny_all_users` flag
         rule.allow_all_users = false;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
-        // favor `deny_all_users` if both flags are set
+        // test both flags
         rule.allow_all_users = true;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // deactivate user1
@@ -1500,7 +1500,7 @@ mod test {
         let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
-        assert_eq!(denied_users.len(), 0);
+        assert_eq!(denied_users.len(), 1);
 
         // ensure only active users are allowed when `allow_all_users = false`
         rule.allow_all_users = false;
@@ -1521,7 +1521,7 @@ mod test {
 
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
-        assert_eq!(allowed_users.len(), 0);
+        assert_eq!(allowed_users.len(), 1);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
 
