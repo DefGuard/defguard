@@ -316,7 +316,7 @@ async fn test_related_objects() {
 
     // create related objects
     // networks
-    for net in vec!["net 1", "net 2"] {
+    for net in ["net 1", "net 2"] {
         WireguardNetwork::new(
             net.to_string(),
             Vec::new(),
