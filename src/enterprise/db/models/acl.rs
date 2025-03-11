@@ -55,11 +55,7 @@ impl fmt::Display for PortRange {
 
 impl PortRange {
     pub fn new(start: i32, end: i32) -> Self {
-        Self(Range {
-            start,
-            // end is exclusive in `Range`
-            end: end + 1,
-        })
+        Self(start..(end + 1))
     }
 
     // Returns first port in range
@@ -87,7 +83,7 @@ impl From<PgRange<i32>> for PortRange {
             // should not happen - database constraint
             Bound::Unbounded => panic!("Unbounded port range"),
         };
-        Self(Range { start, end })
+        Self(start..end)
     }
 }
 

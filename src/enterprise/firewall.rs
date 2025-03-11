@@ -353,10 +353,7 @@ fn process_destination_addrs(
 }
 
 fn ip_to_range(first_ip: IpAddr, last_ip: IpAddr) -> Range<IpAddr> {
-    Range {
-        start: first_ip,
-        end: next_ip(last_ip),
-    }
+    first_ip..next_ip(last_ip)
 }
 
 fn range_to_ip(ip_range: Range<IpAddr>) -> (IpAddr, IpAddr) {
@@ -530,10 +527,7 @@ fn merge_ranges<T: Ord + std::fmt::Debug>(mut ranges: Vec<Range<T>>) -> Vec<Rang
             }
         } else {
             // ranges are not overlapping, add current range to result
-            merged_ranges.push(Range {
-                start: current_range_start,
-                end: current_range_end,
-            });
+            merged_ranges.push(current_range_start..current_range_end);
             current_range_start = range_start;
             current_range_end = range_end;
         }
