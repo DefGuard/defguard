@@ -645,6 +645,7 @@ mod test {
             db::models::acl::{
                 AclAliasDestinationRange, AclRule, AclRuleAlias, AclRuleDestinationRange,
                 AclRuleDevice, AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, PortRange,
+                RuleState,
             },
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
@@ -1635,6 +1636,8 @@ mod test {
             ],
             protocols: vec![Protocol::Tcp.into()],
             enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
         };
         let locations = vec![location.id];
         let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
@@ -1673,6 +1676,8 @@ mod test {
             ports: vec![PortRange::new(53, 53).into()],
             protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
             enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
         };
         let locations_2 = vec![location.id];
         let allowed_users_2 = vec![];

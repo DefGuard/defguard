@@ -236,7 +236,8 @@ impl AclRule {
         Self::create_related_objects(&mut transaction, rule.id, api_rule).await?;
 
         transaction.commit().await?;
-        Ok(rule.to_info(pool).await?.into())
+        let result: ApiAclRule<Id> = rule.to_info(pool).await?.into();
+        Ok(result)
     }
 
     /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
@@ -413,7 +414,7 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
                 .push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
             _ => {
                 error!("Failed to parse destination string: \"{destination}\"");
-                return Err(IpNetworkError::InvalidAddr(destination))?;
+                Err(IpNetworkError::InvalidAddr(destination.clone()))?;
             }
         };
     }
@@ -1134,7 +1135,8 @@ impl AclAlias {
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        Ok(alias.to_info(pool).await?.into())
+        let result: ApiAclAlias<Id> = alias.to_info(pool).await?.into();
+        Ok(result)
     }
 
     /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
@@ -1781,6 +1783,8 @@ mod test {
             protocols: Vec::new(),
             expires: None,
             enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
         }
         .save(&pool)
         .await
@@ -1889,6 +1893,8 @@ mod test {
             protocols: Vec::new(),
             expires: None,
             enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
         }
         .save(&pool)
         .await
