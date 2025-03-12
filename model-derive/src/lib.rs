@@ -164,15 +164,17 @@ pub fn derive(input: TokenStream) -> TokenStream {
     });
     let update_args = insert_args.clone();
     // Struct fields without `id`. It is not possible to use `..self`: mismatched types.
-    let struct_fields = named.iter().filter_map(|field| {
-        if let Some(name) = &field.ident {
-            if name != "id" {
-                return Some(quote! { #name: self.#name });
+    let struct_fields: Vec<_> = named
+        .iter()
+        .filter_map(|field| {
+            if let Some(name) = &field.ident {
+                if name != "id" {
+                    return Some(quote! { #name: self.#name });
+                }
             }
-        }
-        None
-    });
-    let struct_fields_clone = struct_fields.clone();
+            None
+        })
+        .collect();
 
     // queries
     let all_query = format!("SELECT id, {cs_aliased_fields} FROM \"{table_name}\"");
@@ -193,6 +195,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 let id = sqlx::query_scalar!(#insert_query, #(#insert_args,)*).fetch_one(executor).await?;
 
                 Ok(#name { id, #(#struct_fields,)* })
+            }
+
+            pub fn with_id(self, id: Id) -> #name<Id> {
+                #name { id, #(#struct_fields,)* }
             }
         }
 
@@ -230,7 +236,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
 
             pub fn as_noid(self) -> #name {
-                #name { id: NoId, #(#struct_fields_clone,)* }
+                #name { id: NoId, #(#struct_fields,)* }
             }
 
         }

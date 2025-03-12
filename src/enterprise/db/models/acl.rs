@@ -99,10 +99,14 @@ impl From<PortRange> for PgRange<i32> {
 }
 
 /// ACL rule can be in one of the following states:
-/// - New: the rule has been created and not yet applied on the gateway
+/// - New: the rule has been created and not yet applied
 /// - Modified: the rule has been modified and not yet applied
-/// - Deleted: the rule has been marked for deletion but not yed removed from the gateway
-/// - Applied: the rule was applied on the gateways
+/// - Deleted: the rule has been marked for deletion but not yed removed
+/// - Applied: the rule was applied
+///
+/// Applied state does NOT guarantee that all locations have received the rule
+/// and performed appropriate operations, only that the next time configuration
+/// is being sent it will include this rule.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
 #[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
 pub enum RuleState {
@@ -243,14 +247,19 @@ impl AclRule {
     ///   1. Any existing modifications of this rule are deleted
     ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
     /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
-    ///   since they haven't been applied to the gateways yet.
+    ///   since they haven't been applied.
     ///
     /// This approach allows us to track changes to applied rules while maintaining their history.
+    ///
+    /// Applied state does NOT guarantee that all locations have received the rule
+    /// and performed appropriate operations, only that the next time configuration
+    /// is being sent it will include this rule.
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
         api_rule: &ApiAclRule<Id>,
     ) -> Result<ApiAclRule<Id>, AclError> {
+        debug!("Updating rule {api_rule:?}");
         let mut transaction = pool.begin().await?;
 
         // find the existing rule
@@ -268,6 +277,10 @@ impl AclRule {
         match existing_rule.state {
             RuleState::Applied => {
                 // create new `RuleState::Modified` rule
+                debug!(
+                    "Rule {} state is `Applied` - creating new `Modified` rule object",
+                    id,
+                );
                 // remove old modifications of this rule
                 query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
@@ -283,6 +296,10 @@ impl AclRule {
                 AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
             }
             _ => {
+                debug!(
+                    "Rule {} is a modification to rule {:?} - updating the modification",
+                    id, rule.parent_id,
+                );
                 // update the not-yet applied modification itself
                 rule.id = id; // frontend may PUT an object with incorrect id
                 rule.save(&mut *transaction).await?;
@@ -294,6 +311,7 @@ impl AclRule {
         };
 
         transaction.commit().await?;
+        info!("Successfully updatied rule {api_rule:?}");
         Ok(api_rule.clone())
     }
 
@@ -304,15 +322,16 @@ impl AclRule {
     /// - For rules in `RuleState::Applied` state (rules that are currently active):
     ///   1. Any existing modifications of this rule are deleted
     ///   2. A copy of the rule is created with `RuleState::Deleted` state and the original rule as parent
-    /// 
+    ///
     /// This preserves the original rule while tracking the deletion.
     ///
     /// - For rules in other states (`New`, `Modified` or `Deleted`):
     ///   1. All related objects are deleted
     ///   2. The rule itself is deleted from the database
-    /// 
+    ///
     /// Since these rules were not yet applied, we can safely remove them.
     pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
+        debug!("Deleting rule {id}");
         let mut transaction = pool.begin().await?;
 
         // find the existing rule
@@ -327,6 +346,10 @@ impl AclRule {
         match existing_rule.state {
             RuleState::Applied => {
                 // create new `RuleState::Modified` rule
+                debug!(
+                    "Rule {} state is `Applied` - creating new `Deleted` rule object",
+                    id,
+                );
                 // delete all modifications of this rule
                 query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
@@ -340,6 +363,10 @@ impl AclRule {
             }
             _ => {
                 // delete the not-yet applied modification itself
+                debug!(
+                    "Rule {} is a modification to rule {:?} - updating the modification",
+                    id, existing_rule.parent_id,
+                );
                 // delete related objects
                 Self::delete_related_objects(&mut transaction, id).await?;
 
@@ -349,6 +376,7 @@ impl AclRule {
         };
 
         transaction.commit().await?;
+        info!("Rule {id} succesfully deleted or marked for deletion");
         Ok(())
     }
 }
@@ -438,6 +466,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL rule {api_rule:?}");
         // save related networks
+        debug!("Creating related networks for ACL rule {rule_id}");
         for network_id in &api_rule.networks {
             let obj = AclRuleNetwork {
                 id: NoId,
@@ -450,6 +479,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed users
+        debug!("Creating related allowed users for ACL rule {rule_id}");
         for user_id in &api_rule.allowed_users {
             let obj = AclRuleUser {
                 id: NoId,
@@ -463,6 +493,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied users
+        debug!("Creating related denied users for ACL rule {rule_id}");
         for user_id in &api_rule.denied_users {
             let obj = AclRuleUser {
                 id: NoId,
@@ -476,6 +507,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed groups
+        debug!("Creating related allowed groups for ACL rule {rule_id}");
         for group_id in &api_rule.allowed_groups {
             let obj = AclRuleGroup {
                 id: NoId,
@@ -489,6 +521,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied groups
+        debug!("Creating related denied groups for ACL rule {rule_id}");
         for group_id in &api_rule.denied_groups {
             let obj = AclRuleGroup {
                 id: NoId,
@@ -502,6 +535,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // save related aliases
+        debug!("Creating related aliases for ACL rule {rule_id}");
         for alias_id in &api_rule.aliases {
             let obj = AclRuleAlias {
                 id: NoId,
@@ -514,6 +548,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed devices
+        debug!("Creating related allowed devices for ACL rule {rule_id}");
         for device_id in &api_rule.allowed_devices {
             let obj = AclRuleDevice {
                 id: NoId,
@@ -527,6 +562,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied devices
+        debug!("Creating related denied devices for ACL rule {rule_id}");
         for device_id in &api_rule.denied_devices {
             let obj = AclRuleDevice {
                 id: NoId,
@@ -541,6 +577,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
 
         // destination
         let destination = parse_destination(&api_rule.destination)?;
+        debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
             let obj = AclRuleDestinationRange {
                 id: NoId,
