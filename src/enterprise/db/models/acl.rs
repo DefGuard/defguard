@@ -282,9 +282,13 @@ impl AclRule {
                     id,
                 );
                 // remove old modifications of this rule
-                query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
                     .await?;
+                debug!(
+                    "Removed {} old modifications of rule {id}",
+                    result.rows_affected(),
+                );
 
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = rule.as_noid();
@@ -351,9 +355,13 @@ impl AclRule {
                     id,
                 );
                 // delete all modifications of this rule
-                query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
                     .await?;
+                debug!(
+                    "Removed {} old modifications of rule {id}",
+                    result.rows_affected(),
+                );
 
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();
@@ -599,37 +607,61 @@ impl<I: std::fmt::Debug> AclRule<I> {
     ) -> Result<(), SqlxError> {
         debug!("Deleting related objects for ACL rule {rule_id}");
         // networks
-        query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulenetwork records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // users
-        query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclruleuser records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // groups
-        query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulegroup records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // aliases
-        query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulealias records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // devices
-        query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclruledevice records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // destination ranges
-        query!(
+        let result = query!(
             "DELETE FROM aclruledestinationrange WHERE rule_id = $1",
             rule_id
         )
         .execute(&mut *transaction)
         .await?;
+        debug!(
+            "Deleted {} aclruledestinationrange records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         info!("Deleted related objects for ACL rule {rule_id}");
         Ok(())
@@ -1176,12 +1208,16 @@ impl<I: std::fmt::Debug> AclAlias<I> {
     ) -> Result<(), AclError> {
         debug!("Deleting related objects for ACL alias {alias_id}");
         // destination ranges
-        query!(
+        let result = query!(
             "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
             alias_id
         )
         .execute(&mut *transaction)
         .await?;
+        debug!(
+            "Deleted {} aclaliasdestinationrange records related to alias {alias_id}",
+            result.rows_affected()
+        );
 
         info!("Deleted related objects for ACL alias {alias_id}");
         Ok(())
