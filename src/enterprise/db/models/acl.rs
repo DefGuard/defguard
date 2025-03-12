@@ -238,10 +238,10 @@ impl AclRule {
     /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
     ///
     /// State handling:
+    ///
     /// - For rules in `RuleState::Applied` state (rules that are currently active):
     ///   1. Any existing modifications of this rule are deleted
     ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
-    ///   This preserves the original rule while tracking the modification.
     /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
     ///   since they haven't been applied to the gateways yet.
     ///
@@ -298,16 +298,20 @@ impl AclRule {
     }
 
     /// Deletes [`AclRule`] with all it's related objects.
+    ///
+    /// State handling:
+    ///
+    /// - For rules in `RuleState::Applied` state (rules that are currently active):
+    ///   1. Any existing modifications of this rule are deleted
+    ///   2. A copy of the rule is created with `RuleState::Deleted` state and the original rule as parent
     /// 
-    /// For rules in `RuleState::Applied` state (rules that are currently active):
-    ///   - Any existing modifications of this rule are deleted
-    ///   - A copy of the rule is created with `RuleState::Deleted` state and the original rule as parent
-    ///   This preserves the original rule while tracking the deletion.
+    /// This preserves the original rule while tracking the deletion.
+    ///
+    /// - For rules in other states (`New`, `Modified` or `Deleted`):
+    ///   1. All related objects are deleted
+    ///   2. The rule itself is deleted from the database
     /// 
-    /// For rules in other states (`New`, `Modified` or `Deleted`):
-    ///   - All related objects are deleted
-    ///   - The rule itself is deleted from the database
-    ///   Since these rules were not yet applied, we can safely remove them completely.
+    /// Since these rules were not yet applied, we can safely remove them.
     pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
         let mut transaction = pool.begin().await?;
 
@@ -326,7 +330,7 @@ impl AclRule {
                 // delete all modifications of this rule
                 query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
-                .await?;
+                    .await?;
 
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();

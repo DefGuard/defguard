@@ -11,6 +11,7 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use serde_json::{from_value, json, Value};
+use serial_test::serial;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 
@@ -122,9 +123,8 @@ async fn test_rule_crud() {
     assert_eq!(response_rules.len(), 0);
 }
 
-// FIXME: race conditions on global statics in integration tests
-#[ignore]
 #[tokio::test]
+#[serial]
 async fn test_rule_enterprise() {
     let (client, _) = make_test_client().await;
     authenticate(&client).await;
@@ -212,9 +212,8 @@ async fn test_alias_crud() {
     assert_eq!(response_aliases.len(), 0);
 }
 
-// FIXME: race conditions on global statics in integration tests
-#[ignore]
 #[tokio::test]
+#[serial]
 async fn test_alias_enterprise() {
     let (client, _) = make_test_client().await;
     authenticate(&client).await;
