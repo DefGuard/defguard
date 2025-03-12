@@ -7,6 +7,7 @@ pub enum LdapError {
     MissingSettings,
     // TODO: include the error
     Database,
+    InvalidCertificate,
 }
 
 impl fmt::Display for LdapError {
@@ -18,6 +19,7 @@ impl fmt::Display for LdapError {
                 write!(f, "LDAP settings are missing")
             }
             Self::Database => write!(f, "Database error"),
+            Self::InvalidCertificate => write!(f, "Invalid certificate"),
         }
     }
 }

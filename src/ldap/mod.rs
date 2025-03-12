@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use ldap3::{drive, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+use native_tls::{Certificate, TlsConnector};
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -25,7 +26,7 @@ macro_rules! hashset {
 
 #[derive(Clone)]
 pub struct LDAPConfig {
-    pub ldap_bind_username: String,
+    pub bind_username: String,
     pub ldap_group_search_base: String,
     pub ldap_user_search_base: String,
     pub ldap_user_obj_class: String,
@@ -82,7 +83,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_user_search_base: settings
                 .ldap_user_search_base
                 .ok_or(LdapError::MissingSettings)?,
-            ldap_bind_username: settings
+            bind_username: settings
                 .ldap_bind_username
                 .ok_or(LdapError::MissingSettings)?,
             ldap_group_search_base: settings
@@ -105,10 +106,22 @@ impl LDAPConnection {
         let password = settings
             .ldap_bind_password
             .ok_or(LdapError::MissingSettings)?;
-        let (conn, mut ldap) = LdapConnAsync::new(&url).await?;
+        let mut conn_settings = LdapConnSettings::new().set_starttls(settings.ldap_use_starttls);
+        if let Some(cert) = settings.ldap_tls_cert {
+            warn!("CERT {cert}");
+            let cert = Certificate::from_pem(cert.as_bytes())
+                .map_err(|_| LdapError::InvalidCertificate)?;
+            warn!("ARSE");
+            let tls = TlsConnector::builder()
+                .add_root_certificate(cert)
+                .build()
+                .map_err(|_| LdapError::MissingSettings)?;
+            conn_settings = conn_settings.set_connector(tls);
+        }
+        let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
         drive!(conn);
         info!("Connected to LDAP: {url}");
-        ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
+        ldap.simple_bind(&config.bind_username, password.expose_secret())
             .await?
             .success()?;
 

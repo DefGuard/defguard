@@ -1072,6 +1072,7 @@ dependencies = [
  "md4",
  "mime_guess",
  "model_derive",
+ "native-tls",
  "openidconnect",
  "parse_link_header",
  "paste",

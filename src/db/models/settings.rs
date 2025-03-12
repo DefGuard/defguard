@@ -90,6 +90,8 @@ pub struct Settings {
     pub ldap_groupname_attr: Option<String>,
     pub ldap_group_member_attr: Option<String>,
     pub ldap_member_attr: Option<String>,
+    pub ldap_use_starttls: bool,
+    pub ldap_tls_cert: Option<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -106,9 +108,9 @@ impl Settings {
     {
         query_as!(
             Self,
-            "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, \
-            worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, \
-            smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
+            "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, \
+            challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, \
+            smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, \
             smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, \
             enrollment_vpn_step_optional, enrollment_welcome_message, \
             enrollment_welcome_email, enrollment_welcome_email_subject, \
@@ -116,8 +118,8 @@ impl Settings {
             ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
-            ldap_group_member_attr, ldap_member_attr, openid_create_account, \
-            license, gateway_disconnect_notifications_enabled, \
+            ldap_group_member_attr, ldap_member_attr, ldap_use_starttls, ldap_tls_cert, \
+            openid_create_account, license, gateway_disconnect_notifications_enabled, \
             gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled \
             FROM \"settings\" WHERE id = 1",
@@ -175,11 +177,13 @@ impl Settings {
             ldap_groupname_attr = $29, \
             ldap_group_member_attr = $30, \
             ldap_member_attr = $31, \
-            openid_create_account = $32, \
-            license = $33, \
-            gateway_disconnect_notifications_enabled = $34, \
-            gateway_disconnect_notifications_inactivity_threshold = $35, \
-            gateway_disconnect_notifications_reconnect_notification_enabled = $36 \
+            ldap_use_starttls = $32, \
+            ldap_tls_cert = $33, \
+            openid_create_account = $34, \
+            license = $35, \
+            gateway_disconnect_notifications_enabled = $36, \
+            gateway_disconnect_notifications_inactivity_threshold = $37, \
+            gateway_disconnect_notifications_reconnect_notification_enabled = $38 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -212,6 +216,8 @@ impl Settings {
             self.ldap_groupname_attr,
             self.ldap_group_member_attr,
             self.ldap_member_attr,
+            self.ldap_use_starttls,
+            self.ldap_tls_cert,
             self.openid_create_account,
             self.license,
             self.gateway_disconnect_notifications_enabled,
