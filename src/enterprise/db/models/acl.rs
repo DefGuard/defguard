@@ -34,6 +34,8 @@ pub enum AclError {
     InvalidRelationError(String),
     #[error("RuleNotFoundError: {0}")]
     RuleNotFoundError(Id),
+    #[error("RuleAlreadyAppliedError: {0}")]
+    RuleAlreadyAppliedError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -386,6 +388,53 @@ impl AclRule {
 
         transaction.commit().await?;
         info!("Rule {id} succesfully deleted or marked for deletion");
+        Ok(())
+    }
+
+    /// Changes rule state to [`RuleState::Applied`]
+    ///
+    /// This function:
+    /// - changes the state of the specified rule to `Applied`
+    /// - clears rule's `parent_id`.
+    /// - deletes it's parent rule
+    /// - TODO: triggers gateway reconfiguration
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::RuleNotFoundError` - If the rule with the specified ID does not exist.
+    /// - `AclError::RuleAreadyApplied` - If the rule is already applied.
+    pub async fn apply(pool: &PgPool, id: Id) -> Result<(), AclError> {
+        debug!("Changing rule {id} state to applied");
+        let mut transaction = pool.begin().await?;
+
+        // Find the rule by ID
+        let mut rule = AclRule::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| AclError::RuleNotFoundError(id))?;
+
+        // Ensure the rule is in a state that can be applied
+        match rule.state {
+            RuleState::New | RuleState::Modified | RuleState::Deleted => {
+                debug!("Changing rule {id} state to applied");
+                rule.state = RuleState::Applied;
+                let parent_id = rule.parent_id;
+                rule.parent_id = None;
+                rule.save(&mut *transaction).await?;
+
+                // delete parent rule
+                if let Some(parent_id) = parent_id {
+                    query!("DELETE FROM aclrule WHERE id = $1", parent_id)
+                        .execute(&mut *transaction)
+                        .await?;
+                }
+            }
+            RuleState::Applied => {
+                warn!("Rule {id} already applied");
+                return Err(AclError::RuleAlreadyAppliedError(id));
+            }
+        }
+
+        transaction.commit().await?;
         Ok(())
     }
 }

@@ -99,6 +99,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Rule {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
+                AclError::RuleAlreadyAppliedError(id) => ApiResponse::new(
+                    json!({"msg": format!("Rule {id} already applied")}),
+                    StatusCode::BAD_REQUEST,
+                ),
                 AclError::DbError(err) => {
                     error!("{err}");
                     ApiResponse::new(
