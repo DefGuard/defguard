@@ -391,48 +391,21 @@ impl AclRule {
         Ok(())
     }
 
-    /// Changes rule state to [`RuleState::Applied`]
-    ///
-    /// This function:
-    /// - changes the state of the specified rule to `Applied`
-    /// - clears rule's `parent_id`.
-    /// - deletes it's parent rule
-    /// - TODO: triggers gateway reconfiguration
+    /// Changes rule state to [`RuleState::Applied`] for all specified rules
     ///
     /// # Errors
     ///
-    /// - `AclError::RuleNotFoundError` - If the rule with the specified ID does not exist.
-    /// - `AclError::RuleAreadyApplied` - If the rule is already applied.
-    pub async fn apply(pool: &PgPool, id: Id) -> Result<(), AclError> {
-        debug!("Changing rule {id} state to applied");
+    /// - `AclError::RuleNotFoundError`
+    pub async fn apply_all(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
+        debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = pool.begin().await?;
-
-        // Find the rule by ID
-        let mut rule = AclRule::find_by_id(&mut *transaction, id)
-            .await?
-            .ok_or_else(|| AclError::RuleNotFoundError(id))?;
-
-        // Ensure the rule is in a state that can be applied
-        match rule.state {
-            RuleState::New | RuleState::Modified | RuleState::Deleted => {
-                debug!("Changing rule {id} state to applied");
-                rule.state = RuleState::Applied;
-                let parent_id = rule.parent_id;
-                rule.parent_id = None;
-                rule.save(&mut *transaction).await?;
-
-                // delete parent rule
-                if let Some(parent_id) = parent_id {
-                    query!("DELETE FROM aclrule WHERE id = $1", parent_id)
-                        .execute(&mut *transaction)
-                        .await?;
-                }
-            }
-            RuleState::Applied => {
-                warn!("Rule {id} already applied");
-                return Err(AclError::RuleAlreadyAppliedError(id));
-            }
+        for id in rules {
+            let mut rule = AclRule::find_by_id(&mut *transaction, *id)
+                .await?
+                .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
+            rule.apply(&mut transaction).await?;
         }
+        info!("Applied {} ACL rules: {rules:?}", rules.len());
 
         transaction.commit().await?;
         Ok(())
@@ -742,6 +715,46 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
 }
 
 impl AclRule<Id> {
+    /// Changes rule state to [`RuleState::Applied`]
+    ///
+    /// This function:
+    /// - changes the state of the specified rule to `Applied`
+    /// - clears rule's `parent_id`.
+    /// - deletes it's parent rule
+    /// - TODO: triggers gateway reconfiguration
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::RuleAreadyApplied`
+    pub async fn apply(&mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+        debug!("Changing ACL rule {} state to applied", self.id);
+
+        // Ensure the rule is in a state that can be applied
+        match self.state {
+            RuleState::New | RuleState::Modified | RuleState::Deleted => {
+                debug!("Changing ACL rule {} state to applied", self.id);
+                self.state = RuleState::Applied;
+                let parent_id = self.parent_id;
+                self.parent_id = None;
+                self.save(&mut *transaction).await?;
+
+                // delete parent rule
+                if let Some(parent_id) = parent_id {
+                    query!("DELETE FROM aclrule WHERE id = $1", parent_id)
+                        .execute(&mut *transaction)
+                        .await?;
+                }
+            }
+            RuleState::Applied => {
+                warn!("ACL rule {} already applied", self.id);
+                return Err(AclError::RuleAlreadyAppliedError(self.id));
+            }
+        }
+
+        info!("Changed ACL rule {} state to applied", self.id);
+        Ok(())
+    }
+
     /// Returns all [`WireguardNetwork`]s the rule applies to
     pub(crate) async fn get_networks<'e, E>(
         &self,

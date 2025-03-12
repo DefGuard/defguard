@@ -100,6 +100,11 @@ impl<I> From<AclAliasInfo<I>> for ApiAclAlias<I> {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ApplyAclRulesData {
+    rules: Vec<Id>,
+}
+
 pub async fn list_acl_rules(
     _license: LicenseInfo,
     _admin: AdminRole,
@@ -326,5 +331,29 @@ pub async fn delete_acl_alias(
             err
         })?;
     info!("User {} deleted ACL alias {id}", session.user.username);
+    Ok(ApiResponse::default())
+}
+
+pub async fn apply_acl_rules(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApplyAclRulesData>,
+) -> ApiResult {
+    debug!(
+        "User {} applying ACL rules: {:?}",
+        session.user.username, data.rules
+    );
+    AclRule::apply_all(&appstate.pool, &data.rules)
+        .await
+        .map_err(|err| {
+            error!("Error applying ACL rules {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} applied ACL rules: {:?}",
+        session.user.username, data.rules
+    );
     Ok(ApiResponse::default())
 }
