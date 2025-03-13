@@ -1,4 +1,7 @@
-use common::{client::TestClient, exceed_enterprise_limits, init_config, init_test_db, omit_id};
+use common::{
+    client::TestClient, exceed_enterprise_limits, init_config, init_test_db, initialize_users,
+    omit_id,
+};
 use defguard::{
     config::DefGuardConfig,
     db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
@@ -23,6 +26,7 @@ async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
+    initialize_users(&pool, &config).await;
     let (client, _) = make_base_client(pool, config, listener).await;
     client
 }
@@ -319,10 +323,9 @@ async fn test_nonadmin() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn test_related_objects() {
+#[sqlx::test]
+async fn test_related_objects(pool: PgPool) {
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
@@ -499,10 +502,9 @@ async fn test_invalid_related_objects() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_rule_create_modify_state() {
+#[sqlx::test]
+async fn test_rule_create_modify_state(pool: PgPool) {
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
@@ -549,10 +551,9 @@ async fn test_rule_create_modify_state() {
     assert_eq!(rule_child, rule_modified);
 }
 
-#[tokio::test]
-async fn test_rule_delete_state_new() {
+#[sqlx::test]
+async fn test_rule_delete_state_new(pool: PgPool) {
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
@@ -567,10 +568,9 @@ async fn test_rule_delete_state_new() {
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 0);
 }
 
-#[tokio::test]
-async fn test_rule_delete_state_applied() {
+#[sqlx::test]
+async fn test_rule_delete_state_applied(pool: PgPool) {
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
@@ -599,11 +599,10 @@ async fn test_rule_delete_state_applied() {
     assert_eq!(json!(rule_after_mods), rule_child);
 }
 
-#[tokio::test]
-async fn test_rule_duplication() {
+#[sqlx::test]
+async fn test_rule_duplication(pool: PgPool) {
     // each modification / deletion of parent rule should remove the child and create a new one
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
