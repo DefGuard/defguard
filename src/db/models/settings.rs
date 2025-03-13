@@ -91,7 +91,7 @@ pub struct Settings {
     pub ldap_group_member_attr: Option<String>,
     pub ldap_member_attr: Option<String>,
     pub ldap_use_starttls: bool,
-    pub ldap_tls_cert: Option<String>,
+    pub ldap_tls_verify_cert: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -118,7 +118,7 @@ impl Settings {
             ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", \
             ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, \
             ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, \
-            ldap_group_member_attr, ldap_member_attr, ldap_use_starttls, ldap_tls_cert, \
+            ldap_group_member_attr, ldap_member_attr, ldap_use_starttls, ldap_tls_verify_cert, \
             openid_create_account, license, gateway_disconnect_notifications_enabled, \
             gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled \
@@ -178,7 +178,7 @@ impl Settings {
             ldap_group_member_attr = $30, \
             ldap_member_attr = $31, \
             ldap_use_starttls = $32, \
-            ldap_tls_cert = $33, \
+            ldap_tls_verify_cert = $33, \
             openid_create_account = $34, \
             license = $35, \
             gateway_disconnect_notifications_enabled = $36, \
@@ -217,7 +217,7 @@ impl Settings {
             self.ldap_group_member_attr,
             self.ldap_member_attr,
             self.ldap_use_starttls,
-            self.ldap_tls_cert,
+            self.ldap_tls_verify_cert,
             self.openid_create_account,
             self.license,
             self.gateway_disconnect_notifications_enabled,

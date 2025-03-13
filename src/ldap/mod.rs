@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use ldap3::{drive, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
-use native_tls::{Certificate, TlsConnector};
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -106,18 +105,9 @@ impl LDAPConnection {
         let password = settings
             .ldap_bind_password
             .ok_or(LdapError::MissingSettings)?;
-        let mut conn_settings = LdapConnSettings::new().set_starttls(settings.ldap_use_starttls);
-        if let Some(cert) = settings.ldap_tls_cert {
-            warn!("CERT {cert}");
-            let cert = Certificate::from_pem(cert.as_bytes())
-                .map_err(|_| LdapError::InvalidCertificate)?;
-            warn!("ARSE");
-            let tls = TlsConnector::builder()
-                .add_root_certificate(cert)
-                .build()
-                .map_err(|_| LdapError::MissingSettings)?;
-            conn_settings = conn_settings.set_connector(tls);
-        }
+        let conn_settings = LdapConnSettings::new()
+            .set_starttls(settings.ldap_use_starttls)
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
         drive!(conn);
         info!("Connected to LDAP: {url}");

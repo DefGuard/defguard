@@ -66,7 +66,7 @@ export const LdapSettingsForm = () => {
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
         ldap_use_starttls: z.boolean(),
-        ldap_tls_cert: z.string(),
+        ldap_tls_verify_cert: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -85,7 +85,7 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
       ldap_use_starttls: settings?.ldap_use_starttls ?? false,
-      ldap_tls_cert: settings?.ldap_tls_cert ?? '',
+      ldap_tls_cert: settings?.ldap_tls_verify_cert ?? true,
     }),
     [settings],
   );
@@ -104,7 +104,7 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: '',
       ldap_bind_username: '',
       ldap_use_starttls: false,
-      ldap_tls_cert: '',
+      ldap_tls_cert: true,
     }),
     [],
   );
@@ -200,9 +200,10 @@ export const LdapSettingsForm = () => {
           label={localLL.form.labels.ldap_use_starttls()}
           labelPlacement="right"
         />
-        <FormInput
-          controller={{ control, name: 'ldap_tls_cert' }}
-          label={localLL.form.labels.ldap_tls_cert()}
+        <FormCheckBox
+          controller={{ control, name: 'ldap_tls_verify_cert' }}
+          label={localLL.form.labels.ldap_tls_verify_cert()}
+          labelPlacement="right"
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
       </form>

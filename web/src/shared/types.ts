@@ -913,7 +913,7 @@ export type SettingsLDAP = {
   ldap_user_search_base: string;
   ldap_username_attr: string;
   ldap_use_starttls: boolean;
-  ldap_tls_cert: string;
+  ldap_tls_verify_cert: boolean;
 };
 
 export type SettingsOpenID = {

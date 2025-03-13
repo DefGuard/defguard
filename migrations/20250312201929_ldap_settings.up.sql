@@ -1,2 +1,2 @@
 ALTER TABLE settings ADD ldap_use_starttls BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE settings ADD ldap_tls_cert TEXT;
+ALTER TABLE settings ADD ldap_tls_verify_cert BOOLEAN NOT NULL DEFAULT TRUE;
