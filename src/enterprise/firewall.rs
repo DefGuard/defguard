@@ -559,7 +559,7 @@ impl WireguardNetwork<Id> {
                 ON a.id = an.rule_id \
                 WHERE an.network_id = $1 AND enabled = true \
                 AND state = 'applied'::aclrule_state \
-                AND expires > NOW()",
+                AND (expires IS NULL OR expires > NOW())",
         )
         .bind(self.id)
         .fetch_all(pool)
@@ -641,6 +641,7 @@ impl WireguardNetwork<Id> {
 mod test {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+    use chrono::NaiveDateTime;
     use ipnetwork::Ipv6Network;
     use rand::{thread_rng, Rng};
     use sqlx::{query, PgPool};
@@ -1485,9 +1486,10 @@ mod test {
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
+            acl_enabled: false,
             ..Default::default()
         };
-        let location = location.save(&pool).await.unwrap();
+        let mut location = location.save(&pool).await.unwrap();
 
         // Setup test users and their devices
         let user_1: User<NoId> = rng.gen();
@@ -1629,8 +1631,6 @@ mod test {
             network_device.insert(&pool).await.unwrap();
         }
 
-        // Create aliases
-
         // Create first ACL rule - Web access
         let acl_rule_1 = AclRule {
             id: NoId,
@@ -1719,16 +1719,29 @@ mod test {
 
         let acl_rules = vec![acl_rule_1, acl_rule_2];
 
-        // generate rules for default policy Allow
-        let generated_firewall_rules = generate_firewall_rules_from_acls(
-            location.id,
-            FirewallPolicy::Allow,
-            IpVersion::Ipv4,
-            acl_rules.clone(),
-            &pool,
-        )
-        .await
-        .unwrap();
+        // try to generate firewall config with ACL disabled
+        location.acl_enabled = false;
+        let generated_firewall_config = location.try_get_firewall_config(&pool).await.unwrap();
+        assert!(generated_firewall_config.is_none());
+
+        // generate firewall config with default policy Allow
+        location.acl_enabled = true;
+        location.acl_default_allow = true;
+        let generated_firewall_config = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            generated_firewall_config.default_policy,
+            i32::from(FirewallPolicy::Allow)
+        );
+        assert_eq!(
+            generated_firewall_config.ip_version,
+            i32::from(IpVersion::Ipv4)
+        );
+
+        let generated_firewall_rules = generated_firewall_config.rules;
 
         // For default Allow policy, we should get deny rules for explicitly denied users/devices
         assert_eq!(generated_firewall_rules.len(), 2);
@@ -1905,5 +1918,209 @@ mod test {
                 },
             ]
         );
+    }
+
+    #[sqlx::test]
+    async fn test_expired_acl_rules(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create expired ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were expired
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules not expired
+        acl_rule_1.expires = None;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.expires = Some(NaiveDateTime::MAX);
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_disabled_acl_rules(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create disabled ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were disabled
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules enabled
+        acl_rule_1.enabled = true;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.enabled = true;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_unapplied_acl_rules(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create unapplied ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::New,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Modified,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were not applied
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules applied
+        acl_rule_1.state = RuleState::Applied;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.state = RuleState::Applied;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&pool)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 }
