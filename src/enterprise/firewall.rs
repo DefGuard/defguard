@@ -627,10 +627,13 @@ impl WireguardNetwork<Id> {
             .first()
             .expect("WireguardNetwork must have an address");
 
-        match vpn_subnet {
+        let ip_version = match vpn_subnet {
             IpNetwork::V4(_ipv4_network) => IpVersion::Ipv4,
             IpNetwork::V6(_ipv6_network) => IpVersion::Ipv6,
-        }
+        };
+        debug!("VPN subnet {vpn_subnet:?} for location {self} has IP version {ip_version:?}");
+
+        ip_version
     }
 }
 
