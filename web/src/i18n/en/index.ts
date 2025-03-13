@@ -2124,6 +2124,14 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   acl: {
+    ruleStatus: {
+      new: 'New',
+      applied: 'Applied',
+      modified: 'Pending Change',
+      deleted: 'Pending Deletion',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
     listPage: {},
     createPage: {
       title: 'Access Control List',

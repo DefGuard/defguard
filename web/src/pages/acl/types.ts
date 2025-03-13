@@ -27,3 +27,10 @@ export enum AclProtocol {
   UDP = 17,
   ICMP = 1,
 }
+
+export enum AclStatus {
+  NEW = 'New',
+  APPLIED = 'Applied',
+  MODIFIED = 'Modified',
+  DELETED = 'Deleted',
+}

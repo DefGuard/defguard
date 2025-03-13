@@ -71,6 +71,18 @@
 
         & > .items {
           padding-top: var(--spacing-xs);
+
+          .labeled-checkbox {
+            min-height: 18px;
+            height: unset;
+
+            label {
+              box-sizing: border-box;
+              padding: 5px;
+              @include typography(app-modal-1);
+              color: var(--text-body-primary);
+            }
+          }
         }
       }
     }

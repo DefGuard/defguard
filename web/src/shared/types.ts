@@ -6,6 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+import { AclStatus } from '../pages/acl/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -447,16 +448,21 @@ export type EnterpriseInfoResponse = {
   license_info?: EnterpriseInfo;
 };
 
-export type CreateAclRuleRequest = Omit<AclRuleInfo, 'id' | 'expires'> & {
+export type CreateAclRuleRequest = Omit<
+  AclRuleInfo,
+  'id' | 'expires' | 'state' | 'parent_id'
+> & {
   expires: string | null;
 };
 
-export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires'> & {
+export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires' | 'state' | 'parent_id'> & {
   expires: string | null;
 };
 
 export type AclRuleInfo = {
   id: number;
+  parent_id?: number;
+  state: AclStatus;
   name: string;
   all_networks: boolean;
   allow_all_users: boolean;
@@ -1126,6 +1132,7 @@ export type SMTPError = AxiosError<{ error: string }>;
 export type Group = string;
 
 export type GroupInfo = {
+  id: number;
   name: string;
   members: string[];
   vpn_locations: string[];

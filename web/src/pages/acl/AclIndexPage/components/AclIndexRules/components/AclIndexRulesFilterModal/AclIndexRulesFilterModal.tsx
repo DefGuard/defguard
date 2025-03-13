@@ -23,11 +23,18 @@ type ExternalStore = Record<string, Array<number>>;
 type Props = {
   isOpen: boolean;
   data: Record<string, FilterDialogFilter>;
+  currentState: ExternalStore;
   onCancel: () => void;
   onSubmit: (data: ExternalStore) => void;
 };
 
-export const AclIndexRulesFilterModal = ({ data, isOpen, onCancel, onSubmit }: Props) => {
+export const AclIndexRulesFilterModal = ({
+  data,
+  isOpen,
+  onCancel,
+  onSubmit,
+  currentState,
+}: Props) => {
   return (
     <Modal
       id="acl-rules-index-filter-modal"
@@ -35,27 +42,33 @@ export const AclIndexRulesFilterModal = ({ data, isOpen, onCancel, onSubmit }: P
       isOpen={isOpen}
       onClose={onCancel}
     >
-      <DialogContent data={data} onCancel={onCancel} onSubmit={onSubmit} />
+      <DialogContent
+        data={data}
+        externalState={currentState}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+      />
     </Modal>
   );
 };
 
 type ContentProps = Pick<Props, 'onCancel' | 'onSubmit'> & {
   data: Props['data'];
+  externalState: Props['currentState'];
 };
 
-const DialogContent = ({ onCancel, onSubmit, data }: ContentProps) => {
+const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps) => {
   const initialStoreState = useMemo(() => {
     const res: InternalStore = {};
     Object.entries(data).forEach(([key, value]) => {
       const items: Record<number, boolean> = {};
       value.items.forEach((item) => {
-        items[item.value] = false;
+        items[item.value] = externalState[key]?.includes(item.value) ?? false;
       });
       res[key] = items;
     });
     return res;
-  }, [data]);
+  }, [data, externalState]);
 
   const [searchValue, setSearch] = useState('');
   const [selected, setSelected] = useState(initialStoreState);

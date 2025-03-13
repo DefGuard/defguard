@@ -1,8 +1,8 @@
 import './style.scss';
 
-import { useQuery } from '@tanstack/react-query';
-import { concat, orderBy } from 'lodash-es';
-import { PropsWithChildren, ReactNode, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { concat, flatten, intersection, orderBy } from 'lodash-es';
+import { PropsWithChildren, ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
@@ -21,7 +21,9 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../shared/queries';
 import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
+import { AclStatus } from '../../../types';
 import { AclIndexRulesFilterModal } from './components/AclIndexRulesFilterModal/AclIndexRulesFilterModal';
+import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 import { FilterDialogFilter } from './types';
 
 type ListTagDisplay = {
@@ -71,8 +73,17 @@ export const AclIndexRules = () => {
 
   const pending = useMemo(() => {
     if (aclContext && aclRules) {
-      const pending = aclRules;
-      const listData: ListData[] = pending.map((rule) => {
+      let pendingRules = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED);
+      if (appliedFilters.networks.length > 0) {
+        pendingRules = pendingRules.filter((rule) => {
+          return (
+            intersection(rule.networks, appliedFilters.networks).length > 0 ||
+            rule.all_networks
+          );
+        });
+      }
+
+      const listData: ListData[] = pendingRules.map((rule) => {
         let allowed: ListTagDisplay[];
         let denied: ListTagDisplay[];
         let networks: ListTagDisplay[];
@@ -146,7 +157,7 @@ export const AclIndexRules = () => {
       return listData;
     }
     return [];
-  }, [aclContext, aclRules]);
+  }, [aclContext, aclRules, appliedFilters.networks]);
 
   const filters = useMemo(() => {
     const res: Record<string, FilterDialogFilter> = {};
@@ -161,10 +172,12 @@ export const AclIndexRules = () => {
     return res;
   }, [aclContext.networks]);
 
-  useEffect(() => {
-    console.log({
-      appliedFilters,
-    });
+  const filtersCount = useMemo(() => {
+    const values = flatten(Object.values(appliedFilters));
+    if (values.length) {
+      return ` (${values.length})`;
+    }
+    return '';
   }, [appliedFilters]);
 
   return (
@@ -175,7 +188,7 @@ export const AclIndexRules = () => {
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.LINK}
-            text="Filter"
+            text={`Filters${filtersCount}`}
             onClick={() => {
               setFiltersOpen(true);
             }}
@@ -199,6 +212,7 @@ export const AclIndexRules = () => {
         />
       )}
       <AclIndexRulesFilterModal
+        currentState={appliedFilters}
         data={filters}
         isOpen={filtersOpen}
         onCancel={() => {
@@ -206,6 +220,7 @@ export const AclIndexRules = () => {
         }}
         onSubmit={(vals) => {
           setAppliedFilters(vals as RulesFilters);
+          setFiltersOpen(false);
         }}
       />
     </div>
@@ -252,11 +267,6 @@ const RulesList = ({ data, header }: RulesListProps) => {
         enabled: true,
       },
       {
-        label: 'Destination',
-        key: 'destination',
-        enabled: false,
-      },
-      {
         label: 'Allowed',
         key: 'allowed',
         enabled: false,
@@ -288,38 +298,39 @@ const RulesList = ({ data, header }: RulesListProps) => {
   return (
     <div className="rules-list">
       <DividerHeader text={header.text}>{header.extras}</DividerHeader>
-      <ListHeader<AclRuleInfo>
-        headers={listHeaders}
-        sortDirection={sortDir}
-        activeKey={sortKey}
-        onChange={(key, dir) => {
-          setSortKey(key);
-          setSortDir(dir);
-        }}
-      />
-      <ul>
-        {sortedRules.map((rule) => (
-          <li key={rule.id} className="rule-row">
-            <div className="cell name">{rule.name}</div>
-            <div className="cell destination">
-              <RenderTagDisplay data={rule.context.destination} />
-            </div>
-            <div className="cell allowed">
-              <RenderTagDisplay data={rule.context.allowed} />
-            </div>
-            <div className="cell denied">
-              <RenderTagDisplay data={rule.context.denied} />
-            </div>
-            <div className="cell locations">
-              <RenderTagDisplay data={rule.context.networks} />
-            </div>
-            <div className="cell status"></div>
-            <div className="cell edit">
-              <RuleEditButton rule={rule} />
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="list-container">
+        <ListHeader<AclRuleInfo>
+          headers={listHeaders}
+          sortDirection={sortDir}
+          activeKey={sortKey}
+          onChange={(key, dir) => {
+            setSortKey(key);
+            setSortDir(dir);
+          }}
+        />
+        <ul>
+          {sortedRules.map((rule) => (
+            <li key={rule.id} className="rule-row">
+              <div className="cell name">{rule.name}</div>
+              <div className="cell allowed">
+                <RenderTagDisplay data={rule.context.allowed} />
+              </div>
+              <div className="cell denied">
+                <RenderTagDisplay data={rule.context.denied} />
+              </div>
+              <div className="cell locations">
+                <RenderTagDisplay data={rule.context.networks} />
+              </div>
+              <div className="cell status">
+                <AclRuleStatus enabled={rule.enabled} status={rule.state} />
+              </div>
+              <div className="cell edit">
+                <RuleEditButton rule={rule} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
@@ -346,6 +357,23 @@ type EditProps = {
 };
 
 const RuleEditButton = ({ rule }: EditProps) => {
+  const queryClient = useQueryClient();
+
+  const {
+    acl: {
+      rules: { deleteRule },
+    },
+  } = useApi();
+
+  const { mutate: deleteRuleMutation } = useMutation({
+    mutationFn: deleteRule,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_ACL_RULES],
+      });
+    },
+  });
+
   const navigate = useNavigate();
   return (
     <EditButton>
@@ -358,6 +386,9 @@ const RuleEditButton = ({ rule }: EditProps) => {
       <EditButtonOption
         text="Delete"
         styleVariant={EditButtonOptionStyleVariant.WARNING}
+        onClick={() => {
+          deleteRuleMutation(rule.id);
+        }}
       />
     </EditButton>
   );

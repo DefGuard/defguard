@@ -4978,6 +4978,32 @@ type RootTranslation = {
 		}
 	}
 	acl: {
+		ruleStatus: {
+			/**
+			 * N​e​w
+			 */
+			'new': string
+			/**
+			 * A​p​p​l​i​e​d
+			 */
+			applied: string
+			/**
+			 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+			 */
+			modified: string
+			/**
+			 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
+			 */
+			deleted: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+		}
 		listPage: {
 		}
 		createPage: {
@@ -9921,6 +9947,32 @@ export type TranslationFunctions = {
 		}
 	}
 	acl: {
+		ruleStatus: {
+			/**
+			 * New
+			 */
+			'new': () => LocalizedString
+			/**
+			 * Applied
+			 */
+			applied: () => LocalizedString
+			/**
+			 * Pending Change
+			 */
+			modified: () => LocalizedString
+			/**
+			 * Pending Deletion
+			 */
+			deleted: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+		}
 		listPage: {
 		}
 		createPage: {

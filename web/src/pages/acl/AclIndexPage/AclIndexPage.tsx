@@ -20,7 +20,7 @@ export const AclIndexPage = () => {
       key: AclTab.ALIASES,
       active: activeTab === AclTab.ALIASES,
       content: <p>Aliases</p>,
-      onClick: () => setActiveTab(AclTab.ALIASES),
+      onClick: () => setActiveTab(AclTab.RULES),
     },
     {
       key: AclTab.RULES,
