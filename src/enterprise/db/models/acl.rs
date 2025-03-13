@@ -7,7 +7,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection, PgExecutor, PgPool,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection,
+    PgExecutor, PgPool,
 };
 use std::{
     collections::HashSet,
@@ -29,6 +30,8 @@ pub enum AclError {
     AddrParseError(#[from] std::net::AddrParseError),
     #[error(transparent)]
     DbError(#[from] SqlxError),
+    #[error("InvalidRelationError: {0}")]
+    InvalidRelationError(String),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -317,6 +320,18 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     Ok(result)
 }
 
+/// Maps [`sqlx::Error`] to [`AclError`] while checking for [`ErrorKind::ForeignKeyViolation`].
+fn map_relation_error(err: SqlxError, class: &str, id: &Id) -> AclError {
+    if let SqlxError::Database(dberror) = &err {
+        if dberror.kind() == ErrorKind::ForeignKeyViolation {
+            error!("Failed to create ACL related object, foreign key violation: {class}({id}): {dberror}");
+            return AclError::InvalidRelationError(format!("{class}({id})"));
+        }
+    }
+    error!("Failed to create ACL related object: {err}");
+    AclError::DbError(err)
+}
+
 impl<I: std::fmt::Debug> AclRule<I> {
     /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
     async fn create_related_objects(
@@ -332,7 +347,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 network_id: *network_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "WireguardNetwork", network_id))?;
         }
 
         // allowed users
@@ -343,7 +360,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // denied users
@@ -354,7 +373,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 user_id: *user_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "User", user_id))?;
         }
 
         // allowed groups
@@ -365,7 +386,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // denied groups
@@ -376,7 +399,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 group_id: *group_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Group", group_id))?;
         }
 
         // save related aliases
@@ -386,7 +411,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 alias_id: *alias_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "AclAlias", alias_id))?;
         }
 
         // allowed devices
@@ -397,7 +424,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // denied devices
@@ -408,7 +437,9 @@ impl<I: std::fmt::Debug> AclRule<I> {
                 rule_id,
                 device_id: *device_id,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|err| map_relation_error(err, "Device", device_id))?;
         }
 
         // destination
@@ -1380,7 +1411,7 @@ mod test {
         let info = rule.to_info(&pool).await.unwrap();
 
         assert_eq!(info.aliases.len(), 1);
-        assert_eq!(info.aliases[0].id, alias1.id); // db modifies datetime precision
+        assert_eq!(info.aliases[0], alias1);
 
         assert_eq!(info.allowed_users.len(), 1);
         assert_eq!(info.allowed_users[0], user1);
@@ -1430,7 +1461,12 @@ mod test {
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
-        // TODO: what if both `allow_all_users` and `deny_all_users` are true?
+        // favor `deny_all_users` if both flags are set
+        rule.allow_all_users = true;
+        rule.deny_all_users = true;
+        rule.save(&pool).await.unwrap();
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // deactivate user1
         user1.is_active = false;
