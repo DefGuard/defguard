@@ -593,8 +593,10 @@ impl WireguardNetwork<Id> {
         // determine IP version based on location subnet
         let ip_version = self.get_ip_version();
 
-        // FIXME: add default policy to location model
-        let default_policy = FirewallPolicy::Deny;
+        let default_policy = match self.acl_default_allow {
+            true => FirewallPolicy::Allow,
+            false => FirewallPolicy::Deny,
+        };
         let firewall_rules = generate_firewall_rules_from_acls(
             self.id,
             default_policy,
