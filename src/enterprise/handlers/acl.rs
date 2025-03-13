@@ -345,7 +345,7 @@ pub async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_all(&appstate.pool, &data.rules)
+    AclRule::apply_rules(&appstate.pool, &data.rules)
         .await
         .map_err(|err| {
             error!("Error applying ACL rules {data:?}: {err}");

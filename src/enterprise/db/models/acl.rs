@@ -396,7 +396,7 @@ impl AclRule {
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_all(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
+    pub async fn apply_rules(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = pool.begin().await?;
         for id in rules {
