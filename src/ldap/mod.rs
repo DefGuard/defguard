@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -106,7 +106,10 @@ impl LDAPConnection {
         let password = settings
             .ldap_bind_password
             .ok_or(LdapError::MissingSettings)?;
-        let (conn, mut ldap) = LdapConnAsync::new(&url).await?;
+        let conn_settings = LdapConnSettings::new()
+            .set_starttls(settings.ldap_use_starttls)
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
+        let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
         drive!(conn);
         info!("Connected to LDAP: {url}");
         ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
@@ -134,7 +137,11 @@ impl LDAPConnection {
     }
 
     async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
-        let (conn, mut ldap) = LdapConnAsync::new(&self.url).await?;
+        let settings = Settings::get_current_settings();
+        let conn_settings = LdapConnSettings::new()
+            .set_starttls(settings.ldap_use_starttls)
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
+        let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &self.url).await?;
         drive!(conn);
         ldap.simple_bind(dn, password).await?.success()?;
         ldap.unbind().await?;

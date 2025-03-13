@@ -11,4 +11,8 @@
       gap: 10px;
     }
   }
+
+  & > #ldap-settings-form > .form-checkbox {
+    margin-bottom: 10px;
+  }
 }
