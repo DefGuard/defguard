@@ -2700,6 +2700,14 @@ type RootTranslation = {
 					 */
 					ldap_group_obj_class: string
 					/**
+					 * U​s​e​ ​S​t​a​r​t​T​L​S
+					 */
+					ldap_use_starttls: string
+					/**
+					 * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
+					 */
+					ldap_tls_verify_cert: string
+					/**
 					 * S​a​m​b​a​ ​s​u​p​p​o​r​t​ ​e​n​a​b​l​e​d
 					 */
 					ldap_samba_enabled: string
@@ -7624,6 +7632,14 @@ export type TranslationFunctions = {
 					 * Group Object Class
 					 */
 					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * Use StartTLS
+					 */
+					ldap_use_starttls: () => LocalizedString
+					/**
+					 * Verify TLS certificate
+					 */
+					ldap_tls_verify_cert: () => LocalizedString
 					/**
 					 * Samba support enabled
 					 */
