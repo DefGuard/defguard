@@ -7,13 +7,13 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, PgConnection,
-    PgExecutor, PgPool,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
+    PgConnection, PgExecutor, PgPool, Type,
 };
 use std::{
     collections::HashSet,
     fmt,
-    net::IpAddr,
+    net::{IpAddr, Ipv4Addr},
     ops::{Bound, Range},
 };
 use thiserror::Error;
@@ -32,6 +32,8 @@ pub enum AclError {
     DbError(#[from] SqlxError),
     #[error("InvalidRelationError: {0}")]
     InvalidRelationError(String),
+    #[error("RuleNotFoundError: {0}")]
+    RuleNotFoundError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -55,20 +57,16 @@ impl fmt::Display for PortRange {
 
 impl PortRange {
     pub fn new(start: i32, end: i32) -> Self {
-        Self(Range {
-            start,
-            // end is exclusive in `Range`
-            end: end + 1,
-        })
+        Self(start..(end + 1))
     }
 
     // Returns first port in range
-    pub fn start(&self) -> i32 {
+    pub fn first_port(&self) -> i32 {
         self.0.start
     }
 
     // Returns last port in range
-    pub fn end(&self) -> i32 {
+    pub fn last_port(&self) -> i32 {
         self.0.end - 1
     }
 }
@@ -87,7 +85,7 @@ impl From<PgRange<i32>> for PortRange {
             // should not happen - database constraint
             Bound::Unbounded => panic!("Unbounded port range"),
         };
-        Self(Range { start, end })
+        Self(start..end)
     }
 }
 
@@ -100,11 +98,32 @@ impl From<PortRange> for PgRange<i32> {
     }
 }
 
+/// ACL rule can be in one of the following states:
+/// - New: the rule has been created and not yet applied
+/// - Modified: the rule has been modified and not yet applied
+/// - Deleted: the rule has been marked for deletion but not yed removed
+/// - Applied: the rule was applied
+///
+/// Applied state does NOT guarantee that all locations have received the rule
+/// and performed appropriate operations, only that the next time configuration
+/// is being sent it will include this rule.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
+pub enum RuleState {
+    #[default]
+    New,
+    Modified,
+    Deleted,
+    Applied,
+}
+
 /// Helper struct combining all DB objects related to given [`AclRule`].
 /// All related objects are stored in vectors.
 #[derive(Clone, Debug)]
 pub struct AclRuleInfo<I = NoId> {
     pub id: I,
+    pub parent_id: Option<Id>,
+    pub state: RuleState,
     pub name: String,
     pub all_networks: bool,
     pub networks: Vec<WireguardNetwork<Id>>,
@@ -180,9 +199,13 @@ impl<I> AclRuleInfo<I> {
 /// Those objects have their dedicated tables and structures so we provide
 /// [`AclRuleInfo`] and [`ApiAclRule`] structs that implement appropriate methods
 /// to combine all the related objects for easier downstream processing.
-#[derive(Clone, Debug, Model, PartialEq)]
+#[derive(Clone, Debug, Model, PartialEq, Eq, FromRow)]
 pub struct AclRule<I = NoId> {
     pub id: I,
+    // if present points to the original rule before modification / deletion
+    pub parent_id: Option<Id>,
+    #[model(enum)]
+    pub state: RuleState,
     pub name: String,
     pub allow_all_users: bool,
     pub deny_all_users: bool,
@@ -206,52 +229,163 @@ impl AclRule {
         let mut transaction = pool.begin().await?;
 
         // save the rule
-        let rule: AclRule<NoId> = api_rule.clone().try_into()?;
+        let rule: AclRule = api_rule.clone().try_into()?;
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
         Self::create_related_objects(&mut transaction, rule.id, api_rule).await?;
 
         transaction.commit().await?;
-        Ok(rule.to_info(pool).await?.into())
+        let result: ApiAclRule<Id> = rule.to_info(pool).await?.into();
+        Ok(result)
     }
 
     /// Updates [`AclRule`] with all it's related objects based on [`ApiAclRule`]
+    ///
+    /// State handling:
+    ///
+    /// - For rules in `RuleState::Applied` state (rules that are currently active):
+    ///   1. Any existing modifications of this rule are deleted
+    ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
+    /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
+    ///   since they haven't been applied.
+    ///
+    /// This approach allows us to track changes to applied rules while maintaining their history.
+    ///
+    /// Applied state does NOT guarantee that all locations have received the rule
+    /// and performed appropriate operations, only that the next time configuration
+    /// is being sent it will include this rule.
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
         api_rule: &ApiAclRule<Id>,
     ) -> Result<ApiAclRule<Id>, AclError> {
+        debug!("Updating rule {api_rule:?}");
         let mut transaction = pool.begin().await?;
 
-        // save the rule
+        // find the existing rule
+        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Update of nonexistent rule ({id}) failed");
+                AclError::RuleNotFoundError(id)
+            })?;
+
+        // convert API rule to model
         let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
-        rule.id = id; // frontend may PUT an object with incorrect id
-        rule.save(&mut *transaction).await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, rule.id).await?;
+        // perform appropriate updates depending on existing rule's state
+        match existing_rule.state {
+            RuleState::Applied => {
+                // create new `RuleState::Modified` rule
+                debug!(
+                    "Rule {} state is `Applied` - creating new `Modified` rule object",
+                    id,
+                );
+                // remove old modifications of this rule
+                let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                    .await?;
+                debug!(
+                    "Removed {} old modifications of rule {id}",
+                    result.rows_affected(),
+                );
 
-        // create related objects
-        AclRule::<Id>::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+                // save as a new rule with appropriate parent_id and state
+                let mut rule = rule.as_noid();
+                rule.state = RuleState::Modified;
+                rule.parent_id = Some(id);
+                let rule = rule.save(&mut *transaction).await?;
+
+                // create related objects
+                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+            }
+            _ => {
+                debug!(
+                    "Rule {} is a modification to rule {:?} - updating the modification",
+                    id, rule.parent_id,
+                );
+                // update the not-yet applied modification itself
+                rule.id = id; // frontend may PUT an object with incorrect id
+                rule.save(&mut *transaction).await?;
+
+                // recreate related objects
+                Self::delete_related_objects(&mut transaction, rule.id).await?;
+                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+            }
+        };
 
         transaction.commit().await?;
-        Ok(rule.to_info(pool).await?.into())
+        info!("Successfully updatied rule {api_rule:?}");
+        Ok(api_rule.clone())
     }
 
-    /// Deletes [`AclRule`] with all it's related objects
-    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), SqlxError> {
+    /// Deletes [`AclRule`] with all it's related objects.
+    ///
+    /// State handling:
+    ///
+    /// - For rules in `RuleState::Applied` state (rules that are currently active):
+    ///   1. Any existing modifications of this rule are deleted
+    ///   2. A copy of the rule is created with `RuleState::Deleted` state and the original rule as parent
+    ///
+    /// This preserves the original rule while tracking the deletion.
+    ///
+    /// - For rules in other states (`New`, `Modified` or `Deleted`):
+    ///   1. All related objects are deleted
+    ///   2. The rule itself is deleted from the database
+    ///
+    /// Since these rules were not yet applied, we can safely remove them.
+    pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
+        debug!("Deleting rule {id}");
         let mut transaction = pool.begin().await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, id).await?;
+        // find the existing rule
+        let existing_rule = AclRule::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Deletion of nonexistent rule ({id}) failed");
+                AclError::RuleNotFoundError(id)
+            })?;
 
-        // delete the rule
-        query!("DELETE FROM aclrule WHERE id = $1", id)
-            .execute(&mut *transaction)
-            .await?;
+        // perform appropriate modifications depending on existing rule's state
+        match existing_rule.state {
+            RuleState::Applied => {
+                // create new `RuleState::Modified` rule
+                debug!(
+                    "Rule {} state is `Applied` - creating new `Deleted` rule object",
+                    id,
+                );
+                // delete all modifications of this rule
+                let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                    .await?;
+                debug!(
+                    "Removed {} old modifications of rule {id}",
+                    result.rows_affected(),
+                );
+
+                // save as a new rule with appropriate parent_id and state
+                let mut rule = existing_rule.as_noid();
+                rule.state = RuleState::Deleted;
+                rule.parent_id = Some(id);
+                rule.save(&mut *transaction).await?;
+            }
+            _ => {
+                // delete the not-yet applied modification itself
+                debug!(
+                    "Rule {} is a modification to rule {:?} - updating the modification",
+                    id, existing_rule.parent_id,
+                );
+                // delete related objects
+                Self::delete_related_objects(&mut transaction, id).await?;
+
+                // delete the rule
+                existing_rule.delete(&mut *transaction).await?;
+            }
+        };
 
         transaction.commit().await?;
+        info!("Rule {id} succesfully deleted or marked for deletion");
         Ok(())
     }
 }
@@ -280,7 +414,7 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
                 .push((l[0].parse::<IpAddr>()?, l[1].parse::<IpAddr>()?)),
             _ => {
                 error!("Failed to parse destination string: \"{destination}\"");
-                return Err(IpNetworkError::InvalidAddr(destination))?;
+                Err(IpNetworkError::InvalidAddr(destination.clone()))?;
             }
         };
     }
@@ -341,6 +475,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL rule {api_rule:?}");
         // save related networks
+        debug!("Creating related networks for ACL rule {rule_id}");
         for network_id in &api_rule.networks {
             let obj = AclRuleNetwork {
                 id: NoId,
@@ -353,6 +488,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed users
+        debug!("Creating related allowed users for ACL rule {rule_id}");
         for user_id in &api_rule.allowed_users {
             let obj = AclRuleUser {
                 id: NoId,
@@ -366,6 +502,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied users
+        debug!("Creating related denied users for ACL rule {rule_id}");
         for user_id in &api_rule.denied_users {
             let obj = AclRuleUser {
                 id: NoId,
@@ -379,6 +516,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed groups
+        debug!("Creating related allowed groups for ACL rule {rule_id}");
         for group_id in &api_rule.allowed_groups {
             let obj = AclRuleGroup {
                 id: NoId,
@@ -392,6 +530,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied groups
+        debug!("Creating related denied groups for ACL rule {rule_id}");
         for group_id in &api_rule.denied_groups {
             let obj = AclRuleGroup {
                 id: NoId,
@@ -405,6 +544,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // save related aliases
+        debug!("Creating related aliases for ACL rule {rule_id}");
         for alias_id in &api_rule.aliases {
             let obj = AclRuleAlias {
                 id: NoId,
@@ -417,6 +557,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // allowed devices
+        debug!("Creating related allowed devices for ACL rule {rule_id}");
         for device_id in &api_rule.allowed_devices {
             let obj = AclRuleDevice {
                 id: NoId,
@@ -430,6 +571,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
         }
 
         // denied devices
+        debug!("Creating related denied devices for ACL rule {rule_id}");
         for device_id in &api_rule.denied_devices {
             let obj = AclRuleDevice {
                 id: NoId,
@@ -444,6 +586,7 @@ impl<I: std::fmt::Debug> AclRule<I> {
 
         // destination
         let destination = parse_destination(&api_rule.destination)?;
+        debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
             let obj = AclRuleDestinationRange {
                 id: NoId,
@@ -465,37 +608,61 @@ impl<I: std::fmt::Debug> AclRule<I> {
     ) -> Result<(), SqlxError> {
         debug!("Deleting related objects for ACL rule {rule_id}");
         // networks
-        query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulenetwork records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // users
-        query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclruleuser WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclruleuser records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // groups
-        query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulegroup WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulegroup records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // aliases
-        query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclrulealias WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclrulealias records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // devices
-        query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
+        let result = query!("DELETE FROM aclruledevice WHERE rule_id = $1", rule_id)
             .execute(&mut *transaction)
             .await?;
+        debug!(
+            "Deleted {} aclruledevice records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         // destination ranges
-        query!(
+        let result = query!(
             "DELETE FROM aclruledestinationrange WHERE rule_id = $1",
             rule_id
         )
         .execute(&mut *transaction)
         .await?;
+        debug!(
+            "Deleted {} aclruledestinationrange records related to rule {rule_id}",
+            result.rows_affected()
+        );
 
         info!("Deleted related objects for ACL rule {rule_id}");
         Ok(())
@@ -512,6 +679,8 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
                 .map(Into::into)
                 .collect(),
             id: rule.id,
+            parent_id: rule.parent_id,
+            state: rule.state,
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
@@ -595,9 +764,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_users {
-            Ok(Vec::new())
-        } else if self.allow_all_users {
+        if self.allow_all_users {
             query_as!(
                 User,
                 "SELECT id, username, password_hash, last_name, first_name, email, \
@@ -649,8 +816,6 @@ impl AclRule<Id> {
             )
             .fetch_all(executor)
             .await
-        } else if self.allow_all_users {
-            Ok(Vec::new())
         } else {
             query_as!(
                 User,
@@ -755,6 +920,8 @@ impl AclRule<Id> {
 
         Ok(AclRuleInfo {
             id: self.id,
+            parent_id: self.parent_id,
+            state: self.state.clone(),
             name: self.name.clone(),
             allow_all_users: self.allow_all_users,
             deny_all_users: self.deny_all_users,
@@ -968,7 +1135,8 @@ impl AclAlias {
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        Ok(alias.to_info(pool).await?.into())
+        let result: ApiAclAlias<Id> = alias.to_info(pool).await?.into();
+        Ok(result)
     }
 
     /// Updates [`AclAlias`] with all it's related objects based on [`AclAliasInfo`]
@@ -1042,12 +1210,16 @@ impl<I: std::fmt::Debug> AclAlias<I> {
     ) -> Result<(), AclError> {
         debug!("Deleting related objects for ACL alias {alias_id}");
         // destination ranges
-        query!(
+        let result = query!(
             "DELETE FROM aclaliasdestinationrange WHERE alias_id = $1",
             alias_id
         )
         .execute(&mut *transaction)
         .await?;
+        debug!(
+            "Deleted {} aclaliasdestinationrange records related to alias {alias_id}",
+            result.rows_affected()
+        );
 
         info!("Deleted related objects for ACL alias {alias_id}");
         Ok(())
@@ -1131,9 +1303,20 @@ pub struct AclRuleDevice<I = NoId> {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclRuleDestinationRange<I = NoId> {
     pub id: I,
-    pub rule_id: i64,
+    pub rule_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
+}
+
+impl Default for AclRuleDestinationRange<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            rule_id: Id::default(),
+            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        }
+    }
 }
 
 impl AclRuleDestinationRange<NoId> {
@@ -1159,9 +1342,20 @@ impl AclRuleDestinationRange<NoId> {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AclAliasDestinationRange<I = NoId> {
     pub id: I,
-    pub alias_id: i64,
+    pub alias_id: Id,
     pub start: IpAddr,
     pub end: IpAddr,
+}
+
+impl Default for AclAliasDestinationRange<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            alias_id: Id::default(),
+            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+        }
+    }
 }
 
 impl AclAliasDestinationRange<NoId> {
@@ -1186,6 +1380,7 @@ impl AclAliasDestinationRange<NoId> {
 
 #[cfg(test)]
 mod test {
+    use rand::{thread_rng, Rng};
 
     use super::*;
     use crate::handlers::wireguard::parse_address_list;
@@ -1223,6 +1418,8 @@ mod test {
         // create the rule
         let mut rule = AclRule {
             id: NoId,
+            parent_id: Default::default(),
+            state: Default::default(),
             name: "rule".to_string(),
             enabled: true,
             allow_all_users: false,
@@ -1452,20 +1649,20 @@ mod test {
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test `deny_all_users` flag
         rule.allow_all_users = false;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
-        // favor `deny_all_users` if both flags are set
+        // test both flags
         rule.allow_all_users = true;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 0);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
 
         // deactivate user1
@@ -1481,7 +1678,7 @@ mod test {
         let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
         assert_eq!(allowed_users[0], user2);
-        assert_eq!(denied_users.len(), 0);
+        assert_eq!(denied_users.len(), 1);
 
         // ensure only active users are allowed when `allow_all_users = false`
         rule.allow_all_users = false;
@@ -1502,7 +1699,7 @@ mod test {
 
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
-        assert_eq!(allowed_users.len(), 0);
+        assert_eq!(allowed_users.len(), 1);
         assert_eq!(denied_users.len(), 1);
         assert_eq!(denied_users[0], user2);
 
@@ -1519,13 +1716,233 @@ mod test {
         assert_eq!(denied_users[0], user2);
     }
 
-    // #[sqlx::test]
-    // async fn test_all_allowed_users(pool: PgPool) {
-    //     unimplemented!()
-    // }
+    #[sqlx::test]
+    async fn test_all_allowed_users(pool: PgPool) {
+        let mut rng = thread_rng();
 
-    // #[sqlx::test]
-    // async fn test_all_denied_users(pool: PgPool) {
-    //     unimplemented!()
-    // }
+        // Create test users
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+        let user_3: User<NoId> = rng.gen();
+        let user_3 = user_3.save(&pool).await.unwrap();
+        // inactive user
+        let mut user_4: User<NoId> = rng.gen();
+        user_4.is_active = false;
+        let user_4 = user_4.save(&pool).await.unwrap();
+
+        // Create test groups
+        let group_1 = Group {
+            id: NoId,
+            name: "group_1".into(),
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let group_2 = Group {
+            id: NoId,
+            name: "group_2".into(),
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Assign users to groups:
+        // Group 1: users 1,2
+        // Group 2: user 3,4
+        let group_assignments = vec![
+            (&group_1, vec![&user_1, &user_2]),
+            (&group_2, vec![&user_3, &user_4]),
+        ];
+
+        for (group, users) in group_assignments {
+            for user in users {
+                query!(
+                    "INSERT INTO group_user (user_id, group_id) VALUES ($1, $2)",
+                    user.id,
+                    group.id
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
+            }
+        }
+
+        // Create ACL rule
+        let rule = AclRule {
+            id: NoId,
+            name: "test_rule".to_string(),
+            allow_all_users: false,
+            deny_all_users: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            expires: None,
+            enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Allow user_1 explicitly and group_2
+        AclRuleUser {
+            id: NoId,
+            rule_id: rule.id,
+            user_id: user_1.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        AclRuleGroup {
+            id: NoId,
+            rule_id: rule.id,
+            group_id: group_2.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Get rule info
+        let rule_info = rule.to_info(&pool).await.unwrap();
+        assert_eq!(rule_info.allowed_users.len(), 1);
+        assert_eq!(rule_info.allowed_groups.len(), 1);
+
+        // Get all allowed users
+        let allowed_users = rule_info.get_all_allowed_users(&pool).await.unwrap();
+
+        // Should contain user1 (explicit) and user3 (from group2), but not inactive user_4
+        assert_eq!(allowed_users.len(), 2);
+        assert!(allowed_users.iter().any(|u| u.id == user_1.id));
+        assert!(allowed_users.iter().any(|u| u.id == user_3.id));
+        assert!(!allowed_users.iter().any(|u| u.id == user_4.id));
+    }
+
+    #[sqlx::test]
+    async fn test_all_denied_users(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test users
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+        let user_3: User<NoId> = rng.gen();
+        let user_3 = user_3.save(&pool).await.unwrap();
+        // inactive user
+        let mut user_4: User<NoId> = rng.gen();
+        user_4.is_active = false;
+        let user_4 = user_4.save(&pool).await.unwrap();
+
+        // Create test groups
+        let group_1 = Group {
+            id: NoId,
+            name: "group_1".into(),
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let group_2 = Group {
+            id: NoId,
+            name: "group_2".into(),
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Assign users to groups:
+        // Group 1: users 2,3,4
+        // Group 2: user 1
+        let group_assignments = vec![
+            (&group_1, vec![&user_2, &user_3, &user_4]),
+            (&group_2, vec![&user_1]),
+        ];
+
+        for (group, users) in group_assignments {
+            for user in users {
+                query!(
+                    "INSERT INTO group_user (user_id, group_id) VALUES ($1, $2)",
+                    user.id,
+                    group.id
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
+            }
+        }
+
+        // Create ACL rule
+        let rule = AclRule {
+            id: NoId,
+            name: "test_rule".to_string(),
+            allow_all_users: false,
+            deny_all_users: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            expires: None,
+            enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Deny user_1, user_3 explicitly and group_1
+        AclRuleUser {
+            id: NoId,
+            rule_id: rule.id,
+            user_id: user_1.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        AclRuleUser {
+            id: NoId,
+            rule_id: rule.id,
+            user_id: user_3.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        AclRuleGroup {
+            id: NoId,
+            rule_id: rule.id,
+            group_id: group_1.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Get rule info
+        let rule_info = rule.to_info(&pool).await.unwrap();
+        assert_eq!(rule_info.denied_users.len(), 2);
+        assert_eq!(rule_info.denied_groups.len(), 1);
+
+        // Get all denied users
+        let denied_users = rule_info.get_all_denied_users(&pool).await.unwrap();
+
+        // Should contain user_1 (explicit), user_2 and user_3 (from group_1), but not inactive user_4
+        assert_eq!(denied_users.len(), 3);
+        assert!(denied_users.iter().any(|u| u.id == user_1.id));
+        assert!(denied_users.iter().any(|u| u.id == user_2.id));
+        assert!(denied_users.iter().any(|u| u.id == user_3.id));
+        assert!(!denied_users.iter().any(|u| u.id == user_4.id));
+    }
 }

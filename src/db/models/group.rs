@@ -26,6 +26,17 @@ pub struct Group<I = NoId> {
     pub is_admin: bool,
 }
 
+#[cfg(test)]
+impl Default for Group {
+    fn default() -> Self {
+        Self {
+            id: NoId,
+            name: Default::default(),
+            is_admin: Default::default(),
+        }
+    }
+}
+
 impl Group {
     #[must_use]
     pub fn new<S: Into<String>>(name: S) -> Self {

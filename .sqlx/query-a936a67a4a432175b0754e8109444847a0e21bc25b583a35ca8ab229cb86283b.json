@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM aclrule WHERE id = $1",
+  "query": "DELETE FROM aclrule WHERE parent_id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "fb627918b4624fbfeafae278590ea4e30b8b55196b9dff4149bae1e301de33c5"
+  "hash": "a936a67a4a432175b0754e8109444847a0e21bc25b583a35ca8ab229cb86283b"
 }
