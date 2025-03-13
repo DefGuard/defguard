@@ -72,6 +72,10 @@ type RootTranslation = {
 			 */
 			saveChanges: string
 			/**
+			 * S​a​v​e​ ​F​i​l​t​e​r
+			 */
+			saveFilter: string
+			/**
 			 * S​a​v​e
 			 */
 			save: string
@@ -124,6 +128,10 @@ type RootTranslation = {
 		 * N​o​t​ ​s​e​t
 		 */
 		notSet: string
+		/**
+		 * S​e​a​r​c​h
+		 */
+		search: string
 	}
 	messages: {
 		/**
@@ -5047,6 +5055,10 @@ export type TranslationFunctions = {
 			 */
 			saveChanges: () => LocalizedString
 			/**
+			 * Save Filter
+			 */
+			saveFilter: () => LocalizedString
+			/**
 			 * Save
 			 */
 			save: () => LocalizedString
@@ -5099,6 +5111,10 @@ export type TranslationFunctions = {
 		 * Not set
 		 */
 		notSet: () => LocalizedString
+		/**
+		 * Search
+		 */
+		search: () => LocalizedString
 	}
 	messages: {
 		/**

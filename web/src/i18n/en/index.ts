@@ -18,6 +18,7 @@ const en: BaseTranslation = {
       select: 'Select',
       finish: 'Finish',
       saveChanges: 'Save changes',
+      saveFilter: 'Save Filter',
       save: 'Save',
       RestoreDefault: 'Restore default',
       delete: 'Delete',
@@ -32,6 +33,7 @@ const en: BaseTranslation = {
     noData: 'No data',
     unavailable: 'Unavailable',
     notSet: 'Not set',
+    search: 'Search',
   },
   messages: {
     error: 'Error has occurred.',

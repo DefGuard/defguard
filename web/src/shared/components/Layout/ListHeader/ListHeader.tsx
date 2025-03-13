@@ -1,25 +1,22 @@
 import './style.scss';
 
 import clsx from 'clsx';
+import { uniqBy } from 'lodash-es';
+import { useEffect } from 'react';
 
 import { ListSortDirection } from '../../../defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { ListHeaderColumnConfig } from './types';
 
 type ListHeaderColumnProps<T> = {
   active: boolean;
   sortDirection?: ListSortDirection;
   onClick?: () => void;
-} & ListHeaderColumnConfig<T>;
-
-type ListHeaderColumnConfig<T> = {
-  sortKey: keyof T;
-  label: string;
-  enabled?: boolean;
-};
+  columnKey?: string;
+} & Omit<ListHeaderColumnConfig<T>, 'key'>;
 
 type Props<T> = {
   headers: ListHeaderColumnConfig<T>[];
-  enabledSortKeys: Array<keyof T>;
   activeKey?: keyof T;
   sortDirection?: ListSortDirection;
   className?: string;
@@ -31,18 +28,26 @@ const ListHeaderColumn = <T extends object>({
   onClick,
   sortDirection,
   label,
-  sortKey,
   active,
   enabled,
+  ...props
 }: ListHeaderColumnProps<T>) => {
-  const disabled = !enabled;
+  const disabled = !enabled || !isPresent(props.sortKey);
+  const key = (props.sortKey ?? props.columnKey) as string;
+
+  useEffect(() => {
+    if (!props.sortKey && !props.columnKey) {
+      throw Error('ListHeader needs either key or sortKey!');
+    }
+  }, [props.columnKey, props.sortKey]);
+
   return (
     <div
       className={clsx('list-header-column', {
         disabled: disabled,
         active: active && !disabled,
       })}
-      data-testid={`list-header-${sortKey.toString()}`}
+      data-testid={`list-header-${key.toString()}`}
       data-direction={sortDirection?.valueOf().toLowerCase() ?? undefined}
     >
       <button type="button" onClick={onClick} disabled={disabled}>
@@ -83,20 +88,30 @@ export const ListHeader = <T extends object>({
   id,
   onChange,
 }: Props<T>) => {
+  useEffect(() => {
+    const unq = uniqBy(headers, (h) => h.sortKey ?? h.key);
+    if (unq.length !== headers.length) {
+      throw Error('ListHeader component given headers with duplicate identifiers');
+    }
+  }, [headers]);
+
   return (
     <div className={clsx('list-headers', className)} id={id}>
-      {headers.map(({ label, sortKey, enabled }) => {
+      {headers.map(({ label, sortKey, enabled, key }) => {
         const isActive = activeKey === sortKey;
         const direction = isActive ? sortDirection : ListSortDirection.ASC;
+        const componentKey: string = (sortKey ?? key) as string;
         return (
           <ListHeaderColumn
-            key={sortKey as string}
+            enabled={enabled}
+            key={componentKey}
+            columnKey={key}
             sortDirection={direction}
             active={isActive}
             label={label}
             sortKey={sortKey}
             onClick={() => {
-              if (enabled && isPresent(onChange)) {
+              if (enabled && isPresent(onChange) && isPresent(sortKey)) {
                 if (isActive) {
                   const newDirection =
                     sortDirection === ListSortDirection.ASC

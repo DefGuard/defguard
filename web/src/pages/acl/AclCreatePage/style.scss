@@ -1,5 +1,4 @@
 #acl-create-page {
-
   .labeled-checkbox,
   .form-checkbox {
     label {
@@ -8,7 +7,7 @@
     }
   }
 
-  &>.page-content {
+  & > .page-content {
     box-sizing: border-box;
     padding: var(--spacing-s);
 
@@ -16,7 +15,7 @@
       padding: var(--spacing-xl);
     }
 
-    &>.header {
+    & > .header {
       display: flex;
       flex-flow: column;
       row-gap: var(--spacing-s);
@@ -86,13 +85,12 @@
   }
 
   .card {
-
     .input,
     .dialog-select-spacer,
     .labeled-checkbox,
     .form-checkbox,
     .spacer,
-    &>.header {
+    & > .header {
       &:not(:last-child) {
         padding-bottom: var(--spacing-s);
       }

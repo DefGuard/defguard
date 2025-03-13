@@ -1,3 +1,21 @@
+@mixin grid-config {
+  box-sizing: border-box;
+  display: inline-grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 150px repeat(4, 300px) 200px 45px;
+  justify-content: space-between;
+  padding: 0 var(--spacing-s);
+
+  & > * {
+    display: inline-flex;
+    justify-content: flex-start;
+  }
+
+  &:last-child {
+    justify-content: center;
+  }
+}
+
 #acl-rules {
   width: 100%;
 
@@ -8,27 +26,72 @@
     align-items: center;
     justify-content: flex-start;
     column-gap: var(--spacing-s);
+    padding-bottom: var(--spacing-m);
 
     & > .controls {
       margin-left: auto;
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-end;
+      column-gap: var(--spacing-s);
     }
   }
 
-  ul {
-    list-style: none;
+  .tags-display {
     display: flex;
-    flex-flow: column;
-    row-gap: var(--spacing-s);
+    flex-flow: row nowrap;
+    overflow: hidden;
+    max-width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    column-gap: var(--spacing-xs);
 
-    li {
+    span,
+    p {
+      @include typography(app-modal-2);
+    }
+  }
+
+  .divider-header {
+    padding-bottom: var(--spacing-s);
+
+    .inner {
       display: flex;
       flex-flow: row;
       align-items: center;
       justify-content: flex-start;
-      column-gap: var(--spacing-xs);
+      border-bottom: 1px solid var(--border-primary);
+    }
 
-      button {
-        cursor: pointer;
+    .header {
+      @include typography(app-side-bar);
+    }
+  }
+
+  .rules-list {
+    width: 100%;
+
+    .list-headers {
+      @include grid-config;
+      padding-bottom: var(--spacing-m);
+    }
+
+    ul {
+      list-style: none;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-m);
+
+      li {
+        @include grid-config();
+
+        .cell {
+          &.name {
+            @include typography(app-modal-1);
+          }
+        }
       }
     }
   }
