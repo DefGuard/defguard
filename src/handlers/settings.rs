@@ -135,17 +135,20 @@ pub async fn patch_settings(
 
 pub async fn test_ldap_settings(_admin: AdminRole) -> ApiResult {
     debug!("Testing LDAP connection");
-    if LDAPConnection::create().await.is_ok() {
-        debug!("LDAP connected successfully");
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::OK,
-        })
-    } else {
-        debug!("LDAP connection rejected");
-        Ok(ApiResponse {
-            json: json!({}),
-            status: StatusCode::BAD_REQUEST,
-        })
+    match LDAPConnection::create().await {
+        Ok(_) => {
+            debug!("LDAP connected successfully");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::OK,
+            })
+        }
+        Err(err) => {
+            debug!("LDAP connection rejected: {err}");
+            Ok(ApiResponse {
+                json: json!({}),
+                status: StatusCode::BAD_REQUEST,
+            })
+        }
     }
 }
