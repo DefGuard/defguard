@@ -17,7 +17,6 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
-import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 
 type FormFields = SettingsLDAP;
 
