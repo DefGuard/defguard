@@ -872,6 +872,8 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
+  ldap_use_starttls: boolean;
+  ldap_tls_verify_cert: boolean;
   ldap_samba_enabled: boolean;
 };
 

@@ -1068,6 +1068,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
+          ldap_use_starttls: 'Użyj StartTLS',
+          ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',
           ldap_samba_enabled: 'Wsparcie dla Samba',
         },
         delete: 'Usuń konfigurację',

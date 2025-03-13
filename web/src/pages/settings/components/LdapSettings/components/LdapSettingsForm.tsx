@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -65,6 +66,8 @@ export const LdapSettingsForm = () => {
         ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
+        ldap_use_starttls: z.boolean(),
+        ldap_tls_verify_cert: z.boolean(),
         ldap_samba_enabled: z.boolean(),
       }),
     [LL.form.error],
@@ -83,6 +86,8 @@ export const LdapSettingsForm = () => {
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
+      ldap_use_starttls: settings?.ldap_use_starttls ?? false,
+      ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
       ldap_samba_enabled: settings?.ldap_samba_enabled ?? false,
     }),
     [settings],
@@ -101,6 +106,8 @@ export const LdapSettingsForm = () => {
       ldap_groupname_attr: '',
       ldap_bind_password: '',
       ldap_bind_username: '',
+      ldap_use_starttls: false,
+      ldap_tls_verify_cert: true,
       ldap_samba_enabled: false,
     }),
     [],
@@ -195,6 +202,16 @@ export const LdapSettingsForm = () => {
         <FormCheckBox
           controller={{ control, name: 'ldap_samba_enabled' }}
           label={localLL.form.labels.ldap_samba_enabled()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_use_starttls' }}
+          label={localLL.form.labels.ldap_use_starttls()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_tls_verify_cert' }}
+          label={localLL.form.labels.ldap_tls_verify_cert()}
           labelPlacement="right"
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />

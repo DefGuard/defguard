@@ -1104,6 +1104,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
+          ldap_use_starttls: 'Use StartTLS',
+          ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_samba_enabled: 'Samba support enabled',
         },
         delete: 'Delete configuration',
