@@ -577,18 +577,21 @@ impl WireguardNetwork<Id> {
 
     /// Prepares firewall configuration for a gateway based on location config and ACLs
     /// Returns `None` if firewall management is disabled for a given location.
-    /// TODO: actually determine if a config should be generated
     pub async fn try_get_firewall_config(
         &self,
         pool: &PgPool,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
+        // check if ACLs are enabled
+        if !self.acl_enabled {
+            debug!(
+                "ACL rules are disabled for location {self}, skipping generating firewall config"
+            );
+            return Ok(None);
+        }
+
         info!("Generating firewall config for location {self}");
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(pool).await?;
-        debug!(
-            "Found {0} active ACL rules for location {self}",
-            location_acls.len()
-        );
 
         // determine IP version based on location subnet
         let ip_version = self.get_ip_version();
