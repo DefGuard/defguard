@@ -85,7 +85,7 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
       ldap_use_starttls: settings?.ldap_use_starttls ?? false,
-      ldap_tls_cert: settings?.ldap_tls_verify_cert ?? true,
+      ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
     }),
     [settings],
   );
@@ -104,7 +104,7 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: '',
       ldap_bind_username: '',
       ldap_use_starttls: false,
-      ldap_tls_cert: true,
+      ldap_tls_verify_cert: true,
     }),
     [],
   );
