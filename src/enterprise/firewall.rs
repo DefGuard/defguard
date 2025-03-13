@@ -546,7 +546,6 @@ fn merge_ranges<T: Ord + std::fmt::Debug>(mut ranges: Vec<Range<T>>) -> Vec<Rang
 impl WireguardNetwork<Id> {
     /// Fetches all active ACL rules for a given location.
     /// Filters out rules which are disabled, expired or have not been deployed yet.
-    /// TODO: actually filter out unwanted rules once drafts etc are implemented
     pub(crate) async fn get_active_acl_rules(
         &self,
         pool: &PgPool,
@@ -558,11 +557,14 @@ impl WireguardNetwork<Id> {
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
-                WHERE an.network_id = $1",
+                WHERE an.network_id = $1 AND enabled = true \
+                AND state = 'applied'::aclrule_state \
+                AND expires > NOW()",
         )
         .bind(self.id)
         .fetch_all(pool)
         .await?;
+        debug!("Found {} active ACL rules for location {self}", rules.len());
 
         // convert to `AclRuleInfo`
         let mut rules_info = Vec::new();
