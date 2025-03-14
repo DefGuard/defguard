@@ -18,6 +18,7 @@ const en: BaseTranslation = {
       select: 'Select',
       finish: 'Finish',
       saveChanges: 'Save changes',
+      saveFilter: 'Save Filter',
       save: 'Save',
       RestoreDefault: 'Restore default',
       delete: 'Delete',
@@ -32,6 +33,7 @@ const en: BaseTranslation = {
     noData: 'No data',
     unavailable: 'Unavailable',
     notSet: 'Not set',
+    search: 'Search',
   },
   messages: {
     error: 'Error has occurred.',
@@ -2122,6 +2124,14 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   acl: {
+    ruleStatus: {
+      new: 'New',
+      applied: 'Applied',
+      modified: 'Pending Change',
+      deleted: 'Pending Deletion',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+    },
     listPage: {},
     createPage: {
       title: 'Access Control List',

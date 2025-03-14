@@ -109,8 +109,6 @@ const ModalContent = () => {
         modifiablePart = device.split_ip.modifiable_part;
       }
 
-      console.log(modifiablePart);
-
       const res: AddStandaloneDeviceFormFields = {
         name: device?.name,
         modifiableIpPart: modifiablePart,

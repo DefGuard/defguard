@@ -2,10 +2,10 @@ import './style.scss';
 
 import clsx from 'clsx';
 import dayjs from 'dayjs';
-import { AnimatePresence, motion } from 'framer-motion';
 import { forwardRef, HTMLAttributes } from 'react';
 import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
+import { FieldError } from '../../../defguard-ui/components/Layout/FieldError/FieldError';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { useAppStore } from '../../../hooks/store/useAppStore';
 import { DateInputProps } from './types';
@@ -30,15 +30,19 @@ export const DateInput = ({
   disabled = false,
 }: DateInputProps) => {
   const locale = useAppStore((s) => s.language);
+  const showError = !disabled ? isPresent(errorMessage) : false;
+
   return (
     <div className="date-input-spacer">
       <div
         className={clsx('inner', {
           disabled,
+          error: showError,
         })}
       >
         {label !== undefined && <p className="label">{label}:</p>}
         <DatePicker
+          disabled={disabled}
           selected={inputToPicker(selected)}
           onChange={(val) => {
             onChange(pickerToOutput(val));
@@ -48,7 +52,7 @@ export const DateInput = ({
               selected={selected}
               className={clsx({
                 disabled,
-                invalid: isPresent(errorMessage),
+                error: showError,
               })}
             />
           }
@@ -59,27 +63,7 @@ export const DateInput = ({
           showTimeSelect={false}
           closeOnScroll
         />
-        <AnimatePresence>
-          {errorMessage !== undefined && errorMessage !== '' && (
-            <motion.p
-              className="error"
-              initial={{
-                x: 0,
-                opacity: 0,
-              }}
-              animate={{
-                x: 20,
-                opacity: 1,
-              }}
-              exit={{
-                opacity: 0,
-                x: 0,
-              }}
-            >
-              {errorMessage}
-            </motion.p>
-          )}
-        </AnimatePresence>
+        <FieldError errorMessage={errorMessage} disabled={!showError} />
       </div>
     </div>
   );
@@ -155,13 +139,8 @@ type DisplayProps = {
 const DisplayField = forwardRef<HTMLButtonElement, DisplayProps>(
   ({ selected, className, ...rest }, ref) => {
     return (
-      <div className="date-input-container">
-        <button
-          {...rest}
-          className={clsx('date-input', className)}
-          ref={ref}
-          type="button"
-        >
+      <div className={clsx('date-input-container', className)}>
+        <button {...rest} className="date-input" ref={ref} type="button">
           {selected !== null && <span>{dayjs(selected).format('L')}</span>}
         </button>
       </div>

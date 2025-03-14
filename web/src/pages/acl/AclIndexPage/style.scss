@@ -6,4 +6,10 @@
     padding: var(--spacing-s);
     border-top-left-radius: 0;
   }
+
+  .page-content {
+    & > header {
+      padding-bottom: var(--spacing-l);
+    }
+  }
 }
