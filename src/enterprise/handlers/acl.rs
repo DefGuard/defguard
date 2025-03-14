@@ -20,13 +20,10 @@ use super::LicenseInfo;
 
 /// API representation of [`AclRule`]
 /// All relations represented as arrays of ids.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct ApiAclRule<I = NoId> {
-    #[serde(default)]
-    pub id: I,
-    #[serde(skip_deserializing)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct ApiAclRule {
+    pub id: Id,
     pub parent_id: Option<Id>,
-    #[serde(skip_deserializing)]
     pub state: RuleState,
     pub name: String,
     pub all_networks: bool,
@@ -49,8 +46,8 @@ pub struct ApiAclRule<I = NoId> {
     pub protocols: Vec<Protocol>,
 }
 
-impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
-    fn from(info: AclRuleInfo<I>) -> Self {
+impl From<AclRuleInfo<Id>> for ApiAclRule {
+    fn from(info: AclRuleInfo<Id>) -> Self {
         Self {
             destination: info.format_destination(),
             ports: info.format_ports(),
@@ -74,6 +71,30 @@ impl<I> From<AclRuleInfo<I>> for ApiAclRule<I> {
             enabled: info.enabled,
         }
     }
+}
+
+/// API representation of [`AclRule`] for modification operations
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct EditAclRule {
+    pub name: String,
+    pub all_networks: bool,
+    pub networks: Vec<Id>,
+    pub expires: Option<NaiveDateTime>,
+    pub enabled: bool,
+    // source
+    pub allow_all_users: bool,
+    pub deny_all_users: bool,
+    pub allowed_users: Vec<Id>,
+    pub denied_users: Vec<Id>,
+    pub allowed_groups: Vec<Id>,
+    pub denied_groups: Vec<Id>,
+    pub allowed_devices: Vec<Id>,
+    pub denied_devices: Vec<Id>,
+    // destination
+    pub destination: String,
+    pub aliases: Vec<Id>,
+    pub ports: String,
+    pub protocols: Vec<Protocol>,
 }
 
 /// API representation of [`AclAlias`]
@@ -113,7 +134,7 @@ pub async fn list_acl_rules(
 ) -> ApiResult {
     debug!("User {} listing ACL rules", session.user.username);
     let rules = AclRule::all(&appstate.pool).await?;
-    let mut api_rules: Vec<ApiAclRule<Id>> = Vec::with_capacity(rules.len());
+    let mut api_rules: Vec<ApiAclRule> = Vec::with_capacity(rules.len());
     for r in rules.iter() {
         // TODO: may require optimisation wrt. sql queries
         let info = r.to_info(&appstate.pool).await.map_err(|err| {
@@ -139,7 +160,7 @@ pub async fn get_acl_rule(
     debug!("User {} retrieving ACL rule {id}", session.user.username);
     let (rule, status) = match AclRule::find_by_id(&appstate.pool, id).await? {
         Some(rule) => (
-            json!(Into::<ApiAclRule<Id>>::into(
+            json!(Into::<ApiAclRule>::into(
                 rule.to_info(&appstate.pool).await.map_err(|err| {
                     error!("Error retrieving ACL rule {rule:?}: {err}");
                     err
@@ -159,7 +180,7 @@ pub async fn create_acl_rule(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<ApiAclRule>,
+    Json(data): Json<EditAclRule>,
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
     let rule = AclRule::create_from_api(&appstate.pool, &data)
@@ -184,7 +205,7 @@ pub async fn update_acl_rule(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(id): Path<Id>,
-    Json(data): Json<ApiAclRule<Id>>,
+    Json(data): Json<EditAclRule>,
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
     let rule = AclRule::update_from_api(&appstate.pool, id, &data)
