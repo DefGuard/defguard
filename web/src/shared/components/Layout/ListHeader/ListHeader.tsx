@@ -43,7 +43,7 @@ const ListHeaderColumn = <T extends object>({
 
   return (
     <div
-      className={clsx('list-header-column', {
+      className={clsx('list-header-column', 'cell', {
         disabled: disabled,
         active: active && !disabled,
       })}

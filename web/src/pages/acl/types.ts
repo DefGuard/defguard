@@ -12,6 +12,7 @@ export type AclCreateContext = {
   devices?: StandaloneDevice[];
   networks?: Network[];
   editRule?: AclRuleInfo;
+  aliases?: AclAlias[];
 };
 
 export type AclCreateContextLoaded = {
@@ -21,6 +22,16 @@ export type AclCreateContextLoaded = {
   networks: Network[];
   ruleToEdit?: AclRuleInfo;
 };
+
+export type AclAlias = {
+  id: number;
+  name: string;
+  destination: string;
+  ports: string;
+  protocols: AclProtocol[];
+};
+
+export type AclAliasPost = Omit<AclAlias, 'id'>;
 
 export enum AclProtocol {
   TCP = 6,

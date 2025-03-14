@@ -1,4 +1,5 @@
-import { AclStatus } from './types';
+import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
+import { AclProtocol, AclStatus } from './types';
 
 export const aclStatusToInt = (status: AclStatus): number => {
   switch (status) {
@@ -30,3 +31,32 @@ export const aclStatusFromInt = (statusInt: number): AclStatus => {
       return AclStatus.NEW;
   }
 };
+
+export const protocolToString = (value: AclProtocol): string => {
+  switch (value) {
+    case AclProtocol.TCP:
+      return 'TCP';
+    case AclProtocol.UDP:
+      return 'UDP';
+    case AclProtocol.ICMP:
+      return 'ICMP';
+  }
+};
+
+export const protocolOptions: SelectOption<number>[] = [
+  {
+    key: AclProtocol.TCP,
+    label: 'TCP',
+    value: AclProtocol.TCP,
+  },
+  {
+    key: AclProtocol.UDP,
+    label: 'UDP',
+    value: AclProtocol.UDP,
+  },
+  {
+    key: AclProtocol.ICMP,
+    label: 'ICMP',
+    value: AclProtocol.ICMP,
+  },
+];

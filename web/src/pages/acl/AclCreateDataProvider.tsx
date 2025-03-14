@@ -24,6 +24,7 @@ export const AclCreateDataProvider = ({ children }: Props) => {
     user: { getUsers },
     network: { getNetworks },
     acl: {
+      aliases: { getAliases },
       rules: { getRule },
     },
   } = useApi();
@@ -54,9 +55,16 @@ export const AclCreateDataProvider = ({ children }: Props) => {
       QueryKeys.FETCH_GROUPS_INFO,
       QueryKeys.FETCH_NETWORKS,
       QueryKeys.FETCH_STANDALONE_DEVICE_LIST,
+      QueryKeys.FETCH_ACL_ALIASES,
     ],
     queryFn: () =>
-      Promise.all([getNetworks(), getGroupsInfo(), getUsers(), getDevicesList()]),
+      Promise.all([
+        getNetworks(),
+        getGroupsInfo(),
+        getUsers(),
+        getDevicesList(),
+        getAliases(),
+      ]),
     refetchOnReconnect: true,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -71,12 +79,13 @@ export const AclCreateDataProvider = ({ children }: Props) => {
 
   useEffect(() => {
     if (aclData) {
-      const [networks, groups, users, devices] = aclData;
+      const [networks, groups, users, devices, aliases] = aclData;
       updateContext({
         devices,
         groups,
         networks,
         users,
+        aliases,
       });
     }
   }, [aclData, updateContext]);

@@ -6,7 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
-import { AclStatus } from '../pages/acl/types';
+import { AclAlias, AclAliasPost, AclStatus } from '../pages/acl/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -488,6 +488,13 @@ export interface ApiHook {
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   acl: {
+    aliases: {
+      getAliases: () => Promise<AclAlias[]>;
+      getAlias: (id: number) => Promise<AclAlias>;
+      createAlias: (data: AclAliasPost) => Promise<EmptyApiResponse>;
+      editAlias: (data: AclAlias) => Promise<EmptyApiResponse>;
+      deleteAlias: (id: number) => Promise<EmptyApiResponse>;
+    };
     rules: {
       getRule: (id: number) => Promise<AclRuleInfo>;
       getRules: () => Promise<AclRuleInfo[]>;

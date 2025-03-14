@@ -1,0 +1,23 @@
+#acl-alias-ce-modal {
+  form {
+    .input {
+      padding-bottom: var(--spacing-m);
+    }
+
+    .select-container {
+      margin-bottom: var(--spacing-m);
+    }
+
+    .header {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      padding-bottom: var(--spacing-m);
+
+      h2 {
+        @include typography(app-body-1);
+      }
+    }
+  }
+}

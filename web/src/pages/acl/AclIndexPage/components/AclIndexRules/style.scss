@@ -21,25 +21,6 @@
 #acl-rules {
   width: 100%;
 
-  & > header {
-    width: 100%;
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: flex-start;
-    column-gap: var(--spacing-s);
-    padding-bottom: var(--spacing-m);
-
-    & > .controls {
-      margin-left: auto;
-      display: flex;
-      flex-flow: row;
-      align-items: center;
-      justify-content: flex-end;
-      column-gap: var(--spacing-s);
-    }
-  }
-
   .tags-display {
     display: flex;
     flex-flow: row nowrap;
