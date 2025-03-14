@@ -2,6 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
@@ -9,7 +10,6 @@ import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
@@ -51,6 +51,8 @@ type Alias = {
   name: string;
 };
 
+type AclForm = Omit<AclRuleInfo, 'parent_id' | 'state'>;
+
 const mockedAliases: Alias[] = [];
 
 export const AlcCreatePage = () => {
@@ -64,9 +66,9 @@ export const AlcCreatePage = () => {
 
   const initialValue = useMemo(() => {
     if (editMode) {
-      return ruleToEdit as AclRuleInfo;
+      return ruleToEdit as AclForm;
     }
-    const defaultValue: AclRuleInfo = {
+    const defaultValue: AclForm = {
       aliases: [],
       all_networks: false,
       allow_all_users: false,
@@ -89,7 +91,7 @@ export const AlcCreatePage = () => {
     return defaultValue;
   }, [editMode, ruleToEdit]);
 
-  const [neverExpires, setNeverExpires] = useState(!initialValue.expires);
+  // const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
   const [allowAllUsers, setAllowAllUsers] = useState(initialValue.allow_all_users);
   const [denyAllUsers, setDenyAllUsers] = useState(initialValue.deny_all_users);
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
@@ -223,16 +225,23 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { control, handleSubmit, watch, setValue } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const watchedExpires = watch('expires');
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
+    let expires = cleaned.expires;
+    // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
+    if (expires) {
+      expires = dayjs(expires).utc().startOf('day').toISOString();
+    }
 
     if (editMode) {
       const requestData: EditAclRuleRequest = {
@@ -241,6 +250,7 @@ export const AlcCreatePage = () => {
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
         id: initialValue.id,
+        expires,
       };
       mutatePut(requestData);
     } else {
@@ -249,6 +259,7 @@ export const AlcCreatePage = () => {
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
         all_networks: allowAllLocations,
+        expires,
       };
       mutatePost(requestData);
     }
@@ -280,7 +291,10 @@ export const AlcCreatePage = () => {
           />
         </div>
       </div>
-      <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
+      <form
+        id="acl-sections"
+        onSubmit={handleSubmit(handleValidSubmit, (vals) => console.log(vals))}
+      >
         <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <LabeledCheckbox
@@ -300,8 +314,9 @@ export const AlcCreatePage = () => {
             identKey="id"
             label="Locations"
             searchKeys={['name']}
+            disabled={allowAllLocations}
           />
-          <CardHeader title="Expiration Date" />
+          {/* <CardHeader title="Expiration Date" />
           <LabeledCheckbox
             label="Never Expire"
             value={neverExpires && watchedExpires === null}
@@ -318,7 +333,8 @@ export const AlcCreatePage = () => {
           <FormDateInput
             controller={{ control, name: 'expires' }}
             label="Expiration Date"
-          />
+            disabled={neverExpires}
+          /> */}
         </SectionWithCard>
         <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
           <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
@@ -343,16 +359,19 @@ export const AlcCreatePage = () => {
             controller={{ control, name: 'allowed_users' }}
             options={users}
             renderTagContent={renderUserTag}
+            renderDialogListItem={renderUserListItem}
             identKey="id"
             searchKeys={['email', 'last_name', 'first_name']}
+            disabled={allowAllUsers}
           />
           <FormDialogSelect
             label="Groups"
             controller={{ control, name: 'allowed_groups' }}
             options={groups}
             renderTagContent={renderGroup}
-            identKey="name"
+            identKey="id"
             searchKeys={['name']}
+            disabled={allowAllUsers || true}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -421,16 +440,19 @@ export const AlcCreatePage = () => {
             controller={{ control, name: 'denied_users' }}
             options={users}
             renderTagContent={renderUserTag}
+            renderDialogListItem={renderUserListItem}
             identKey="id"
             searchKeys={['username', 'first_name', 'last_name']}
+            disabled={denyAllUsers}
           />
           <FormDialogSelect
             label="Groups"
             controller={{ control, name: 'denied_groups' }}
             options={groups}
             renderTagContent={renderGroup}
-            identKey="name"
+            identKey="id"
             searchKeys={['name']}
+            disabled={denyAllUsers || true}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -459,11 +481,23 @@ const CardHeader = ({ title }: { title: string }) => {
 const renderNetworkSelectTag = (network: Network) => (
   <>
     <p>{network.name}</p>
-    <ActivityIcon status={ActivityIconVariant.ERROR_FILLED} />
+    <ActivityIcon
+      status={
+        network.acl_default_allow
+          ? ActivityIconVariant.CONNECTED
+          : ActivityIconVariant.ERROR_FILLED
+      }
+    />
   </>
 );
 
 const renderUserTag = (user: User) => <p>{user.username}</p>;
+
+const renderUserListItem = (user: User) => (
+  <>
+    <p>{`${user.first_name} ${user.last_name} (${user.username})`}</p>
+  </>
+);
 
 const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 

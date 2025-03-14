@@ -9,22 +9,27 @@
 
   & > .page-content {
     box-sizing: border-box;
-    padding: var(--spacing-xl);
+    padding: var(--spacing-s);
+
+    @include media-breakpoint-up(lg) {
+      padding: var(--spacing-xl);
+    }
 
     & > .header {
       display: flex;
-      flex-flow: row;
-      align-items: center;
-      justify-content: flex-start;
+      flex-flow: column;
+      row-gap: var(--spacing-s);
       padding-bottom: var(--spacing-m);
-      gap: var(--spacing-s);
+
+      @include media-breakpoint-up(lg) {
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--spacing-s);
+      }
 
       h1 {
         @include typography(app-title);
-      }
-
-      & > .btn {
-        justify-self: flex-end;
       }
 
       .controls {
