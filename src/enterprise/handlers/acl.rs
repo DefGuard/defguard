@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 
 use super::LicenseInfo;
 
-/// API representation of [`AclRule`]
+/// API representation of [`AclRule`] used in API responses
 /// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ApiAclRule {
@@ -73,7 +73,7 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
     }
 }
 
-/// API representation of [`AclRule`] for modification operations
+/// API representation of [`AclRule`] used in API requests for modification operations
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct EditAclRule {
     pub name: String,

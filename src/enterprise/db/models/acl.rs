@@ -399,6 +399,7 @@ impl AclRule {
     }
 
     /// Changes rule state to [`RuleState::Applied`] for all specified rules
+    ///  TODO: trigger gateway reconfiguration
     ///
     /// # Errors
     ///
@@ -730,7 +731,6 @@ impl AclRule<Id> {
     /// - changes the state of the specified rule to `Applied`
     /// - clears rule's `parent_id`.
     /// - deletes it's parent rule
-    /// - TODO: triggers gateway reconfiguration
     ///
     /// # Errors
     ///
