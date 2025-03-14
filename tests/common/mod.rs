@@ -80,7 +80,7 @@ pub(crate) async fn init_test_db(config: &DefGuardConfig) -> PgPool {
     pool
 }
 
-async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
+pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
     User::init_admin_user(pool, config.default_admin_password.expose_secret())
         .await
         .unwrap();

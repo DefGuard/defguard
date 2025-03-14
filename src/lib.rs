@@ -14,8 +14,9 @@ use axum::{
 use db::models::device::DeviceType;
 use enterprise::handlers::{
     acl::{
-        create_acl_alias, create_acl_rule, delete_acl_alias, delete_acl_rule, get_acl_alias,
-        get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias, update_acl_rule,
+        apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias, delete_acl_rule,
+        get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias,
+        update_acl_rule,
     },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
@@ -487,6 +488,7 @@ pub fn build_webapp(
         Router::new()
             .route("/rule", get(list_acl_rules))
             .route("/rule", post(create_acl_rule))
+            .route("/rule/apply", put(apply_acl_rules))
             .route("/rule/{id}", get(get_acl_rule))
             .route("/rule/{id}", put(update_acl_rule))
             .route("/rule/{id}", delete(delete_acl_rule))

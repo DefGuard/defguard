@@ -1,6 +1,6 @@
 use crate::{
     db::{Device, Group, Id, NoId, User, WireguardNetwork},
-    enterprise::handlers::acl::{ApiAclAlias, ApiAclRule},
+    enterprise::handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
     DeviceType,
 };
 use chrono::NaiveDateTime;
@@ -34,6 +34,8 @@ pub enum AclError {
     InvalidRelationError(String),
     #[error("RuleNotFoundError: {0}")]
     RuleNotFoundError(Id),
+    #[error("RuleAlreadyAppliedError: {0}")]
+    RuleAlreadyAppliedError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -224,8 +226,8 @@ impl AclRule {
     /// Creates new [`AclRule`] with all related objects based on [`ApiAclRule`]
     pub(crate) async fn create_from_api(
         pool: &PgPool,
-        api_rule: &ApiAclRule<NoId>,
-    ) -> Result<ApiAclRule<Id>, AclError> {
+        api_rule: &EditAclRule,
+    ) -> Result<ApiAclRule, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the rule
@@ -233,10 +235,11 @@ impl AclRule {
         let rule = rule.save(&mut *transaction).await?;
 
         // create related objects
-        Self::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+        rule.create_related_objects(&mut transaction, api_rule)
+            .await?;
 
         transaction.commit().await?;
-        let result: ApiAclRule<Id> = rule.to_info(pool).await?.into();
+        let result: ApiAclRule = rule.to_info(pool).await?.into();
         Ok(result)
     }
 
@@ -258,9 +261,9 @@ impl AclRule {
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
-        api_rule: &ApiAclRule<Id>,
-    ) -> Result<ApiAclRule<Id>, AclError> {
-        debug!("Updating rule {api_rule:?}");
+        api_rule: &EditAclRule,
+    ) -> Result<ApiAclRule, AclError> {
+        debug!("Updating rule ID {id} with {api_rule:?}");
         let mut transaction = pool.begin().await?;
 
         // find the existing rule
@@ -272,16 +275,13 @@ impl AclRule {
             })?;
 
         // convert API rule to model
-        let mut rule: AclRule<Id> = api_rule.clone().try_into()?;
+        let mut rule: AclRule<NoId> = api_rule.clone().try_into()?;
 
         // perform appropriate updates depending on existing rule's state
-        match existing_rule.state {
+        let rule = match existing_rule.state {
             RuleState::Applied => {
                 // create new `RuleState::Modified` rule
-                debug!(
-                    "Rule {} state is `Applied` - creating new `Modified` rule object",
-                    id,
-                );
+                debug!("Rule {id} state is `Applied` - creating new `Modified` rule object",);
                 // remove old modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
@@ -292,32 +292,39 @@ impl AclRule {
                 );
 
                 // save as a new rule with appropriate parent_id and state
-                let mut rule = rule.as_noid();
                 rule.state = RuleState::Modified;
                 rule.parent_id = Some(id);
                 let rule = rule.save(&mut *transaction).await?;
 
                 // create related objects
-                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+                rule.create_related_objects(&mut transaction, api_rule)
+                    .await?;
+
+                rule
             }
             _ => {
                 debug!(
-                    "Rule {} is a modification to rule {:?} - updating the modification",
-                    id, rule.parent_id,
+                    "Rule {id} is a modification to rule {:?} - updating the modification",
+                    existing_rule.parent_id,
                 );
                 // update the not-yet applied modification itself
-                rule.id = id; // frontend may PUT an object with incorrect id
+                let mut rule = rule.with_id(id);
+                rule.parent_id = existing_rule.parent_id;
                 rule.save(&mut *transaction).await?;
 
                 // recreate related objects
-                Self::delete_related_objects(&mut transaction, rule.id).await?;
-                AclRule::create_related_objects(&mut transaction, rule.id, api_rule).await?;
+                rule.delete_related_objects(&mut transaction).await?;
+                rule.create_related_objects(&mut transaction, api_rule)
+                    .await?;
+
+                rule
             }
         };
 
         transaction.commit().await?;
-        info!("Successfully updatied rule {api_rule:?}");
-        Ok(api_rule.clone())
+        let rule_details = rule.to_info(pool).await?.into();
+        info!("Successfully updated rule {rule_details:?}");
+        Ok(rule_details)
     }
 
     /// Deletes [`AclRule`] with all it's related objects.
@@ -377,7 +384,9 @@ impl AclRule {
                     id, existing_rule.parent_id,
                 );
                 // delete related objects
-                Self::delete_related_objects(&mut transaction, id).await?;
+                existing_rule
+                    .delete_related_objects(&mut transaction)
+                    .await?;
 
                 // delete the rule
                 existing_rule.delete(&mut *transaction).await?;
@@ -386,6 +395,27 @@ impl AclRule {
 
         transaction.commit().await?;
         info!("Rule {id} succesfully deleted or marked for deletion");
+        Ok(())
+    }
+
+    /// Changes rule state to [`RuleState::Applied`] for all specified rules
+    ///  TODO: trigger gateway reconfiguration
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::RuleNotFoundError`
+    pub async fn apply_rules(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
+        debug!("Applying {} ACL rules: {rules:?}", rules.len());
+        let mut transaction = pool.begin().await?;
+        for id in rules {
+            let mut rule = AclRule::find_by_id(&mut *transaction, *id)
+                .await?
+                .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
+            rule.apply(&mut transaction).await?;
+        }
+        info!("Applied {} ACL rules: {rules:?}", rules.len());
+
+        transaction.commit().await?;
         Ok(())
     }
 }
@@ -466,13 +496,14 @@ fn map_relation_error(err: SqlxError, class: &str, id: &Id) -> AclError {
     AclError::DbError(err)
 }
 
-impl<I: std::fmt::Debug> AclRule<I> {
-    /// Creates relation objects for given [`AclRule`] based on [`ApiAclRule`] object
+impl AclRule<Id> {
+    /// Creates relation objects for given [`AclRule`] based on [`EditAclRule`] object
     async fn create_related_objects(
+        &self,
         transaction: &mut PgConnection,
-        rule_id: Id,
-        api_rule: &ApiAclRule<I>,
+        api_rule: &EditAclRule,
     ) -> Result<(), AclError> {
+        let rule_id = self.id;
         debug!("Creating related objects for ACL rule {api_rule:?}");
         // save related networks
         debug!("Creating related networks for ACL rule {rule_id}");
@@ -603,9 +634,10 @@ impl<I: std::fmt::Debug> AclRule<I> {
 
     /// Deletes relation objects for given [`AclRule`]
     async fn delete_related_objects(
+        &self,
         transaction: &mut PgConnection,
-        rule_id: Id,
     ) -> Result<(), SqlxError> {
+        let rule_id = self.id;
         debug!("Deleting related objects for ACL rule {rule_id}");
         // networks
         let result = query!("DELETE FROM aclrulenetwork WHERE rule_id = $1", rule_id)
@@ -669,18 +701,18 @@ impl<I: std::fmt::Debug> AclRule<I> {
     }
 }
 
-impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
+impl TryFrom<EditAclRule> for AclRule<NoId> {
     type Error = AclError;
-    fn try_from(rule: ApiAclRule<I>) -> Result<Self, Self::Error> {
+    fn try_from(rule: EditAclRule) -> Result<Self, Self::Error> {
         Ok(Self {
             destination: parse_destination(&rule.destination)?.addrs,
             ports: parse_ports(&rule.ports)?
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            id: rule.id,
-            parent_id: rule.parent_id,
-            state: rule.state,
+            id: NoId,
+            parent_id: None,
+            state: Default::default(),
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
@@ -693,6 +725,45 @@ impl<I> TryFrom<ApiAclRule<I>> for AclRule<I> {
 }
 
 impl AclRule<Id> {
+    /// Changes rule state to [`RuleState::Applied`]
+    ///
+    /// This function:
+    /// - changes the state of the specified rule to `Applied`
+    /// - clears rule's `parent_id`.
+    /// - deletes it's parent rule
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::RuleAreadyApplied`
+    pub async fn apply(&mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+        debug!("Changing ACL rule {} state to applied", self.id);
+
+        // Ensure the rule is in a state that can be applied
+        match self.state {
+            RuleState::New | RuleState::Modified | RuleState::Deleted => {
+                debug!("Changing ACL rule {} state to applied", self.id);
+                self.state = RuleState::Applied;
+                let parent_id = self.parent_id;
+                self.parent_id = None;
+                self.save(&mut *transaction).await?;
+
+                // delete parent rule
+                if let Some(parent_id) = parent_id {
+                    query!("DELETE FROM aclrule WHERE id = $1", parent_id)
+                        .execute(&mut *transaction)
+                        .await?;
+                }
+            }
+            RuleState::Applied => {
+                warn!("ACL rule {} already applied", self.id);
+                return Err(AclError::RuleAlreadyAppliedError(self.id));
+            }
+        }
+
+        info!("Changed ACL rule {} state to applied", self.id);
+        Ok(())
+    }
+
     /// Returns all [`WireguardNetwork`]s the rule applies to
     pub(crate) async fn get_networks<'e, E>(
         &self,
