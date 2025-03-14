@@ -669,14 +669,107 @@ async fn test_rule_duplication(pool: PgPool) {
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
 }
 
-#[ignore]
-#[tokio::test]
-async fn test_rule_application() {
-    unimplemented!();
+#[sqlx::test]
+async fn test_rule_application(pool: PgPool) {
+    let config = init_config(None);
+    let client = make_client_v2(pool.clone(), config).await;
+    authenticate(&client).await;
+
+    let rule = make_rule();
+
+    // create new rule
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // verify initial status
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(rule.state, RuleState::New);
+
+    // apply rule
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rule was applied
+    let mut rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Applied);
+
+    // cannot apply the same rule again
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // modify rule
+    rule.enabled = !rule.enabled;
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
+
+    // still cannot apply the same rule again
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![1] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // apply modification
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![2] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rule was applied
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/2").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Applied);
+    assert_eq!(rule.parent_id, None);
+
+    // initial rule was deleted
+    let response = client.get("/api/v1/acl/rule/1").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
 }
 
-#[ignore]
-#[tokio::test]
-async fn test_rule_application_related_objects() {
-    unimplemented!();
+#[sqlx::test]
+async fn test_multiple_rules_application(pool: PgPool) {
+    let config = init_config(None);
+    let client = make_client_v2(pool.clone(), config).await;
+    authenticate(&client).await;
+
+    let rule_1 = make_rule();
+    let rule_2 = make_rule();
+    let rule_3 = make_rule();
+
+    // create new rules
+    let response = client.post("/api/v1/acl/rule").json(&rule_1).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = client.post("/api/v1/acl/rule").json(&rule_2).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let response = client.post("/api/v1/acl/rule").json(&rule_3).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // apply multiple rules
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![1, 3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 3);
+
+    // verify rule state
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Applied);
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/2").send().await.json().await;
+    assert_eq!(rule.state, RuleState::New);
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/3").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Applied);
 }
