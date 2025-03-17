@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { concat, flatten, intersection, orderBy } from 'lodash-es';
 import { PropsWithChildren, ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { upperCaseFirst } from 'text-case';
 
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
@@ -15,13 +16,18 @@ import {
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
+import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
 import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../../../shared/queries';
 import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
-import { AclStatus } from '../../../types';
+import { AclCreateContextLoaded, AclStatus } from '../../../types';
+import { aclStatusFromInt } from '../../../utils';
 import { AclIndexRulesFilterModal } from './components/AclIndexRulesFilterModal/AclIndexRulesFilterModal';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 import { FilterDialogFilter } from './types';
@@ -55,9 +61,21 @@ const defaultFilters: RulesFilters = {
 
 export const AclIndexRules = () => {
   const navigate = useNavigate();
+  const {acl: {rules: {
+
+  }}} = useApi();
   const aclContext = useAclLoadedContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+  const appliedFiltersCount = useMemo(
+    () => Object.values(appliedFilters).reduce((acc, filters) => acc + filters.length, 0),
+    [appliedFilters],
+  );
+  const [searchValue, setSearchValue] = useState('');
+  const queryClient = useQueryClient();
+  const {mutate: applyPendingChangesMutation, isPending: applyPending} = useMutation({
+    mutationFn: 
+  });
 
   const {
     acl: {
@@ -71,93 +89,34 @@ export const AclIndexRules = () => {
     refetchOnMount: true,
   });
 
-  const pending = useMemo(() => {
-    if (aclContext && aclRules) {
-      let pendingRules = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED);
-      if (appliedFilters.networks.length > 0) {
-        pendingRules = pendingRules.filter((rule) => {
-          return (
-            intersection(rule.networks, appliedFilters.networks).length > 0 ||
-            rule.all_networks
-          );
-        });
-      }
+  const rulesAfterSearch = useMemo(() => {
+    if (aclRules && searchValue) {
+      return aclRules.filter((rule) =>
+        rule.name.trim().toLowerCase().includes(searchValue.toLowerCase().trim()),
+      );
+    }
+    return aclRules ?? [];
+  }, [aclRules, searchValue]);
 
-      const listData: ListData[] = pendingRules.map((rule) => {
-        let allowed: ListTagDisplay[];
-        let denied: ListTagDisplay[];
-        let networks: ListTagDisplay[];
+  const pendingRules = useMemo(
+    () =>
+      isPresent(aclRules)
+        ? prepareDisplay(rulesAfterSearch, appliedFilters, true, aclContext)
+        : [],
+    [aclContext, aclRules, appliedFilters, rulesAfterSearch],
+  );
 
-        if (rule.allow_all_users) {
-          allowed = [{ key: 'all', label: 'All Allowed', displayAsTag: false }];
-        } else {
-          allowed = concat(
-            aclContext.users
-              .filter((u) => rule.allowed_users.includes(u.id))
-              .map((u) => ({
-                key: `user-${u.id}`,
-                label: u.username,
-                displayAsTag: true,
-              })),
-          );
-        }
-
-        if (rule.deny_all_users) {
-          denied = [{ key: 'all', label: 'All Denied', displayAsTag: false }];
-        } else {
-          denied = concat(
-            aclContext.users
-              .filter((u) => rule.denied_users.includes(u.id))
-              .map((user) => ({
-                key: user.id,
-                label: user.username,
-                displayAsTag: true,
-              })),
-          );
-        }
-
-        if (rule.all_networks) {
-          networks = [
-            {
-              key: 'all',
-              label: 'All Included',
-            },
-          ];
-        } else {
-          networks = aclContext.networks
-            .filter((network) => rule.networks.includes(network.id))
-            .map((network) => ({
-              key: network.id,
-              label: network.name,
-              displayAsTag: true,
-            }));
-        }
-
-        const destination: ListTagDisplay[] = concat(
-          rule.destination
-            .split(',')
-            .filter((s) => s === '')
-            .map((dest, index) => ({
-              key: index.toString(),
-              label: dest,
-              displayAsTag: false,
-            })),
-        );
-
-        return {
-          ...rule,
-          context: {
-            allowed,
-            denied,
-            destination,
-            networks,
-          },
-        };
-      });
-      return listData;
+  const deployedRules = useMemo(() => {
+    if (aclRules) {
+      return prepareDisplay(rulesAfterSearch, appliedFilters, false, aclContext);
     }
     return [];
-  }, [aclContext, aclRules, appliedFilters.networks]);
+  }, [aclContext, aclRules, appliedFilters, rulesAfterSearch]);
+
+  const displayItemsCount = useMemo(
+    () => deployedRules.length + pendingRules.length,
+    [deployedRules.length, pendingRules.length],
+  );
 
   const filters = useMemo(() => {
     const res: Record<string, FilterDialogFilter> = {};
@@ -169,8 +128,48 @@ export const AclIndexRules = () => {
         value: network.id,
       })),
     };
+    res.aliases = {
+      label: 'Aliases',
+      items: aclContext.aliases.map((alias) => ({
+        label: alias.name,
+        searchValues: [alias.name],
+        value: alias.id,
+      })),
+    };
+
+    res.status = {
+      label: 'Status',
+      items: [
+        {
+          label: 'Enabled',
+          value: 1000,
+          searchValues: ['enabled'],
+        },
+        {
+          label: 'Disabled',
+          value: 999,
+          searchValues: ['disabled'],
+        },
+        {
+          label: 'New',
+          value: 0,
+          searchValues: ['new'],
+        },
+        {
+          label: 'Modified',
+          value: 1,
+          searchValues: ['modified'],
+        },
+        {
+          label: 'Deployed',
+          value: 2,
+          searchValues: ['deployed'],
+        },
+        { label: 'Deleted', value: 3, searchValues: ['deleted'] },
+      ],
+    };
     return res;
-  }, [aclContext.networks]);
+  }, [aclContext.aliases, aclContext.networks]);
 
   const filtersCount = useMemo(() => {
     const values = flatten(Object.values(appliedFilters));
@@ -184,6 +183,14 @@ export const AclIndexRules = () => {
     <div id="acl-rules">
       <header>
         <h2>Rules</h2>
+        <ListItemCount count={displayItemsCount} />
+        <Search
+          placeholder="Find name"
+          initialValue={searchValue}
+          onDebounce={(searchChange) => {
+            setSearchValue(searchChange);
+          }}
+        />
         <div className="controls">
           <Button
             className="filter"
@@ -208,6 +215,13 @@ export const AclIndexRules = () => {
               </svg>
             }
           />
+          {pendingRules.length > 0 && (
+            <Button
+              size={ButtonSize.SMALL}
+              styleVariant={ButtonStyleVariant.SAVE}
+              text={`Deploy pending changes (${pendingRules.length})`}
+            />
+          )}
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
@@ -240,12 +254,30 @@ export const AclIndexRules = () => {
           />
         </div>
       </header>
-      {Array.isArray(pending) && (
+      {pendingRules.length === 0 && deployedRules.length === 0 && (
+        <NoData
+          customMessage={
+            appliedFiltersCount !== 0 || searchValue !== ''
+              ? 'No rules found'
+              : 'No rules'
+          }
+          messagePosition="center"
+        />
+      )}
+      {pendingRules.length > 0 && (
         <RulesList
           header={{
-            text: 'Pending Changes',
+            text: 'Pending Deployments',
           }}
-          data={pending}
+          data={pendingRules}
+        />
+      )}
+      {deployedRules.length > 0 && (
+        <RulesList
+          header={{
+            text: 'Deployed Rules',
+          }}
+          data={deployedRules}
         />
       )}
       <AclIndexRulesFilterModal
@@ -335,39 +367,41 @@ const RulesList = ({ data, header }: RulesListProps) => {
   return (
     <div className="rules-list">
       <DividerHeader text={header.text}>{header.extras}</DividerHeader>
-      <div className="list-container">
-        <ListHeader<AclRuleInfo>
-          headers={listHeaders}
-          sortDirection={sortDir}
-          activeKey={sortKey}
-          onChange={(key, dir) => {
-            setSortKey(key);
-            setSortDir(dir);
-          }}
-        />
-        <ul>
-          {sortedRules.map((rule) => (
-            <li key={rule.id} className="rule-row">
-              <div className="cell name">{rule.name}</div>
-              <div className="cell allowed">
-                <RenderTagDisplay data={rule.context.allowed} />
-              </div>
-              <div className="cell denied">
-                <RenderTagDisplay data={rule.context.denied} />
-              </div>
-              <div className="cell locations">
-                <RenderTagDisplay data={rule.context.networks} />
-              </div>
-              <div className="cell status">
-                <AclRuleStatus enabled={rule.enabled} status={rule.state} />
-              </div>
-              <div className="cell edit">
-                <RuleEditButton rule={rule} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {sortedRules.length > 0 && (
+        <div className="list-container">
+          <ListHeader<AclRuleInfo>
+            headers={listHeaders}
+            sortDirection={sortDir}
+            activeKey={sortKey}
+            onChange={(key, dir) => {
+              setSortKey(key);
+              setSortDir(dir);
+            }}
+          />
+          <ul>
+            {sortedRules.map((rule) => (
+              <li key={rule.id} className="rule-row">
+                <div className="cell name">{upperCaseFirst(rule.name)}</div>
+                <div className="cell allowed">
+                  <RenderTagDisplay data={rule.context.allowed} />
+                </div>
+                <div className="cell denied">
+                  <RenderTagDisplay data={rule.context.denied} />
+                </div>
+                <div className="cell locations">
+                  <RenderTagDisplay data={rule.context.networks} />
+                </div>
+                <div className="cell status">
+                  <AclRuleStatus enabled={rule.enabled} status={rule.state} />
+                </div>
+                <div className="cell edit">
+                  <RuleEditButton rule={rule} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
@@ -429,4 +463,121 @@ const RuleEditButton = ({ rule }: EditProps) => {
       />
     </EditButton>
   );
+};
+
+const prepareDisplay = (
+  aclRules: AclRuleInfo[],
+  appliedFilters: RulesFilters,
+  pending: boolean,
+  aclContext: Omit<AclCreateContextLoaded, 'devices' | 'ruleToEdit'>,
+): ListData[] => {
+  let rules: AclRuleInfo[];
+  let statusFilters: number[];
+  let disabledStateFilter = false;
+  let enabledStateFilter = false;
+  if (pending) {
+    rules = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED);
+    statusFilters = appliedFilters.status.filter((s) => ![999, 1000].includes(s));
+  } else {
+    rules = aclRules.filter((rule) => rule.state === AclStatus.APPLIED);
+    statusFilters = appliedFilters.status;
+    disabledStateFilter = statusFilters.includes(999);
+    enabledStateFilter = statusFilters.includes(1000);
+  }
+
+  const aclStateFilter = statusFilters.map((f) => aclStatusFromInt(f));
+
+  rules = rules.filter((rule) => {
+    const filterChecks: boolean[] = [];
+    if (statusFilters.length) {
+      if (pending) {
+        filterChecks.push(aclStateFilter.includes(rule.state));
+      } else {
+        filterChecks.push(
+          (disabledStateFilter && !rule.enabled) || (enabledStateFilter && rule.enabled),
+        );
+      }
+    }
+    if (appliedFilters.networks.length && !rule.all_networks) {
+      filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);
+    }
+    if (appliedFilters.aliases.length) {
+      filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    }
+    return !filterChecks.includes(false);
+  });
+
+  const listData: ListData[] = rules.map((rule) => {
+    let allowed: ListTagDisplay[];
+    let denied: ListTagDisplay[];
+    let networks: ListTagDisplay[];
+
+    if (rule.allow_all_users) {
+      allowed = [{ key: 'all', label: 'All Allowed', displayAsTag: false }];
+    } else {
+      allowed = concat(
+        aclContext.users
+          .filter((u) => rule.allowed_users.includes(u.id))
+          .map((u) => ({
+            key: `user-${u.id}`,
+            label: u.username,
+            displayAsTag: true,
+          })),
+      );
+    }
+
+    if (rule.deny_all_users) {
+      denied = [{ key: 'all', label: 'All Denied', displayAsTag: false }];
+    } else {
+      denied = concat(
+        aclContext.users
+          .filter((u) => rule.denied_users.includes(u.id))
+          .map((user) => ({
+            key: user.id,
+            label: user.username,
+            displayAsTag: true,
+          })),
+      );
+    }
+
+    if (rule.all_networks) {
+      networks = [
+        {
+          key: 'all',
+          label: 'All Included',
+        },
+      ];
+    } else {
+      networks = aclContext.networks
+        .filter((network) => rule.networks.includes(network.id))
+        .map((network) => ({
+          key: network.id,
+          label: network.name,
+          displayAsTag: true,
+        }));
+    }
+
+    const destination: ListTagDisplay[] = concat(
+      rule.destination
+        .split(',')
+        .filter((s) => s === '')
+        .map((dest, index) => ({
+          key: index.toString(),
+          label: dest,
+          displayAsTag: false,
+        })),
+    );
+
+    return {
+      ...rule,
+      context: {
+        allowed,
+        denied,
+        destination,
+        networks,
+      },
+    };
+  });
+
+  return listData;
 };

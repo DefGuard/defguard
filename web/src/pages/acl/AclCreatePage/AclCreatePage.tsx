@@ -108,8 +108,8 @@ export const AlcCreatePage = () => {
   const handleSuccess = useCallback(() => {
     const keys = [QueryKeys.FETCH_ACL_RULES, QueryKeys.FETCH_ACL_RULE_EDIT];
     for (const key of keys) {
-      void queryClient.refetchQueries({
-        queryKey: [key],
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes(key),
       });
     }
     navigate('/admin/acl');

@@ -1,21 +1,45 @@
+import './style.scss';
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { orderBy } from 'lodash-es';
+import { useMemo, useState } from 'react';
+import { upperCaseFirst } from 'text-case';
 import { shallow } from 'zustand/shallow';
 
+import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
+import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
+import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
+import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
+import useApi from '../../../../../shared/hooks/useApi';
+import { QueryKeys } from '../../../../../shared/queries';
+import { useAclCreateSelector } from '../../../acl-context';
+import { AclAlias } from '../../../types';
 import { AlcAliasCEModal } from './modals/AlcAliasCEModal/AlcAliasCEModal';
 import { useAclAliasCEModal } from './modals/AlcAliasCEModal/store';
 
 export const AclIndexAliases = () => {
   const openCEModal = useAclAliasCEModal((s) => s.open, shallow);
+  const aliases = useAclCreateSelector((s) => s.aliases);
+  const itemCount = useMemo(() => aliases?.length ?? 0, [aliases?.length]);
+
   return (
     <div id="acl-aliases">
       <header>
         <h2>Aliases</h2>
+        <ListItemCount count={itemCount} />
+        <Search placeholder="Find name" />
         <div className="controls">
-          <Button
+          {/* <Button
             className="filter"
             text="Filters"
             size={ButtonSize.SMALL}
@@ -34,7 +58,7 @@ export const AclIndexAliases = () => {
                 />
               </svg>
             }
-          />
+          /> */}
           <Button
             text="Add new"
             size={ButtonSize.SMALL}
@@ -67,21 +91,135 @@ export const AclIndexAliases = () => {
           />
         </div>
       </header>
-      <AliasesList />
+      {aliases && aliases.length > 0 && <AliasesList aliases={aliases} />}
       <AlcAliasCEModal />
     </div>
   );
 };
 
-export const AliasesList = () => {
+type ListProps = {
+  aliases: AclAlias[];
+};
+
+export const AliasesList = ({ aliases }: ListProps) => {
+  const [activeOrderKey, setActiveOrderKey] = useState<keyof AclAlias>('name');
+  const [orderDirection, setOrderDirection] = useState<ListSortDirection>(
+    ListSortDirection.ASC,
+  );
+
+  const headers = useMemo(
+    (): ListHeaderColumnConfig<AclAlias>[] => [
+      {
+        label: 'Name',
+        sortKey: 'name',
+        enabled: true,
+      },
+      {
+        label: 'Ipv4/6 CIDR range address',
+        key: 'ip',
+        enabled: false,
+      },
+      {
+        label: 'Ports',
+        key: 'ports',
+        enabled: false,
+      },
+      {
+        label: 'Protocols',
+        key: 'protocols',
+        enabled: false,
+      },
+      {
+        label: 'Edit',
+        key: 'edit',
+        enabled: false,
+      },
+    ],
+    [],
+  );
+
+  const displayAliases = useMemo(() => {
+    const res = aliases;
+    if (isPresent(aliases)) {
+      // apply filters
+      // apply ordering
+      const orderDir = orderDirection.valueOf().toLowerCase() as 'asc' | 'desc';
+      orderBy(res, [activeOrderKey], [orderDir]);
+    }
+    return res;
+  }, [activeOrderKey, aliases, orderDirection]);
+
   return (
     <div id="aliases-list">
-      <div className="headers"></div>
-      <div className="list">
+      <ListHeader
+        headers={headers}
+        activeKey={activeOrderKey}
+        sortDirection={orderDirection}
+        onChange={(key, direction) => {
+          setActiveOrderKey(key);
+          setOrderDirection(direction);
+        }}
+      />
+      {isPresent(displayAliases) && (
         <ul>
-          <li className="cell"></li>
+          {displayAliases.map((alias) => (
+            <li className="row" key={alias.id}>
+              <div className="cell name">{upperCaseFirst(alias.name)}</div>
+              <div className="cell ip">{alias.destination}</div>
+              <div className="cell ports">{alias.ports}</div>
+              <div className="cell protocols">{alias.protocols}</div>
+              <div className="cell edit">
+                <AliasRowEdit alias={alias} />
+              </div>
+            </li>
+          ))}
         </ul>
-      </div>
+      )}
     </div>
+  );
+};
+
+type EditProps = {
+  alias: AclAlias;
+};
+
+const AliasRowEdit = ({ alias }: EditProps) => {
+  const {
+    acl: {
+      aliases: { deleteAlias },
+    },
+  } = useApi();
+  const queryClient = useQueryClient();
+  const { mutate: deleteAliasMutation, isPending } = useMutation({
+    mutationFn: deleteAlias,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [QueryKeys.FETCH_ACL_ALIASES],
+      });
+    },
+    onError: (e) => {
+      console.error(e);
+    },
+  });
+  const openEditModal = useAclAliasCEModal((s) => s.open, shallow);
+
+  return (
+    <EditButton>
+      <EditButtonOption
+        text="Edit"
+        onClick={() => {
+          openEditModal({ alias });
+        }}
+        disabled={isPending}
+      />
+      <EditButtonOption
+        text="Delete Alias"
+        onClick={() => {
+          deleteAliasMutation(alias.id);
+        }}
+        disabled={isPending}
+        styleVariant={EditButtonOptionStyleVariant.WARNING}
+      />
+    </EditButton>
   );
 };

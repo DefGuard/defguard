@@ -517,7 +517,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.delete(`/acl/rule/${id}`).then(unpackRequest);
 
   const getAliases: ApiHook['acl']['aliases']['getAliases'] = () =>
-    client.get(`/acl/alias/`).then(unpackRequest);
+    client.get(`/acl/alias`).then(unpackRequest);
 
   const getAlias: ApiHook['acl']['aliases']['getAlias'] = (id) =>
     client.get(`/acl/alias/${id}`).then(unpackRequest);
@@ -526,7 +526,7 @@ const useApi = (props?: HookProps): ApiHook => {
     client.post(`/acl/alias`, data).then(unpackRequest);
 
   const editAlias: ApiHook['acl']['aliases']['editAlias'] = (data) =>
-    client.put(`/acl/alias/${data.id}`).then(unpackRequest);
+    client.put(`/acl/alias/${data.id}`, data).then(unpackRequest);
 
   const deleteAlias: ApiHook['acl']['aliases']['deleteAlias'] = (id) =>
     client.delete(`/acl/alias/${id}`).then(unpackRequest);

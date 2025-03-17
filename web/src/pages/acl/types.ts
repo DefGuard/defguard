@@ -20,6 +20,7 @@ export type AclCreateContextLoaded = {
   users: User[];
   devices: StandaloneDevice[];
   networks: Network[];
+  aliases: AclAlias[];
   ruleToEdit?: AclRuleInfo;
 };
 

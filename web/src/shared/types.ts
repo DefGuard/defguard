@@ -501,6 +501,7 @@ export interface ApiHook {
       createRule: (data: CreateAclRuleRequest) => Promise<EmptyApiResponse>;
       editRule: (data: EditAclRuleRequest) => Promise<EmptyApiResponse>;
       deleteRule: (id: number) => Promise<AclRuleInfo>;
+      applyRules: (data: number[]) => Promise<EmptyApiResponse>;
     };
   };
   oAuth: {

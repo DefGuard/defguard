@@ -107,7 +107,6 @@ const ModalContent = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = async (values) => {
-    console.log(values);
     try {
       if (isEditMode) {
         await editAlias({
@@ -120,7 +119,7 @@ const ModalContent = () => {
         toaster.success('Alias created');
       }
       await queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_ACL_ALIASES],
+        predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_ALIASES),
       });
       closeModal();
     } catch (e) {
