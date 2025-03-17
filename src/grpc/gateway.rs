@@ -227,7 +227,7 @@ impl GatewayUpdatesHandler {
     /// Process incoming gateway events
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
-    /// so the handler must determine if an event is relevant for the network being services
+    /// so the handler must determine if an event is relevant for the network being serviced
     pub async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
@@ -329,6 +329,13 @@ impl GatewayUpdatesHandler {
                     {
                         Some(_) => self.send_peer_delete(&device.device.wireguard_pubkey).await,
                         None => Ok(()),
+                    }
+                }
+                GatewayEvent::AclRulesApplied(location_id, firewall_config) => {
+                    if location_id == self.network_id {
+                        self.send_firewall_update(firewall_config).await
+                    } else {
+                        Ok(())
                     }
                 }
             };
@@ -474,6 +481,31 @@ impl GatewayUpdatesHandler {
         {
             let msg = format!(
                 "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 (DELETE), error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Peer delete command sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send firewall config update command to gateway
+    async fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
+        debug!(
+            "Sending firewall config update for network {} with config {firewall_config:?}",
+            self.network
+        );
+        if let Err(err) = self
+            .tx
+            .send(Ok(Update {
+                update_type: 1,
+                update: Some(update::Update::FirewallConfig(firewall_config)),
+            }))
+            .await
+        {
+            let msg = format!(
+                "Failed to send firewall config update for network {}, error: {err}",
                 self.network,
             );
             error!(msg);

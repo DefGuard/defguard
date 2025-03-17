@@ -1,6 +1,10 @@
 use crate::{
-    db::{Device, Group, Id, NoId, User, WireguardNetwork},
-    enterprise::handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+    appstate::AppState,
+    db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
+    enterprise::{
+        firewall::FirewallError,
+        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+    },
     DeviceType,
 };
 use chrono::NaiveDateTime;
@@ -36,6 +40,8 @@ pub enum AclError {
     RuleNotFoundError(Id),
     #[error("RuleAlreadyAppliedError: {0}")]
     RuleAlreadyAppliedError(Id),
+    #[error(transparent)]
+    FirewallError(#[from] FirewallError),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -399,21 +405,54 @@ impl AclRule {
     }
 
     /// Changes rule state to [`RuleState::Applied`] for all specified rules
-    ///  TODO: trigger gateway reconfiguration
     ///
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_rules(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
+    pub async fn apply_rules(
+        pool: &PgPool,
+        rules: &[Id],
+        appstate: &AppState,
+    ) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = pool.begin().await?;
+
+        // prepare variable for collecting affected locations
+        let mut affected_locations = HashSet::new();
+
         for id in rules {
             let mut rule = AclRule::find_by_id(&mut *transaction, *id)
                 .await?
                 .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
             rule.apply(&mut transaction).await?;
+            let locations = rule.get_networks(&mut *transaction).await?;
+            for location in locations {
+                affected_locations.insert(location);
+            }
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
+
+        let affected_locations: Vec<WireguardNetwork<Id>> =
+            affected_locations.into_iter().collect();
+        debug!(
+            "{} locations affected by applied ACL rules. Sending gateway firewall update events for each location",
+            affected_locations.len()
+        );
+
+        for location in affected_locations {
+            match location.try_get_firewall_config(pool).await? {
+                Some(firewall_config) => {
+                    debug!("Sending firewall update event for location {location}");
+                    appstate.send_wireguard_event(GatewayEvent::AclRulesApplied(
+                        location.id,
+                        firewall_config,
+                    ));
+                }
+                None => {
+                    debug!("No firewall config generated for location {location}. Not sending a gateway event")
+                }
+            }
+        }
 
         transaction.commit().await?;
         Ok(())

@@ -103,7 +103,7 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Rule {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::DbError(err) => {
+                AclError::DbError(_) | AclError::FirewallError(_) => {
                     error!("{err}");
                     ApiResponse::new(
                         json!({"msg": "Internal server error"}),

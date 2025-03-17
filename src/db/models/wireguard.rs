@@ -31,6 +31,7 @@ use crate::{
     db::{Id, NoId},
     grpc::{
         gateway::{send_multiple_wireguard_events, Peer},
+        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
     },
     wg_config::ImportedDevice,
@@ -75,10 +76,11 @@ pub enum GatewayEvent {
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
+    AclRulesApplied(Id, FirewallConfig),
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
     pub id: I,
