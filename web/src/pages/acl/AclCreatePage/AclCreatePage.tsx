@@ -29,7 +29,6 @@ import {
   MessageBoxStyleVariant,
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import useApi from '../../../shared/hooks/useApi';
 import { QueryKeys } from '../../../shared/queries';
 import {
@@ -43,7 +42,8 @@ import {
 } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
-import { AclProtocol } from '../types';
+import { protocolOptions, protocolToString } from '../utils';
+import { aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 type Alias = {
@@ -108,8 +108,8 @@ export const AlcCreatePage = () => {
   const handleSuccess = useCallback(() => {
     const keys = [QueryKeys.FETCH_ACL_RULES, QueryKeys.FETCH_ACL_RULE_EDIT];
     for (const key of keys) {
-      void queryClient.refetchQueries({
-        queryKey: [key],
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes(key),
       });
     }
     navigate('/admin/acl');
@@ -148,59 +148,10 @@ export const AlcCreatePage = () => {
         denied_devices: z.number().array(),
         aliases: z.number().array(),
         destination: z.string(),
-        ports: z
-          .string()
-          .refine((value: string) => {
-            if (value === '') return true;
-            const regexp = new RegExp(
-              /^(?:\d+(?:-\d+)*)(?:(?:\s*,\s*|\s+)\d+(?:-\d+)*)*$/,
-            );
-            return regexp.test(value);
-          })
-          .refine((value: string) => {
-            if (value === '') return true;
-            // check if there is no duplicates in given port field
-            const trimmed = value
-              .replaceAll(' ', '')
-              .replaceAll('-', ' ')
-              .replaceAll(',', ' ')
-              .split(' ')
-              .filter((v) => v !== '');
-            const found: number[] = [];
-            for (const entry of trimmed) {
-              const num = parseInt(entry);
-              if (isNaN(num)) {
-                return false;
-              }
-              if (found.includes(num)) {
-                return false;
-              }
-              found.push(num);
-            }
-            return true;
-          }, formErrors.invalid())
-          .refine((value: string) => {
-            if (value === '') return true;
-            // check if ranges in input are valid means follow pattern <start>-<end>
-            const matches = value.match(/\b\d+-\d+\b/g);
-            if (Array.isArray(matches)) {
-              for (const match of matches) {
-                const split = match.split('-');
-                if (split.length !== 2) {
-                  return false;
-                }
-                const start = split[0];
-                const end = split[1];
-                if (start >= end) {
-                  return false;
-                }
-              }
-            }
-            return true;
-          }, formErrors.invalid()),
+        ports: aclPortsValidator(LL),
         protocols: z.number().array(),
       }),
-    [formErrors],
+    [LL, formErrors],
   );
 
   type FormFields = z.infer<typeof schema>;
@@ -291,10 +242,7 @@ export const AlcCreatePage = () => {
           />
         </div>
       </div>
-      <form
-        id="acl-sections"
-        onSubmit={handleSubmit(handleValidSubmit, (vals) => console.log(vals))}
-      >
+      <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
         <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <LabeledCheckbox
@@ -504,32 +452,3 @@ const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
 
 const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;
-
-const protocolToString = (value: AclProtocol): string => {
-  switch (value) {
-    case AclProtocol.TCP:
-      return 'TCP';
-    case AclProtocol.UDP:
-      return 'UDP';
-    case AclProtocol.ICMP:
-      return 'ICMP';
-  }
-};
-
-const protocolOptions: SelectOption<number>[] = [
-  {
-    key: AclProtocol.TCP,
-    label: 'TCP',
-    value: AclProtocol.TCP,
-  },
-  {
-    key: AclProtocol.UDP,
-    label: 'UDP',
-    value: AclProtocol.UDP,
-  },
-  {
-    key: AclProtocol.ICMP,
-    label: 'ICMP',
-    value: AclProtocol.ICMP,
-  },
-];

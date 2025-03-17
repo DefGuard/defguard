@@ -2,9 +2,13 @@
   box-sizing: border-box;
   display: inline-grid;
   grid-template-rows: 1fr;
-  grid-template-columns: 350px repeat(3, 300px) 200px 45px;
+  grid-template-columns: 350px repeat(3, 300px) 75px 40px;
   justify-content: space-between;
   padding: 0 var(--spacing-s);
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 1.25fr repeat(3, 1fr) 0.5fr 45px;
+  }
 
   & > * {
     display: inline-flex;
@@ -20,25 +24,6 @@
 
 #acl-rules {
   width: 100%;
-
-  & > header {
-    width: 100%;
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: flex-start;
-    column-gap: var(--spacing-s);
-    padding-bottom: var(--spacing-m);
-
-    & > .controls {
-      margin-left: auto;
-      display: flex;
-      flex-flow: row;
-      align-items: center;
-      justify-content: flex-end;
-      column-gap: var(--spacing-s);
-    }
-  }
 
   .tags-display {
     display: flex;
@@ -75,6 +60,10 @@
   .rules-list {
     width: 100%;
 
+    &:not(:last-child) {
+      padding-bottom: var(--spacing-s);
+    }
+
     .list-headers {
       @include grid-config;
       padding-bottom: var(--spacing-m);
@@ -92,6 +81,10 @@
 
       li {
         @include grid-config();
+
+        .btn {
+          width: 100%;
+        }
 
         .cell {
           &.name {

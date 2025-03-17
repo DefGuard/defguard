@@ -35,13 +35,14 @@ const useUpdateAclCreateContext = () => {
 };
 
 const useAclLoadedContext = () => {
-  const { devices, groups, networks, users, editRule } = useTrackedState();
+  const { devices, groups, networks, users, editRule, aliases } = useTrackedState();
 
   if (
     devices === undefined ||
     groups === undefined ||
     networks === undefined ||
-    users === undefined
+    users === undefined ||
+    aliases === undefined
   ) {
     throw Error('Use of ACL data before it was loaded');
   }
@@ -50,6 +51,7 @@ const useAclLoadedContext = () => {
     groups,
     networks,
     users,
+    aliases,
     ruleToEdit: editRule,
   } as AclCreateContextLoaded;
 };

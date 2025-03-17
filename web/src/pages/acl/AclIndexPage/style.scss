@@ -5,11 +5,52 @@
     box-sizing: border-box;
     padding: var(--spacing-s);
     border-top-left-radius: 0;
+
+    & > div {
+      & > header {
+        width: 100%;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        column-gap: var(--spacing-xs);
+        padding-bottom: var(--spacing-m);
+
+        & > .controls {
+          margin-left: auto;
+          display: flex;
+          flex-flow: row;
+          align-items: center;
+          justify-content: flex-end;
+          column-gap: var(--spacing-s);
+
+          .btn.filter {
+            svg path {
+              @include animate-standard;
+              transition-property: fill;
+              fill: var(--text-button-primary);
+            }
+
+            &:hover {
+              svg path {
+                fill: var(--surface-main-primary);
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
   .page-content {
     & > header {
       padding-bottom: var(--spacing-l);
     }
+  }
+
+  .no-data {
+    @include typography(app-side-bar);
+    color: var(--text-body-tertiary);
+    margin: var(--spacing-s) 0;
   }
 }
