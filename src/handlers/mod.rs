@@ -99,6 +99,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Rule {id} not found")}),
                     StatusCode::NOT_FOUND,
                 ),
+                AclError::RuleAlreadyAppliedError(id) => ApiResponse::new(
+                    json!({"msg": format!("Rule {id} already applied")}),
+                    StatusCode::BAD_REQUEST,
+                ),
                 AclError::DbError(err) => {
                     error!("{err}");
                     ApiResponse::new(
@@ -229,6 +233,7 @@ impl AuthCode {
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
+    pub id: Id,
     pub name: String,
     pub members: Vec<String>,
     pub vpn_locations: Vec<String>,
@@ -238,12 +243,14 @@ pub struct GroupInfo {
 impl GroupInfo {
     #[must_use]
     pub fn new<S: Into<String>>(
+        id: Id,
         name: S,
         members: Vec<String>,
         vpn_locations: Vec<String>,
         is_admin: bool,
     ) -> Self {
         Self {
+            id,
             name: name.into(),
             members,
             vpn_locations,
@@ -258,6 +265,17 @@ pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
     pub is_admin: bool,
+}
+
+impl EditGroupInfo {
+    #[must_use]
+    pub fn new<S: Into<String>>(name: S, members: Vec<String>, is_admin: bool) -> Self {
+        Self {
+            name: name.into(),
+            members,
+            is_admin,
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

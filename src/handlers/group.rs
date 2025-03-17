@@ -144,7 +144,7 @@ pub(crate) async fn list_groups_info(
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
-        "SELECT g.name, \
+        "SELECT g.id, g.name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
         COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
         is_admin \
@@ -239,7 +239,13 @@ pub(crate) async fn get_group(
             .await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, members, vpn_locations, is_admin)),
+            json: json!(GroupInfo::new(
+                group.id,
+                name,
+                members,
+                vpn_locations,
+                is_admin
+            )),
             status: StatusCode::OK,
         })
     } else {
