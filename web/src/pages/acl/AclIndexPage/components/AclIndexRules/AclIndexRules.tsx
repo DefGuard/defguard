@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { concat, flatten, intersection, orderBy } from 'lodash-es';
+import { concat, intersection, orderBy } from 'lodash-es';
 import { PropsWithChildren, ReactNode, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
@@ -23,6 +23,7 @@ import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag
 import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
@@ -61,9 +62,11 @@ const defaultFilters: RulesFilters = {
 
 export const AclIndexRules = () => {
   const navigate = useNavigate();
-  const {acl: {rules: {
-
-  }}} = useApi();
+  const {
+    acl: {
+      rules: { applyRules },
+    },
+  } = useApi();
   const aclContext = useAclLoadedContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
@@ -72,9 +75,17 @@ export const AclIndexRules = () => {
     [appliedFilters],
   );
   const [searchValue, setSearchValue] = useState('');
+  const toaster = useToaster();
   const queryClient = useQueryClient();
-  const {mutate: applyPendingChangesMutation, isPending: applyPending} = useMutation({
-    mutationFn: 
+
+  const { mutate: applyPendingChangesMutation, isPending: applyPending } = useMutation({
+    mutationFn: applyRules,
+    onSuccess: () => {
+      toaster.success(`Pending rules applied`);
+      void queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_RULES),
+      });
+    },
   });
 
   const {
@@ -171,13 +182,14 @@ export const AclIndexRules = () => {
     return res;
   }, [aclContext.aliases, aclContext.networks]);
 
-  const filtersCount = useMemo(() => {
-    const values = flatten(Object.values(appliedFilters));
-    if (values.length) {
-      return ` (${values.length})`;
-    }
-    return '';
-  }, [appliedFilters]);
+  const filtersCountDisplay = useMemo(() => {
+    return appliedFiltersCount ? ` (${appliedFiltersCount})` : '';
+  }, [appliedFiltersCount]);
+
+  const filtersPresent = useMemo(
+    () => filtersCountDisplay !== '' || searchValue !== '',
+    [filtersCountDisplay, searchValue],
+  );
 
   return (
     <div id="acl-rules">
@@ -196,7 +208,7 @@ export const AclIndexRules = () => {
             className="filter"
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.LINK}
-            text={`Filters${filtersCount}`}
+            text={`Filters${filtersCountDisplay}`}
             onClick={() => {
               setFiltersOpen(true);
             }}
@@ -215,13 +227,21 @@ export const AclIndexRules = () => {
               </svg>
             }
           />
-          {pendingRules.length > 0 && (
-            <Button
-              size={ButtonSize.SMALL}
-              styleVariant={ButtonStyleVariant.SAVE}
-              text={`Deploy pending changes (${pendingRules.length})`}
-            />
-          )}
+          <Button
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            text={`Deploy pending changes${pendingRules.length ? ` (${pendingRules.length})` : ''}`}
+            disabled={pendingRules.length === 0}
+            onClick={() => {
+              if (aclRules) {
+                const rulesToApply = aclRules
+                  .filter((rule) => rule.state !== AclStatus.APPLIED)
+                  .map((rule) => rule.id);
+                applyPendingChangesMutation(rulesToApply);
+              }
+            }}
+            loading={applyPending}
+          />
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
@@ -254,32 +274,20 @@ export const AclIndexRules = () => {
           />
         </div>
       </header>
-      {pendingRules.length === 0 && deployedRules.length === 0 && (
-        <NoData
-          customMessage={
-            appliedFiltersCount !== 0 || searchValue !== ''
-              ? 'No rules found'
-              : 'No rules'
-          }
-          messagePosition="center"
-        />
-      )}
-      {pendingRules.length > 0 && (
-        <RulesList
-          header={{
-            text: 'Pending Deployments',
-          }}
-          data={pendingRules}
-        />
-      )}
-      {deployedRules.length > 0 && (
-        <RulesList
-          header={{
-            text: 'Deployed Rules',
-          }}
-          data={deployedRules}
-        />
-      )}
+      <RulesList
+        header={{
+          text: 'Pending Deployments',
+        }}
+        data={pendingRules}
+        noDataMessage={filtersPresent ? 'No pending changes found' : 'No pending changes'}
+      />
+      <RulesList
+        header={{
+          text: 'Deployed Rules',
+        }}
+        data={deployedRules}
+        noDataMessage={filtersPresent ? 'No deployed rules found' : 'No deployed rules'}
+      />
       <AclIndexRulesFilterModal
         currentState={appliedFilters}
         data={filters}
@@ -317,9 +325,10 @@ type RulesListProps = {
     text: string;
     extras?: ReactNode;
   };
+  noDataMessage: string;
 };
 
-const RulesList = ({ data, header }: RulesListProps) => {
+const RulesList = ({ data, header, noDataMessage }: RulesListProps) => {
   const [sortKey, setSortKey] = useState<keyof AclRuleInfo>('name');
   const [sortDir, setSortDir] = useState<ListSortDirection>(ListSortDirection.ASC);
 
@@ -367,6 +376,9 @@ const RulesList = ({ data, header }: RulesListProps) => {
   return (
     <div className="rules-list">
       <DividerHeader text={header.text}>{header.extras}</DividerHeader>
+      {sortedRules.length === 0 && (
+        <NoData customMessage={noDataMessage} messagePosition="center" />
+      )}
       {sortedRules.length > 0 && (
         <div className="list-container">
           <ListHeader<AclRuleInfo>

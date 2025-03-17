@@ -17,10 +17,12 @@ import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
 import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
+import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
 import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useAclCreateSelector } from '../../../acl-context';
 import { AclAlias } from '../../../types';
@@ -31,13 +33,29 @@ export const AclIndexAliases = () => {
   const openCEModal = useAclAliasCEModal((s) => s.open, shallow);
   const aliases = useAclCreateSelector((s) => s.aliases);
   const itemCount = useMemo(() => aliases?.length ?? 0, [aliases?.length]);
+  const [searchValue, setSearchValue] = useState('');
+
+  const filteredAliases = useMemo(() => {
+    if (searchValue !== '' && aliases) {
+      return aliases?.filter((alias) =>
+        alias.name.toLowerCase().trim().includes(searchValue.trim().toLowerCase()),
+      );
+    }
+    return aliases ?? [];
+  }, [aliases, searchValue]);
 
   return (
     <div id="acl-aliases">
       <header>
         <h2>Aliases</h2>
         <ListItemCount count={itemCount} />
-        <Search placeholder="Find name" />
+        <Search
+          placeholder="Find name"
+          initialValue={searchValue}
+          onDebounce={(searchChange) => {
+            setSearchValue(searchChange);
+          }}
+        />
         <div className="controls">
           {/* <Button
             className="filter"
@@ -91,7 +109,10 @@ export const AclIndexAliases = () => {
           />
         </div>
       </header>
-      {aliases && aliases.length > 0 && <AliasesList aliases={aliases} />}
+      {filteredAliases.length > 0 && <AliasesList aliases={filteredAliases} />}
+      {filteredAliases.length === 0 && (
+        <NoData customMessage="No aliases" messagePosition="center" />
+      )}
       <AlcAliasCEModal />
     </div>
   );
@@ -190,11 +211,13 @@ const AliasRowEdit = ({ alias }: EditProps) => {
     },
   } = useApi();
   const queryClient = useQueryClient();
+  const toaster = useToaster();
   const { mutate: deleteAliasMutation, isPending } = useMutation({
     mutationFn: deleteAlias,
     onSuccess: () => {
+      toaster.success('Alias deleted');
       void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_ACL_ALIASES],
+        predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_ALIASES),
       });
     },
     onError: (e) => {

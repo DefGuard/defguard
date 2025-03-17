@@ -129,30 +129,32 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
     <>
       <Search placeholder={LL.common.search()} onDebounce={setSearch} />
       <div className="groups">
-        {displayFilters.map((group) => (
-          <div className="group" key={group.key}>
-            <div className="header">
-              <p>{group.label}</p>
+        {displayFilters
+          .filter((group) => group.items.length > 0)
+          .map((group) => (
+            <div className="group" key={group.key}>
+              <div className="header">
+                <p>{group.label}</p>
+              </div>
+              <ul className="items">
+                {group.items.map((item) => (
+                  <li key={item.value}>
+                    <LabeledCheckbox
+                      value={selected[group.key][item.value]}
+                      label={item.label}
+                      onChange={() => {
+                        toggleCheckbox(
+                          group.key,
+                          item.value,
+                          !selected[group.key][item.value],
+                        );
+                      }}
+                    />
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="items">
-              {group.items.map((item) => (
-                <li key={item.value}>
-                  <LabeledCheckbox
-                    value={selected[group.key][item.value]}
-                    label={item.label}
-                    onChange={() => {
-                      toggleCheckbox(
-                        group.key,
-                        item.value,
-                        !selected[group.key][item.value],
-                      );
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+          ))}
       </div>
       <div className="divider">
         <div className="line"></div>

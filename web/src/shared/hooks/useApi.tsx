@@ -531,6 +531,13 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteAlias: ApiHook['acl']['aliases']['deleteAlias'] = (id) =>
     client.delete(`/acl/alias/${id}`).then(unpackRequest);
 
+  const applyAclRules: ApiHook['acl']['rules']['applyRules'] = (rules) =>
+    client
+      .put('/acl/rules/apply', {
+        rules: rules,
+      })
+      .then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -577,6 +584,7 @@ const useApi = (props?: HookProps): ApiHook => {
         getRule: getAclRule,
         editRule: editAclRule,
         deleteRule: deleteAclRule,
+        applyRules: applyAclRules,
       },
     },
     oAuth: {

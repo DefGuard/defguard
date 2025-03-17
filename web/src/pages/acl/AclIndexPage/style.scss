@@ -47,4 +47,10 @@
       padding-bottom: var(--spacing-l);
     }
   }
+
+  .no-data {
+    @include typography(app-side-bar);
+    color: var(--text-body-tertiary);
+    margin: var(--spacing-s) 0;
+  }
 }

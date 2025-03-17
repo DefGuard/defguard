@@ -242,10 +242,7 @@ export const AlcCreatePage = () => {
           />
         </div>
       </div>
-      <form
-        id="acl-sections"
-        onSubmit={handleSubmit(handleValidSubmit, (vals) => console.log(vals))}
-      >
+      <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
         <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <LabeledCheckbox
