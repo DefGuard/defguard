@@ -2,7 +2,6 @@ import './shared/scss/styles.scss';
 import './shared/defguard-ui/scss/index.scss';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import dayjs from 'dayjs';
 import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 import utc from 'dayjs/plugin/utc';
@@ -23,7 +22,6 @@ root.render(
       <TranslationProvider>
         <AppLoader />
       </TranslationProvider>
-      <ReactQueryDevtools initialIsOpen={true} />
     </QueryClientProvider>
   </StrictMode>,
 );
