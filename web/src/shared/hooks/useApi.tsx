@@ -533,7 +533,7 @@ const useApi = (props?: HookProps): ApiHook => {
 
   const applyAclRules: ApiHook['acl']['rules']['applyRules'] = (rules) =>
     client
-      .put('/acl/rules/apply', {
+      .put('/acl/rule/apply', {
         rules: rules,
       })
       .then(unpackRequest);
