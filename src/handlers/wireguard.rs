@@ -218,10 +218,12 @@ pub(crate) async fn modify_network(
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     let peers = network.get_peers(&mut *transaction).await?;
+    let maybe_firewall_config = network.try_get_firewall_config(&mut transaction).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(
         network.id,
         network.clone(),
         peers,
+        maybe_firewall_config,
     ));
 
     // commit DB transaction
