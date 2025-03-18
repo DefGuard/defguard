@@ -98,6 +98,7 @@
     "rxjs": "^7.8.2",
     "scheduler": "^0.25.0",
     "string-similarity": "^4.0.4",
+    "text-case": "^1.0.9",
     "typesafe-i18n": "^5.26.2",
     "use-breakpoint": "^4.0.6",
     "zod": "^3.24.2",

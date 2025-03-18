@@ -182,6 +182,9 @@ importers:
       string-similarity:
         specifier: ^4.0.4
         version: 4.0.4
+      text-case:
+        specifier: ^1.0.9
+        version: 1.0.9
       typesafe-i18n:
         specifier: ^5.26.2
         version: 5.26.2(typescript@5.7.2)
@@ -3720,9 +3723,69 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  text-camel-case@1.0.2:
+    resolution: {integrity: sha512-s1LRJevKMtwo2iV80ZXuGHVJsK8wCojivh0TyiX6DnvMoxBubCuBXx+YE47E4J0JMvLfqrpV+8SP/tEAoZ0/ZA==}
+
+  text-capital-case@1.0.2:
+    resolution: {integrity: sha512-2WhSzwB8TjsaXix85xv2tdViUwBui8LMrIyi+pZrJTXAHKv1Cn9wN/b+uOZnwG4Yn32yiTBt/bZGdKNsHgm+bQ==}
+
+  text-case@1.0.9:
+    resolution: {integrity: sha512-WFYXrWPsMac/GfnQ9P9X6XhESQiyKKfNlhlxzXe2mSGKxwFe5ThqXA89JVZ1ZzcBWmJ6TFDa8iM6Vw54OqjiWQ==}
+
+  text-constant-case@1.0.2:
+    resolution: {integrity: sha512-vfUdPIEADAqllvhZe2tb/lxO9mG1fEjAcGj7iipcQNg9rqc5G38HN+FHyKzmm3dId+fO+H+8CaVvFwzxq3UAQg==}
+
+  text-dot-case@1.0.2:
+    resolution: {integrity: sha512-J361Ss+ib3AmN+Q664q+H791OIJnnUvVXVNpZypWjp58b0z2moz31PCz4RLxSftyMDb+3jYRU06skDEQBIWyiQ==}
+
   text-extensions@1.9.0:
     resolution: {integrity: sha512-wiBrwC1EhBelW12Zy26JeOUkQ5mRu+5o8rpsJk5+2t+Y5vE7e842qtZDQ2g1NpX/29HdyFeJ4nSIhI47ENSxlQ==}
     engines: {node: '>=0.10'}
+
+  text-header-case@1.0.2:
+    resolution: {integrity: sha512-gl3AOpc19D9nFtgQoMpVXToF19/ssuYk80Hj3n7WAZInx9xr/C8DkfjUzj/u7xTSVXyN6CNiodhrb8z2mZCKfw==}
+
+  text-is-lower-case@1.0.2:
+    resolution: {integrity: sha512-vVJ2egidKYFGzZBoh+LIpIptdVn8gxk0iv9ZH9ufoBdlirIE/OtJSYLheubX0Q4hSyWd71sEXib40Vxq+WIn+A==}
+
+  text-is-upper-case@1.0.2:
+    resolution: {integrity: sha512-mv0GH/4c0CpA8/wXyP2DWV98btTSkh0Hh96xtM/rK1D9FLcb4yy0OnZFfatTXuEMUJlxyXdM/Tt89PjWHLDafg==}
+
+  text-lower-case-first@1.0.2:
+    resolution: {integrity: sha512-BoCe3/y6ALSPyt4gh38HDY61twGr28IhjtHjxtaP6IfNb2U0vLnx2EB9pgGdvWC8N/gx3RX82hzPescxPPhR6A==}
+
+  text-lower-case@1.0.4:
+    resolution: {integrity: sha512-+JugqznmIplbHfUt7YaaQyXbNlG9smzQkFm2W/LWXhM6RtiwAeaXKHNfabd4OQ3hLA17n+Kv7vpjWlyw95Lmow==}
+
+  text-no-case@1.0.2:
+    resolution: {integrity: sha512-D7x7uUw99DP5P28e6uugAC6JXTQDM/wWoVC0I4XSh7IdsFRYMpOHo97ARIepWY+icrBq/ewjRkcTSfbGDV6XgA==}
+
+  text-param-case@1.0.2:
+    resolution: {integrity: sha512-expscKlHQDu/NGtIuklO278FPcnP3MPzDoTYlGl0S8kA/Zm/wOIAvy/ULpetdvCuZbLDIVQOtX9eWAyMSoWbkw==}
+
+  text-pascal-case@1.0.3:
+    resolution: {integrity: sha512-aiIz2RMA8D/j7TsfwpZVBDXUgXAcl2m1vGKfhpDQTQ7UnbVfI7B6BUQwi6FdDKSO/Z2rVv+JxcaFN4al+TnEsQ==}
+
+  text-path-case@1.0.2:
+    resolution: {integrity: sha512-dCFWFqJSAYE8JGIWfA8TyeBUoxnSw/fUtRFgQH7PNJ+9YqLcuq3VrDB5i9iOPmoKphY1HnRGp4cbTDF6yGjlcQ==}
+
+  text-sentence-case@1.0.2:
+    resolution: {integrity: sha512-GmZbfwaF3u/OEZACC5gMP9XvgwWa9yzGQ99JL74yAuUWWtHaIs40IMGm6lC8ZNgEdG4sSV0JYPf7rFTK2VZOZg==}
+
+  text-snake-case@1.0.2:
+    resolution: {integrity: sha512-Uv58tiL7yHoBk/9uqDJsp4+hYwXlH7lvyVVsR/09DJ1nlhG1qVAZD5hPY5L6LaAItVmaeJ460iO9Fc09fQ/zLg==}
+
+  text-swap-case@1.0.2:
+    resolution: {integrity: sha512-kJ40VU8PatEAF7b3fxs8a0vK4ByGl1W6sKcu+lARZBoUmChCtNXLRJY8vl3kls+EkWT37iAXSQNVeWoWwbkQ2g==}
+
+  text-title-case@1.0.2:
+    resolution: {integrity: sha512-GyS5mayONs9ZZHMYDjZm6kxfoLOq7KiacC+DasUXrHzlzzQViUaNH0yvBdLtc2Kjs4CVGDDjipLVCJGLJ7bOfA==}
+
+  text-upper-case-first@1.0.2:
+    resolution: {integrity: sha512-/8IAqNltnOZixqKMFn34NQoHcq5Mek/zqXzMQyLeY/5oQK+3ibYseRDHNnrdqx2r8Uiyf/KyVe8PHQFL+yAtlg==}
+
+  text-upper-case@1.0.2:
+    resolution: {integrity: sha512-1YT5Y+gCOskZOGPVQW2xAGsSDlItHJoFVCVviObJAPv7Qdedf8sCHCKrz0hG15uzF8IQsiJz5PJZUMNwpuNmmA==}
 
   through2@2.0.5:
     resolution: {integrity: sha512-/mrRod8xqpA+IHSLyGCQ2s8SPHiCDEeQJSep1jqLYeEUClOFG2Qsh+4FU6G9VeqpZnGW/Su8LQGc4YKni5rYSQ==}
@@ -8153,7 +8216,92 @@ snapshots:
       source-map-support: 0.5.21
     optional: true
 
+  text-camel-case@1.0.2:
+    dependencies:
+      text-pascal-case: 1.0.3
+
+  text-capital-case@1.0.2:
+    dependencies:
+      text-no-case: 1.0.2
+      text-upper-case-first: 1.0.2
+
+  text-case@1.0.9:
+    dependencies:
+      text-camel-case: 1.0.2
+      text-capital-case: 1.0.2
+      text-constant-case: 1.0.2
+      text-dot-case: 1.0.2
+      text-header-case: 1.0.2
+      text-is-lower-case: 1.0.2
+      text-is-upper-case: 1.0.2
+      text-lower-case: 1.0.4
+      text-lower-case-first: 1.0.2
+      text-no-case: 1.0.2
+      text-param-case: 1.0.2
+      text-pascal-case: 1.0.3
+      text-path-case: 1.0.2
+      text-sentence-case: 1.0.2
+      text-snake-case: 1.0.2
+      text-swap-case: 1.0.2
+      text-title-case: 1.0.2
+      text-upper-case: 1.0.2
+      text-upper-case-first: 1.0.2
+
+  text-constant-case@1.0.2:
+    dependencies:
+      text-no-case: 1.0.2
+      text-upper-case: 1.0.2
+
+  text-dot-case@1.0.2:
+    dependencies:
+      text-no-case: 1.0.2
+
   text-extensions@1.9.0: {}
+
+  text-header-case@1.0.2:
+    dependencies:
+      text-capital-case: 1.0.2
+
+  text-is-lower-case@1.0.2: {}
+
+  text-is-upper-case@1.0.2: {}
+
+  text-lower-case-first@1.0.2: {}
+
+  text-lower-case@1.0.4: {}
+
+  text-no-case@1.0.2:
+    dependencies:
+      text-lower-case: 1.0.4
+
+  text-param-case@1.0.2:
+    dependencies:
+      text-dot-case: 1.0.2
+
+  text-pascal-case@1.0.3:
+    dependencies:
+      text-no-case: 1.0.2
+
+  text-path-case@1.0.2:
+    dependencies:
+      text-dot-case: 1.0.2
+
+  text-sentence-case@1.0.2:
+    dependencies:
+      text-no-case: 1.0.2
+      text-upper-case-first: 1.0.2
+
+  text-snake-case@1.0.2:
+    dependencies:
+      text-dot-case: 1.0.2
+
+  text-swap-case@1.0.2: {}
+
+  text-title-case@1.0.2: {}
+
+  text-upper-case-first@1.0.2: {}
+
+  text-upper-case@1.0.2: {}
 
   through2@2.0.5:
     dependencies:

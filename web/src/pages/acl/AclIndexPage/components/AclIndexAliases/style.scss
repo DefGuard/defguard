@@ -1,0 +1,55 @@
+#acl-aliases {
+}
+
+@mixin list-row {
+  display: inline-grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 200px repeat(3, 350px) 60px;
+  column-gap: var(--spacing-s);
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 15px;
+
+  .cell {
+    display: flex;
+    flex-flow: row nowrap;
+
+    p,
+    span {
+      text-wrap: nowrap;
+    }
+
+    &:last-child {
+      justify-content: center;
+    }
+  }
+}
+
+#aliases-list {
+  .list-headers {
+    @include list-row;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  & > ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+
+    & > li {
+      @include list-row;
+      box-sizing: border-box;
+      padding: 9px 15px;
+
+      @include typography(app-modal-2);
+
+      .cell {
+        &:first-child {
+          @include typography(app-modal-1);
+        }
+      }
+    }
+  }
+}

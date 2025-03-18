@@ -516,6 +516,28 @@ const useApi = (props?: HookProps): ApiHook => {
   const deleteAclRule: ApiHook['acl']['rules']['deleteRule'] = (id) =>
     client.delete(`/acl/rule/${id}`).then(unpackRequest);
 
+  const getAliases: ApiHook['acl']['aliases']['getAliases'] = () =>
+    client.get(`/acl/alias`).then(unpackRequest);
+
+  const getAlias: ApiHook['acl']['aliases']['getAlias'] = (id) =>
+    client.get(`/acl/alias/${id}`).then(unpackRequest);
+
+  const createAlias: ApiHook['acl']['aliases']['createAlias'] = (data) =>
+    client.post(`/acl/alias`, data).then(unpackRequest);
+
+  const editAlias: ApiHook['acl']['aliases']['editAlias'] = (data) =>
+    client.put(`/acl/alias/${data.id}`, data).then(unpackRequest);
+
+  const deleteAlias: ApiHook['acl']['aliases']['deleteAlias'] = (id) =>
+    client.delete(`/acl/alias/${id}`).then(unpackRequest);
+
+  const applyAclRules: ApiHook['acl']['rules']['applyRules'] = (rules) =>
+    client
+      .put('/acl/rules/apply', {
+        rules: rules,
+      })
+      .then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -549,12 +571,20 @@ const useApi = (props?: HookProps): ApiHook => {
     changePasswordSelf,
     getEnterpriseInfo,
     acl: {
+      aliases: {
+        createAlias,
+        deleteAlias,
+        editAlias,
+        getAlias,
+        getAliases,
+      },
       rules: {
         createRule: createAclRule,
         getRules: getAclRules,
         getRule: getAclRule,
         editRule: editAclRule,
         deleteRule: deleteAclRule,
+        applyRules: applyAclRules,
       },
     },
     oAuth: {
