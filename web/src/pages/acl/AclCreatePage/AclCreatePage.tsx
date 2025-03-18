@@ -53,15 +53,13 @@ type Alias = {
 
 type AclForm = Omit<AclRuleInfo, 'parent_id' | 'state'>;
 
-const mockedAliases: Alias[] = [];
-
 export const AlcCreatePage = () => {
   const [searchParams] = useSearchParams();
   const editMode = ['1', 'true'].includes(searchParams.get('edit') ?? '');
   const { LL } = useI18nContext();
   const localLL = LL.acl.createPage;
   const formErrors = LL.form.error;
-  const { networks, devices, groups, users, ruleToEdit } = useAclLoadedContext();
+  const { networks, devices, groups, users, aliases, ruleToEdit } = useAclLoadedContext();
   const queryClient = useQueryClient();
 
   const initialValue = useMemo(() => {
@@ -343,7 +341,7 @@ export const AlcCreatePage = () => {
           </MessageBox>
           <FormDialogSelect
             controller={{ control, name: 'aliases' }}
-            options={mockedAliases}
+            options={aliases}
             label="Aliases"
             identKey="id"
             renderTagContent={renderAlias}
