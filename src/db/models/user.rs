@@ -33,7 +33,7 @@ use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
     error::WebError,
-    grpc::gateway::send_multiple_wireguard_events,
+    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     ldap::utils::ldap_delete_user,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
@@ -323,29 +323,45 @@ impl User<Id> {
     /// Disable user, log out all his sessions and update gateways state.
     pub async fn disable(
         &mut self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         self.is_active = false;
-        self.save(&mut *transaction).await?;
-        self.logout_all_sessions(&mut *transaction).await?;
-        self.sync_allowed_devices(transaction, wg_tx).await?;
+        self.save(&mut *conn).await?;
+        self.logout_all_sessions(&mut *conn).await?;
+        self.sync_allowed_devices(conn, wg_tx).await?;
         Ok(())
     }
 
     /// Update gateway state based on this user device access rights
     pub async fn sync_allowed_devices(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         debug!("Syncing allowed devices of user {}", self.username);
-        let networks = WireguardNetwork::all(&mut *transaction).await?;
+        let networks = WireguardNetwork::all(&mut *conn).await?;
         for network in networks {
             let gateway_events = network
-                .sync_allowed_devices_for_user(transaction, self, None)
+                .sync_allowed_devices_for_user(&mut *conn, self, None)
                 .await?;
-            send_multiple_wireguard_events(gateway_events, wg_tx);
+            // chceck if any peers were updated
+            if !gateway_events.is_empty() {
+                // send peer update events
+                send_multiple_wireguard_events(gateway_events, wg_tx);
+
+                // send firewall config update if ACLs are enabled
+                if network.acl_enabled {
+                    if let Some(firewall_config) =
+                        network.try_get_firewall_config(&mut *conn).await?
+                    {
+                        send_wireguard_event(
+                            GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                            wg_tx,
+                        );
+                    }
+                }
+            }
         }
         info!("Allowed devices of user {} synced", self.username);
         Ok(())
@@ -354,7 +370,7 @@ impl User<Id> {
     /// Deletes the user and cleans up his devices from gateways
     pub async fn delete_and_cleanup(
         self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         let username = self.username.clone();
@@ -362,14 +378,14 @@ impl User<Id> {
             "Deleting user {}, removing his devices from gateways and updating ldap...",
             &username
         );
-        let devices = self.devices(&mut *transaction).await?;
+        let devices = self.devices(&mut *conn).await?;
         let mut events = Vec::new();
         for device in devices {
             events.push(GatewayEvent::DeviceDeleted(
-                DeviceInfo::from_device(&mut *transaction, device).await?,
+                DeviceInfo::from_device(&mut *conn, device).await?,
             ));
         }
-        self.delete(&mut *transaction).await?;
+        self.delete(&mut *conn).await?;
         send_multiple_wireguard_events(events, wg_tx);
         let _result = ldap_delete_user(&username).await;
         info!(
