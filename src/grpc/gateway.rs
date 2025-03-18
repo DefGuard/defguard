@@ -202,7 +202,6 @@ struct GatewayUpdatesHandler {
     gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
     tx: mpsc::Sender<Result<Update, Status>>,
-    pool: PgPool,
 }
 
 impl GatewayUpdatesHandler {
@@ -212,7 +211,6 @@ impl GatewayUpdatesHandler {
         gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
-        pool: PgPool,
     ) -> Self {
         Self {
             network_id,
@@ -220,7 +218,6 @@ impl GatewayUpdatesHandler {
             gateway_hostname,
             events_rx,
             tx,
-            pool,
         }
     }
 
@@ -729,7 +726,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
-        let pool = self.pool.clone();
         let handle = tokio::spawn(async move {
             let mut update_handler = GatewayUpdatesHandler::new(
                 gateway_network_id,
@@ -737,7 +733,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 gateway_hostname,
                 events_rx,
                 tx,
-                pool,
             );
             update_handler.run().await;
         });
