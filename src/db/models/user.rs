@@ -339,7 +339,7 @@ impl User<Id> {
         transaction: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
-        debug!("Syncing allowed devices of {}", self.username);
+        debug!("Syncing allowed devices of user {}", self.username);
         let networks = WireguardNetwork::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network
@@ -347,7 +347,7 @@ impl User<Id> {
                 .await?;
             send_multiple_wireguard_events(gateway_events, wg_tx);
         }
-        info!("Allowed devices of {} synced", self.username);
+        info!("Allowed devices of user {} synced", self.username);
         Ok(())
     }
 

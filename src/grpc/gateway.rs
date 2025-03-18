@@ -339,7 +339,7 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
-                GatewayEvent::AclRulesApplied(location_id, firewall_config) => {
+                GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
                     if location_id == self.network_id {
                         self.send_firewall_update(firewall_config).await
                     } else {

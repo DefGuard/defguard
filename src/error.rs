@@ -132,7 +132,8 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
-            | WireguardNetworkError::DeviceNotAllowed(_) => {
+            | WireguardNetworkError::DeviceNotAllowed(_)
+            | WireguardNetworkError::FirewallError(_) => {
                 Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }

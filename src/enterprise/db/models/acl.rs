@@ -447,7 +447,7 @@ impl AclRule {
             match location.try_get_firewall_config(&mut transaction).await? {
                 Some(firewall_config) => {
                     debug!("Sending firewall update event for location {location}");
-                    appstate.send_wireguard_event(GatewayEvent::AclRulesApplied(
+                    appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
                         location.id,
                         firewall_config,
                     ));
