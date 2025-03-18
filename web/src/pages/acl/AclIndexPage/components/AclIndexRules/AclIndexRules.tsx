@@ -9,6 +9,7 @@ import { upperCaseFirst } from 'text-case';
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
 import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
+import { FilterGroupsModalFilter } from '../../../../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -31,7 +32,6 @@ import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt } from '../../../utils';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
-import { FilterDialogFilter } from './types';
 
 type ListTagDisplay = {
   key: string | number;
@@ -43,6 +43,7 @@ type RulesFilters = {
   networks: number[];
   aliases: number[];
   status: number[];
+  groups: number[];
 };
 
 type ListData = {
@@ -58,6 +59,7 @@ const defaultFilters: RulesFilters = {
   aliases: [],
   networks: [],
   status: [],
+  groups: [],
 };
 
 export const AclIndexRules = () => {
@@ -130,9 +132,19 @@ export const AclIndexRules = () => {
   );
 
   const filters = useMemo(() => {
-    const res: Record<string, FilterDialogFilter> = {};
+    const res: Record<string, FilterGroupsModalFilter> = {};
+    res.groups = {
+      label: 'Groups',
+      order: 3,
+      items: aclContext.groups.map((group) => ({
+        label: group.name,
+        searchValues: [group.name],
+        value: group.id,
+      })),
+    };
     res.networks = {
       label: 'Locations',
+      order: 1,
       items: aclContext.networks.map((network) => ({
         label: network.name,
         searchValues: [network.name],
@@ -141,6 +153,7 @@ export const AclIndexRules = () => {
     };
     res.aliases = {
       label: 'Aliases',
+      order: 2,
       items: aclContext.aliases.map((alias) => ({
         label: alias.name,
         searchValues: [alias.name],
@@ -150,6 +163,7 @@ export const AclIndexRules = () => {
 
     res.status = {
       label: 'Status',
+      order: 4,
       items: [
         {
           label: 'Enabled',
@@ -180,7 +194,7 @@ export const AclIndexRules = () => {
       ],
     };
     return res;
-  }, [aclContext.aliases, aclContext.networks]);
+  }, [aclContext.aliases, aclContext.groups, aclContext.networks]);
 
   const filtersCountDisplay = useMemo(() => {
     return appliedFiltersCount ? ` (${appliedFiltersCount})` : '';
@@ -515,6 +529,10 @@ const prepareDisplay = (
     }
     if (appliedFilters.aliases.length) {
       filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    }
+    if (appliedFilters.groups.length) {
+      const groups = concat(rule.denied_groups, rule.allowed_groups);
+      filterChecks.push(intersection(groups, appliedFilters.groups).length > 0);
     }
     return !filterChecks.includes(false);
   });

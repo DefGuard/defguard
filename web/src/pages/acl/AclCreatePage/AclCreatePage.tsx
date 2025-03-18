@@ -317,7 +317,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderGroup}
             identKey="id"
             searchKeys={['name']}
-            disabled={allowAllUsers || true}
+            disabled={allowAllUsers}
           />
           <FormDialogSelect
             label="Network Devices"
@@ -398,7 +398,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderGroup}
             identKey="id"
             searchKeys={['name']}
-            disabled={denyAllUsers || true}
+            disabled={denyAllUsers}
           />
           <FormDialogSelect
             label="Network Devices"
