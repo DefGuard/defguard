@@ -1,4 +1,4 @@
-use std::{fmt, time::SystemTime};
+use std::{collections::HashSet, fmt, time::SystemTime};
 
 use argon2::{
     password_hash::{
@@ -374,24 +374,39 @@ impl User<Id> {
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         let username = self.username.clone();
-        debug!(
-            "Deleting user {}, removing his devices from gateways and updating ldap...",
-            &username
-        );
+        debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
         let devices = self.devices(&mut *conn).await?;
         let mut events = Vec::new();
+        // get all locations affected by devices being deleted
+        let mut affected_location_ids = HashSet::new();
+
         for device in devices {
-            events.push(GatewayEvent::DeviceDeleted(
-                DeviceInfo::from_device(&mut *conn, device).await?,
-            ));
+            let device_info = DeviceInfo::from_device(&mut *conn, device).await?;
+            for network_info in &device_info.network_info {
+                affected_location_ids.insert(network_info.network_id);
+            }
+            events.push(GatewayEvent::DeviceDeleted(device_info));
         }
+
+        // send firewall config updates to affected locations
+        // if they have ACL enabled
+        for location_id in affected_location_ids {
+            if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
+                if location.acl_enabled {
+                    debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
+                    let firewall_config = location.try_get_firewall_config(&mut *conn).await?.expect("firewall config should exist because ACL is enabled for location {location}");
+                    events.push(GatewayEvent::FirewallConfigChanged(
+                        location_id,
+                        firewall_config,
+                    ));
+                }
+            }
+        }
+
         self.delete(&mut *conn).await?;
         send_multiple_wireguard_events(events, wg_tx);
         let _result = ldap_delete_user(&username).await;
-        info!(
-            "The user {} has been deleted and his devices removed from gateways.",
-            &username
-        );
+        info!("The user {username} has been deleted and his devices removed from gateways.",);
         Ok(())
     }
 
