@@ -1,11 +1,10 @@
 import './style.scss';
 
 import clsx from 'clsx';
-import { flatten } from 'lodash-es';
+import { flatten, orderBy } from 'lodash-es';
 import { PropsWithChildren, useCallback, useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
-import { FilterDialogFilter } from '../../../../pages/acl/AclIndexPage/components/AclIndexRules/types';
 import { ArrowSingleDirection } from '../../../defguard-ui/components/icons/ArrowSingle/types';
 import { Button } from '../../../defguard-ui/components/Layout/Button/Button';
 import {
@@ -16,8 +15,9 @@ import { LabeledCheckbox } from '../../../defguard-ui/components/Layout/LabeledC
 import { Modal } from '../../../defguard-ui/components/Layout/modals/Modal/Modal';
 import { Search } from '../../../defguard-ui/components/Layout/Search/Search';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
+import { FilterGroupsModalFilter } from './types';
 
-type FilterGroupDisplay = FilterDialogFilter & { key: string };
+type FilterGroupDisplay = FilterGroupsModalFilter & { key: string };
 
 type InternalStore = Record<string, Record<number, boolean>>;
 
@@ -25,7 +25,7 @@ type ExternalStore = Record<string, Array<number>>;
 
 type Props = {
   isOpen: boolean;
-  data: Record<string, FilterDialogFilter>;
+  data: Record<string, FilterGroupsModalFilter>;
   currentState: ExternalStore;
   onCancel: () => void;
   onSubmit: (data: ExternalStore) => void;
@@ -106,7 +106,11 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
       }
       res.push(group);
     }
-    return res.filter((g) => g.items.length > 0);
+    return orderBy(
+      res.filter((g) => g.items.length > 0),
+      ['order'],
+      ['asc'],
+    );
   }, [data, searchValue]);
 
   const toggleCheckbox = useCallback(
