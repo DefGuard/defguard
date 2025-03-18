@@ -8,6 +8,7 @@ import { upperCaseFirst } from 'text-case';
 
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
+import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -29,7 +30,6 @@ import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt } from '../../../utils';
-import { AclIndexRulesFilterModal } from './components/AclIndexRulesFilterModal/AclIndexRulesFilterModal';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 import { FilterDialogFilter } from './types';
 
@@ -288,7 +288,7 @@ export const AclIndexRules = () => {
         data={deployedRules}
         noDataMessage={filtersPresent ? 'No deployed rules found' : 'No deployed rules'}
       />
-      <AclIndexRulesFilterModal
+      <FilterGroupsModal
         currentState={appliedFilters}
         data={filters}
         isOpen={filtersOpen}

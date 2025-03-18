@@ -28,7 +28,39 @@
       margin-bottom: var(--spacing-s);
     }
 
-    .controls {
+    & > .controls {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-xs) 0;
+
+      .labeled-checkbox {
+        label {
+          @include typography(app-modal-1);
+          color: var(--text-body-primary);
+        }
+      }
+
+      & > button {
+        background-color: transparent;
+        border: none;
+        padding: 5px;
+        margin: 0;
+        box-sizing: border-box;
+        cursor: pointer;
+
+        &:disabled {
+          cursor: not-allowed;
+        }
+
+        p {
+          @include typography(app-underline);
+        }
+      }
+    }
+
+    .modal-controls {
       display: flex;
       flex-flow: row;
       align-items: center;
@@ -53,7 +85,7 @@
       .group {
         width: 100%;
 
-        & > .header {
+        .group-header {
           width: 100%;
           display: flex;
           flex-flow: row;
@@ -62,16 +94,27 @@
           border-bottom: 1px solid var(--border-primary);
           column-gap: 5px;
           min-height: 23px;
+          cursor: pointer;
 
           p,
           span {
+            user-select: none;
             @include typography(app-side-bar);
+          }
+
+          svg {
+            margin-left: auto;
+            transform: rotateZ(0deg);
+            @include animate-standard;
+            transition-property: transform;
+
+            &.up {
+              transform: rotateZ(-180deg);
+            }
           }
         }
 
-        & > .items {
-          padding-top: var(--spacing-xs);
-
+        .items {
           .labeled-checkbox {
             min-height: 18px;
             height: unset;
@@ -84,6 +127,30 @@
             }
           }
         }
+      }
+    }
+  }
+}
+
+#acl-rules-index-filter-modal {
+  .group-expandable {
+    .expandable {
+      display: grid;
+      grid-template-rows: 0fr;
+      width: 100%;
+      transition-property: grid-template-rows;
+      transition-duration: 100ms;
+      transition-timing-function: ease-in-out;
+
+      & > div {
+        box-sizing: border-box;
+        padding-top: var(--spacing-xs);
+        overflow: hidden;
+        width: 100%;
+      }
+
+      &.expanded {
+        grid-template-rows: 1fr;
       }
     }
   }
