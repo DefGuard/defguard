@@ -755,7 +755,6 @@ pub async fn delete_user(
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
-        update_counts(&appstate.pool).await?;
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())

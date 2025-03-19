@@ -133,11 +133,12 @@ pub async fn list_acl_rules(
     session: SessionInfo,
 ) -> ApiResult {
     debug!("User {} listing ACL rules", session.user.username);
-    let rules = AclRule::all(&appstate.pool).await?;
+    let mut conn = appstate.pool.acquire().await?;
+    let rules = AclRule::all(&mut *conn).await?;
     let mut api_rules: Vec<ApiAclRule> = Vec::with_capacity(rules.len());
     for r in rules.iter() {
         // TODO: may require optimisation wrt. sql queries
-        let info = r.to_info(&appstate.pool).await.map_err(|err| {
+        let info = r.to_info(&mut conn).await.map_err(|err| {
             error!("Error retrieving ACL rule {r:?}: {err}");
             err
         })?;
@@ -158,10 +159,11 @@ pub async fn get_acl_rule(
     Path(id): Path<Id>,
 ) -> ApiResult {
     debug!("User {} retrieving ACL rule {id}", session.user.username);
-    let (rule, status) = match AclRule::find_by_id(&appstate.pool, id).await? {
+    let mut conn = appstate.pool.acquire().await?;
+    let (rule, status) = match AclRule::find_by_id(&mut *conn, id).await? {
         Some(rule) => (
             json!(Into::<ApiAclRule>::into(
-                rule.to_info(&appstate.pool).await.map_err(|err| {
+                rule.to_info(&mut conn).await.map_err(|err| {
                     error!("Error retrieving ACL rule {rule:?}: {err}");
                     err
                 })?
@@ -366,7 +368,7 @@ pub async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_rules(&appstate.pool, &data.rules)
+    AclRule::apply_rules(&appstate.pool, &data.rules, &appstate)
         .await
         .map_err(|err| {
             error!("Error applying ACL rules {data:?}: {err}");

@@ -8,7 +8,7 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
-    enterprise::{db::models::acl::AclError, license::LicenseError},
+    enterprise::{db::models::acl::AclError, firewall::FirewallError, license::LicenseError},
     grpc::GatewayMapError,
     ldap::error::LdapError,
     templates::TemplateError,
@@ -57,8 +57,10 @@ pub enum WebError {
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
-    #[error("Acl error: {0}")]
+    #[error("ACL error: {0}")]
     AclError(#[from] AclError),
+    #[error("Firewall config error: {0}")]
+    FirewallError(#[from] FirewallError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -130,7 +132,8 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
-            | WireguardNetworkError::DeviceNotAllowed(_) => {
+            | WireguardNetworkError::DeviceNotAllowed(_)
+            | WireguardNetworkError::FirewallError(_) => {
                 Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }

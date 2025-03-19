@@ -202,7 +202,6 @@ struct GatewayUpdatesHandler {
     gateway_hostname: String,
     events_rx: BroadcastReceiver<GatewayEvent>,
     tx: mpsc::Sender<Result<Update, Status>>,
-    pool: PgPool,
 }
 
 impl GatewayUpdatesHandler {
@@ -212,7 +211,6 @@ impl GatewayUpdatesHandler {
         gateway_hostname: String,
         events_rx: BroadcastReceiver<GatewayEvent>,
         tx: mpsc::Sender<Result<Update, Status>>,
-        pool: PgPool,
     ) -> Self {
         Self {
             network_id,
@@ -220,14 +218,13 @@ impl GatewayUpdatesHandler {
             gateway_hostname,
             events_rx,
             tx,
-            pool,
         }
     }
 
     /// Process incoming gateway events
     ///
     /// Main gRPC server uses a shared channel for broadcasting all gateway events
-    /// so the handler must determine if an event is relevant for the network being services
+    /// so the handler must determine if an event is relevant for the network being serviced
     pub async fn run(&mut self) {
         info!(
             "Starting update stream to gateway: {}, network {}",
@@ -238,14 +235,22 @@ impl GatewayUpdatesHandler {
             let result = match update {
                 GatewayEvent::NetworkCreated(network_id, network) => {
                     if network_id == self.network_id {
-                        self.send_network_update(&network, Vec::new(), 0).await
+                        self.send_network_update(&network, Vec::new(), None, 0)
+                            .await
                     } else {
                         Ok(())
                     }
                 }
-                GatewayEvent::NetworkModified(network_id, network, peers) => {
+                GatewayEvent::NetworkModified(
+                    network_id,
+                    network,
+                    peers,
+                    maybe_firewall_config,
+                ) => {
                     if network_id == self.network_id {
-                        let result = self.send_network_update(&network, peers, 1).await;
+                        let result = self
+                            .send_network_update(&network, peers, maybe_firewall_config, 1)
+                            .await;
                         // update stored network data
                         self.network = network;
                         result
@@ -331,6 +336,13 @@ impl GatewayUpdatesHandler {
                         None => Ok(()),
                     }
                 }
+                GatewayEvent::FirewallConfigChanged(location_id, firewall_config) => {
+                    if location_id == self.network_id {
+                        self.send_firewall_update(firewall_config).await
+                    } else {
+                        Ok(())
+                    }
+                }
             };
             if result.is_err() {
                 error!(
@@ -347,26 +359,10 @@ impl GatewayUpdatesHandler {
         &self,
         network: &WireguardNetwork<Id>,
         peers: Vec<Peer>,
+        firewall_config: Option<FirewallConfig>,
         update_type: i32,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {network}");
-        let maybe_firewall_config =
-            network
-                .try_get_firewall_config(&self.pool)
-                .await
-                .map_err(|err| {
-                    error!(
-                        "Failed to generate firewall config for network {}: {err}",
-                        self.network_id
-                    );
-                    Status::new(
-                        Code::Internal,
-                        format!(
-                            "Failed to generate firewall config for network: {}",
-                            self.network_id
-                        ),
-                    )
-                })?;
         if let Err(err) = self
             .tx
             .send(Ok(Update {
@@ -377,7 +373,7 @@ impl GatewayUpdatesHandler {
                     addresses: network.address.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
-                    firewall_config: maybe_firewall_config,
+                    firewall_config,
                 })),
             }))
             .await
@@ -474,6 +470,31 @@ impl GatewayUpdatesHandler {
         {
             let msg = format!(
                 "Failed to send peer update for network {}, peer {peer_pubkey}, update type: 2 (DELETE), error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Peer delete command sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send firewall config update command to gateway
+    async fn send_firewall_update(&self, firewall_config: FirewallConfig) -> Result<(), Status> {
+        debug!(
+            "Sending firewall config update for network {} with config {firewall_config:?}",
+            self.network
+        );
+        if let Err(err) = self
+            .tx
+            .send(Ok(Update {
+                update_type: 1,
+                update: Some(update::Update::FirewallConfig(firewall_config)),
+            }))
+            .await
+        {
+            let msg = format!(
+                "Failed to send firewall config update for network {}, error: {err}",
                 self.network,
             );
             error!(msg);
@@ -600,7 +621,15 @@ impl gateway_service_server::GatewayService for GatewayServer {
         let network_id = Self::get_network_id(request.metadata())?;
         let hostname = Self::get_gateway_hostname(request.metadata())?;
 
-        let mut network = WireguardNetwork::find_by_id(&self.pool, network_id)
+        let mut conn = self.pool.acquire().await.map_err(|e| {
+            error!("Failed to acquire DB connection: {e}");
+            Status::new(
+                Code::Internal,
+                "Failed to acquire DB connection".to_string(),
+            )
+        })?;
+
+        let mut network = WireguardNetwork::find_by_id(&mut *conn, network_id)
             .await
             .map_err(|e| {
                 error!("Network {network_id} not found");
@@ -628,11 +657,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
         }
 
         network.connected_at = Some(Utc::now().naive_utc());
-        if let Err(err) = network.save(&self.pool).await {
+        if let Err(err) = network.save(&mut *conn).await {
             error!("Failed to save updated network {network_id} in the database, status: {err}");
         }
 
-        let peers = network.get_peers(&self.pool).await.map_err(|error| {
+        let peers = network.get_peers(&mut *conn).await.map_err(|error| {
             error!("Failed to fetch peers from the database for network {network_id}: {error}",);
             Status::new(
                 Code::Internal,
@@ -641,7 +670,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         })?;
         let maybe_firewall_config =
             network
-                .try_get_firewall_config(&self.pool)
+                .try_get_firewall_config(&mut conn)
                 .await
                 .map_err(|err| {
                     error!("Failed to generate firewall config for network {network_id}: {err}");
@@ -697,7 +726,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         // clone here before moving into a closure
         let gateway_hostname = hostname.clone();
-        let pool = self.pool.clone();
         let handle = tokio::spawn(async move {
             let mut update_handler = GatewayUpdatesHandler::new(
                 gateway_network_id,
@@ -705,7 +733,6 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 gateway_hostname,
                 events_rx,
                 tx,
-                pool,
             );
             update_handler.run().await;
         });

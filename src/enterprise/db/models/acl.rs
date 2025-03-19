@@ -1,6 +1,10 @@
 use crate::{
-    db::{Device, Group, Id, NoId, User, WireguardNetwork},
-    enterprise::handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+    appstate::AppState,
+    db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
+    enterprise::{
+        firewall::FirewallError,
+        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+    },
     DeviceType,
 };
 use chrono::NaiveDateTime;
@@ -36,6 +40,8 @@ pub enum AclError {
     RuleNotFoundError(Id),
     #[error("RuleAlreadyAppliedError: {0}")]
     RuleAlreadyAppliedError(Id),
+    #[error(transparent)]
+    FirewallError(#[from] FirewallError),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -238,8 +244,10 @@ impl AclRule {
         rule.create_related_objects(&mut transaction, api_rule)
             .await?;
 
+        let result: ApiAclRule = rule.to_info(&mut transaction).await?.into();
+
         transaction.commit().await?;
-        let result: ApiAclRule = rule.to_info(pool).await?.into();
+
         Ok(result)
     }
 
@@ -321,8 +329,10 @@ impl AclRule {
             }
         };
 
+        let rule_details = rule.to_info(&mut transaction).await?.into();
+
         transaction.commit().await?;
-        let rule_details = rule.to_info(pool).await?.into();
+
         info!("Successfully updated rule {rule_details:?}");
         Ok(rule_details)
     }
@@ -399,21 +409,54 @@ impl AclRule {
     }
 
     /// Changes rule state to [`RuleState::Applied`] for all specified rules
-    ///  TODO: trigger gateway reconfiguration
     ///
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_rules(pool: &PgPool, rules: &[Id]) -> Result<(), AclError> {
+    pub async fn apply_rules(
+        pool: &PgPool,
+        rules: &[Id],
+        appstate: &AppState,
+    ) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
         let mut transaction = pool.begin().await?;
+
+        // prepare variable for collecting affected locations
+        let mut affected_locations = HashSet::new();
+
         for id in rules {
             let mut rule = AclRule::find_by_id(&mut *transaction, *id)
                 .await?
                 .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
             rule.apply(&mut transaction).await?;
+            let locations = rule.get_networks(&mut *transaction).await?;
+            for location in locations {
+                affected_locations.insert(location);
+            }
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
+
+        let affected_locations: Vec<WireguardNetwork<Id>> =
+            affected_locations.into_iter().collect();
+        debug!(
+            "{} locations affected by applied ACL rules. Sending gateway firewall update events for each location",
+            affected_locations.len()
+        );
+
+        for location in affected_locations {
+            match location.try_get_firewall_config(&mut transaction).await? {
+                Some(firewall_config) => {
+                    debug!("Sending firewall update event for location {location}");
+                    appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ));
+                }
+                None => {
+                    debug!("No firewall config generated for location {location}. Not sending a gateway event")
+                }
+            }
+        }
 
         transaction.commit().await?;
         Ok(())
@@ -977,16 +1020,16 @@ impl AclRule<Id> {
 
     /// Retrieves all related objects from the db and converts [`AclRule`]
     /// instance to [`AclRuleInfo`].
-    pub async fn to_info(&self, pool: &PgPool) -> Result<AclRuleInfo<Id>, SqlxError> {
-        let aliases = self.get_aliases(pool).await?;
-        let networks = self.get_networks(pool).await?;
-        let allowed_users = self.get_users(pool, true).await?;
-        let denied_users = self.get_users(pool, false).await?;
-        let allowed_groups = self.get_groups(pool, true).await?;
-        let denied_groups = self.get_groups(pool, false).await?;
-        let allowed_devices = self.get_devices(pool, true).await?;
-        let denied_devices = self.get_devices(pool, false).await?;
-        let destination_ranges = self.get_destination_ranges(pool).await?;
+    pub async fn to_info(&self, conn: &mut PgConnection) -> Result<AclRuleInfo<Id>, SqlxError> {
+        let aliases = self.get_aliases(&mut *conn).await?;
+        let networks = self.get_networks(&mut *conn).await?;
+        let allowed_users = self.get_users(&mut *conn, true).await?;
+        let denied_users = self.get_users(&mut *conn, false).await?;
+        let allowed_groups = self.get_groups(&mut *conn, true).await?;
+        let denied_groups = self.get_groups(&mut *conn, false).await?;
+        let allowed_devices = self.get_devices(&mut *conn, true).await?;
+        let denied_devices = self.get_devices(&mut *conn, false).await?;
+        let destination_ranges = self.get_destination_ranges(&mut *conn).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
         Ok(AclRuleInfo {
@@ -1018,9 +1061,9 @@ impl AclRule<Id> {
 impl AclRuleInfo<Id> {
     /// Wrapper function which combines explicitly specified allowed users with members of allowed
     /// groups to generate a list of all unique allowed users for a given ACL.
-    pub(crate) async fn get_all_allowed_users(
+    pub(crate) async fn get_all_allowed_users<'e, E: sqlx::PgExecutor<'e>>(
         &self,
-        pool: &PgPool,
+        executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
         // get explicitly allowed users
         let mut allowed_users = self.allowed_users.clone();
@@ -1040,7 +1083,7 @@ impl AclRuleInfo<Id> {
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
             &allowed_group_ids
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await?;
 
         // get unique users from both lists
@@ -1053,9 +1096,9 @@ impl AclRuleInfo<Id> {
 
     /// Wrapper function which combines explicitly specified denied users with members of denied
     /// groups to generate a list of all unique denied users for a given ACL.
-    pub(crate) async fn get_all_denied_users(
+    pub(crate) async fn get_all_denied_users<'e, E: sqlx::PgExecutor<'e>>(
         &self,
-        pool: &PgPool,
+        executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
         // get explicitly denied users
         let mut denied_users = self.denied_users.clone();
@@ -1075,7 +1118,7 @@ impl AclRuleInfo<Id> {
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
             &denied_group_ids
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await?;
 
         // get unique users from both lists
@@ -1675,8 +1718,10 @@ mod test {
         .await
         .unwrap();
 
+        let mut conn = pool.acquire().await.unwrap();
+
         // convert to [`AclRuleInfo`] and verify results
-        let info = rule.to_info(&pool).await.unwrap();
+        let info = rule.to_info(&mut conn).await.unwrap();
 
         assert_eq!(info.aliases.len(), 1);
         assert_eq!(info.aliases[0], alias1);
@@ -1883,7 +1928,8 @@ mod test {
         .unwrap();
 
         // Get rule info
-        let rule_info = rule.to_info(&pool).await.unwrap();
+        let mut conn = pool.acquire().await.unwrap();
+        let rule_info = rule.to_info(&mut conn).await.unwrap();
         assert_eq!(rule_info.allowed_users.len(), 1);
         assert_eq!(rule_info.allowed_groups.len(), 1);
 
@@ -2002,7 +2048,8 @@ mod test {
         .unwrap();
 
         // Get rule info
-        let rule_info = rule.to_info(&pool).await.unwrap();
+        let mut conn = pool.acquire().await.unwrap();
+        let rule_info = rule.to_info(&mut conn).await.unwrap();
         assert_eq!(rule_info.denied_users.len(), 2);
         assert_eq!(rule_info.denied_groups.len(), 1);
 

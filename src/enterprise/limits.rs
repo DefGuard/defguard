@@ -22,7 +22,7 @@ global_value!(COUNTS, Counts, Counts::default(), set_counts, get_counts);
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
-pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
+pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
         "SELECT \
@@ -31,7 +31,7 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
         (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"
         "
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await?;
 
     // do type conversion since Postgres does not support unsigned integers
