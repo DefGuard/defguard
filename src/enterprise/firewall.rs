@@ -12,6 +12,7 @@ use super::db::models::acl::{
 
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
+    enterprise::is_enterprise_enabled,
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
@@ -581,6 +582,14 @@ impl WireguardNetwork<Id> {
         &self,
         conn: &mut PgConnection,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
+        // do a license check
+        if !is_enterprise_enabled() {
+            debug!(
+                "Enterprise features are disabled, skipping generating firewall config for location {self}"
+            );
+            return Ok(None);
+        }
+
         // check if ACLs are enabled
         if !self.acl_enabled {
             debug!(

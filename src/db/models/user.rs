@@ -32,6 +32,7 @@ use super::{
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
+    enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     ldap::utils::ldap_delete_user,
@@ -350,16 +351,12 @@ impl User<Id> {
                 // send peer update events
                 send_multiple_wireguard_events(gateway_events, wg_tx);
 
-                // send firewall config update if ACLs are enabled
-                if network.acl_enabled {
-                    if let Some(firewall_config) =
-                        network.try_get_firewall_config(&mut *conn).await?
-                    {
-                        send_wireguard_event(
-                            GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
-                            wg_tx,
-                        );
-                    }
+                // send firewall config update if ACLs & enterprise features are enabled
+                if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+                    send_wireguard_event(
+                        GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                        wg_tx,
+                    );
                 }
             }
         }
@@ -388,16 +385,15 @@ impl User<Id> {
             events.push(GatewayEvent::DeviceDeleted(device_info));
         }
 
+        self.delete(&mut *conn).await?;
+        update_counts(&mut *conn).await?;
+
         // send firewall config updates to affected locations
-        // if they have ACL enabled
+        // if they have ACL enabled & enterprise features are active
         for location_id in affected_location_ids {
             if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
-                if location.acl_enabled {
+                if let Some(firewall_config) = location.try_get_firewall_config(&mut *conn).await? {
                     debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
-                    let firewall_config = location
-                        .try_get_firewall_config(&mut *conn)
-                        .await?
-                        .expect("firewall config should exist because ACL is enabled for location");
                     events.push(GatewayEvent::FirewallConfigChanged(
                         location_id,
                         firewall_config,
@@ -406,7 +402,6 @@ impl User<Id> {
             }
         }
 
-        self.delete(&mut *conn).await?;
         send_multiple_wireguard_events(events, wg_tx);
         let _result = ldap_delete_user(&username).await;
         info!("The user {username} has been deleted and his devices removed from gateways.",);

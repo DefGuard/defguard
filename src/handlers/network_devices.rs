@@ -478,8 +478,9 @@ pub(crate) async fn start_network_device_setup(
         result.device.id
     );
 
+    update_counts(&mut *transaction).await?;
+
     transaction.commit().await?;
-    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
@@ -617,14 +618,14 @@ pub(crate) async fn add_network_device(
         network_info: vec![network_info.clone()],
     }));
 
-    // send firewall update event if ACLs are enabled
-    if network.acl_enabled {
-        if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
-            appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                network.id,
-                firewall_config,
-            ));
-        }
+    update_counts(&mut *transaction).await?;
+
+    // send firewall update event if ACLs & enterprise features are enabled
+    if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
+        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            network.id,
+            firewall_config,
+        ));
     }
 
     let template_locations = vec![TemplateLocation {
@@ -653,7 +654,6 @@ pub(crate) async fn add_network_device(
     };
 
     transaction.commit().await?;
-    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!(result),

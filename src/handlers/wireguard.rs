@@ -891,17 +891,17 @@ pub(crate) async fn delete_device(
     // delete device before firewall config is generated
     device.delete(&mut *transaction).await?;
 
-    // prepare firewall update for affected networks if ACL is enabled
+    update_counts(&mut *transaction).await?;
+
+    // prepare firewall update for affected networks if ACL & enterprise features are enabled
     for info in &device_info.network_info {
         if let Some(location) =
             WireguardNetwork::find_by_id(&mut *transaction, info.network_id).await?
         {
-            if location.acl_enabled {
+            if let Some(firewall_config) =
+                location.try_get_firewall_config(&mut transaction).await?
+            {
                 debug!("Sending firewall config update for location {location} affected by deleting user {username} device");
-                let firewall_config = location
-                    .try_get_firewall_config(&mut transaction)
-                    .await?
-                    .expect("firewall config should exist because ACL is enabled for location");
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location.id,
                     firewall_config,
@@ -911,8 +911,6 @@ pub(crate) async fn delete_device(
     }
 
     events.push(GatewayEvent::DeviceDeleted(device_info));
-
-    update_counts(&mut *transaction).await?;
 
     // send generated gateway events
     appstate.send_multiple_wireguard_events(events);
