@@ -3,6 +3,7 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import { intersection } from 'lodash-es';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
@@ -129,26 +130,68 @@ export const AlcCreatePage = () => {
 
   const schema = useMemo(
     () =>
-      z.object({
-        name: z
-          .string({
-            required_error: formErrors.required(),
-          })
-          .min(1, formErrors.required()),
-        networks: z.number().array(),
-        expires: z.string().nullable(),
-        enabled: z.boolean(),
-        allowed_users: z.number().array(),
-        denied_users: z.number().array(),
-        allowed_groups: z.number().array(),
-        denied_groups: z.number().array(),
-        allowed_devices: z.number().array(),
-        denied_devices: z.number().array(),
-        aliases: z.number().array(),
-        destination: z.string(),
-        ports: aclPortsValidator(LL),
-        protocols: z.number().array(),
-      }),
+      z
+        .object({
+          name: z
+            .string({
+              required_error: formErrors.required(),
+            })
+            .min(1, formErrors.required()),
+          networks: z.number().array(),
+          expires: z.string().nullable(),
+          enabled: z.boolean(),
+          allowed_users: z.number().array(),
+          denied_users: z.number().array(),
+          allowed_groups: z.number().array(),
+          denied_groups: z.number().array(),
+          allowed_devices: z.number().array(),
+          denied_devices: z.number().array(),
+          aliases: z.number().array(),
+          destination: z.string(),
+          ports: aclPortsValidator(LL),
+          protocols: z.number().array(),
+        })
+        .superRefine((vals, ctx) => {
+          // check for collisions
+          // FIXME: add translation
+          const message = 'Conflicting rules';
+          if (intersection(vals.allowed_users, vals.denied_users).length) {
+            ctx.addIssue({
+              path: ['allowed_users'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['denied_users'],
+              code: 'custom',
+              message,
+            });
+          }
+          if (intersection(vals.allowed_groups, vals.denied_groups).length) {
+            ctx.addIssue({
+              path: ['allowed_groups'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['denied_groups'],
+              code: 'custom',
+              message,
+            });
+          }
+          if (intersection(vals.allowed_devices, vals.denied_devices).length) {
+            ctx.addIssue({
+              path: ['allowed_devices'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['denied_devices'],
+              code: 'custom',
+              message,
+            });
+          }
+        }),
     [LL, formErrors],
   );
 

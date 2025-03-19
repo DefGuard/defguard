@@ -34,47 +34,49 @@ export const DialogSelect = <T extends object, I extends number | string>({
 
   return (
     <>
-      <div className="dialog-select-spacer">
-        {label !== undefined && <Label>{label}</Label>}
-        <div
-          className={clsx('dialog-select', {
-            disabled,
-            invalid: isPresent(error),
-          })}
-        >
-          <div className={clsx('track')}>
-            <div className="options">
-              {renderTagContent !== undefined &&
-                selectedOptions.map((o) => {
-                  const id = getIdent(o);
-                  return (
-                    <div className="dialog-select-tag" key={id}>
-                      {renderTagContent(o)}
-                    </div>
-                  );
-                })}
-            </div>
-            <TrackGradient />
-          </div>
-          <button
-            disabled={disabled}
-            className="open-button"
-            onClick={() => {
-              setModalOpen(true);
-            }}
-            type="button"
+      <div className="dialog-select spacer">
+        <div className="inner">
+          {label !== undefined && <Label>{label}</Label>}
+          <div
+            className={clsx('dialog-select-field', {
+              disabled,
+              invalid: isPresent(error),
+            })}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              viewBox="0 0 22 22"
-              fill="none"
+            <div className={clsx('track')}>
+              <div className="options">
+                {renderTagContent !== undefined &&
+                  selectedOptions.map((o) => {
+                    const id = getIdent(o);
+                    return (
+                      <div className="dialog-select-tag" key={id}>
+                        {renderTagContent(o)}
+                      </div>
+                    );
+                  })}
+              </div>
+              <TrackGradient />
+            </div>
+            <button
+              disabled={disabled}
+              className="open-button"
+              onClick={() => {
+                setModalOpen(true);
+              }}
+              type="button"
             >
-              <path d="M5.5 11H16.5" strokeWidth="2" strokeLinecap="round" />
-              <path d="M11 5.5L11 16.5" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 22 22"
+                fill="none"
+              >
+                <path d="M5.5 11H16.5" strokeWidth="2" strokeLinecap="round" />
+                <path d="M11 5.5L11 16.5" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          </div>
           <FieldError errorMessage={error} />
         </div>
       </div>

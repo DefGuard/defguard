@@ -1,8 +1,16 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { concat, intersection, orderBy } from 'lodash-es';
-import { PropsWithChildren, ReactNode, useMemo, useState } from 'react';
+import {
+  PropsWithChildren,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
 
@@ -15,9 +23,11 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { CheckBox } from '../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { EditButton } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
 import { EditButtonOption } from '../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
 import { EditButtonOptionStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import { InteractionBox } from '../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
@@ -101,6 +111,12 @@ export const AclIndexRules = () => {
     queryKey: [QueryKeys.FETCH_ACL_RULES],
     refetchOnMount: true,
   });
+  const pendingRulesCount = useMemo(() => {
+    if (aclRules) {
+      return aclRules.filter((rule) => rule.state !== AclStatus.APPLIED).length;
+    }
+    return 0;
+  }, [aclRules]);
 
   const rulesAfterSearch = useMemo(() => {
     if (aclRules && searchValue) {
@@ -118,6 +134,28 @@ export const AclIndexRules = () => {
         : [],
     [aclContext, aclRules, appliedFilters, rulesAfterSearch],
   );
+
+  const [selectedPending, setSelectedPending] = useState<Record<number, boolean>>({});
+  const handlePendingSelect = useCallback((key: number, value: boolean) => {
+    setSelectedPending((s) => ({ ...s, [key]: value }));
+  }, []);
+  const handlePendingSelectAll = useCallback(
+    (value: boolean, state: Record<number, boolean>) => {
+      const newState = { ...state };
+      for (const key in newState) {
+        newState[key] = value;
+      }
+      setSelectedPending(newState);
+    },
+    [],
+  );
+  const pendingSelectionCount = useMemo(() => {
+    let count = 0;
+    for (const key in selectedPending) {
+      if (selectedPending[key]) count++;
+    }
+    return count;
+  }, [selectedPending]);
 
   const deployedRules = useMemo(() => {
     if (aclRules) {
@@ -205,6 +243,31 @@ export const AclIndexRules = () => {
     [filtersCountDisplay, searchValue],
   );
 
+  const applyText = useMemo(() => {
+    if (pendingSelectionCount) {
+      return `Deploy selected changes (${pendingSelectionCount})`;
+    }
+    if (pendingRulesCount) {
+      return `Deploy pending changes (${pendingRulesCount})`;
+    }
+    return `Deploy pending changes`;
+  }, [pendingRulesCount, pendingSelectionCount]);
+
+  // update or build selection state for list when rules are done loading
+  useEffect(() => {
+    if (aclRules) {
+      const pending = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED);
+      const selectionEntries = Object.keys(selectedPending).length;
+      if (selectionEntries !== pending.length) {
+        const newSelectionState: Record<number, boolean> = {};
+        for (const rule of pending) {
+          newSelectionState[rule.id] = newSelectionState[rule.id] ?? false;
+        }
+        setSelectedPending(newSelectionState);
+      }
+    }
+  }, [aclRules, selectedPending]);
+
   return (
     <div id="acl-rules">
       <header>
@@ -244,14 +307,24 @@ export const AclIndexRules = () => {
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.SAVE}
-            text={`Deploy pending changes${pendingRules.length ? ` (${pendingRules.length})` : ''}`}
+            text={applyText}
             disabled={pendingRules.length === 0}
             onClick={() => {
               if (aclRules) {
-                const rulesToApply = aclRules
-                  .filter((rule) => rule.state !== AclStatus.APPLIED)
-                  .map((rule) => rule.id);
-                applyPendingChangesMutation(rulesToApply);
+                if (pendingSelectionCount === 0) {
+                  const rulesToApply = aclRules
+                    .filter((rule) => rule.state !== AclStatus.APPLIED)
+                    .map((rule) => rule.id);
+                  applyPendingChangesMutation(rulesToApply);
+                } else {
+                  const rulesToApply: number[] = [];
+                  for (const key in selectedPending) {
+                    if (selectedPending[key]) {
+                      rulesToApply.push(Number(key));
+                    }
+                  }
+                  applyPendingChangesMutation(rulesToApply);
+                }
               }
             }}
             loading={applyPending}
@@ -294,6 +367,10 @@ export const AclIndexRules = () => {
         }}
         data={pendingRules}
         noDataMessage={filtersPresent ? 'No pending changes found' : 'No pending changes'}
+        selected={selectedPending}
+        allSelected={pendingSelectionCount === pendingRulesCount}
+        onSelect={handlePendingSelect}
+        onSelectAll={handlePendingSelectAll}
       />
       <RulesList
         header={{
@@ -340,11 +417,32 @@ type RulesListProps = {
     extras?: ReactNode;
   };
   noDataMessage: string;
+  selected?: Record<number, boolean>;
+  allSelected?: boolean;
+  onSelect?: (key: number, value: boolean) => void;
+  onSelectAll?: (value: boolean, state: Record<number, boolean>) => void;
 };
 
-const RulesList = ({ data, header, noDataMessage }: RulesListProps) => {
+const RulesList = ({
+  data,
+  header,
+  noDataMessage,
+  selected,
+  allSelected,
+  onSelect,
+  onSelectAll,
+}: RulesListProps) => {
   const [sortKey, setSortKey] = useState<keyof AclRuleInfo>('name');
   const [sortDir, setSortDir] = useState<ListSortDirection>(ListSortDirection.ASC);
+
+  const selectionEnabled = useMemo(
+    () =>
+      isPresent(onSelect) &&
+      isPresent(onSelectAll) &&
+      isPresent(selected) &&
+      isPresent(allSelected),
+    [onSelect, onSelectAll, selected, allSelected],
+  );
 
   const sortedRules = useMemo(
     () => orderBy(data, [sortKey], [sortDir.valueOf().toLowerCase() as 'asc' | 'desc']),
@@ -395,36 +493,76 @@ const RulesList = ({ data, header, noDataMessage }: RulesListProps) => {
       )}
       {sortedRules.length > 0 && (
         <div className="list-container">
-          <ListHeader<AclRuleInfo>
-            headers={listHeaders}
-            sortDirection={sortDir}
-            activeKey={sortKey}
-            onChange={(key, dir) => {
-              setSortKey(key);
-              setSortDir(dir);
-            }}
-          />
+          <div
+            className={clsx('header-track', {
+              selectable: selectionEnabled,
+            })}
+          >
+            {selectionEnabled && (
+              <div className="select-cell">
+                <InteractionBox
+                  onClick={() => {
+                    const value = allSelected ?? false;
+                    onSelectAll?.(!value, selected ?? {});
+                  }}
+                >
+                  <CheckBox value={allSelected ?? false} />
+                </InteractionBox>
+              </div>
+            )}
+            <ListHeader<AclRuleInfo>
+              headers={listHeaders}
+              sortDirection={sortDir}
+              activeKey={sortKey}
+              onChange={(key, dir) => {
+                setSortKey(key);
+                setSortDir(dir);
+              }}
+            />
+          </div>
           <ul>
-            {sortedRules.map((rule) => (
-              <li key={rule.id} className="rule-row">
-                <div className="cell name">{upperCaseFirst(rule.name)}</div>
-                <div className="cell allowed">
-                  <RenderTagDisplay data={rule.context.allowed} />
-                </div>
-                <div className="cell denied">
-                  <RenderTagDisplay data={rule.context.denied} />
-                </div>
-                <div className="cell locations">
-                  <RenderTagDisplay data={rule.context.networks} />
-                </div>
-                <div className="cell status">
-                  <AclRuleStatus enabled={rule.enabled} status={rule.state} />
-                </div>
-                <div className="cell edit">
-                  <RuleEditButton rule={rule} />
-                </div>
-              </li>
-            ))}
+            {sortedRules.map((rule) => {
+              let ruleSelected = false;
+              if (selected) {
+                ruleSelected = selected[rule.id] ?? false;
+              }
+              return (
+                <li
+                  key={rule.id}
+                  className={clsx('rule-row', {
+                    selectable: selectionEnabled,
+                  })}
+                >
+                  {selectionEnabled && (
+                    <div className="cell select-cell">
+                      <InteractionBox
+                        onClick={() => {
+                          onSelect?.(rule.id, !ruleSelected);
+                        }}
+                      >
+                        <CheckBox value={ruleSelected} />
+                      </InteractionBox>
+                    </div>
+                  )}
+                  <div className="cell name">{upperCaseFirst(rule.name)}</div>
+                  <div className="cell allowed">
+                    <RenderTagDisplay data={rule.context.allowed} />
+                  </div>
+                  <div className="cell denied">
+                    <RenderTagDisplay data={rule.context.denied} />
+                  </div>
+                  <div className="cell locations">
+                    <RenderTagDisplay data={rule.context.networks} />
+                  </div>
+                  <div className="cell status">
+                    <AclRuleStatus enabled={rule.enabled} status={rule.state} />
+                  </div>
+                  <div className="cell edit">
+                    <RuleEditButton rule={rule} />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
