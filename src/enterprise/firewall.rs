@@ -113,18 +113,23 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        // prepare ALLOW rule for this ACL
-        let allow_rule = FirewallRule {
-            id: acl.id,
-            source_addrs,
-            destination_addrs: destination_addrs.clone(),
-            destination_ports,
-            protocols,
-            verdict: i32::from(FirewallPolicy::Allow),
-            comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+        // check if source addrs list is empty
+        if source_addrs.is_empty() {
+            debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
+        } else {
+            // prepare ALLOW rule for this ACL
+            let allow_rule = FirewallRule {
+                id: acl.id,
+                source_addrs,
+                destination_addrs: destination_addrs.clone(),
+                destination_ports,
+                protocols,
+                verdict: i32::from(FirewallPolicy::Allow),
+                comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+            };
+            debug!("ALLOW rule generated from ACL: {allow_rule:?}");
+            firewall_rules.push(allow_rule);
         };
-        debug!("ALLOW rule generated from ACL: {allow_rule:?}");
-        firewall_rules.push(allow_rule);
 
         // prepare DENY rule for this ACL
         //
