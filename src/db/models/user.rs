@@ -394,7 +394,10 @@ impl User<Id> {
             if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
                 if location.acl_enabled {
                     debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
-                    let firewall_config = location.try_get_firewall_config(&mut *conn).await?.expect("firewall config should exist because ACL is enabled for location {location}");
+                    let firewall_config = location
+                        .try_get_firewall_config(&mut *conn)
+                        .await?
+                        .expect("firewall config should exist because ACL is enabled for location");
                     events.push(GatewayEvent::FirewallConfigChanged(
                         location_id,
                         firewall_config,
