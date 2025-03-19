@@ -1,11 +1,10 @@
-.dialog-select {
+.dialog-select-field {
   width: 100%;
   display: inline-grid;
   grid-template-rows: auto;
   grid-template-columns: 1fr 40px;
   column-gap: var(--spacing-xs);
   align-items: center;
-  position: relative;
 
   .open-button {
     grid-row: 1;
@@ -132,8 +131,12 @@
   }
 }
 
-.dialog-select-spacer {
-  & > label {
-    padding-bottom: var(--spacing-xs);
+.dialog-select {
+  & > .inner {
+    position: relative;
+
+    & > label {
+      padding-bottom: var(--spacing-xs);
+    }
   }
 }
