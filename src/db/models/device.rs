@@ -616,8 +616,8 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_id_and_username(
-        pool: &PgPool,
+    pub(crate) async fn find_by_id_and_username<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
         id: Id,
         username: &str,
     ) -> Result<Option<Self>, SqlxError> {
@@ -630,7 +630,7 @@ impl Device<Id> {
             id,
             username
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 

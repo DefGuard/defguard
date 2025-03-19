@@ -478,8 +478,9 @@ pub(crate) async fn start_network_device_setup(
         result.device.id
     );
 
+    update_counts(&mut *transaction).await?;
+
     transaction.commit().await?;
-    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!({"enrollment_token": configuration_token, "enrollment_url":  config.enrollment_url.to_string()}),
@@ -617,6 +618,16 @@ pub(crate) async fn add_network_device(
         network_info: vec![network_info.clone()],
     }));
 
+    update_counts(&mut *transaction).await?;
+
+    // send firewall update event if ACLs & enterprise features are enabled
+    if let Some(firewall_config) = network.try_get_firewall_config(&mut transaction).await? {
+        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+            network.id,
+            firewall_config,
+        ));
+    }
+
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
         assigned_ip: config.address.to_string(),
@@ -643,7 +654,6 @@ pub(crate) async fn add_network_device(
     };
 
     transaction.commit().await?;
-    update_counts(&appstate.pool).await?;
 
     Ok(ApiResponse {
         json: json!(result),
@@ -705,6 +715,20 @@ pub async fn modify_network_device(
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
+
+        // send firewall update event if ACLs are enabled
+        if device_network.acl_enabled {
+            if let Some(firewall_config) = device_network
+                .try_get_firewall_config(&mut transaction)
+                .await?
+            {
+                appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                    device_network.id,
+                    firewall_config,
+                ));
+            }
+        }
+
         info!(
             "User {} changed IP address of network device {} from {} to {new_ip} in network {}",
             session.user.username,

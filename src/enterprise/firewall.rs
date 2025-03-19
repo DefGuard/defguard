@@ -4,7 +4,7 @@ use std::{
 };
 
 use ipnetwork::{IpNetwork, Ipv6Network};
-use sqlx::{query_as, query_scalar, Error as SqlxError, PgPool};
+use sqlx::{query_as, query_scalar, Error as SqlxError, PgConnection};
 
 use super::db::models::acl::{
     AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
@@ -12,6 +12,7 @@ use super::db::models::acl::{
 
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
+    enterprise::is_enterprise_enabled,
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
@@ -31,7 +32,7 @@ pub async fn generate_firewall_rules_from_acls(
     default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
     acl_rules: Vec<AclRuleInfo<Id>>,
-    pool: &PgPool,
+    conn: &mut PgConnection,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
     debug!("Generating firewall rules for location {location_id} with default policy {default_location_policy:?} and IP version {ip_version:?}");
     // initialize empty result Vec
@@ -52,16 +53,16 @@ pub async fn generate_firewall_rules_from_acls(
         // number of records
         //
         // fetch allowed users
-        let allowed_users = acl.get_all_allowed_users(pool).await?;
+        let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
 
         // fetch denied users
-        let denied_users = acl.get_all_denied_users(pool).await?;
+        let denied_users = acl.get_all_denied_users(&mut *conn).await?;
 
         // get relevant users for determining source IPs
         let users = get_source_users(allowed_users, denied_users, default_location_policy);
 
         // get network IPs for devices belonging to those users
-        let user_device_ips = get_user_device_ips(&users, location_id, pool).await?;
+        let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
 
         // get network device IPs for rule source
         let network_devices = get_source_network_devices(
@@ -70,7 +71,7 @@ pub async fn generate_firewall_rules_from_acls(
             default_location_policy,
         );
         let network_device_ips =
-            get_network_device_ips(&network_devices, location_id, pool).await?;
+            get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
 
         // convert device IPs into source addresses for a firewall rule
         let source_addrs = get_source_addrs(user_device_ips, network_device_ips, ip_version);
@@ -91,7 +92,7 @@ pub async fn generate_firewall_rules_from_acls(
         // process aliases by appending destination parameters from each of them to existing lists
         for alias in aliases {
             // fetch destination ranges for a fiven alias
-            alias_destination_ranges.extend(alias.get_destination_ranges(pool).await?);
+            alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
 
             // extend existing parameter lists
             destination.extend(alias.destination);
@@ -166,10 +167,10 @@ fn get_source_users(
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
 // We specifically only fetch user devices since network devices are handled separately.
-async fn get_user_device_ips(
+async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
     users: &[User<Id>],
     location_id: Id,
-    pool: &PgPool,
+    executor: E,
 ) -> Result<Vec<IpAddr>, SqlxError> {
     // prepeare a list of user IDs
     let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
@@ -183,7 +184,7 @@ async fn get_user_device_ips(
             location_id,
             &user_ids
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await
 }
 
@@ -216,7 +217,7 @@ fn get_source_network_devices(
 async fn get_network_device_ips(
     network_devices: &[Device<Id>],
     location_id: Id,
-    pool: &PgPool,
+    conn: &mut PgConnection,
 ) -> Result<Vec<IpAddr>, SqlxError> {
     // prepare a list of IDs
     let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
@@ -229,7 +230,7 @@ async fn get_network_device_ips(
         location_id,
         &network_device_ids,
     )
-    .fetch_all(pool)
+    .fetch_all(conn)
     .await
 }
 
@@ -548,7 +549,7 @@ impl WireguardNetwork<Id> {
     /// Filters out rules which are disabled, expired or have not been deployed yet.
     pub(crate) async fn get_active_acl_rules(
         &self,
-        pool: &PgPool,
+        conn: &mut PgConnection,
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
         let rules: Vec<AclRule<Id>> = query_as(
@@ -562,14 +563,14 @@ impl WireguardNetwork<Id> {
                 AND (expires IS NULL OR expires > NOW())",
         )
         .bind(self.id)
-        .fetch_all(pool)
+        .fetch_all(&mut *conn)
         .await?;
         debug!("Found {} active ACL rules for location {self}", rules.len());
 
         // convert to `AclRuleInfo`
         let mut rules_info = Vec::new();
         for rule in rules {
-            let rule_info = rule.to_info(pool).await?;
+            let rule_info = rule.to_info(&mut *conn).await?;
             rules_info.push(rule_info);
         }
         Ok(rules_info)
@@ -579,8 +580,16 @@ impl WireguardNetwork<Id> {
     /// Returns `None` if firewall management is disabled for a given location.
     pub async fn try_get_firewall_config(
         &self,
-        pool: &PgPool,
+        conn: &mut PgConnection,
     ) -> Result<Option<FirewallConfig>, FirewallError> {
+        // do a license check
+        if !is_enterprise_enabled() {
+            debug!(
+                "Enterprise features are disabled, skipping generating firewall config for location {self}"
+            );
+            return Ok(None);
+        }
+
         // check if ACLs are enabled
         if !self.acl_enabled {
             debug!(
@@ -591,7 +600,7 @@ impl WireguardNetwork<Id> {
 
         info!("Generating firewall config for location {self}");
         // fetch all active ACLs for location
-        let location_acls = self.get_active_acl_rules(pool).await?;
+        let location_acls = self.get_active_acl_rules(&mut *conn).await?;
 
         // determine IP version based on location subnet
         let ip_version = self.get_ip_version();
@@ -605,7 +614,7 @@ impl WireguardNetwork<Id> {
             default_policy,
             ip_version,
             location_acls,
-            pool,
+            &mut *conn,
         )
         .await?;
 
@@ -1373,8 +1382,10 @@ mod test {
         destination_ranges: Vec<(IpAddr, IpAddr)>,
         aliases: Vec<Id>,
     ) -> AclRuleInfo<Id> {
+        let mut conn = pool.acquire().await.unwrap();
+
         // create base rule
-        let rule = rule.save(pool).await.unwrap();
+        let rule = rule.save(&mut *conn).await.unwrap();
         let rule_id = rule.id;
 
         // create related objects
@@ -1385,7 +1396,7 @@ mod test {
                 rule_id,
                 network_id: location_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // allowed users
@@ -1396,7 +1407,7 @@ mod test {
                 rule_id,
                 user_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // denied users
@@ -1407,7 +1418,7 @@ mod test {
                 rule_id,
                 user_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // allowed groups
@@ -1418,7 +1429,7 @@ mod test {
                 rule_id,
                 group_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // denied groups
@@ -1429,7 +1440,7 @@ mod test {
                 rule_id,
                 group_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // allowed devices
@@ -1440,7 +1451,7 @@ mod test {
                 rule_id,
                 device_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // denied devices
@@ -1451,7 +1462,7 @@ mod test {
                 rule_id,
                 device_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // destination ranges
@@ -1462,7 +1473,7 @@ mod test {
                 start: range.0,
                 end: range.1,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // aliases
@@ -1472,11 +1483,11 @@ mod test {
                 rule_id,
                 alias_id,
             };
-            obj.save(pool).await.unwrap();
+            obj.save(&mut *conn).await.unwrap();
         }
 
         // convert to output format
-        rule.to_info(pool).await.unwrap()
+        rule.to_info(&mut conn).await.unwrap()
     }
 
     #[sqlx::test]
@@ -1719,16 +1730,18 @@ mod test {
 
         let acl_rules = vec![acl_rule_1, acl_rule_2];
 
+        let mut conn = pool.acquire().await.unwrap();
+
         // try to generate firewall config with ACL disabled
         location.acl_enabled = false;
-        let generated_firewall_config = location.try_get_firewall_config(&pool).await.unwrap();
+        let generated_firewall_config = location.try_get_firewall_config(&mut conn).await.unwrap();
         assert!(generated_firewall_config.is_none());
 
         // generate firewall config with default policy Allow
         location.acl_enabled = true;
         location.acl_default_allow = true;
         let generated_firewall_config = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap();
@@ -1823,7 +1836,7 @@ mod test {
             FirewallPolicy::Deny,
             IpVersion::Ipv4,
             acl_rules,
-            &pool,
+            &mut conn,
         )
         .await
         .unwrap();
@@ -1962,8 +1975,9 @@ mod test {
             obj.save(&pool).await.unwrap();
         }
 
+        let mut conn = pool.acquire().await.unwrap();
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()
@@ -1980,7 +1994,7 @@ mod test {
         acl_rule_2.save(&pool).await.unwrap();
 
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()
@@ -2030,8 +2044,9 @@ mod test {
             obj.save(&pool).await.unwrap();
         }
 
+        let mut conn = pool.acquire().await.unwrap();
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()
@@ -2048,7 +2063,7 @@ mod test {
         acl_rule_2.save(&pool).await.unwrap();
 
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()
@@ -2098,8 +2113,9 @@ mod test {
             obj.save(&pool).await.unwrap();
         }
 
+        let mut conn = pool.acquire().await.unwrap();
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()
@@ -2116,7 +2132,7 @@ mod test {
         acl_rule_2.save(&pool).await.unwrap();
 
         let generated_firewall_rules = location
-            .try_get_firewall_config(&pool)
+            .try_get_firewall_config(&mut conn)
             .await
             .unwrap()
             .unwrap()

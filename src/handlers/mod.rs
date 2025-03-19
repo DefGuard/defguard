@@ -79,7 +79,8 @@ impl From<WebError> for ApiResponse {
             | WebError::ModelError(_)
             | WebError::ServerConfigMissing
             | WebError::EmailMfa(_)
-            | WebError::ClientIpError => {
+            | WebError::ClientIpError
+            | WebError::FirewallError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),
@@ -103,7 +104,7 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Rule {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
-                AclError::DbError(err) => {
+                AclError::DbError(_) | AclError::FirewallError(_) => {
                     error!("{err}");
                     ApiResponse::new(
                         json!({"msg": "Internal server error"}),
@@ -403,15 +404,15 @@ pub async fn user_for_admin_or_self(
 /// Try to fetch [`Device'] if the device.id is of the currently logged in user, or
 /// the logged in user is an admin.
 #[cfg(feature = "wireguard")]
-pub async fn device_for_admin_or_self(
-    pool: &PgPool,
+pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
     session: &SessionInfo,
     id: Id,
 ) -> Result<Device<Id>, WebError> {
     let fetch = if session.is_admin {
-        Device::find_by_id(pool, id).await
+        Device::find_by_id(executor, id).await
     } else {
-        Device::find_by_id_and_username(pool, id, &session.user.username).await
+        Device::find_by_id_and_username(executor, id, &session.user.username).await
     }?;
 
     match fetch {

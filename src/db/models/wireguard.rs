@@ -29,8 +29,10 @@ use super::{
 use crate::{
     appstate::AppState,
     db::{Id, NoId},
+    enterprise::firewall::FirewallError,
     grpc::{
         gateway::{send_multiple_wireguard_events, Peer},
+        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
     },
     wg_config::ImportedDevice,
@@ -70,15 +72,16 @@ impl DateTimeAggregation {
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
+    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
+    FirewallConfigChanged(Id, FirewallConfig),
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
     pub id: I,
@@ -161,6 +164,8 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
+    #[error("Firewall config error: {0}")]
+    FirewallError(#[from] FirewallError),
 }
 
 impl WireguardNetwork {
@@ -240,13 +245,31 @@ impl WireguardNetwork<Id> {
     }
 
     // run sync_allowed_devices on all wireguard networks
-    pub(crate) async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+    pub(crate) async fn sync_all_networks(
+        appstate: &AppState,
+    ) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
-        let mut transaction = app.pool.begin().await?;
+        let mut transaction = appstate.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            send_multiple_wireguard_events(gateway_events, &app.wireguard_tx);
+            // chceck if any peers were updated
+            if !gateway_events.is_empty() {
+                // send peer update events
+                send_multiple_wireguard_events(gateway_events, &appstate.wireguard_tx);
+
+                // send firewall config update if ACLs are enabled
+                if network.acl_enabled {
+                    if let Some(firewall_config) =
+                        network.try_get_firewall_config(&mut transaction).await?
+                    {
+                        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                            network.id,
+                            firewall_config,
+                        ));
+                    }
+                }
+            }
         }
         transaction.commit().await?;
         Ok(())
