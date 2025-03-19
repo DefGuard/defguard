@@ -346,7 +346,7 @@ impl User<Id> {
             let gateway_events = network
                 .sync_allowed_devices_for_user(&mut *conn, self, None)
                 .await?;
-            // chceck if any peers were updated
+            // check if any peers were updated
             if !gateway_events.is_empty() {
                 // send peer update events
                 send_multiple_wireguard_events(gateway_events, wg_tx);

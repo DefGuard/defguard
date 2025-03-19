@@ -359,7 +359,7 @@ impl GatewayUpdatesHandler {
         &self,
         network: &WireguardNetwork<Id>,
         peers: Vec<Peer>,
-        maybe_firewall_config: Option<FirewallConfig>,
+        firewall_config: Option<FirewallConfig>,
         update_type: i32,
     ) -> Result<(), Status> {
         debug!("Sending network update for network {network}");
@@ -373,7 +373,7 @@ impl GatewayUpdatesHandler {
                     addresses: network.address.iter().map(ToString::to_string).collect(),
                     port: network.port as u32,
                     peers,
-                    firewall_config: maybe_firewall_config,
+                    firewall_config,
                 })),
             }))
             .await
