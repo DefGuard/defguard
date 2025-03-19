@@ -27,26 +27,22 @@ pub enum FirewallError {
     ModelError(#[from] ModelError),
 }
 
+/// Converts ACLs into firewall rules which can be sent to a gateway over gRPC.
+///
+/// Each ACL is translated into two rules (in this specific order):
+/// - ALLOW which determines which devices can access a destination
+/// - DENY which stops all other traffic to a given destination
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
-    default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
     acl_rules: Vec<AclRuleInfo<Id>>,
     conn: &mut PgConnection,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
-    debug!("Generating firewall rules for location {location_id} with default policy {default_location_policy:?} and IP version {ip_version:?}");
+    debug!("Generating firewall rules for location {location_id} with IP version {ip_version:?}");
     // initialize empty result Vec
     let mut firewall_rules = Vec::new();
 
-    // we only create rules which are opposite to the default policy
-    // for example if by default the firewall denies all traffic it only makes sense to add allow
-    // rules
-    let firewall_rule_verdict = match default_location_policy {
-        FirewallPolicy::Allow => FirewallPolicy::Deny,
-        FirewallPolicy::Deny => FirewallPolicy::Allow,
-    };
-
-    // convert each ACL into a corresponding `FirewallRule`
+    // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
         debug!("Processing ACL rule: {acl:?}");
         // FIXME: use `allow_all_users` and `deny_all_users` values to avoid processing excessive
@@ -59,17 +55,13 @@ pub async fn generate_firewall_rules_from_acls(
         let denied_users = acl.get_all_denied_users(&mut *conn).await?;
 
         // get relevant users for determining source IPs
-        let users = get_source_users(allowed_users, denied_users, default_location_policy);
+        let users = get_source_users(allowed_users, denied_users);
 
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
 
         // get network device IPs for rule source
-        let network_devices = get_source_network_devices(
-            acl.allowed_devices,
-            acl.denied_devices,
-            default_location_policy,
-        );
+        let network_devices = get_source_network_devices(acl.allowed_devices, acl.denied_devices);
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
 
@@ -121,21 +113,33 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        // prepare comment
-        let comment = Some(format!("ACL {} - {}", acl.id, acl.name));
-
-        // prepare firewall rule for this ACL
-        let firewall_rule = FirewallRule {
+        // prepare ALLOW rule for this ACL
+        let allow_rule = FirewallRule {
             id: acl.id,
             source_addrs,
-            destination_addrs,
+            destination_addrs: destination_addrs.clone(),
             destination_ports,
             protocols,
-            verdict: firewall_rule_verdict.into(),
-            comment,
+            verdict: i32::from(FirewallPolicy::Allow),
+            comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
         };
-        debug!("Firewall rule generated from ACL: {firewall_rule:?}");
-        firewall_rules.push(firewall_rule)
+        debug!("ALLOW rule generated from ACL: {allow_rule:?}");
+        firewall_rules.push(allow_rule);
+
+        // prepare DENY rule for this ACL
+        //
+        // it should specify only the destination addrs to block all remaining traffic
+        let deny_rule = FirewallRule {
+            id: acl.id,
+            source_addrs: Vec::new(),
+            destination_addrs,
+            destination_ports: Vec::new(),
+            protocols: Vec::new(),
+            verdict: i32::from(FirewallPolicy::Deny),
+            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+        };
+        debug!("DENY rule generated from ACL: {deny_rule:?}");
+        firewall_rules.push(deny_rule)
     }
     Ok(firewall_rules)
 }
@@ -143,26 +147,14 @@ pub async fn generate_firewall_rules_from_acls(
 /// Prepares a list of all relevant users whose device IPs we'll need to prepare
 /// source config for a firewall rule.
 ///
-/// Depending on the default policy we either need:
-/// - allowed users if default policy is `Deny`
-/// - denied users if default policy is `Allow`
-fn get_source_users(
-    allowed_users: Vec<User<Id>>,
-    denied_users: Vec<User<Id>>,
-    default_location_policy: FirewallPolicy,
-) -> Vec<User<Id>> {
-    match default_location_policy {
-        // start with allowed users and remove those explicitly denied
-        FirewallPolicy::Deny => allowed_users
-            .into_iter()
-            .filter(|user| !denied_users.contains(user))
-            .collect(),
-        // start with denied users and remove those explicitly allowed
-        FirewallPolicy::Allow => denied_users
-            .into_iter()
-            .filter(|user| !allowed_users.contains(user))
-            .collect(),
-    }
+/// Source addrs are only needed for the ALLOW rule, so we need to take the allowed users and
+/// remove any explicitly denied users.
+fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: Vec<User<Id>>) -> Vec<User<Id>> {
+    // start with allowed users and remove those explicitly denied
+    allowed_users
+        .into_iter()
+        .filter(|user| !denied_users.contains(user))
+        .collect()
 }
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
@@ -191,26 +183,17 @@ async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
 /// Prepares a list of all relevant network devices whose IPs we'll need to prepare
 /// source config for a firewall rule.
 ///
-/// Depending on the default policy we either need:
-/// - allowed devices if default policy is `Deny`
-/// - denied devices if default policy is `Allow`
+/// Source addrs are only needed for the ALLOW rule, so we need to take the allowed devices and
+/// remove any explicitly denied devices.
 fn get_source_network_devices(
     allowed_devices: Vec<Device<Id>>,
     denied_devices: Vec<Device<Id>>,
-    default_location_policy: FirewallPolicy,
 ) -> Vec<Device<Id>> {
-    match default_location_policy {
-        // start with allowed devices and remove those explicitly denied
-        FirewallPolicy::Deny => allowed_devices
-            .into_iter()
-            .filter(|device| !denied_devices.contains(device))
-            .collect(),
-        // start with denied devices and remove those explicitly allowed
-        FirewallPolicy::Allow => denied_devices
-            .into_iter()
-            .filter(|device| !allowed_devices.contains(device))
-            .collect(),
-    }
+    // start with allowed devices and remove those explicitly denied
+    allowed_devices
+        .into_iter()
+        .filter(|device| !denied_devices.contains(device))
+        .collect()
 }
 
 /// Fetches all IPs of specified network devices within a given location's VPN subnet.
@@ -609,14 +592,9 @@ impl WireguardNetwork<Id> {
             true => FirewallPolicy::Allow,
             false => FirewallPolicy::Deny,
         };
-        let firewall_rules = generate_firewall_rules_from_acls(
-            self.id,
-            default_policy,
-            ip_version,
-            location_acls,
-            &mut *conn,
-        )
-        .await?;
+        let firewall_rules =
+            generate_firewall_rules_from_acls(self.id, ip_version, location_acls, &mut *conn)
+                .await?;
 
         let firewall_config = FirewallConfig {
             ip_version: ip_version.into(),
