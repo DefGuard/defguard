@@ -27,31 +27,28 @@ pub enum FirewallError {
     ModelError(#[from] ModelError),
 }
 
+/// Converts ACLs into firewall rules which can be sent to a gateway over gRPC.
+///
+/// Each ACL is translated into two rules:
+/// - ALLOW which determines which devices can access a destination
+/// - DENY which stops all other traffic to a given destination
+///
+/// In the resulting list all ALLOW rules are placed first and then DENY rules are added to the
+/// end. This way we can avoid conflicts when some ACLs are overlapping.
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
-    default_location_policy: FirewallPolicy,
     ip_version: IpVersion,
     acl_rules: Vec<AclRuleInfo<Id>>,
     conn: &mut PgConnection,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
-    debug!("Generating firewall rules for location {location_id} with default policy {default_location_policy:?} and IP version {ip_version:?}");
-    // initialize empty result Vec
-    let mut firewall_rules = Vec::new();
+    debug!("Generating firewall rules for location {location_id} with IP version {ip_version:?}");
+    // initialize empty rules Vec
+    let mut allow_rules = Vec::new();
+    let mut deny_rules = Vec::new();
 
-    // we only create rules which are opposite to the default policy
-    // for example if by default the firewall denies all traffic it only makes sense to add allow
-    // rules
-    let firewall_rule_verdict = match default_location_policy {
-        FirewallPolicy::Allow => FirewallPolicy::Deny,
-        FirewallPolicy::Deny => FirewallPolicy::Allow,
-    };
-
-    // convert each ACL into a corresponding `FirewallRule`
+    // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
         debug!("Processing ACL rule: {acl:?}");
-        // FIXME: use `allow_all_users` and `deny_all_users` values to avoid processing excessive
-        // number of records
-        //
         // fetch allowed users
         let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
 
@@ -59,17 +56,13 @@ pub async fn generate_firewall_rules_from_acls(
         let denied_users = acl.get_all_denied_users(&mut *conn).await?;
 
         // get relevant users for determining source IPs
-        let users = get_source_users(allowed_users, denied_users, default_location_policy);
+        let users = get_source_users(allowed_users, denied_users);
 
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
 
         // get network device IPs for rule source
-        let network_devices = get_source_network_devices(
-            acl.allowed_devices,
-            acl.denied_devices,
-            default_location_policy,
-        );
+        let network_devices = get_source_network_devices(acl.allowed_devices, acl.denied_devices);
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
 
@@ -121,48 +114,55 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        // prepare comment
-        let comment = Some(format!("ACL {} - {}", acl.id, acl.name));
-
-        // prepare firewall rule for this ACL
-        let firewall_rule = FirewallRule {
-            id: acl.id,
-            source_addrs,
-            destination_addrs,
-            destination_ports,
-            protocols,
-            verdict: firewall_rule_verdict.into(),
-            comment,
+        // check if source addrs list is empty
+        if source_addrs.is_empty() {
+            debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
+        } else {
+            // prepare ALLOW rule for this ACL
+            let allow_rule = FirewallRule {
+                id: acl.id,
+                source_addrs,
+                destination_addrs: destination_addrs.clone(),
+                destination_ports,
+                protocols,
+                verdict: i32::from(FirewallPolicy::Allow),
+                comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+            };
+            debug!("ALLOW rule generated from ACL: {allow_rule:?}");
+            allow_rules.push(allow_rule);
         };
-        debug!("Firewall rule generated from ACL: {firewall_rule:?}");
-        firewall_rules.push(firewall_rule)
+
+        // prepare DENY rule for this ACL
+        //
+        // it should specify only the destination addrs to block all remaining traffic
+        let deny_rule = FirewallRule {
+            id: acl.id,
+            source_addrs: Vec::new(),
+            destination_addrs,
+            destination_ports: Vec::new(),
+            protocols: Vec::new(),
+            verdict: i32::from(FirewallPolicy::Deny),
+            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+        };
+        debug!("DENY rule generated from ACL: {deny_rule:?}");
+        deny_rules.push(deny_rule)
     }
-    Ok(firewall_rules)
+
+    // combine both rule lists
+    Ok(allow_rules.into_iter().chain(deny_rules).collect())
 }
 
 /// Prepares a list of all relevant users whose device IPs we'll need to prepare
 /// source config for a firewall rule.
 ///
-/// Depending on the default policy we either need:
-/// - allowed users if default policy is `Deny`
-/// - denied users if default policy is `Allow`
-fn get_source_users(
-    allowed_users: Vec<User<Id>>,
-    denied_users: Vec<User<Id>>,
-    default_location_policy: FirewallPolicy,
-) -> Vec<User<Id>> {
-    match default_location_policy {
-        // start with allowed users and remove those explicitly denied
-        FirewallPolicy::Deny => allowed_users
-            .into_iter()
-            .filter(|user| !denied_users.contains(user))
-            .collect(),
-        // start with denied users and remove those explicitly allowed
-        FirewallPolicy::Allow => denied_users
-            .into_iter()
-            .filter(|user| !allowed_users.contains(user))
-            .collect(),
-    }
+/// Source addrs are only needed for the ALLOW rule, so we need to take the allowed users and
+/// remove any explicitly denied users.
+fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: Vec<User<Id>>) -> Vec<User<Id>> {
+    // start with allowed users and remove those explicitly denied
+    allowed_users
+        .into_iter()
+        .filter(|user| !denied_users.contains(user))
+        .collect()
 }
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
@@ -191,26 +191,17 @@ async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
 /// Prepares a list of all relevant network devices whose IPs we'll need to prepare
 /// source config for a firewall rule.
 ///
-/// Depending on the default policy we either need:
-/// - allowed devices if default policy is `Deny`
-/// - denied devices if default policy is `Allow`
+/// Source addrs are only needed for the ALLOW rule, so we need to take the allowed devices and
+/// remove any explicitly denied devices.
 fn get_source_network_devices(
     allowed_devices: Vec<Device<Id>>,
     denied_devices: Vec<Device<Id>>,
-    default_location_policy: FirewallPolicy,
 ) -> Vec<Device<Id>> {
-    match default_location_policy {
-        // start with allowed devices and remove those explicitly denied
-        FirewallPolicy::Deny => allowed_devices
-            .into_iter()
-            .filter(|device| !denied_devices.contains(device))
-            .collect(),
-        // start with denied devices and remove those explicitly allowed
-        FirewallPolicy::Allow => denied_devices
-            .into_iter()
-            .filter(|device| !allowed_devices.contains(device))
-            .collect(),
-    }
+    // start with allowed devices and remove those explicitly denied
+    allowed_devices
+        .into_iter()
+        .filter(|device| !denied_devices.contains(device))
+        .collect()
 }
 
 /// Fetches all IPs of specified network devices within a given location's VPN subnet.
@@ -609,14 +600,9 @@ impl WireguardNetwork<Id> {
             true => FirewallPolicy::Allow,
             false => FirewallPolicy::Deny,
         };
-        let firewall_rules = generate_firewall_rules_from_acls(
-            self.id,
-            default_policy,
-            ip_version,
-            location_acls,
-            &mut *conn,
-        )
-        .await?;
+        let firewall_rules =
+            generate_firewall_rules_from_acls(self.id, ip_version, location_acls, &mut *conn)
+                .await?;
 
         let firewall_config = FirewallConfig {
             ip_version: ip_version.into(),
@@ -655,7 +641,7 @@ mod test {
     use rand::{thread_rng, Rng};
     use sqlx::{query, PgPool};
 
-    use super::{generate_firewall_rules_from_acls, process_destination_addrs};
+    use super::process_destination_addrs;
     use crate::{
         db::{
             models::device::{DeviceType, WireguardNetworkDevice},
@@ -705,16 +691,7 @@ mod test {
         let allowed_users = vec![user_1.clone(), user_2.clone(), user_4.clone()];
         let denied_users = vec![user_3.clone(), user_4, user_5.clone()];
 
-        // default policy is `Allow`, so we should get explicitly denied users
-        let users = get_source_users(
-            allowed_users.clone(),
-            denied_users.clone(),
-            FirewallPolicy::Allow,
-        );
-        assert_eq!(users, vec![user_3, user_5]);
-        //
-        // default policy is `Deny`, so we should get explicitly allowed users
-        let users = get_source_users(allowed_users, denied_users, FirewallPolicy::Deny);
+        let users = get_source_users(allowed_users, denied_users);
         assert_eq!(users, vec![user_1, user_2]);
     }
 
@@ -736,17 +713,7 @@ mod test {
         ];
         let denied_devices = vec![device_2.clone(), device_4, device_5.clone()];
 
-        // default policy is `Allow`, so we should get explicitly denied devices
-        let devices = get_source_network_devices(
-            allowed_devices.clone(),
-            denied_devices.clone(),
-            FirewallPolicy::Allow,
-        );
-        assert_eq!(devices, vec![device_2]);
-        //
-        // default policy is `Deny`, so we should get explicitly allowed devices
-        let devices =
-            get_source_network_devices(allowed_devices, denied_devices, FirewallPolicy::Deny);
+        let devices = get_source_network_devices(allowed_devices, denied_devices);
         assert_eq!(devices, vec![device_1, device_3]);
     }
 
@@ -1670,7 +1637,7 @@ mod test {
         let destination_ranges = vec![];
         let aliases = vec![];
 
-        let acl_rule_1 = create_acl_rule(
+        let _acl_rule_1 = create_acl_rule(
             &pool,
             acl_rule_1,
             locations,
@@ -1713,7 +1680,7 @@ mod test {
         ];
         let aliases_2 = vec![];
 
-        let acl_rule_2 = create_acl_rule(
+        let _acl_rule_2 = create_acl_rule(
             &pool,
             acl_rule_2,
             locations_2,
@@ -1727,8 +1694,6 @@ mod test {
             aliases_2,
         )
         .await;
-
-        let acl_rules = vec![acl_rule_1, acl_rule_2];
 
         let mut conn = pool.acquire().await.unwrap();
 
@@ -1756,16 +1721,14 @@ mod test {
 
         let generated_firewall_rules = generated_firewall_config.rules;
 
-        // For default Allow policy, we should get deny rules for explicitly denied users/devices
-        assert_eq!(generated_firewall_rules.len(), 2);
+        assert_eq!(generated_firewall_rules.len(), 4);
 
-        // First rule - Web Access
-        // Should deny access for user_3 and network_devices 2,3 to web ports
-        let web_rule = &generated_firewall_rules[0];
-        assert_eq!(web_rule.verdict, i32::from(FirewallPolicy::Deny));
-        assert_eq!(web_rule.protocols, vec![i32::from(Protocol::Tcp)]);
+        // First ACL - Web Access ALLOW
+        let web_allow_rule = &generated_firewall_rules[0];
+        assert_eq!(web_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(web_allow_rule.protocols, vec![i32::from(Protocol::Tcp)]);
         assert_eq!(
-            web_rule.destination_addrs,
+            web_allow_rule.destination_addrs,
             vec![IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "192.168.1.0".to_string(),
@@ -1774,93 +1737,7 @@ mod test {
             }]
         );
         assert_eq!(
-            web_rule.destination_ports,
-            vec![
-                Port {
-                    port: Some(PortInner::SinglePort(80))
-                },
-                Port {
-                    port: Some(PortInner::SinglePort(443))
-                }
-            ]
-        );
-        // Source addresses should include user_3's devices and network devices 2,3
-        assert_eq!(
-            web_rule.source_addrs,
-            vec![
-                IpAddress {
-                    address: Some(Address::IpRange(IpRange {
-                        start: "10.0.3.1".to_string(),
-                        end: "10.0.3.2".to_string(),
-                    })),
-                },
-                IpAddress {
-                    address: Some(Address::IpRange(IpRange {
-                        start: "10.0.100.2".to_string(),
-                        end: "10.0.100.3".to_string(),
-                    })),
-                },
-            ]
-        );
-
-        // Second rule - DNS Access
-        // Should deny access for user_5 and groups 1,2 members and network_device_3 to DNS
-        let dns_rule = &generated_firewall_rules[1];
-        assert_eq!(dns_rule.verdict, i32::from(FirewallPolicy::Deny));
-        assert_eq!(dns_rule.protocols.len(), 2);
-        assert!(dns_rule
-            .protocols
-            .iter()
-            .any(|p| *p == i32::from(Protocol::Udp)));
-        assert!(dns_rule
-            .protocols
-            .iter()
-            .any(|p| *p == i32::from(Protocol::Tcp)));
-        assert_eq!(
-            dns_rule.destination_ports,
-            vec![Port {
-                port: Some(PortInner::SinglePort(53))
-            }]
-        );
-        // Source addresses should network_device_3
-        assert_eq!(
-            dns_rule.source_addrs,
-            vec![IpAddress {
-                address: Some(Address::Ip("10.0.100.3".to_string())),
-            },]
-        );
-
-        // generate rules for default policy Deny
-        let generated_firewall_rules = generate_firewall_rules_from_acls(
-            location.id,
-            FirewallPolicy::Deny,
-            IpVersion::Ipv4,
-            acl_rules,
-            &mut conn,
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(generated_firewall_rules.len(), 2);
-
-        // For default Deny policy, we should get allow rules for explicitly allowed users/devices
-
-        // First rule - Web Access
-        // Should allow access for users 1,2 and network_device_1 to web ports
-        let web_rule = &generated_firewall_rules[0];
-        assert_eq!(web_rule.verdict, i32::from(FirewallPolicy::Allow));
-        assert_eq!(web_rule.protocols, vec![i32::from(Protocol::Tcp)]);
-        assert_eq!(
-            web_rule.destination_addrs,
-            vec![IpAddress {
-                address: Some(Address::IpRange(IpRange {
-                    start: "192.168.1.0".to_string(),
-                    end: "192.168.1.255".to_string(),
-                })),
-            }]
-        );
-        assert_eq!(
-            web_rule.destination_ports,
+            web_allow_rule.destination_ports,
             vec![
                 Port {
                     port: Some(PortInner::SinglePort(80))
@@ -1872,7 +1749,7 @@ mod test {
         );
         // Source addresses should include devices of users 1,2 and network_device_1
         assert_eq!(
-            web_rule.source_addrs,
+            web_allow_rule.source_addrs,
             vec![
                 IpAddress {
                     address: Some(Address::IpRange(IpRange {
@@ -1892,24 +1769,38 @@ mod test {
             ]
         );
 
-        // Second rule - DNS Access
-        // Should allow access for all users except user_5 and groups 1,2 members
-        // plus network_devices 1,2
-        let dns_rule = &generated_firewall_rules[1];
-        assert_eq!(dns_rule.verdict, i32::from(FirewallPolicy::Allow));
+        // First ACL - Web Access DENY
+        let web_deny_rule = &generated_firewall_rules[2];
+        assert_eq!(web_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(web_deny_rule.protocols.is_empty());
+        assert!(web_deny_rule.destination_ports.is_empty());
+        assert!(web_deny_rule.source_addrs.is_empty());
         assert_eq!(
-            dns_rule.protocols,
+            web_deny_rule.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.0".to_string(),
+                    end: "192.168.1.255".to_string(),
+                })),
+            }]
+        );
+
+        // Second ACL - DNS Access ALLOW
+        let dns_allow_rule = &generated_firewall_rules[1];
+        assert_eq!(dns_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(
+            dns_allow_rule.protocols,
             vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
         );
         assert_eq!(
-            dns_rule.destination_ports,
+            dns_allow_rule.destination_ports,
             vec![Port {
                 port: Some(PortInner::SinglePort(53))
             }]
         );
         // Source addresses should include network_devices 1,2
         assert_eq!(
-            dns_rule.source_addrs,
+            dns_allow_rule.source_addrs,
             vec![
                 IpAddress {
                     address: Some(Address::IpRange(IpRange {
@@ -1929,6 +1820,47 @@ mod test {
                         end: "10.0.100.2".to_string(),
                     })),
                 },
+            ]
+        );
+        assert_eq!(
+            dns_allow_rule.destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.13".to_string(),
+                        end: "10.0.1.43".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.52".to_string(),
+                        end: "10.0.2.43".to_string(),
+                    })),
+                }
+            ]
+        );
+
+        // Second ACL - DNS Access DENY
+        let dns_deny_rule = &generated_firewall_rules[3];
+        assert_eq!(dns_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(dns_deny_rule.protocols.is_empty(),);
+        assert!(dns_deny_rule.destination_ports.is_empty(),);
+        assert!(dns_deny_rule.source_addrs.is_empty(),);
+        assert_eq!(
+            dns_deny_rule.destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.13".to_string(),
+                        end: "10.0.1.43".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "10.0.1.52".to_string(),
+                        end: "10.0.2.43".to_string(),
+                    })),
+                }
             ]
         );
     }
