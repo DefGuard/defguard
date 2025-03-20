@@ -1562,15 +1562,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let _ = AclRuleUser {
+        let result = AclRuleUser {
             id: NoId,
             rule_id: rule.id,
             user_id: user.id,
             allow: false,
         }
         .save(&pool)
-        .await
-        .unwrap();
+        .await;
+        assert!(result.is_ok());
 
         // group
         let group = Group::new("group1").save(&pool).await.unwrap();
@@ -1583,15 +1583,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let _ = AclRuleGroup {
+        let result = AclRuleGroup {
             id: NoId,
             rule_id: rule.id,
             group_id: group.id,
             allow: false,
         }
         .save(&pool)
-        .await
-        .unwrap();
+        .await;
+        assert!(result.is_ok());
 
         // device
         let device = Device::new(
@@ -1614,15 +1614,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let _ = AclRuleDevice {
+        let result = AclRuleDevice {
             id: NoId,
             rule_id: rule.id,
             device_id: device.id,
             allow: false,
         }
         .save(&pool)
-        .await
-        .unwrap();
+        .await;
+        assert!(result.is_ok());
     }
 
     #[sqlx::test]
