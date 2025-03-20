@@ -29,9 +29,12 @@ pub enum FirewallError {
 
 /// Converts ACLs into firewall rules which can be sent to a gateway over gRPC.
 ///
-/// Each ACL is translated into two rules (in this specific order):
+/// Each ACL is translated into two rules:
 /// - ALLOW which determines which devices can access a destination
 /// - DENY which stops all other traffic to a given destination
+///
+/// In the resulting list all ALLOW rules are placed first and then DENY rules are added to the
+/// end. This way we can avoid conflicts when some ACLs are overlapping.
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
     ip_version: IpVersion,
@@ -39,8 +42,9 @@ pub async fn generate_firewall_rules_from_acls(
     conn: &mut PgConnection,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
     debug!("Generating firewall rules for location {location_id} with IP version {ip_version:?}");
-    // initialize empty result Vec
-    let mut firewall_rules = Vec::new();
+    // initialize empty rules Vec
+    let mut allow_rules = Vec::new();
+    let mut deny_rules = Vec::new();
 
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
@@ -128,7 +132,7 @@ pub async fn generate_firewall_rules_from_acls(
                 comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
             };
             debug!("ALLOW rule generated from ACL: {allow_rule:?}");
-            firewall_rules.push(allow_rule);
+            allow_rules.push(allow_rule);
         };
 
         // prepare DENY rule for this ACL
@@ -144,9 +148,11 @@ pub async fn generate_firewall_rules_from_acls(
             comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
         };
         debug!("DENY rule generated from ACL: {deny_rule:?}");
-        firewall_rules.push(deny_rule)
+        deny_rules.push(deny_rule)
     }
-    Ok(firewall_rules)
+
+    // combine both rule lists
+    Ok(allow_rules.into_iter().chain(deny_rules).collect())
 }
 
 /// Prepares a list of all relevant users whose device IPs we'll need to prepare
@@ -1721,7 +1727,6 @@ mod test {
         assert_eq!(generated_firewall_rules.len(), 4);
 
         // First ACL - Web Access ALLOW
-        // Should allow access for users 1,2 and network_device_1 to web ports
         let web_allow_rule = &generated_firewall_rules[0];
         assert_eq!(web_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
         assert_eq!(web_allow_rule.protocols, vec![i32::from(Protocol::Tcp)]);
@@ -1768,8 +1773,7 @@ mod test {
         );
 
         // First ACL - Web Access DENY
-        // Should allow access for users 1,2 and network_device_1 to web ports
-        let web_deny_rule = &generated_firewall_rules[1];
+        let web_deny_rule = &generated_firewall_rules[2];
         assert_eq!(web_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
         assert!(web_deny_rule.protocols.is_empty());
         assert!(web_deny_rule.destination_ports.is_empty());
@@ -1785,9 +1789,7 @@ mod test {
         );
 
         // Second ACL - DNS Access ALLOW
-        // Should allow access for all users except user_5 and groups 1,2 members
-        // plus network_devices 1,2
-        let dns_allow_rule = &generated_firewall_rules[2];
+        let dns_allow_rule = &generated_firewall_rules[1];
         assert_eq!(dns_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
         assert_eq!(
             dns_allow_rule.protocols,
@@ -1842,8 +1844,6 @@ mod test {
         );
 
         // Second ACL - DNS Access DENY
-        // Should allow access for all users except user_5 and groups 1,2 members
-        // plus network_devices 1,2
         let dns_deny_rule = &generated_firewall_rules[3];
         assert_eq!(dns_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
         assert!(dns_deny_rule.protocols.is_empty(),);
