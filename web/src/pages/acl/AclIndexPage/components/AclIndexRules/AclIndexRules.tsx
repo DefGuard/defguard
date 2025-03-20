@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { concat, intersection, orderBy } from 'lodash-es';
 import {
@@ -14,6 +15,7 @@ import {
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
 
+import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { ListHeader } from '../../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../../shared/components/Layout/ListHeader/types';
 import { FilterGroupsModal } from '../../../../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
@@ -40,7 +42,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
-import { aclStatusFromInt } from '../../../utils';
+import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 
 type ListTagDisplay = {
@@ -51,7 +53,7 @@ type ListTagDisplay = {
 
 type RulesFilters = {
   networks: number[];
-  aliases: number[];
+  // aliases: number[];
   status: number[];
   groups: number[];
 };
@@ -63,10 +65,10 @@ type ListData = {
     networks: ListTagDisplay[];
     destination: ListTagDisplay[];
   };
-} & Omit<AclRuleInfo, 'destination'>;
+} & AclRuleInfo;
 
 const defaultFilters: RulesFilters = {
-  aliases: [],
+  // aliases: [],
   networks: [],
   status: [],
   groups: [],
@@ -79,6 +81,10 @@ export const AclIndexRules = () => {
       rules: { applyRules },
     },
   } = useApi();
+  const { LL } = useI18nContext();
+  const localLL = LL.acl.listPage.rules;
+  const messagesLL = LL.acl.listPage.message;
+  const ruleStatusLL = localLL.list.status;
   const aclContext = useAclLoadedContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
@@ -93,10 +99,14 @@ export const AclIndexRules = () => {
   const { mutate: applyPendingChangesMutation, isPending: applyPending } = useMutation({
     mutationFn: applyRules,
     onSuccess: () => {
-      toaster.success(`Pending rules applied`);
+      toaster.success(messagesLL.rulesApply());
       void queryClient.invalidateQueries({
         predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_RULES),
       });
+    },
+    onError: (e) => {
+      toaster.error(messagesLL.rulesApplyFail());
+      console.error(e);
     },
   });
 
@@ -130,9 +140,16 @@ export const AclIndexRules = () => {
   const pendingRules = useMemo(
     () =>
       isPresent(aclRules)
-        ? prepareDisplay(rulesAfterSearch, appliedFilters, true, aclContext)
+        ? prepareDisplay(
+            rulesAfterSearch,
+            appliedFilters,
+            localLL.list.tags.allAllowed(),
+            localLL.list.tags.allDenied(),
+            true,
+            aclContext,
+          )
         : [],
-    [aclContext, aclRules, appliedFilters, rulesAfterSearch],
+    [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
 
   const [selectedPending, setSelectedPending] = useState<Record<number, boolean>>({});
@@ -159,10 +176,17 @@ export const AclIndexRules = () => {
 
   const deployedRules = useMemo(() => {
     if (aclRules) {
-      return prepareDisplay(rulesAfterSearch, appliedFilters, false, aclContext);
+      return prepareDisplay(
+        rulesAfterSearch,
+        appliedFilters,
+        localLL.list.tags.allAllowed(),
+        localLL.list.tags.allDenied(),
+        false,
+        aclContext,
+      );
     }
     return [];
-  }, [aclContext, aclRules, appliedFilters, rulesAfterSearch]);
+  }, [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch]);
 
   const displayItemsCount = useMemo(
     () => deployedRules.length + pendingRules.length,
@@ -171,8 +195,9 @@ export const AclIndexRules = () => {
 
   const filters = useMemo(() => {
     const res: Record<string, FilterGroupsModalFilter> = {};
+    const filterLL = localLL.modals.filterGroupsModal.groupHeaders;
     res.groups = {
-      label: 'Groups',
+      label: filterLL.groups(),
       order: 3,
       items: aclContext.groups.map((group) => ({
         label: group.name,
@@ -181,7 +206,7 @@ export const AclIndexRules = () => {
       })),
     };
     res.networks = {
-      label: 'Locations',
+      label: filterLL.location(),
       order: 1,
       items: aclContext.networks.map((network) => ({
         label: network.name,
@@ -189,69 +214,77 @@ export const AclIndexRules = () => {
         value: network.id,
       })),
     };
-    res.aliases = {
-      label: 'Aliases',
-      order: 2,
-      items: aclContext.aliases.map((alias) => ({
-        label: alias.name,
-        searchValues: [alias.name],
-        value: alias.id,
-      })),
-    };
+    // res.aliases = {
+    //   label: filterLL.alias(),
+    //   order: 2,
+    //   items: aclContext.aliases.map((alias) => ({
+    //     label: alias.name,
+    //     searchValues: [alias.name],
+    //     value: alias.id,
+    //   })),
+    // };
 
     res.status = {
-      label: 'Status',
+      label: filterLL.status(),
       order: 4,
       items: [
         {
-          label: 'Enabled',
+          label: ruleStatusLL.enabled(),
           value: 1000,
-          searchValues: ['enabled'],
+          searchValues: [ruleStatusLL.enabled()],
         },
         {
-          label: 'Disabled',
+          label: ruleStatusLL.disabled(),
           value: 999,
-          searchValues: ['disabled'],
+          searchValues: [ruleStatusLL.disabled()],
         },
         {
-          label: 'New',
-          value: 0,
-          searchValues: ['new'],
+          label: ruleStatusLL.new(),
+          value: aclStatusToInt(AclStatus.NEW),
+          searchValues: [ruleStatusLL.new()],
         },
         {
-          label: 'Modified',
-          value: 1,
-          searchValues: ['modified'],
+          label: ruleStatusLL.change(),
+          value: aclStatusToInt(AclStatus.MODIFIED),
+          searchValues: [ruleStatusLL.change()],
         },
         {
-          label: 'Deployed',
-          value: 2,
-          searchValues: ['deployed'],
+          label: ruleStatusLL.deployed(),
+          value: aclStatusToInt(AclStatus.APPLIED),
+          searchValues: [ruleStatusLL.deployed()],
         },
-        { label: 'Deleted', value: 3, searchValues: ['deleted'] },
+        {
+          label: ruleStatusLL.delete(),
+          value: aclStatusToInt(AclStatus.DELETED),
+          searchValues: [ruleStatusLL.delete()],
+        },
       ],
     };
     return res;
-  }, [aclContext.aliases, aclContext.groups, aclContext.networks]);
+  }, [
+    aclContext.groups,
+    aclContext.networks,
+    localLL.modals.filterGroupsModal.groupHeaders,
+    ruleStatusLL,
+  ]);
 
-  const filtersCountDisplay = useMemo(() => {
-    return appliedFiltersCount ? ` (${appliedFiltersCount})` : '';
-  }, [appliedFiltersCount]);
+  const controlFilterDisplay = useMemo(() => {
+    return appliedFiltersCount
+      ? localLL.listControls.filter.applied({ count: appliedFiltersCount })
+      : localLL.listControls.filter.nothingApplied();
+  }, [appliedFiltersCount, localLL.listControls.filter]);
 
-  const filtersPresent = useMemo(
-    () => filtersCountDisplay !== '' || searchValue !== '',
-    [filtersCountDisplay, searchValue],
-  );
+  const filtersPresent = appliedFiltersCount > 0;
 
   const applyText = useMemo(() => {
     if (pendingSelectionCount) {
-      return `Deploy selected changes (${pendingSelectionCount})`;
+      return localLL.listControls.apply.selective({ count: pendingSelectionCount });
     }
     if (pendingRulesCount) {
-      return `Deploy pending changes (${pendingRulesCount})`;
+      return localLL.listControls.apply.all({ count: pendingRulesCount });
     }
-    return `Deploy pending changes`;
-  }, [pendingRulesCount, pendingSelectionCount]);
+    return localLL.listControls.apply.noChanges();
+  }, [localLL.listControls.apply, pendingRulesCount, pendingSelectionCount]);
 
   // update or build selection state for list when rules are done loading
   useEffect(() => {
@@ -274,7 +307,7 @@ export const AclIndexRules = () => {
         <h2>Rules</h2>
         <ListItemCount count={displayItemsCount} />
         <Search
-          placeholder="Find name"
+          placeholder={localLL.listControls.searchPlaceholder()}
           initialValue={searchValue}
           onDebounce={(searchChange) => {
             setSearchValue(searchChange);
@@ -285,7 +318,7 @@ export const AclIndexRules = () => {
             className="filter"
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.LINK}
-            text={`Filters${filtersCountDisplay}`}
+            text={controlFilterDisplay}
             onClick={() => {
               setFiltersOpen(true);
             }}
@@ -332,7 +365,7 @@ export const AclIndexRules = () => {
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
-            text="Add new"
+            text={localLL.listControls.addNew()}
             onClick={() => {
               navigate('/admin/acl/form');
             }}
@@ -363,21 +396,30 @@ export const AclIndexRules = () => {
       </header>
       <RulesList
         header={{
-          text: 'Pending Deployments',
+          text: localLL.list.pendingList.title(),
         }}
         data={pendingRules}
-        noDataMessage={filtersPresent ? 'No pending changes found' : 'No pending changes'}
+        noDataMessage={
+          filtersPresent
+            ? localLL.list.pendingList.noDataSearch()
+            : localLL.list.pendingList.noData()
+        }
         selected={selectedPending}
         allSelected={pendingSelectionCount === pendingRulesCount}
         onSelect={handlePendingSelect}
         onSelectAll={handlePendingSelectAll}
       />
       <RulesList
+        isAppliedList
         header={{
-          text: 'Deployed Rules',
+          text: localLL.list.deployedList.title(),
         }}
         data={deployedRules}
-        noDataMessage={filtersPresent ? 'No deployed rules found' : 'No deployed rules'}
+        noDataMessage={
+          filtersPresent
+            ? localLL.list.deployedList.noDataSearch()
+            : localLL.list.deployedList.noData()
+        }
       />
       <FilterGroupsModal
         currentState={appliedFilters}
@@ -417,6 +459,7 @@ type RulesListProps = {
     extras?: ReactNode;
   };
   noDataMessage: string;
+  isAppliedList?: boolean;
   selected?: Record<number, boolean>;
   allSelected?: boolean;
   onSelect?: (key: number, value: boolean) => void;
@@ -432,6 +475,8 @@ const RulesList = ({
   onSelect,
   onSelectAll,
 }: RulesListProps) => {
+  const { LL } = useI18nContext();
+  const headersLL = LL.acl.listPage.rules.list.headers;
   const [sortKey, setSortKey] = useState<keyof AclRuleInfo>('name');
   const [sortDir, setSortDir] = useState<ListSortDirection>(ListSortDirection.ASC);
 
@@ -452,37 +497,37 @@ const RulesList = ({
   const listHeaders = useMemo(
     (): ListHeaderColumnConfig<AclRuleInfo>[] => [
       {
-        label: 'Rule Name',
+        label: headersLL.name(),
         sortKey: 'name',
         enabled: true,
       },
       {
-        label: 'Allowed',
+        label: headersLL.allowed(),
         key: 'allowed',
         enabled: false,
       },
       {
-        label: 'Denied',
+        label: headersLL.denied(),
         key: 'denied',
         enabled: false,
       },
       {
-        label: 'Locations',
+        label: headersLL.locations(),
         key: 'networks',
         enabled: false,
       },
       {
-        label: 'Status',
+        label: headersLL.status(),
         key: 'status',
         enabled: false,
       },
       {
-        label: 'Edit',
+        label: headersLL.edit(),
         key: 'edit',
         enabled: false,
       },
     ],
-    [],
+    [headersLL],
   );
 
   return (
@@ -593,33 +638,98 @@ type EditProps = {
 
 const RuleEditButton = ({ rule }: EditProps) => {
   const queryClient = useQueryClient();
+  const isApplied = rule.state === AclStatus.APPLIED;
+  const { LL } = useI18nContext();
+  const localLL = LL.acl.listPage.rules.list.editMenu;
+  const statusLL = LL.acl.ruleStatus;
+  const toaster = useToaster();
 
   const {
     acl: {
-      rules: { deleteRule },
+      rules: { deleteRule, editRule },
     },
   } = useApi();
 
-  const { mutate: deleteRuleMutation } = useMutation({
-    mutationFn: deleteRule,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: [QueryKeys.FETCH_ACL_RULES],
-      });
+  const invalidateQueries = useCallback(() => {
+    void queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_RULES),
+    });
+  }, [queryClient]);
+
+  const handleError = useCallback(
+    (err: AxiosError) => {
+      toaster.error(LL.acl.listPage.message.changeFail());
+      console.error(err.message ?? err);
     },
+    [LL.acl.listPage.message, toaster],
+  );
+
+  const { mutate: editRuleMutation, isPending: editPending } = useMutation({
+    mutationFn: editRule,
+    mutationKey: ['rule', 'delete', rule.id],
+    onSuccess: () => {
+      invalidateQueries();
+      toaster.success(LL.acl.listPage.message.changeAdded());
+    },
+    onError: handleError,
   });
 
+  const { mutate: deleteRuleMutation, isPending: deletionPending } = useMutation({
+    mutationFn: deleteRule,
+    onSuccess: () => {
+      invalidateQueries();
+      if (isApplied) {
+        toaster.success(LL.acl.listPage.message.changeAdded());
+      } else {
+        toaster.success(LL.acl.listPage.message.changeDiscarded());
+      }
+    },
+    onError: handleError,
+  });
+
+  const handleEnableChange = useCallback(
+    (newState: boolean, rule: AclRuleInfo | ListData) => {
+      editRuleMutation({ ...rule, enabled: newState, expires: rule.expires ?? null });
+    },
+    [editRuleMutation],
+  );
+
   const navigate = useNavigate();
+
   return (
-    <EditButton>
+    <EditButton disabled={deletionPending || editPending}>
       <EditButtonOption
-        text="Edit"
+        text={LL.common.controls.edit()}
         onClick={() => {
           navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
         }}
       />
+      {isApplied && (
+        <>
+          {!rule.enabled && (
+            <EditButtonOption
+              text={statusLL.enabled()}
+              disabled={editPending}
+              onClick={() => {
+                handleEnableChange(true, rule);
+              }}
+            />
+          )}
+          {rule.enabled && (
+            <EditButtonOption
+              text={statusLL.disabled()}
+              disabled={editPending}
+              styleVariant={EditButtonOptionStyleVariant.WARNING}
+              onClick={() => {
+                handleEnableChange(false, rule);
+              }}
+            />
+          )}
+        </>
+      )}
       <EditButtonOption
-        text="Delete"
+        disabled={deletionPending}
+        text={isApplied ? localLL.delete() : localLL.discard()}
         styleVariant={EditButtonOptionStyleVariant.WARNING}
         onClick={() => {
           deleteRuleMutation(rule.id);
@@ -632,6 +742,8 @@ const RuleEditButton = ({ rule }: EditProps) => {
 const prepareDisplay = (
   aclRules: AclRuleInfo[],
   appliedFilters: RulesFilters,
+  allAllowedLabel: string,
+  allDeniedLabel: string,
   pending: boolean,
   aclContext: Omit<AclCreateContextLoaded, 'devices' | 'ruleToEdit'>,
 ): ListData[] => {
@@ -665,9 +777,9 @@ const prepareDisplay = (
     if (appliedFilters.networks.length && !rule.all_networks) {
       filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);
     }
-    if (appliedFilters.aliases.length) {
-      filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
-    }
+    // if (appliedFilters.aliases.length) {
+    //   filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    // }
     if (appliedFilters.groups.length) {
       const groups = concat(rule.denied_groups, rule.allowed_groups);
       filterChecks.push(intersection(groups, appliedFilters.groups).length > 0);
@@ -681,7 +793,7 @@ const prepareDisplay = (
     let networks: ListTagDisplay[];
 
     if (rule.allow_all_users) {
-      allowed = [{ key: 'all', label: 'All Allowed', displayAsTag: false }];
+      allowed = [{ key: 'all', label: allAllowedLabel, displayAsTag: false }];
     } else {
       allowed = concat(
         aclContext.users
@@ -691,18 +803,32 @@ const prepareDisplay = (
             label: u.username,
             displayAsTag: true,
           })),
+        aclContext.groups
+          .filter((g) => rule.allowed_groups.includes(g.id))
+          .map((group) => ({
+            key: `group-${group.id}`,
+            label: group.name,
+            displayAsTag: true,
+          })),
       );
     }
 
     if (rule.deny_all_users) {
-      denied = [{ key: 'all', label: 'All Denied', displayAsTag: false }];
+      denied = [{ key: 'all', label: allDeniedLabel, displayAsTag: false }];
     } else {
       denied = concat(
         aclContext.users
           .filter((u) => rule.denied_users.includes(u.id))
           .map((user) => ({
-            key: user.id,
+            key: `user-${user.id}`,
             label: user.username,
+            displayAsTag: true,
+          })),
+        aclContext.groups
+          .filter((g) => rule.denied_groups.includes(g.id))
+          .map((group) => ({
+            key: `group-${group.id}`,
+            label: group.name,
             displayAsTag: true,
           })),
       );
@@ -712,7 +838,7 @@ const prepareDisplay = (
       networks = [
         {
           key: 'all',
-          label: 'All Included',
+          label: allAllowedLabel,
         },
       ];
     } else {
