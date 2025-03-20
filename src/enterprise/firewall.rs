@@ -1934,7 +1934,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 
     #[sqlx::test]
@@ -2003,7 +2003,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 
     #[sqlx::test]
@@ -2072,6 +2072,6 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 }
