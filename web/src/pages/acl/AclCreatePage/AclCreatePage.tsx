@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
+import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
@@ -47,10 +48,10 @@ import { protocolOptions, protocolToString } from '../utils';
 import { aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
-type Alias = {
-  id: number;
-  name: string;
-};
+// type Alias = {
+//   id: number;
+//   name: string;
+// };
 
 type AclForm = Omit<AclRuleInfo, 'parent_id' | 'state'>;
 
@@ -59,8 +60,9 @@ export const AlcCreatePage = () => {
   const editMode = ['1', 'true'].includes(searchParams.get('edit') ?? '');
   const { LL } = useI18nContext();
   const localLL = LL.acl.createPage;
+  const labelsLL = localLL.labels;
   const formErrors = LL.form.error;
-  const { networks, devices, groups, users, aliases, ruleToEdit } = useAclLoadedContext();
+  const { networks, devices, groups, users, ruleToEdit } = useAclLoadedContext();
   const queryClient = useQueryClient();
 
   const initialValue = useMemo(() => {
@@ -217,15 +219,13 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { control, handleSubmit, watch, setValue } = useForm<FormFields>({
+  const { control, handleSubmit } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const watchedExpires = watch('expires');
+  // const watchedExpires = watch('expires');
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
@@ -260,10 +260,10 @@ export const AlcCreatePage = () => {
   return (
     <PageContainer id="acl-create-page">
       <div className="header">
-        <h1>{LL.acl.createPage.title()}</h1>
+        <h1>{LL.acl.sharedTitle()}</h1>
         <div className="controls">
           <Button
-            text="Cancel"
+            text={LL.common.controls.cancel()}
             onClick={() => {
               navigate('/admin/acl');
             }}
@@ -273,7 +273,7 @@ export const AlcCreatePage = () => {
           />
           <Button
             type="submit"
-            text="Submit"
+            text={LL.common.controls.submit()}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             loading={postPending || putPending}
@@ -284,16 +284,16 @@ export const AlcCreatePage = () => {
         </div>
       </div>
       <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
-        <SectionWithCard title={localLL.sections.rule.title()} id="rule-card">
+        <SectionWithCard title={localLL.headers.rule()} id="rule-card">
           <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
           <LabeledCheckbox
-            label="Allow all locations"
+            label={labelsLL.allowAllNetworks()}
             value={allowAllLocations}
             onChange={setAllowAllLocations}
           />
           <FormCheckBox
             controller={{ control, name: 'enabled' }}
-            label="Enabled"
+            label={LL.common.controls.enabled()}
             labelPlacement="right"
           />
           <FormDialogSelect
@@ -301,7 +301,7 @@ export const AlcCreatePage = () => {
             options={networks}
             renderTagContent={renderNetworkSelectTag}
             identKey="id"
-            label="Locations"
+            label={labelsLL.locations()}
             searchKeys={['name']}
             disabled={allowAllLocations}
           />
@@ -325,13 +325,9 @@ export const AlcCreatePage = () => {
             disabled={neverExpires}
           /> */}
         </SectionWithCard>
-        <SectionWithCard title="Allowed Users/Devices/Groups" id="allow-card">
+        <SectionWithCard title={localLL.headers.allowed()} id="allow-card">
           <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
-            <p>
-              Specify one or more fields (Users or Groups) to define this rule. The rule
-              will consider all inputs provided for matching conditions. Leave any fields
-              blank if not needed.
-            </p>
+            <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
           </MessageBox>
           <LabeledCheckbox
             value={allowAllUsers}
@@ -341,10 +337,10 @@ export const AlcCreatePage = () => {
               }
               setAllowAllUsers(val);
             }}
-            label="Allow all users"
+            label={labelsLL.allowAllUsers()}
           />
           <FormDialogSelect
-            label="Users"
+            label={labelsLL.users()}
             controller={{ control, name: 'allowed_users' }}
             options={users}
             renderTagContent={renderUserTag}
@@ -354,7 +350,7 @@ export const AlcCreatePage = () => {
             disabled={allowAllUsers}
           />
           <FormDialogSelect
-            label="Groups"
+            label={labelsLL.groups()}
             controller={{ control, name: 'allowed_groups' }}
             options={groups}
             renderTagContent={renderGroup}
@@ -363,7 +359,7 @@ export const AlcCreatePage = () => {
             disabled={allowAllUsers}
           />
           <FormDialogSelect
-            label="Network Devices"
+            label={labelsLL.devices()}
             controller={{ control, name: 'allowed_devices' }}
             options={devices}
             renderTagContent={renderNetworkDevice}
@@ -371,51 +367,43 @@ export const AlcCreatePage = () => {
             searchKeys={['name']}
           />
         </SectionWithCard>
-        <SectionWithCard title="Destination" id="destination-card">
+        <SectionWithCard title={localLL.headers.destination()} id="destination-card">
           <MessageBox
             styleVariant={MessageBoxStyleVariant.OUTLINED}
             type={MessageBoxType.INFO}
           >
-            <p>
-              Specify one or more fields (Aliases, IPs, or Ports) to define this rule. The
-              rule will consider all inputs provided for matching conditions. Leave any
-              fields blank if not needed.
-            </p>
+            <RenderMarkdown content={localLL.infoBox.destinationInstructions()} />
           </MessageBox>
-          <FormDialogSelect
+          {/* <FormDialogSelect
             controller={{ control, name: 'aliases' }}
             options={aliases}
             label="Aliases"
             identKey="id"
             renderTagContent={renderAlias}
             searchKeys={['name']}
-          />
-          <CardHeader title="Manual Input" />
+          /> */}
+          {/* <CardHeader title="Manual Input" /> */}
           <FormTextarea
             controller={{ control, name: 'destination' }}
-            label="IPv4/6 CIDR range or address"
+            label={labelsLL.manualIp()}
           />
-          <FormInput controller={{ control, name: 'ports' }} label="Ports" />
+          <FormInput controller={{ control, name: 'ports' }} label={labelsLL.ports()} />
           <FormSelect
             controller={{ control, name: 'protocols' }}
-            label="Protocols"
-            placeholder="All protocols"
+            label={labelsLL.protocols()}
+            placeholder={localLL.placeholders.allProtocols()}
             options={protocolOptions}
             searchable={false}
             renderSelected={(val) => ({ displayValue: protocolToString(val), key: val })}
             disposable
           />
         </SectionWithCard>
-        <SectionWithCard title="Denied Users/Devices/Groups" id="denied-card">
+        <SectionWithCard title={localLL.headers.denied()} id="denied-card">
           <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
-            <p>
-              Specify one or more fields (Users or Groups) to define this rule. The rule
-              will consider all inputs provided for matching conditions. Leave any fields
-              blank if not needed.
-            </p>
+            <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
           </MessageBox>
           <LabeledCheckbox
-            label="Deny all users"
+            label={labelsLL.denyAllUsers()}
             value={denyAllUsers}
             onChange={(val) => {
               if (val) {
@@ -425,7 +413,7 @@ export const AlcCreatePage = () => {
             }}
           />
           <FormDialogSelect
-            label="Users"
+            label={labelsLL.users()}
             controller={{ control, name: 'denied_users' }}
             options={users}
             renderTagContent={renderUserTag}
@@ -435,7 +423,7 @@ export const AlcCreatePage = () => {
             disabled={denyAllUsers}
           />
           <FormDialogSelect
-            label="Groups"
+            label={labelsLL.groups()}
             controller={{ control, name: 'denied_groups' }}
             options={groups}
             renderTagContent={renderGroup}
@@ -444,7 +432,7 @@ export const AlcCreatePage = () => {
             disabled={denyAllUsers}
           />
           <FormDialogSelect
-            label="Network Devices"
+            label={labelsLL.devices()}
             controller={{ control, name: 'denied_devices' }}
             options={devices}
             renderTagContent={renderNetworkDevice}
@@ -458,14 +446,14 @@ export const AlcCreatePage = () => {
   );
 };
 
-const CardHeader = ({ title }: { title: string }) => {
-  return (
-    <div className="header">
-      <h3>{title}</h3>
-      <hr />
-    </div>
-  );
-};
+// const CardHeader = ({ title }: { title: string }) => {
+//   return (
+//     <div className="header">
+//       <h3>{title}</h3>
+//       <hr />
+//     </div>
+//   );
+// };
 
 const renderNetworkSelectTag = (network: Network) => (
   <>
@@ -490,6 +478,6 @@ const renderUserListItem = (user: User) => (
 
 const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 
-const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
+// const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
 
 const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;

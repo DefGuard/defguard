@@ -18,7 +18,6 @@ const en: BaseTranslation = {
       select: 'Select',
       finish: 'Finish',
       saveChanges: 'Save changes',
-      saveFilter: 'Save Filter',
       save: 'Save',
       RestoreDefault: 'Restore default',
       delete: 'Delete',
@@ -27,6 +26,13 @@ const en: BaseTranslation = {
       edit: 'Edit',
       dismiss: 'Dismiss',
       show: 'Show',
+      enable: 'Enable',
+      enabled: 'Enabled',
+      disable: 'Disable',
+      disabled: 'Disabled',
+      selectAll: 'Select all',
+      clear: 'Clear',
+      clearAll: 'Clear all',
     },
     key: 'Key',
     name: 'Name',
@@ -2124,6 +2130,7 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   acl: {
+    sharedTitle: 'Access Control List',
     ruleStatus: {
       new: 'New',
       applied: 'Applied',
@@ -2132,13 +2139,119 @@ Any other requests you can reach us at: support@defguard.net
       enabled: 'Enabled',
       disabled: 'Disabled',
     },
-    listPage: {},
-    createPage: {
-      title: 'Access Control List',
-      sections: {
-        rule: {
-          title: 'Create Rule',
+    listPage: {
+      message: {
+        rulesApply: 'Pending changes applied',
+        rulesApplyFail: 'Failed to apply changes',
+        changeDiscarded: 'Change discarded',
+        changeAdded: 'Pending change added',
+        changeFail: 'Failed to make change',
+      },
+      rules: {
+        modals: {
+          filterGroupsModal: {
+            groupHeaders: {
+              alias: 'Aliases',
+              location: 'Locations',
+              groups: 'Groups',
+              status: 'Status',
+            },
+            submit: 'Save Filter',
+          },
         },
+        listControls: {
+          searchPlaceholder: 'Find name',
+          addNew: 'Add new',
+          filter: {
+            nothingApplied: 'Filter',
+            applied: 'Filters ({count: number})',
+          },
+          apply: {
+            noChanges: 'Deploy pending changes',
+            all: 'Deploy pending changes ({count: number})',
+            selective: 'Deploy selected changes ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Pending Changes',
+            noData: 'No pending changes',
+            noDataSearch: 'No pending changes found',
+          },
+          deployedList: {
+            title: 'Deployed Rules',
+            noData: 'No deployed rules',
+            noDataSearch: 'No deployed rules found',
+          },
+          headers: {
+            name: 'Rule name',
+            id: 'ID',
+            destination: 'Destination',
+            allowed: 'Allowed',
+            denied: 'Denied',
+            locations: 'Locations',
+            status: 'Status',
+            edit: 'Edit',
+          },
+          status: {
+            new: 'New',
+            change: 'Pending Change',
+            delete: 'Pending Deletion',
+            enabled: 'Enabled',
+            disabled: 'Disabled',
+            deployed: 'Deployed',
+          },
+          tags: {
+            allDenied: 'All denied',
+            allAllowed: 'All allowed',
+          },
+          editMenu: {
+            discard: 'Discard Changes',
+            delete: 'Mark for Deletion',
+          },
+        },
+      },
+      aliases: {},
+    },
+    createPage: {
+      formError: {
+        allowDenyConflict: 'Conflicting members',
+      },
+      infoBox: {
+        // md
+        allowInstructions: `
+        Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        // md
+        destinationInstructions: `
+        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+      },
+      message: {
+        create: 'Rule created and added to pending changes',
+        createFail: 'Rule creation failed',
+      },
+      headers: {
+        rule: 'Create Rule',
+        allowed: 'Allowed Users/Groups/Devices',
+        denied: 'Denied Users/Groups/Devices',
+        destination: 'Destination',
+      },
+      labels: {
+        name: 'Rule name',
+        priority: 'Priority',
+        status: 'Status',
+        locations: 'Locations',
+        allowAllUsers: 'Allow all users',
+        allowAllNetworks: 'Include all locations',
+        denyAllUsers: 'Deny all users',
+        users: 'Users',
+        groups: 'Groups',
+        devices: 'Network devices',
+        protocols: 'Protocols',
+        manualIp: 'IPv4/6 CIDR range or address',
+        ports: 'Ports',
+      },
+      placeholders: {
+        allProtocols: 'All protocols',
       },
     },
   },

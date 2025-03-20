@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useMemo, useState } from 'react';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { PageLayout } from '../../../shared/components/Layout/PageLayout/PageLayout';
 import { CardTabs } from '../../../shared/defguard-ui/components/Layout/CardTabs/CardTabs';
 import { CardTabsData } from '../../../shared/defguard-ui/components/Layout/CardTabs/types';
@@ -15,6 +16,7 @@ enum AclTab {
 
 export const AclIndexPage = () => {
   const [activeTab, setActiveTab] = useState(AclTab.RULES);
+  const { LL } = useI18nContext();
 
   const availableTabs: CardTabsData[] = [
     {
@@ -23,12 +25,12 @@ export const AclIndexPage = () => {
       content: <p>Rules</p>,
       onClick: () => setActiveTab(AclTab.RULES),
     },
-    {
-      key: AclTab.ALIASES,
-      active: activeTab === AclTab.ALIASES,
-      content: <p>Aliases</p>,
-      onClick: () => setActiveTab(AclTab.ALIASES),
-    },
+    // {
+    //   key: AclTab.ALIASES,
+    //   active: activeTab === AclTab.ALIASES,
+    //   content: <p>Aliases</p>,
+    //   onClick: () => setActiveTab(AclTab.ALIASES),
+    // },
   ];
 
   const tabRender = useMemo(() => {
@@ -43,7 +45,7 @@ export const AclIndexPage = () => {
   return (
     <PageLayout id="acl-index-page">
       <header>
-        <h1>Access Control List</h1>
+        <h1>{LL.acl.sharedTitle()}</h1>
       </header>
       <CardTabs tabs={availableTabs} />
       <div id="content-card">{tabRender}</div>

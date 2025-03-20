@@ -72,10 +72,6 @@ type RootTranslation = {
 			 */
 			saveChanges: string
 			/**
-			 * S​a​v​e​ ​F​i​l​t​e​r
-			 */
-			saveFilter: string
-			/**
 			 * S​a​v​e
 			 */
 			save: string
@@ -107,6 +103,34 @@ type RootTranslation = {
 			 * S​h​o​w
 			 */
 			show: string
+			/**
+			 * E​n​a​b​l​e
+			 */
+			enable: string
+			/**
+			 * E​n​a​b​l​e​d
+			 */
+			enabled: string
+			/**
+			 * D​i​s​a​b​l​e
+			 */
+			disable: string
+			/**
+			 * D​i​s​a​b​l​e​d
+			 */
+			disabled: string
+			/**
+			 * S​e​l​e​c​t​ ​a​l​l
+			 */
+			selectAll: string
+			/**
+			 * C​l​e​a​r
+			 */
+			clear: string
+			/**
+			 * C​l​e​a​r​ ​a​l​l
+			 */
+			clearAll: string
 		}
 		/**
 		 * K​e​y
@@ -4978,6 +5002,10 @@ type RootTranslation = {
 		}
 	}
 	acl: {
+		/**
+		 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
+		 */
+		sharedTitle: string
 		ruleStatus: {
 			/**
 			 * N​e​w
@@ -5005,19 +5033,312 @@ type RootTranslation = {
 			disabled: string
 		}
 		listPage: {
+			message: {
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				rulesApply: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				rulesApplyFail: string
+				/**
+				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
+				 */
+				changeDiscarded: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​ ​a​d​d​e​d
+				 */
+				changeAdded: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
+				 */
+				changeFail: string
+			}
+			rules: {
+				modals: {
+					filterGroupsModal: {
+						groupHeaders: {
+							/**
+							 * A​l​i​a​s​e​s
+							 */
+							alias: string
+							/**
+							 * L​o​c​a​t​i​o​n​s
+							 */
+							location: string
+							/**
+							 * G​r​o​u​p​s
+							 */
+							groups: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+						/**
+						 * S​a​v​e​ ​F​i​l​t​e​r
+						 */
+						submit: string
+					}
+				}
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * R​u​l​e​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * D​e​s​t​i​n​a​t​i​o​n
+						 */
+						destination: string
+						/**
+						 * A​l​l​o​w​e​d
+						 */
+						allowed: string
+						/**
+						 * D​e​n​i​e​d
+						 */
+						denied: string
+						/**
+						 * L​o​c​a​t​i​o​n​s
+						 */
+						locations: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+					status: {
+						/**
+						 * N​e​w
+						 */
+						'new': string
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+						 */
+						change: string
+						/**
+						 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
+						 */
+						'delete': string
+						/**
+						 * E​n​a​b​l​e​d
+						 */
+						enabled: string
+						/**
+						 * D​i​s​a​b​l​e​d
+						 */
+						disabled: string
+						/**
+						 * D​e​p​l​o​y​e​d
+						 */
+						deployed: string
+					}
+					tags: {
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
+						 */
+						discard: string
+						/**
+						 * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
+						 */
+						'delete': string
+					}
+				}
+			}
+			aliases: {
+			}
 		}
 		createPage: {
-			/**
-			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
-			 */
-			title: string
-			sections: {
-				rule: {
-					/**
-					 * C​r​e​a​t​e​ ​R​u​l​e
-					 */
-					title: string
-				}
+			formError: {
+				/**
+				 * C​o​n​f​l​i​c​t​i​n​g​ ​m​e​m​b​e​r​s
+				 */
+				allowDenyConflict: string
+			}
+			infoBox: {
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​U​s​e​r​s​,​ ​G​r​o​u​p​s​ ​o​r​ ​D​e​v​i​c​e​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+				 */
+				allowInstructions: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+				 */
+				destinationInstructions: string
+			}
+			message: {
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+				 */
+				create: string
+				/**
+				 * R​u​l​e​ ​c​r​e​a​t​i​o​n​ ​f​a​i​l​e​d
+				 */
+				createFail: string
+			}
+			headers: {
+				/**
+				 * C​r​e​a​t​e​ ​R​u​l​e
+				 */
+				rule: string
+				/**
+				 * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				allowed: string
+				/**
+				 * D​e​n​i​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
+				 */
+				denied: string
+				/**
+				 * D​e​s​t​i​n​a​t​i​o​n
+				 */
+				destination: string
+			}
+			labels: {
+				/**
+				 * R​u​l​e​ ​n​a​m​e
+				 */
+				name: string
+				/**
+				 * P​r​i​o​r​i​t​y
+				 */
+				priority: string
+				/**
+				 * S​t​a​t​u​s
+				 */
+				status: string
+				/**
+				 * L​o​c​a​t​i​o​n​s
+				 */
+				locations: string
+				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				allowAllUsers: string
+				/**
+				 * I​n​c​l​u​d​e​ ​a​l​l​ ​l​o​c​a​t​i​o​n​s
+				 */
+				allowAllNetworks: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
+				 */
+				denyAllUsers: string
+				/**
+				 * U​s​e​r​s
+				 */
+				users: string
+				/**
+				 * G​r​o​u​p​s
+				 */
+				groups: string
+				/**
+				 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				devices: string
+				/**
+				 * P​r​o​t​o​c​o​l​s
+				 */
+				protocols: string
+				/**
+				 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​o​r​ ​a​d​d​r​e​s​s
+				 */
+				manualIp: string
+				/**
+				 * P​o​r​t​s
+				 */
+				ports: string
+			}
+			placeholders: {
+				/**
+				 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+				 */
+				allProtocols: string
 			}
 		}
 	}
@@ -5081,10 +5402,6 @@ export type TranslationFunctions = {
 			 */
 			saveChanges: () => LocalizedString
 			/**
-			 * Save Filter
-			 */
-			saveFilter: () => LocalizedString
-			/**
 			 * Save
 			 */
 			save: () => LocalizedString
@@ -5116,6 +5433,34 @@ export type TranslationFunctions = {
 			 * Show
 			 */
 			show: () => LocalizedString
+			/**
+			 * Enable
+			 */
+			enable: () => LocalizedString
+			/**
+			 * Enabled
+			 */
+			enabled: () => LocalizedString
+			/**
+			 * Disable
+			 */
+			disable: () => LocalizedString
+			/**
+			 * Disabled
+			 */
+			disabled: () => LocalizedString
+			/**
+			 * Select all
+			 */
+			selectAll: () => LocalizedString
+			/**
+			 * Clear
+			 */
+			clear: () => LocalizedString
+			/**
+			 * Clear all
+			 */
+			clearAll: () => LocalizedString
 		}
 		/**
 		 * Key
@@ -9947,6 +10292,10 @@ export type TranslationFunctions = {
 		}
 	}
 	acl: {
+		/**
+		 * Access Control List
+		 */
+		sharedTitle: () => LocalizedString
 		ruleStatus: {
 			/**
 			 * New
@@ -9974,19 +10323,309 @@ export type TranslationFunctions = {
 			disabled: () => LocalizedString
 		}
 		listPage: {
+			message: {
+				/**
+				 * Pending changes applied
+				 */
+				rulesApply: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				rulesApplyFail: () => LocalizedString
+				/**
+				 * Change discarded
+				 */
+				changeDiscarded: () => LocalizedString
+				/**
+				 * Pending change added
+				 */
+				changeAdded: () => LocalizedString
+				/**
+				 * Failed to make change
+				 */
+				changeFail: () => LocalizedString
+			}
+			rules: {
+				modals: {
+					filterGroupsModal: {
+						groupHeaders: {
+							/**
+							 * Aliases
+							 */
+							alias: () => LocalizedString
+							/**
+							 * Locations
+							 */
+							location: () => LocalizedString
+							/**
+							 * Groups
+							 */
+							groups: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+						/**
+						 * Save Filter
+						 */
+						submit: () => LocalizedString
+					}
+				}
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Rules
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed rules
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed rules found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * Rule name
+						 */
+						name: () => LocalizedString
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Destination
+						 */
+						destination: () => LocalizedString
+						/**
+						 * Allowed
+						 */
+						allowed: () => LocalizedString
+						/**
+						 * Denied
+						 */
+						denied: () => LocalizedString
+						/**
+						 * Locations
+						 */
+						locations: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+					status: {
+						/**
+						 * New
+						 */
+						'new': () => LocalizedString
+						/**
+						 * Pending Change
+						 */
+						change: () => LocalizedString
+						/**
+						 * Pending Deletion
+						 */
+						'delete': () => LocalizedString
+						/**
+						 * Enabled
+						 */
+						enabled: () => LocalizedString
+						/**
+						 * Disabled
+						 */
+						disabled: () => LocalizedString
+						/**
+						 * Deployed
+						 */
+						deployed: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard Changes
+						 */
+						discard: () => LocalizedString
+						/**
+						 * Mark for Deletion
+						 */
+						'delete': () => LocalizedString
+					}
+				}
+			}
+			aliases: {
+			}
 		}
 		createPage: {
-			/**
-			 * Access Control List
-			 */
-			title: () => LocalizedString
-			sections: {
-				rule: {
-					/**
-					 * Create Rule
-					 */
-					title: () => LocalizedString
-				}
+			formError: {
+				/**
+				 * Conflicting members
+				 */
+				allowDenyConflict: () => LocalizedString
+			}
+			infoBox: {
+				/**
+				 * 
+			        Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+				 */
+				allowInstructions: () => LocalizedString
+				/**
+				 * 
+			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+				 */
+				destinationInstructions: () => LocalizedString
+			}
+			message: {
+				/**
+				 * Rule created and added to pending changes
+				 */
+				create: () => LocalizedString
+				/**
+				 * Rule creation failed
+				 */
+				createFail: () => LocalizedString
+			}
+			headers: {
+				/**
+				 * Create Rule
+				 */
+				rule: () => LocalizedString
+				/**
+				 * Allowed Users/Groups/Devices
+				 */
+				allowed: () => LocalizedString
+				/**
+				 * Denied Users/Groups/Devices
+				 */
+				denied: () => LocalizedString
+				/**
+				 * Destination
+				 */
+				destination: () => LocalizedString
+			}
+			labels: {
+				/**
+				 * Rule name
+				 */
+				name: () => LocalizedString
+				/**
+				 * Priority
+				 */
+				priority: () => LocalizedString
+				/**
+				 * Status
+				 */
+				status: () => LocalizedString
+				/**
+				 * Locations
+				 */
+				locations: () => LocalizedString
+				/**
+				 * Allow all users
+				 */
+				allowAllUsers: () => LocalizedString
+				/**
+				 * Include all locations
+				 */
+				allowAllNetworks: () => LocalizedString
+				/**
+				 * Deny all users
+				 */
+				denyAllUsers: () => LocalizedString
+				/**
+				 * Users
+				 */
+				users: () => LocalizedString
+				/**
+				 * Groups
+				 */
+				groups: () => LocalizedString
+				/**
+				 * Network devices
+				 */
+				devices: () => LocalizedString
+				/**
+				 * Protocols
+				 */
+				protocols: () => LocalizedString
+				/**
+				 * IPv4/6 CIDR range or address
+				 */
+				manualIp: () => LocalizedString
+				/**
+				 * Ports
+				 */
+				ports: () => LocalizedString
+			}
+			placeholders: {
+				/**
+				 * All protocols
+				 */
+				allProtocols: () => LocalizedString
 			}
 		}
 	}
