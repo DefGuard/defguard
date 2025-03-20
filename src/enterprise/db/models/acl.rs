@@ -1528,7 +1528,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_deny_conflicting_sources(pool: PgPool) {
+    async fn test_allow_conflicting_sources(pool: PgPool) {
         // create the rule
         let rule = AclRule {
             id: NoId,
@@ -1562,15 +1562,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let result = AclRuleUser {
+        let _ = AclRuleUser {
             id: NoId,
             rule_id: rule.id,
             user_id: user.id,
             allow: false,
         }
         .save(&pool)
-        .await;
-        assert!(result.is_err());
+        .await
+        .unwrap();
 
         // group
         let group = Group::new("group1").save(&pool).await.unwrap();
@@ -1583,15 +1583,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let result = AclRuleGroup {
+        let _ = AclRuleGroup {
             id: NoId,
             rule_id: rule.id,
             group_id: group.id,
             allow: false,
         }
         .save(&pool)
-        .await;
-        assert!(result.is_err());
+        .await
+        .unwrap();
 
         // device
         let device = Device::new(
@@ -1614,15 +1614,15 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let result = AclRuleDevice {
+        let _ = AclRuleDevice {
             id: NoId,
             rule_id: rule.id,
             device_id: device.id,
             allow: false,
         }
         .save(&pool)
-        .await;
-        assert!(result.is_err());
+        .await
+        .unwrap();
     }
 
     #[sqlx::test]
