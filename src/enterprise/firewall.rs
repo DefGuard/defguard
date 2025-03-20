@@ -49,9 +49,6 @@ pub async fn generate_firewall_rules_from_acls(
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
         debug!("Processing ACL rule: {acl:?}");
-        // FIXME: use `allow_all_users` and `deny_all_users` values to avoid processing excessive
-        // number of records
-        //
         // fetch allowed users
         let allowed_users = acl.get_all_allowed_users(&mut *conn).await?;
 
