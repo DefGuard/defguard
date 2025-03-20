@@ -1528,6 +1528,104 @@ mod test {
     }
 
     #[sqlx::test]
+    async fn test_allow_conflicting_sources(pool: PgPool) {
+        // create the rule
+        let rule = AclRule {
+            id: NoId,
+            parent_id: Default::default(),
+            state: Default::default(),
+            name: "rule".to_string(),
+            enabled: true,
+            allow_all_users: false,
+            deny_all_users: false,
+            all_networks: false,
+            destination: Vec::new(),
+            ports: Vec::new(),
+            protocols: Vec::new(),
+            expires: None,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // user
+        let user = User::new("user1", None, "", "", "u1@mail.com", None)
+            .save(&pool)
+            .await
+            .unwrap();
+        let _ = AclRuleUser {
+            id: NoId,
+            rule_id: rule.id,
+            user_id: user.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let result = AclRuleUser {
+            id: NoId,
+            rule_id: rule.id,
+            user_id: user.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await;
+        assert!(result.is_ok());
+
+        // group
+        let group = Group::new("group1").save(&pool).await.unwrap();
+        let _ = AclRuleGroup {
+            id: NoId,
+            rule_id: rule.id,
+            group_id: group.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let result = AclRuleGroup {
+            id: NoId,
+            rule_id: rule.id,
+            group_id: group.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await;
+        assert!(result.is_ok());
+
+        // device
+        let device = Device::new(
+            "device1".to_string(),
+            String::new(),
+            1,
+            DeviceType::Network,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let _ = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device.id,
+            allow: true,
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let result = AclRuleDevice {
+            id: NoId,
+            rule_id: rule.id,
+            device_id: device.id,
+            allow: false,
+        }
+        .save(&pool)
+        .await;
+        assert!(result.is_ok());
+    }
+
+    #[sqlx::test]
     async fn test_rule_relations(pool: PgPool) {
         // create the rule
         let mut rule = AclRule {
