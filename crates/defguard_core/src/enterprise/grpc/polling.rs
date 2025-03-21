@@ -4,11 +4,9 @@ use tonic::Status;
 use crate::{
     db::{models::polling_token::PollingToken, Device, Id, User},
     enterprise::is_enterprise_enabled,
-    grpc::{
-        proto::proxy::{InstanceInfoRequest, InstanceInfoResponse},
-        utils::build_device_config_response,
-    },
+    grpc::utils::build_device_config_response,
 };
+use defguard_protos::proto::proxy::{InstanceInfoRequest, InstanceInfoResponse};
 
 pub struct PollingServer {
     pool: PgPool,

@@ -3,14 +3,7 @@ use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
-use super::{
-    proto::proxy::{
-        ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
-        DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
-        InitialUserInfo, NewDevice,
-    },
-    InstanceInfo,
-};
+use super::InstanceInfo;
 use crate::{
     db::{
         models::{
@@ -28,6 +21,11 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
+};
+use defguard_protos::proto::proxy::{
+    ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
+    DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
+    InitialUserInfo, NewDevice,
 };
 
 pub(super) struct EnrollmentServer {
@@ -179,7 +177,7 @@ impl EnrollmentServer {
                 user.username, user.id
             );
             let (username, user_id) = (user.username.clone(), user.id);
-            let user_info = InitialUserInfo::from_user(&self.pool, user)
+            let user_info = initial_user_info_from_user(&self.pool, user)
                 .await
                 .map_err(|err| {
                     error!(
@@ -205,11 +203,11 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::proxy::Settings {
+            let enrollment_settings = defguard_protos::proto::proxy::Settings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
             };
-            let response = super::proto::proxy::EnrollmentStartResponse {
+            let response = defguard_protos::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
@@ -236,7 +234,7 @@ impl EnrollmentServer {
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_protos::proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
@@ -352,7 +350,7 @@ impl EnrollmentServer {
     pub async fn create_device(
         &self,
         request: NewDevice,
-        req_device_info: Option<super::proto::proxy::DeviceInfo>,
+        req_device_info: Option<defguard_protos::proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;
@@ -705,22 +703,23 @@ impl From<User<Id>> for AdminInfo {
     }
 }
 
-impl InitialUserInfo {
-    async fn from_user(pool: &PgPool, user: User<Id>) -> Result<Self, sqlx::Error> {
-        let enrolled = user.is_enrolled();
-        let devices = user.user_devices(pool).await?;
-        let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
-        Ok(Self {
-            first_name: user.first_name,
-            last_name: user.last_name,
-            login: user.username,
-            email: user.email,
-            phone_number: user.phone,
-            is_active: user.is_active,
-            device_names,
-            enrolled,
-        })
-    }
+async fn initial_user_info_from_user(
+    pool: &PgPool,
+    user: User<Id>,
+) -> Result<InitialUserInfo, sqlx::Error> {
+    let enrolled = user.is_enrolled();
+    let devices = user.user_devices(pool).await?;
+    let device_names = devices.into_iter().map(|dev| dev.device.name).collect();
+    Ok(InitialUserInfo {
+        first_name: user.first_name,
+        last_name: user.last_name,
+        login: user.username,
+        email: user.email,
+        phone_number: user.phone,
+        is_active: user.is_active,
+        device_names,
+        enrolled,
+    })
 }
 
 impl From<DeviceConfig> for ProtoDeviceConfig {

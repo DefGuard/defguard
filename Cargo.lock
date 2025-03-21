@@ -1074,6 +1074,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
+ "defguard_protos",
  "defguard_web_ui",
  "humantime",
  "ipnetwork",
@@ -1132,6 +1133,16 @@ dependencies = [
  "webauthn-rs",
  "webauthn-rs-proto",
  "x25519-dalek",
+]
+
+[[package]]
+name = "defguard_protos"
+version = "0.0.0"
+dependencies = [
+ "prost",
+ "prost-build",
+ "tonic",
+ "tonic-build",
 ]
 
 [[package]]

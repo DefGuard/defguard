@@ -13,10 +13,10 @@ use super::db::models::acl::{
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     enterprise::is_enterprise_enabled,
-    grpc::proto::enterprise::firewall::{
-        ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
-        IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
-    },
+};
+use defguard_protos::proto::enterprise::firewall::{
+    ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
+    IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
 };
 
 #[derive(Debug, thiserror::Error)]

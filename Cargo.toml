@@ -12,8 +12,9 @@ rust-version = "1.82"
 [workspace.dependencies]
 # internal crates
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
-model_derive = { path = "./crates/model_derive", version = "0.0.0" }
+defguard_protos = { path = "./crates/defguard_protos", version = "0.0.0" }
 defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
+model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 
 # external dependencies
 anyhow = "1.0"
@@ -36,7 +37,7 @@ axum = "0.8"
 # parse_link_header = "0.4"
 # paste = "1.0.15"
 # pgp = "0.14"
-# prost = "0.13"
+prost = "0.13"
 # pulldown-cmark = "0.12"
 # rand = "0.8"
 # rand_core = { version = "0.6", features = ["getrandom"] }

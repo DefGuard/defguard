@@ -32,11 +32,11 @@ use crate::{
     enterprise::firewall::FirewallError,
     grpc::{
         gateway::{send_multiple_wireguard_events, Peer},
-        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
     },
     wg_config::ImportedDevice,
 };
+use defguard_protos::proto::enterprise::firewall::FirewallConfig;
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
 pub const DEFAULT_DISCONNECT_THRESHOLD: i32 = 180;

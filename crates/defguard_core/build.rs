@@ -13,29 +13,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     tonic_build::configure().compile_protos_with_config(
         config,
-        &[
-            "proto/core/auth.proto",
-            "proto/core/proxy.proto",
-            "proto/worker/worker.proto",
-            "proto/wireguard/gateway.proto",
-            "proto/enterprise/firewall/firewall.proto",
-            "src/enterprise/proto/license.proto",
-        ],
-        &[
-            "proto/core",
-            "proto/worker",
-            "proto/wireguard",
-            "proto/enterprise/firewall",
-            "src/enterprise/proto",
-        ],
+        &["src/enterprise/proto/license.proto"],
+        &["src/enterprise/proto"],
     )?;
     println!("cargo:rerun-if-changed=migrations");
-    println!("cargo:rerun-if-changed=proto");
     println!("cargo:rerun-if-changed=src/enterprise");
     Ok(())
 }
- 
- 
- 
- 
  

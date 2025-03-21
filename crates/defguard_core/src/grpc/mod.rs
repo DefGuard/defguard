@@ -27,7 +27,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
-    Code, Status,
+    Code,
 };
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -35,17 +35,11 @@ use uuid::Uuid;
 #[cfg(feature = "wireguard")]
 use self::gateway::{gateway_service_server::GatewayServiceServer, GatewayServer};
 use self::{
-    auth::{auth_service_server::AuthServiceServer, AuthServer},
-    desktop_client_mfa::ClientMfaServer,
-    enrollment::EnrollmentServer,
+    auth::AuthServer, desktop_client_mfa::ClientMfaServer, enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
-    proto::proxy::core_response,
 };
 #[cfg(feature = "worker")]
-use self::{
-    interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
-    worker::WorkerServer,
-};
+use self::{interceptor::JwtInterceptor, worker::WorkerServer};
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{
@@ -65,6 +59,9 @@ use crate::{
 };
 #[cfg(feature = "worker")]
 use crate::{auth::ClaimsType, db::GatewayEvent};
+#[cfg(feature = "worker")]
+use defguard_protos::proto::worker::worker_service_server::WorkerServiceServer;
+use defguard_protos::proto::{auth::auth_service_server::AuthServiceServer, proxy::core_response};
 
 mod auth;
 mod desktop_client_mfa;
@@ -79,29 +76,14 @@ pub(crate) mod utils;
 pub mod worker;
 
 pub(crate) mod proto {
-    pub(crate) mod proxy {
-        tonic::include_proto!("defguard.proxy");
-    }
-    pub(crate) mod gateway {
-        tonic::include_proto!("gateway");
-    }
-    pub(crate) mod auth {
-        tonic::include_proto!("auth");
-    }
-    pub(crate) mod worker {
-        tonic::include_proto!("worker");
-    }
     pub(crate) mod enterprise {
         pub(crate) mod license {
             tonic::include_proto!("enterprise.license");
         }
-        pub(crate) mod firewall {
-            tonic::include_proto!("enterprise.firewall");
-        }
     }
 }
 
-use proto::proxy::{
+use defguard_protos::proto::proxy::{
     core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
     CoreResponse,
 };
@@ -440,15 +422,6 @@ impl GatewayState {
 }
 
 const TEN_SECS: Duration = Duration::from_secs(10);
-
-impl From<Status> for CoreError {
-    fn from(status: Status) -> Self {
-        Self {
-            status_code: status.code().into(),
-            message: status.message().into(),
-        }
-    }
-}
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
 pub async fn run_grpc_bidi_stream(
@@ -897,7 +870,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::proxy::InstanceInfo {
+impl From<InstanceInfo> for defguard_protos::proto::proxy::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,

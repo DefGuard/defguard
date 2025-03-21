@@ -5,10 +5,6 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
-use super::proto::proxy::{
-    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
-    MfaMethod,
-};
 use crate::{
     auth::{Claims, ClaimsType},
     db::{
@@ -17,6 +13,10 @@ use crate::{
     },
     handlers::mail::send_email_mfa_code_email,
     mail::Mail,
+};
+use defguard_protos::proto::proxy::{
+    ClientMfaFinishRequest, ClientMfaFinishResponse, ClientMfaStartRequest, ClientMfaStartResponse,
+    MfaMethod,
 };
 
 const CLIENT_SESSION_TIMEOUT: u64 = 60 * 5; // 10 minutes

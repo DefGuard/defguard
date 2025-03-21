@@ -2,10 +2,7 @@ use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tonic::Status;
 
-use super::{
-    proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse},
-    InstanceInfo,
-};
+use super::InstanceInfo;
 use crate::{
     db::{
         models::{
@@ -17,6 +14,7 @@ use crate::{
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
 };
+use defguard_protos::proto::proxy::{DeviceConfig as ProtoDeviceConfig, DeviceConfigResponse};
 
 // Create a new token for configuration polling.
 pub(crate) async fn new_polling_token(
