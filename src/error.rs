@@ -73,13 +73,7 @@ impl From<StatusCode> for WebError {
 
 impl From<LdapError> for WebError {
     fn from(error: LdapError) -> Self {
-        match error {
-            LdapError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
-            LdapError::Ldap(msg) => Self::Ldap(msg),
-            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".into()),
-            LdapError::Database => Self::Ldap("Database problem".into()),
-            LdapError::TooManyObjects => Self::Ldap(LdapError::TooManyObjects.to_string()),
-        }
+        Self::Ldap(error.to_string())
     }
 }
 

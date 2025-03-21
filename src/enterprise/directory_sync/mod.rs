@@ -15,6 +15,8 @@ use super::is_enterprise_enabled;
 use crate::{
     db::{GatewayEvent, Group, Id, User},
     enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
+    ldap::utils::ldap_add_users_to_groups,
+    ldap::utils::ldap_remove_users_from_groups,
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -277,6 +279,8 @@ async fn sync_user_groups<T: DirectorySync>(
 
     let current_groups = user.member_of(&mut *transaction).await?;
     let current_group_names: Vec<&str> = current_groups.iter().map(|g| g.name.as_str()).collect();
+    let mut add_to_ldap_groups = HashSet::new();
+    let mut remove_from_ldap_groups = HashSet::new();
 
     debug!(
         "User {} is a member of {} groups in Defguard: {:?}",
@@ -288,6 +292,7 @@ async fn sync_user_groups<T: DirectorySync>(
     for group in &directory_group_names {
         if !current_group_names.contains(group) {
             create_and_add_to_group(user, group, pool).await?;
+            add_to_ldap_groups.insert(*group);
         }
     }
 
@@ -299,6 +304,7 @@ async fn sync_user_groups<T: DirectorySync>(
             );
             user.remove_from_group(&mut *transaction, current_group)
                 .await?;
+            remove_from_ldap_groups.insert(current_group.name.as_str());
         }
     }
 
@@ -311,6 +317,14 @@ async fn sync_user_groups<T: DirectorySync>(
         ))
         })?;
     transaction.commit().await?;
+
+    let mut user_groups = HashMap::new();
+    user_groups.insert(user.username.as_str(), add_to_ldap_groups);
+    ldap_add_users_to_groups(user_groups, pool).await;
+
+    let mut user_groups = HashMap::new();
+    user_groups.insert(user.username.as_str(), remove_from_ldap_groups);
+    ldap_remove_users_from_groups(user_groups, pool).await;
 
     Ok(())
 }

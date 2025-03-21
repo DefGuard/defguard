@@ -2,23 +2,28 @@ use std::collections::HashSet;
 
 use ldap3::{Mod, SearchEntry};
 
-use super::LDAPConfig;
+use super::{error::LdapError, LDAPConfig};
 use crate::{
     db::{Settings, User},
     hashset,
 };
 
 impl User {
-    #[must_use]
-    pub fn from_searchentry(entry: &SearchEntry, username: &str, password: &str) -> Self {
-        Self::new(
+    pub fn from_searchentry(
+        entry: &SearchEntry,
+        username: &str,
+        password: Option<&str>,
+    ) -> Result<Self, LdapError> {
+        let mut user = Self::new(
             username.into(),
-            Some(password),
-            get_value_or_default(entry, "sn"),
-            get_value_or_default(entry, "givenName"),
-            get_value_or_default(entry, "mail"),
+            password,
+            get_value_or_error(entry, "sn")?,
+            get_value_or_error(entry, "givenName")?,
+            get_value_or_error(entry, "mail")?,
             get_value(entry, "mobile"),
-        )
+        );
+        user.ldap_linked = true;
+        Ok(user)
     }
 }
 
@@ -106,6 +111,13 @@ fn get_value_or_default(entry: &SearchEntry, key: &str) -> String {
     match entry.attrs.get(key) {
         Some(values) if !values.is_empty() => values[0].clone(),
         _ => String::default(),
+    }
+}
+
+fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
+    match entry.attrs.get(key) {
+        Some(values) if !values.is_empty() => Ok(values[0].clone()),
+        _ => Err(LdapError::MissingAttribute(key.to_string())),
     }
 }
 
