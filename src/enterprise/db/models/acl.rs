@@ -425,14 +425,14 @@ impl AclRule {
         let mut affected_locations = HashSet::new();
 
         for id in rules {
-            let mut rule = AclRule::find_by_id(&mut *transaction, *id)
+            let rule = AclRule::find_by_id(&mut *transaction, *id)
                 .await?
                 .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
-            rule.apply(&mut transaction).await?;
             let locations = rule.get_networks(&mut *transaction).await?;
             for location in locations {
                 affected_locations.insert(location);
             }
+            rule.apply(&mut transaction).await?;
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
 
@@ -768,23 +768,26 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
 }
 
 impl AclRule<Id> {
-    /// Changes rule state to [`RuleState::Applied`]
+    /// Applies pending state change if necessary.
     ///
-    /// This function:
-    /// - changes the state of the specified rule to `Applied`
+    /// If current state is [`RuleState::New`] or [`RuleState::Modified`] it does the following:
+    /// - changes the state of the rule to `Applied`
     /// - clears rule's `parent_id`.
     /// - deletes it's parent rule
+    ///
+    /// If current state is ['RuleState::Deleted'] it removes the parent rule and the rule itself.
     ///
     /// # Errors
     ///
     /// - `AclError::RuleAreadyApplied`
-    pub async fn apply(&mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
-        debug!("Changing ACL rule {} state to applied", self.id);
+    pub async fn apply(mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+        let acl_id = self.id;
+        debug!("Applying ACL rule {acl_id} pending state change");
 
         // Ensure the rule is in a state that can be applied
         match self.state {
-            RuleState::New | RuleState::Modified | RuleState::Deleted => {
-                debug!("Changing ACL rule {} state to applied", self.id);
+            RuleState::New | RuleState::Modified => {
+                debug!("Changing ACL rule {acl_id} state to applied");
                 self.state = RuleState::Applied;
                 let parent_id = self.parent_id;
                 self.parent_id = None;
@@ -796,14 +799,30 @@ impl AclRule<Id> {
                         .execute(&mut *transaction)
                         .await?;
                 }
+                info!("Changed ACL rule {acl_id} state to applied");
+            }
+            RuleState::Deleted => {
+                debug!("Removing ACL rule {acl_id} which has been marked for deletion",);
+                let parent_id = &self
+                    .parent_id
+                    .expect("ACL rule marked for deletion must have parent ID");
+
+                // delete current ACL rule itself
+                self.delete(&mut *transaction).await?;
+
+                // delete parent rule
+                query!("DELETE FROM aclrule WHERE id = $1", parent_id)
+                    .execute(&mut *transaction)
+                    .await?;
+
+                info!("ACL rule {acl_id} was deleted");
             }
             RuleState::Applied => {
-                warn!("ACL rule {} already applied", self.id);
+                warn!("ACL rule {acl_id} already applied");
                 return Err(AclError::RuleAlreadyAppliedError(self.id));
             }
         }
 
-        info!("Changed ACL rule {} state to applied", self.id);
         Ok(())
     }
 

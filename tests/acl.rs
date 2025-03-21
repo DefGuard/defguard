@@ -736,6 +736,27 @@ async fn test_rule_application(pool: PgPool) {
     let response = client.get("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
+
+    // delete rule
+    let response = client.delete("/api/v1/acl/rule/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rule was marked for deletion
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/3").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Deleted);
+    assert_eq!(rule.parent_id, Some(2));
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
+
+    // apply modification
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rules were removed
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 0);
 }
 
 #[sqlx::test]
