@@ -99,8 +99,3 @@ openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
 
-[profile.release]
-codegen-units = 1
-panic = "abort"
-lto = "thin"
-strip = "symbols"

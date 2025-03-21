@@ -657,10 +657,10 @@ mod test {
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
             },
         },
-        grpc::proto::enterprise::firewall::{
-            ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
-            IpVersion, Port, PortRange as PortRangeProto, Protocol,
-        },
+    };
+    use defguard_protos::proto::enterprise::firewall::{
+        ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
+        IpVersion, Port, PortRange as PortRangeProto, Protocol,
     };
 
     use super::{get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges};
