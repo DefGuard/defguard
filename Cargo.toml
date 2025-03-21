@@ -1,103 +1,86 @@
-[package]
-name = "defguard"
-version = "1.2.4"
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
 edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.82"
 
-[workspace]
+[workspace.dependencies]
+# internal crates
+defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
+model_derive = { path = "./crates/model_derive", version = "0.0.0" }
+defguard_web_ui = { path = "./crates/defguard_web_ui", version = "0.0.0" }
 
-[dependencies]
+# external dependencies
 anyhow = "1.0"
-argon2 = { version = "0.5", features = ["std"] }
+# argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
-axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
-base32 = "0.5"
-base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-clap = { version = "4.5", features = ["derive", "env"] }
-dotenvy = "0.15"
-humantime = "2.1"
-ipnetwork = "0.20"
-jsonwebkey = { version = "0.3.5", features = ["pkcs-convert"] }
-jsonwebtoken = "9.3"
-ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
-lettre = { version = "0.11", features = ["tokio1-native-tls"] }
-md4 = "0.10"
-mime_guess = "2.0"
-model_derive = { path = "model-derive" }
-openidconnect = { version = "3.5", default-features = false, optional = true, features = ["reqwest"] }
-parse_link_header = "0.4"
-paste = "1.0.15"
-pgp = "0.14"
-prost = "0.13"
-pulldown-cmark = "0.12"
-rand = "0.8"
-rand_core = { version = "0.6", features = ["getrandom"] }
-# TODO: update reqwest when openidconnect also depends on http >= 1.0.
-reqwest = { version = "0.11", features = ["json"] }
-rsa = "0.9"
-rust-embed = { version = "8.5", features = ["include-exclude"] }
-rust-ini = "0.21"
+# axum-client-ip = "0.7"
+# axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
+# base32 = "0.5"
+# base64 = "0.22"
+# chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+# clap = { version = "4.5", features = ["derive", "env"] }
+# humantime = "2.1"
+# ipnetwork = "0.20"
+# jsonwebkey = { version = "0.3.5", features = ["pkcs-convert"] }
+# jsonwebtoken = "9.3"
+# ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
+# lettre = { version = "0.11", features = ["tokio1-native-tls"] }
+# md4 = "0.10"
+# mime_guess = "2.0"
+# parse_link_header = "0.4"
+# paste = "1.0.15"
+# pgp = "0.14"
+# prost = "0.13"
+# pulldown-cmark = "0.12"
+# rand = "0.8"
+# rand_core = { version = "0.6", features = ["getrandom"] }
+# # TODO: update reqwest when openidconnect also depends on http >= 1.0.
+# reqwest = { version = "0.11", features = ["json"] }
+# rsa = "0.9"
+# rust-embed = { version = "8.5", features = ["include-exclude"] }
+# rust-ini = "0.21"
 secrecy = { version = "0.10", features = ["serde"] }
-semver = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-# match version from webauthn-rs-core
-serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
-serde_json = "1.0"
-serde_urlencoded = "0.7"
-serial_test = "3.2.0"
-sha-1 = "0.10"
-sha256 = "1.5"
-sqlx = { version = "0.8", features = ["chrono", "ipnetwork", "postgres", "runtime-tokio-native-tls", "uuid"] }
-ssh-key = "0.6"
-struct-patch = "0.8"
-tera = "1.20"
-thiserror = "2.0"
-# match axum-extra -> cookies
-time = { version = "0.3", default-features = false }
+# semver = "1.0"
+# serde = { version = "1.0", features = ["derive"] }
+# # match version from webauthn-rs-core
+# serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
+# serde_json = "1.0"
+# serde_urlencoded = "0.7"
+# serial_test = "3.2.0"
+# sha-1 = "0.10"
+# sha256 = "1.5"
+# sqlx = { version = "0.8", features = ["chrono", "ipnetwork", "postgres", "runtime-tokio-native-tls", "uuid"] }
+# ssh-key = "0.6"
+# struct-patch = "0.8"
+# tera = "1.20"
+# thiserror = "2.0"
+# # match axum-extra -> cookies
+# time = { version = "0.3", default-features = false }
 tokio = { version = "1", features = ["macros", "parking_lot", "rt-multi-thread", "sync", "time"] }
-tokio-stream = "0.1"
-tokio-util = "0.7"
-tonic = { version = "0.12", features = ["gzip", "tls-native-roots"] }
-tonic-health = "0.12"
-totp-lite = { version = "2.0" }
-tower-http = { version = "0.6", features = ["fs", "trace"] }
+# tokio-stream = "0.1"
+# tokio-util = "0.7"
+# tonic = { version = "0.12", features = ["gzip", "tls-native-roots"] }
+# tonic-health = "0.12"
+# totp-lite = { version = "2.0" }
+# tower-http = { version = "0.6", features = ["fs", "trace"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-trait-variant = "0.1"
-uaparser = "0.6"
-# openapi
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
-uuid = { version = "1.9", features = ["v4"] }
-webauthn-authenticator-rs = { version = "0.5" }
-webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
-webauthn-rs-proto = "0.5"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-
-[dev-dependencies]
-bytes = "1.6"
-claims = "0.8"
-matches = "0.1"
-regex = "1.10"
-reqwest = { version = "0.11", features = ["cookies", "json", "multipart", "rustls-tls", "stream"], default-features = false }
-serde_qs = "0.13"
-webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
-
-[build-dependencies]
-prost-build = "0.13"
-tonic-build = "0.12"
-vergen-git2 = { version = "1.0", features = ["build"] }
-
-[features]
-default = ["openid", "wireguard", "worker"]
-openid = ["dep:openidconnect"]
-worker = []
-wireguard = []
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# trait-variant = "0.1"
+# uaparser = "0.6"
+# # openapi
+# utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
+# utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
+# uuid = { version = "1.9", features = ["v4"] }
+# webauthn-authenticator-rs = { version = "0.5" }
+# webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+# webauthn-rs-proto = "0.5"
+# x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
 [profile.release]
 codegen-units = 1

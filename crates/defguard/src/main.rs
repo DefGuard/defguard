@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use defguard::{
+use defguard_core::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{
@@ -25,10 +25,8 @@ use defguard::{
 };
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-#[macro_use]
-extern crate tracing;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -116,7 +114,9 @@ async fn main() -> Result<(), anyhow::Error> {
             set_cached_license(license);
         }
         Err(err) => {
-            warn!("There was an error while loading the license, error: {err}. The enterprise features will be disabled.");
+            warn!(
+                "There was an error while loading the license, error: {err}. The enterprise features will be disabled."
+            );
             set_cached_license(None);
         }
     };

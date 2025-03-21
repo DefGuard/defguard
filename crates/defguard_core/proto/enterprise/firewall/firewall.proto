@@ -1,0 +1,72 @@
+syntax = "proto3";
+package enterprise.firewall;
+
+// Describes target configuration of the firewall
+message FirewallConfig {
+  IpVersion ip_version = 1;
+  FirewallPolicy default_policy = 2;
+  repeated FirewallRule rules = 3;
+}
+
+enum IpVersion {
+  IPV4 = 0;
+  IPV6 = 1;
+}
+
+enum FirewallPolicy {
+  ALLOW = 0;
+  DENY = 1;
+}
+
+message FirewallRule {
+  int64 id = 1;
+  repeated IpAddress source_addrs = 2;
+  repeated IpAddress destination_addrs = 3;
+  repeated Port destination_ports = 4;
+  repeated Protocol protocols = 5;
+  FirewallPolicy verdict = 6;
+  optional string comment = 7;
+}
+
+// IPv4 or IPv6 address
+// expected type is determined by a given FirewallRule
+message IpAddress {
+  oneof address {
+    // single IP address
+    string ip = 1;
+    // range of IPs, e.g. 10.0.10.1-10.0.20.3
+    IpRange ip_range = 2;
+    // IP subnet using CIDR notation, e.g. 10.0.10.0/24
+    string ip_subnet = 3;
+  }
+}
+
+// inclusive IP range
+message IpRange {
+  string start = 1;
+  string end = 2;
+}
+
+// wrapper message since `oneof` itself cannot be repeated
+message Port {
+  oneof port {
+    uint32 single_port = 1;
+    PortRange port_range = 2;
+  }
+}
+
+// inclusive port range
+message PortRange {
+  uint32 start = 1;
+  uint32 end = 2;
+}
+
+// Specific IDs are used to align with the standard below:
+// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
+enum Protocol {
+  // proto3 requires that first enum value must be 0
+  INVALID = 0;
+  ICMP = 1;
+  TCP = 6;
+  UDP = 17;
+}

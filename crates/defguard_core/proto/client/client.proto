@@ -1,0 +1,51 @@
+syntax = "proto3";
+package client;
+
+import "google/protobuf/empty.proto";
+
+message InterfaceConfig {
+  string name = 1;
+  string prvkey = 2;
+  string address = 3;
+  uint32 port = 4;
+  repeated Peer peers = 5;
+}
+
+message Peer {
+  string public_key = 1;
+  optional string preshared_key = 2;
+  optional uint32 protocol_version = 3;
+  optional string endpoint = 4;
+  optional uint64 last_handshake = 5;
+  uint64 tx_bytes = 6;
+  uint64 rx_bytes = 7;
+  optional uint32 persistent_keepalive_interval = 8;
+  repeated string allowed_ips = 9;
+}
+
+message CreateInterfaceRequest {
+  InterfaceConfig config = 1;
+  repeated string allowed_ips = 2;
+  optional string dns = 3;
+}
+
+message RemoveInterfaceRequest {
+  string interface_name = 2;
+  string endpoint = 6;
+}
+
+message ReadInterfaceDataRequest {
+  string interface_name = 2;
+}
+
+message InterfaceData {
+  uint32 listen_port = 1;
+  repeated Peer peers = 2;
+}
+
+// service used by desktop clients to communicate with interface management daemon
+service DesktopDaemonService {
+  rpc CreateInterface(CreateInterfaceRequest) returns (google.protobuf.Empty);
+  rpc RemoveInterface(RemoveInterfaceRequest) returns (google.protobuf.Empty);
+  rpc ReadInterfaceData(ReadInterfaceDataRequest) returns (stream InterfaceData);
+}

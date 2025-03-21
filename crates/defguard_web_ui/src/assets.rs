@@ -23,7 +23,7 @@ pub async fn svg(uri: Uri) -> impl IntoResponse {
 }
 
 #[derive(Embed)]
-#[folder = "web/"]
+#[folder = "../../web/"]
 #[include = "dist/*"]
 #[include = "src/shared/images/*"]
 struct WebAsset;

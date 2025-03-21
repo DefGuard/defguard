@@ -1051,19 +1051,6 @@ name = "defguard"
 version = "1.2.4"
 dependencies = [
  "anyhow",
- "defguard_core",
- "dotenvy",
- "secrecy",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "defguard_core"
-version = "0.0.0"
-dependencies = [
- "anyhow",
  "argon2",
  "axum 0.8.1",
  "axum-client-ip",
@@ -1074,7 +1061,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
- "defguard_web_ui",
+ "dotenvy",
  "humantime",
  "ipnetwork",
  "jsonwebkey",
@@ -1083,6 +1070,7 @@ dependencies = [
  "lettre",
  "matches",
  "md4",
+ "mime_guess",
  "model_derive",
  "openidconnect",
  "parse_link_header",
@@ -1096,6 +1084,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rsa",
+ "rust-embed",
  "rust-ini",
  "secrecy",
  "semver",
@@ -1122,6 +1111,7 @@ dependencies = [
  "totp-lite",
  "tower-http",
  "tracing",
+ "tracing-subscriber",
  "trait-variant",
  "uaparser",
  "utoipa",
@@ -1132,15 +1122,6 @@ dependencies = [
  "webauthn-rs",
  "webauthn-rs-proto",
  "x25519-dalek",
-]
-
-[[package]]
-name = "defguard_web_ui"
-version = "0.0.0"
-dependencies = [
- "axum 0.8.1",
- "mime_guess",
- "rust-embed",
 ]
 
 [[package]]
@@ -2747,7 +2728,7 @@ dependencies = [
 
 [[package]]
 name = "model_derive"
-version = "0.0.0"
+version = "0.2.0"
 dependencies = [
  "quote",
  "syn 2.0.100",

@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::anyhow;
-use assets::{index, svg, web_asset};
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
@@ -128,9 +127,9 @@ use self::{
     grpc::{GatewayMap, WorkerState},
     handlers::app_info::get_app_info,
 };
+use defguard_web_ui::{index, svg, web_asset};
 
 pub mod appstate;
-pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;

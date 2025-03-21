@@ -31,7 +31,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     println!("cargo:rerun-if-changed=migrations");
     println!("cargo:rerun-if-changed=proto");
-    println!("cargo:rerun-if-changed=web/dist");
     println!("cargo:rerun-if-changed=src/enterprise");
     Ok(())
 }
+ 
+ 
+ 
+ 
+ 

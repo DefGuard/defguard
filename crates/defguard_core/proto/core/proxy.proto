@@ -1,0 +1,237 @@
+syntax = "proto3";
+package defguard.proxy;
+
+import "google/protobuf/empty.proto";
+
+// Enrollment & Desktop Client activation
+message EnrollmentStartRequest {
+  string token = 1;
+}
+
+message AdminInfo {
+  string name = 1;
+  optional string phone_number = 2;
+  string email = 3;
+}
+
+message InitialUserInfo {
+  string first_name = 1;
+  string last_name = 2;
+  string login = 3;
+  string email = 4;
+  optional string phone_number = 5;
+  bool is_active = 6;
+  repeated string device_names = 7;
+  bool enrolled = 8;
+}
+
+message Settings {
+  bool vpn_setup_optional = 1;
+  bool only_client_activation = 2;
+}
+
+message EnrollmentStartResponse {
+  AdminInfo admin = 1;
+  InitialUserInfo user = 2;
+  int64 deadline_timestamp = 3;
+  string final_page_content = 5;
+  InstanceInfo instance = 7;
+  Settings settings = 8;
+}
+
+message ActivateUserRequest {
+  optional string phone_number = 1;
+  string password = 2;
+  optional string token = 3;
+}
+
+message NewDevice {
+  string name = 1;
+  string pubkey = 2;
+  optional string token = 3;
+}
+
+message Device {
+  int64 id = 1;
+  string name = 2;
+  string pubkey = 3;
+  int64 user_id = 4;
+  int64 created_at = 5;
+}
+
+message DeviceConfig {
+  int64 network_id = 1;
+  string network_name = 2;
+  string config = 3;
+  string endpoint = 4;
+  string assigned_ip = 5;
+  // network pubkey
+  string pubkey = 6;
+  string allowed_ips = 7;
+  optional string dns = 8;
+  bool mfa_enabled = 9;
+  int32 keepalive_interval = 10;
+}
+
+message InstanceInfo {
+  string id = 1;
+  string name = 2;
+  string url = 3;
+  string proxy_url = 4;
+  string username = 5;
+  bool enterprise_enabled = 6;
+  bool disable_all_traffic = 7;
+}
+
+message DeviceConfigResponse {
+  Device device = 1;
+  repeated DeviceConfig configs = 2;
+  InstanceInfo instance = 3;
+  // polling token used for further client-core communication
+  optional string token = 4;
+}
+
+message InstanceInfoRequest {
+  string token = 1;
+}
+
+message InstanceInfoResponse {
+  DeviceConfigResponse device_config = 1;
+}
+
+message ExistingDevice {
+  string pubkey = 1;
+  optional string token = 2;
+}
+
+// Password Reset
+message PasswordResetStartRequest {
+  string token = 1;
+}
+
+message PasswordResetInitializeRequest {
+  string email = 1;
+}
+
+message PasswordResetStartResponse {
+  int64 deadline_timestamp = 1;
+}
+
+message PasswordResetRequest {
+  string password = 1;
+  optional string token = 2;
+}
+
+// Desktop client MFA
+enum MfaMethod {
+  TOTP = 0;
+  EMAIL = 1;
+}
+
+message ClientMfaStartRequest {
+  int64 location_id = 1;
+  string pubkey = 2;
+  MfaMethod method = 3;
+}
+
+message ClientMfaStartResponse {
+  string token = 1;
+}
+
+message ClientMfaFinishRequest {
+  string token = 1;
+  string code = 2;
+}
+
+message ClientMfaFinishResponse {
+  string preshared_key = 1;
+}
+
+message AuthInfoRequest {
+  string redirect_url = 1;
+}
+
+message AuthInfoResponse {
+  string url = 1;
+  string csrf_token = 2;
+  string nonce = 3;
+  optional string button_display_name = 4;
+}
+
+message AuthCallbackRequest {
+  string code = 1;
+  string nonce = 2;
+  string callback_url = 3;
+}
+
+message AuthCallbackResponse {
+  string url = 1;
+  string token = 2;
+}
+
+// Common client info
+message DeviceInfo {
+  optional string ip_address = 1;
+  optional string user_agent = 2;
+}
+
+/*
+ * Error response variant.
+ * Due to reverse proxy -> core communication this is how we
+ * can return gRPC errors from core.
+ */
+message CoreError {
+  int32 status_code = 1;
+  string message = 2;
+}
+
+/*
+ * CoreResponse represents messages send from core to proxy
+ * in response to CoreRequest.
+ */
+message CoreResponse {
+  uint64 id = 1;
+  oneof payload {
+    google.protobuf.Empty empty = 2;
+    EnrollmentStartResponse enrollment_start = 3;
+    DeviceConfigResponse device_config = 4;
+    PasswordResetStartResponse password_reset_start = 5;
+    ClientMfaStartResponse client_mfa_start = 6;
+    ClientMfaFinishResponse client_mfa_finish = 7;
+    CoreError core_error = 8;
+    InstanceInfoResponse instance_info = 9;
+    AuthInfoResponse auth_info = 13;
+    AuthCallbackResponse auth_callback = 14;
+  }
+}
+
+/*
+ * CoreRequest represents messages send from proxy to core.
+ */
+message CoreRequest {
+  uint64 id = 1;
+  DeviceInfo device_info = 2;
+  oneof payload {
+    EnrollmentStartRequest enrollment_start = 3;
+    ActivateUserRequest activate_user = 4;
+    NewDevice new_device = 5;
+    ExistingDevice existing_device = 6;
+    PasswordResetInitializeRequest password_reset_init = 7;
+    PasswordResetStartRequest password_reset_start = 8;
+    PasswordResetRequest password_reset = 9;
+    ClientMfaStartRequest client_mfa_start = 10;
+    ClientMfaFinishRequest client_mfa_finish = 11;
+    InstanceInfoRequest instance_info = 12;
+    AuthInfoRequest auth_info = 13;
+    AuthCallbackRequest auth_callback = 14;
+  }
+}
+
+/*
+ * Bi-directional communication between core and proxy.
+ * For security reasons, the connection has to be initiated by core,
+ * so requests and responses are actually send in reverse.
+ */
+service Proxy {
+  rpc Bidi(stream CoreResponse) returns (stream CoreRequest);
+}
