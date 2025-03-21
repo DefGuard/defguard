@@ -5,7 +5,7 @@ edition = "2021"
 license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
-rust-version = "1.82"
+rust-version = "1.85.1"
 
 [workspace]
 
@@ -21,6 +21,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4.5", features = ["derive", "env"] }
 dotenvy = "0.15"
 humantime = "2.1"
+# match version used by sqlx
 ipnetwork = "0.20"
 jsonwebkey = { version = "0.3.5", features = ["pkcs-convert"] }
 jsonwebtoken = "9.3"
@@ -35,6 +36,7 @@ paste = "1.0.15"
 pgp = "0.14"
 prost = "0.13"
 pulldown-cmark = "0.12"
+# match version used by sqlx
 rand = "0.8"
 rand_core = { version = "0.6", features = ["getrandom"] }
 # TODO: update reqwest when openidconnect also depends on http >= 1.0.
@@ -49,7 +51,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
-serial_test = "3.2.0"
+serial_test = "3.2"
 sha-1 = "0.10"
 sha256 = "1.5"
 sqlx = { version = "0.8", features = ["chrono", "ipnetwork", "postgres", "runtime-tokio-native-tls", "uuid"] }
