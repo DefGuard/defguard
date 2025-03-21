@@ -44,6 +44,8 @@ fn make_rule() -> EditAclRule {
         expires: None,
         allow_all_users: false,
         deny_all_users: false,
+        allow_all_network_devices: false,
+        deny_all_network_devices: false,
         allowed_users: vec![],
         denied_users: vec![],
         allowed_groups: vec![],
@@ -92,6 +94,8 @@ fn edit_data_into_api_response(
         enabled: data.enabled,
         allow_all_users: data.allow_all_users,
         deny_all_users: data.deny_all_users,
+        allow_all_network_devices: data.allow_all_network_devices,
+        deny_all_network_devices: data.deny_all_network_devices,
         allowed_users: data.allowed_users.clone(),
         denied_users: data.denied_users.clone(),
         allowed_groups: data.allowed_groups.clone(),
@@ -736,6 +740,27 @@ async fn test_rule_application(pool: PgPool) {
     let response = client.get("/api/v1/acl/rule/1").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
+
+    // delete rule
+    let response = client.delete("/api/v1/acl/rule/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rule was marked for deletion
+    let rule: ApiAclRule = client.get("/api/v1/acl/rule/3").send().await.json().await;
+    assert_eq!(rule.state, RuleState::Deleted);
+    assert_eq!(rule.parent_id, Some(2));
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
+
+    // apply modification
+    let response = client
+        .put("/api/v1/acl/rule/apply")
+        .json(&json!({ "rules": vec![3] }))
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // verify rules were removed
+    assert_eq!(AclRule::all(&pool).await.unwrap().len(), 0);
 }
 
 #[sqlx::test]

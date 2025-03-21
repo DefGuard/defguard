@@ -140,6 +140,8 @@ pub struct AclRuleInfo<I = NoId> {
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_network_devices: bool,
+    pub deny_all_network_devices: bool,
     pub allowed_users: Vec<User<Id>>,
     pub denied_users: Vec<User<Id>>,
     pub allowed_groups: Vec<Group<Id>>,
@@ -217,6 +219,8 @@ pub struct AclRule<I = NoId> {
     pub name: String,
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_network_devices: bool,
+    pub deny_all_network_devices: bool,
     pub all_networks: bool,
     #[model(ref)]
     pub destination: Vec<IpNetwork>,
@@ -425,14 +429,14 @@ impl AclRule {
         let mut affected_locations = HashSet::new();
 
         for id in rules {
-            let mut rule = AclRule::find_by_id(&mut *transaction, *id)
+            let rule = AclRule::find_by_id(&mut *transaction, *id)
                 .await?
                 .ok_or_else(|| AclError::RuleNotFoundError(*id))?;
-            rule.apply(&mut transaction).await?;
             let locations = rule.get_networks(&mut *transaction).await?;
             for location in locations {
                 affected_locations.insert(location);
             }
+            rule.apply(&mut transaction).await?;
         }
         info!("Applied {} ACL rules: {rules:?}", rules.len());
 
@@ -759,6 +763,8 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
             name: rule.name,
             allow_all_users: rule.allow_all_users,
             deny_all_users: rule.deny_all_users,
+            allow_all_network_devices: rule.allow_all_network_devices,
+            deny_all_network_devices: rule.deny_all_network_devices,
             all_networks: rule.all_networks,
             protocols: rule.protocols,
             enabled: rule.enabled,
@@ -768,23 +774,26 @@ impl TryFrom<EditAclRule> for AclRule<NoId> {
 }
 
 impl AclRule<Id> {
-    /// Changes rule state to [`RuleState::Applied`]
+    /// Applies pending state change if necessary.
     ///
-    /// This function:
-    /// - changes the state of the specified rule to `Applied`
+    /// If current state is [`RuleState::New`] or [`RuleState::Modified`] it does the following:
+    /// - changes the state of the rule to `Applied`
     /// - clears rule's `parent_id`.
     /// - deletes it's parent rule
+    ///
+    /// If current state is ['RuleState::Deleted'] it removes the parent rule and the rule itself.
     ///
     /// # Errors
     ///
     /// - `AclError::RuleAreadyApplied`
-    pub async fn apply(&mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
-        debug!("Changing ACL rule {} state to applied", self.id);
+    pub async fn apply(mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+        let acl_id = self.id;
+        debug!("Applying ACL rule {acl_id} pending state change");
 
         // Ensure the rule is in a state that can be applied
         match self.state {
-            RuleState::New | RuleState::Modified | RuleState::Deleted => {
-                debug!("Changing ACL rule {} state to applied", self.id);
+            RuleState::New | RuleState::Modified => {
+                debug!("Changing ACL rule {acl_id} state to applied");
                 self.state = RuleState::Applied;
                 let parent_id = self.parent_id;
                 self.parent_id = None;
@@ -796,14 +805,30 @@ impl AclRule<Id> {
                         .execute(&mut *transaction)
                         .await?;
                 }
+                info!("Changed ACL rule {acl_id} state to applied");
+            }
+            RuleState::Deleted => {
+                debug!("Removing ACL rule {acl_id} which has been marked for deletion",);
+                let parent_id = &self
+                    .parent_id
+                    .expect("ACL rule marked for deletion must have parent ID");
+
+                // delete current ACL rule itself
+                self.delete(&mut *transaction).await?;
+
+                // delete parent rule
+                query!("DELETE FROM aclrule WHERE id = $1", parent_id)
+                    .execute(&mut *transaction)
+                    .await?;
+
+                info!("ACL rule {acl_id} was deleted");
             }
             RuleState::Applied => {
-                warn!("ACL rule {} already applied", self.id);
+                warn!("ACL rule {acl_id} already applied");
                 return Err(AclError::RuleAlreadyAppliedError(self.id));
             }
         }
 
-        info!("Changed ACL rule {} state to applied", self.id);
         Ok(())
     }
 
@@ -975,7 +1000,7 @@ impl AclRule<Id> {
     }
 
     /// Returns [`Device`]s that are allowed or denied by the rule
-    pub(crate) async fn get_devices<'e, E>(
+    pub(crate) async fn get_network_devices<'e, E>(
         &self,
         executor: E,
         allowed: bool,
@@ -983,20 +1008,78 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Device,
-            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
-            FROM aclruledevice r \
-            JOIN device d \
-            ON d.id = r.device_id \
-            WHERE r.rule_id = $1 \
-            AND r.allow = $2",
-            self.id,
-            allowed,
-        )
-        .fetch_all(executor)
-        .await
+        match allowed {
+            true => self.get_allowed_network_devices(executor).await,
+            false => self.get_denied_network_devices(executor).await,
+        }
+    }
+
+    pub(crate) async fn get_allowed_network_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if self.allow_all_network_devices {
+            query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type",
+            )
+                .fetch_all(executor)
+            .await
+        } else {
+            query_as!(
+                Device,
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM aclruledevice r \
+                    JOIN device d \
+                    ON d.id = r.device_id \
+                    WHERE r.rule_id = $1 \
+                    AND r.allow = true",
+                self.id,
+            )
+                .fetch_all(executor)
+            .await
+        }
+    }
+
+    pub(crate) async fn get_denied_network_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if self.deny_all_network_devices {
+            query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type",
+            )
+                .fetch_all(executor)
+            .await
+        } else {
+            query_as!(
+                Device,
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM aclruledevice r \
+                    JOIN device d \
+                    ON d.id = r.device_id \
+                    WHERE r.rule_id = $1 \
+                    AND r.allow = false",
+                self.id,
+            )
+                .fetch_all(executor)
+            .await
+        }
     }
 
     /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
@@ -1027,8 +1110,8 @@ impl AclRule<Id> {
         let denied_users = self.get_users(&mut *conn, false).await?;
         let allowed_groups = self.get_groups(&mut *conn, true).await?;
         let denied_groups = self.get_groups(&mut *conn, false).await?;
-        let allowed_devices = self.get_devices(&mut *conn, true).await?;
-        let denied_devices = self.get_devices(&mut *conn, false).await?;
+        let allowed_devices = self.get_network_devices(&mut *conn, true).await?;
+        let denied_devices = self.get_network_devices(&mut *conn, false).await?;
         let destination_ranges = self.get_destination_ranges(&mut *conn).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
@@ -1039,6 +1122,8 @@ impl AclRule<Id> {
             name: self.name.clone(),
             allow_all_users: self.allow_all_users,
             deny_all_users: self.deny_all_users,
+            allow_all_network_devices: self.allow_all_network_devices,
+            deny_all_network_devices: self.deny_all_network_devices,
             all_networks: self.all_networks,
             destination: self.destination.clone(),
             protocols: self.protocols.clone(),
@@ -1538,6 +1623,8 @@ mod test {
             enabled: true,
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             all_networks: false,
             destination: Vec::new(),
             ports: Vec::new(),
@@ -1636,6 +1723,8 @@ mod test {
             enabled: true,
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             all_networks: false,
             destination: Vec::new(),
             ports: Vec::new(),
@@ -1991,6 +2080,8 @@ mod test {
             name: "test_rule".to_string(),
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             all_networks: false,
             destination: Vec::new(),
             ports: Vec::new(),
@@ -2102,6 +2193,8 @@ mod test {
             name: "test_rule".to_string(),
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             all_networks: false,
             destination: Vec::new(),
             ports: Vec::new(),

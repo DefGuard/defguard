@@ -27,6 +27,19 @@ import {
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
 
+const aclDefaultPolicyOptions: SelectOption<boolean>[] = [
+  {
+    key: 'ALLOW',
+    label: 'Allow',
+    value: true,
+  },
+  {
+    key: 'DENY',
+    label: 'Deny',
+    value: false,
+  },
+];
+
 type FormFields = {
   address: string;
   endpoint: string;
@@ -323,10 +336,11 @@ export const NetworkEditForm = () => {
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
         />
-        <FormCheckBox
+        <FormSelect
           controller={{ control, name: 'acl_default_allow' }}
           label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
-          labelPlacement="right"
+          options={aclDefaultPolicyOptions}
+          searchable={false}
         />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}

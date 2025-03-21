@@ -73,6 +73,7 @@ export const AlcCreatePage = () => {
       aliases: [],
       all_networks: false,
       allow_all_users: false,
+      allow_all_network_devices: false,
       allowed_devices: [],
       allowed_groups: [],
       allowed_users: [],
@@ -80,6 +81,7 @@ export const AlcCreatePage = () => {
       denied_groups: [],
       denied_users: [],
       deny_all_users: false,
+      deny_all_network_devices: false,
       destination: '',
       id: 0,
       name: '',
@@ -95,6 +97,12 @@ export const AlcCreatePage = () => {
   // const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
   const [allowAllUsers, setAllowAllUsers] = useState(initialValue.allow_all_users);
   const [denyAllUsers, setDenyAllUsers] = useState(initialValue.deny_all_users);
+  const [allowAllNetworkDevices, setAllowAllNetworkDevices] = useState(
+    initialValue.allow_all_network_devices,
+  );
+  const [denyAllNetworkDevices, setDenyAllNetworkDevices] = useState(
+    initialValue.deny_all_network_devices,
+  );
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
 
@@ -240,6 +248,8 @@ export const AlcCreatePage = () => {
         ...cleaned,
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
+        allow_all_network_devices: allowAllNetworkDevices,
+        deny_all_network_devices: denyAllNetworkDevices,
         all_networks: allowAllLocations,
         id: initialValue.id,
         expires,
@@ -250,6 +260,8 @@ export const AlcCreatePage = () => {
         ...cleaned,
         allow_all_users: allowAllUsers,
         deny_all_users: denyAllUsers,
+        allow_all_network_devices: allowAllNetworkDevices,
+        deny_all_network_devices: denyAllNetworkDevices,
         all_networks: allowAllLocations,
         expires,
       };
@@ -358,6 +370,16 @@ export const AlcCreatePage = () => {
             searchKeys={['name']}
             disabled={allowAllUsers}
           />
+          <LabeledCheckbox
+            value={allowAllNetworkDevices}
+            onChange={(val) => {
+              if (val) {
+                setDenyAllNetworkDevices(false);
+              }
+              setAllowAllNetworkDevices(val);
+            }}
+            label={labelsLL.allowAllNetworkDevices()}
+          />
           <FormDialogSelect
             label={labelsLL.devices()}
             controller={{ control, name: 'allowed_devices' }}
@@ -365,6 +387,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderNetworkDevice}
             identKey="id"
             searchKeys={['name']}
+            disabled={allowAllNetworkDevices}
           />
         </SectionWithCard>
         <SectionWithCard title={localLL.headers.destination()} id="destination-card">
@@ -431,6 +454,16 @@ export const AlcCreatePage = () => {
             searchKeys={['name']}
             disabled={denyAllUsers}
           />
+          <LabeledCheckbox
+            label={labelsLL.denyAllNetworkDevices()}
+            value={denyAllNetworkDevices}
+            onChange={(val) => {
+              if (val) {
+                setAllowAllNetworkDevices(false);
+              }
+              setDenyAllNetworkDevices(val);
+            }}
+          />
           <FormDialogSelect
             label={labelsLL.devices()}
             controller={{ control, name: 'denied_devices' }}
@@ -438,6 +471,7 @@ export const AlcCreatePage = () => {
             renderTagContent={renderNetworkDevice}
             identKey="id"
             searchKeys={['name']}
+            disabled={denyAllNetworkDevices}
           />
         </SectionWithCard>
         <input type="submit" ref={submitRef} className="hidden" />

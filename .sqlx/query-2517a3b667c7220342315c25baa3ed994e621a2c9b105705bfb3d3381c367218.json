@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\"",
+  "query": "SELECT id, \"parent_id\",\"state\" \"state: _\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\",\"enabled\",\"expires\" FROM \"aclrule\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -47,37 +47,49 @@
       },
       {
         "ordinal": 6,
-        "name": "all_networks",
+        "name": "allow_all_network_devices",
         "type_info": "Bool"
       },
       {
         "ordinal": 7,
+        "name": "deny_all_network_devices",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "all_networks",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
         "name": "destination: _",
         "type_info": "InetArray"
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "protocols: _",
         "type_info": "Int4Array"
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 13,
         "name": "expires",
         "type_info": "Timestamp"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -91,8 +103,10 @@
       false,
       false,
       false,
+      false,
+      false,
       true
     ]
   },
-  "hash": "64bf992b0fbedf187441515020a87f80ce513848080e97a8df1b2e37c5219613"
+  "hash": "2517a3b667c7220342315c25baa3ed994e621a2c9b105705bfb3d3381c367218"
 }

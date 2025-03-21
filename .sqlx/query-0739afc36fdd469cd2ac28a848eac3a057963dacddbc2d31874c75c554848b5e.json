@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"aclrule\" SET \"parent_id\" = $2,\"state\" = $3,\"name\" = $4,\"allow_all_users\" = $5,\"deny_all_users\" = $6,\"all_networks\" = $7,\"destination\" = $8,\"ports\" = $9,\"protocols\" = $10,\"enabled\" = $11,\"expires\" = $12 WHERE id = $1",
+  "query": "UPDATE \"aclrule\" SET \"parent_id\" = $2,\"state\" = $3,\"name\" = $4,\"allow_all_users\" = $5,\"deny_all_users\" = $6,\"allow_all_network_devices\" = $7,\"deny_all_network_devices\" = $8,\"all_networks\" = $9,\"destination\" = $10,\"ports\" = $11,\"protocols\" = $12,\"enabled\" = $13,\"expires\" = $14 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -24,6 +24,8 @@
         "Bool",
         "Bool",
         "Bool",
+        "Bool",
+        "Bool",
         "InetArray",
         "Int4RangeArray",
         "Int4Array",
@@ -33,5 +35,5 @@
     },
     "nullable": []
   },
-  "hash": "ccfd120a484accbc5f30f72544112c5df6a0dd91e72baa8559245c523095fd68"
+  "hash": "0739afc36fdd469cd2ac28a848eac3a057963dacddbc2d31874c75c554848b5e"
 }
