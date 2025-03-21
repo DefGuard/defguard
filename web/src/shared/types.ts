@@ -467,6 +467,8 @@ export type AclRuleInfo = {
   all_networks: boolean;
   allow_all_users: boolean;
   deny_all_users: boolean;
+  allow_all_network_devices: boolean;
+  deny_all_network_devices: boolean;
   networks: number[];
   expires?: string;
   enabled: boolean;

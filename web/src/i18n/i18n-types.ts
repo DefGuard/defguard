@@ -5306,9 +5306,17 @@ type RootTranslation = {
 				 */
 				allowAllNetworks: string
 				/**
+				 * A​l​l​o​w​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				allowAllNetworkDevices: string
+				/**
 				 * D​e​n​y​ ​a​l​l​ ​u​s​e​r​s
 				 */
 				denyAllUsers: string
+				/**
+				 * D​e​n​y​ ​a​l​l​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
+				 */
+				denyAllNetworkDevices: string
 				/**
 				 * U​s​e​r​s
 				 */
@@ -10593,9 +10601,17 @@ export type TranslationFunctions = {
 				 */
 				allowAllNetworks: () => LocalizedString
 				/**
+				 * Allow all network devices
+				 */
+				allowAllNetworkDevices: () => LocalizedString
+				/**
 				 * Deny all users
 				 */
 				denyAllUsers: () => LocalizedString
+				/**
+				 * Deny all network devices
+				 */
+				denyAllNetworkDevices: () => LocalizedString
 				/**
 				 * Users
 				 */
