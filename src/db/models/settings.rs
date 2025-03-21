@@ -4,7 +4,7 @@ use sqlx::{query, query_as, PgExecutor, PgPool, Type};
 use struct_patch::Patch;
 use thiserror::Error;
 
-use crate::{global_value, secret::SecretStringWrapper};
+use crate::{enterprise::ldap::sync::SyncStatus, global_value, secret::SecretStringWrapper};
 
 global_value!(SETTINGS, Option<Settings>, None, set_settings, get_settings);
 
@@ -91,6 +91,9 @@ pub struct Settings {
     pub ldap_group_member_attr: Option<String>,
     pub ldap_member_attr: Option<String>,
     pub ldap_samba_enabled: bool,
+    pub ldap_sync_status: SyncStatus,
+    pub ldap_enabled: bool,
+    pub ldap_sync_enabled: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -120,7 +123,9 @@ impl Settings {
             ldap_group_member_attr, ldap_member_attr, ldap_samba_enabled \"ldap_samba_enabled!\", openid_create_account, \
             license, gateway_disconnect_notifications_enabled, \
             gateway_disconnect_notifications_inactivity_threshold, \
-            gateway_disconnect_notifications_reconnect_notification_enabled \
+            gateway_disconnect_notifications_reconnect_notification_enabled, \
+            ldap_sync_status \"ldap_sync_status: SyncStatus\", \
+            ldap_enabled, ldap_sync_enabled \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -181,7 +186,10 @@ impl Settings {
             gateway_disconnect_notifications_enabled = $34, \
             gateway_disconnect_notifications_inactivity_threshold = $35, \
             gateway_disconnect_notifications_reconnect_notification_enabled = $36, \
-            ldap_samba_enabled = $37 \
+            ldap_samba_enabled = $37, \
+            ldap_sync_status = $38, \
+            ldap_enabled = $39, \
+            ldap_sync_enabled = $40 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -219,7 +227,10 @@ impl Settings {
             self.gateway_disconnect_notifications_enabled,
             self.gateway_disconnect_notifications_inactivity_threshold,
             self.gateway_disconnect_notifications_reconnect_notification_enabled,
-            self.ldap_samba_enabled
+            self.ldap_samba_enabled,
+            &self.ldap_sync_status as &SyncStatus,
+            self.ldap_enabled,
+            self.ldap_sync_enabled,
         )
         .execute(executor)
         .await?;

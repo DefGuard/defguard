@@ -3,6 +3,7 @@ pub mod directory_sync;
 pub mod firewall;
 pub mod grpc;
 pub mod handlers;
+pub mod ldap;
 pub mod license;
 pub mod limits;
 

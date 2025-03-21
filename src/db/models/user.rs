@@ -35,7 +35,6 @@ use crate::{
     enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
-    ldap::utils::ldap_delete_user,
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
@@ -89,6 +88,7 @@ pub struct User<I = NoId> {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
+    pub ldap_linked: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -139,6 +139,7 @@ impl User {
             recovery_codes: Vec::new(),
             is_active: true,
             openid_sub: None,
+            ldap_linked: false,
         }
     }
 }
@@ -173,7 +174,7 @@ impl<I> User<I> {
     /// or they have logged in using an external OIDC.
     #[must_use]
     pub(crate) fn is_enrolled(&self) -> bool {
-        self.password_hash.is_some() || self.openid_sub.is_some()
+        self.password_hash.is_some() || self.openid_sub.is_some() || self.ldap_linked
     }
 }
 
@@ -403,8 +404,10 @@ impl User<Id> {
         }
 
         send_multiple_wireguard_events(events, wg_tx);
-        let _result = ldap_delete_user(&username).await;
-        info!("The user {username} has been deleted and his devices removed from gateways.",);
+        info!(
+            "The user {} has been deleted and his devices removed from gateways.",
+            &username
+        );
         Ok(())
     }
 
@@ -554,7 +557,8 @@ impl User<Id> {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub \
+                mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
+                ldap_linked \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -568,7 +572,7 @@ impl User<Id> {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
-                enrolled: u.password_hash.is_some() || u.openid_sub.is_some(),
+                enrolled: u.password_hash.is_some() || u.openid_sub.is_some() || u.ldap_linked,
             })
             .collect();
 
@@ -585,7 +589,8 @@ impl User<Id> {
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            ldap_linked \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -735,7 +740,8 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            ldap_linked \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -754,7 +760,7 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, ldap_linked \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -792,7 +798,8 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            ldap_linked \
             FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
@@ -902,7 +909,6 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-
         Ok(())
     }
 
@@ -921,7 +927,6 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-
         Ok(())
     }
 
@@ -1023,7 +1028,8 @@ impl User<Id> {
             Self,
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
+            ldap_linked \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1073,7 +1079,8 @@ impl User<Id> {
             "
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
+            ldap_linked \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"

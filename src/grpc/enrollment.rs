@@ -299,13 +299,6 @@ impl EnrollmentServer {
         debug!("Updating user details ended with success.");
         let _ = update_counts(&self.pool).await;
 
-        // sync with LDAP
-        debug!("Add user to ldap: {}.", self.ldap_feature_active);
-        if self.ldap_feature_active {
-            debug!("Syncing with LDAP.");
-            let _result = ldap_add_user(&user, &request.password).await;
-        };
-
         debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_current_settings();
         debug!("Successfully retrived settings.");
@@ -344,6 +337,8 @@ impl EnrollmentServer {
             error!("Failed to commit transaction: {err}");
             Status::internal("unexpected error")
         })?;
+
+        ldap_add_user(&user, &request.password, &self.pool).await;
 
         info!("User {} activated", user.username);
         Ok(())

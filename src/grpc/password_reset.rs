@@ -250,14 +250,12 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        // if self.ldap_feature_active {
-        let _ = ldap_change_password(&user.username, &request.password).await;
-        // };
-
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        ldap_change_password(&user.username, &request.password, &self.pool).await;
 
         send_password_reset_success_email(
             &user,

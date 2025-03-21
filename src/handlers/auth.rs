@@ -40,7 +40,7 @@ use crate::{
         SIGN_IN_COOKIE_NAME,
     },
     headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
-    ldap::utils::user_from_ldap,
+    ldap::utils::{login_through_ldap, user_from_ldap},
     mail::Mail,
     server_config,
 };
@@ -137,6 +137,7 @@ pub(crate) async fn authenticate(
     debug!("Authenticating user {username}");
     // check if user can proceed with login
     check_username(&appstate.failed_logins, &username)?;
+    let settings = Settings::get_current_settings();
 
     let mut user = match User::find_by_username(&appstate.pool, &username).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
@@ -149,9 +150,21 @@ pub(crate) async fn authenticate(
                 }
             }
             Err(err) => {
-                info!("Failed to authenticate user {username}: {err}");
-                log_failed_login_attempt(&appstate.failed_logins, &username);
-                return Err(WebError::Authorization(err.to_string()));
+                if user.ldap_linked && settings.ldap_enabled {
+                    if let Ok(user) =
+                        login_through_ldap(&appstate.pool, &username, &data.password).await
+                    {
+                        user
+                    } else {
+                        info!("Failed to authenticate user {username}: {err}");
+                        log_failed_login_attempt(&appstate.failed_logins, &username);
+                        return Err(WebError::Authorization(err.to_string()));
+                    }
+                } else {
+                    info!("Failed to authenticate user {username}: {err}");
+                    log_failed_login_attempt(&appstate.failed_logins, &username);
+                    return Err(WebError::Authorization(err.to_string()));
+                }
             }
         },
         Ok(None) => {
