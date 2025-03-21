@@ -1000,7 +1000,7 @@ impl AclRule<Id> {
     }
 
     /// Returns [`Device`]s that are allowed or denied by the rule
-    pub(crate) async fn get_devices<'e, E>(
+    pub(crate) async fn get_network_devices<'e, E>(
         &self,
         executor: E,
         allowed: bool,
@@ -1008,20 +1008,78 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        query_as!(
-            Device,
-            "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-            configured \
-            FROM aclruledevice r \
-            JOIN device d \
-            ON d.id = r.device_id \
-            WHERE r.rule_id = $1 \
-            AND r.allow = $2",
-            self.id,
-            allowed,
-        )
-        .fetch_all(executor)
-        .await
+        match allowed {
+            true => self.get_allowed_network_devices(executor).await,
+            false => self.get_denied_network_devices(executor).await,
+        }
+    }
+
+    pub(crate) async fn get_allowed_network_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if self.allow_all_network_devices {
+            query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type",
+            )
+                .fetch_all(executor)
+            .await
+        } else {
+            query_as!(
+                Device,
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM aclruledevice r \
+                    JOIN device d \
+                    ON d.id = r.device_id \
+                    WHERE r.rule_id = $1 \
+                    AND r.allow = true",
+                self.id,
+            )
+                .fetch_all(executor)
+            .await
+        }
+    }
+
+    pub(crate) async fn get_denied_network_devices<'e, E>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        if self.deny_all_network_devices {
+            query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type",
+            )
+                .fetch_all(executor)
+            .await
+        } else {
+            query_as!(
+                Device,
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM aclruledevice r \
+                    JOIN device d \
+                    ON d.id = r.device_id \
+                    WHERE r.rule_id = $1 \
+                    AND r.allow = false",
+                self.id,
+            )
+                .fetch_all(executor)
+            .await
+        }
     }
 
     /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
@@ -1052,8 +1110,8 @@ impl AclRule<Id> {
         let denied_users = self.get_users(&mut *conn, false).await?;
         let allowed_groups = self.get_groups(&mut *conn, true).await?;
         let denied_groups = self.get_groups(&mut *conn, false).await?;
-        let allowed_devices = self.get_devices(&mut *conn, true).await?;
-        let denied_devices = self.get_devices(&mut *conn, false).await?;
+        let allowed_devices = self.get_network_devices(&mut *conn, true).await?;
+        let denied_devices = self.get_network_devices(&mut *conn, false).await?;
         let destination_ranges = self.get_destination_ranges(&mut *conn).await?;
         let ports = self.ports.clone().into_iter().map(Into::into).collect();
 
