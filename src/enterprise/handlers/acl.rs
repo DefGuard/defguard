@@ -33,6 +33,8 @@ pub struct ApiAclRule {
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_network_devices: bool,
+    pub deny_all_network_devices: bool,
     pub allowed_users: Vec<Id>,
     pub denied_users: Vec<Id>,
     pub allowed_groups: Vec<Id>,
@@ -60,6 +62,8 @@ impl From<AclRuleInfo<Id>> for ApiAclRule {
             expires: info.expires,
             allow_all_users: info.allow_all_users,
             deny_all_users: info.deny_all_users,
+            allow_all_network_devices: info.allow_all_network_devices,
+            deny_all_network_devices: info.deny_all_network_devices,
             allowed_users: info.allowed_users.iter().map(|v| v.id).collect(),
             denied_users: info.denied_users.iter().map(|v| v.id).collect(),
             allowed_groups: info.allowed_groups.iter().map(|v| v.id).collect(),
@@ -84,6 +88,8 @@ pub struct EditAclRule {
     // source
     pub allow_all_users: bool,
     pub deny_all_users: bool,
+    pub allow_all_network_devices: bool,
+    pub deny_all_network_devices: bool,
     pub allowed_users: Vec<Id>,
     pub denied_users: Vec<Id>,
     pub allowed_groups: Vec<Id>,

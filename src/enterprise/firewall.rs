@@ -544,8 +544,8 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
         let rules: Vec<AclRule<Id>> = query_as(
-            "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, \
-                destination, ports, protocols, expires, enabled, parent_id, state \
+            "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, allow_all_network_devices, \
+                deny_all_network_devices, destination, ports, protocols, expires, enabled, parent_id, state \
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
@@ -1617,6 +1617,8 @@ mod test {
             expires: None,
             allow_all_users: false,
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             destination: vec!["192.168.1.0/24".parse().unwrap()],
             ports: vec![
                 PortRange::new(80, 80).into(),
@@ -1660,6 +1662,8 @@ mod test {
             expires: None,
             allow_all_users: true, // Allow all users
             deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
             destination: vec![], // Will use destination ranges instead
             ports: vec![PortRange::new(53, 53).into()],
             protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
