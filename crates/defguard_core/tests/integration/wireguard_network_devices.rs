@@ -1,8 +1,6 @@
-pub mod common;
-
 use std::{net::IpAddr, str::FromStr};
 
-use defguard::{
+use defguard_core::{
     db::{Device, GatewayEvent, Id, WireguardNetwork},
     handlers::{network_devices::AddNetworkDevice, Auth},
 };
@@ -12,7 +10,7 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use self::common::make_test_client;
+use crate::common::make_test_client;
 
 fn make_network() -> Value {
     json!({

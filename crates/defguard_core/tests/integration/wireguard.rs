@@ -1,6 +1,4 @@
-pub mod common;
-
-use defguard::{
+use defguard_core::{
     db::{
         models::{
             device::WireguardNetworkDevice,
@@ -14,7 +12,7 @@ use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 
-use self::common::{make_network, make_test_client};
+use crate::common::{make_network, make_test_client};
 
 #[tokio::test]
 async fn test_network() {

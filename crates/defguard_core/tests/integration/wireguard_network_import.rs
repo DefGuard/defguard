@@ -1,6 +1,4 @@
-pub mod common;
-
-use defguard::{
+use defguard_core::{
     db::{
         models::{
             device::{DeviceType, UserDevice},
@@ -15,7 +13,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use tokio::sync::broadcast::error::TryRecvError;
 
-use self::common::{fetch_user_details, make_test_client};
+use crate::common::{fetch_user_details, make_test_client};
 
 #[tokio::test]
 async fn test_config_import() {

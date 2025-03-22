@@ -1,6 +1,6 @@
+use crate::common::{client::TestClient, exceed_enterprise_limits, make_test_client};
 use chrono::{Duration, Utc};
-use common::{exceed_enterprise_limits, make_test_client};
-use defguard::{
+use defguard_core::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
@@ -10,9 +10,6 @@ use defguard::{
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-
-pub mod common;
-use self::common::client::TestClient;
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;

@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use defguard::{
+use defguard_core::{
     auth::failed_login::FailedLoginMap,
     build_webapp,
     config::DefGuardConfig,

@@ -1,7 +1,4 @@
-pub mod common;
-
-use common::fetch_user_details;
-use defguard::{
+use defguard_core::{
     db::models::enrollment::Token,
     handlers::{AddUserData, Auth},
 };
@@ -10,7 +7,7 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
 
-use self::common::{client::TestClient, make_test_client};
+use crate::common::{client::TestClient, fetch_user_details, make_test_client};
 
 async fn make_client() -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client().await;

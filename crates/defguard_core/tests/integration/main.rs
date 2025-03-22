@@ -1,0 +1,22 @@
+// all integration tests are out into a single crate improve compilation speed
+// reference: https://matklad.github.io/2021/02/27/delete-cargo-integration-tests.html
+pub mod acl;
+pub mod api_tokens;
+pub mod auth;
+pub mod common;
+pub mod enrollment;
+pub mod enterprise_settings;
+pub mod forward_auth;
+pub mod group;
+pub mod oauth;
+pub mod openid;
+pub mod openid_login;
+pub mod settings;
+pub mod user;
+pub mod webhook;
+pub mod wireguard;
+pub mod wireguard_network_allowed_groups;
+pub mod wireguard_network_devices;
+pub mod wireguard_network_import;
+pub mod wireguard_network_stats;
+pub mod worker;

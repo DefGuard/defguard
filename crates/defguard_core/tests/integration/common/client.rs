@@ -16,7 +16,6 @@ pub struct TestClient {
     port: u16,
 }
 
-#[allow(dead_code)]
 impl TestClient {
     #[must_use]
     pub fn new(app: Router, listener: TcpListener) -> Self {
@@ -114,7 +113,6 @@ pub struct RequestBuilder {
     builder: reqwest::RequestBuilder,
 }
 
-#[allow(dead_code)]
 impl RequestBuilder {
     pub async fn send(self) -> TestResponse {
         TestResponse {
@@ -124,11 +122,6 @@ impl RequestBuilder {
 
     pub fn body<B: Into<Body>>(mut self, body: B) -> Self {
         self.builder = self.builder.body(body);
-        self
-    }
-
-    pub fn form<T: serde::Serialize + ?Sized>(mut self, form: &T) -> Self {
-        self.builder = self.builder.form(&form);
         self
     }
 
@@ -144,11 +137,6 @@ impl RequestBuilder {
         self.builder = self.builder.header(key, value);
         self
     }
-
-    pub fn multipart(mut self, form: reqwest::multipart::Form) -> Self {
-        self.builder = self.builder.multipart(form);
-        self
-    }
 }
 
 /// A wrapper around [`reqwest::Response`] that provides common methods with internal `unwrap()`s.
@@ -162,7 +150,6 @@ pub struct TestResponse {
     response: reqwest::Response,
 }
 
-#[allow(dead_code)]
 impl TestResponse {
     pub async fn text(self) -> String {
         self.response.text().await.unwrap()

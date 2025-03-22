@@ -1,8 +1,6 @@
-pub mod common;
-
 use std::borrow::Cow;
 
-use defguard::{
+use defguard_core::{
     db::{
         models::{
             oauth2client::{OAuth2Client, OAuth2ClientSafe},
@@ -16,7 +14,7 @@ use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
 use serde_json::json;
 use sqlx::PgPool;
 
-use self::common::{client::TestClient, make_test_client};
+use crate::common::{client::TestClient, make_test_client};
 
 async fn make_client() -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client().await;

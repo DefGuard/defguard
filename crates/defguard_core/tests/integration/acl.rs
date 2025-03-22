@@ -1,7 +1,8 @@
-use common::{
-    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, omit_id,
+use crate::common::{
+    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, make_base_client,
+    make_test_client, omit_id,
 };
-use defguard::{
+use defguard_core::{
     config::DefGuardConfig,
     db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
@@ -16,10 +17,6 @@ use serde_json::{from_value, json, Value};
 use serial_test::serial;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
-
-use self::common::{make_base_client, make_test_client};
-
-pub mod common;
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")

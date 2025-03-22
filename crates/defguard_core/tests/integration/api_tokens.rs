@@ -1,6 +1,6 @@
+use crate::common::{client::TestClient, make_test_client, ClientState};
 use chrono::Utc;
-use common::{client::TestClient, make_test_client, ClientState};
-use defguard::{
+use defguard_core::{
     db::UserInfo,
     enterprise::{
         db::models::api_tokens::{ApiToken, ApiTokenInfo},
@@ -10,8 +10,6 @@ use defguard::{
 };
 use reqwest::{header::HeaderName, StatusCode};
 use serde::Deserialize;
-
-pub mod common;
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;

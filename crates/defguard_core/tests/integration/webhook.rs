@@ -1,12 +1,10 @@
-pub mod common;
-
-use defguard::{
+use defguard_core::{
     db::{Id, NoId, WebHook},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 
-use self::common::{client::TestClient, make_test_client};
+use crate::common::{client::TestClient, make_test_client};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;

@@ -1,11 +1,8 @@
-pub mod common;
-
 use std::time::SystemTime;
 
 use chrono::NaiveDateTime;
 use claims::{assert_err, assert_ok};
-use common::fetch_user_details;
-use defguard::{
+use defguard_core::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{
         models::settings::update_current_settings, MFAInfo, MFAMethod, Settings, User, UserDetails,
@@ -20,7 +17,9 @@ use totp_lite::{totp_custom, Sha1};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-use self::common::{client::TestClient, make_test_client, ClientState, X_FORWARDED_FOR};
+use crate::common::{
+    client::TestClient, fetch_user_details, make_test_client, ClientState, X_FORWARDED_FOR,
+};
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 

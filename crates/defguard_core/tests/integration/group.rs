@@ -1,10 +1,8 @@
-pub mod common;
-
-use defguard::handlers::{Auth, EditGroupInfo, GroupInfo};
+use defguard_core::handlers::{Auth, EditGroupInfo, GroupInfo};
 use reqwest::StatusCode;
 use serde_json::json;
 
-use self::common::make_test_client;
+use crate::common::make_test_client;
 
 #[tokio::test]
 async fn test_create_group() {

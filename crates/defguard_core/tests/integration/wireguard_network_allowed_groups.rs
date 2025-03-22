@@ -1,7 +1,5 @@
-pub mod common;
-
 use claims::assert_err;
-use defguard::{
+use defguard_core::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},
 };
@@ -10,7 +8,7 @@ use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::PgPool;
 
-use self::common::{fetch_user_details, make_test_client};
+use crate::common::{fetch_user_details, make_test_client};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {

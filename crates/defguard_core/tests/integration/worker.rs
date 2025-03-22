@@ -1,8 +1,6 @@
-pub mod common;
-
 use std::sync::{Arc, Mutex};
 
-use defguard::{
+use defguard_core::{
     grpc::{worker::JobStatus, WorkerDetail, WorkerState},
     handlers::{
         worker::{JobData, Jobid},
@@ -11,7 +9,7 @@ use defguard::{
 };
 use reqwest::StatusCode;
 
-use self::common::{client::TestClient, make_test_client};
+use crate::common::{client::TestClient, make_test_client};
 
 async fn make_client() -> (TestClient, Arc<Mutex<WorkerState>>) {
     let (client, client_status) = make_test_client().await;

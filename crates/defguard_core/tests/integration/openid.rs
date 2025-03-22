@@ -2,8 +2,7 @@ use std::str::FromStr;
 
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use common::init_config;
-use defguard::{
+use defguard_core::{
     config::DefGuardConfig,
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
@@ -29,8 +28,9 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 
-pub mod common;
-use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
+use crate::common::{
+    client::TestClient, init_config, init_test_db, make_base_client, make_test_client,
+};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;

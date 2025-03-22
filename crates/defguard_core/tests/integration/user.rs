@@ -1,6 +1,4 @@
-pub mod common;
-
-use defguard::{
+use defguard_core::{
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
         AddDevice, Id, UserInfo,
@@ -10,7 +8,7 @@ use defguard::{
 use reqwest::{header::USER_AGENT, StatusCode};
 use tokio_stream::{self as stream, StreamExt};
 
-use self::common::{client::TestClient, fetch_user_details, make_network, make_test_client};
+use crate::common::{client::TestClient, fetch_user_details, make_network, make_test_client};
 
 async fn make_client() -> TestClient {
     let (client, _) = make_test_client().await;

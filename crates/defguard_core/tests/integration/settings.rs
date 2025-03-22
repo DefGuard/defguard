@@ -1,13 +1,10 @@
-pub mod common;
-
-use common::ClientState;
-use defguard::{
+use defguard_core::{
     db::models::settings::{Settings, SettingsPatch},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 
-use self::common::{client::TestClient, make_test_client};
+use crate::common::{client::TestClient, make_test_client, ClientState};
 
 async fn make_client() -> (TestClient, ClientState) {
     let (client, state) = make_test_client().await;

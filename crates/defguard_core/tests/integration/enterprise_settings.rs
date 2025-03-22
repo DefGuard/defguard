@@ -1,7 +1,4 @@
-pub mod common;
-
-use common::exceed_enterprise_limits;
-use defguard::{
+use defguard_core::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         license::{get_cached_license, set_cached_license},
@@ -11,7 +8,7 @@ use defguard::{
 use reqwest::StatusCode;
 use serde_json::json;
 
-use self::common::{make_network, make_test_client};
+use crate::common::{exceed_enterprise_limits, make_network, make_test_client};
 
 #[tokio::test]
 async fn test_only_enterprise_can_modify() {
