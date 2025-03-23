@@ -5,13 +5,28 @@ use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncSta
 
 use crate::{
     db::Settings,
+    enterprise::{is_enterprise_enabled, limits::update_counts},
     ldap::{error::LdapError, LDAPConnection},
 };
 
+pub mod model;
 pub mod sync;
 
 pub async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
-    debug!("Starting LDAP sync");
+    debug!("Starting LDAP sync, if enabled");
+    let settings = Settings::get_current_settings();
+    if !settings.ldap_enabled {
+        debug!("LDAP is disabled, not performing LDAP sync");
+        return Ok(());
+    }
+    if !settings.ldap_sync_enabled {
+        debug!("LDAP sync is disabled, not performing LDAP sync");
+        return Ok(());
+    }
+    if !is_enterprise_enabled() {
+        debug!("Enterprise features are disabled, not performing LDAP sync");
+        return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
+    }
 
     if is_ldap_desynced() {
         info!("LDAP is considered to be desynced, doing a full sync");
@@ -34,6 +49,8 @@ pub async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         set_ldap_sync_status(SyncStatus::Synced, pool).await?;
     };
 
+    let _ = update_counts(pool).await;
+
     info!("LDAP sync completed");
 
     Ok(())
@@ -46,8 +63,8 @@ where
     F: Future<Output = Result<T, LdapError>>,
 {
     let settings = Settings::get_current_settings();
-    if settings.ldap_enabled {
-        warn!("LDAP is disabled, not performing LDAP operation");
+    if !settings.ldap_enabled {
+        debug!("LDAP is disabled, not performing LDAP operation");
         return Err(LdapError::MissingSettings("LDAP is disabled".into()));
     }
 
@@ -64,7 +81,6 @@ where
                 e
             );
 
-            // Set LDAP sync status to Desynced
             if let Err(status_err) = set_ldap_sync_status(SyncStatus::Desynced, pool).await {
                 warn!("Failed to update LDAP sync status: {:?}", status_err);
             }

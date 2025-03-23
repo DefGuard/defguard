@@ -14,3 +14,6 @@ ALTER TABLE settings
 DROP COLUMN ldap_sync_enabled;
 
 DROP TYPE ldap_sync_status;
+
+ALTER TABLE settings
+DROP COLUMN ldap_is_authoritative;

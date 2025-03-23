@@ -19,4 +19,6 @@ pub enum LdapError {
     MissingAttribute(String),
     #[error("LDAP is desynced, awaiting full sync")]
     Desynced,
+    #[error("Enterprise features are disabled, not performing LDAP operation: {0}")]
+    EnterpriseDisabled(String),
 }

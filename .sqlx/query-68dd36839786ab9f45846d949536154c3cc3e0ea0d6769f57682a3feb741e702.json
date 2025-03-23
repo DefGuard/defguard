@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"ldap_linked\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,31 +50,36 @@
       },
       {
         "ordinal": 9,
+        "name": "ldap_linked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
         "name": "openid_sub",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -91,7 +96,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "recovery_codes: _",
         "type_info": "TextArray"
       }
@@ -111,6 +116,7 @@
       true,
       false,
       false,
+      false,
       true,
       false,
       false,
@@ -120,5 +126,5 @@
       false
     ]
   },
-  "hash": "69ddae4f160f29172f491b926ffa357cf56d6a61c792c619b3d127bf285ff680"
+  "hash": "68dd36839786ab9f45846d949536154c3cc3e0ea0d6769f57682a3feb741e702"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" WHERE id = $1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, ldap_linked FROM \"user\" WHERE id = ANY($1)",
   "describe": {
     "columns": [
       {
@@ -94,11 +94,16 @@
         "ordinal": 15,
         "name": "openid_sub",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "ldap_linked",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -117,8 +122,9 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "67539c5f0b24db151ceca1d14f09d5d8629df64531e85c34bd3cfa295c353fae"
+  "hash": "e056a6a80ce10fb9ddcff21e77b742071a0212aec565dda0e01fc85a79c7732a"
 }

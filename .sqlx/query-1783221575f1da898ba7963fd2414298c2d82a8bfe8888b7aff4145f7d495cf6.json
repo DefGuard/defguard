@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub FROM \"user\"",
+  "query": "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, ldap_linked FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -54,6 +54,11 @@
         "ordinal": 7,
         "name": "openid_sub",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "ldap_linked",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -67,8 +72,9 @@
       false,
       true,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "96b202cd0ffe9bf6d99cd0a02304b2b70ee32801870561190ba787a67068216b"
+  "hash": "1783221575f1da898ba7963fd2414298c2d82a8bfe8888b7aff4145f7d495cf6"
 }

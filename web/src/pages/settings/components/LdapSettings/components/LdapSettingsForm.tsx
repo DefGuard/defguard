@@ -17,6 +17,7 @@ import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 
 type FormFields = SettingsLDAP;
 
@@ -65,6 +66,9 @@ export const LdapSettingsForm = () => {
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
         ldap_samba_enabled: z.boolean(),
+        ldap_enabled: z.boolean(),
+        ldap_sync_enabled: z.boolean(),
+        ldap_is_authoritative: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -83,6 +87,9 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
       ldap_samba_enabled: settings?.ldap_samba_enabled ?? false,
+      ldap_enabled: settings?.ldap_enabled ?? false,
+      ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
+      ldap_is_authoritative: settings?.ldap_is_authoritative ?? false,
     }),
     [settings],
   );
@@ -101,6 +108,9 @@ export const LdapSettingsForm = () => {
       ldap_bind_password: '',
       ldap_bind_username: '',
       ldap_samba_enabled: false,
+      ldap_enabled: false,
+      ldap_sync_enabled: false,
+      ldap_is_authoritative: false,
     }),
     [],
   );
@@ -146,6 +156,11 @@ export const LdapSettingsForm = () => {
         </div>
       </header>
       <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
+        <FormCheckBox
+          controller={{ control, name: 'ldap_enabled' }}
+          label={localLL.form.labels.ldap_enable()}
+          labelPlacement="right"
+        />
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}
@@ -194,6 +209,27 @@ export const LdapSettingsForm = () => {
         <FormCheckBox
           controller={{ control, name: 'ldap_samba_enabled' }}
           label={localLL.form.labels.ldap_samba_enabled()}
+          labelPlacement="right"
+        />
+        {/* <FormCheckBox
+          controller={{ control, name: 'ldap_use_starttls' }}
+          label={localLL.form.labels.ldap_use_starttls()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_tls_verify_cert' }}
+          label={localLL.form.labels.ldap_tls_verify_cert()}
+          labelPlacement="right"
+        /> */}
+        <h3>LDAP Sync</h3>
+        <FormCheckBox
+          controller={{ control, name: 'ldap_sync_enabled' }}
+          label={localLL.form.labels.ldap_sync_enabled()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_is_authoritative' }}
+          label={localLL.form.labels.ldap_is_authority()}
           labelPlacement="right"
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />

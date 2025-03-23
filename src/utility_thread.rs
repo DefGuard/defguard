@@ -20,7 +20,7 @@ use crate::{
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
-const LDAP_SYNC_INTERVAL: u64 = 10;
+const LDAP_SYNC_INTERVAL: u64 = 30;
 
 pub async fn run_utility_thread(
     pool: &PgPool,
@@ -51,7 +51,7 @@ pub async fn run_utility_thread(
 
     let ldap_sync_task = || async {
         if let Err(e) = do_ldap_sync(pool).await {
-            error!("There was an error while performing LDAP sync job: {e:?}");
+            error!("There was an error while performing LDAP sync job: {e}");
         }
     };
 

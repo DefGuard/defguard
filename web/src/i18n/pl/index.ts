@@ -1057,6 +1057,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       title: 'Ustawienia LDAP',
       form: {
         labels: {
+          ldap_enable: 'Włącz integrację z LDAP',
           ldap_url: 'URL',
           ldap_bind_username: 'Bind Username',
           ldap_bind_password: 'Bind Password',
@@ -1069,6 +1070,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
           ldap_samba_enabled: 'Wsparcie dla Samba',
+          ldap_sync_enabled: 'Włącz synchronizację w dwie strony',
+          ldap_is_authority:
+            'Użyj LDAP jako autorytetu podczas autoryzacji w dwie strony',
         },
         delete: 'Usuń konfigurację',
       },

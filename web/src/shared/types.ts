@@ -929,6 +929,9 @@ export type SettingsLDAP = {
   ldap_user_search_base: string;
   ldap_username_attr: string;
   ldap_samba_enabled: boolean;
+  ldap_enabled: boolean;
+  ldap_sync_enabled: boolean;
+  ldap_is_authoritative: boolean;
 };
 
 export type SettingsOpenID = {

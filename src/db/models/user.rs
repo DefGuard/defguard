@@ -778,7 +778,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub \
+            mfa_method, recovery_codes, is_active, openid_sub, ldap_linked \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -1051,7 +1051,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub \
+            mfa_method, recovery_codes, is_active, openid_sub, ldap_linked \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
