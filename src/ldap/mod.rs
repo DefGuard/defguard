@@ -278,7 +278,6 @@ impl LDAPConnection {
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search: {username}");
             self.test_bind_user(&entry.dn, password).await?;
-            println!("ASDFDSFASDFASDF");
             User::from_searchentry(&entry, username, Some(password))
         } else {
             Err(LdapError::ObjectNotFound(format!(

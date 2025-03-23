@@ -703,12 +703,12 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
-    ldap_modify_user(&username, &user, &appstate.pool).await;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
     let current_username = user_info.username.clone();
     appstate.trigger_action(AppEvent::UserModified(user_info));
-
     transaction.commit().await?;
+
+    ldap_modify_user(&username, &user, &appstate.pool).await;
 
     if group_diff.changed() {
         if !group_diff.added.is_empty() {

@@ -35,8 +35,12 @@ impl<I> User<I> {
             Mod::Replace("givenName", hashset![self.first_name.as_str()]),
             Mod::Replace("mail", hashset![self.email.as_str()]),
         ];
-        if let Some(ref phone) = self.phone {
-            changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
+        if let Some(phone) = &self.phone {
+            if phone.is_empty() {
+                changes.push(Mod::Replace("mobile", HashSet::new()));
+            } else {
+                changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
+            }
         }
         // Be careful when changing naming attribute (the one in distingushed name)
         if config.ldap_username_attr != "cn" {

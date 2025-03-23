@@ -2656,6 +2656,10 @@ type RootTranslation = {
 			form: {
 				labels: {
 					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​i​n​t​e​g​r​a​t​i​o​n
+					 */
+					ldap_enable: string
+					/**
 					 * U​R​L
 					 */
 					ldap_url: string
@@ -2711,6 +2715,14 @@ type RootTranslation = {
 					 * S​a​m​b​a​ ​s​u​p​p​o​r​t​ ​e​n​a​b​l​e​d
 					 */
 					ldap_samba_enabled: string
+					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+					 */
+					ldap_sync_enabled: string
+					/**
+					 * C​o​n​s​i​d​e​r​ ​t​h​e​ ​L​D​A​P​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
+					 */
+					ldap_is_authority: string
 				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
@@ -7589,6 +7601,10 @@ export type TranslationFunctions = {
 			form: {
 				labels: {
 					/**
+					 * Enable LDAP integration
+					 */
+					ldap_enable: () => LocalizedString
+					/**
 					 * URL
 					 */
 					ldap_url: () => LocalizedString
@@ -7644,6 +7660,14 @@ export type TranslationFunctions = {
 					 * Samba support enabled
 					 */
 					ldap_samba_enabled: () => LocalizedString
+					/**
+					 * Enable LDAP two-way synchronization
+					 */
+					ldap_sync_enabled: () => LocalizedString
+					/**
+					 * Consider the LDAP server as the authority
+					 */
+					ldap_is_authority: () => LocalizedString
 				}
 				/**
 				 * Delete configuration

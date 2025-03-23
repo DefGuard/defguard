@@ -1,20 +1,23 @@
 use std::collections::{HashMap, HashSet};
 
 use ldap3::{Scope, SearchEntry};
-use sqlx::{PgPool, Type};
+use sqlx::{PgConnection, PgPool, Type};
 
 use crate::{
     db::{models::settings::update_current_settings, Group, Id, Settings, User},
     ldap::error::LdapError,
 };
 
-async fn get_or_create_group(pool: &PgPool, groupname: &str) -> Result<Group<Id>, LdapError> {
-    let group = if let Some(group) = Group::find_by_name(pool, groupname).await? {
+async fn get_or_create_group(
+    transaction: &mut PgConnection,
+    groupname: &str,
+) -> Result<Group<Id>, LdapError> {
+    let group = if let Some(group) = Group::find_by_name(&mut *transaction, groupname).await? {
         debug!("Group {groupname} already exists, skipping creation");
         group
     } else {
         debug!("Group {groupname} didn't exist, creating it now");
-        let new_group = Group::new(groupname).save(pool).await?;
+        let new_group = Group::new(groupname).save(&mut *transaction).await?;
         debug!("Group {groupname} created");
         new_group
     };
@@ -59,8 +62,6 @@ pub async fn set_ldap_sync_status(status: SyncStatus, pool: &PgPool) -> Result<(
 pub fn is_ldap_desynced() -> bool {
     get_ldap_sync_status().is_out_of_sync()
 }
-
-const LDAP_AUTHORITY: Source = Source::LDAP;
 
 #[derive(Debug)]
 struct UserSyncChanges {
@@ -210,11 +211,90 @@ fn compute_group_sync_changes(
     sync_changes
 }
 
+fn attrs_different(defguard_user: &User<Id>, ldap_user: &User) -> bool {
+    defguard_user.last_name != ldap_user.last_name
+        || defguard_user.first_name != ldap_user.first_name
+        || defguard_user.email != ldap_user.email
+        || defguard_user.phone != ldap_user.phone
+}
+
+fn extract_intersecting_users(
+    defguard_users: &mut Vec<User<Id>>,
+    ldap_users: &mut Vec<User>,
+) -> Vec<(User, User<Id>)> {
+    let mut intersecting_users = vec![];
+    let mut intersecting_users_ldap = vec![];
+
+    for defguard_user in defguard_users.iter_mut() {
+        if let Some(ldap_user) = ldap_users
+            .iter()
+            .position(|u| u.username == defguard_user.username)
+            .map(|i| ldap_users.remove(i))
+        {
+            intersecting_users_ldap.push(ldap_user);
+        }
+    }
+
+    for user in intersecting_users_ldap.into_iter() {
+        if let Some(defguard_user) = defguard_users
+            .iter()
+            .position(|u| u.username == user.username)
+            .map(|i| defguard_users.remove(i))
+        {
+            intersecting_users.push((user, defguard_user));
+        }
+    }
+
+    intersecting_users
+}
+
 impl crate::ldap::LDAPConnection {
+    async fn apply_user_modifications(
+        &mut self,
+        mut intersecting_users: Vec<(User, User<Id>)>,
+        authority: Source,
+        pool: &PgPool,
+    ) -> Result<(), LdapError> {
+        let mut transaction = pool.begin().await?;
+
+        for (ldap_user, defguard_user) in intersecting_users.iter_mut() {
+            if attrs_different(defguard_user, ldap_user) {
+                debug!(
+                    "User {} attributes differ between LDAP and Defguard, merging...",
+                    defguard_user.username
+                );
+                match authority {
+                    Source::LDAP => {
+                        debug!("Applying LDAP user attributes to Defguard user");
+                        defguard_user.update_from_ldap_user(ldap_user);
+                        defguard_user.save(&mut *transaction).await?;
+                    }
+                    Source::Defguard => {
+                        debug!("Applying Defguard user attributes to LDAP user");
+                        self.modify_user(&defguard_user.username, defguard_user)
+                            .await?;
+                    }
+                }
+            }
+        }
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
     pub async fn sync(&mut self, pool: &PgPool, full: bool) -> Result<(), LdapError> {
+        let settings = Settings::get_current_settings();
         let authority = if full {
-            debug!("Full LDAP sync requested, using the following authority: {LDAP_AUTHORITY:?}");
-            LDAP_AUTHORITY
+            let settings_authority = if settings.ldap_is_authoritative {
+                Source::LDAP
+            } else {
+                Source::Defguard
+            };
+            debug!(
+                "Full LDAP sync requested, using the following authority: {settings_authority:?}"
+            );
+            settings_authority
         } else {
             debug!("Incremental LDAP sync requested.");
             Source::LDAP
@@ -222,13 +302,13 @@ impl crate::ldap::LDAPConnection {
 
         let all_entries = self.list_users().await?;
         let mut all_ldap_users = vec![];
-        let all_defguard_users = User::all(pool).await?;
+        let mut all_defguard_users = User::all(pool).await?;
 
         for entry in all_entries {
             let username = entry
                 .attrs
                 .get("cn")
-                .and_then(|v| v.get(0))
+                .and_then(|v| v.first())
                 .ok_or_else(|| LdapError::ObjectNotFound("No cn attribute found".to_string()))?;
 
             match User::from_searchentry(&entry, username, None) {
@@ -239,6 +319,11 @@ impl crate::ldap::LDAPConnection {
                 ),
             }
         }
+
+        let intersecting_users =
+            extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users);
+        self.apply_user_modifications(intersecting_users, authority, pool)
+            .await?;
 
         let user_changes = compute_user_sync_changes(all_ldap_users, all_defguard_users, authority);
 
@@ -264,9 +349,9 @@ impl crate::ldap::LDAPConnection {
             .await?;
 
         if full {
-            info!("Full LDAP sync completed");
+            debug!("Full LDAP sync completed");
         } else {
-            info!("LDAP Incremental sync completed");
+            debug!("LDAP Incremental sync completed");
         }
 
         Ok(())
@@ -278,18 +363,19 @@ impl crate::ldap::LDAPConnection {
         changes: GroupSyncChanges,
     ) -> Result<(), LdapError> {
         debug!("Applying group memberships sync changes");
-        let mut admin_count = User::find_admins(pool).await?.len();
+        let mut transaction = pool.begin().await?;
+        let mut admin_count = User::find_admins(&mut *transaction).await?.len();
         for (groupname, members) in changes.delete_defguard {
-            let group = get_or_create_group(pool, &groupname).await?;
+            let group = get_or_create_group(&mut transaction, &groupname).await?;
 
             for member in members {
-                let user = User::find_by_username(pool, &member)
+                let user = User::find_by_username(&mut *transaction, &member)
                     .await?
                     .ok_or_else(|| {
                         LdapError::ObjectNotFound(format!("User {} not found", member))
                     })?;
 
-                if user.is_admin(pool).await? {
+                if user.is_admin(&mut *transaction).await? {
                     if admin_count == 1 {
                         debug!(
                             "Cannot remove last admin user {} from Defguard. User won't be removed from group {}.",
@@ -302,21 +388,20 @@ impl crate::ldap::LDAPConnection {
                             user.username, groupname
                         );
                         admin_count -= 1;
-                        user.remove_from_group(pool, &group).await?;
+                        user.remove_from_group(&mut *transaction, &group).await?;
                     }
                 } else {
                     debug!("Removing user {} from group {}", user.username, groupname);
-                    user.remove_from_group(pool, &group).await?;
+                    user.remove_from_group(&mut *transaction, &group).await?;
                 }
             }
         }
 
         for (groupname, members) in changes.add_defguard {
-            let group = get_or_create_group(pool, &groupname).await?;
-            // group.add_members(pool, members).await?;
+            let group = get_or_create_group(&mut transaction, &groupname).await?;
             for member in members {
-                if let Some(user) = User::find_by_username(pool, &member).await? {
-                    user.add_to_group(pool, &group).await?;
+                if let Some(user) = User::find_by_username(&mut *transaction, &member).await? {
+                    user.add_to_group(&mut *transaction, &group).await?;
                 } else {
                     warn!(
                         "LDAP user {} not found in Defguard, despite completing user sync earlier. \
@@ -326,6 +411,8 @@ impl crate::ldap::LDAPConnection {
                 }
             }
         }
+
+        transaction.commit().await?;
 
         for (groupname, members) in changes.delete_ldap {
             for member in members {
@@ -347,9 +434,10 @@ impl crate::ldap::LDAPConnection {
         pool: &PgPool,
         changes: UserSyncChanges,
     ) -> Result<(), LdapError> {
-        let mut admin_count = User::find_admins(pool).await?.len();
+        let mut transaction = pool.begin().await?;
+        let mut admin_count = User::find_admins(&mut *transaction).await?.len();
         for user in changes.delete_defguard {
-            if user.is_admin(pool).await? {
+            if user.is_admin(&mut *transaction).await? {
                 if admin_count == 1 {
                     debug!(
                         "Cannot delete last admin user from Defguard. User {} won't be deleted.",
@@ -359,18 +447,20 @@ impl crate::ldap::LDAPConnection {
                 } else {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);
-                    user.delete(pool).await?;
+                    user.delete(&mut *transaction).await?;
                 }
             } else {
                 debug!("Deleting user {} from Defguard", user.username);
-                user.delete(pool).await?;
+                user.delete(&mut *transaction).await?;
             }
         }
 
         for user in changes.add_defguard {
             debug!("Adding user {} to Defguard", user.username);
-            user.save(pool).await?;
+            user.save(&mut *transaction).await?;
         }
+
+        transaction.commit().await?;
 
         for user in changes.delete_ldap {
             debug!("Deleting user {} from LDAP", user.username);
@@ -396,7 +486,7 @@ impl crate::ldap::LDAPConnection {
             )
             .await?
             .success()?;
-        info!("Performed LDAP user search");
+        debug!("Performed LDAP user search");
 
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
@@ -412,7 +502,7 @@ impl crate::ldap::LDAPConnection {
             )
             .await?
             .success()?;
-        info!("Performed LDAP group search");
+        debug!("Performed LDAP group search");
 
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
@@ -467,7 +557,7 @@ impl crate::ldap::LDAPConnection {
             .success()?;
 
         let memberships = rs.into_iter().map(SearchEntry::construct).collect();
-        info!("Performed LDAP group memberships search");
+        debug!("Performed LDAP group memberships search");
 
         Ok(memberships)
     }
@@ -1043,5 +1133,139 @@ mod tests {
         // group4: should be deleted entirely from ldap
         assert!(changes_defguard.delete_ldap.contains_key("group4"));
         assert_eq!(changes_defguard.delete_ldap["group4"].len(), 2);
+    }
+
+    #[test]
+    fn test_extract_intersecting_users_empty() {
+        let mut defguard_users = Vec::<User<Id>>::new();
+        let mut ldap_users = Vec::<User>::new();
+
+        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+
+        assert!(result.is_empty());
+        assert!(defguard_users.is_empty());
+        assert!(ldap_users.is_empty());
+    }
+
+    #[sqlx::test]
+    fn test_extract_intersecting_users_with_matches(pool: PgPool) {
+        // Create test users
+        let user1 = User::new(
+            "user1",
+            Some("password"),
+            "Last1",
+            "First1",
+            "user1@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user2 = User::new(
+            "user2",
+            Some("password"),
+            "Last2",
+            "First2",
+            "user2@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let user3 = User::new(
+            "user3",
+            Some("password"),
+            "Last3",
+            "First3",
+            "user3@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Create LDAP users with same usernames
+        let ldap_user1 = User::new(
+            "user1",
+            Some("ldap_password"),
+            "LdapLast1",
+            "LdapFirst1",
+            "ldap_user1@example.com",
+            None,
+        );
+
+        let ldap_user2 = User::new(
+            "user2",
+            Some("ldap_password"),
+            "LdapLast2",
+            "LdapFirst2",
+            "ldap_user2@example.com",
+            None,
+        );
+
+        let ldap_user4 = User::new(
+            "user4",
+            Some("ldap_password"),
+            "LdapLast4",
+            "LdapFirst4",
+            "ldap_user4@example.com",
+            None,
+        );
+
+        let mut defguard_users = vec![user1, user2, user3];
+        let mut ldap_users = vec![ldap_user1, ldap_user2, ldap_user4];
+
+        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+
+        // Should have 2 intersecting users (user1 and user2)
+        assert_eq!(result.len(), 2);
+
+        // Check usernames of matched pairs
+        let usernames: Vec<(&str, &str)> = result
+            .iter()
+            .map(|(ldap, defguard)| (ldap.username.as_str(), defguard.username.as_str()))
+            .collect();
+
+        assert!(usernames.contains(&("user1", "user1")));
+        assert!(usernames.contains(&("user2", "user2")));
+
+        // Check remaining users
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(defguard_users[0].username, "user3");
+
+        assert_eq!(ldap_users.len(), 1);
+        assert_eq!(ldap_users[0].username, "user4");
+    }
+
+    #[sqlx::test]
+    fn test_extract_intersecting_users_no_matches(pool: PgPool) {
+        let mut defguard_users = vec![User::new(
+            "user1",
+            Some("password"),
+            "Last1",
+            "First1",
+            "user1@example.com",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap()];
+
+        let mut ldap_users = vec![User::new(
+            "user2",
+            Some("password"),
+            "Last",
+            "First",
+            "email@example.com",
+            None,
+        )];
+
+        let result = extract_intersecting_users(&mut defguard_users, &mut ldap_users);
+
+        assert!(result.is_empty());
+        assert_eq!(defguard_users.len(), 1);
+        assert_eq!(ldap_users.len(), 1);
     }
 }

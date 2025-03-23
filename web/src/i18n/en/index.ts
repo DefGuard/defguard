@@ -1093,6 +1093,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: 'LDAP Settings',
       form: {
         labels: {
+          ldap_enable: 'Enable LDAP integration',
           ldap_url: 'URL',
           ldap_bind_username: 'Bind Username',
           ldap_bind_password: 'Bind Password',
@@ -1107,6 +1108,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_samba_enabled: 'Samba support enabled',
+          ldap_sync_enabled: 'Enable LDAP two-way synchronization',
+          ldap_is_authority: 'Consider the LDAP server as the authority',
         },
         delete: 'Delete configuration',
       },

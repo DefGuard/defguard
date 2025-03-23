@@ -875,6 +875,9 @@ export type SettingsLDAP = {
   ldap_use_starttls: boolean;
   ldap_tls_verify_cert: boolean;
   ldap_samba_enabled: boolean;
+  ldap_enabled: boolean;
+  ldap_sync_enabled: boolean;
+  ldap_is_authoritative: boolean;
 };
 
 export type SettingsOpenID = {

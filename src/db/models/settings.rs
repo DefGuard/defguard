@@ -96,6 +96,7 @@ pub struct Settings {
     pub ldap_sync_status: SyncStatus,
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
+    pub ldap_is_authoritative: bool,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -127,7 +128,7 @@ impl Settings {
             gateway_disconnect_notifications_inactivity_threshold, \
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
-            ldap_enabled, ldap_sync_enabled \
+            ldap_enabled, ldap_sync_enabled, ldap_is_authoritative \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -193,7 +194,8 @@ impl Settings {
             ldap_samba_enabled = $39, \
             ldap_sync_status = $40, \
             ldap_enabled = $41, \
-            ldap_sync_enabled = $42 \
+            ldap_sync_enabled = $42, \
+            ldap_is_authoritative = $43 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -237,6 +239,7 @@ impl Settings {
             &self.ldap_sync_status as &SyncStatus,
             self.ldap_enabled,
             self.ldap_sync_enabled,
+            self.ldap_is_authoritative,
         )
         .execute(executor)
         .await?;

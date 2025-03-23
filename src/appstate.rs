@@ -50,7 +50,7 @@ impl AppState {
             debug!("WebHook triggered");
             debug!("Retrieving webhooks");
             if let Ok(webhooks) = WebHook::all_enabled(&pool, &msg).await {
-                info!("Found webhooks: {webhooks:?}");
+                debug!("Found webhooks: {webhooks:?}");
                 let (payload, event) = match msg {
                     AppEvent::UserCreated(user) => (json!(user), "user_created"),
                     AppEvent::UserModified(user) => (json!(user), "user_modified"),

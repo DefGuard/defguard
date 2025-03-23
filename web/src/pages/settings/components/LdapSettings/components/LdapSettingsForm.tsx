@@ -68,6 +68,9 @@ export const LdapSettingsForm = () => {
         ldap_use_starttls: z.boolean(),
         ldap_tls_verify_cert: z.boolean(),
         ldap_samba_enabled: z.boolean(),
+        ldap_enabled: z.boolean(),
+        ldap_sync_enabled: z.boolean(),
+        ldap_is_authoritative: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -88,6 +91,9 @@ export const LdapSettingsForm = () => {
       ldap_use_starttls: settings?.ldap_use_starttls ?? false,
       ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
       ldap_samba_enabled: settings?.ldap_samba_enabled ?? false,
+      ldap_enabled: settings?.ldap_enabled ?? false,
+      ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
+      ldap_is_authoritative: settings?.ldap_is_authoritative ?? false,
     }),
     [settings],
   );
@@ -108,6 +114,9 @@ export const LdapSettingsForm = () => {
       ldap_use_starttls: false,
       ldap_tls_verify_cert: true,
       ldap_samba_enabled: false,
+      ldap_enabled: false,
+      ldap_sync_enabled: false,
+      ldap_is_authoritative: false,
     }),
     [],
   );
@@ -153,6 +162,11 @@ export const LdapSettingsForm = () => {
         </div>
       </header>
       <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
+        <FormCheckBox
+          controller={{ control, name: 'ldap_enabled' }}
+          label={localLL.form.labels.ldap_enable()}
+          labelPlacement="right"
+        />
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}
@@ -211,6 +225,17 @@ export const LdapSettingsForm = () => {
         <FormCheckBox
           controller={{ control, name: 'ldap_tls_verify_cert' }}
           label={localLL.form.labels.ldap_tls_verify_cert()}
+          labelPlacement="right"
+        />
+        <h3>LDAP Sync</h3>
+        <FormCheckBox
+          controller={{ control, name: 'ldap_sync_enabled' }}
+          label={localLL.form.labels.ldap_sync_enabled()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_is_authoritative' }}
+          label={localLL.form.labels.ldap_is_authority()}
           labelPlacement="right"
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
