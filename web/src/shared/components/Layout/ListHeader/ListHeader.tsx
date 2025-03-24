@@ -4,6 +4,8 @@ import clsx from 'clsx';
 import { uniqBy } from 'lodash-es';
 import { useEffect } from 'react';
 
+import { CheckBox } from '../../../defguard-ui/components/Layout/Checkbox/CheckBox';
+import { InteractionBox } from '../../../defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { ListSortDirection } from '../../../defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { ListHeaderColumnConfig } from './types';
@@ -21,6 +23,8 @@ type Props<T> = {
   sortDirection?: ListSortDirection;
   className?: string;
   id?: string;
+  selectAll?: boolean;
+  onSelectAll?: (value: boolean) => void;
   onChange?: (key: keyof T, direction: ListSortDirection) => void;
 };
 
@@ -88,7 +92,9 @@ export const ListHeader = <T extends object>({
   sortDirection,
   className,
   id,
+  selectAll,
   onChange,
+  onSelectAll,
 }: Props<T>) => {
   useEffect(() => {
     const unq = uniqBy(headers, (h) => h.sortKey ?? h.key);
@@ -97,8 +103,26 @@ export const ListHeader = <T extends object>({
     }
   }, [headers]);
 
+  const selectEnabled = isPresent(selectAll) && isPresent(onSelectAll);
+
   return (
-    <div className={clsx('list-headers', className)} id={id}>
+    <div
+      className={clsx('list-headers', className, {
+        selectable: selectEnabled,
+      })}
+      id={id}
+    >
+      {selectEnabled && (
+        <div className="cell select-cell">
+          <InteractionBox
+            onClick={() => {
+              onSelectAll?.(!selectAll);
+            }}
+          >
+            <CheckBox value={selectAll} />
+          </InteractionBox>
+        </div>
+      )}
       {headers.map(({ label, sortKey, enabled, key }) => {
         const isActive = activeKey === sortKey;
         const direction = isActive ? sortDirection : ListSortDirection.ASC;
