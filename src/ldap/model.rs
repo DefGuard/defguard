@@ -73,12 +73,11 @@ impl<I> User<I> {
             // simpleSecurityObject
             ("userPassword", hashset![ssha_password]),
         ];
+
         if settings.ldap_samba_enabled {
             // sambaSamAccount
-            attrs.extend_from_slice(&[
-                ("sambaSID", hashset!["0"]),
-                ("sambaNTPassword", hashset![nt_password]),
-            ]);
+            attrs.push(("sambaSID", hashset!["0"]));
+            attrs.push(("sambaNTPassword", hashset![nt_password]));
         }
         if let Some(phone) = &self.phone {
             if !phone.is_empty() {
@@ -110,13 +109,6 @@ impl<I> User<I> {
 //         }
 //     }
 // }
-
-fn get_value_or_default(entry: &SearchEntry, key: &str) -> String {
-    match entry.attrs.get(key) {
-        Some(values) if !values.is_empty() => values[0].clone(),
-        _ => String::default(),
-    }
-}
 
 fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
     match entry.attrs.get(key) {

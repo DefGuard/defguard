@@ -352,7 +352,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        ldap_add_user(&user, &password, &appstate.pool).await;
+        ldap_add_user(&user, Some(&password), &appstate.pool).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -652,6 +652,8 @@ pub async fn modify_user(
         });
     }
 
+    let status_changing = user_info.is_active != user.is_active;
+
     let mut transaction = appstate.pool.begin().await?;
 
     // remove authorized apps if needed
@@ -703,17 +705,33 @@ pub async fn modify_user(
     }
     user.save(&mut *transaction).await?;
 
-    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-    let current_username = user_info.username.clone();
-    appstate.trigger_action(AppEvent::UserModified(user_info));
     transaction.commit().await?;
+    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
 
-    ldap_modify_user(&username, &user, &appstate.pool).await;
+    if !user_info.is_active && status_changing {
+        debug!(
+            "User {} is disabled, removing them from LDAP",
+            user_info.username
+        );
+        ldap_delete_user(&user_info.username, &appstate.pool).await;
+    } else if user_info.is_active && status_changing {
+        debug!(
+            "User {} is enabled, adding them to LDAP",
+            user_info.username
+        );
+        ldap_add_user(&user, None, &appstate.pool).await;
+    } else {
+        debug!(
+            "User {} is not disabled, updating their records in LDAP",
+            user_info.username
+        );
+        ldap_modify_user(&user_info.username, &user, &appstate.pool).await;
+    }
 
     if group_diff.changed() {
         if !group_diff.added.is_empty() {
             ldap_add_user_to_groups(
-                &current_username,
+                &user_info.username,
                 group_diff
                     .added
                     .iter()
@@ -726,7 +744,7 @@ pub async fn modify_user(
 
         if !group_diff.removed.is_empty() {
             ldap_remove_user_from_groups(
-                &current_username,
+                &user_info.username,
                 group_diff
                     .removed
                     .iter()
@@ -737,6 +755,8 @@ pub async fn modify_user(
             .await;
         };
     }
+
+    appstate.trigger_action(AppEvent::UserModified(user_info));
 
     info!("User {} updated user {username}", session.user.username);
     Ok(ApiResponse::default())
