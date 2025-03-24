@@ -150,6 +150,19 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
               }
               disabled={isLoading}
             />
+            {providerName === 'Microsoft' ? (
+              <>
+                <FormInput
+                  controller={{ control, name: 'directory_sync_group_match' }}
+                  label={localLL.form.labels.group_match.label()}
+                  disabled={isLoading}
+                  labelExtras={
+                    <Helper>{parse(localLL.form.labels.group_match.helper())}</Helper>
+                  }
+                  required={false}
+                ></FormInput>
+              </>
+            ) : null}
             {providerName === 'Okta' ? (
               <>
                 <FormInput

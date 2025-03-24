@@ -1118,6 +1118,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_samba_enabled: 'Samba support enabled',
           ldap_sync_enabled: 'Enable LDAP two-way synchronization',
           ldap_is_authority: 'Consider the LDAP server as the authority',
+          ldap_use_starttls: 'Use StartTLS',
+          ldap_tls_verify_cert: 'Verify TLS certificate',
         },
         delete: 'Delete configuration',
       },
@@ -1242,6 +1244,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             label: 'Directory Sync Client Private Key',
             helper:
               "Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.",
+          },
+          group_match: {
+            label: 'Sync only matching groups',
+            helper:
+              'Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.',
           },
         },
       },

@@ -35,6 +35,7 @@ pub struct AddProviderData {
     pub create_account: bool,
     pub okta_private_jwk: Option<String>,
     pub okta_dirsync_client_id: Option<String>,
+    pub directory_sync_group_match: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -108,6 +109,19 @@ pub async fn add_openid_provider(
     settings.openid_create_account = provider_data.create_account;
     update_current_settings(&appstate.pool, settings).await?;
 
+    let group_match = if let Some(group_match) = provider_data.directory_sync_group_match {
+        if group_match.is_empty() {
+            vec![]
+        } else {
+            group_match
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect()
+        }
+    } else {
+        vec![]
+    };
+
     // Currently, we only support one OpenID provider at a time
     let new_provider = OpenIdProvider::new(
         provider_data.name,
@@ -125,6 +139,7 @@ pub async fn add_openid_provider(
         provider_data.directory_sync_target.into(),
         okta_private_jwk,
         provider_data.okta_dirsync_client_id,
+        group_match,
     )
     .upsert(&appstate.pool)
     .await?;

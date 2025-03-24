@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
+import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
@@ -69,6 +70,8 @@ export const LdapSettingsForm = () => {
         ldap_enabled: z.boolean(),
         ldap_sync_enabled: z.boolean(),
         ldap_is_authoritative: z.boolean(),
+        ldap_use_starttls: z.boolean(),
+        ldap_tls_verify_cert: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -90,6 +93,8 @@ export const LdapSettingsForm = () => {
       ldap_enabled: settings?.ldap_enabled ?? false,
       ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
       ldap_is_authoritative: settings?.ldap_is_authoritative ?? false,
+      ldap_use_starttls: settings?.ldap_use_starttls ?? false,
+      ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
     }),
     [settings],
   );
@@ -111,6 +116,8 @@ export const LdapSettingsForm = () => {
       ldap_enabled: false,
       ldap_sync_enabled: false,
       ldap_is_authoritative: false,
+      ldap_use_starttls: false,
+      ldap_tls_verify_cert: true,
     }),
     [],
   );
@@ -211,7 +218,7 @@ export const LdapSettingsForm = () => {
           label={localLL.form.labels.ldap_samba_enabled()}
           labelPlacement="right"
         />
-        {/* <FormCheckBox
+        <FormCheckBox
           controller={{ control, name: 'ldap_use_starttls' }}
           label={localLL.form.labels.ldap_use_starttls()}
           labelPlacement="right"
@@ -220,7 +227,7 @@ export const LdapSettingsForm = () => {
           controller={{ control, name: 'ldap_tls_verify_cert' }}
           label={localLL.form.labels.ldap_tls_verify_cert()}
           labelPlacement="right"
-        /> */}
+        />
         <h3>LDAP Sync</h3>
         <FormCheckBox
           controller={{ control, name: 'ldap_sync_enabled' }}

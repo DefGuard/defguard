@@ -138,13 +138,10 @@ impl LDAPConnection {
         ))?;
         let password = settings
             .ldap_bind_password
-            .ok_or(LdapError::MissingSettings(
-                "LDAP bind password is required for LDAP configuration to work".to_string(),
-            ))?;
+            .ok_or(LdapError::MissingSettings)?;
         let conn_settings = LdapConnSettings::new()
-            // .set_starttls(settings.ldap_use_starttls)
-            // .set_no_tls_verify(!settings.ldap_tls_verify_cert)
-            .set_conn_timeout(std::time::Duration::from_secs(5));
+            .set_starttls(settings.ldap_use_starttls)
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
         drive!(conn);
         info!("Connected to LDAP: {url}");
@@ -173,11 +170,14 @@ impl LDAPConnection {
     }
 
     async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
-        let conn_settings = LdapConnSettings::new();
+        let settings = Settings::get_current_settings();
+        let conn_settings = LdapConnSettings::new()
+            .set_starttls(settings.ldap_use_starttls)
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &self.url).await?;
         drive!(conn);
         ldap.simple_bind(dn, password).await?.success()?;
-        let _ = ldap.unbind().await;
+        ldap.unbind().await?;
         Ok(())
     }
 
@@ -247,9 +247,10 @@ impl LDAPConnection {
 
     // Checks if cn is available, including default LDAP admin class
     pub async fn is_username_available(&mut self, username: &str) -> bool {
+        let username_escape = ldap_escape(username);
         let users = self
             .search_users(&format!(
-                "(&({}={username})(|(objectClass={})))",
+                "(&({}={username_escape})(|(objectClass={})))",
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await;
@@ -260,15 +261,18 @@ impl LDAPConnection {
     }
 
     /// Retrieves user with given username from LDAP.
-    /// TODO: Password must agree with the password stored in LDAP.
     pub async fn get_user(&mut self, username: &str, password: &str) -> Result<User, LdapError> {
         debug!("Performing LDAP user search: {username}");
+        let username_escape = ldap_escape(username);
         let mut entries = self
             .search_users(&format!(
-                "(&({}={username})(objectClass={}))",
+                "(&({}={username_escape})(objectClass={}))",
                 self.config.ldap_username_attr, self.config.ldap_user_obj_class
             ))
             .await?;
+        if entries.len() > 1 {
+            return Err(LdapError::TooManyObjects);
+        }
         if let Some(entry) = entries.pop() {
             info!("Performed LDAP user search: {username}");
             self.test_bind_user(&entry.dn, password).await?;

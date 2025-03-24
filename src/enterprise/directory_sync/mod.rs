@@ -48,6 +48,12 @@ pub enum DirectorySyncError {
     NetworkUpdateError(String),
     #[error("Failed to update user state: {0}")]
     UserUpdateError(String),
+    #[error("Failed to find user: {0}")]
+    UserNotFound(String),
+    #[error(
+        "Found multiple users with given parameters ({0}) but expected one. Won't proceed further."
+    )]
+    MultipleUsersFound(String),
 }
 
 impl From<reqwest::Error> for DirectorySyncError {
@@ -220,6 +226,7 @@ impl DirectorySyncClient {
                     provider_settings.client_id,
                     provider_settings.client_secret,
                     provider_settings.base_url,
+                    provider_settings.directory_sync_group_match,
                 );
                 debug!("Microsoft directory sync client created");
                 Ok(Self::Microsoft(client))
@@ -913,6 +920,7 @@ mod test {
             target,
             None,
             None,
+            vec![],
         )
         .save(pool)
         .await

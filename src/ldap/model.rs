@@ -73,7 +73,6 @@ impl<I> User<I> {
             // simpleSecurityObject
             ("userPassword", hashset![ssha_password]),
         ];
-
         if settings.ldap_samba_enabled {
             // sambaSamAccount
             attrs.push(("sambaSID", hashset!["0"]));

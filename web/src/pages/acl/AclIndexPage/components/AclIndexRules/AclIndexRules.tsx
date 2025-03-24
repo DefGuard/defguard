@@ -538,27 +538,17 @@ const RulesList = ({
       )}
       {sortedRules.length > 0 && (
         <div className="list-container">
-          <div
-            className={clsx('header-track', {
-              selectable: selectionEnabled,
-            })}
-          >
-            {selectionEnabled && (
-              <div className="select-cell">
-                <InteractionBox
-                  onClick={() => {
-                    const value = allSelected ?? false;
-                    onSelectAll?.(!value, selected ?? {});
-                  }}
-                >
-                  <CheckBox value={allSelected ?? false} />
-                </InteractionBox>
-              </div>
-            )}
+          <div className={clsx('header-track')}>
             <ListHeader<AclRuleInfo>
               headers={listHeaders}
               sortDirection={sortDir}
               activeKey={sortKey}
+              selectAll={allSelected}
+              onSelectAll={(val) => {
+                if (selectionEnabled) {
+                  onSelectAll?.(val, selected ?? {});
+                }
+              }}
               onChange={(key, dir) => {
                 setSortKey(key);
                 setSortDir(dir);
