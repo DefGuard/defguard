@@ -474,6 +474,18 @@ pub(crate) async fn auth_callback(
         .max_age(max_age);
     let cookies = cookies.add(auth_cookie);
 
+    // The user may not be yet authorized (pre-MFA) but syncing their groups should be fine here, since he already managed to login through the provider.
+    // There is currently no other way to sync the groups for the MFA enabled user logging in through the provider without firing it
+    // on every login attempt, even for standard, non-provider users.
+    if let Err(err) =
+        sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
+    {
+        error!(
+    "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
+    user.username
+);
+    }
+
     if let Some(mfa_info) = mfa_info {
         return Ok((
             cookies,
@@ -486,14 +498,6 @@ pub(crate) async fn auth_callback(
     }
 
     if let Some(user_info) = user_info {
-        if let Err(err) =
-            sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
-        {
-            error!(
-                "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
-                user.username
-            );
-        }
         let url = if let Some(openid_cookie) = private_cookies.get(SIGN_IN_COOKIE_NAME) {
             debug!("Found OpenID session cookie, returning the redirect URL stored in it.");
             let url = openid_cookie.value().to_string();

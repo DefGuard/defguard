@@ -98,6 +98,7 @@ export const OpenIdSettingsRootForm = () => {
           create_account: z.boolean(),
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
+          directory_sync_group_match: z.string(),
         })
         .superRefine((val, ctx) => {
           if (val.name === '') {
@@ -158,6 +159,7 @@ export const OpenIdSettingsRootForm = () => {
       create_account: false,
       okta_private_jwk: '',
       okta_dirsync_client_id: '',
+      directory_sync_group_match: '',
     };
 
     if (openidData) {
@@ -166,6 +168,17 @@ export const OpenIdSettingsRootForm = () => {
           ...defaults,
           ...openidData.provider,
         };
+
+        if (Array.isArray(openidData.provider.directory_sync_group_match)) {
+          defaults = {
+            ...defaults,
+
+            directory_sync_group_match:
+              openidData.provider.directory_sync_group_match.length > 0
+                ? openidData.provider.directory_sync_group_match.join(',')
+                : '',
+          };
+        }
       }
 
       defaults = {
