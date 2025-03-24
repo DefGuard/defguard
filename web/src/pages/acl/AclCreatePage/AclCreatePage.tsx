@@ -163,46 +163,56 @@ export const AlcCreatePage = () => {
         })
         .superRefine((vals, ctx) => {
           // check for collisions
-          // FIXME: add translation
-          const message = 'Conflicting rules';
-          if (intersection(vals.allowed_users, vals.denied_users).length) {
-            ctx.addIssue({
-              path: ['allowed_users'],
-              code: 'custom',
-              message,
-            });
-            ctx.addIssue({
-              path: ['denied_users'],
-              code: 'custom',
-              message,
-            });
+          const message = LL.acl.createPage.formError.allowDenyConflict();
+          if (!allowAllUsers && !denyAllUsers) {
+            if (intersection(vals.allowed_users, vals.denied_users).length) {
+              ctx.addIssue({
+                path: ['allowed_users'],
+                code: 'custom',
+                message,
+              });
+              ctx.addIssue({
+                path: ['denied_users'],
+                code: 'custom',
+                message,
+              });
+            }
+            if (intersection(vals.allowed_groups, vals.denied_groups).length) {
+              ctx.addIssue({
+                path: ['allowed_groups'],
+                code: 'custom',
+                message,
+              });
+              ctx.addIssue({
+                path: ['denied_groups'],
+                code: 'custom',
+                message,
+              });
+            }
           }
-          if (intersection(vals.allowed_groups, vals.denied_groups).length) {
-            ctx.addIssue({
-              path: ['allowed_groups'],
-              code: 'custom',
-              message,
-            });
-            ctx.addIssue({
-              path: ['denied_groups'],
-              code: 'custom',
-              message,
-            });
-          }
-          if (intersection(vals.allowed_devices, vals.denied_devices).length) {
-            ctx.addIssue({
-              path: ['allowed_devices'],
-              code: 'custom',
-              message,
-            });
-            ctx.addIssue({
-              path: ['denied_devices'],
-              code: 'custom',
-              message,
-            });
+          if (!allowAllNetworkDevices && !denyAllNetworkDevices) {
+            if (intersection(vals.allowed_devices, vals.denied_devices).length) {
+              ctx.addIssue({
+                path: ['allowed_devices'],
+                code: 'custom',
+                message,
+              });
+              ctx.addIssue({
+                path: ['denied_devices'],
+                code: 'custom',
+                message,
+              });
+            }
           }
         }),
-    [LL, formErrors],
+    [
+      LL,
+      allowAllNetworkDevices,
+      allowAllUsers,
+      denyAllNetworkDevices,
+      denyAllUsers,
+      formErrors,
+    ],
   );
 
   type FormFields = z.infer<typeof schema>;
@@ -227,10 +237,11 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit } = useForm<FormFields>({
+  const { control, handleSubmit, trigger } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
+    criteriaMode: 'all',
   });
 
   // const watchedExpires = watch('expires');
@@ -348,6 +359,10 @@ export const AlcCreatePage = () => {
                 setDenyAllUsers(false);
               }
               setAllowAllUsers(val);
+              void trigger('denied_users', { shouldFocus: false });
+              void trigger('allowed_users', { shouldFocus: false });
+              void trigger('denied_groups', { shouldFocus: false });
+              void trigger('allowed_groups', { shouldFocus: false });
             }}
             label={labelsLL.allowAllUsers()}
           />
@@ -360,6 +375,9 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['email', 'last_name', 'first_name']}
             disabled={allowAllUsers}
+            onChange={() => {
+              void trigger('denied_users', { shouldFocus: false });
+            }}
           />
           <FormDialogSelect
             label={labelsLL.groups()}
@@ -369,6 +387,11 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['name']}
             disabled={allowAllUsers}
+            onChange={() => {
+              void trigger('denied_groups', {
+                shouldFocus: false,
+              });
+            }}
           />
           <LabeledCheckbox
             value={allowAllNetworkDevices}
@@ -377,6 +400,8 @@ export const AlcCreatePage = () => {
                 setDenyAllNetworkDevices(false);
               }
               setAllowAllNetworkDevices(val);
+              void trigger('denied_devices', { shouldFocus: false });
+              void trigger('allowed_devices', { shouldFocus: false });
             }}
             label={labelsLL.allowAllNetworkDevices()}
           />
@@ -388,6 +413,11 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['name']}
             disabled={allowAllNetworkDevices}
+            onChange={() => {
+              void trigger('denied_devices', {
+                shouldFocus: false,
+              });
+            }}
           />
         </SectionWithCard>
         <SectionWithCard title={localLL.headers.destination()} id="destination-card">
@@ -433,6 +463,10 @@ export const AlcCreatePage = () => {
                 setAllowAllUsers(false);
               }
               setDenyAllUsers(val);
+              void trigger('denied_users', { shouldFocus: false });
+              void trigger('allowed_users', { shouldFocus: false });
+              void trigger('denied_groups', { shouldFocus: false });
+              void trigger('allowed_groups', { shouldFocus: false });
             }}
           />
           <FormDialogSelect
@@ -444,6 +478,11 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['username', 'first_name', 'last_name']}
             disabled={denyAllUsers}
+            onChange={() => {
+              void trigger('allowed_users', {
+                shouldFocus: false,
+              });
+            }}
           />
           <FormDialogSelect
             label={labelsLL.groups()}
@@ -453,6 +492,11 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['name']}
             disabled={denyAllUsers}
+            onChange={() => {
+              void trigger('allowed_groups', {
+                shouldFocus: false,
+              });
+            }}
           />
           <LabeledCheckbox
             label={labelsLL.denyAllNetworkDevices()}
@@ -462,6 +506,8 @@ export const AlcCreatePage = () => {
                 setAllowAllNetworkDevices(false);
               }
               setDenyAllNetworkDevices(val);
+              void trigger('denied_devices', { shouldFocus: false });
+              void trigger('allowed_devices', { shouldFocus: false });
             }}
           />
           <FormDialogSelect
@@ -472,6 +518,11 @@ export const AlcCreatePage = () => {
             identKey="id"
             searchKeys={['name']}
             disabled={denyAllNetworkDevices}
+            onChange={() => {
+              void trigger('allowed_devices', {
+                shouldFocus: false,
+              });
+            }}
           />
         </SectionWithCard>
         <input type="submit" ref={submitRef} className="hidden" />
