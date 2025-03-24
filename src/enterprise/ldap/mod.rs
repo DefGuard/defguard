@@ -12,7 +12,7 @@ use crate::{
 pub mod model;
 pub mod sync;
 
-pub async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
+pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let settings = Settings::get_current_settings();
     if !settings.ldap_enabled {
@@ -58,7 +58,7 @@ pub async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
 
 /// Convenience function to run a function that performs an LDAP operation and handle the result
 /// appropriately, setting the LDAP sync status to Desynced if an error is encountered.
-pub async fn with_ldap_status<T, F>(pool: &PgPool, f: F) -> Result<T, LdapError>
+pub(crate) async fn with_ldap_status<T, F>(pool: &PgPool, f: F) -> Result<T, LdapError>
 where
     F: Future<Output = Result<T, LdapError>>,
 {

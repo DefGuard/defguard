@@ -9,7 +9,6 @@ use sqlx::{query_as, query_scalar, Error as SqlxError, PgConnection};
 use super::db::models::acl::{
     AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
 };
-
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     enterprise::is_enterprise_enabled,
@@ -641,7 +640,10 @@ mod test {
     use rand::{thread_rng, Rng};
     use sqlx::{query, PgPool};
 
-    use super::process_destination_addrs;
+    use super::{
+        get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges,
+        process_destination_addrs,
+    };
     use crate::{
         db::{
             models::device::{DeviceType, WireguardNetworkDevice},
@@ -662,8 +664,6 @@ mod test {
             IpVersion, Port, PortRange as PortRangeProto, Protocol,
         },
     };
-
-    use super::{get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges};
 
     fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
         let mut user: User<Id> = rng.gen();

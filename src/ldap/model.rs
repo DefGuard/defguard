@@ -87,28 +87,6 @@ impl<I> User<I> {
     }
 }
 
-// TODO: This struct is similar to `GroupInfo`, so maybe use one?
-// pub(crate) struct Group {
-//     pub name: String,
-//     pub members: Vec<String>,
-// }
-
-// impl Group {
-//     #[must_use]
-//     pub(crate) fn from_searchentry(entry: &SearchEntry, config: &LDAPConfig) -> Self {
-//         Self {
-//             name: get_value_or_default(entry, &config.ldap_groupname_attr),
-//             members: match entry.attrs.get(&config.ldap_group_member_attr) {
-//                 Some(members) => members
-//                     .iter()
-//                     .filter_map(|member| extract_dn_value(member))
-//                     .collect(),
-//                 None => Vec::new(),
-//             },
-//         }
-//     }
-// }
-
 fn get_value_or_error(entry: &SearchEntry, key: &str) -> Result<String, LdapError> {
     match entry.attrs.get(key) {
         Some(values) if !values.is_empty() => Ok(values[0].clone()),
@@ -125,7 +103,7 @@ fn get_value(entry: &SearchEntry, key: &str) -> Option<String> {
 
 /// Get first value from distinguished name, for example: cn=<value>,...
 #[must_use]
-pub fn extract_dn_value(dn: &str) -> Option<String> {
+pub(crate) fn extract_dn_value(dn: &str) -> Option<String> {
     if let (Some(eq_index), Some(comma_index)) = (dn.find('='), dn.find(',')) {
         dn.get((eq_index + 1)..comma_index).map(ToString::to_string)
     } else {
@@ -150,5 +128,102 @@ impl<'a> From<&'a User> for Vec<(&'a str, HashSet<&'a str>)> {
             attrs.push(("mobile", hashset![phone.as_str()]));
         }
         attrs
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ldap3::SearchEntry;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_extract_dn_value() {
+        assert_eq!(
+            extract_dn_value("cn=testuser,dc=example,dc=com"),
+            Some("testuser".to_string())
+        );
+        assert_eq!(
+            extract_dn_value("cn=Test User,dc=example,dc=com"),
+            Some("Test User".to_string())
+        );
+        assert_eq!(
+            extract_dn_value("cn=user.name+123,dc=example,dc=com"),
+            Some("user.name+123".to_string())
+        );
+        assert_eq!(extract_dn_value("invalid-dn"), None);
+        assert_eq!(extract_dn_value("cn=onlyvalue"), None);
+        assert_eq!(
+            extract_dn_value("cn=,dc=example,dc=com"),
+            Some("".to_string())
+        );
+        assert_eq!(extract_dn_value(""), None);
+    }
+
+    #[test]
+    fn test_from_searchentry_success() {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+        attrs.insert("mobile".to_string(), vec!["1234567890".to_string()]);
+
+        let entry = SearchEntry {
+            dn: "cn=user1,dc=example,dc=com".to_string(),
+            attrs,
+            bin_attrs: HashMap::new(),
+        };
+
+        let user = User::from_searchentry(&entry, "user1", Some("password123")).unwrap();
+
+        assert_eq!(user.username, "user1");
+        assert_eq!(user.last_name, "lastname1");
+        assert_eq!(user.first_name, "firstname1");
+        assert_eq!(user.email, "user1@example.com");
+        assert_eq!(user.phone, Some("1234567890".to_string()));
+        assert!(user.ldap_linked);
+    }
+
+    #[test]
+    fn test_from_searchentry_without_mobile() {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+        attrs.insert("givenName".to_string(), vec!["firstname1".to_string()]);
+        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+        let entry = SearchEntry {
+            dn: "cn=user1,dc=example,dc=com".to_string(),
+            attrs,
+            bin_attrs: HashMap::new(),
+        };
+
+        let user = User::from_searchentry(&entry, "user1", None).unwrap();
+
+        assert_eq!(user.username, "user1");
+        assert_eq!(user.last_name, "lastname1");
+        assert_eq!(user.first_name, "firstname1");
+        assert_eq!(user.email, "user1@example.com");
+        assert_eq!(user.phone, None);
+        assert!(user.ldap_linked);
+    }
+
+    #[test]
+    fn test_from_searchentry_missing_attribute() {
+        let mut attrs = HashMap::new();
+        attrs.insert("sn".to_string(), vec!["lastname1".to_string()]);
+        attrs.insert("mail".to_string(), vec!["user1@example.com".to_string()]);
+
+        let entry = SearchEntry {
+            dn: "cn=user1,dc=example,dc=com".to_string(),
+            attrs,
+            bin_attrs: HashMap::new(),
+        };
+
+        let result = User::from_searchentry(&entry, "user1", None);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            LdapError::MissingAttribute(attr) if attr == "givenName"
+        ));
     }
 }

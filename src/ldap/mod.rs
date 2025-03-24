@@ -41,7 +41,7 @@ pub struct LDAPConfig {
 impl LDAPConfig {
     /// Constructs user distinguished name.
     #[must_use]
-    pub fn user_dn(&self, username: &str) -> String {
+    pub(crate) fn user_dn(&self, username: &str) -> String {
         format!(
             "{}={username},{}",
             self.ldap_username_attr, self.ldap_user_search_base,
@@ -50,17 +50,11 @@ impl LDAPConfig {
 
     /// Constructs group distinguished name.
     #[must_use]
-    pub fn group_dn(&self, groupname: &str) -> String {
+    pub(crate) fn group_dn(&self, groupname: &str) -> String {
         format!(
             "{}={groupname},{}",
             self.ldap_groupname_attr, self.ldap_group_search_base,
         )
-    }
-
-    #[must_use]
-    pub fn from_user_dn(&self, dn: &str) -> String {
-        dn.replace(&format!("{}=", self.ldap_username_attr), "")
-            .replace(&format!(",{}", self.ldap_user_search_base), "")
     }
 }
 
@@ -539,39 +533,5 @@ impl LDAPConnection {
         .await?;
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_user_dn() {
-        let config = LDAPConfig {
-            ldap_bind_username: String::from("admin"),
-            ldap_group_search_base: String::from("ou=groups,dc=example,dc=com"),
-            ldap_user_search_base: String::from("ou=users,dc=example,dc=com"),
-            ldap_user_obj_class: String::from("inetOrgPerson"),
-            ldap_group_obj_class: String::from("groupOfNames"),
-            ldap_username_attr: String::from("uid"),
-            ldap_groupname_attr: String::from("cn"),
-            ldap_group_member_attr: String::from("member"),
-            ldap_member_attr: String::from("memberOf"),
-            ldap_samba_enabled: false,
-        };
-
-        let dn = "uid=testuser,ou=users,dc=example,dc=com";
-        assert_eq!(config.from_user_dn(dn), "testuser");
-
-        let dn_special = "uid=user.name+o=example,ou=users,dc=example,dc=com";
-        assert_eq!(config.from_user_dn(dn_special), "user.name+o=example");
-
-        let config_with_cn = LDAPConfig {
-            ldap_username_attr: String::from("cn"),
-            ..config
-        };
-        let dn_cn = "cn=John Doe,ou=users,dc=example,dc=com";
-        assert_eq!(config_with_cn.from_user_dn(dn_cn), "John Doe");
     }
 }

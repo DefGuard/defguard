@@ -5,7 +5,7 @@ use sqlx::{PgConnection, PgPool, Type};
 
 use crate::{
     db::{models::settings::update_current_settings, Group, Id, Settings, User},
-    ldap::error::LdapError,
+    ldap::{error::LdapError, model::extract_dn_value},
 };
 
 async fn get_or_create_group(
@@ -311,7 +311,7 @@ impl crate::ldap::LDAPConnection {
         Ok(())
     }
 
-    pub async fn sync(&mut self, pool: &PgPool, full: bool) -> Result<(), LdapError> {
+    pub(crate) async fn sync(&mut self, pool: &PgPool, full: bool) -> Result<(), LdapError> {
         let settings = Settings::get_current_settings();
         let authority = if full {
             let settings_authority = if settings.ldap_is_authoritative {
@@ -525,7 +525,7 @@ impl crate::ldap::LDAPConnection {
     ) -> Result<HashMap<String, HashSet<String>>, LdapError> {
         let mut membership_entries = self.list_group_memberships().await?;
 
-        let mut memberships = HashMap::new();
+        let mut memberships: HashMap<String, HashSet<String>> = HashMap::new();
 
         for entry in membership_entries.iter_mut() {
             let groupname = entry
@@ -549,8 +549,8 @@ impl crate::ldap::LDAPConnection {
                     ))
                 })?
                 .iter()
-                .map(|member| self.config.from_user_dn(member))
-                .collect::<HashSet<_>>();
+                .filter_map(|member| extract_dn_value(member))
+                .collect::<HashSet<String>>();
             memberships.insert(groupname, members);
         }
 
@@ -929,6 +929,7 @@ mod tests {
         assert_eq!(changes.delete_defguard["test_group"].len(), 1);
         assert!(changes.delete_defguard["test_group"].contains("user2"));
     }
+
     #[test]
     fn test_multiple_groups_ldap_authority() {
         let mut defguard_memberships = HashMap::new();
