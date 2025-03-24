@@ -622,12 +622,14 @@ type RenderTagsProps = {
 const RenderTagDisplay = ({ data }: RenderTagsProps) => {
   return (
     <div className="tags-display">
-      {data.map((d) => {
-        if (d.displayAsTag) {
-          return <Tag key={d.key} text={d.label} />;
-        }
-        return <span key={d.key}>{d.label}</span>;
-      })}
+      <div className="track">
+        {data.map((d) => {
+          if (d.displayAsTag) {
+            return <Tag key={d.key} text={d.label} />;
+          }
+          return <span key={d.key}>{d.label}</span>;
+        })}
+      </div>
     </div>
   );
 };
