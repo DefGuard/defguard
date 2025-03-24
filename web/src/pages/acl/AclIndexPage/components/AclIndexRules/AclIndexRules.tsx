@@ -737,7 +737,7 @@ const prepareDisplay = (
   allAllowedLabel: string,
   allDeniedLabel: string,
   pending: boolean,
-  aclContext: Omit<AclCreateContextLoaded, 'devices' | 'ruleToEdit'>,
+  aclContext: Omit<AclCreateContextLoaded, 'ruleToEdit'>,
 ): ListData[] => {
   let rules: AclRuleInfo[];
   let statusFilters: number[];
@@ -802,6 +802,13 @@ const prepareDisplay = (
             label: group.name,
             displayAsTag: true,
           })),
+        aclContext.devices
+          .filter((device) => rule.allowed_devices.includes(device.id))
+          .map((device) => ({
+            key: `device-${device.id}`,
+            label: device.name,
+            displayAsTag: true,
+          })),
       );
     }
 
@@ -821,6 +828,13 @@ const prepareDisplay = (
           .map((group) => ({
             key: `group-${group.id}`,
             label: group.name,
+            displayAsTag: true,
+          })),
+        aclContext.devices
+          .filter((device) => rule.denied_devices.includes(device.id))
+          .map((device) => ({
+            key: `device-${device.id}`,
+            label: device.name,
             displayAsTag: true,
           })),
       );

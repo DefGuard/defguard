@@ -6,6 +6,7 @@ import { DialogSelectProps } from './types';
 
 type Props<T extends FieldValues, B, I extends number | string> = {
   controller: UseControllerProps<T>;
+  onChange?: () => void;
 } & Omit<DialogSelectProps<B, I>, 'selected' | 'errorMessage'>;
 
 export const FormDialogSelect = <
@@ -14,6 +15,7 @@ export const FormDialogSelect = <
   I extends number | string,
 >({
   controller,
+  onChange: onChangeExternal,
   ...selectProps
 }: Props<T, B, I>) => {
   const {
@@ -32,7 +34,10 @@ export const FormDialogSelect = <
   return (
     <DialogSelect
       {...selectProps}
-      onChange={(selected) => onChange(selected)}
+      onChange={(selected) => {
+        onChange(selected);
+        onChangeExternal?.();
+      }}
       selected={value}
       errorMessage={errorMessage}
     />
