@@ -181,6 +181,23 @@ impl LDAPConnection {
         Ok(())
     }
 
+    // Check what groups user is member of
+    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<SearchEntry>, LdapError> {
+        let filter = format!("({}={})", self.config.ldap_group_member_attr, user_dn);
+        let (rs, _res) = self
+            .ldap
+            .search(
+                &self.config.ldap_group_search_base,
+                Scope::Subtree,
+                filter.as_str(),
+                vec![&self.config.ldap_groupname_attr],
+            )
+            .await?
+            .success()?;
+        debug!("Performed LDAP group search with filter = {filter}");
+        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+    }
+
     async fn group_exists(&mut self, groupname: &str) -> Result<bool, LdapError> {
         let res = self
             .search_groups(format!("(cn={groupname})").as_str())
@@ -335,6 +352,22 @@ impl LDAPConnection {
     pub async fn delete_user(&mut self, username: &str) -> Result<(), LdapError> {
         debug!("Deleting user {username}");
         let dn = self.config.user_dn(username);
+        debug!("Removing group memberships first...");
+        let user_groups = self.get_user_groups(&dn).await?;
+        debug!("Removing user from groups: {user_groups:?}");
+        for group in user_groups {
+            debug!("Removing user from group {group:?}");
+            if let Some(groupname) = group
+                .attrs
+                .get(&self.config.ldap_groupname_attr)
+                .and_then(|v| v.first())
+            {
+                self.remove_user_from_group(username, groupname).await?;
+                debug!("Removed user from group {groupname}");
+            } else {
+                warn!("Group without name found for user {username}, full group entry: {group:?}");
+            }
+        }
         self.delete(&dn).await?;
         info!("Deleted user {username}");
 

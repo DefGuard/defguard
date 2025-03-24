@@ -710,19 +710,22 @@ pub async fn modify_user(
 
     if !user_info.is_active && status_changing {
         debug!(
-            "User {} is disabled, removing them from LDAP",
+            "User {} has been disabled, removing them from LDAP",
             user_info.username
         );
         ldap_delete_user(&user_info.username, &appstate.pool).await;
     } else if user_info.is_active && status_changing {
         debug!(
-            "User {} is enabled, adding them to LDAP",
+            "User {} has been enabled, adding them to LDAP",
             user_info.username
         );
         ldap_add_user(&user, None, &appstate.pool).await;
+        let groups = user.member_of_names(&appstate.pool).await?;
+        let groups_set = groups.iter().map(|g| g.as_str()).collect::<HashSet<&str>>();
+        ldap_add_user_to_groups(&user_info.username, groups_set, &appstate.pool).await;
     } else {
         debug!(
-            "User {} is not disabled, updating their records in LDAP",
+            "User {} state (enabled/disabled) has not changed, updating their records in LDAP",
             user_info.username
         );
         ldap_modify_user(&user_info.username, &user, &appstate.pool).await;
