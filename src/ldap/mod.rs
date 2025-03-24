@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+use ldap3::{drive, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 use rand::Rng;
 
 use self::error::LdapError;
@@ -173,10 +173,7 @@ impl LDAPConnection {
     }
 
     async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
-        let settings = Settings::get_current_settings();
-        let conn_settings = LdapConnSettings::new()
-            .set_starttls(settings.ldap_use_starttls)
-            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
+        let conn_settings = LdapConnSettings::new();
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &self.url).await?;
         drive!(conn);
         ldap.simple_bind(dn, password).await?.success()?;

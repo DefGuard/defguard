@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, openid_create_account, license, gateway_disconnect_notifications_enabled, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled FROM \"settings\" WHERE id = 1",
+  "query": "SELECT openid_enabled, wireguard_enabled, webhooks_enabled, worker_enabled, challenge_template, instance_name, main_logo_url, nav_logo_url, smtp_server, smtp_port, smtp_encryption \"smtp_encryption: _\", smtp_user, smtp_password \"smtp_password?: SecretStringWrapper\", smtp_sender, enrollment_vpn_step_optional, enrollment_welcome_message, enrollment_welcome_email, enrollment_welcome_email_subject, enrollment_use_welcome_message_as_email, uuid, ldap_url, ldap_bind_username, ldap_bind_password \"ldap_bind_password?: SecretStringWrapper\", ldap_group_search_base, ldap_user_search_base, ldap_user_obj_class, ldap_group_obj_class, ldap_username_attr, ldap_groupname_attr, ldap_group_member_attr, ldap_member_attr, ldap_samba_enabled \"ldap_samba_enabled!\", openid_create_account, license, gateway_disconnect_notifications_enabled, gateway_disconnect_notifications_inactivity_threshold, gateway_disconnect_notifications_reconnect_notification_enabled, ldap_sync_status \"ldap_sync_status: SyncStatus\", ldap_enabled, ldap_sync_enabled, ldap_is_authoritative FROM \"settings\" WHERE id = 1",
   "describe": {
     "columns": [
       {
@@ -171,27 +171,62 @@
       },
       {
         "ordinal": 31,
-        "name": "openid_create_account",
+        "name": "ldap_samba_enabled!",
         "type_info": "Bool"
       },
       {
         "ordinal": 32,
+        "name": "openid_create_account",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 33,
         "name": "license",
         "type_info": "Text"
       },
       {
-        "ordinal": 33,
+        "ordinal": 34,
         "name": "gateway_disconnect_notifications_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 34,
+        "ordinal": 35,
         "name": "gateway_disconnect_notifications_inactivity_threshold",
         "type_info": "Int4"
       },
       {
-        "ordinal": 35,
+        "ordinal": 36,
         "name": "gateway_disconnect_notifications_reconnect_notification_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 37,
+        "name": "ldap_sync_status: SyncStatus",
+        "type_info": {
+          "Custom": {
+            "name": "ldap_sync_status",
+            "kind": {
+              "Enum": [
+                "synced",
+                "desynced"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 38,
+        "name": "ldap_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 39,
+        "name": "ldap_sync_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 40,
+        "name": "ldap_is_authoritative",
         "type_info": "Bool"
       }
     ],
@@ -231,11 +266,16 @@
       true,
       true,
       false,
+      false,
       true,
+      false,
+      false,
+      false,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "a90f80642df16af7e6282ac3c329a482bed34f4322b68ee24defb825d0484471"
+  "hash": "baae2ade4d26bf6b97401b745583d4bb1879940a4028c7cd98a72869514c4fc9"
 }

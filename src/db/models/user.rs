@@ -1122,6 +1122,7 @@ impl Distribution<User<Id>> for Standard {
                 _ => MFAMethod::Email,
             },
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+            ldap_linked: false,
         }
     }
 }
@@ -1158,6 +1159,7 @@ impl Distribution<User<NoId>> for Standard {
                 _ => MFAMethod::Email,
             },
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+            ldap_linked: false,
         }
     }
 }
