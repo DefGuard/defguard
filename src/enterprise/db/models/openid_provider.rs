@@ -110,6 +110,9 @@ pub struct OpenIdProvider<I = NoId> {
     pub okta_private_jwk: Option<String>,
     // The client ID of the directory sync app specifically
     pub okta_dirsync_client_id: Option<String>,
+    #[model(ref)]
+    // The groups to sync from the directory, exact match
+    pub directory_sync_group_match: Vec<String>,
 }
 
 impl OpenIdProvider {
@@ -130,6 +133,7 @@ impl OpenIdProvider {
         directory_sync_target: DirectorySyncTarget,
         okta_private_jwk: Option<String>,
         okta_dirsync_client_id: Option<String>,
+        directory_sync_group_match: Vec<String>,
     ) -> Self {
         Self {
             id: NoId,
@@ -148,6 +152,7 @@ impl OpenIdProvider {
             directory_sync_target,
             okta_private_jwk,
             okta_dirsync_client_id,
+            directory_sync_group_match,
         }
     }
 
@@ -159,8 +164,8 @@ impl OpenIdProvider {
                 display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, \
                 directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, \
                 directory_sync_admin_behavior = $12, directory_sync_target = $13, \
-                okta_private_jwk = $14, okta_dirsync_client_id = $15 \
-                WHERE id = $16",
+                okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16 \
+                WHERE id = $17",
                 self.name,
                 self.base_url,
                 self.client_id,
@@ -176,6 +181,7 @@ impl OpenIdProvider {
                 self.directory_sync_target as DirectorySyncTarget,
                 self.okta_private_jwk,
                 self.okta_dirsync_client_id,
+                &self.directory_sync_group_match,
                 provider.id,
             )
             .execute(pool)
@@ -197,7 +203,7 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior  \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match \
             FROM openidprovider WHERE name = $1",
             name
         )
@@ -213,7 +219,7 @@ impl OpenIdProvider<Id> {
             directory_sync_interval, directory_sync_user_behavior \"directory_sync_user_behavior: DirectorySyncUserBehavior\", \
             directory_sync_admin_behavior  \"directory_sync_admin_behavior: DirectorySyncUserBehavior\", \
             directory_sync_target  \"directory_sync_target: DirectorySyncTarget\", \
-            okta_private_jwk, okta_dirsync_client_id \
+            okta_private_jwk, okta_dirsync_client_id, directory_sync_group_match \
             FROM openidprovider LIMIT 1"
         )
         .fetch_optional(pool)

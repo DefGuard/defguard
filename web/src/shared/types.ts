@@ -928,6 +928,8 @@ export type SettingsLDAP = {
   ldap_user_obj_class: string;
   ldap_user_search_base: string;
   ldap_username_attr: string;
+  ldap_use_starttls: boolean;
+  ldap_tls_verify_cert: boolean;
 };
 
 export type SettingsOpenID = {
@@ -1013,6 +1015,7 @@ export interface OpenIdProvider {
   directory_sync_target: 'all' | 'users' | 'groups';
   okta_private_jwk?: string;
   okta_dirsync_client_id?: string;
+  directory_sync_group_match?: string;
 }
 
 export interface EditOpenidClientRequest {

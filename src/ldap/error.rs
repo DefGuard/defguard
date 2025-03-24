@@ -5,6 +5,7 @@ pub enum LdapError {
     Ldap(String),
     ObjectNotFound(String),
     MissingSettings,
+    TooManyObjects,
     // TODO: include the error
     Database,
 }
@@ -17,6 +18,7 @@ impl fmt::Display for LdapError {
             Self::MissingSettings => {
                 write!(f, "LDAP settings are missing")
             }
+            Self::TooManyObjects => write!(f, "Found multiple objects"),
             Self::Database => write!(f, "Database error"),
         }
     }

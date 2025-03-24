@@ -1068,6 +1068,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
+          ldap_use_starttls: 'Użyj StartTLS',
+          ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',
         },
         delete: 'Usuń konfigurację',
       },
@@ -1193,6 +1195,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
             label: 'Klucz prywatny klienta synchronizacji Okta',
             helper:
               'Klucz prywatny dla aplikacji synchronizacji Okta w formacie JWK. Klucz nie jest wyświetlany ponownie po wgraniu.',
+          },
+          group_match: {
+            label: 'Synchronizuj tylko pasujące grupy',
+            helper:
+              'Podaj listę nazw grup oddzielonych przecinkami, które powinny być synchronizowane. Jeśli pole zostanie puste, wszystkie grupy dostawcy zostaną zsynchronizowane.',
           },
         },
       },

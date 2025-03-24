@@ -2739,6 +2739,14 @@ type RootTranslation = {
 					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_group_obj_class: string
+					/**
+					 * U​s​e​ ​S​t​a​r​t​T​L​S
+					 */
+					ldap_use_starttls: string
+					/**
+					 * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
+					 */
+					ldap_tls_verify_cert: string
 				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
@@ -3018,6 +3026,16 @@ type RootTranslation = {
 						label: string
 						/**
 						 * C​l​i​e​n​t​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​O​k​t​a​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​ ​a​p​p​l​i​c​a​t​i​o​n​ ​i​n​ ​t​h​e​ ​J​W​K​ ​f​o​r​m​a​t​.​ ​I​t​ ​w​o​n​'​t​ ​b​e​ ​s​h​o​w​n​ ​a​g​a​i​n​ ​h​e​r​e​.
+						 */
+						helper: string
+					}
+					group_match: {
+						/**
+						 * S​y​n​c​ ​o​n​l​y​ ​m​a​t​c​h​i​n​g​ ​g​r​o​u​p​s
+						 */
+						label: string
+						/**
+						 * P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​ ​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​ ​n​a​m​e​s​ ​t​h​a​t​ ​s​h​o​u​l​d​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.​ ​I​f​ ​l​e​f​t​ ​e​m​p​t​y​,​ ​a​l​l​ ​g​r​o​u​p​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​v​i​d​e​r​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
 						 */
 						helper: string
 					}
@@ -8051,6 +8069,14 @@ export type TranslationFunctions = {
 					 * Group Object Class
 					 */
 					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * Use StartTLS
+					 */
+					ldap_use_starttls: () => LocalizedString
+					/**
+					 * Verify TLS certificate
+					 */
+					ldap_tls_verify_cert: () => LocalizedString
 				}
 				/**
 				 * Delete configuration
@@ -8330,6 +8356,16 @@ export type TranslationFunctions = {
 						label: () => LocalizedString
 						/**
 						 * Client private key for the Okta directory sync application in the JWK format. It won't be shown again here.
+						 */
+						helper: () => LocalizedString
+					}
+					group_match: {
+						/**
+						 * Sync only matching groups
+						 */
+						label: () => LocalizedString
+						/**
+						 * Provide a comma separated list of group names that should be synchronized. If left empty, all groups from the provider will be synchronized.
 						 */
 						helper: () => LocalizedString
 					}

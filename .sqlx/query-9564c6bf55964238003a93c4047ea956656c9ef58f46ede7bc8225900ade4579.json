@@ -1,14 +1,8 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\",\"directory_sync_target\",\"okta_private_jwk\",\"okta_dirsync_client_id\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id",
+  "query": "UPDATE openidprovider SET name = $1, base_url = $2, client_id = $3, client_secret = $4, display_name = $5, google_service_account_key = $6, google_service_account_email = $7, admin_email = $8, directory_sync_enabled = $9, directory_sync_interval = $10, directory_sync_user_behavior = $11, directory_sync_admin_behavior = $12, directory_sync_target = $13, okta_private_jwk = $14, okta_dirsync_client_id = $15, directory_sync_group_match = $16 WHERE id = $17",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int8"
-      }
-    ],
+    "columns": [],
     "parameters": {
       "Left": [
         "Text",
@@ -58,12 +52,12 @@
           }
         },
         "Text",
-        "Text"
+        "Text",
+        "TextArray",
+        "Int8"
       ]
     },
-    "nullable": [
-      false
-    ]
+    "nullable": []
   },
-  "hash": "b657f2e85d3d880ee2d247591c57cbecaa2fe8897d73fba2c8301410853712e7"
+  "hash": "9564c6bf55964238003a93c4047ea956656c9ef58f46ede7bc8225900ade4579"
 }

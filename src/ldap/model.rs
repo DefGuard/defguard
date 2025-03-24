@@ -63,8 +63,10 @@ impl<I> User<I> {
             ("sambaSID", hashset!["0"]),
             ("sambaNTPassword", hashset![nt_password]),
         ];
-        if let Some(ref phone) = self.phone {
-            attrs.push(("mobile", hashset![phone.as_str()]));
+        if let Some(phone) = &self.phone {
+            if !phone.is_empty() {
+                attrs.push(("mobile", hashset![phone.as_str()]));
+            }
         }
         attrs
     }

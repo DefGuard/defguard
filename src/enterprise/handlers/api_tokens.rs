@@ -6,6 +6,7 @@ use axum::{
 use chrono::Utc;
 use serde_json::json;
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -14,8 +15,6 @@ use crate::{
     handlers::{user_for_admin_or_self, ApiResponse, ApiResult},
     random::gen_alphanumeric,
 };
-
-use super::LicenseInfo;
 
 const API_TOKEN_LENGTH: usize = 32;
 
