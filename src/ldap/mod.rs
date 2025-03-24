@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, Ldap, LdapConnAsync, Mod, Scope, SearchEntry};
+use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+use rand::Rng;
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -283,12 +284,35 @@ impl LDAPConnection {
     }
 
     /// Adds user to LDAP.
-    pub async fn add_user(&mut self, user: &User<Id>, password: &str) -> Result<(), LdapError> {
+    pub async fn add_user(
+        &mut self,
+        user: &User<Id>,
+        password: Option<&str>,
+    ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {}", user.username);
         let dn = self.config.user_dn(&user.username);
-        let ssha_password = hash::salted_sha1_hash(password);
-        let ht_password = hash::nthash(password);
-        self.add(&dn, user.as_ldap_attrs(&ssha_password, &ht_password))
+        let password = if let Some(password) = password {
+            debug!("Using provided password for user {}", user.username);
+            password.to_string()
+        } else {
+            // ldap may not accept no password, this is a workaround when we don't have access to the
+            // user's password
+            debug!(
+                "Generating random password for user {}, as no password has been specified",
+                user.username
+            );
+            let random_password = rand::thread_rng()
+                .sample_iter(&rand::distributions::Alphanumeric)
+                .take(32)
+                .map(char::from)
+                .collect::<String>();
+
+            debug!("Generated random password for user {}", user.username);
+            random_password
+        };
+        let ssha_password = hash::salted_sha1_hash(&password);
+        let nt_password = hash::nthash(&password);
+        self.add(&dn, user.as_ldap_attrs(&ssha_password, &nt_password))
             .await?;
         info!("Added LDAP user {}", user.username);
         Ok(())
@@ -408,7 +432,7 @@ impl LDAPConnection {
     pub async fn modify_group(
         &mut self,
         groupname: &str,
-        group: &db::Group,
+        group: &db::Group<Id>,
     ) -> Result<(), LdapError> {
         debug!("Modifying LDAP group {groupname}");
         let old_dn = self.config.group_dn(groupname);

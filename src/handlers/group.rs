@@ -16,7 +16,7 @@ use crate::{
     error::WebError,
     hashset,
     ldap::utils::{
-        ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group,
+        ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups,
     },
 };
@@ -381,8 +381,9 @@ pub(crate) async fn modify_group(
     let mut transaction = appstate.pool.begin().await?;
 
     // Rename only when needed.
+    //
     if group.name != group_info.name {
-        group.name = group_info.name;
+        group.name = group_info.name.clone();
         group.save(&mut *transaction).await?;
     }
 
@@ -441,6 +442,9 @@ pub(crate) async fn modify_group(
     transaction.commit().await?;
     ldap_add_users_to_groups(add_to_ldap_groups, &appstate.pool).await;
     ldap_remove_users_from_groups(remove_from_ldap_groups, &appstate.pool).await;
+    if name != group_info.name {
+        ldap_modify_group(&name, &group, &appstate.pool).await;
+    }
 
     WireguardNetwork::sync_all_networks(&appstate).await?;
 

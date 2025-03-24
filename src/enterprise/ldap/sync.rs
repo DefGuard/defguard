@@ -109,8 +109,36 @@ fn compute_user_sync_changes(
         if !ldap_usernames.contains(&user.username) {
             debug!("User {} not found in LDAP", user.username);
             match authority {
-                Source::LDAP => delete_defguard.push(user),
-                Source::Defguard => add_ldap.push(user),
+                Source::LDAP => {
+                    // Skip inactive/not enrolled users when deleting from LDAP
+                    if user.is_active && user.is_enrolled() {
+                        debug!(
+                            "User {} is active and enrolled, removing from Defguard",
+                            user.username
+                        );
+                        delete_defguard.push(user);
+                    } else {
+                        debug!(
+                            "User {} is inactive or not enrolled, skipping deletion from Defguard",
+                            user.username
+                        );
+                    }
+                }
+                Source::Defguard => {
+                    // Skip inactive users when adding to LDAP
+                    if user.is_active && user.is_enrolled() {
+                        debug!(
+                            "User {} is active and enrolled, adding to LDAP",
+                            user.username
+                        );
+                        add_ldap.push(user);
+                    } else {
+                        debug!(
+                            "User {} is inactive or not enrolled, skipping addition to LDAP",
+                            user.username
+                        );
+                    }
+                }
             }
         }
     }
@@ -336,7 +364,7 @@ impl crate::ldap::LDAPConnection {
                 .members(pool)
                 .await?
                 .into_iter()
-                .map(|m| m.username)
+                .filter_map(|u| if u.is_active { Some(u.username) } else { None })
                 .collect::<HashSet<_>>();
             defguard_memberships.insert(group.name, members);
         }
@@ -469,7 +497,7 @@ impl crate::ldap::LDAPConnection {
 
         for user in changes.add_ldap {
             debug!("Adding user {} to LDAP", user.username);
-            self.add_user(&user, "").await?;
+            self.add_user(&user, None).await?;
         }
 
         Ok(())
@@ -491,22 +519,7 @@ impl crate::ldap::LDAPConnection {
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
 
-    async fn list_groups(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, _res) = self
-            .ldap
-            .search(
-                &self.config.ldap_group_search_base,
-                Scope::Subtree,
-                "(objectClass=*)",
-                vec!["*"],
-            )
-            .await?
-            .success()?;
-        debug!("Performed LDAP group search");
-
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
-    }
-
+    /// Returns a map of group names to a set of member usernames
     async fn get_ldap_group_memberships(
         &mut self,
     ) -> Result<HashMap<String, HashSet<String>>, LdapError> {

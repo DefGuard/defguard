@@ -34,7 +34,6 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    ldap_feature_active: bool,
 }
 
 impl EnrollmentServer {
@@ -44,13 +43,10 @@ impl EnrollmentServer {
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
     ) -> Self {
-        // FIXME: check if LDAP feature is enabled
-        let ldap_feature_active = true;
         Self {
             pool,
             wireguard_tx,
             mail_tx,
-            ldap_feature_active,
         }
     }
 
@@ -338,7 +334,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_add_user(&user, &request.password, &self.pool).await;
+        ldap_add_user(&user, Some(&request.password), &self.pool).await;
 
         info!("User {} activated", user.username);
         Ok(())

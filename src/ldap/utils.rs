@@ -46,16 +46,28 @@ pub(crate) async fn user_from_ldap(
     .await
 }
 
-pub(crate) async fn ldap_add_user(user: &User<Id>, password: &str, pool: &PgPool) {
+pub(crate) async fn ldap_add_user(user: &User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         match ldap_connection.add_user(user, password).await {
             Ok(()) => Ok(()),
             // this user might exist in LDAP, just try to set the password
             Err(_) => {
-                ldap_connection
-                    .set_password(&user.username, password)
-                    .await?;
+                debug!(
+                    "User {} already exists in LDAP, trying to set password",
+                    user.username
+                );
+                if let Some(password) = password {
+                    ldap_connection
+                        .set_password(&user.username, password)
+                        .await?;
+                    debug!("Password set for user {} in LDAP", user.username);
+                } else {
+                    debug!(
+                        "No password provided, skipping password setting for user {} in LDAP",
+                        user.username
+                    );
+                }
                 Ok(())
             }
         }
@@ -195,7 +207,7 @@ pub(crate) async fn ldap_change_password(username: &str, password: &str, pool: &
     .await;
 }
 
-pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group, pool: &PgPool) {
+pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group<Id>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.modify_group(groupname, group).await
