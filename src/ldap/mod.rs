@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use ldap3::{drive, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 use rand::Rng;
 
 use self::error::LdapError;
@@ -138,7 +138,7 @@ impl LDAPConnection {
         ))?;
         let password = settings
             .ldap_bind_password
-            .ok_or(LdapError::MissingSettings)?;
+            .ok_or(LdapError::MissingSettings("LDAP bind password".to_string()))?;
         let conn_settings = LdapConnSettings::new()
             .set_starttls(settings.ldap_use_starttls)
             .set_no_tls_verify(!settings.ldap_tls_verify_cert);
