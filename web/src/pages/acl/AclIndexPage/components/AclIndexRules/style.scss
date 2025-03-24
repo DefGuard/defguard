@@ -134,7 +134,17 @@
     }
 
     .list-container {
-      overflow-x: auto;
+      overflow: auto;
+      position: relative;
+      max-height: 600px;
+      scrollbar-gutter: stable;
+
+      & > .header-track {
+        position: sticky;
+        top: 0;
+        background-color: var(--surface-default-modal);
+        z-index: 2;
+      }
     }
 
     ul {
