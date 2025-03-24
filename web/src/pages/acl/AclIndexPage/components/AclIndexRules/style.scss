@@ -26,6 +26,8 @@
     display: inline-flex;
     justify-content: flex-start;
     align-items: center;
+    width: 100%;
+    overflow: hidden;
 
     &:last-child {
       justify-content: center;
@@ -48,18 +50,36 @@
   width: 100%;
 
   .tags-display {
-    display: flex;
-    flex-flow: row nowrap;
+    position: relative;
     overflow: hidden;
     max-width: 100%;
-    align-items: center;
-    justify-content: flex-start;
     width: 100%;
-    column-gap: var(--spacing-xs);
 
     span,
     p {
       @include typography(app-modal-2);
+    }
+
+    & > .track {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-xs);
+    }
+
+    &::after {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 65px;
+      height: 100%;
+      content: ' ';
+      background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0) 0%,
+        var(--surface-default-modal) 100%
+      );
     }
   }
 
