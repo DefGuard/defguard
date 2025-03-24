@@ -394,17 +394,6 @@ impl LDAPConnection {
         Ok(())
     }
 
-    // pub async fn add_group(&mut self, group: &db::Group<Id>) -> Result<(), LdapError> {
-    //     debug!("Adding LDAP group {}", group.name);
-    //     let dn = self.config.group_dn(&group.name);
-    //     let group_obj_class = self.config.ldap_group_obj_class.clone();
-    //     let group_attrs = group.as_ldap_attrs(&group_obj_class);
-    //     self.add(&dn, group_attrs).await?;
-    //     info!("Added LDAP group {}", group.name);
-
-    //     Ok(())
-    // }
-
     pub async fn add_group_with_members(
         &mut self,
         group_name: &str,
