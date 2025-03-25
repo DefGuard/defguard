@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import { intersection } from 'lodash-es';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
@@ -320,6 +320,29 @@ export const AlcCreatePage = () => {
     }
   };
 
+  // retrigger validation for multiple affected fields when checking allow/deny all
+  useEffect(() => {
+    void trigger(
+      [
+        'allowed_devices',
+        'allowed_groups',
+        'allowed_users',
+        'denied_devices',
+        'denied_groups',
+        'denied_users',
+      ],
+      {
+        shouldFocus: false,
+      },
+    );
+  }, [
+    allowAllLocations,
+    denyAllUsers,
+    allowAllNetworkDevices,
+    denyAllNetworkDevices,
+    trigger,
+  ]);
+
   return (
     <PageContainer id="acl-create-page">
       <div className="header">
@@ -367,6 +390,7 @@ export const AlcCreatePage = () => {
             label={labelsLL.locations()}
             searchKeys={['name']}
             disabled={allowAllLocations}
+            forceShowErrorMessage
           />
           {/* <CardHeader title="Expiration Date" />
           <LabeledCheckbox
@@ -399,10 +423,6 @@ export const AlcCreatePage = () => {
                 setDenyAllUsers(false);
               }
               setAllowAllUsers(val);
-              void trigger(
-                ['allowed_users', 'denied_users', 'allowed_devices', 'denied_devices'],
-                { shouldFocus: false },
-              );
             }}
             label={labelsLL.allowAllUsers()}
           />
@@ -418,6 +438,7 @@ export const AlcCreatePage = () => {
             onChange={() => {
               void trigger('denied_users', { shouldFocus: false });
             }}
+            forceShowErrorMessage
           />
           <FormDialogSelect
             label={labelsLL.groups()}
@@ -432,6 +453,7 @@ export const AlcCreatePage = () => {
                 shouldFocus: false,
               });
             }}
+            forceShowErrorMessage
           />
           <LabeledCheckbox
             value={allowAllNetworkDevices}
@@ -440,8 +462,6 @@ export const AlcCreatePage = () => {
                 setDenyAllNetworkDevices(false);
               }
               setAllowAllNetworkDevices(val);
-              void trigger('denied_devices', { shouldFocus: false });
-              void trigger('allowed_devices', { shouldFocus: false });
             }}
             label={labelsLL.allowAllNetworkDevices()}
           />
@@ -458,6 +478,7 @@ export const AlcCreatePage = () => {
                 shouldFocus: false,
               });
             }}
+            forceShowErrorMessage
           />
         </SectionWithCard>
         <SectionWithCard title={localLL.headers.destination()} id="destination-card">
@@ -503,10 +524,6 @@ export const AlcCreatePage = () => {
                 setAllowAllUsers(false);
               }
               setDenyAllUsers(val);
-              void trigger('denied_users', { shouldFocus: false });
-              void trigger('allowed_users', { shouldFocus: false });
-              void trigger('denied_groups', { shouldFocus: false });
-              void trigger('allowed_groups', { shouldFocus: false });
             }}
           />
           <FormDialogSelect
@@ -523,6 +540,7 @@ export const AlcCreatePage = () => {
                 shouldFocus: false,
               });
             }}
+            forceShowErrorMessage
           />
           <FormDialogSelect
             label={labelsLL.groups()}
@@ -537,6 +555,7 @@ export const AlcCreatePage = () => {
                 shouldFocus: false,
               });
             }}
+            forceShowErrorMessage
           />
           <LabeledCheckbox
             label={labelsLL.denyAllNetworkDevices()}
@@ -546,8 +565,6 @@ export const AlcCreatePage = () => {
                 setAllowAllNetworkDevices(false);
               }
               setDenyAllNetworkDevices(val);
-              void trigger('denied_devices', { shouldFocus: false });
-              void trigger('allowed_devices', { shouldFocus: false });
             }}
           />
           <FormDialogSelect
@@ -563,6 +580,7 @@ export const AlcCreatePage = () => {
                 shouldFocus: false,
               });
             }}
+            forceShowErrorMessage
           />
         </SectionWithCard>
         <input type="submit" ref={submitRef} className="hidden" />
