@@ -903,22 +903,9 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.allow_all_users {
-            query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
-                User,
-                "SELECT u.id, username, password_hash, last_name, first_name, email, \
+        query_as!(
+            User,
+            "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
@@ -928,11 +915,10 @@ impl AclRule<Id> {
                 WHERE r.rule_id = $1 \
                 AND r.allow \
                 AND u.is_active = true",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
-        }
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
@@ -943,22 +929,9 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_users {
-            query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
-                User,
-                "SELECT u.id, username, password_hash, last_name, first_name, email, \
+        query_as!(
+            User,
+            "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
@@ -968,11 +941,10 @@ impl AclRule<Id> {
                 WHERE r.rule_id = $1 \
                 AND NOT r.allow \
                 AND u.is_active = true",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
-        }
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Returns [`Group`]s that are allowed or denied by the rule
@@ -1150,6 +1122,31 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all allowed users for ACL rule {}",
+            self.id
+        );
+        // return all active users if `allow_all_users` flag is enabled
+        if self.allow_all_users {
+            debug!(
+                "allow_all_users flag is enabled for ACL rule {}. Fetching all active users",
+                self.id
+            );
+            let all_active_users = query_as!(
+                User,
+                "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" \
+                WHERE is_active = true"
+            )
+            .fetch_all(executor)
+            .await;
+
+            return all_active_users;
+        }
+
         // get explicitly allowed users
         let mut allowed_users = self.allowed_users.clone();
 
@@ -1185,6 +1182,31 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all denied users for ACL rule {}",
+            self.id
+        );
+        // return all active users if `deny_all_users` flag is enabled
+        if self.deny_all_users {
+            debug!(
+                "deny_all_users flag is enabled for ACL rule {}. Fetching all active users",
+                self.id
+            );
+            let all_denied_users = query_as!(
+                User,
+                "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" \
+                WHERE is_active = true"
+            )
+            .fetch_all(executor)
+            .await;
+
+            return all_denied_users;
+        }
+
         // get explicitly denied users
         let mut denied_users = self.denied_users.clone();
 
