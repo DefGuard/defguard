@@ -1,11 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"openidprovider\" SET \"name\" = $2,\"base_url\" = $3,\"client_id\" = $4,\"client_secret\" = $5,\"display_name\" = $6,\"google_service_account_key\" = $7,\"google_service_account_email\" = $8,\"admin_email\" = $9,\"directory_sync_enabled\" = $10,\"directory_sync_interval\" = $11,\"directory_sync_user_behavior\" = $12,\"directory_sync_admin_behavior\" = $13,\"directory_sync_target\" = $14,\"okta_private_jwk\" = $15,\"okta_dirsync_client_id\" = $16 WHERE id = $1",
+  "query": "INSERT INTO \"openidprovider\" (\"name\",\"base_url\",\"client_id\",\"client_secret\",\"display_name\",\"google_service_account_key\",\"google_service_account_email\",\"admin_email\",\"directory_sync_enabled\",\"directory_sync_interval\",\"directory_sync_user_behavior\",\"directory_sync_admin_behavior\",\"directory_sync_target\",\"okta_private_jwk\",\"okta_dirsync_client_id\",\"directory_sync_group_match\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
   "describe": {
-    "columns": [],
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
     "parameters": {
       "Left": [
-        "Int8",
         "Text",
         "Text",
         "Text",
@@ -53,10 +58,13 @@
           }
         },
         "Text",
-        "Text"
+        "Text",
+        "TextArray"
       ]
     },
-    "nullable": []
+    "nullable": [
+      false
+    ]
   },
-  "hash": "d7745f7087791dcbf8e7ec504ed88ed6ad81d5a2f00e7307d8d338bc2269ba91"
+  "hash": "406d99b05beaa7cbd8554aadd7a16ceb4e139f131e33a032dd4b719a937de935"
 }

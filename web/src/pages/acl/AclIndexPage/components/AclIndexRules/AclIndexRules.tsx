@@ -538,27 +538,17 @@ const RulesList = ({
       )}
       {sortedRules.length > 0 && (
         <div className="list-container">
-          <div
-            className={clsx('header-track', {
-              selectable: selectionEnabled,
-            })}
-          >
-            {selectionEnabled && (
-              <div className="select-cell">
-                <InteractionBox
-                  onClick={() => {
-                    const value = allSelected ?? false;
-                    onSelectAll?.(!value, selected ?? {});
-                  }}
-                >
-                  <CheckBox value={allSelected ?? false} />
-                </InteractionBox>
-              </div>
-            )}
+          <div className={clsx('header-track')}>
             <ListHeader<AclRuleInfo>
               headers={listHeaders}
               sortDirection={sortDir}
               activeKey={sortKey}
+              selectAll={allSelected}
+              onSelectAll={(val) => {
+                if (selectionEnabled) {
+                  onSelectAll?.(val, selected ?? {});
+                }
+              }}
               onChange={(key, dir) => {
                 setSortKey(key);
                 setSortDir(dir);
@@ -747,7 +737,7 @@ const prepareDisplay = (
   allAllowedLabel: string,
   allDeniedLabel: string,
   pending: boolean,
-  aclContext: Omit<AclCreateContextLoaded, 'devices' | 'ruleToEdit'>,
+  aclContext: Omit<AclCreateContextLoaded, 'ruleToEdit'>,
 ): ListData[] => {
   let rules: AclRuleInfo[];
   let statusFilters: number[];
@@ -812,6 +802,13 @@ const prepareDisplay = (
             label: group.name,
             displayAsTag: true,
           })),
+        aclContext.devices
+          .filter((device) => rule.allowed_devices.includes(device.id))
+          .map((device) => ({
+            key: `device-${device.id}`,
+            label: device.name,
+            displayAsTag: true,
+          })),
       );
     }
 
@@ -831,6 +828,13 @@ const prepareDisplay = (
           .map((group) => ({
             key: `group-${group.id}`,
             label: group.name,
+            displayAsTag: true,
+          })),
+        aclContext.devices
+          .filter((device) => rule.denied_devices.includes(device.id))
+          .map((device) => ({
+            key: `device-${device.id}`,
+            label: device.name,
             displayAsTag: true,
           })),
       );

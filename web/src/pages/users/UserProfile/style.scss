@@ -205,6 +205,7 @@
 
     @include media-breakpoint-up(xxl) {
       grid-template-columns: 1fr 440px 384px;
+      grid-template-rows: auto 1fr;
       grid-template-areas:
         'wide-cards cards-1 cards-2'
         'wide-cards cards-1 cards-3';
