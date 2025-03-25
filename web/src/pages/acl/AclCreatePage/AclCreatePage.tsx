@@ -217,6 +217,33 @@ export const AlcCreatePage = () => {
               });
             }
           }
+
+          // check if one of allowed users/groups/devices fields is set
+          const isAllowConfigured =
+            allowAllUsers ||
+            allowAllNetworkDevices ||
+            vals.allowed_users.length !== 0 ||
+            vals.allowed_groups.length !== 0 ||
+            vals.allowed_devices.length !== 0;
+          if (!isAllowConfigured) {
+            const message = LL.acl.createPage.formError.allowNotConfigured();
+
+            ctx.addIssue({
+              path: ['allowed_users'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['allowed_groups'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['allowed_devices'],
+              code: 'custom',
+              message,
+            });
+          }
         }),
     [
       LL,
@@ -372,10 +399,10 @@ export const AlcCreatePage = () => {
                 setDenyAllUsers(false);
               }
               setAllowAllUsers(val);
-              void trigger('denied_users', { shouldFocus: false });
-              void trigger('allowed_users', { shouldFocus: false });
-              void trigger('denied_groups', { shouldFocus: false });
-              void trigger('allowed_groups', { shouldFocus: false });
+              void trigger(
+                ['allowed_users', 'denied_users', 'allowed_devices', 'denied_devices'],
+                { shouldFocus: false },
+              );
             }}
             label={labelsLL.allowAllUsers()}
           />

@@ -5257,6 +5257,10 @@ type RootTranslation = {
 				 * C​o​n​f​l​i​c​t​i​n​g​ ​m​e​m​b​e​r​s
 				 */
 				allowDenyConflict: string
+				/**
+				 * M​u​s​t​ ​c​o​n​f​i​g​u​r​e​ ​s​o​m​e​ ​a​l​l​o​w​e​d​ ​u​s​e​r​s​,​ ​g​r​o​u​p​s​ ​o​r​ ​d​e​v​i​c​e​s
+				 */
+				allowNotConfigured: string
 			}
 			infoBox: {
 				/**
@@ -10570,6 +10574,10 @@ export type TranslationFunctions = {
 				 * Conflicting members
 				 */
 				allowDenyConflict: () => LocalizedString
+				/**
+				 * Must configure some allowed users, groups or devices
+				 */
+				allowNotConfigured: () => LocalizedString
 			}
 			infoBox: {
 				/**
