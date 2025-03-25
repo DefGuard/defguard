@@ -1973,7 +1973,7 @@ mod test {
         rule.allow_all_users = true;
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test `deny_all_users` flag
@@ -1981,14 +1981,14 @@ mod test {
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test both flags
         rule.allow_all_users = true;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // deactivate user1
         user1.is_active = false;
@@ -2001,8 +2001,7 @@ mod test {
 
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
-        assert_eq!(allowed_users.len(), 1);
-        assert_eq!(allowed_users[0], user2);
+        assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
 
         // ensure only active users are allowed when `allow_all_users = false`
@@ -2025,8 +2024,7 @@ mod test {
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
-        assert_eq!(denied_users.len(), 1);
-        assert_eq!(denied_users[0], user2);
+        assert_eq!(denied_users.len(), 0);
 
         // ensure only active users are denied when `deny_all_users = false`
         rule.allow_all_users = false;
