@@ -12,7 +12,7 @@ use defguard::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::{from_value, json, Value};
+use serde_json::{json, Value};
 use serial_test::serial;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
@@ -46,7 +46,7 @@ fn make_rule() -> EditAclRule {
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        allowed_users: vec![],
+        allowed_users: vec![1],
         denied_users: vec![],
         allowed_groups: vec![],
         denied_groups: vec![],
@@ -632,16 +632,18 @@ async fn test_rule_delete_state_applied(pool: PgPool) {
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 2);
     let rule_parent: ApiAclRule = client.get("/api/v1/acl/rule/1").send().await.json().await;
-    let rule_child: Value = client.get("/api/v1/acl/rule/2").send().await.json().await;
+    let rule_child: ApiAclRule = client.get("/api/v1/acl/rule/2").send().await.json().await;
     assert_eq!(rule_parent, rule_before_mods);
     let mut rule_after_mods = rule_before_mods.clone();
     rule_after_mods.id = 2;
     rule_after_mods.state = RuleState::Deleted;
     rule_after_mods.parent_id = Some(1);
+
     // don't care about related objects of deleted rule
-    rule_after_mods.destination =
-        from_value(rule_child.clone().get("destination").unwrap().clone()).unwrap();
-    assert_eq!(json!(rule_after_mods), rule_child);
+    rule_after_mods.destination = rule_child.destination.clone();
+    rule_after_mods.allowed_users = rule_child.allowed_users.clone();
+
+    assert_eq!(rule_after_mods, rule_child);
 }
 
 #[sqlx::test]

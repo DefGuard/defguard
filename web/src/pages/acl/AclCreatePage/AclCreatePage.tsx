@@ -2,6 +2,7 @@ import './style.scss';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import { intersection } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,6 +33,7 @@ import {
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import useApi from '../../../shared/hooks/useApi';
+import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
 import {
   AclRuleInfo,
@@ -105,6 +107,7 @@ export const AlcCreatePage = () => {
   );
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
+  const toaster = useToaster();
 
   const navigate = useNavigate();
 
@@ -124,11 +127,20 @@ export const AlcCreatePage = () => {
     navigate('/admin/acl');
   }, [navigate, queryClient]);
 
+  const handleError = useCallback(
+    (err: AxiosError) => {
+      toaster.error(LL.acl.listPage.message.changeFail());
+      console.error(err.message ?? err);
+    },
+    [LL.acl.listPage.message, toaster],
+  );
+
   const { mutate: mutatePost, isPending: postPending } = useMutation({
     mutationFn: createRule,
     onSuccess: () => {
       handleSuccess();
     },
+    onError: handleError,
   });
 
   const { mutate: mutatePut, isPending: putPending } = useMutation({
@@ -136,6 +148,7 @@ export const AlcCreatePage = () => {
     onSuccess: () => {
       handleSuccess();
     },
+    onError: handleError,
   });
 
   const schema = useMemo(
@@ -203,6 +216,33 @@ export const AlcCreatePage = () => {
                 message,
               });
             }
+          }
+
+          // check if one of allowed users/groups/devices fields is set
+          const isAllowConfigured =
+            allowAllUsers ||
+            allowAllNetworkDevices ||
+            vals.allowed_users.length !== 0 ||
+            vals.allowed_groups.length !== 0 ||
+            vals.allowed_devices.length !== 0;
+          if (!isAllowConfigured) {
+            const message = LL.acl.createPage.formError.allowNotConfigured();
+
+            ctx.addIssue({
+              path: ['allowed_users'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['allowed_groups'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
+              path: ['allowed_devices'],
+              code: 'custom',
+              message,
+            });
           }
         }),
     [
