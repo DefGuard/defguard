@@ -6,6 +6,7 @@ import { DialogSelectProps } from './types';
 
 type Props<T extends FieldValues, B, I extends number | string> = {
   controller: UseControllerProps<T>;
+  forceShowErrorMessage?: boolean;
   onChange?: () => void;
 } & Omit<DialogSelectProps<B, I>, 'selected' | 'errorMessage'>;
 
@@ -16,6 +17,7 @@ export const FormDialogSelect = <
 >({
   controller,
   onChange: onChangeExternal,
+  forceShowErrorMessage = false,
   ...selectProps
 }: Props<T, B, I>) => {
   const {
@@ -25,11 +27,15 @@ export const FormDialogSelect = <
   } = useController(controller);
 
   const errorMessage = useMemo(() => {
-    if ((error && (isDirty || isTouched)) || (!error && isSubmitted)) {
+    if (
+      (error && (isDirty || isTouched)) ||
+      (!error && isSubmitted) ||
+      forceShowErrorMessage
+    ) {
       return error?.message;
     }
     return undefined;
-  }, [error, isDirty, isSubmitted, isTouched]);
+  }, [error, forceShowErrorMessage, isDirty, isSubmitted, isTouched]);
 
   return (
     <DialogSelect
