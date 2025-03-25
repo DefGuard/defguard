@@ -544,6 +544,36 @@ async fn test_invalid_related_objects() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
+#[tokio::test]
+async fn test_invalid_data() {
+    let (client, _) = make_test_client().await;
+    authenticate(&client).await;
+
+    // invalid port
+    let mut rule = make_rule();
+    rule.ports = "65536".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.ports = "-1".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.ports = "65535".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // invalid ip range
+    let mut rule = make_rule();
+    rule.destination = "10.10.10.20-10.10.10.10".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    rule.destination = "10.10.10.10-10.10.10.20".into();
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+}
+
 #[sqlx::test]
 async fn test_rule_create_modify_state(pool: PgPool) {
     let config = init_config(None);

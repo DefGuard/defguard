@@ -44,6 +44,8 @@ pub enum AclError {
     FirewallError(#[from] FirewallError),
     #[error("InvalidIpRangeError: {0}")]
     InvalidIpRangeError(String),
+    #[error("PortOutOfRangeError: {0}")]
+    PortOutOfRangeError(i32),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -507,6 +509,13 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
 /// `22, 23, 8000-9000, 80-90`
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
+    let ensure_in_range = |port: i32| {
+        if (0..=65535).contains(&port) {
+            Ok(port)
+        } else {
+            Err(AclError::PortOutOfRangeError(port))
+        }
+    };
     let mut result = Vec::new();
     let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
     if ports.is_empty() {
@@ -515,12 +524,12 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     for v in ports.split(',') {
         match v.split('-').collect::<Vec<_>>() {
             l if l.len() == 1 => result.push(PortRange(Range {
-                start: l[0].parse::<i32>()?,
-                end: l[0].parse::<i32>()? + 1,
+                start: ensure_in_range(l[0].parse::<i32>()?)?,
+                end: ensure_in_range(l[0].parse::<i32>()?)? + 1,
             })),
             l if l.len() == 2 => result.push(PortRange(Range {
-                start: l[0].parse::<i32>()?,
-                end: l[1].parse::<i32>()? + 1,
+                start: ensure_in_range(l[0].parse::<i32>()?)?,
+                end: ensure_in_range(l[1].parse::<i32>()?)? + 1,
             })),
             _ => {
                 error!("Failed to parse ports string: \"{ports}\"");

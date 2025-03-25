@@ -115,6 +115,10 @@ impl From<WebError> for ApiResponse {
                         StatusCode::INTERNAL_SERVER_ERROR,
                     )
                 }
+                AclError::PortOutOfRangeError(port) => ApiResponse::new(
+                    json!({"msg": format!("Port out of range: {port}")}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
             },
             WebError::Http(status) => {
                 error!("{status}");
