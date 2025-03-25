@@ -12,7 +12,7 @@ use defguard::{
     handlers::Auth,
 };
 use reqwest::StatusCode;
-use serde_json::{from_value, json, Value};
+use serde_json::{json, Value};
 use serial_test::serial;
 use sqlx::PgPool;
 use tokio::net::TcpListener;

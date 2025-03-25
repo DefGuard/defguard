@@ -549,7 +549,7 @@ impl WireguardNetwork<Id> {
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
-                WHERE an.network_id = $1 AND enabled = true \
+                WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
                 AND state = 'applied'::aclrule_state \
                 AND (expires IS NULL OR expires > NOW())",
         )
