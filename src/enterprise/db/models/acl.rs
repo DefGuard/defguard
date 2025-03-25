@@ -42,6 +42,8 @@ pub enum AclError {
     RuleAlreadyAppliedError(Id),
     #[error(transparent)]
     FirewallError(#[from] FirewallError),
+    #[error("InvalidIpRangeError: {0}")]
+    InvalidIpRangeError(String),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -672,7 +674,9 @@ impl AclRule<Id> {
                 start: range.0,
                 end: range.1,
             };
-            obj.save(&mut *transaction).await?;
+            obj.save(&mut *transaction)
+                .await
+                .map_err(|_| AclError::InvalidIpRangeError(format!("{}-{}", range.0, range.1)))?;
         }
 
         info!("Created related objects for ACL rule {api_rule:?}");
