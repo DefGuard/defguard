@@ -51,11 +51,11 @@ pub fn get_ldap_sync_status() -> SyncStatus {
 }
 
 pub async fn set_ldap_sync_status(status: SyncStatus, pool: &PgPool) -> Result<(), LdapError> {
-    debug!("Setting LDAP sync status to {:?}", status);
+    debug!("Setting LDAP sync status to {status:?}");
     let mut settings = Settings::get_current_settings();
     settings.ldap_sync_status = status;
     update_current_settings(pool, settings).await?;
-    debug!("LDAP sync status set to {:?}", status);
+    debug!("LDAP sync status set to {status:?}");
     Ok(())
 }
 

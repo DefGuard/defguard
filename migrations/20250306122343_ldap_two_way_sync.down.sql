@@ -1,6 +1,3 @@
-ALTER TABLE settings
-DROP COLUMN ldap_samba_enabled;
-
 ALTER TABLE "user"
 DROP COLUMN ldap_linked;
 
@@ -17,3 +14,9 @@ DROP TYPE ldap_sync_status;
 
 ALTER TABLE settings
 DROP COLUMN ldap_is_authoritative;
+
+ALTER TABLE settings
+DROP COLUMN ldap_sync_interval;
+
+ALTER TABLE settings
+DROP COLUMN ldap_user_obj_classes;

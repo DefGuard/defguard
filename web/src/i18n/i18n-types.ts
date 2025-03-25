@@ -2720,13 +2720,17 @@ type RootTranslation = {
 					 */
 					ldap_username_attr: string
 					/**
-					 * U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s
+					 * U​s​e​r​ ​s​e​a​r​c​h​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_user_obj_class: string
 					/**
 					 * U​s​e​r​ ​S​e​a​r​c​h​ ​B​a​s​e
 					 */
 					ldap_user_search_base: string
+					/**
+					 * A​l​l​ ​U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s​e​s
+					 */
+					ldap_user_obj_classes: string
 					/**
 					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
 					 */
@@ -2743,10 +2747,6 @@ type RootTranslation = {
 					 * G​r​o​u​p​ ​O​b​j​e​c​t​ ​C​l​a​s​s
 					 */
 					ldap_group_obj_class: string
-					/**
-					 * S​a​m​b​a​ ​s​u​p​p​o​r​t​ ​e​n​a​b​l​e​d
-					 */
-					ldap_samba_enabled: string
 					/**
 					 * E​n​a​b​l​e​ ​L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
 					 */
@@ -8066,13 +8066,17 @@ export type TranslationFunctions = {
 					 */
 					ldap_username_attr: () => LocalizedString
 					/**
-					 * User Object Class
+					 * User search Object Class
 					 */
 					ldap_user_obj_class: () => LocalizedString
 					/**
 					 * User Search Base
 					 */
 					ldap_user_search_base: () => LocalizedString
+					/**
+					 * All User Object Classes
+					 */
+					ldap_user_obj_classes: () => LocalizedString
 					/**
 					 * Groupname Attribute
 					 */
@@ -8089,10 +8093,6 @@ export type TranslationFunctions = {
 					 * Group Object Class
 					 */
 					ldap_group_obj_class: () => LocalizedString
-					/**
-					 * Samba support enabled
-					 */
-					ldap_samba_enabled: () => LocalizedString
 					/**
 					 * Enable LDAP two-way synchronization
 					 */

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+use model::UserObjectClass;
 use rand::Rng;
 
 use self::error::LdapError;
@@ -35,7 +36,7 @@ pub struct LDAPConfig {
     pub ldap_groupname_attr: String,
     pub ldap_group_member_attr: String,
     pub ldap_member_attr: String,
-    pub ldap_samba_enabled: bool,
+    pub ldap_user_obj_classes: Vec<String>,
 }
 
 impl LDAPConfig {
@@ -63,7 +64,7 @@ impl TryFrom<Settings> for LDAPConfig {
 
     fn try_from(settings: Settings) -> Result<LDAPConfig, LdapError> {
         // Helper function to validate non-empty string settings
-        fn validate_setting(
+        fn validate_string_setting(
             value: Option<String>,
             setting_name: &str,
         ) -> Result<String, LdapError> {
@@ -78,41 +79,59 @@ impl TryFrom<Settings> for LDAPConfig {
             }
         }
 
+        fn validate_vector_setting<T>(
+            value: Vec<T>,
+            setting_name: &str,
+        ) -> Result<Vec<T>, LdapError> {
+            match value.len() {
+                0 => Err(LdapError::MissingSettings(format!(
+                    "Setting {setting_name} cannot be empty for LDAP configuration to work",
+                ))),
+                _ => Ok(value),
+            }
+        }
+
         Ok(Self {
-            ldap_member_attr: validate_setting(settings.ldap_member_attr, "ldap_member_attr")?,
-            ldap_group_member_attr: validate_setting(
+            ldap_member_attr: validate_string_setting(
+                settings.ldap_member_attr,
+                "ldap_member_attr",
+            )?,
+            ldap_group_member_attr: validate_string_setting(
                 settings.ldap_group_member_attr,
                 "ldap_group_member_attr",
             )?,
-            ldap_groupname_attr: validate_setting(
+            ldap_groupname_attr: validate_string_setting(
                 settings.ldap_groupname_attr,
                 "ldap_groupname_attr",
             )?,
-            ldap_username_attr: validate_setting(
+            ldap_username_attr: validate_string_setting(
                 settings.ldap_username_attr,
                 "ldap_username_attr",
             )?,
-            ldap_group_obj_class: validate_setting(
+            ldap_group_obj_class: validate_string_setting(
                 settings.ldap_group_obj_class,
                 "ldap_group_obj_class",
             )?,
-            ldap_user_obj_class: validate_setting(
+            ldap_user_obj_class: validate_string_setting(
                 settings.ldap_user_obj_class,
                 "ldap_user_obj_class",
             )?,
-            ldap_user_search_base: validate_setting(
+            ldap_user_search_base: validate_string_setting(
                 settings.ldap_user_search_base,
                 "ldap_user_search_base",
             )?,
-            ldap_bind_username: validate_setting(
+            ldap_bind_username: validate_string_setting(
                 settings.ldap_bind_username,
                 "ldap_bind_username",
             )?,
-            ldap_group_search_base: validate_setting(
+            ldap_group_search_base: validate_string_setting(
                 settings.ldap_group_search_base,
                 "ldap_group_search_base",
             )?,
-            ldap_samba_enabled: settings.ldap_samba_enabled,
+            ldap_user_obj_classes: validate_vector_setting(
+                settings.ldap_user_obj_classes,
+                "ldap_user_obj_classes",
+            )?,
         })
     }
 }
@@ -324,8 +343,16 @@ impl LDAPConnection {
         };
         let ssha_password = hash::salted_sha1_hash(&password);
         let nt_password = hash::nthash(&password);
-        self.add(&dn, user.as_ldap_attrs(&ssha_password, &nt_password))
-            .await?;
+        let user_obj_classes = self.config.ldap_user_obj_classes.clone();
+        self.add(
+            &dn,
+            user.as_ldap_attrs(
+                &ssha_password,
+                &nt_password,
+                user_obj_classes.iter().map(|s| s.as_str()).collect(),
+            ),
+        )
+        .await?;
         info!("Added LDAP user {}", user.username);
         Ok(())
     }
@@ -374,15 +401,37 @@ impl LDAPConnection {
         let user_dn = self.config.user_dn(username);
         let ssha_password = hash::salted_sha1_hash(password);
         let nt_password = hash::nthash(password);
-        self.modify(
-            &user_dn,
-            &user_dn,
-            vec![
-                Mod::Replace("userPassword", hashset![ssha_password.as_str()]),
-                Mod::Replace("sambaNTPassword", hashset![nt_password.as_str()]),
-            ],
-        )
-        .await?;
+        let mut mods = Vec::new();
+
+        if self
+            .config
+            .ldap_user_obj_classes
+            .contains(&UserObjectClass::SimpleSecurityObject.into())
+        {
+            mods.push(Mod::Replace(
+                "userPassword",
+                hashset![ssha_password.as_str()],
+            ));
+        }
+
+        if self
+            .config
+            .ldap_user_obj_classes
+            .contains(&UserObjectClass::SambaSamAccount.into())
+        {
+            mods.push(Mod::Replace(
+                "sambaNTPassword",
+                hashset![nt_password.as_str()],
+            ));
+        }
+
+        if mods.is_empty() {
+            return Err(LdapError::MissingSettings(
+                format!("Can't set password as no password object class has been defined for the user {username}."),
+            ));
+        }
+
+        self.modify(&user_dn, &user_dn, mods).await?;
         info!("Password set for user {username}");
 
         Ok(())

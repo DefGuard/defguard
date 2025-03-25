@@ -926,9 +926,9 @@ export type SettingsLDAP = {
   ldap_groupname_attr: string;
   ldap_member_attr: string;
   ldap_user_obj_class: string;
+  ldap_user_obj_classes: string[];
   ldap_user_search_base: string;
   ldap_username_attr: string;
-  ldap_samba_enabled: boolean;
   ldap_enabled: boolean;
   ldap_sync_enabled: boolean;
   ldap_is_authoritative: boolean;

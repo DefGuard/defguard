@@ -3,10 +3,36 @@ use std::collections::HashSet;
 use ldap3::{Mod, SearchEntry};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::{
-    db::{Settings, User},
-    hashset,
-};
+use crate::{db::User, hashset};
+
+pub(crate) enum UserObjectClass {
+    SambaSamAccount,
+    InetOrgPerson,
+    SimpleSecurityObject,
+}
+
+impl<'a> From<&'a UserObjectClass> for &'static str {
+    fn from(obj_class: &'a UserObjectClass) -> &'static str {
+        match obj_class {
+            UserObjectClass::SambaSamAccount => "sambaSamAccount",
+            UserObjectClass::InetOrgPerson => "inetOrgPerson",
+            UserObjectClass::SimpleSecurityObject => "simpleSecurityObject",
+        }
+    }
+}
+
+impl From<UserObjectClass> for &'static str {
+    fn from(obj_class: UserObjectClass) -> &'static str {
+        (&obj_class).into()
+    }
+}
+
+impl From<UserObjectClass> for String {
+    fn from(obj_class: UserObjectClass) -> String {
+        let str: &str = obj_class.into();
+        str.to_string()
+    }
+}
 
 impl User {
     pub fn from_searchentry(
@@ -57,32 +83,36 @@ impl<I> User<I> {
         &'a self,
         ssha_password: &'a str,
         nt_password: &'a str,
+        object_classes: HashSet<&'a str>,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
-        let settings = Settings::get_current_settings();
-        let mut attrs = vec![
-            (
-                "objectClass",
-                hashset!["inetOrgPerson", "simpleSecurityObject", "sambaSamAccount"],
-            ),
+        let mut attrs = vec![];
+        if object_classes.contains(UserObjectClass::InetOrgPerson.into()) {
             // inetOrgPerson
-            ("cn", hashset![self.username.as_str()]),
-            ("sn", hashset![self.last_name.as_str()]),
-            ("givenName", hashset![self.first_name.as_str()]),
-            ("mail", hashset![self.email.as_str()]),
-            ("uid", hashset![self.username.as_str()]),
+            attrs.extend_from_slice(&[
+                ("cn", hashset![self.username.as_str()]),
+                ("sn", hashset![self.last_name.as_str()]),
+                ("givenName", hashset![self.first_name.as_str()]),
+                ("mail", hashset![self.email.as_str()]),
+                ("uid", hashset![self.username.as_str()]),
+            ]);
+            if let Some(phone) = &self.phone {
+                if !phone.is_empty() {
+                    attrs.push(("mobile", hashset![phone.as_str()]));
+                }
+            }
+        }
+        if object_classes.contains(UserObjectClass::SimpleSecurityObject.into()) {
             // simpleSecurityObject
-            ("userPassword", hashset![ssha_password]),
-        ];
-        if settings.ldap_samba_enabled {
+            attrs.push(("userPassword", hashset![ssha_password]));
+        }
+        if object_classes.contains(UserObjectClass::SambaSamAccount.into()) {
             // sambaSamAccount
             attrs.push(("sambaSID", hashset!["0"]));
             attrs.push(("sambaNTPassword", hashset![nt_password]));
         }
-        if let Some(phone) = &self.phone {
-            if !phone.is_empty() {
-                attrs.push(("mobile", hashset![phone.as_str()]));
-            }
-        }
+
+        attrs.push(("objectClass", object_classes));
+
         attrs
     }
 }
@@ -108,26 +138,6 @@ pub(crate) fn extract_dn_value(dn: &str) -> Option<String> {
         dn.get((eq_index + 1)..comma_index).map(ToString::to_string)
     } else {
         None
-    }
-}
-
-impl<'a> From<&'a User> for Vec<(&'a str, HashSet<&'a str>)> {
-    fn from(user: &'a User) -> Self {
-        let mut attrs = vec![
-            (
-                "objectClass",
-                hashset!["inetOrgPerson", "simpleSecurityObject"],
-            ),
-            ("cn", hashset![user.username.as_str()]),
-            ("sn", hashset![user.last_name.as_str()]),
-            ("givenName", hashset![user.first_name.as_str()]),
-            ("mail", hashset![user.email.as_str()]),
-            ("uid", hashset![user.username.as_str()]),
-        ];
-        if let Some(ref phone) = user.phone {
-            attrs.push(("mobile", hashset![phone.as_str()]));
-        }
-        attrs
     }
 }
 

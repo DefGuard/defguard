@@ -19,7 +19,9 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
-type FormFields = SettingsLDAP;
+type FormFields = Omit<SettingsLDAP, 'ldap_user_obj_classes'> & {
+  ldap_user_obj_classes: string;
+};
 
 export const LdapSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -63,9 +65,9 @@ export const LdapSettingsForm = () => {
         ldap_groupname_attr: z.string().min(1, LL.form.error.required()),
         ldap_member_attr: z.string().min(1, LL.form.error.required()),
         ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
+        ldap_user_obj_classes: z.string().min(1, LL.form.error.required()),
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
-        ldap_samba_enabled: z.boolean(),
         ldap_enabled: z.boolean(),
         ldap_sync_enabled: z.boolean(),
         ldap_is_authoritative: z.boolean(),
@@ -83,12 +85,12 @@ export const LdapSettingsForm = () => {
       ldap_username_attr: settings?.ldap_username_attr ?? '',
       ldap_user_search_base: settings?.ldap_user_search_base ?? '',
       ldap_user_obj_class: settings?.ldap_user_obj_class ?? '',
+      ldap_user_obj_classes: settings?.ldap_user_obj_classes.join(', ') ?? '',
       ldap_url: settings?.ldap_url ?? '',
       ldap_member_attr: settings?.ldap_member_attr ?? '',
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
-      ldap_samba_enabled: settings?.ldap_samba_enabled ?? false,
       ldap_enabled: settings?.ldap_enabled ?? false,
       ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
       ldap_is_authoritative: settings?.ldap_is_authoritative ?? false,
@@ -98,7 +100,7 @@ export const LdapSettingsForm = () => {
     [settings],
   );
 
-  const emptyValues: SettingsLDAP = useMemo(
+  const emptyValues: FormFields = useMemo(
     () => ({
       ldap_group_search_base: '',
       ldap_group_member_attr: '',
@@ -106,12 +108,12 @@ export const LdapSettingsForm = () => {
       ldap_username_attr: '',
       ldap_user_search_base: '',
       ldap_user_obj_class: '',
+      ldap_user_obj_classes: '',
       ldap_url: '',
       ldap_member_attr: '',
       ldap_groupname_attr: '',
       ldap_bind_password: '',
       ldap_bind_username: '',
-      ldap_samba_enabled: false,
       ldap_enabled: false,
       ldap_sync_enabled: false,
       ldap_is_authoritative: false,
@@ -128,11 +130,21 @@ export const LdapSettingsForm = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    mutate(data);
+    const formattedData = {
+      ...data,
+      ldap_user_obj_classes: data.ldap_user_obj_classes
+        .split(',')
+        .map((obj_class) => obj_class.trim())
+        .filter((obj_class) => obj_class.length > 0),
+    };
+    mutate(formattedData);
   };
 
   const handleDeleteSubmit = useCallback(() => {
-    mutate(emptyValues);
+    mutate({
+      ...emptyValues,
+      ldap_user_obj_classes: [],
+    });
     reset(emptyValues);
   }, [mutate, emptyValues, reset]);
 
@@ -167,6 +179,16 @@ export const LdapSettingsForm = () => {
           label={localLL.form.labels.ldap_enable()}
           labelPlacement="right"
         />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_use_starttls' }}
+          label={localLL.form.labels.ldap_use_starttls()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_tls_verify_cert' }}
+          label={localLL.form.labels.ldap_tls_verify_cert()}
+          labelPlacement="right"
+        />
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}
@@ -197,6 +219,10 @@ export const LdapSettingsForm = () => {
           label={localLL.form.labels.ldap_user_obj_class()}
         />
         <FormInput
+          controller={{ control, name: 'ldap_user_obj_classes' }}
+          label={localLL.form.labels.ldap_user_obj_classes()}
+        />
+        <FormInput
           controller={{ control, name: 'ldap_groupname_attr' }}
           label={localLL.form.labels.ldap_groupname_attr()}
         />
@@ -211,21 +237,6 @@ export const LdapSettingsForm = () => {
         <FormInput
           controller={{ control, name: 'ldap_group_search_base' }}
           label={localLL.form.labels.ldap_group_search_base()}
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_samba_enabled' }}
-          label={localLL.form.labels.ldap_samba_enabled()}
-          labelPlacement="right"
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_use_starttls' }}
-          label={localLL.form.labels.ldap_use_starttls()}
-          labelPlacement="right"
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_tls_verify_cert' }}
-          label={localLL.form.labels.ldap_tls_verify_cert()}
-          labelPlacement="right"
         />
         <h3>LDAP Sync</h3>
         <FormCheckBox

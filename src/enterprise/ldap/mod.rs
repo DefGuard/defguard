@@ -17,12 +17,17 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     let settings = Settings::get_current_settings();
     if !settings.ldap_enabled {
         debug!("LDAP is disabled, not performing LDAP sync");
+        if get_ldap_sync_status() == SyncStatus::Synced {
+            set_ldap_sync_status(SyncStatus::Desynced, pool).await?;
+        }
         return Ok(());
     }
+
     if !settings.ldap_sync_enabled {
         debug!("LDAP sync is disabled, not performing LDAP sync");
         return Ok(());
     }
+
     if !is_enterprise_enabled() {
         debug!("Enterprise features are disabled, not performing LDAP sync");
         return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
@@ -76,11 +81,7 @@ where
     match f.await {
         Ok(result) => Ok(result),
         Err(e) => {
-            warn!(
-                "Encountered an error while performing LDAP operation: {:?}",
-                e
-            );
-
+            warn!("Encountered an error while performing LDAP operation: {e:?}");
             if let Err(status_err) = set_ldap_sync_status(SyncStatus::Desynced, pool).await {
                 warn!("Failed to update LDAP sync status: {:?}", status_err);
             }

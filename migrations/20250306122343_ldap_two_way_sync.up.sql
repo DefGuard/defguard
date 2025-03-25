@@ -1,7 +1,3 @@
--- maybe switch to default true since it was required up to this point?
-ALTER TABLE settings
-ADD COLUMN ldap_samba_enabled BOOLEAN NOT NULL DEFAULT FALSE;
-
 ALTER TABLE "user"
 ADD COLUMN ldap_linked BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -18,3 +14,9 @@ ADD COLUMN ldap_sync_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE settings
 ADD COLUMN ldap_is_authoritative BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE settings
+ADD COLUMN ldap_sync_interval int4 NOT NULL DEFAULT 600;
+
+ALTER TABLE settings
+ADD COLUMN ldap_user_obj_classes TEXT[] NOT NULL DEFAULT ARRAY['inetOrgPerson', 'simpleSecurityObject', 'sambaSamAccount'];
