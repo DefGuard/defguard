@@ -993,18 +993,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.allow_all_network_devices {
-            query_as!(
-                Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-                    configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type",
-            )
-                .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
+        query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
@@ -1012,12 +1001,11 @@ impl AclRule<Id> {
                     JOIN device d \
                     ON d.id = r.device_id \
                     WHERE r.rule_id = $1 \
-                    AND r.allow = true",
+                    AND r.allow = true AND d.configured = true",
                 self.id,
             )
                 .fetch_all(executor)
             .await
-        }
     }
 
     pub(crate) async fn get_denied_network_devices<'e, E>(
@@ -1027,18 +1015,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_network_devices {
-            query_as!(
-                Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-                    configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type",
-            )
-                .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
+        query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
@@ -1046,12 +1023,11 @@ impl AclRule<Id> {
                     JOIN device d \
                     ON d.id = r.device_id \
                     WHERE r.rule_id = $1 \
-                    AND r.allow = false",
+                    AND r.allow = false AND d.configured = true",
                 self.id,
             )
                 .fetch_all(executor)
             .await
-        }
     }
 
     /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
@@ -1234,6 +1210,60 @@ impl AclRuleInfo<Id> {
 
         // convert HashSet to output Vec
         Ok(unique_denied_users.into_iter().collect())
+    }
+
+    /// Returns the list of explicitly configured allowed network devices or
+    /// a list of all devices if 'allow_all_network_devices' flag is enabled
+    pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all allowed network devices for ACL rule {}",
+            self.id
+        );
+        // return all active devices if `allow_all_network_devices` flag is enabled
+        if self.allow_all_network_devices {
+            return query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type AND configured = true",
+            )
+                .fetch_all(executor)
+            .await;
+        }
+
+        // return explicitly configured allowed devices otherwise
+        Ok(self.allowed_devices.clone())
+    }
+
+    /// Returns the list of explicitly configured denied network devices or
+    /// a list of all devices if 'deny_all_network_devices' flag is enabled
+    pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all denied network devices for ACL rule {}",
+            self.id
+        );
+        // return all active devices if `allow_all_network_devices` flag is enabled
+        if self.allow_all_network_devices {
+            return query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type AND configured = true",
+            )
+                .fetch_all(executor)
+            .await;
+        }
+
+        // return explicitly configured denied devices otherwise
+        Ok(self.denied_devices.clone())
     }
 }
 
