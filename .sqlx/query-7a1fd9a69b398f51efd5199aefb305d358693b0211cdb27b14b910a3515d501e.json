@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM aclruledevice r JOIN device d ON d.id = r.device_id WHERE r.rule_id = $1 AND r.allow = true",
+  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = 'network'::device_type AND configured = true",
   "describe": {
     "columns": [
       {
@@ -55,9 +55,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -70,5 +68,5 @@
       false
     ]
   },
-  "hash": "73b448972080f6e7ca671fc7108276f42627596e83121863c70e0a039bb6caf4"
+  "hash": "7a1fd9a69b398f51efd5199aefb305d358693b0211cdb27b14b910a3515d501e"
 }
