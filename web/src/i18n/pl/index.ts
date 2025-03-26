@@ -1055,6 +1055,10 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     ldapSettings: {
       title: 'Ustawienia LDAP',
+      sync: {
+        header: 'Obustronna synchronizacja LDAP',
+        info: 'Przed włączeniem synchronizacji, zapoznaj się z [dokumentacją](https://docs.defguard.net/enterprise/all-enteprise-features).',
+      },
       form: {
         labels: {
           ldap_enable: 'Włącz integrację z LDAP',
@@ -1063,16 +1067,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_bind_password: 'Bind Password',
           ldap_member_attr: 'Member Attribute',
           ldap_username_attr: 'Username Attribute',
-          ldap_user_obj_class: 'User search Object Class',
+          ldap_user_obj_class: 'User Object Class',
           ldap_user_search_base: 'User Search Base',
-          ldap_user_obj_classes: 'All User Object Classes',
+          ldap_user_auxiliary_obj_classes: 'Additional User Object Classes',
           ldap_groupname_attr: 'Groupname Attribute',
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
           ldap_sync_enabled: 'Włącz synchronizację w dwie strony',
           ldap_is_authority:
-            'Użyj LDAP jako autorytetu podczas autoryzacji w dwie strony',
+            'Użyj LDAP jako autorytetu podczas synchronizacji w obie strony',
+          ldap_sync_interval: 'Interwał synchronizacji',
           ldap_use_starttls: 'Użyj StartTLS',
           ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',
         },

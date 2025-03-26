@@ -926,7 +926,7 @@ export type SettingsLDAP = {
   ldap_groupname_attr: string;
   ldap_member_attr: string;
   ldap_user_obj_class: string;
-  ldap_user_obj_classes: string[];
+  ldap_user_auxiliary_obj_classes: string[];
   ldap_user_search_base: string;
   ldap_username_attr: string;
   ldap_enabled: boolean;
@@ -934,6 +934,7 @@ export type SettingsLDAP = {
   ldap_is_authoritative: boolean;
   ldap_use_starttls: boolean;
   ldap_tls_verify_cert: boolean;
+  ldap_sync_interval: number;
 };
 
 export type SettingsOpenID = {

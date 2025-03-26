@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncStatus};
 
 use crate::{
-    db::Settings,
+    db::{models::settings::update_current_settings, Settings},
     enterprise::{is_enterprise_enabled, limits::update_counts},
     ldap::{error::LdapError, LDAPConnection},
 };
@@ -14,7 +14,7 @@ pub mod sync;
 
 pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
-    let settings = Settings::get_current_settings();
+    let mut settings = Settings::get_current_settings();
     if !settings.ldap_enabled {
         debug!("LDAP is disabled, not performing LDAP sync");
         if get_ldap_sync_status() == SyncStatus::Synced {
@@ -29,7 +29,9 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     }
 
     if !is_enterprise_enabled() {
-        debug!("Enterprise features are disabled, not performing LDAP sync");
+        info!("Enterprise features are disabled, not performing LDAP sync and automatically disabling it");
+        settings.ldap_sync_enabled = false;
+        update_current_settings(pool, settings).await?;
         return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
     }
 

@@ -84,9 +84,9 @@ pub struct Settings {
     pub ldap_bind_password: Option<SecretStringWrapper>,
     pub ldap_group_search_base: Option<String>,
     pub ldap_user_search_base: Option<String>,
-    // The user class to search user with
+    // The structural user class
     pub ldap_user_obj_class: Option<String>,
-    // The group class to search groups with
+    // The structural group class
     pub ldap_group_obj_class: Option<String>,
     pub ldap_username_attr: Option<String>,
     pub ldap_groupname_attr: Option<String>,
@@ -99,7 +99,8 @@ pub struct Settings {
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
     pub ldap_sync_interval: i32,
-    pub ldap_user_obj_classes: Vec<String>,
+    // Additional object classes for users which determine the added attributes
+    pub ldap_user_auxiliary_obj_classes: Vec<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -132,7 +133,7 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
-            ldap_sync_interval, ldap_user_obj_classes \
+            ldap_sync_interval, ldap_user_auxiliary_obj_classes \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -200,7 +201,7 @@ impl Settings {
             ldap_sync_enabled = $41, \
             ldap_is_authoritative = $42, \
             ldap_sync_interval = $43, \
-            ldap_user_obj_classes = $44 \
+            ldap_user_auxiliary_obj_classes = $44 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -245,7 +246,7 @@ impl Settings {
             self.ldap_sync_enabled,
             self.ldap_is_authoritative,
             self.ldap_sync_interval,
-            &self.ldap_user_obj_classes as &Vec<String>,
+            &self.ldap_user_auxiliary_obj_classes as &Vec<String>,
         )
         .execute(executor)
         .await?;

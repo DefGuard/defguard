@@ -9,6 +9,7 @@ pub(crate) enum UserObjectClass {
     SambaSamAccount,
     InetOrgPerson,
     SimpleSecurityObject,
+    User,
 }
 
 impl<'a> From<&'a UserObjectClass> for &'static str {
@@ -17,6 +18,7 @@ impl<'a> From<&'a UserObjectClass> for &'static str {
             UserObjectClass::SambaSamAccount => "sambaSamAccount",
             UserObjectClass::InetOrgPerson => "inetOrgPerson",
             UserObjectClass::SimpleSecurityObject => "simpleSecurityObject",
+            UserObjectClass::User => "user",
         }
     }
 }
@@ -31,6 +33,19 @@ impl From<UserObjectClass> for String {
     fn from(obj_class: UserObjectClass) -> String {
         let str: &str = obj_class.into();
         str.to_string()
+    }
+}
+
+impl PartialEq<&str> for UserObjectClass {
+    fn eq(&self, other: &&str) -> bool {
+        let str: &str = self.into();
+        str == *other
+    }
+}
+
+impl PartialEq<UserObjectClass> for &str {
+    fn eq(&self, other: &UserObjectClass) -> bool {
+        other == self
     }
 }
 
@@ -56,17 +71,29 @@ impl User {
 impl<I> User<I> {
     #[must_use]
     pub fn as_ldap_mod(&self, config: &LDAPConfig) -> Vec<Mod<&str>> {
-        let mut changes = vec![
-            Mod::Replace("sn", hashset![self.last_name.as_str()]),
-            Mod::Replace("givenName", hashset![self.first_name.as_str()]),
-            Mod::Replace("mail", hashset![self.email.as_str()]),
-        ];
-        if let Some(phone) = &self.phone {
-            if phone.is_empty() {
-                changes.push(Mod::Replace("mobile", HashSet::new()));
-            } else {
-                changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
+        let obj_classes = config.get_all_user_obj_classes();
+        let mut changes = vec![];
+        if obj_classes.contains(&UserObjectClass::InetOrgPerson.into())
+            || obj_classes.contains(&UserObjectClass::User.into())
+        {
+            changes.extend_from_slice(&[
+                Mod::Replace("sn", hashset![self.last_name.as_str()]),
+                Mod::Replace("givenName", hashset![self.first_name.as_str()]),
+                Mod::Replace("mail", hashset![self.email.as_str()]),
+            ]);
+
+            if let Some(phone) = &self.phone {
+                if phone.is_empty() {
+                    changes.push(Mod::Replace("mobile", HashSet::new()));
+                } else {
+                    changes.push(Mod::Replace("mobile", hashset![phone.as_str()]));
+                }
             }
+        } else {
+            warn!(
+                "No user object class found for user {}, can't generate mods",
+                self.username
+            );
         }
         // Be careful when changing naming attribute (the one in distingushed name)
         if config.ldap_username_attr != "cn" {
@@ -83,11 +110,13 @@ impl<I> User<I> {
         &'a self,
         ssha_password: &'a str,
         nt_password: &'a str,
+        unicode_pwd: &'a str,
         object_classes: HashSet<&'a str>,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
-        if object_classes.contains(UserObjectClass::InetOrgPerson.into()) {
-            // inetOrgPerson
+        if object_classes.contains(UserObjectClass::InetOrgPerson.into())
+            || object_classes.contains(UserObjectClass::User.into())
+        {
             attrs.extend_from_slice(&[
                 ("cn", hashset![self.username.as_str()]),
                 ("sn", hashset![self.last_name.as_str()]),
@@ -100,6 +129,11 @@ impl<I> User<I> {
                     attrs.push(("mobile", hashset![phone.as_str()]));
                 }
             }
+        }
+        if object_classes.contains(UserObjectClass::User.into()) {
+            attrs.push(("userAccountControl", hashset!["512"]));
+            // TODO: Move it behind some other condition, e.g. "uses_ad"
+            attrs.push(("unicodePwd", hashset![unicode_pwd]));
         }
         if object_classes.contains(UserObjectClass::SimpleSecurityObject.into()) {
             // simpleSecurityObject

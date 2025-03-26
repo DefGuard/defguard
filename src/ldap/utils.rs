@@ -14,8 +14,10 @@ pub(crate) async fn login_through_ldap(
     password: &str,
 ) -> Result<User<Id>, LdapError> {
     with_ldap_status(pool, async {
+        debug!("Logging in user {username} through LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         let ldap_user = ldap_connection.get_user(username, password).await?;
+        debug!("User {username} logged in through LDAP");
         let user =
             if let Some(defguard_user) = User::find_by_username(pool, &ldap_user.username).await? {
                 defguard_user
@@ -34,6 +36,7 @@ pub(crate) async fn user_from_ldap(
     password: &str,
 ) -> Result<User<Id>, LdapError> {
     with_ldap_status(pool, async {
+        debug!("Getting user {username} from LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         let user = ldap_connection
             .get_user(username, password)
@@ -48,13 +51,18 @@ pub(crate) async fn user_from_ldap(
 
 pub(crate) async fn ldap_add_user(user: &User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Creating user {} in LDAP", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
         match ldap_connection.add_user(user, password).await {
             Ok(()) => Ok(()),
             // this user might exist in LDAP, just try to set the password
-            Err(_) => {
+            Err(err) => {
+                warn!(
+                    "There was an error while trying to create the user {} in LDAP: {}",
+                    user.username, err
+                );
                 debug!(
-                    "User {} already exists in LDAP, trying to set password",
+                    "Trying to set password for user {} in LDAP, in case he already existed",
                     user.username
                 );
                 if let Some(password) = password {
@@ -77,6 +85,7 @@ pub(crate) async fn ldap_add_user(user: &User<Id>, password: Option<&str>, pool:
 
 pub(crate) async fn ldap_modify_user(username: &str, user: &User<Id>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Modifying user {username} in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.modify_user(username, user).await
     })
@@ -85,6 +94,7 @@ pub(crate) async fn ldap_modify_user(username: &str, user: &User<Id>, pool: &PgP
 
 pub(crate) async fn ldap_delete_user(username: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Deleting user {username} from LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.delete_user(username).await
     })
@@ -94,6 +104,7 @@ pub(crate) async fn ldap_delete_user(username: &str, pool: &PgPool) {
 /// Remove singular user from multiple groups in ldap.
 pub(crate) async fn ldap_add_user_to_groups(username: &str, groups: HashSet<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Adding user {username} to groups {groups:?}");
         let mut ldap_connection = LDAPConnection::create().await?;
         for group in groups {
             if ldap_connection.group_exists(group).await? {
@@ -119,6 +130,7 @@ pub(crate) async fn ldap_remove_user_from_groups(
     pool: &PgPool,
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Removing user {username} from groups {groups:?}");
         let mut ldap_connection = LDAPConnection::create().await?;
         for group in groups {
             if ldap_connection.group_exists(group).await? {
@@ -201,6 +213,7 @@ pub(crate) async fn ldap_remove_users_from_groups(
 
 pub(crate) async fn ldap_change_password(username: &str, password: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Changing password for user {username} in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.set_password(username, password).await
     })
@@ -209,6 +222,7 @@ pub(crate) async fn ldap_change_password(username: &str, password: &str, pool: &
 
 pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group<Id>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Modifying group {} in LDAP", groupname);
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.modify_group(groupname, group).await
     })
@@ -217,6 +231,7 @@ pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group<Id>, pool: 
 
 pub(crate) async fn ldap_delete_group(groupname: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+        debug!("Deleting group {} from LDAP", groupname);
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.delete_group(groupname).await
     })

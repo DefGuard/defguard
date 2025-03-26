@@ -36,7 +36,7 @@ pub struct LDAPConfig {
     pub ldap_groupname_attr: String,
     pub ldap_group_member_attr: String,
     pub ldap_member_attr: String,
-    pub ldap_user_obj_classes: Vec<String>,
+    pub ldap_user_auxiliary_obj_classes: Vec<String>,
 }
 
 impl LDAPConfig {
@@ -56,6 +56,13 @@ impl LDAPConfig {
             "{}={groupname},{}",
             self.ldap_groupname_attr, self.ldap_group_search_base,
         )
+    }
+
+    #[must_use]
+    pub(crate) fn get_all_user_obj_classes(&self) -> Vec<String> {
+        let mut obj_classes = vec![self.ldap_user_obj_class.clone()];
+        obj_classes.extend(self.ldap_user_auxiliary_obj_classes.to_vec());
+        obj_classes
     }
 }
 
@@ -128,9 +135,9 @@ impl TryFrom<Settings> for LDAPConfig {
                 settings.ldap_group_search_base,
                 "ldap_group_search_base",
             )?,
-            ldap_user_obj_classes: validate_vector_setting(
-                settings.ldap_user_obj_classes,
-                "ldap_user_obj_classes",
+            ldap_user_auxiliary_obj_classes: validate_vector_setting(
+                settings.ldap_user_auxiliary_obj_classes,
+                "ldap_user_auxiliary_obj_classes ",
             )?,
         })
     }
@@ -212,8 +219,9 @@ impl LDAPConnection {
     }
 
     async fn group_exists(&mut self, groupname: &str) -> Result<bool, LdapError> {
+        let groupname_attr = self.config.ldap_groupname_attr.clone();
         let res = self
-            .search_groups(format!("(cn={groupname})").as_str())
+            .search_groups(format!("({groupname_attr}={groupname})").as_str())
             .await?;
 
         Ok(!res.is_empty())
@@ -343,12 +351,14 @@ impl LDAPConnection {
         };
         let ssha_password = hash::salted_sha1_hash(&password);
         let nt_password = hash::nthash(&password);
-        let user_obj_classes = self.config.ldap_user_obj_classes.clone();
+        let unicode_pwd = hash::unicode_pwd(&password);
+        let user_obj_classes = self.config.get_all_user_obj_classes();
         self.add(
             &dn,
             user.as_ldap_attrs(
                 &ssha_password,
                 &nt_password,
+                &unicode_pwd,
                 user_obj_classes.iter().map(|s| s.as_str()).collect(),
             ),
         )
@@ -401,11 +411,12 @@ impl LDAPConnection {
         let user_dn = self.config.user_dn(username);
         let ssha_password = hash::salted_sha1_hash(password);
         let nt_password = hash::nthash(password);
+        let unicode_pwd = hash::unicode_pwd(password);
         let mut mods = Vec::new();
 
         if self
             .config
-            .ldap_user_obj_classes
+            .ldap_user_auxiliary_obj_classes
             .contains(&UserObjectClass::SimpleSecurityObject.into())
         {
             mods.push(Mod::Replace(
@@ -416,13 +427,17 @@ impl LDAPConnection {
 
         if self
             .config
-            .ldap_user_obj_classes
+            .ldap_user_auxiliary_obj_classes
             .contains(&UserObjectClass::SambaSamAccount.into())
         {
             mods.push(Mod::Replace(
                 "sambaNTPassword",
                 hashset![nt_password.as_str()],
             ));
+        }
+
+        if self.config.ldap_user_obj_class.as_str() == UserObjectClass::User {
+            mods.push(Mod::Replace("unicodePwd", hashset![unicode_pwd.as_str()]));
         }
 
         if mods.is_empty() {
@@ -445,9 +460,10 @@ impl LDAPConnection {
         debug!("Adding LDAP group {}", group_name);
         let dn = self.config.group_dn(group_name);
         let group_obj_class = self.config.ldap_group_obj_class.clone();
+        let groupname_attr = self.config.ldap_groupname_attr.clone();
         let mut group_attrs = vec![
             ("objectClass", hashset![group_obj_class.as_str()]),
-            ("cn", hashset![group_name]),
+            (groupname_attr.as_str(), hashset![group_name]),
         ];
         //   extent the group attr with multiple members
         let member_dns = members
@@ -475,25 +491,6 @@ impl LDAPConnection {
         Ok(())
     }
 
-    // /// Retrieves group with given groupname from LDAP.
-    // pub async fn get_group(&mut self, groupname: &str) -> Result<Group, LdapError> {
-    //     debug!("Performing LDAP group search: {groupname}");
-    //     let mut enties = self
-    //         .search_groups(&format!(
-    //             "(&({}={})(objectClass={}))",
-    //             self.config.ldap_groupname_attr, groupname, self.config.ldap_group_obj_class
-    //         ))
-    //         .await?;
-    //     if let Some(entry) = enties.pop() {
-    //         info!("Performed LDAP user search: {groupname}");
-    //         Ok(Group::from_searchentry(&entry, &self.config))
-    //     } else {
-    //         Err(LdapError::ObjectNotFound(format!(
-    //             "Group {groupname} not found"
-    //         )))
-    //     }
-    // }
-
     /// Modifies LDAP group.
     pub async fn modify_group(
         &mut self,
@@ -503,10 +500,14 @@ impl LDAPConnection {
         debug!("Modifying LDAP group {groupname}");
         let old_dn = self.config.group_dn(groupname);
         let new_dn = self.config.group_dn(&group.name);
+        let groupname_attr = self.config.ldap_groupname_attr.clone();
         self.modify(
             &old_dn,
             &new_dn,
-            vec![Mod::Replace("cn", hashset![group.name.as_str()])],
+            vec![Mod::Replace(
+                groupname_attr.as_str(),
+                hashset![group.name.as_str()],
+            )],
         )
         .await?;
         info!("Modified LDAP group {groupname}");
@@ -522,23 +523,6 @@ impl LDAPConnection {
 
         Ok(())
     }
-
-    // /// Lists groups satisfying specified criteria
-    // pub async fn get_groups(&mut self) -> Result<Vec<Group>, LdapError> {
-    //     debug!("Performing LDAP group search");
-    //     let mut entries = self
-    //         .search_groups(&format!(
-    //             "(objectClass={})",
-    //             self.config.ldap_group_obj_class
-    //         ))
-    //         .await?;
-    //     let users = entries
-    //         .drain(..)
-    //         .map(|entry| Group::from_searchentry(&entry, &self.config))
-    //         .collect();
-    //     info!("Performed LDAP group search");
-    //     Ok(users)
-    // }
 
     /// Add user to a group.
     pub async fn add_user_to_group(
@@ -569,17 +553,25 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Removing user {username} from group {groupname} in LDAP");
-        let user_dn = self.config.user_dn(username);
-        let group_dn = self.config.group_dn(groupname);
-        self.modify(
-            &group_dn,
-            &group_dn,
-            vec![Mod::Delete(
-                &self.config.ldap_group_member_attr.clone(),
-                hashset![user_dn.as_str()],
-            )],
-        )
-        .await?;
+        let members = self.get_group_members(groupname).await?;
+        if members.len() > 1 {
+            let user_dn = self.config.user_dn(username);
+            let group_dn = self.config.group_dn(groupname);
+            self.modify(
+                &group_dn,
+                &group_dn,
+                vec![Mod::Delete(
+                    &self.config.ldap_group_member_attr.clone(),
+                    hashset![user_dn.as_str()],
+                )],
+            )
+            .await?;
+            debug!("Removed user {username} from group {groupname} in LDAP");
+        } else {
+            debug!("Group {groupname} has only one member, removing the whole group",);
+            self.delete_group(groupname).await?;
+            debug!("Removed group {groupname} from LDAP");
+        }
 
         Ok(())
     }

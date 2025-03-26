@@ -19,4 +19,4 @@ ALTER TABLE settings
 DROP COLUMN ldap_sync_interval;
 
 ALTER TABLE settings
-DROP COLUMN ldap_user_obj_classes;
+DROP COLUMN ldap_user_auxiliary_obj_classes;

@@ -10,7 +10,7 @@ use crate::{
     db::GatewayEvent,
     enterprise::{
         directory_sync::{do_directory_sync, get_directory_sync_interval},
-        ldap::do_ldap_sync,
+        ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
     updates::do_new_version_check,
@@ -20,7 +20,6 @@ use crate::{
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
-const LDAP_SYNC_INTERVAL: u64 = 30;
 
 pub async fn run_utility_thread(
     pool: &PgPool,
@@ -81,7 +80,7 @@ pub async fn run_utility_thread(
             last_updates_check = Instant::now();
         }
 
-        if last_ldap_sync.elapsed().as_secs() >= LDAP_SYNC_INTERVAL {
+        if last_ldap_sync.elapsed().as_secs() >= get_ldap_sync_interval() {
             ldap_sync_task().await;
             last_ldap_sync = Instant::now();
         }

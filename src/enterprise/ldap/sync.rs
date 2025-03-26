@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use ldap3::{Scope, SearchEntry};
+use ldap3::{adapters::PagedResults, Scope, SearchEntry};
 use sqlx::{PgConnection, PgPool, Type};
 
 use crate::{
@@ -276,6 +276,16 @@ fn extract_intersecting_users(
     intersecting_users
 }
 
+const LDAP_SYNC_INTERVAL: u64 = 60 * 5;
+
+pub fn get_ldap_sync_interval() -> u64 {
+    let settings = Settings::get_current_settings();
+    settings
+        .ldap_sync_interval
+        .try_into()
+        .unwrap_or(LDAP_SYNC_INTERVAL)
+}
+
 impl crate::ldap::LDAPConnection {
     async fn apply_user_modifications(
         &mut self,
@@ -332,21 +342,32 @@ impl crate::ldap::LDAPConnection {
         let mut all_ldap_users = vec![];
         let mut all_defguard_users = User::all(pool).await?;
 
+        let username_attr = &self.config.ldap_username_attr;
+
         for entry in all_entries {
             let username = entry
                 .attrs
-                .get("cn")
+                .get(username_attr)
                 .and_then(|v| v.first())
-                .ok_or_else(|| LdapError::ObjectNotFound("No cn attribute found".to_string()))?;
+                .ok_or_else(|| {
+                    LdapError::ObjectNotFound(format!("No {} attribute found", username_attr))
+                })?;
 
             match User::from_searchentry(&entry, username, None) {
                 Ok(user) => all_ldap_users.push(user),
-                Err(err) => warn!(
+                Err(err) => debug!(
                     "Failed to create user {} from LDAP entry: {:?}, error: {}. The user will be skipped during sync",
                     username, entry, err
                 ),
             }
         }
+
+        let ldap_memberships = self
+            .get_ldap_group_memberships(
+                all_ldap_users.iter().map(|u| u.username.as_str()).collect(),
+            )
+            .await?;
+        let mut defguard_memberships = HashMap::new();
 
         let intersecting_users =
             extract_intersecting_users(&mut all_defguard_users, &mut all_ldap_users);
@@ -354,9 +375,6 @@ impl crate::ldap::LDAPConnection {
             .await?;
 
         let user_changes = compute_user_sync_changes(all_ldap_users, all_defguard_users, authority);
-
-        let ldap_memberships = self.get_ldap_group_memberships().await?;
-        let mut defguard_memberships = HashMap::new();
 
         let defguard_groups = Group::all(pool).await?;
         for group in defguard_groups {
@@ -394,38 +412,46 @@ impl crate::ldap::LDAPConnection {
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
         for (groupname, members) in changes.delete_defguard {
+            if members.is_empty() {
+                debug!("No members to remove from group {groupname}, skipping");
+                continue;
+            }
             let group = get_or_create_group(&mut transaction, &groupname).await?;
 
             for member in members {
-                let user = User::find_by_username(&mut *transaction, &member)
-                    .await?
-                    .ok_or_else(|| {
-                        LdapError::ObjectNotFound(format!("User {} not found", member))
-                    })?;
-
-                if user.is_admin(&mut *transaction).await? {
-                    if admin_count == 1 {
-                        debug!(
+                if let Some(user) = User::find_by_username(&mut *transaction, &member).await? {
+                    if user.is_admin(&mut *transaction).await? {
+                        if admin_count == 1 {
+                            debug!(
                             "Cannot remove last admin user {} from Defguard. User won't be removed from group {}.",
                             user.username, groupname
                         );
-                        continue;
+                            continue;
+                        } else {
+                            debug!(
+                                "Removing admin user {} from group {}",
+                                user.username, groupname
+                            );
+                            admin_count -= 1;
+                            user.remove_from_group(&mut *transaction, &group).await?;
+                        }
                     } else {
-                        debug!(
-                            "Removing admin user {} from group {}",
-                            user.username, groupname
-                        );
-                        admin_count -= 1;
+                        debug!("Removing user {} from group {}", user.username, groupname);
                         user.remove_from_group(&mut *transaction, &group).await?;
                     }
                 } else {
-                    debug!("Removing user {} from group {}", user.username, groupname);
-                    user.remove_from_group(&mut *transaction, &group).await?;
+                    debug!(
+                        "LDAP user {member} not found in Defguard, skipping removing user from group {groupname}",
+                    );
                 }
             }
         }
 
         for (groupname, members) in changes.add_defguard {
+            if members.is_empty() {
+                debug!("No members to add to group {groupname}, skipping");
+                continue;
+            }
             let group = get_or_create_group(&mut transaction, &groupname).await?;
             for member in members {
                 if let Some(user) = User::find_by_username(&mut *transaction, &member).await? {
@@ -504,72 +530,148 @@ impl crate::ldap::LDAPConnection {
     }
 
     async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, _res) = self
+        let mut search_stream = self
             .ldap
-            .search(
+            .streaming_search_with(
+                PagedResults::new(500),
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
                 format!("(objectClass={})", self.config.ldap_user_obj_class).as_str(),
                 vec!["*", &self.config.ldap_member_attr],
             )
-            .await?
-            .success()?;
+            .await?;
+
+        let mut entries = vec![];
+        while let Some(entry) = search_stream.next().await? {
+            entries.push(SearchEntry::construct(entry));
+        }
+
         debug!("Performed LDAP user search");
 
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
+        Ok(entries)
     }
 
     /// Returns a map of group names to a set of member usernames
     async fn get_ldap_group_memberships(
         &mut self,
+        all_ldap_usernames: Vec<&str>,
     ) -> Result<HashMap<String, HashSet<String>>, LdapError> {
+        debug!("Retrieving LDAP group memberships");
         let mut membership_entries = self.list_group_memberships().await?;
-
         let mut memberships: HashMap<String, HashSet<String>> = HashMap::new();
 
         for entry in membership_entries.iter_mut() {
             let groupname = entry
                 .attrs
                 .remove(&self.config.ldap_groupname_attr)
-                .and_then(|mut v| v.pop())
-                .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!(
-                        "No {} attribute found",
-                        self.config.ldap_groupname_attr
-                    ))
-                })?;
+                .and_then(|mut v| v.pop());
 
-            let members = entry
-                .attrs
-                .get(&self.config.ldap_group_member_attr)
-                .ok_or_else(|| {
-                    LdapError::ObjectNotFound(format!(
-                        "No {} attribute found",
-                        self.config.ldap_group_member_attr
-                    ))
-                })?
-                .iter()
-                .filter_map(|member| extract_dn_value(member))
-                .collect::<HashSet<String>>();
-            memberships.insert(groupname, members);
+            if let Some(groupname) = groupname {
+                if let Some(members) = entry.attrs.get(&self.config.ldap_group_member_attr) {
+                    let members = members
+                        .iter()
+                        .filter_map(|v| {
+                            extract_dn_value(v).and_then(|v| {
+                                if all_ldap_usernames.contains(&v.as_str()) {
+                                    Some(v)
+                                } else {
+                                    debug!(
+                                        "LDAP group {groupname} contains member {v} that is not a known LDAP user, skipping"
+                                    );
+                                    None
+                                }
+                            })
+                        })
+                        .collect::<HashSet<_>>();
+                    memberships.insert(groupname, members);
+                } else {
+                    warn!("LDAP group {groupname} missing group member attribute, skipping");
+                }
+            } else {
+                warn!("Group entry {entry:?} missing groupname attribute, skipping");
+            }
         }
 
         Ok(memberships)
     }
 
-    async fn list_group_memberships(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, _res) = self
+    pub(crate) async fn get_group_members(
+        &mut self,
+        groupname: &str,
+    ) -> Result<Vec<String>, LdapError> {
+        debug!("Searching for group memberships for group {}", groupname);
+        let filter = format!(
+            "(&(objectClass={})({}={}))",
+            self.config.ldap_group_obj_class, self.config.ldap_groupname_attr, groupname
+        );
+        debug!(
+            "Using the following filter for group search: {filter} and base: {}",
+            self.config.ldap_group_search_base
+        );
+        let mut search_stream = self
             .ldap
-            .search(
+            .streaming_search_with(
+                PagedResults::new(500),
                 &self.config.ldap_group_search_base,
                 Scope::Subtree,
-                "(objectClass=groupOfUniqueNames)",
-                vec!["cn", "uniqueMember"],
+                filter.as_str(),
+                vec![&self.config.ldap_group_member_attr],
             )
-            .await?
-            .success()?;
+            .await?;
 
-        let memberships = rs.into_iter().map(SearchEntry::construct).collect();
+        let mut member_entries = Vec::new();
+        while let Some(entry) = search_stream.next().await? {
+            member_entries.push(SearchEntry::construct(entry));
+        }
+
+        let members = member_entries
+            .first()
+            .and_then(|entry| {
+                let member_entries = entry.attrs.get(&self.config.ldap_group_member_attr);
+                member_entries.map(|v| {
+                    v.iter()
+                        .filter_map(|v| extract_dn_value(v))
+                        .collect::<Vec<_>>()
+                })
+            })
+            .unwrap_or_default();
+        debug!(
+            "Performed LDAP group memberships search for group {}",
+            groupname
+        );
+
+        Ok(members)
+    }
+
+    async fn list_group_memberships(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
+        debug!("Searching for group memberships");
+        let filter = format!(
+            "(&(objectClass={})({}=*))",
+            self.config.ldap_group_obj_class, self.config.ldap_group_member_attr
+        );
+        debug!(
+            "Using the following filter for group search: {filter} and base: {}",
+            self.config.ldap_group_search_base
+        );
+        let mut search_stream = self
+            .ldap
+            .streaming_search_with(
+                PagedResults::new(500),
+                &self.config.ldap_group_search_base,
+                Scope::Subtree,
+                filter.as_str(),
+                vec![
+                    &self.config.ldap_groupname_attr,
+                    &self.config.ldap_group_member_attr,
+                ],
+            )
+            .await?;
+
+        let mut memberships = Vec::new();
+        while let Some(entry) = search_stream.next().await? {
+            memberships.push(SearchEntry::construct(entry));
+        }
+
         debug!("Performed LDAP group memberships search");
 
         Ok(memberships)
