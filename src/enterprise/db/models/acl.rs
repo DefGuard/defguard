@@ -510,11 +510,9 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
     let ensure_in_range = |port: i32| {
-        if (0..=65535).contains(&port) {
-            Ok(port)
-        } else {
-            Err(AclError::PortOutOfRangeError(port))
-        }
+        u16::try_from(port)
+            .map(|_| port)
+            .map_err(|_| AclError::PortOutOfRangeError(port))
     };
     let mut result = Vec::new();
     let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
