@@ -207,14 +207,14 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​h​a​v​e​ ​*​*​r​e​a​c​h​e​d​ ​t​h​e​ ​l​i​m​i​t​*​*​ ​o​f​ ​t​h​i​s​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​.​ ​T​o​ ​*​*​[​ ​m​a​n​a​g​e​ ​m​o​r​e​ ​l​o​c​a​t​i​o​n​s​/​u​s​e​r​s​/​d​e​v​i​c​e​s​ ​]​*​*​ ​p​u​r​c​h​a​s​e​ ​o​f​ ​t​h​e​ ​E​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​i​s​ ​r​e​q​u​i​r​e​d​.​
-			​ ​ ​ ​ ​ ​ ​ ​
+			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				subTitle: string
 			}
 			/**
-			 *
+			 * 
 		​Y​o​u​ ​c​a​n​ ​f​i​n​d​ ​o​u​t​ ​m​o​r​e​ ​a​b​o​u​t​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​:​
 		​-​ ​R​e​a​l​ ​t​i​m​e​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​c​l​i​e​n​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​
 		​-​ ​E​x​t​e​r​n​a​l​ ​S​S​O​
@@ -222,7 +222,7 @@ type RootTranslation = {
 		​
 		​F​u​l​l​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​l​i​s​t​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​<​/​b​r​>​
 		​L​i​c​e​n​s​i​n​g​ ​i​n​f​o​r​m​a​t​i​o​n​:​ ​[​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​l​i​c​e​n​s​e​)​
-		​ ​ ​ ​ ​ ​
+		​ ​ ​ ​ ​ ​ 
 			 */
 			content: string
 			controls: {
@@ -406,9 +406,9 @@ type RootTranslation = {
 						 */
 						ctaInstruction: string
 						/**
-						 *
+						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​r​e​m​e​m​b​e​r​ ​t​h​a​t​ ​D​e​f​g​u​a​r​d​ ​*​*​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​p​r​i​v​a​t​e​ ​k​e​y​s​*​*​.​ ​W​e​ ​w​i​l​l​ ​s​e​c​u​r​e​l​y​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​a​n​d​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​p​a​i​r​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​,​ ​b​u​t​ ​o​n​l​y​ ​s​t​o​r​e​ ​t​h​e​ ​p​u​b​l​i​c​ ​k​e​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​b​a​s​e​.​ ​P​l​e​a​s​e​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​d​e​v​i​c​e​,​ ​a​s​ ​i​t​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​c​c​e​s​s​i​b​l​e​ ​l​a​t​e​r​.​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 						 */
 						warningMessage: string
 						actionCard: {
@@ -755,13 +755,13 @@ type RootTranslation = {
 				duplicateKeyError: string
 			}
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​e​c​u​r​i​t​y​ ​k​e​y​s​ ​c​a​n​ ​b​e​ ​u​s​e​d​ ​a​s​ ​y​o​u​r​ ​s​e​c​o​n​d​ ​f​a​c​t​o​r​ ​o​f​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​v​e​r​i​f​i​c​a​t​i​o​n​ ​c​o​d​e​.​ ​L​e​a​r​n​ ​m​o​r​e​ ​a​b​o​u​t​ ​c​o​n​f​i​g​u​r​i​n​g​ ​a​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​c​u​r​i​t​y​ ​k​e​y​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 			form: {
@@ -803,13 +803,13 @@ type RootTranslation = {
 				copied: string
 			}
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​r​e​a​t​ ​y​o​u​r​ ​r​e​c​o​v​e​r​y​ ​c​o​d​e​s​ ​w​i​t​h​ ​t​h​e​ ​s​a​m​e​ ​l​e​v​e​l​ ​o​f​ ​a​t​t​e​n​t​i​o​n​ ​a​s​ ​y​o​u​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​w​o​u​l​d​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​!​ ​W​e​ ​r​e​c​o​m​m​e​n​d​ ​s​a​v​i​n​g​ ​t​h​e​m​ ​w​i​t​h​ ​a​ ​p​a​s​s​w​o​r​d​ ​m​a​n​a​g​e​r​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​u​c​h​ ​a​s​ ​L​a​s​t​p​a​s​s​,​ ​b​i​t​w​a​r​d​e​n​ ​o​r​ ​K​e​e​p​e​r​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 		}
@@ -819,12 +819,12 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​,​ ​s​c​a​n​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​ ​w​i​t​h​ ​y​o​u​r​ ​a​u​t​h​e​n​t​i​c​a​t​o​r​ ​a​p​p​,​ ​t​h​e​n​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​i​n​ ​t​h​e​ ​f​i​e​l​d​ ​b​e​l​o​w​:​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 */
 			infoMessage: string
 			messages: {
@@ -868,11 +868,11 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​T​o​ ​s​e​t​u​p​ ​y​o​u​r​ ​M​F​A​ ​e​n​t​e​r​ ​t​h​e​ ​c​o​d​e​ ​t​h​a​t​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​a​c​c​o​u​n​t​ ​e​m​a​i​l​:​ ​<​s​t​r​o​n​g​>​{​e​m​a​i​l​}​<​/​s​t​r​o​n​g​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+	
 			 * @param {string} email
 			 */
 			infoMessage: RequiredParams<'email'>
@@ -1437,22 +1437,22 @@ type RootTranslation = {
 				}
 				helpers: {
 					/**
-					 *
+					 * 
 				​ ​ ​ ​ ​<​p​>​
 				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​y​o​u​ ​h​a​v​e​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​t​h​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​n​o​w​,​
 				​ ​ ​ ​ ​ ​ ​s​i​n​c​e​ ​<​s​t​r​o​n​g​>​w​e​ ​d​o​ ​n​o​t​<​/​s​t​r​o​n​g​>​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​k​e​y​.​ ​A​f​t​e​r​ ​t​h​i​s​
 				​ ​ ​ ​ ​ ​ ​p​a​g​e​ ​i​s​ ​c​l​o​s​e​d​,​ ​y​o​u​ ​<​s​t​r​o​n​g​>​w​i​l​l​ ​n​o​t​ ​b​e​ ​a​b​l​e​<​/​s​t​r​o​n​g​>​ ​t​o​ ​g​e​t​ ​y​o​u​r​
 				​ ​ ​ ​ ​ ​ ​f​u​l​l​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​f​i​l​e​ ​(​w​i​t​h​ ​p​r​i​v​a​t​e​ ​k​e​y​s​,​ ​o​n​l​y​ ​b​l​a​n​k​ ​t​e​m​p​l​a​t​e​)​.​
 				​ ​ ​ ​ ​<​/​p​>​
-
+			
 					 */
 					warningAutoMode: string
 					/**
-					 *
+					 * 
 				​ ​ ​ ​ ​<​p​>​
 				​ ​ ​ ​ ​ ​ ​P​l​e​a​s​e​ ​b​e​ ​a​d​v​i​s​e​d​ ​t​h​a​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​p​r​o​v​i​d​e​d​ ​h​e​r​e​ ​<​s​t​r​o​n​g​>​ ​d​o​e​s​ ​n​o​t​ ​i​n​c​l​u​d​e​ ​p​r​i​v​a​t​e​ ​k​e​y​ ​a​n​d​ ​u​s​e​s​ ​p​u​b​l​i​c​ ​k​e​y​ ​t​o​ ​f​i​l​l​ ​i​t​'​s​ ​p​l​a​c​e​ ​<​/​s​t​r​o​n​g​>​ ​y​o​u​ ​w​i​l​l​ ​n​e​e​d​ ​t​o​ ​r​e​p​l​a​c​e​ ​i​t​ ​o​n​ ​y​o​u​r​ ​o​w​n​ ​f​o​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​t​o​ ​w​o​r​k​ ​p​r​o​p​e​r​l​y​.​
 				​ ​ ​ ​ ​<​/​p​>​
-
+			
 					 */
 					warningManualMode: string
 					/**
@@ -1460,7 +1460,7 @@ type RootTranslation = {
 					 */
 					warningNoNetworks: string
 					/**
-					 *
+					 * 
 				​ ​ ​ ​ ​ ​ ​<​p​>​
 				​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​c​a​n​ ​s​e​t​u​p​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​f​a​s​t​e​r​ ​w​i​t​h​ ​w​i​r​e​g​u​a​r​d​ ​a​p​p​l​i​c​a​t​i​o​n​ ​b​y​ ​s​c​a​n​n​i​n​g​ ​t​h​i​s​ ​Q​R​ ​c​o​d​e​.​
 				​ ​ ​ ​ ​ ​ ​<​/​p​>
@@ -1486,12 +1486,12 @@ type RootTranslation = {
 				 */
 				title: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​Y​o​u​ ​n​e​e​d​ ​t​o​ ​c​o​n​f​i​g​u​r​e​ ​W​i​r​e​G​u​a​r​d​V​P​N​ ​o​n​ ​y​o​u​r​ ​d​e​v​i​c​e​,​ ​p​l​e​a​s​e​ ​v​i​s​i​t​&​n​b​s​p​;​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​a​ ​h​r​e​f​=​"​{​a​d​d​D​e​v​i​c​e​s​D​o​c​s​}​"​>​d​o​c​u​m​e​n​t​a​t​i​o​n​<​/​a​>​ ​i​f​ ​y​o​u​ ​d​o​n​&​a​p​o​s​;​t​ ​k​n​o​w​ ​h​o​w​ ​t​o​ ​d​o​ ​i​t​.​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-
+		
 				 * @param {string} addDevicesDocs
 				 */
 				infoMessage: RequiredParams<'addDevicesDocs'>
@@ -2680,7 +2680,7 @@ type RootTranslation = {
 			 */
 			currentExpired: string
 			/**
-			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​
+			 * T​o​ ​l​e​a​r​n​ ​m​o​r​e​,​ ​v​i​s​i​t​ ​o​u​r​ 
 			 */
 			subtitle: string
 			/**
@@ -2763,7 +2763,7 @@ type RootTranslation = {
 					/**
 					 * A​d​d​i​t​i​o​n​a​l​ ​U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s​e​s
 					 */
-					ldap_user_auxiliary_obj_classes : string
+					ldap_user_auxiliary_obj_classes: string
 					/**
 					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
 					 */
@@ -3223,7 +3223,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 *
+			 * 
 		​	​	​	​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​a​d​d​ ​u​r​l​ ​o​f​ ​y​o​u​r​ ​l​o​g​o​ ​a​n​d​ ​n​a​m​e​ ​f​o​r​ ​y​o​u​r​ ​d​e​f​g​u​a​r​d​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​i​n​s​t​a​n​c​e​ ​i​t​ ​w​i​l​l​ ​b​e​ ​d​i​s​p​l​a​y​e​d​ ​i​n​s​t​e​a​d​ ​o​f​ ​d​e​f​g​u​a​r​d​.​
@@ -3427,12 +3427,12 @@ type RootTranslation = {
 						 */
 						placeholder: string
 						/**
-						 *
+						 * 
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​S​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​w​i​l​l​ ​b​e​ ​s​e​n​t​ ​f​r​o​m​ ​t​h​i​s​ ​a​d​d​r​e​s​s​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​E​.​g​.​ ​n​o​-​r​e​p​l​y​@​m​y​-​c​o​m​p​a​n​y​.​c​o​m​.​
 					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​
+					​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 						 */
 						helper: string
 					}
@@ -3481,7 +3481,7 @@ type RootTranslation = {
 				}
 			}
 			/**
-			 *
+			 * 
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.​
 		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
@@ -3510,14 +3510,14 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​
+			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				helper: string
 			}
@@ -3527,14 +3527,14 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​I​n​ ​t​h​i​s​ ​t​e​x​t​ ​i​n​p​u​t​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​M​a​r​k​d​o​w​n​:​<​/​p​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​u​l​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​H​e​a​d​i​n​g​s​ ​s​t​a​r​t​ ​w​i​t​h​ ​a​ ​h​a​s​h​ ​#​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​i​>​*​i​t​a​l​i​c​s​*​<​/​i​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​<​l​i​>​U​s​e​ ​t​w​o​ ​a​s​t​e​r​i​s​k​s​ ​f​o​r​ ​<​b​>​*​*​b​o​l​d​*​*​<​/​b​>​<​/​l​i​>​
 			​ ​ ​ ​ ​ ​ ​ ​ ​<​/​u​l​>​
-			​ ​ ​ ​ ​ ​ ​ ​
+			​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				helper: string
 			}
@@ -4953,11 +4953,11 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​I​f​ ​y​o​u​ ​n​e​e​d​ ​a​s​s​i​s​t​a​n​c​e​ ​o​r​ ​y​o​u​ ​w​e​r​e​ ​a​s​k​e​d​ ​t​o​ ​g​e​n​e​r​a​t​e​ ​s​u​p​p​o​r​t​ ​d​a​t​a​ ​b​y​ ​o​u​r​ ​t​e​a​m​ ​(​f​o​r​ ​e​x​a​m​p​l​e​ ​o​n​ ​o​u​r​ ​M​a​t​r​i​x​ ​s​u​p​p​o​r​t​ ​c​h​a​n​n​e​l​:​ ​*​*​#​d​e​f​g​u​a​r​d​-​s​u​p​p​o​r​t​:​t​e​o​n​i​t​e​.​c​o​m​*​*​)​,​ ​y​o​u​ ​h​a​v​e​ ​t​w​o​ ​o​p​t​i​o​n​s​:​
 		​*​ ​E​i​t​h​e​r​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​c​l​i​c​k​ ​"​S​e​n​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​
 		​*​ ​O​r​ ​c​l​i​c​k​ ​"​D​o​w​n​l​o​a​d​ ​s​u​p​p​o​r​t​ ​d​a​t​a​"​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​b​u​g​ ​r​e​p​o​r​t​ ​i​n​ ​o​u​r​ ​G​i​t​H​u​b​ ​a​t​t​a​c​h​i​n​g​ ​t​h​i​s​ ​f​i​l​e​.​
-
+	
 			 */
 			body: string
 			/**
@@ -4987,7 +4987,7 @@ type RootTranslation = {
 			 */
 			title: string
 			/**
-			 *
+			 * 
 		​B​e​f​o​r​e​ ​c​o​n​t​a​c​t​i​n​g​ ​o​r​ ​s​u​b​m​i​t​t​i​n​g​ ​a​n​y​ ​i​s​s​u​e​s​ ​t​o​ ​G​i​t​H​u​b​ ​p​l​e​a​s​e​ ​g​e​t​ ​f​a​m​i​l​i​a​r​ ​w​i​t​h​ ​D​e​f​g​u​a​r​d​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​a​v​a​i​l​a​b​l​e​ ​a​t​ ​[​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​)​
 		​
 		​T​o​ ​s​u​b​m​i​t​:​
@@ -4995,7 +4995,7 @@ type RootTranslation = {
 		​*​ ​F​e​a​t​u​r​e​ ​r​e​q​u​e​s​t​ ​-​ ​p​l​e​a​s​e​ ​g​o​ ​t​o​ ​[​G​i​t​H​u​b​]​(​h​t​t​p​s​:​/​/​g​i​t​h​u​b​.​c​o​m​/​D​e​f​G​u​a​r​d​/​d​e​f​g​u​a​r​d​/​i​s​s​u​e​s​/​n​e​w​?​a​s​s​i​g​n​e​e​s​=​&​l​a​b​e​l​s​=​f​e​a​t​u​r​e​&​t​e​m​p​l​a​t​e​=​f​e​a​t​u​r​e​_​r​e​q​u​e​s​t​.​m​d​&​t​i​t​l​e​=​)​
 		​
 		​A​n​y​ ​o​t​h​e​r​ ​r​e​q​u​e​s​t​s​ ​y​o​u​ ​c​a​n​ ​r​e​a​c​h​ ​u​s​ ​a​t​:​ ​s​u​p​p​o​r​t​@​d​e​f​g​u​a​r​d​.​n​e​t​
-
+	
 			 */
 			body: string
 		}
@@ -5313,12 +5313,12 @@ type RootTranslation = {
 			}
 			infoBox: {
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​U​s​e​r​s​,​ ​G​r​o​u​p​s​ ​o​r​ ​D​e​v​i​c​e​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				allowInstructions: string
 				/**
-				 *
+				 * 
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
@@ -5616,22 +5616,22 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 *
+				 * 
 			        You have **reached the limit** of this functionality. To **[ manage more locations/users/devices ]** purchase of the Enterprise license is required.
-
+			        
 				 */
 				subTitle: () => LocalizedString
 			}
 			/**
-			 *
+			 * 
 		You can find out more about features like:
 		- Real time and automatic client synchronization
 		- External SSO
 		- Controlling VPN clients behavior
-
+	
 		Full enterprise feature list: [https://docs.defguard.net/enterprise/all-enteprise-features](https://docs.defguard.net/enterprise/all-enteprise-features)</br>
 		Licensing information: [https://docs.defguard.net/enterprise/license](https://docs.defguard.net/enterprise/license)
-
+		      
 			 */
 			content: () => LocalizedString
 			controls: {
@@ -5814,9 +5814,9 @@ export type TranslationFunctions = {
 						 */
 						ctaInstruction: () => LocalizedString
 						/**
-						 *
+						 * 
 					            Please remember that Defguard **doesn't store private keys**. We will securely generate the public and private key pair in your browser, but only store the public key in Defguard database. Please download the configuration generated with the private key for the device, as it will not be accessible later.
-
+					            
 						 */
 						warningMessage: () => LocalizedString
 						actionCard: {
@@ -6159,13 +6159,13 @@ export type TranslationFunctions = {
 				duplicateKeyError: () => LocalizedString
 			}
 			/**
-			 *
+			 * 
 		        <p>
 		          Security keys can be used as your second factor of authentication
 		          instead of a verification code. Learn more about configuring a
 		          security key.
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 			form: {
@@ -6207,13 +6207,13 @@ export type TranslationFunctions = {
 				copied: () => LocalizedString
 			}
 			/**
-			 *
+			 * 
 		        <p>
 		          Treat your recovery codes with the same level of attention as you
 		          would your password! We recommend saving them with a password manager
 		          such as Lastpass, bitwarden or Keeper.
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 		}
@@ -6223,12 +6223,12 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		        <p>
 		          To setup your MFA, scan this QR code with your authenticator app, then
 		          enter the code in the field below:
 		        </p>
-
+	
 			 */
 			infoMessage: () => LocalizedString
 			messages: {
@@ -6272,11 +6272,11 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		        <p>
 		          To setup your MFA enter the code that was sent to your account email: <strong>{email}</strong>
 		        </p>
-
+	
 			 */
 			infoMessage: (arg: { email: string }) => LocalizedString
 			messages: {
@@ -6830,22 +6830,22 @@ export type TranslationFunctions = {
 				}
 				helpers: {
 					/**
-					 *
+					 * 
 				    <p>
 				      Please be advised that you have to download the configuration now,
 				      since <strong>we do not</strong> store your private key. After this
 				      page is closed, you <strong>will not be able</strong> to get your
 				      full configuration file (with private keys, only blank template).
 				    </p>
-
+			
 					 */
 					warningAutoMode: () => LocalizedString
 					/**
-					 *
+					 * 
 				    <p>
 				      Please be advised that configuration provided here <strong> does not include private key and uses public key to fill it's place </strong> you will need to replace it on your own for configuration to work properly.
 				    </p>
-
+			
 					 */
 					warningManualMode: () => LocalizedString
 					/**
@@ -6853,7 +6853,7 @@ export type TranslationFunctions = {
 					 */
 					warningNoNetworks: () => LocalizedString
 					/**
-					 *
+					 * 
 				      <p>
 				        You can setup your device faster with wireguard application by scanning this QR code.
 				      </p>
@@ -6879,12 +6879,12 @@ export type TranslationFunctions = {
 				 */
 				title: () => LocalizedString
 				/**
-				 *
+				 * 
 			        <p>
 			          You need to configure WireGuardVPN on your device, please visit&nbsp;
 			          <a href="{addDevicesDocs}">documentation</a> if you don&apos;t know how to do it.
 			        </p>
-
+		
 				 */
 				infoMessage: (arg: { addDevicesDocs: string }) => LocalizedString
 				options: {
@@ -8063,7 +8063,7 @@ export type TranslationFunctions = {
 			 */
 			currentExpired: () => LocalizedString
 			/**
-			 * To learn more, visit our
+			 * To learn more, visit our 
 			 */
 			subtitle: () => LocalizedString
 			/**
@@ -8146,7 +8146,7 @@ export type TranslationFunctions = {
 					/**
 					 * Additional User Object Classes
 					 */
-					ldap_user_auxiliary_obj_classes : () => LocalizedString
+					ldap_user_auxiliary_obj_classes: () => LocalizedString
 					/**
 					 * Groupname Attribute
 					 */
@@ -8604,7 +8604,7 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 *
+			 * 
 					      <p>
 		            Here you can add url of your logo and name for your defguard
 		            instance it will be displayed instead of defguard.
@@ -8612,7 +8612,7 @@ export type TranslationFunctions = {
 		          <a href="{documentationLink}" target="_blank">
 		            Read more in documentation.
 		          </a>
-
+				
 			 */
 			helper: (arg: { documentationLink: string }) => LocalizedString
 		}
@@ -8807,12 +8807,12 @@ export type TranslationFunctions = {
 						 */
 						placeholder: () => LocalizedString
 						/**
-						 *
+						 * 
 					              <p>
 					                System messages will be sent from this address.
 					                E.g. no-reply@my-company.com.
 					              </p>
-
+					            
 						 */
 						helper: () => LocalizedString
 					}
@@ -8861,11 +8861,11 @@ export type TranslationFunctions = {
 				}
 			}
 			/**
-			 *
+			 * 
 		        <p>
 		          Here you can configure SMTP server used to send system messages to the users.
 		        </p>
-
+				
 			 */
 			helper: () => LocalizedString
 		}
@@ -8890,14 +8890,14 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 *
+				 * 
 			        <p>In this text input you can use Markdown:</p>
 			        <ul>
 			          <li>Headings start with a hash #</li>
 			          <li>Use asterisks for <i>*italics*</i></li>
 			          <li>Use two asterisks for <b>**bold**</b></li>
 			        </ul>
-
+			        
 				 */
 				helper: () => LocalizedString
 			}
@@ -8907,14 +8907,14 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 *
+				 * 
 			        <p>In this text input you can use Markdown:</p>
 			        <ul>
 			          <li>Headings start with a hash #</li>
 			          <li>Use asterisks for <i>*italics*</i></li>
 			          <li>Use two asterisks for <b>**bold**</b></li>
 			        </ul>
-
+			        
 				 */
 				helper: () => LocalizedString
 			}
@@ -10322,11 +10322,11 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		If you need assistance or you were asked to generate support data by our team (for example on our Matrix support channel: **#defguard-support:teonite.com**), you have two options:
 		* Either you can configure SMTP settings and click "Send support data"
 		* Or click "Download support data" and create a bug report in our GitHub attaching this file.
-
+	
 			 */
 			body: () => LocalizedString
 			/**
@@ -10356,15 +10356,15 @@ export type TranslationFunctions = {
 			 */
 			title: () => LocalizedString
 			/**
-			 *
+			 * 
 		Before contacting or submitting any issues to GitHub please get familiar with Defguard documentation available at [docs.defguard.net](https://docs.defguard.net/)
-
+	
 		To submit:
 		* Bugs - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
 		* Feature request - please go to [GitHub](https://github.com/DefGuard/defguard/issues/new?assignees=&labels=feature&template=feature_request.md&title=)
-
+	
 		Any other requests you can reach us at: support@defguard.net
-
+	
 			 */
 			body: () => LocalizedString
 		}
@@ -10679,12 +10679,12 @@ export type TranslationFunctions = {
 			}
 			infoBox: {
 				/**
-				 *
+				 * 
 			        Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				allowInstructions: () => LocalizedString
 				/**
-				 *
+				 * 
 			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
