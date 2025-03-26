@@ -677,15 +677,19 @@ impl AclRule<Id> {
         let destination = parse_destination(&api_rule.destination)?;
         debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
+            if range.1 <= range.0 {
+                return Err(AclError::InvalidIpRangeError(format!(
+                    "{}-{}",
+                    range.0, range.1
+                )));
+            }
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,
                 start: range.0,
                 end: range.1,
             };
-            obj.save(&mut *transaction)
-                .await
-                .map_err(|_| AclError::InvalidIpRangeError(format!("{}-{}", range.0, range.1)))?;
+            obj.save(&mut *transaction).await?;
         }
 
         info!("Created related objects for ACL rule {api_rule:?}");
