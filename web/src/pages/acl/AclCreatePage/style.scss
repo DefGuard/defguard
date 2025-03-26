@@ -46,22 +46,31 @@
 
 #acl-sections {
   width: 100%;
-  display: grid;
-  column-gap: var(--spacing-m);
+  display: flex;
+  flex-flow: column;
   row-gap: var(--spacing-s);
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    'rule'
-    'destination'
-    'allowed'
-    'denied';
 
   @include media-breakpoint-up(xl) {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      'rule allowed'
-      'destination denied';
+    flex-flow: row;
+    column-gap: var(--spacing-m);
   }
+
+  // display: grid;
+  // column-gap: var(--spacing-m);
+  // row-gap: var(--spacing-s);
+  // grid-template-columns: 1fr;
+  // grid-template-areas:
+  //   'rule'
+  //   'destination'
+  //   'allowed'
+  //   'denied';
+
+  // @include media-breakpoint-up(xl) {
+  //   grid-template-columns: 1fr 1fr;
+  //   grid-template-areas:
+  //     'rule allowed'
+  //     'destination denied';
+  // }
 
   #rule-card {
     grid-area: rule;
@@ -77,6 +86,12 @@
 
   #denied-card {
     grid-area: denied;
+  }
+
+  & > .column {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
   }
 
   h3 {
