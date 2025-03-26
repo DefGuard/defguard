@@ -8,8 +8,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-prost = {workspace = true}
-tonic = { version = "0.12", features = ["gzip", "tls-native-roots"] }
+prost = { workspace = true }
+tonic = { workspace = true }
 
 [build-dependencies]
 prost-build = "0.13"

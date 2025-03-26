@@ -9,12 +9,12 @@ rust-version.workspace = true
 
 [dependencies]
 # internal crates
-defguard_core = {workspace = true}
+defguard_core = { workspace = true }
 
 # external dependencies
-anyhow = {workspace = true}
+anyhow = { workspace = true }
 dotenvy = "0.15"
-secrecy = {workspace = true}
-tokio = {workspace = true}
-tracing = {workspace = true}
+secrecy = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

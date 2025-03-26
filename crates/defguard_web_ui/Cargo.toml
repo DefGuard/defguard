@@ -8,6 +8,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-axum = {workspace = true}
+axum = { workspace = true }
 mime_guess = "2.0"
 rust-embed = { version = "8.5", features = ["include-exclude"] }

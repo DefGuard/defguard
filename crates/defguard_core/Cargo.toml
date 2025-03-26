@@ -10,81 +10,84 @@ rust-version.workspace = true
 
 [dependencies]
 # internal crates
-defguard_protos = {workspace = true}
-defguard_web_ui = {workspace = true}
-model_derive = {workspace = true}
+defguard_protos = { workspace = true }
+defguard_web_ui = { workspace = true }
+model_derive = { workspace = true }
 
 # external crates
-anyhow = {workspace = true}
-argon2 = { version = "0.5", features = ["std"] }
-axum = {workspace = true}
-axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
-base32 = "0.5"
-base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-clap = { version = "4.5", features = ["derive", "env"] }
-humantime = "2.1"
-ipnetwork = "0.20"
-jsonwebkey = { version = "0.3.5", features = ["pkcs-convert"] }
-jsonwebtoken = "9.3"
-ldap3 = { version = "0.11", default-features = false, features = ["tls"] }
-lettre = { version = "0.11", features = ["tokio1-native-tls"] }
-md4 = "0.10"
-openidconnect = { version = "3.5", default-features = false, optional = true, features = ["reqwest"] }
-parse_link_header = "0.4"
-paste = "1.0.15"
-pgp = "0.14"
-prost = {workspace = true}
-pulldown-cmark = "0.12"
-rand = "0.8"
-rand_core = { version = "0.6", features = ["getrandom"] }
-# TODO: update reqwest when openidconnect also depends on http >= 1.0.
-reqwest = { version = "0.11", features = ["json"] }
-rsa = "0.9"
-rust-ini = "0.21"
-secrecy = {workspace = true}
-semver = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-# match version from webauthn-rs-core
-serde_cbor = { version = "0.12.0-dev", package = "serde_cbor_2" }
-serde_json = "1.0"
-serde_urlencoded = "0.7"
-serial_test = "3.2.0"
-sha-1 = "0.10"
-sha256 = "1.5"
-sqlx = { version = "0.8", features = ["chrono", "ipnetwork", "postgres", "runtime-tokio-native-tls", "uuid"] }
-ssh-key = "0.6"
-struct-patch = "0.8"
-tera = "1.20"
-thiserror = "2.0"
-# match axum-extra -> cookies
-time = { version = "0.3", default-features = false }
-tokio = {workspace = true}
-tokio-stream = "0.1"
-tokio-util = "0.7"
-tonic = { version = "0.12", features = ["gzip", "tls-native-roots"] }
-tonic-health = "0.12"
-totp-lite = { version = "2.0" }
-tower-http = { version = "0.6", features = ["fs", "trace"] }
-tracing = {workspace = true}
-trait-variant = "0.1"
-uaparser = "0.6"
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+axum = { workspace = true }
+axum-client-ip = { workspace = true }
+axum-extra = { workspace = true }
+base32 = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+humantime = { workspace = true }
+ipnetwork = { workspace = true }
+jsonwebkey = { workspace = true }
+jsonwebtoken = { workspace = true }
+ldap3 = { workspace = true }
+lettre = { workspace = true }
+md4 = { workspace = true }
+openidconnect = { workspace = true }
+parse_link_header = { workspace = true }
+paste = { workspace = true }
+pgp = { workspace = true }
+prost = { workspace = true }
+pulldown-cmark = { workspace = true }
+rand = { workspace = true }
+rand_core = { workspace = true }
+reqwest = { workspace = true }
+rsa = { workspace = true }
+rust-ini = { workspace = true }
+secrecy = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
+serde_cbor = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
+serial_test = { workspace = true }
+sha-1 = { workspace = true }
+sha256 = { workspace = true }
+sqlx = { workspace = true }
+ssh-key = { workspace = true }
+struct-patch = { workspace = true }
+tera = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+totp-lite = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+trait-variant = { workspace = true }
+uaparser = { workspace = true }
 # openapi
-utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
-utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
-uuid = { version = "1.9", features = ["v4"] }
-webauthn-authenticator-rs = { version = "0.5" }
-webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
-webauthn-rs-proto = "0.5"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+uuid = { workspace = true }
+webauthn-authenticator-rs = { workspace = true }
+webauthn-rs = { workspace = true }
+webauthn-rs-proto = { workspace = true }
+x25519-dalek = { workspace = true }
 
 [dev-dependencies]
 bytes = "1.6"
 claims = "0.8"
 matches = "0.1"
 regex = "1.10"
-reqwest = { version = "0.11", features = ["cookies", "json", "multipart", "rustls-tls", "stream"], default-features = false }
+reqwest = { version = "0.11", features = [
+  "cookies",
+  "json",
+  "multipart",
+  "rustls-tls",
+  "stream",
+], default-features = false }
 serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 
@@ -95,7 +98,6 @@ vergen-git2 = { version = "1.0", features = ["build"] }
 
 [features]
 default = ["openid", "wireguard", "worker"]
-openid = ["dep:openidconnect"]
+openid = []
 worker = []
 wireguard = []
-
