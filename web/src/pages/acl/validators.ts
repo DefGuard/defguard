@@ -53,27 +53,46 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
       return true;
     }, LL.form.error.invalid());
 
+function isValidIpOrCidr(input: string): boolean {
+  try {
+    if (input.includes('/')) {
+      const [ip, mask] = ipaddr.parseCIDR(input);
+      return ip !== undefined && typeof mask === 'number';
+    } else {
+      return ipaddr.isValid(input);
+    }
+  } catch {
+    return false;
+  }
+}
+
 export const aclDestinationValidator = (LL: TranslationFunctions) =>
   z.string().refine((value: string) => {
     if (value === '') return true;
-    const trimmed = value
-      .replaceAll(' ', '')
-      .replaceAll('-', ' ')
-      .replaceAll(',', ' ')
-      .split(' ')
-      .filter((v) => v !== '');
-    for (const entry of trimmed) {
+
+    const entries = value.split(',').map((s) => s.trim());
+
+    for (const entry of entries) {
       if (entry.includes('-')) {
         const [start, end] = entry.split('-').map((s) => s.trim());
+
+        // reject CIDR notation used in ranges
+        if (start.includes('/') || end.includes('/')) return false;
+
         if (!ipaddr.isValid(start) || !ipaddr.isValid(end)) return false;
 
         const startAddr = ipaddr.parse(start);
         const endAddr = ipaddr.parse(end);
 
-        // addrs should be the same version
+        // reject different ip versions in ranges
         if (startAddr.kind() !== endAddr.kind()) return false;
+
+        // reject invalid order in ranges
+        if (startAddr.toByteArray().join('.') > endAddr.toByteArray().join('.')) {
+          return false;
+        }
       } else {
-        if (!ipaddr.isValid(entry)) return false;
+        if (!isValidIpOrCidr(entry)) return false;
       }
     }
 
