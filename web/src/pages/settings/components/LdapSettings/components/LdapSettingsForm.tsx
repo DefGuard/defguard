@@ -24,7 +24,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
-type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes '> & {
+type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes'> & {
   ldap_user_auxiliary_obj_classes: string;
 };
 
@@ -71,7 +71,7 @@ export const LdapSettingsForm = () => {
         ldap_groupname_attr: z.string().min(1, LL.form.error.required()),
         ldap_member_attr: z.string().min(1, LL.form.error.required()),
         ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
-        ldap_user_auxiliary_obj_classes: z.string().min(1, LL.form.error.required()),
+        ldap_user_auxiliary_obj_classes: z.string(),
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
         ldap_enabled: z.boolean(),
@@ -80,6 +80,7 @@ export const LdapSettingsForm = () => {
         ldap_use_starttls: z.boolean(),
         ldap_tls_verify_cert: z.boolean(),
         ldap_sync_interval: z.number().default(300),
+        ldap_uses_ad: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -105,6 +106,7 @@ export const LdapSettingsForm = () => {
       ldap_use_starttls: settings?.ldap_use_starttls ?? false,
       ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
+      ldap_uses_ad: settings?.ldap_uses_ad ?? false,
     }),
     [settings],
   );
@@ -129,6 +131,7 @@ export const LdapSettingsForm = () => {
       ldap_use_starttls: false,
       ldap_tls_verify_cert: true,
       ldap_sync_interval: 300,
+      ldap_uses_ad: false,
     }),
     [],
   );
@@ -195,6 +198,11 @@ export const LdapSettingsForm = () => {
           labelPlacement="right"
         />
         <FormCheckBox
+          controller={{ control, name: 'ldap_uses_ad' }}
+          label={localLL.form.labels.ldap_uses_ad()}
+          labelPlacement="right"
+        />
+        <FormCheckBox
           controller={{ control, name: 'ldap_tls_verify_cert' }}
           label={localLL.form.labels.ldap_tls_verify_cert()}
           labelPlacement="right"
@@ -229,7 +237,7 @@ export const LdapSettingsForm = () => {
           label={localLL.form.labels.ldap_user_obj_class()}
         />
         <FormInput
-          controller={{ control, name: 'ldap_user_auxiliary_obj_classes ' }}
+          controller={{ control, name: 'ldap_user_auxiliary_obj_classes' }}
           label={localLL.form.labels.ldap_user_auxiliary_obj_classes()}
         />
         <FormInput

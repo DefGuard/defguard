@@ -150,7 +150,7 @@ pub(crate) async fn authenticate(
                 }
             }
             Err(err) => {
-                if user.ldap_linked && settings.ldap_enabled {
+                if settings.ldap_enabled {
                     if let Ok(user) =
                         login_through_ldap(&appstate.pool, &username, &data.password).await
                     {

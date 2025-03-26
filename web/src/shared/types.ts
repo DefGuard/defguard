@@ -935,6 +935,7 @@ export type SettingsLDAP = {
   ldap_use_starttls: boolean;
   ldap_tls_verify_cert: boolean;
   ldap_sync_interval: number;
+  ldap_uses_ad: boolean;
 };
 
 export type SettingsOpenID = {

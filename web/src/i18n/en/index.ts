@@ -1137,6 +1137,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_sync_interval: 'Synchronization interval',
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
+          ldap_uses_ad: 'LDAP server is Active Directory',
         },
         delete: 'Delete configuration',
       },

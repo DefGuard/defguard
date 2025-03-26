@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \"user\".id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, ldap_linked FROM \"user\" JOIN group_user ON \"user\".id = group_user.user_id WHERE group_user.group_id = $1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap FROM \"user\" u JOIN group_user gu ON u.id=gu.user_id WHERE u.is_active=true AND gu.group_id=ANY($1)",
   "describe": {
     "columns": [
       {
@@ -97,13 +97,13 @@
       },
       {
         "ordinal": 16,
-        "name": "ldap_linked",
+        "name": "from_ldap",
         "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -126,5 +126,5 @@
       false
     ]
   },
-  "hash": "a2aadece9359f2b5cfdd10be837a5b36c7f3a3bdafdcf33932b35d943c957ebc"
+  "hash": "7c93e37706486d5859186cb19f7cd758a9e9de44e0adf93badce8e6c971182c7"
 }

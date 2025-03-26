@@ -98,6 +98,7 @@ pub struct Settings {
     pub ldap_enabled: bool,
     pub ldap_sync_enabled: bool,
     pub ldap_is_authoritative: bool,
+    pub ldap_uses_ad: bool,
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
@@ -133,7 +134,7 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
-            ldap_sync_interval, ldap_user_auxiliary_obj_classes \
+            ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -201,7 +202,8 @@ impl Settings {
             ldap_sync_enabled = $41, \
             ldap_is_authoritative = $42, \
             ldap_sync_interval = $43, \
-            ldap_user_auxiliary_obj_classes = $44 \
+            ldap_user_auxiliary_obj_classes = $44, \
+            ldap_uses_ad = $45 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -247,6 +249,7 @@ impl Settings {
             self.ldap_is_authoritative,
             self.ldap_sync_interval,
             &self.ldap_user_auxiliary_obj_classes as &Vec<String>,
+            self.ldap_uses_ad
         )
         .execute(executor)
         .await?;

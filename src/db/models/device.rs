@@ -916,7 +916,7 @@ impl Device<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            ldap_linked \
+            from_ldap \
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await

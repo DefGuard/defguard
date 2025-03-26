@@ -13,21 +13,18 @@ pub(crate) async fn login_through_ldap(
     username: &str,
     password: &str,
 ) -> Result<User<Id>, LdapError> {
-    with_ldap_status(pool, async {
-        debug!("Logging in user {username} through LDAP");
-        let mut ldap_connection = LDAPConnection::create().await?;
-        let ldap_user = ldap_connection.get_user(username, password).await?;
-        debug!("User {username} logged in through LDAP");
-        let user =
-            if let Some(defguard_user) = User::find_by_username(pool, &ldap_user.username).await? {
-                defguard_user
-            } else {
-                ldap_user.save(pool).await?
-            };
+    debug!("Logging in user {username} through LDAP");
+    let mut ldap_connection = LDAPConnection::create().await?;
+    let ldap_user = ldap_connection.get_user(username, password).await?;
+    debug!("User {username} logged in through LDAP");
+    let user =
+        if let Some(defguard_user) = User::find_by_username(pool, &ldap_user.username).await? {
+            defguard_user
+        } else {
+            ldap_user.save(pool).await?
+        };
 
-        Ok(user)
-    })
-    .await
+    Ok(user)
 }
 
 pub(crate) async fn user_from_ldap(
@@ -35,18 +32,15 @@ pub(crate) async fn user_from_ldap(
     username: &str,
     password: &str,
 ) -> Result<User<Id>, LdapError> {
-    with_ldap_status(pool, async {
-        debug!("Getting user {username} from LDAP");
-        let mut ldap_connection = LDAPConnection::create().await?;
-        let user = ldap_connection
-            .get_user(username, password)
-            .await?
-            .save(pool)
-            .await;
+    debug!("Getting user {username} from LDAP");
+    let mut ldap_connection = LDAPConnection::create().await?;
+    let user = ldap_connection
+        .get_user(username, password)
+        .await?
+        .save(pool)
+        .await;
 
-        Ok(user?)
-    })
-    .await
+    Ok(user?)
 }
 
 pub(crate) async fn ldap_add_user(user: &User<Id>, password: Option<&str>, pool: &PgPool) {
@@ -149,6 +143,15 @@ pub(crate) async fn ldap_remove_user_from_groups(
     })
     .await;
 }
+
+// pub(crate) async fn ldap_set_user_status(username: &str, status: bool, pool: &PgPool) {
+//     let _: Result<(), LdapError> = with_ldap_status(pool, async {
+//         debug!("Setting status for user {username} in LDAP");
+//         let mut ldap_connection = LDAPConnection::create().await?;
+//         ldap_connection.set_user_status(username, status).await
+//     })
+//     .await;
+// }
 
 /// Bulk add users to groups in ldap.
 ///

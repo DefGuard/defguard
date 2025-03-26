@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, ldap_linked FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND r.allow AND u.is_active = true",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap FROM \"user\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 11,
@@ -97,7 +97,7 @@
       },
       {
         "ordinal": 16,
-        "name": "ldap_linked",
+        "name": "from_ldap",
         "type_info": "Bool"
       }
     ],
@@ -116,8 +116,8 @@
       true,
       false,
       false,
-      true,
       false,
+      true,
       true,
       false,
       false,
@@ -126,5 +126,5 @@
       false
     ]
   },
-  "hash": "16c42d58a53ac770caa55f2d2b1e12fa2a558fac314f00c52ee030ad5fa1282c"
+  "hash": "9bdbbb917524ca9ff9f7ef488b3ce9e07e088e576bee74174c50bcd5c62d2c56"
 }

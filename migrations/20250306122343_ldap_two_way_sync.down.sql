@@ -1,5 +1,5 @@
 ALTER TABLE "user"
-DROP COLUMN ldap_linked;
+DROP COLUMN from_ldap;
 
 ALTER TABLE settings
 DROP COLUMN ldap_sync_status;
@@ -20,3 +20,6 @@ DROP COLUMN ldap_sync_interval;
 
 ALTER TABLE settings
 DROP COLUMN ldap_user_auxiliary_obj_classes;
+
+ALTER TABLE settings
+DROP COLUMN ldap_uses_ad;

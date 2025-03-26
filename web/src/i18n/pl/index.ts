@@ -1080,6 +1080,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_sync_interval: 'Interwał synchronizacji',
           ldap_use_starttls: 'Użyj StartTLS',
           ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',
+          ldap_uses_ad: 'Serwer LDAP jest serwerem Active Directory',
         },
         delete: 'Usuń konfigurację',
       },

@@ -1,5 +1,5 @@
 ALTER TABLE "user"
-ADD COLUMN ldap_linked BOOLEAN NOT NULL DEFAULT FALSE;
+ADD COLUMN from_ldap BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TYPE ldap_sync_status AS ENUM ('insync', 'outofsync');
 
@@ -20,3 +20,5 @@ ADD COLUMN ldap_sync_interval int4 NOT NULL DEFAULT 300;
 
 ALTER TABLE settings
 ADD COLUMN ldap_user_auxiliary_obj_classes TEXT[] NOT NULL DEFAULT ARRAY['simpleSecurityObject', 'sambaSamAccount'];
+
+ALTER TABLE settings ADD COLUMN ldap_uses_ad BOOLEAN NOT NULL DEFAULT FALSE;

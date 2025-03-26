@@ -39,14 +39,14 @@ pub fn nthash(password: &str) -> String {
 
 /// Calculated AD password used for `unicodePwd`.
 #[must_use]
-pub fn unicode_pwd(password: &str) -> String {
+pub fn unicode_pwd(password: &str) -> Vec<u8> {
     let quoted = format!("\"{password}\"");
     let utf16_bytes: Vec<u8> = quoted
         .encode_utf16()
         .flat_map(|c| c.to_le_bytes())
         .collect();
 
-    base64::prelude::BASE64_STANDARD.encode(utf16_bytes)
+    utf16_bytes
 }
 
 #[cfg(test)]
@@ -55,10 +55,9 @@ mod tests {
 
     #[test]
     fn test_unicode_pwd() {
-        assert_eq!(
-            unicode_pwd("newPassword"),
-            "IgBuAGUAdwBQAGEAcwBzAHcAbwByAGQAIgA="
-        );
+        let encoded = unicode_pwd("newPassword");
+        let res = base64::prelude::BASE64_STANDARD.encode(encoded);
+        assert_eq!(res, "IgBuAGUAdwBQAGEAcwBzAHcAbwByAGQAIgA=");
     }
 
     #[test]
@@ -70,3 +69,4 @@ mod tests {
         );
     }
 }
+// k65Zvd2xUe^wZF%w

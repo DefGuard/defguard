@@ -63,7 +63,7 @@ impl User {
             get_value_or_error(entry, "mail")?,
             get_value(entry, "mobile"),
         );
-        user.ldap_linked = true;
+        user.from_ldap = true;
         Ok(user)
     }
 }
@@ -110,7 +110,6 @@ impl<I> User<I> {
         &'a self,
         ssha_password: &'a str,
         nt_password: &'a str,
-        unicode_pwd: &'a str,
         object_classes: HashSet<&'a str>,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
@@ -130,11 +129,6 @@ impl<I> User<I> {
                 }
             }
         }
-        if object_classes.contains(UserObjectClass::User.into()) {
-            attrs.push(("userAccountControl", hashset!["512"]));
-            // TODO: Move it behind some other condition, e.g. "uses_ad"
-            attrs.push(("unicodePwd", hashset![unicode_pwd]));
-        }
         if object_classes.contains(UserObjectClass::SimpleSecurityObject.into()) {
             // simpleSecurityObject
             attrs.push(("userPassword", hashset![ssha_password]));
@@ -146,6 +140,8 @@ impl<I> User<I> {
         }
 
         attrs.push(("objectClass", object_classes));
+
+        debug!("Generated LDAP attributes: {:?}", attrs);
 
         attrs
     }
@@ -225,7 +221,7 @@ mod tests {
         assert_eq!(user.first_name, "firstname1");
         assert_eq!(user.email, "user1@example.com");
         assert_eq!(user.phone, Some("1234567890".to_string()));
-        assert!(user.ldap_linked);
+        assert!(user.from_ldap);
     }
 
     #[test]
@@ -248,7 +244,7 @@ mod tests {
         assert_eq!(user.first_name, "firstname1");
         assert_eq!(user.email, "user1@example.com");
         assert_eq!(user.phone, None);
-        assert!(user.ldap_linked);
+        assert!(user.from_ldap);
     }
 
     #[test]

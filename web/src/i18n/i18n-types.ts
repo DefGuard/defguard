@@ -2800,6 +2800,10 @@ type RootTranslation = {
 					 * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
 					 */
 					ldap_tls_verify_cert: string
+					/**
+					 * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
+					 */
+					ldap_uses_ad: string
 				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
@@ -8183,6 +8187,10 @@ export type TranslationFunctions = {
 					 * Verify TLS certificate
 					 */
 					ldap_tls_verify_cert: () => LocalizedString
+					/**
+					 * LDAP server is Active Directory
+					 */
+					ldap_uses_ad: () => LocalizedString
 				}
 				/**
 				 * Delete configuration
