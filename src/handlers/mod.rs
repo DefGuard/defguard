@@ -96,6 +96,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": "Unprocessable entity"}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
+                AclError::InvalidIpRangeError(err) => ApiResponse::new(
+                    json!({"msg": format!("Invalid IP range: {err}")}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
                 AclError::RuleNotFoundError(id) => ApiResponse::new(
                     json!({"msg": format!("Rule {id} not found")}),
                     StatusCode::NOT_FOUND,
@@ -111,6 +115,10 @@ impl From<WebError> for ApiResponse {
                         StatusCode::INTERNAL_SERVER_ERROR,
                     )
                 }
+                AclError::PortOutOfRangeError(port) => ApiResponse::new(
+                    json!({"msg": format!("Port out of range: {port}")}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
             },
             WebError::Http(status) => {
                 error!("{status}");
