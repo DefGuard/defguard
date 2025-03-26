@@ -47,7 +47,7 @@ import {
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
 import { protocolOptions, protocolToString } from '../utils';
-import { aclPortsValidator } from '../validators';
+import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 // type Alias = {
@@ -170,7 +170,7 @@ export const AlcCreatePage = () => {
           allowed_devices: z.number().array(),
           denied_devices: z.number().array(),
           aliases: z.number().array(),
-          destination: z.string(),
+          destination: aclDestinationValidator(LL),
           ports: aclPortsValidator(LL),
           protocols: z.number().array(),
         })

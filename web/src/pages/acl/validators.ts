@@ -1,3 +1,4 @@
+import * as ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 
 import { TranslationFunctions } from '../../i18n/i18n-types';
@@ -51,3 +52,30 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
       }
       return true;
     }, LL.form.error.invalid());
+
+export const aclDestinationValidator = (LL: TranslationFunctions) =>
+  z.string().refine((value: string) => {
+    if (value === '') return true;
+    const trimmed = value
+      .replaceAll(' ', '')
+      .replaceAll('-', ' ')
+      .replaceAll(',', ' ')
+      .split(' ')
+      .filter((v) => v !== '');
+    for (const entry of trimmed) {
+      if (entry.includes('-')) {
+        const [start, end] = entry.split('-').map((s) => s.trim());
+        if (!ipaddr.isValid(start) || !ipaddr.isValid(end)) return false;
+
+        const startAddr = ipaddr.parse(start);
+        const endAddr = ipaddr.parse(end);
+
+        // addrs should be the same version
+        if (startAddr.kind() !== endAddr.kind()) return false;
+      } else {
+        if (!ipaddr.isValid(entry)) return false;
+      }
+    }
+
+    return true;
+  }, LL.form.error.invalid());
