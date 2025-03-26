@@ -22,7 +22,7 @@ import useApi from '../../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../../shared/queries';
 import { protocolOptions, protocolToString } from '../../../../../utils';
-import { aclPortsValidator } from '../../../../../validators';
+import { aclDestinationValidator, aclPortsValidator } from '../../../../../validators';
 import { useAclAliasCEModal } from './store';
 
 export const AlcAliasCEModal = () => {
@@ -73,7 +73,7 @@ const ModalContent = () => {
       z.object({
         name: z.string(),
         ports: aclPortsValidator(LL),
-        destination: z.string(),
+        destination: aclDestinationValidator(LL),
         protocols: z.number().array(),
       }),
     [LL],

@@ -47,7 +47,7 @@ import {
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
 import { protocolOptions, protocolToString } from '../utils';
-import { aclPortsValidator } from '../validators';
+import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 // type Alias = {
@@ -170,7 +170,7 @@ export const AlcCreatePage = () => {
           allowed_devices: z.number().array(),
           denied_devices: z.number().array(),
           aliases: z.number().array(),
-          destination: z.string(),
+          destination: aclDestinationValidator(LL),
           ports: aclPortsValidator(LL),
           protocols: z.number().array(),
         })
@@ -370,29 +370,30 @@ export const AlcCreatePage = () => {
         </div>
       </div>
       <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
-        <SectionWithCard title={localLL.headers.rule()} id="rule-card">
-          <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
-          <LabeledCheckbox
-            label={labelsLL.allowAllNetworks()}
-            value={allowAllLocations}
-            onChange={setAllowAllLocations}
-          />
-          <FormCheckBox
-            controller={{ control, name: 'enabled' }}
-            label={LL.common.controls.enabled()}
-            labelPlacement="right"
-          />
-          <FormDialogSelect
-            controller={{ control, name: 'networks' }}
-            options={networks}
-            renderTagContent={renderNetworkSelectTag}
-            identKey="id"
-            label={labelsLL.locations()}
-            searchKeys={['name']}
-            disabled={allowAllLocations}
-            forceShowErrorMessage
-          />
-          {/* <CardHeader title="Expiration Date" />
+        <div className="column">
+          <SectionWithCard title={localLL.headers.rule()} id="rule-card">
+            <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
+            <LabeledCheckbox
+              label={labelsLL.allowAllNetworks()}
+              value={allowAllLocations}
+              onChange={setAllowAllLocations}
+            />
+            <FormCheckBox
+              controller={{ control, name: 'enabled' }}
+              label={LL.common.controls.enabled()}
+              labelPlacement="right"
+            />
+            <FormDialogSelect
+              controller={{ control, name: 'networks' }}
+              options={networks}
+              renderTagContent={renderNetworkSelectTag}
+              identKey="id"
+              label={labelsLL.locations()}
+              searchKeys={['name']}
+              disabled={allowAllLocations}
+              forceShowErrorMessage
+            />
+            {/* <CardHeader title="Expiration Date" />
           <LabeledCheckbox
             label="Never Expire"
             value={neverExpires && watchedExpires === null}
@@ -411,84 +412,15 @@ export const AlcCreatePage = () => {
             label="Expiration Date"
             disabled={neverExpires}
           /> */}
-        </SectionWithCard>
-        <SectionWithCard title={localLL.headers.allowed()} id="allow-card">
-          <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
-            <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
-          </MessageBox>
-          <LabeledCheckbox
-            value={allowAllUsers}
-            onChange={(val) => {
-              if (val) {
-                setDenyAllUsers(false);
-              }
-              setAllowAllUsers(val);
-            }}
-            label={labelsLL.allowAllUsers()}
-          />
-          <FormDialogSelect
-            label={labelsLL.users()}
-            controller={{ control, name: 'allowed_users' }}
-            options={users}
-            renderTagContent={renderUserTag}
-            renderDialogListItem={renderUserListItem}
-            identKey="id"
-            searchKeys={['email', 'last_name', 'first_name']}
-            disabled={allowAllUsers}
-            onChange={() => {
-              void trigger('denied_users', { shouldFocus: false });
-            }}
-            forceShowErrorMessage
-          />
-          <FormDialogSelect
-            label={labelsLL.groups()}
-            controller={{ control, name: 'allowed_groups' }}
-            options={groups}
-            renderTagContent={renderGroup}
-            identKey="id"
-            searchKeys={['name']}
-            disabled={allowAllUsers}
-            onChange={() => {
-              void trigger('denied_groups', {
-                shouldFocus: false,
-              });
-            }}
-            forceShowErrorMessage
-          />
-          <LabeledCheckbox
-            value={allowAllNetworkDevices}
-            onChange={(val) => {
-              if (val) {
-                setDenyAllNetworkDevices(false);
-              }
-              setAllowAllNetworkDevices(val);
-            }}
-            label={labelsLL.allowAllNetworkDevices()}
-          />
-          <FormDialogSelect
-            label={labelsLL.devices()}
-            controller={{ control, name: 'allowed_devices' }}
-            options={devices}
-            renderTagContent={renderNetworkDevice}
-            identKey="id"
-            searchKeys={['name']}
-            disabled={allowAllNetworkDevices}
-            onChange={() => {
-              void trigger('denied_devices', {
-                shouldFocus: false,
-              });
-            }}
-            forceShowErrorMessage
-          />
-        </SectionWithCard>
-        <SectionWithCard title={localLL.headers.destination()} id="destination-card">
-          <MessageBox
-            styleVariant={MessageBoxStyleVariant.OUTLINED}
-            type={MessageBoxType.INFO}
-          >
-            <RenderMarkdown content={localLL.infoBox.destinationInstructions()} />
-          </MessageBox>
-          {/* <FormDialogSelect
+          </SectionWithCard>
+          <SectionWithCard title={localLL.headers.destination()} id="destination-card">
+            <MessageBox
+              styleVariant={MessageBoxStyleVariant.OUTLINED}
+              type={MessageBoxType.INFO}
+            >
+              <RenderMarkdown content={localLL.infoBox.destinationInstructions()} />
+            </MessageBox>
+            {/* <FormDialogSelect
             controller={{ control, name: 'aliases' }}
             options={aliases}
             label="Aliases"
@@ -496,93 +428,168 @@ export const AlcCreatePage = () => {
             renderTagContent={renderAlias}
             searchKeys={['name']}
           /> */}
-          {/* <CardHeader title="Manual Input" /> */}
-          <FormTextarea
-            controller={{ control, name: 'destination' }}
-            label={labelsLL.manualIp()}
-          />
-          <FormInput controller={{ control, name: 'ports' }} label={labelsLL.ports()} />
-          <FormSelect
-            controller={{ control, name: 'protocols' }}
-            label={labelsLL.protocols()}
-            placeholder={localLL.placeholders.allProtocols()}
-            options={protocolOptions}
-            searchable={false}
-            renderSelected={(val) => ({ displayValue: protocolToString(val), key: val })}
-            disposable
-          />
-        </SectionWithCard>
-        <SectionWithCard title={localLL.headers.denied()} id="denied-card">
-          <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
-            <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
-          </MessageBox>
-          <LabeledCheckbox
-            label={labelsLL.denyAllUsers()}
-            value={denyAllUsers}
-            onChange={(val) => {
-              if (val) {
-                setAllowAllUsers(false);
-              }
-              setDenyAllUsers(val);
-            }}
-          />
-          <FormDialogSelect
-            label={labelsLL.users()}
-            controller={{ control, name: 'denied_users' }}
-            options={users}
-            renderTagContent={renderUserTag}
-            renderDialogListItem={renderUserListItem}
-            identKey="id"
-            searchKeys={['username', 'first_name', 'last_name']}
-            disabled={denyAllUsers}
-            onChange={() => {
-              void trigger('allowed_users', {
-                shouldFocus: false,
-              });
-            }}
-            forceShowErrorMessage
-          />
-          <FormDialogSelect
-            label={labelsLL.groups()}
-            controller={{ control, name: 'denied_groups' }}
-            options={groups}
-            renderTagContent={renderGroup}
-            identKey="id"
-            searchKeys={['name']}
-            disabled={denyAllUsers}
-            onChange={() => {
-              void trigger('allowed_groups', {
-                shouldFocus: false,
-              });
-            }}
-            forceShowErrorMessage
-          />
-          <LabeledCheckbox
-            label={labelsLL.denyAllNetworkDevices()}
-            value={denyAllNetworkDevices}
-            onChange={(val) => {
-              if (val) {
-                setAllowAllNetworkDevices(false);
-              }
-              setDenyAllNetworkDevices(val);
-            }}
-          />
-          <FormDialogSelect
-            label={labelsLL.devices()}
-            controller={{ control, name: 'denied_devices' }}
-            options={devices}
-            renderTagContent={renderNetworkDevice}
-            identKey="id"
-            searchKeys={['name']}
-            disabled={denyAllNetworkDevices}
-            onChange={() => {
-              void trigger('allowed_devices', {
-                shouldFocus: false,
-              });
-            }}
-            forceShowErrorMessage
-          />
-        </SectionWithCard>
+            {/* <CardHeader title="Manual Input" /> */}
+            <FormTextarea
+              controller={{ control, name: 'destination' }}
+              label={labelsLL.manualIp()}
+            />
+            <FormInput controller={{ control, name: 'ports' }} label={labelsLL.ports()} />
+            <FormSelect
+              controller={{ control, name: 'protocols' }}
+              label={labelsLL.protocols()}
+              placeholder={localLL.placeholders.allProtocols()}
+              options={protocolOptions}
+              searchable={false}
+              renderSelected={(val) => ({
+                displayValue: protocolToString(val),
+                key: val,
+              })}
+              disposable
+            />
+          </SectionWithCard>
+        </div>
+        <div className="column">
+          <SectionWithCard title={localLL.headers.allowed()} id="allow-card">
+            <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
+              <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
+            </MessageBox>
+            <LabeledCheckbox
+              value={allowAllUsers}
+              onChange={(val) => {
+                if (val) {
+                  setDenyAllUsers(false);
+                }
+                setAllowAllUsers(val);
+              }}
+              label={labelsLL.allowAllUsers()}
+            />
+            <FormDialogSelect
+              label={labelsLL.users()}
+              controller={{ control, name: 'allowed_users' }}
+              options={users}
+              renderTagContent={renderUserTag}
+              renderDialogListItem={renderUserListItem}
+              identKey="id"
+              searchKeys={['email', 'last_name', 'first_name']}
+              disabled={allowAllUsers}
+              onChange={() => {
+                void trigger('denied_users', { shouldFocus: false });
+              }}
+              forceShowErrorMessage
+            />
+            <FormDialogSelect
+              label={labelsLL.groups()}
+              controller={{ control, name: 'allowed_groups' }}
+              options={groups}
+              renderTagContent={renderGroup}
+              identKey="id"
+              searchKeys={['name']}
+              disabled={allowAllUsers}
+              onChange={() => {
+                void trigger('denied_groups', {
+                  shouldFocus: false,
+                });
+              }}
+              forceShowErrorMessage
+            />
+            <LabeledCheckbox
+              value={allowAllNetworkDevices}
+              onChange={(val) => {
+                if (val) {
+                  setDenyAllNetworkDevices(false);
+                }
+                setAllowAllNetworkDevices(val);
+              }}
+              label={labelsLL.allowAllNetworkDevices()}
+            />
+            <FormDialogSelect
+              label={labelsLL.devices()}
+              controller={{ control, name: 'allowed_devices' }}
+              options={devices}
+              renderTagContent={renderNetworkDevice}
+              identKey="id"
+              searchKeys={['name']}
+              disabled={allowAllNetworkDevices}
+              onChange={() => {
+                void trigger('denied_devices', {
+                  shouldFocus: false,
+                });
+              }}
+              forceShowErrorMessage
+            />
+          </SectionWithCard>
+          <SectionWithCard title={localLL.headers.denied()} id="denied-card">
+            <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
+              <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
+            </MessageBox>
+            <LabeledCheckbox
+              label={labelsLL.denyAllUsers()}
+              value={denyAllUsers}
+              onChange={(val) => {
+                if (val) {
+                  setAllowAllUsers(false);
+                }
+                setDenyAllUsers(val);
+              }}
+            />
+            <FormDialogSelect
+              label={labelsLL.users()}
+              controller={{ control, name: 'denied_users' }}
+              options={users}
+              renderTagContent={renderUserTag}
+              renderDialogListItem={renderUserListItem}
+              identKey="id"
+              searchKeys={['username', 'first_name', 'last_name']}
+              disabled={denyAllUsers}
+              onChange={() => {
+                void trigger('allowed_users', {
+                  shouldFocus: false,
+                });
+              }}
+              forceShowErrorMessage
+            />
+            <FormDialogSelect
+              label={labelsLL.groups()}
+              controller={{ control, name: 'denied_groups' }}
+              options={groups}
+              renderTagContent={renderGroup}
+              identKey="id"
+              searchKeys={['name']}
+              disabled={denyAllUsers}
+              onChange={() => {
+                void trigger('allowed_groups', {
+                  shouldFocus: false,
+                });
+              }}
+              forceShowErrorMessage
+            />
+            <LabeledCheckbox
+              label={labelsLL.denyAllNetworkDevices()}
+              value={denyAllNetworkDevices}
+              onChange={(val) => {
+                if (val) {
+                  setAllowAllNetworkDevices(false);
+                }
+                setDenyAllNetworkDevices(val);
+              }}
+            />
+            <FormDialogSelect
+              label={labelsLL.devices()}
+              controller={{ control, name: 'denied_devices' }}
+              options={devices}
+              renderTagContent={renderNetworkDevice}
+              identKey="id"
+              searchKeys={['name']}
+              disabled={denyAllNetworkDevices}
+              onChange={() => {
+                void trigger('allowed_devices', {
+                  shouldFocus: false,
+                });
+              }}
+              forceShowErrorMessage
+            />
+          </SectionWithCard>
+        </div>
         <input type="submit" ref={submitRef} className="hidden" />
       </form>
     </PageContainer>
@@ -603,9 +610,11 @@ const renderNetworkSelectTag = (network: Network) => (
     <p>{network.name}</p>
     <ActivityIcon
       status={
-        network.acl_default_allow
-          ? ActivityIconVariant.CONNECTED
-          : ActivityIconVariant.ERROR_FILLED
+        !network.acl_enabled
+          ? ActivityIconVariant.BLANK
+          : network.acl_default_allow
+            ? ActivityIconVariant.CONNECTED
+            : ActivityIconVariant.ERROR_FILLED
       }
     />
   </>
