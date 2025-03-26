@@ -1,10 +1,10 @@
 ALTER TABLE "user"
 ADD COLUMN ldap_linked BOOLEAN NOT NULL DEFAULT FALSE;
 
-CREATE TYPE ldap_sync_status AS ENUM ('synced', 'desynced');
+CREATE TYPE ldap_sync_status AS ENUM ('insync', 'outofsync');
 
 ALTER TABLE settings
-ADD COLUMN ldap_sync_status ldap_sync_status NOT NULL DEFAULT 'desynced';
+ADD COLUMN ldap_sync_status ldap_sync_status NOT NULL DEFAULT 'outofsync';
 
 ALTER TABLE settings
 ADD COLUMN ldap_enabled BOOLEAN NOT NULL DEFAULT FALSE;

@@ -127,7 +127,7 @@ pub async fn patch_settings(
 
     if let Some(ldap_enabled) = data.ldap_enabled {
         if !ldap_enabled {
-            settings.ldap_sync_status = SyncStatus::Desynced;
+            settings.ldap_sync_status = SyncStatus::OutOfSync;
         }
     }
 

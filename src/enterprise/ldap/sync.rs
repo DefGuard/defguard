@@ -34,14 +34,14 @@ pub enum Source {
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Deserialize, Serialize, Default, Type)]
 #[sqlx(type_name = "ldap_sync_status", rename_all = "lowercase")]
 pub enum SyncStatus {
-    Synced,
+    InSync,
     #[default]
-    Desynced,
+    OutOfSync,
 }
 
 impl SyncStatus {
     pub fn is_out_of_sync(&self) -> bool {
-        matches!(self, SyncStatus::Desynced)
+        matches!(self, SyncStatus::OutOfSync)
     }
 }
 
@@ -276,14 +276,14 @@ fn extract_intersecting_users(
     intersecting_users
 }
 
-const LDAP_SYNC_INTERVAL: u64 = 60 * 5;
+const DEFAULT_LDAP_SYNC_INTERVAL: u64 = 60 * 5;
 
 pub fn get_ldap_sync_interval() -> u64 {
     let settings = Settings::get_current_settings();
     settings
         .ldap_sync_interval
         .try_into()
-        .unwrap_or(LDAP_SYNC_INTERVAL)
+        .unwrap_or(DEFAULT_LDAP_SYNC_INTERVAL)
 }
 
 impl crate::ldap::LDAPConnection {

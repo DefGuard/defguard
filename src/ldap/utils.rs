@@ -222,7 +222,7 @@ pub(crate) async fn ldap_change_password(username: &str, password: &str, pool: &
 
 pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group<Id>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Modifying group {} in LDAP", groupname);
+        debug!("Modifying group {groupname} in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.modify_group(groupname, group).await
     })
@@ -231,7 +231,7 @@ pub(crate) async fn ldap_modify_group(groupname: &str, group: &Group<Id>, pool: 
 
 pub(crate) async fn ldap_delete_group(groupname: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Deleting group {} from LDAP", groupname);
+        debug!("Deleting group {groupname} from LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
         ldap_connection.delete_group(groupname).await
     })
