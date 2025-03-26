@@ -610,9 +610,11 @@ const renderNetworkSelectTag = (network: Network) => (
     <p>{network.name}</p>
     <ActivityIcon
       status={
-        network.acl_default_allow
-          ? ActivityIconVariant.CONNECTED
-          : ActivityIconVariant.ERROR_FILLED
+        !network.acl_enabled
+          ? ActivityIconVariant.BLANK
+          : network.acl_default_allow
+            ? ActivityIconVariant.CONNECTED
+            : ActivityIconVariant.ERROR_FILLED
       }
     />
   </>
