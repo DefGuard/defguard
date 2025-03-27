@@ -60,8 +60,15 @@ pub async fn generate_firewall_rules_from_acls(
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
 
+        // fetch allowed network devices
+        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn).await?;
+
+        // fetch denied network devices
+        let denied_network_devices = acl.get_all_denied_devices(&mut *conn).await?;
+
         // get network device IPs for rule source
-        let network_devices = get_source_network_devices(acl.allowed_devices, acl.denied_devices);
+        let network_devices =
+            get_source_network_devices(allowed_network_devices, denied_network_devices);
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
 
@@ -548,7 +555,7 @@ impl WireguardNetwork<Id> {
                 FROM aclrule a \
                 JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
-                WHERE an.network_id = $1 AND enabled = true \
+                WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
                 AND state = 'applied'::aclrule_state \
                 AND (expires IS NULL OR expires > NOW())",
         )

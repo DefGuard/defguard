@@ -2246,6 +2246,7 @@ Any other requests you can reach us at: support@defguard.net
     createPage: {
       formError: {
         allowDenyConflict: 'Conflicting members',
+        allowNotConfigured: 'Must configure some allowed users, groups or devices',
       },
       infoBox: {
         // md

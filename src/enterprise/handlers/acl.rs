@@ -14,6 +14,7 @@ use crate::{
     enterprise::db::models::acl::{
         AclAlias, AclAliasInfo, AclRule, AclRuleInfo, Protocol, RuleState,
     },
+    error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -100,6 +101,24 @@ pub struct EditAclRule {
     pub aliases: Vec<Id>,
     pub ports: String,
     pub protocols: Vec<Protocol>,
+}
+
+impl EditAclRule {
+    pub fn validate(&self) -> Result<(), WebError> {
+        // check if some allowed users/group/devices are configured
+        if !(self.allow_all_users
+            || self.allow_all_network_devices
+            || !self.allowed_users.is_empty()
+            || !self.allowed_groups.is_empty()
+            || !self.allowed_devices.is_empty())
+        {
+            return Err(WebError::BadRequest(
+                "Must provide some allowed users, groups or devices".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 /// API representation of [`AclAlias`]
@@ -190,6 +209,10 @@ pub async fn create_acl_rule(
     Json(data): Json<EditAclRule>,
 ) -> ApiResult {
     debug!("User {} creating ACL rule {data:?}", session.user.username);
+
+    // validate submitted ACL rule
+    data.validate()?;
+
     let rule = AclRule::create_from_api(&appstate.pool, &data)
         .await
         .map_err(|err| {
@@ -215,6 +238,10 @@ pub async fn update_acl_rule(
     Json(data): Json<EditAclRule>,
 ) -> ApiResult {
     debug!("User {} updating ACL rule {data:?}", session.user.username);
+
+    // validate submitted ACL rule
+    data.validate()?;
+
     let rule = AclRule::update_from_api(&appstate.pool, id, &data)
         .await
         .map_err(|err| {

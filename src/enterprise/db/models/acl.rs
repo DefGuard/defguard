@@ -44,6 +44,10 @@ pub enum AclError {
     RuleAlreadyAppliedError(Id),
     #[error(transparent)]
     FirewallError(#[from] FirewallError),
+    #[error("InvalidIpRangeError: {0}")]
+    InvalidIpRangeError(String),
+    #[error("PortOutOfRangeError: {0}")]
+    PortOutOfRangeError(i32),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -507,6 +511,11 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
 /// `22, 23, 8000-9000, 80-90`
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
+    let ensure_in_range = |port: i32| {
+        u16::try_from(port)
+            .map(|_| port)
+            .map_err(|_| AclError::PortOutOfRangeError(port))
+    };
     let mut result = Vec::new();
     let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
     if ports.is_empty() {
@@ -515,12 +524,12 @@ pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     for v in ports.split(',') {
         match v.split('-').collect::<Vec<_>>() {
             l if l.len() == 1 => result.push(PortRange(Range {
-                start: l[0].parse::<i32>()?,
-                end: l[0].parse::<i32>()? + 1,
+                start: ensure_in_range(l[0].parse::<i32>()?)?,
+                end: ensure_in_range(l[0].parse::<i32>()?)? + 1,
             })),
             l if l.len() == 2 => result.push(PortRange(Range {
-                start: l[0].parse::<i32>()?,
-                end: l[1].parse::<i32>()? + 1,
+                start: ensure_in_range(l[0].parse::<i32>()?)?,
+                end: ensure_in_range(l[1].parse::<i32>()?)? + 1,
             })),
             _ => {
                 error!("Failed to parse ports string: \"{ports}\"");
@@ -668,6 +677,12 @@ impl AclRule<Id> {
         let destination = parse_destination(&api_rule.destination)?;
         debug!("Creating related destination ranges for ACL rule {rule_id}");
         for range in destination.ranges {
+            if range.1 <= range.0 {
+                return Err(AclError::InvalidIpRangeError(format!(
+                    "{}-{}",
+                    range.0, range.1
+                )));
+            }
             let obj = AclRuleDestinationRange {
                 id: NoId,
                 rule_id,
@@ -906,23 +921,9 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.allow_all_users {
-            query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
-                User,
-                "SELECT u.id, username, password_hash, last_name, first_name, email, \
+        query_as!(
+            User,
+            "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
@@ -933,11 +934,10 @@ impl AclRule<Id> {
                 WHERE r.rule_id = $1 \
                 AND r.allow \
                 AND u.is_active = true",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
-        }
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Returns **active** [`User`]s that are denied by the rule
@@ -948,23 +948,9 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_users {
-            query_as!(
-                User,
-                "SELECT id, username, password_hash, last_name, first_name, email, \
-                phone, mfa_enabled, totp_enabled, totp_secret, \
-                email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap \
-                FROM \"user\" \
-                WHERE is_active = true"
-            )
-            .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
-                User,
-                "SELECT u.id, username, password_hash, last_name, first_name, email, \
+        query_as!(
+            User,
+            "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
@@ -975,11 +961,10 @@ impl AclRule<Id> {
                 WHERE r.rule_id = $1 \
                 AND NOT r.allow \
                 AND u.is_active = true",
-                self.id,
-            )
-            .fetch_all(executor)
-            .await
-        }
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
     }
 
     /// Returns [`Group`]s that are allowed or denied by the rule
@@ -1028,18 +1013,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.allow_all_network_devices {
-            query_as!(
-                Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-                    configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type",
-            )
-                .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
+        query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
@@ -1047,12 +1021,11 @@ impl AclRule<Id> {
                     JOIN device d \
                     ON d.id = r.device_id \
                     WHERE r.rule_id = $1 \
-                    AND r.allow = true",
+                    AND r.allow = true AND d.configured = true",
                 self.id,
             )
                 .fetch_all(executor)
             .await
-        }
     }
 
     pub(crate) async fn get_denied_network_devices<'e, E>(
@@ -1062,18 +1035,7 @@ impl AclRule<Id> {
     where
         E: PgExecutor<'e>,
     {
-        if self.deny_all_network_devices {
-            query_as!(
-                Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
-                    configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type",
-            )
-                .fetch_all(executor)
-            .await
-        } else {
-            query_as!(
+        query_as!(
                 Device,
                 "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
@@ -1081,12 +1043,11 @@ impl AclRule<Id> {
                     JOIN device d \
                     ON d.id = r.device_id \
                     WHERE r.rule_id = $1 \
-                    AND r.allow = false",
+                    AND r.allow = false AND d.configured = true",
                 self.id,
             )
                 .fetch_all(executor)
             .await
-        }
     }
 
     /// Returns all [`AclRuleDestinationRanges`]es the rule applies to
@@ -1157,6 +1118,31 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all allowed users for ACL rule {}",
+            self.id
+        );
+        // return all active users if `allow_all_users` flag is enabled
+        if self.allow_all_users {
+            debug!(
+                "allow_all_users flag is enabled for ACL rule {}. Fetching all active users",
+                self.id
+            );
+            let all_active_users = query_as!(
+                User,
+                "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" \
+                WHERE is_active = true"
+            )
+            .fetch_all(executor)
+            .await;
+
+            return all_active_users;
+        }
+
         // get explicitly allowed users
         let mut allowed_users = self.allowed_users.clone();
 
@@ -1193,6 +1179,31 @@ impl AclRuleInfo<Id> {
         &self,
         executor: E,
     ) -> Result<Vec<User<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all denied users for ACL rule {}",
+            self.id
+        );
+        // return all active users if `deny_all_users` flag is enabled
+        if self.deny_all_users {
+            debug!(
+                "deny_all_users flag is enabled for ACL rule {}. Fetching all active users",
+                self.id
+            );
+            let all_denied_users = query_as!(
+                User,
+                "SELECT id, username, password_hash, last_name, first_name, email, \
+                phone, mfa_enabled, totp_enabled, totp_secret, \
+                email_mfa_enabled, email_mfa_secret, \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                FROM \"user\" \
+                WHERE is_active = true"
+            )
+            .fetch_all(executor)
+            .await;
+
+            return all_denied_users;
+        }
+
         // get explicitly denied users
         let mut denied_users = self.denied_users.clone();
 
@@ -1221,6 +1232,60 @@ impl AclRuleInfo<Id> {
 
         // convert HashSet to output Vec
         Ok(unique_denied_users.into_iter().collect())
+    }
+
+    /// Returns the list of explicitly configured allowed network devices or
+    /// a list of all devices if 'allow_all_network_devices' flag is enabled
+    pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all allowed network devices for ACL rule {}",
+            self.id
+        );
+        // return all active devices if `allow_all_network_devices` flag is enabled
+        if self.allow_all_network_devices {
+            return query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type AND configured = true",
+            )
+                .fetch_all(executor)
+            .await;
+        }
+
+        // return explicitly configured allowed devices otherwise
+        Ok(self.allowed_devices.clone())
+    }
+
+    /// Returns the list of explicitly configured denied network devices or
+    /// a list of all devices if 'deny_all_network_devices' flag is enabled
+    pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
+        &self,
+        executor: E,
+    ) -> Result<Vec<Device<Id>>, SqlxError> {
+        debug!(
+            "Preparing list of all denied network devices for ACL rule {}",
+            self.id
+        );
+        // return all active devices if `allow_all_network_devices` flag is enabled
+        if self.allow_all_network_devices {
+            return query_as!(
+                Device,
+                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                    configured \
+                    FROM device \
+                    WHERE device_type = 'network'::device_type AND configured = true",
+            )
+                .fetch_all(executor)
+            .await;
+        }
+
+        // return explicitly configured denied devices otherwise
+        Ok(self.denied_devices.clone())
     }
 }
 
@@ -1962,7 +2027,7 @@ mod test {
         rule.allow_all_users = true;
         rule.deny_all_users = false;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
         assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test `deny_all_users` flag
@@ -1970,14 +2035,14 @@ mod test {
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
         assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // test both flags
         rule.allow_all_users = true;
         rule.deny_all_users = true;
         rule.save(&pool).await.unwrap();
-        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 2);
-        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 2);
+        assert_eq!(rule.get_users(&pool, true).await.unwrap().len(), 1);
+        assert_eq!(rule.get_users(&pool, false).await.unwrap().len(), 1);
 
         // deactivate user1
         user1.is_active = false;
@@ -1990,8 +2055,7 @@ mod test {
 
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
-        assert_eq!(allowed_users.len(), 1);
-        assert_eq!(allowed_users[0], user2);
+        assert_eq!(allowed_users.len(), 0);
         assert_eq!(denied_users.len(), 1);
 
         // ensure only active users are allowed when `allow_all_users = false`
@@ -2014,8 +2078,7 @@ mod test {
         let allowed_users = rule.get_users(&pool, true).await.unwrap();
         let denied_users = rule.get_users(&pool, false).await.unwrap();
         assert_eq!(allowed_users.len(), 1);
-        assert_eq!(denied_users.len(), 1);
-        assert_eq!(denied_users[0], user2);
+        assert_eq!(denied_users.len(), 0);
 
         // ensure only active users are denied when `deny_all_users = false`
         rule.allow_all_users = false;
