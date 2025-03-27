@@ -1104,7 +1104,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: 'LDAP Settings',
       sync: {
         header: 'LDAP two-way synchronization',
-        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features).',
+        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-two-way-synchronization).',
         info_enterprise: 'This feature is available only in Defguard Enterprise.',
         helpers: {
           sync_enabled:

@@ -2703,7 +2703,7 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​.
+				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​l​d​a​p​-​t​w​o​-​w​a​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
 				 */
 				info: string
 				/**
@@ -8098,7 +8098,7 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features).
+				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-two-way-synchronization).
 				 */
 				info: () => LocalizedString
 				/**
