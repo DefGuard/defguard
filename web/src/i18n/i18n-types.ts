@@ -2411,6 +2411,10 @@ type RootTranslation = {
 			 * U​s​e​r​n​a​m​e
 			 */
 			username: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​o​r​ ​e​m​a​i​l
+			 */
+			username_or_email: string
 		}
 		error: {
 			/**
@@ -2693,8 +2697,45 @@ type RootTranslation = {
 			 * L​D​A​P​ ​S​e​t​t​i​n​g​s
 			 */
 			title: string
+			sync: {
+				/**
+				 * L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+				 */
+				header: string
+				/**
+				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​.
+				 */
+				info: string
+				/**
+				 * T​h​i​s​ ​f​e​a​t​u​r​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​o​n​l​y​ ​i​n​ ​D​e​f​g​u​a​r​d​ ​E​n​t​e​r​p​r​i​s​e​.
+				 */
+				info_enterprise: string
+				helpers: {
+					/**
+					 * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​p​u​l​l​ ​L​D​A​P​ ​u​s​e​r​ ​d​a​t​a​ ​a​t​ ​t​h​e​ ​s​p​e​c​i​f​i​e​d​ ​i​n​t​e​r​v​a​l​.
+					 */
+					sync_enabled: string
+					/**
+					 * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​L​D​A​P​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​ ​f​o​r​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​u​s​e​r​ ​d​a​t​a​,​ ​m​e​a​n​i​n​g​ ​t​h​a​t​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​ ​b​e​ ​o​v​e​r​w​r​i​t​t​e​n​ ​w​i​t​h​ ​t​h​e​ ​L​D​A​P​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​a​t​a​ ​i​n​ ​c​a​s​e​ ​o​f​ ​a​ ​d​e​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​I​f​ ​l​e​f​t​ ​d​i​s​a​b​l​e​d​,​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​ ​k​e​p​t​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​,​ ​o​v​e​r​w​r​i​t​i​n​g​ ​t​h​e​ ​L​D​A​P​ ​d​a​t​a​ ​i​f​ ​n​e​c​e​s​s​a​r​y​.​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​t​h​e​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​t​o​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​e​ ​i​m​p​l​i​c​a​t​i​o​n​s​ ​o​f​ ​t​h​i​s​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​t​t​i​n​g​.
+					 */
+					authority: string
+					/**
+					 * T​h​e​ ​i​n​t​e​r​v​a​l​ ​w​i​t​h​ ​w​h​i​c​h​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​t​t​e​m​p​t​e​d​.
+					 */
+					interval: string
+				}
+			}
 			form: {
 				labels: {
+					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​i​n​t​e​g​r​a​t​i​o​n
+					 */
+					ldap_enable: string
 					/**
 					 * U​R​L
 					 */
@@ -2724,6 +2765,10 @@ type RootTranslation = {
 					 */
 					ldap_user_search_base: string
 					/**
+					 * A​d​d​i​t​i​o​n​a​l​ ​U​s​e​r​ ​O​b​j​e​c​t​ ​C​l​a​s​s​e​s
+					 */
+					ldap_user_auxiliary_obj_classes: string
+					/**
 					 * G​r​o​u​p​n​a​m​e​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_groupname_attr: string
@@ -2740,6 +2785,18 @@ type RootTranslation = {
 					 */
 					ldap_group_obj_class: string
 					/**
+					 * E​n​a​b​l​e​ ​L​D​A​P​ ​t​w​o​-​w​a​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
+					 */
+					ldap_sync_enabled: string
+					/**
+					 * C​o​n​s​i​d​e​r​ ​t​h​e​ ​L​D​A​P​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
+					 */
+					ldap_is_authority: string
+					/**
+					 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
+					 */
+					ldap_sync_interval: string
+					/**
 					 * U​s​e​ ​S​t​a​r​t​T​L​S
 					 */
 					ldap_use_starttls: string
@@ -2747,6 +2804,10 @@ type RootTranslation = {
 					 * V​e​r​i​f​y​ ​T​L​S​ ​c​e​r​t​i​f​i​c​a​t​e
 					 */
 					ldap_tls_verify_cert: string
+					/**
+					 * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
+					 */
+					ldap_uses_ad: string
 				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
@@ -7749,6 +7810,10 @@ export type TranslationFunctions = {
 			 * Username
 			 */
 			username: () => LocalizedString
+			/**
+			 * Username or email
+			 */
+			username_or_email: () => LocalizedString
 		}
 		error: {
 			/**
@@ -8027,8 +8092,45 @@ export type TranslationFunctions = {
 			 * LDAP Settings
 			 */
 			title: () => LocalizedString
+			sync: {
+				/**
+				 * LDAP two-way synchronization
+				 */
+				header: () => LocalizedString
+				/**
+				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features).
+				 */
+				info: () => LocalizedString
+				/**
+				 * This feature is available only in Defguard Enterprise.
+				 */
+				info_enterprise: () => LocalizedString
+				helpers: {
+					/**
+					 * If enabled, Defguard will attempt to pull LDAP user data at the specified interval.
+					 */
+					sync_enabled: () => LocalizedString
+					/**
+					 * If enabled, Defguard will use the LDAP server as the authoritative source for
+				          user data, meaning that the Defguard data will be overwritten with the LDAP
+				          data in case of a desynchronization. If left disabled, the Defguard data will
+				          be kept as the authoritative source, overwriting the LDAP data if necessary.
+				          Make sure to check the documentation to understand the implications of this
+				          setting.
+					 */
+					authority: () => LocalizedString
+					/**
+					 * The interval with which the synchronization will be attempted.
+					 */
+					interval: () => LocalizedString
+				}
+			}
 			form: {
 				labels: {
+					/**
+					 * Enable LDAP integration
+					 */
+					ldap_enable: () => LocalizedString
 					/**
 					 * URL
 					 */
@@ -8058,6 +8160,10 @@ export type TranslationFunctions = {
 					 */
 					ldap_user_search_base: () => LocalizedString
 					/**
+					 * Additional User Object Classes
+					 */
+					ldap_user_auxiliary_obj_classes: () => LocalizedString
+					/**
 					 * Groupname Attribute
 					 */
 					ldap_groupname_attr: () => LocalizedString
@@ -8074,6 +8180,18 @@ export type TranslationFunctions = {
 					 */
 					ldap_group_obj_class: () => LocalizedString
 					/**
+					 * Enable LDAP two-way synchronization
+					 */
+					ldap_sync_enabled: () => LocalizedString
+					/**
+					 * Consider the LDAP server as the authority
+					 */
+					ldap_is_authority: () => LocalizedString
+					/**
+					 * Synchronization interval
+					 */
+					ldap_sync_interval: () => LocalizedString
+					/**
 					 * Use StartTLS
 					 */
 					ldap_use_starttls: () => LocalizedString
@@ -8081,6 +8199,10 @@ export type TranslationFunctions = {
 					 * Verify TLS certificate
 					 */
 					ldap_tls_verify_cert: () => LocalizedString
+					/**
+					 * LDAP server is Active Directory
+					 */
+					ldap_uses_ad: () => LocalizedString
 				}
 				/**
 				 * Delete configuration

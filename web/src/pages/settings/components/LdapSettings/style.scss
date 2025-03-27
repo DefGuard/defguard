@@ -12,7 +12,22 @@
     }
   }
 
-  & > #ldap-settings-form > .form-checkbox {
+  #ldap-settings-form > h3 {
+    margin-bottom: 10px;
+  }
+
+  #ldap-settings-form > .form-checkbox {
+    margin-bottom: 10px;
+  }
+
+  .message-box {
+    margin-bottom: 10px;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     margin-bottom: 10px;
   }
 }

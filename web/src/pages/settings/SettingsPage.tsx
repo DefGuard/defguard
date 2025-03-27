@@ -32,7 +32,7 @@ const tabsContent: ReactNode[] = [
   <GatewayNotificationsSettings key={5} />,
 ];
 
-const enterpriseTabs: number[] = [3, 4];
+const enterpriseTabs: number[] = [2, 3, 4];
 
 export const SettingsPage = () => {
   const { LL } = useI18nContext();

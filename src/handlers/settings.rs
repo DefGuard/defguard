@@ -12,9 +12,11 @@ use crate::{
         models::settings::{update_current_settings, SettingsEssentials, SettingsPatch},
         Settings,
     },
-    enterprise::license::update_cached_license,
+    enterprise::{
+        ldap::{sync::SyncStatus, LDAPConnection},
+        license::update_cached_license,
+    },
     error::WebError,
-    ldap::LDAPConnection,
     AppState,
 };
 
@@ -124,6 +126,12 @@ pub async fn patch_settings(
         update_cached_license(license_key.as_deref())?;
         debug!("Saving the new license key to the database as part of the settings patch");
     };
+
+    if let Some(ldap_enabled) = data.ldap_enabled {
+        if !ldap_enabled {
+            settings.ldap_sync_status = SyncStatus::OutOfSync;
+        }
+    }
 
     settings.apply(data);
     settings.validate()?;

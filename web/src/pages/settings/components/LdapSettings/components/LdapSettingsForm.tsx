@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
@@ -13,13 +14,19 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
 
-type FormFields = SettingsLDAP;
+type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes'> & {
+  ldap_user_auxiliary_obj_classes: string;
+};
 
 export const LdapSettingsForm = () => {
   const { LL } = useI18nContext();
@@ -33,6 +40,7 @@ export const LdapSettingsForm = () => {
   const queryClient = useQueryClient();
 
   const toaster = useToaster();
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const { isPending: isLoading, mutate } = useMutation({
     mutationFn: patchSettings,
@@ -63,10 +71,16 @@ export const LdapSettingsForm = () => {
         ldap_groupname_attr: z.string().min(1, LL.form.error.required()),
         ldap_member_attr: z.string().min(1, LL.form.error.required()),
         ldap_user_obj_class: z.string().min(1, LL.form.error.required()),
+        ldap_user_auxiliary_obj_classes: z.string(),
         ldap_user_search_base: z.string().min(1, LL.form.error.required()),
         ldap_username_attr: z.string().min(1, LL.form.error.required()),
+        ldap_enabled: z.boolean(),
+        ldap_sync_enabled: z.boolean(),
+        ldap_is_authoritative: z.boolean(),
         ldap_use_starttls: z.boolean(),
         ldap_tls_verify_cert: z.boolean(),
+        ldap_sync_interval: z.number().default(300),
+        ldap_uses_ad: z.boolean(),
       }),
     [LL.form.error],
   );
@@ -79,18 +93,25 @@ export const LdapSettingsForm = () => {
       ldap_username_attr: settings?.ldap_username_attr ?? '',
       ldap_user_search_base: settings?.ldap_user_search_base ?? '',
       ldap_user_obj_class: settings?.ldap_user_obj_class ?? '',
+      ldap_user_auxiliary_obj_classes:
+        settings?.ldap_user_auxiliary_obj_classes.join(', ') ?? '',
       ldap_url: settings?.ldap_url ?? '',
       ldap_member_attr: settings?.ldap_member_attr ?? '',
       ldap_groupname_attr: settings?.ldap_groupname_attr ?? '',
       ldap_bind_password: settings?.ldap_bind_password ?? '',
       ldap_bind_username: settings?.ldap_bind_username ?? '',
+      ldap_enabled: settings?.ldap_enabled ?? false,
+      ldap_sync_enabled: settings?.ldap_sync_enabled ?? false,
+      ldap_is_authoritative: settings?.ldap_is_authoritative ?? false,
       ldap_use_starttls: settings?.ldap_use_starttls ?? false,
       ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
+      ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
+      ldap_uses_ad: settings?.ldap_uses_ad ?? false,
     }),
     [settings],
   );
 
-  const emptyValues: SettingsLDAP = useMemo(
+  const emptyValues: FormFields = useMemo(
     () => ({
       ldap_group_search_base: '',
       ldap_group_member_attr: '',
@@ -98,13 +119,19 @@ export const LdapSettingsForm = () => {
       ldap_username_attr: '',
       ldap_user_search_base: '',
       ldap_user_obj_class: '',
+      ldap_user_auxiliary_obj_classes: '',
       ldap_url: '',
       ldap_member_attr: '',
       ldap_groupname_attr: '',
       ldap_bind_password: '',
       ldap_bind_username: '',
+      ldap_enabled: false,
+      ldap_sync_enabled: false,
+      ldap_is_authoritative: false,
       ldap_use_starttls: false,
       ldap_tls_verify_cert: true,
+      ldap_sync_interval: 300,
+      ldap_uses_ad: false,
     }),
     [],
   );
@@ -116,11 +143,21 @@ export const LdapSettingsForm = () => {
   });
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
-    mutate(data);
+    const formattedData = {
+      ...data,
+      ldap_user_auxiliary_obj_classes: data.ldap_user_auxiliary_obj_classes
+        .split(',')
+        .map((obj_class) => obj_class.trim())
+        .filter((obj_class) => obj_class.length > 0),
+    };
+    mutate(formattedData);
   };
 
   const handleDeleteSubmit = useCallback(() => {
-    mutate(emptyValues);
+    mutate({
+      ...emptyValues,
+      ldap_user_auxiliary_obj_classes: [],
+    });
     reset(emptyValues);
   }, [mutate, emptyValues, reset]);
 
@@ -150,60 +187,124 @@ export const LdapSettingsForm = () => {
         </div>
       </header>
       <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormInput
-          controller={{ control, name: 'ldap_url' }}
-          label={localLL.form.labels.ldap_url()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_bind_username' }}
-          label={localLL.form.labels.ldap_bind_username()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_bind_password' }}
-          label={localLL.form.labels.ldap_bind_password()}
-          type="password"
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_member_attr' }}
-          label={localLL.form.labels.ldap_member_attr()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_username_attr' }}
-          label={localLL.form.labels.ldap_username_attr()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_user_search_base' }}
-          label={localLL.form.labels.ldap_user_search_base()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_user_obj_class' }}
-          label={localLL.form.labels.ldap_user_obj_class()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_groupname_attr' }}
-          label={localLL.form.labels.ldap_groupname_attr()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_obj_class' }}
-          label={localLL.form.labels.ldap_group_obj_class()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_member_attr' }}
-          label={localLL.form.labels.ldap_group_member_attr()}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_search_base' }}
-          label={localLL.form.labels.ldap_group_search_base()}
+        <FormCheckBox
+          controller={{ control, name: 'ldap_enabled' }}
+          label={localLL.form.labels.ldap_enable()}
+          labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormCheckBox
           controller={{ control, name: 'ldap_use_starttls' }}
           label={localLL.form.labels.ldap_use_starttls()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
+        />
+        <FormCheckBox
+          controller={{ control, name: 'ldap_uses_ad' }}
+          label={localLL.form.labels.ldap_uses_ad()}
+          labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormCheckBox
           controller={{ control, name: 'ldap_tls_verify_cert' }}
           label={localLL.form.labels.ldap_tls_verify_cert()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_url' }}
+          label={localLL.form.labels.ldap_url()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_bind_username' }}
+          label={localLL.form.labels.ldap_bind_username()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_bind_password' }}
+          label={localLL.form.labels.ldap_bind_password()}
+          type="password"
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_member_attr' }}
+          label={localLL.form.labels.ldap_member_attr()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_username_attr' }}
+          label={localLL.form.labels.ldap_username_attr()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_user_search_base' }}
+          label={localLL.form.labels.ldap_user_search_base()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_user_obj_class' }}
+          label={localLL.form.labels.ldap_user_obj_class()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_user_auxiliary_obj_classes' }}
+          label={localLL.form.labels.ldap_user_auxiliary_obj_classes()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_groupname_attr' }}
+          label={localLL.form.labels.ldap_groupname_attr()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_group_obj_class' }}
+          label={localLL.form.labels.ldap_group_obj_class()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_group_member_attr' }}
+          label={localLL.form.labels.ldap_group_member_attr()}
+          disabled={!enterpriseEnabled}
+        />
+        <FormInput
+          controller={{ control, name: 'ldap_group_search_base' }}
+          label={localLL.form.labels.ldap_group_search_base()}
+          disabled={!enterpriseEnabled}
+        />
+        <h3>{localLL.sync.header()}</h3>
+        <MessageBox type={MessageBoxType.INFO}>
+          <ReactMarkdown>{localLL.sync.info()}</ReactMarkdown>
+        </MessageBox>
+        {!enterpriseEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <ReactMarkdown>{localLL.sync.info_enterprise()}</ReactMarkdown>
+          </MessageBox>
+        )}
+        <div className="checkbox-row">
+          <FormCheckBox
+            controller={{ control, name: 'ldap_sync_enabled' }}
+            label={localLL.form.labels.ldap_sync_enabled()}
+            labelPlacement="right"
+            disabled={!enterpriseEnabled}
+          />
+          <Helper>{localLL.sync.helpers.sync_enabled()}</Helper>
+        </div>
+        <div className="checkbox-row">
+          <FormCheckBox
+            controller={{ control, name: 'ldap_is_authoritative' }}
+            label={localLL.form.labels.ldap_is_authority()}
+            labelPlacement="right"
+            disabled={!enterpriseEnabled}
+          />
+          <Helper>{localLL.sync.helpers.authority()}</Helper>
+        </div>
+        <FormInput
+          controller={{ control, name: 'ldap_sync_interval' }}
+          label={localLL.form.labels.ldap_sync_interval()}
+          type="number"
+          disabled={!enterpriseEnabled}
+          labelExtras={<Helper>{localLL.sync.helpers.interval()}</Helper>}
         />
         <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
       </form>

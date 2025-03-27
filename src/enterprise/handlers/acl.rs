@@ -4,7 +4,9 @@ use axum::{
     Json,
 };
 use chrono::NaiveDateTime;
+use serde_json::{json, Value};
 
+use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
@@ -15,9 +17,6 @@ use crate::{
     error::WebError,
     handlers::{ApiResponse, ApiResult},
 };
-use serde_json::{json, Value};
-
-use super::LicenseInfo;
 
 /// API representation of [`AclRule`] used in API responses
 /// All relations represented as arrays of ids.

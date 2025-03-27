@@ -1,3 +1,19 @@
+use std::{
+    collections::HashSet,
+    fmt,
+    net::{IpAddr, Ipv4Addr},
+    ops::{Bound, Range},
+};
+
+use chrono::NaiveDateTime;
+use ipnetwork::{IpNetwork, IpNetworkError};
+use model_derive::Model;
+use sqlx::{
+    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
+    PgConnection, PgExecutor, PgPool, Type,
+};
+use thiserror::Error;
+
 use crate::{
     appstate::AppState,
     db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
@@ -7,20 +23,6 @@ use crate::{
     },
     DeviceType,
 };
-use chrono::NaiveDateTime;
-use ipnetwork::{IpNetwork, IpNetworkError};
-use model_derive::Model;
-use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
-    PgConnection, PgExecutor, PgPool, Type,
-};
-use std::{
-    collections::HashSet,
-    fmt,
-    net::{IpAddr, Ipv4Addr},
-    ops::{Bound, Range},
-};
-use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AclError {
@@ -765,6 +767,7 @@ impl AclRule<Id> {
 
 impl TryFrom<EditAclRule> for AclRule<NoId> {
     type Error = AclError;
+
     fn try_from(rule: EditAclRule) -> Result<Self, Self::Error> {
         Ok(Self {
             destination: parse_destination(&rule.destination)?.addrs,
@@ -923,7 +926,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
                 FROM aclruleuser r \
                 JOIN \"user\" u \
                 ON u.id = r.user_id \
@@ -949,7 +952,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
                 FROM aclruleuser r \
                 JOIN \"user\" u \
                 ON u.id = r.user_id \
@@ -1128,7 +1131,7 @@ impl AclRuleInfo<Id> {
                 "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1150,7 +1153,8 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+                from_ldap, ldap_pass_randomized \
                 FROM \"user\" u \
                 JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1188,7 +1192,7 @@ impl AclRuleInfo<Id> {
                 "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1210,7 +1214,8 @@ impl AclRuleInfo<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+                from_ldap, ldap_pass_randomized \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1338,6 +1343,7 @@ impl<I> AclAliasInfo<I> {
 
 impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
     type Error = AclError;
+
     fn try_from(alias: ApiAclAlias<I>) -> Result<Self, Self::Error> {
         Ok(Self {
             destination: parse_destination(&alias.destination)?.addrs,
@@ -1646,11 +1652,12 @@ impl AclAliasDestinationRange<NoId> {
 
 #[cfg(test)]
 mod test {
+    use std::ops::Bound;
+
     use rand::{thread_rng, Rng};
 
     use super::*;
     use crate::handlers::wireguard::parse_address_list;
-    use std::ops::Bound;
 
     #[sqlx::test]
     async fn test_alias(pool: PgPool) {

@@ -37,9 +37,28 @@ pub fn nthash(password: &str) -> String {
     to_lower_hex(&Md4::digest(password_utf16_le))
 }
 
+/// Calculated AD password used for `unicodePwd`.
+#[must_use]
+pub fn unicode_pwd(password: &str) -> Vec<u8> {
+    let quoted = format!("\"{password}\"");
+    let utf16_bytes: Vec<u8> = quoted
+        .encode_utf16()
+        .flat_map(|c| c.to_le_bytes())
+        .collect();
+
+    utf16_bytes
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_unicode_pwd() {
+        let encoded = unicode_pwd("newPassword");
+        let res = base64::prelude::BASE64_STANDARD.encode(encoded);
+        assert_eq!(res, "IgBuAGUAdwBQAGEAcwBzAHcAbwByAGQAIgA=");
+    }
 
     #[test]
     fn test_hash() {
