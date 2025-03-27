@@ -43,11 +43,13 @@ pub(crate) async fn user_from_ldap(
     Ok(user?)
 }
 
-pub(crate) async fn ldap_add_user(user: &User<Id>, password: Option<&str>, pool: &PgPool) {
+/// Adds user to LDAP, if no password was specified, a temporary random password will be used.
+/// This will set the `ldap_pass_randomized` field to `true` in the user.
+pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Creating user {} in LDAP", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
-        match ldap_connection.add_user(user, password).await {
+        match ldap_connection.add_user(user, password, pool).await {
             Ok(()) => Ok(()),
             // this user might exist in LDAP, just try to set the password
             Err(err) => {
@@ -214,11 +216,24 @@ pub(crate) async fn ldap_remove_users_from_groups(
     .await;
 }
 
-pub(crate) async fn ldap_change_password(username: &str, password: &str, pool: &PgPool) {
+pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Changing password for user {username} in LDAP");
+        debug!("Changing password for user {} in LDAP", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.set_password(username, password).await
+        ldap_connection
+            .set_password(&user.username, password)
+            .await?;
+        debug!(
+            "Password changed for user {} in LDAP, marking the LDAP password as set in Defguard",
+            user.username
+        );
+        user.ldap_pass_randomized = false;
+        user.save(pool).await?;
+        debug!(
+            "LDAP password state updated in Defguard for user {}",
+            user.username
+        );
+        Ok(())
     })
     .await;
 }

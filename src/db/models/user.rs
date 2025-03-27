@@ -89,6 +89,7 @@ pub struct User<I = NoId> {
     pub mfa_enabled: bool,
     pub is_active: bool,
     pub from_ldap: bool,
+    pub ldap_pass_randomized: bool,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -140,6 +141,7 @@ impl User {
             is_active: true,
             openid_sub: None,
             from_ldap: false,
+            ldap_pass_randomized: false,
         }
     }
 }
@@ -558,7 +560,7 @@ impl User<Id> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
                 mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
-                from_ldap \
+                from_ldap, ldap_pass_randomized \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -590,7 +592,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -741,7 +743,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -760,7 +762,7 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -778,7 +780,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -799,7 +801,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
@@ -1029,7 +1031,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1051,7 +1053,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1080,7 +1082,7 @@ impl User<Id> {
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"

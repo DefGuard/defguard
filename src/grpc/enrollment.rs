@@ -334,7 +334,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_add_user(&user, Some(&request.password), &self.pool).await;
+        ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
 
         info!("User {} activated", user.username);
         Ok(())

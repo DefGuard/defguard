@@ -3,6 +3,7 @@ use std::{collections::HashSet, time::Duration};
 use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 use model::UserObjectClass;
 use rand::Rng;
+use sqlx::PgPool;
 
 use self::error::LdapError;
 use crate::db::{self, Id, Settings, User};
@@ -328,11 +329,13 @@ impl LDAPConnection {
     /// Adds user to LDAP.
     pub async fn add_user(
         &mut self,
-        user: &User<Id>,
+        user: &mut User<Id>,
         password: Option<&str>,
+        pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {}", user.username);
         let dn = self.config.user_dn(&user.username);
+        let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {}", user.username);
             password.to_string()
@@ -368,6 +371,10 @@ impl LDAPConnection {
         if self.config.ldap_uses_ad {
             self.set_password(&user.username, &password).await?;
             self.activate_ad_user(&user.username).await?;
+        }
+        if password_is_random {
+            user.ldap_pass_randomized = true;
+            user.save(pool).await?;
         }
         info!("Added LDAP user {}", user.username);
         Ok(())

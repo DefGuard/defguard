@@ -545,7 +545,7 @@ impl crate::ldap::LDAPConnection {
     async fn apply_user_sync_changes(
         &mut self,
         pool: &PgPool,
-        changes: UserSyncChanges,
+        mut changes: UserSyncChanges,
     ) -> Result<(), LdapError> {
         let mut transaction = pool.begin().await?;
         let mut admin_count = User::find_admins(&mut *transaction).await?.len();
@@ -580,9 +580,9 @@ impl crate::ldap::LDAPConnection {
             self.delete_user(&user.username).await?;
         }
 
-        for user in changes.add_ldap {
+        for user in changes.add_ldap.iter_mut() {
             debug!("Adding user {} to LDAP", user.username);
-            self.add_user(&user, None).await?;
+            self.add_user(user, None, pool).await?;
         }
 
         Ok(())

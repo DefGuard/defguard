@@ -22,3 +22,5 @@ ALTER TABLE settings
 ADD COLUMN ldap_user_auxiliary_obj_classes TEXT[] NOT NULL DEFAULT ARRAY['simpleSecurityObject', 'sambaSamAccount'];
 
 ALTER TABLE settings ADD COLUMN ldap_uses_ad BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE "user" ADD COLUMN ldap_pass_randomized BOOLEAN NOT NULL DEFAULT FALSE;

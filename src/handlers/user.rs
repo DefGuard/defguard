@@ -339,7 +339,7 @@ pub async fn add_user(
     };
 
     // create new user
-    let user = User::new(
+    let mut user = User::new(
         user_data.username,
         password,
         user_data.last_name,
@@ -352,7 +352,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        ldap_add_user(&user, Some(&password), &appstate.pool).await;
+        ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -719,7 +719,7 @@ pub async fn modify_user(
             "User {} has been enabled, adding them to LDAP",
             user_info.username
         );
-        ldap_add_user(&user, None, &appstate.pool).await;
+        ldap_add_user(&mut user, None, &appstate.pool).await;
         let groups = user.member_of_names(&appstate.pool).await?;
         let groups_set = groups.iter().map(|g| g.as_str()).collect::<HashSet<&str>>();
         ldap_add_user_to_groups(&user_info.username, groups_set, &appstate.pool).await;
@@ -875,7 +875,7 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    ldap_change_password(&user.username, &data.new_password, &appstate.pool).await;
+    ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
 
     info!("User {} changed his password.", &user.username);
 
@@ -953,7 +953,7 @@ pub async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        ldap_change_password(&username, &data.new_password, &appstate.pool).await;
+        ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username

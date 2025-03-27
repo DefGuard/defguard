@@ -255,7 +255,7 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_change_password(&user.username, &request.password, &self.pool).await;
+        ldap_change_password(&mut user, &request.password, &self.pool).await;
 
         send_password_reset_success_email(
             &user,
