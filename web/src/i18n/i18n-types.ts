@@ -4289,6 +4289,10 @@ type RootTranslation = {
 				 * B​y​ ​d​e​f​a​u​l​t​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​a​l​l​o​w​e​d​ ​t​o​ ​c​o​n​n​e​c​t​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​.​ ​I​f​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​t​r​i​c​t​ ​a​c​c​e​s​s​ ​t​o​ ​t​h​i​s​ ​l​o​c​a​t​i​o​n​ ​t​o​ ​a​ ​s​p​e​c​i​f​i​c​ ​g​r​o​u​p​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​i​t​ ​b​e​l​o​w​.
 				 */
 				allowedGroups: string
+				/**
+				 * A​C​L​ ​f​u​n​c​t​i​o​n​a​l​i​t​y​ ​i​s​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​f​e​a​t​u​r​e​ ​a​n​d​ ​y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​u​s​e​r​,​ ​d​e​v​i​c​e​ ​o​r​ ​n​e​t​w​o​r​k​ ​l​i​m​i​t​s​ ​t​o​ ​u​s​e​ ​i​t​.​ ​I​n​ ​o​r​d​e​r​ ​t​o​ ​u​s​e​ ​t​h​i​s​ ​f​e​a​t​u​r​e​,​ ​p​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​o​n​e​.
+				 */
+				aclFeatureDisabled: string
 			}
 			messages: {
 				/**
@@ -9613,6 +9617,10 @@ export type TranslationFunctions = {
 				 * By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.
 				 */
 				allowedGroups: () => LocalizedString
+				/**
+				 * ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.
+				 */
+				aclFeatureDisabled: () => LocalizedString
 			}
 			messages: {
 				/**

@@ -1804,6 +1804,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           'List of addresses/masks that should be routed through the VPN network.',
         allowedGroups:
           'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
+        aclFeatureDisabled:
+          "ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.",
       },
       messages: {
         networkModified: 'Location modified.',
