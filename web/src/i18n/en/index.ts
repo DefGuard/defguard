@@ -1005,6 +1005,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     placeholders: {
       password: 'Password',
       username: 'Username',
+      username_or_email: 'Username or email',
     },
     error: {
       reservedName: 'Name is already taken.',

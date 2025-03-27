@@ -111,6 +111,7 @@ impl<I> User<I> {
         ssha_password: &'a str,
         nt_password: &'a str,
         object_classes: HashSet<&'a str>,
+        uses_ad: bool,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
         if object_classes.contains(UserObjectClass::InetOrgPerson.into())
@@ -137,6 +138,9 @@ impl<I> User<I> {
             // sambaSamAccount
             attrs.push(("sambaSID", hashset!["0"]));
             attrs.push(("sambaNTPassword", hashset![nt_password]));
+        }
+        if uses_ad {
+            attrs.push(("sAMAccountName", hashset![self.username.as_str()]));
         }
 
         attrs.push(("objectClass", object_classes));

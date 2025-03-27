@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Duration};
 
 use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 use model::UserObjectClass;
@@ -148,7 +148,8 @@ impl LDAPConnection {
             .ok_or(LdapError::MissingSettings("LDAP bind password".to_string()))?;
         let conn_settings = LdapConnSettings::new()
             .set_starttls(settings.ldap_use_starttls)
-            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert)
+            .set_conn_timeout(Duration::from_secs(8));
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
         drive!(conn);
         info!("Connected to LDAP: {url}");
@@ -172,7 +173,7 @@ impl LDAPConnection {
             .await?
             .success()?;
         debug!("LDAP user search result: {res:?}");
-        info!("Performed LDAP user search with filter = {filter}");
+        debug!("Performed LDAP user search with filter = {filter}");
 
         Ok(rs.into_iter().map(SearchEntry::construct).collect())
     }
@@ -182,7 +183,8 @@ impl LDAPConnection {
         let settings = Settings::get_current_settings();
         let conn_settings = LdapConnSettings::new()
             .set_starttls(settings.ldap_use_starttls)
-            .set_no_tls_verify(!settings.ldap_tls_verify_cert);
+            .set_no_tls_verify(!settings.ldap_tls_verify_cert)
+            .set_conn_timeout(Duration::from_secs(8));
         let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &self.url).await?;
         drive!(conn);
         let res = ldap.simple_bind(dn, password).await?.success()?;
@@ -359,6 +361,7 @@ impl LDAPConnection {
                 &ssha_password,
                 &nt_password,
                 user_obj_classes.iter().map(|s| s.as_str()).collect(),
+                self.config.ldap_uses_ad,
             ),
         )
         .await?;

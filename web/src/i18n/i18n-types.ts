@@ -2411,6 +2411,10 @@ type RootTranslation = {
 			 * U​s​e​r​n​a​m​e
 			 */
 			username: string
+			/**
+			 * U​s​e​r​n​a​m​e​ ​o​r​ ​e​m​a​i​l
+			 */
+			username_or_email: string
 		}
 		error: {
 			/**
@@ -7802,6 +7806,10 @@ export type TranslationFunctions = {
 			 * Username
 			 */
 			username: () => LocalizedString
+			/**
+			 * Username or email
+			 */
+			username_or_email: () => LocalizedString
 		}
 		error: {
 			/**

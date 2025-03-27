@@ -20,7 +20,7 @@ import { useAuthStore } from '../../../shared/hooks/store/useAuthStore';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../shared/mutations';
-import { patternSafeUsernameCharacters } from '../../../shared/patterns';
+import { patternLoginCharacters } from '../../../shared/patterns';
 import { QueryKeys } from '../../../shared/queries';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { OpenIdLoginButton } from './components/OidcButtons';
@@ -57,7 +57,7 @@ export const Login = () => {
           .string()
           .min(1, LL.form.error.minimumLength())
           .max(64)
-          .regex(patternSafeUsernameCharacters, LL.form.error.forbiddenCharacter()),
+          .regex(patternLoginCharacters, LL.form.error.forbiddenCharacter()),
         password: z
           .string()
           .min(1, LL.form.error.required())
@@ -124,7 +124,7 @@ export const Login = () => {
           <form onSubmit={handleSubmit(onSubmit)}>
             <FormInput
               controller={{ control, name: 'username' }}
-              placeholder={LL.form.placeholders.username()}
+              placeholder={LL.form.placeholders.username_or_email()}
               autoComplete="username"
               data-testid="login-form-username"
               required
