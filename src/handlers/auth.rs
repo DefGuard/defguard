@@ -32,6 +32,7 @@ use crate::{
         SessionInfo,
     },
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
+    enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
     error::WebError,
     handlers::{
         mail::{
@@ -40,7 +41,6 @@ use crate::{
         SIGN_IN_COOKIE_NAME,
     },
     headers::{check_new_device_login, get_user_agent_device, USER_AGENT_PARSER},
-    ldap::utils::{login_through_ldap, user_from_ldap},
     mail::Mail,
     server_config,
 };

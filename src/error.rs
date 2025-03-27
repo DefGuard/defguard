@@ -8,9 +8,11 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
-    enterprise::{db::models::acl::AclError, firewall::FirewallError, license::LicenseError},
+    enterprise::{
+        db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
+        license::LicenseError,
+    },
     grpc::GatewayMapError,
-    ldap::error::LdapError,
     templates::TemplateError,
 };
 

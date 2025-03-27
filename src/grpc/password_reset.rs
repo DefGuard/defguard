@@ -11,11 +11,11 @@ use crate::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         User,
     },
+    enterprise::ldap::utils::ldap_change_password,
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
     },
-    ldap::utils::ldap_change_password,
     mail::Mail,
     server_config,
 };

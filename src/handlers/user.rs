@@ -20,12 +20,15 @@ use crate::{
         },
         AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
     },
-    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
-    error::WebError,
-    ldap::utils::{
-        ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-        ldap_modify_user, ldap_remove_user_from_groups,
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        ldap::utils::{
+            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+            ldap_modify_user, ldap_remove_user_from_groups,
+        },
+        limits::update_counts,
     },
+    error::WebError,
     mail::Mail,
     server_config, templates,
 };

@@ -57,10 +57,8 @@ use std::collections::{HashMap, HashSet};
 use ldap3::{adapters::PagedResults, Scope, SearchEntry};
 use sqlx::{PgConnection, PgPool, Type};
 
-use crate::{
-    db::{models::settings::update_current_settings, Group, Id, Settings, User},
-    ldap::{error::LdapError, model::extract_dn_value},
-};
+use super::{error::LdapError, model::extract_dn_value};
+use crate::db::{models::settings::update_current_settings, Group, Id, Settings, User};
 
 async fn get_or_create_group(
     transaction: &mut PgConnection,
@@ -343,7 +341,7 @@ pub fn get_ldap_sync_interval() -> u64 {
         .unwrap_or(DEFAULT_LDAP_SYNC_INTERVAL)
 }
 
-impl crate::ldap::LDAPConnection {
+impl super::LDAPConnection {
     /// Applies user modifications to users that are present in both LDAP and Defguard
     async fn apply_user_modifications(
         &mut self,

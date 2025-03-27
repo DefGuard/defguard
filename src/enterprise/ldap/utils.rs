@@ -146,15 +146,6 @@ pub(crate) async fn ldap_remove_user_from_groups(
     .await;
 }
 
-// pub(crate) async fn ldap_set_user_status(username: &str, status: bool, pool: &PgPool) {
-//     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-//         debug!("Setting status for user {username} in LDAP");
-//         let mut ldap_connection = LDAPConnection::create().await?;
-//         ldap_connection.set_user_status(username, status).await
-//     })
-//     .await;
-// }
-
 /// Bulk add users to groups in ldap.
 ///
 /// Pass in the following parameters:

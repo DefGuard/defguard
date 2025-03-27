@@ -12,9 +12,11 @@ use crate::{
         models::settings::{update_current_settings, SettingsEssentials, SettingsPatch},
         Settings,
     },
-    enterprise::{ldap::sync::SyncStatus, license::update_cached_license},
+    enterprise::{
+        ldap::{sync::SyncStatus, LDAPConnection},
+        license::update_cached_license,
+    },
     error::WebError,
-    ldap::LDAPConnection,
     AppState,
 };
 

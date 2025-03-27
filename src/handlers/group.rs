@@ -13,12 +13,12 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{models::group::Permission, Group, User, WireguardNetwork},
-    error::WebError,
-    hashset,
-    ldap::utils::{
+    enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups,
     },
+    error::WebError,
+    hashset,
 };
 
 #[derive(Serialize, ToSchema)]

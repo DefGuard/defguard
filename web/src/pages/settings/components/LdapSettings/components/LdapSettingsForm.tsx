@@ -191,70 +191,86 @@ export const LdapSettingsForm = () => {
           controller={{ control, name: 'ldap_enabled' }}
           label={localLL.form.labels.ldap_enable()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormCheckBox
           controller={{ control, name: 'ldap_use_starttls' }}
           label={localLL.form.labels.ldap_use_starttls()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormCheckBox
           controller={{ control, name: 'ldap_uses_ad' }}
           label={localLL.form.labels.ldap_uses_ad()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormCheckBox
           controller={{ control, name: 'ldap_tls_verify_cert' }}
           label={localLL.form.labels.ldap_tls_verify_cert()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_url' }}
           label={localLL.form.labels.ldap_url()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_bind_username' }}
           label={localLL.form.labels.ldap_bind_username()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_bind_password' }}
           label={localLL.form.labels.ldap_bind_password()}
           type="password"
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_member_attr' }}
           label={localLL.form.labels.ldap_member_attr()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_username_attr' }}
           label={localLL.form.labels.ldap_username_attr()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_user_search_base' }}
           label={localLL.form.labels.ldap_user_search_base()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_user_obj_class' }}
           label={localLL.form.labels.ldap_user_obj_class()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_user_auxiliary_obj_classes' }}
           label={localLL.form.labels.ldap_user_auxiliary_obj_classes()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_groupname_attr' }}
           label={localLL.form.labels.ldap_groupname_attr()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_group_obj_class' }}
           label={localLL.form.labels.ldap_group_obj_class()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_group_member_attr' }}
           label={localLL.form.labels.ldap_group_member_attr()}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'ldap_group_search_base' }}
           label={localLL.form.labels.ldap_group_search_base()}
+          disabled={!enterpriseEnabled}
         />
         <h3>{localLL.sync.header()}</h3>
         <MessageBox type={MessageBoxType.INFO}>

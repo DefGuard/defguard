@@ -14,8 +14,10 @@ use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
 use super::is_enterprise_enabled;
 use crate::{
     db::{GatewayEvent, Group, Id, User},
-    enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
-    ldap::utils::{ldap_add_users_to_groups, ldap_remove_users_from_groups},
+    enterprise::{
+        db::models::openid_provider::DirectorySyncUserBehavior,
+        ldap::utils::{ldap_add_users_to_groups, ldap_remove_users_from_groups},
+    },
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
