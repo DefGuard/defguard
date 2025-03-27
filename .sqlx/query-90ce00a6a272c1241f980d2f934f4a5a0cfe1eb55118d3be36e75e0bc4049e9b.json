@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap FROM \"user\" u JOIN group_user gu ON u.id=gu.user_id WHERE u.is_active=true AND gu.group_id=ANY($1)",
+  "query": "SELECT u.id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized FROM aclruleuser r JOIN \"user\" u ON u.id = r.user_id WHERE r.rule_id = $1 AND r.allow AND u.is_active = true",
   "describe": {
     "columns": [
       {
@@ -99,11 +99,16 @@
         "ordinal": 16,
         "name": "from_ldap",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "ldap_pass_randomized",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8Array"
+        "Int8"
       ]
     },
     "nullable": [
@@ -123,8 +128,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "7c93e37706486d5859186cb19f7cd758a9e9de44e0adf93badce8e6c971182c7"
+  "hash": "90ce00a6a272c1241f980d2f934f4a5a0cfe1eb55118d3be36e75e0bc4049e9b"
 }

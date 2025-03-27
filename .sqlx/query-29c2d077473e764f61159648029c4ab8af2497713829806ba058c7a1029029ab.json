@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap FROM \"user\" u WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin = true AND user_id = u.id) AND u.is_active = true",
+  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"from_ldap\",\"ldap_pass_randomized\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
   "describe": {
     "columns": [
       {
@@ -45,26 +45,46 @@
       },
       {
         "ordinal": 8,
-        "name": "totp_enabled",
+        "name": "is_active",
         "type_info": "Bool"
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
+        "name": "from_ldap",
         "type_info": "Bool"
       },
       {
         "ordinal": 10,
+        "name": "ldap_pass_randomized",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "openid_sub",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "totp_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 14,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 11,
+        "ordinal": 15,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 12,
+        "ordinal": 16,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -81,24 +101,9 @@
         }
       },
       {
-        "ordinal": 13,
-        "name": "recovery_codes",
+        "ordinal": 17,
+        "name": "recovery_codes: _",
         "type_info": "TextArray"
-      },
-      {
-        "ordinal": 14,
-        "name": "is_active",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 15,
-        "name": "openid_sub",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 16,
-        "name": "from_ldap",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -115,14 +120,15 @@
       false,
       false,
       false,
-      true,
+      false,
       true,
       false,
       false,
-      false,
       true,
+      true,
+      false,
       false
     ]
   },
-  "hash": "c6950a0e662192be75ea79c3aac6d75984d54a0885fe0266a24ffe7106f6fa9e"
+  "hash": "29c2d077473e764f61159648029c4ab8af2497713829806ba058c7a1029029ab"
 }

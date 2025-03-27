@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
+  "query": "SELECT \"user\".id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized FROM \"user\" INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id WHERE \"group\".name = $1",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 10,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
@@ -99,6 +99,11 @@
         "ordinal": 16,
         "name": "from_ldap",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "ldap_pass_randomized",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -116,15 +121,16 @@
       true,
       false,
       false,
-      false,
-      true,
       true,
       false,
+      true,
+      false,
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "6940b556ec397b0e2424375cd2e4ea488121cdb32725dc4b91e427c24365c90c"
+  "hash": "04f73c90b00351bc5c3d8c1fce5eecc17f2213839911202d69c75f8cc67349c5"
 }

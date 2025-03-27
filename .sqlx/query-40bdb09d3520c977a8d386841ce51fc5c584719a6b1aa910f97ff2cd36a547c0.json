@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"is_active\" = $9,\"from_ldap\" = $10,\"openid_sub\" = $11,\"totp_enabled\" = $12,\"email_mfa_enabled\" = $13,\"totp_secret\" = $14,\"email_mfa_secret\" = $15,\"mfa_method\" = $16,\"recovery_codes\" = $17 WHERE id = $1",
+  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"is_active\" = $9,\"from_ldap\" = $10,\"ldap_pass_randomized\" = $11,\"openid_sub\" = $12,\"totp_enabled\" = $13,\"email_mfa_enabled\" = $14,\"totp_secret\" = $15,\"email_mfa_secret\" = $16,\"mfa_method\" = $17,\"recovery_codes\" = $18 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -12,6 +12,7 @@
         "Text",
         "Text",
         "Text",
+        "Bool",
         "Bool",
         "Bool",
         "Bool",
@@ -38,5 +39,5 @@
     },
     "nullable": []
   },
-  "hash": "bfde99d77ed1a92c44de7cd4f0ef01d1840fc883aa2306d1023ee2187ef1e8d0"
+  "hash": "40bdb09d3520c977a8d386841ce51fc5c584719a6b1aa910f97ff2cd36a547c0"
 }

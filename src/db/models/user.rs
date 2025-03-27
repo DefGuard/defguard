@@ -1125,6 +1125,7 @@ impl Distribution<User<Id>> for Standard {
             },
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
             from_ldap: false,
+            ldap_pass_randomized: false,
         }
     }
 }
@@ -1162,6 +1163,7 @@ impl Distribution<User<NoId>> for Standard {
             },
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
             from_ldap: false,
+            ldap_pass_randomized: false,
         }
     }
 }
