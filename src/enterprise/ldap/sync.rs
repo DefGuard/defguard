@@ -232,10 +232,15 @@ fn compute_group_sync_changes(
     for (group, members) in defguard_memberships.clone() {
         debug!("Checking group {} for changes", group);
         if !ldap_memberships.contains_key(&group) {
-            debug!("Group {group:?} is missing from LDAP");
             match authority {
-                Authority::Defguard => add_ldap.insert(group.clone(), members.clone()),
-                Authority::LDAP => delete_defguard.insert(group.clone(), members.clone()),
+                Authority::Defguard => {
+                    debug!("Group {group:?} is missing from LDAP, marking it for addition to LDAP along with all members due to Defguard authority");
+                    add_ldap.insert(group.clone(), members.clone());
+                }
+                Authority::LDAP => {
+                    debug!("Group {group:?} is missing from LDAP, marking all its member for deletion from Defguard due to LDAP authority");
+                    delete_defguard.insert(group.clone(), members.clone());
+                }
             };
         } else {
             debug!("Group {group:?} found in LDAP, checking for membership differences");
@@ -256,26 +261,47 @@ fn compute_group_sync_changes(
 
             if !missing_from_defguard.is_empty() {
                 match authority {
-                    Authority::Defguard => delete_ldap.insert(group.clone(), missing_from_defguard),
-                    Authority::LDAP => add_defguard.insert(group.clone(), missing_from_defguard),
+                    Authority::Defguard => {
+                        debug!("Group {group:?} has members missing from Defguard, marking them for deletion in LDAP: {missing_from_defguard:?}");
+                        delete_ldap.insert(group.clone(), missing_from_defguard);
+                    }
+                    Authority::LDAP => {
+                        debug!("Group {group:?} has members missing from Defguard, marking them for addition in Defguard: {missing_from_defguard:?}");
+                        add_defguard.insert(group.clone(), missing_from_defguard);
+                    }
                 };
+            } else {
+                debug!("Group {group:?} has no members missing from Defguard");
             }
 
             if !missing_from_ldap.is_empty() {
                 match authority {
-                    Authority::Defguard => add_ldap.insert(group.clone(), missing_from_ldap),
-                    Authority::LDAP => delete_defguard.insert(group.clone(), missing_from_ldap),
+                    Authority::Defguard => {
+                        debug!("Group {group:?} has members missing from LDAP, marking them for addition to LDAP: {missing_from_ldap:?}");
+                        add_ldap.insert(group.clone(), missing_from_ldap);
+                    }
+                    Authority::LDAP => {
+                        debug!("Group {group:?} has members missing from LDAP, marking them for deletion in Defguard: {missing_from_ldap:?}");
+                        delete_defguard.insert(group.clone(), missing_from_ldap);
+                    }
                 };
+            } else {
+                debug!("Group {group:?} has no members missing from LDAP");
             }
         }
     }
 
     for (group, members) in ldap_memberships {
         if !defguard_memberships.contains_key(&group) {
-            debug!("Group {group:?} is missing from Defguard");
             match authority {
-                Authority::Defguard => delete_ldap.insert(group.clone(), members.clone()),
-                Authority::LDAP => add_defguard.insert(group.clone(), members.clone()),
+                Authority::Defguard => {
+                    debug!("Group {group:?} is missing from Defguard, marking all its member for deletion from LDAP due to Defguard authority");
+                    delete_ldap.insert(group.clone(), members.clone());
+                }
+                Authority::LDAP => {
+                    debug!("Group {group:?} is missing from Defguard, marking all its member for addition to Defguard due to LDAP authority");
+                    add_defguard.insert(group.clone(), members.clone());
+                }
             };
         }
     }
@@ -420,6 +446,18 @@ impl super::LDAPConnection {
                 ),
             }
         }
+
+        let ldap_usernames = all_ldap_users
+            .iter()
+            .map(|u| u.username.as_str())
+            .collect::<HashSet<_>>();
+        let defguard_usernames = all_defguard_users
+            .iter()
+            .map(|u| u.username.as_str())
+            .collect::<HashSet<_>>();
+
+        debug!("LDAP users: {:?}", ldap_usernames);
+        debug!("Defguard users: {:?}", defguard_usernames);
 
         let ldap_memberships = self
             .get_ldap_group_memberships(

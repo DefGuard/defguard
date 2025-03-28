@@ -47,6 +47,7 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         info!("LDAP is considered to be desynced, doing a full sync");
     } else {
         info!("Ldap is not considered to be desynced, doing an incremental sync");
+        debug!("Because of incremental sync, LDAP authority will be selected to pull changes from LDAP");
     }
 
     let mut ldap_connection = match LDAPConnection::create().await {
