@@ -13,7 +13,9 @@ import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCh
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types.ts';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
@@ -113,6 +115,7 @@ export const NetworkEditForm = () => {
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const { mutate } = useMutation({
     mutationFn: editNetwork,
@@ -331,16 +334,23 @@ export const NetworkEditForm = () => {
           label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
           labelPlacement="right"
         />
+        {!enterpriseEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
+          </MessageBox>
+        )}
         <FormCheckBox
           controller={{ control, name: 'acl_enabled' }}
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
+          disabled={!enterpriseEnabled}
         />
         <FormSelect
           controller={{ control, name: 'acl_default_allow' }}
           label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
           options={aclDefaultPolicyOptions}
           searchable={false}
+          disabled={!enterpriseEnabled}
         />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}

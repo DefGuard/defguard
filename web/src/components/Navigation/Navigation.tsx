@@ -130,6 +130,7 @@ export const Navigation = () => {
         ),
         adminOnly: true,
         enabled: true,
+        enterpriseOnly: true,
       },
       {
         title: LL.navigation.bar.devices(),
