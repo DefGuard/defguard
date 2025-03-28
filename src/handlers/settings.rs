@@ -133,6 +133,12 @@ pub async fn patch_settings(
         }
     }
 
+    if let Some(ldap_authority) = data.ldap_is_authoritative {
+        if settings.ldap_is_authoritative != ldap_authority {
+            settings.ldap_sync_status = SyncStatus::OutOfSync;
+        }
+    }
+
     settings.apply(data);
     settings.validate()?;
     update_current_settings(&appstate.pool, settings).await?;

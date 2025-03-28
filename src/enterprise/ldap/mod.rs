@@ -47,6 +47,7 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
         info!("LDAP is considered to be desynced, doing a full sync");
     } else {
         info!("Ldap is not considered to be desynced, doing an incremental sync");
+        debug!("Because of incremental sync, LDAP authority will be selected to pull changes from LDAP");
     }
 
     let mut ldap_connection = match LDAPConnection::create().await {
@@ -312,6 +313,15 @@ impl LDAPConnection {
         let groupname_attr = self.config.ldap_groupname_attr.clone();
         let res = self
             .search_groups(format!("({groupname_attr}={groupname})").as_str())
+            .await?;
+
+        Ok(!res.is_empty())
+    }
+
+    async fn user_exists(&mut self, username: &str) -> Result<bool, LdapError> {
+        let username_attr = self.config.ldap_username_attr.clone();
+        let res = self
+            .search_users(format!("({username_attr}={username})").as_str())
             .await?;
 
         Ok(!res.is_empty())
@@ -681,19 +691,27 @@ impl LDAPConnection {
         username: &str,
         groupname: &str,
     ) -> Result<(), LdapError> {
-        debug!("Adding user {username} to group {groupname} in LDAP");
-        let user_dn = self.config.user_dn(username);
-        let group_dn = self.config.group_dn(groupname);
-        self.modify(
-            &group_dn,
-            &group_dn,
-            vec![Mod::Add(
-                &self.config.ldap_group_member_attr.clone(),
-                hashset![user_dn.as_str()],
-            )],
-        )
-        .await?;
-
+        debug!("Adding user {username} to group {groupname} in LDAP, checking if that group exists first...");
+        if !self.group_exists(groupname).await? {
+            debug!("Group {groupname} doesn't exist in LDAP, creating it");
+            self.add_group_with_members(groupname, vec![username])
+                .await?;
+            debug!("Group {groupname} created and member added in LDAP");
+        } else {
+            debug!("Group {groupname} exists in LDAP, adding user {username} to it");
+            let user_dn = self.config.user_dn(username);
+            let group_dn = self.config.group_dn(groupname);
+            self.modify(
+                &group_dn,
+                &group_dn,
+                vec![Mod::Add(
+                    &self.config.ldap_group_member_attr.clone(),
+                    hashset![user_dn.as_str()],
+                )],
+            )
+            .await?;
+            debug!("Added user {username} to group {groupname} in LDAP");
+        }
         info!("Added user {username} to group {groupname} in LDAP");
         Ok(())
     }
