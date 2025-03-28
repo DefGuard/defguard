@@ -9,7 +9,6 @@ use sqlx::{query_as, query_scalar, Error as SqlxError, PgConnection};
 use super::db::models::acl::{
     AclAliasDestinationRange, AclRule, AclRuleDestinationRange, AclRuleInfo, PortRange,
 };
-
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
     enterprise::is_enterprise_enabled,
@@ -551,10 +550,10 @@ impl WireguardNetwork<Id> {
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
         let rules: Vec<AclRule<Id>> = query_as(
-            "SELECT a.id, name, allow_all_users, deny_all_users, all_networks, allow_all_network_devices, \
+            "SELECT DISTINCT ON (a.id) a.id, name, allow_all_users, deny_all_users, all_networks, allow_all_network_devices, \
                 deny_all_network_devices, destination, ports, protocols, expires, enabled, parent_id, state \
                 FROM aclrule a \
-                JOIN aclrulenetwork an \
+                LEFT JOIN aclrulenetwork an \
                 ON a.id = an.rule_id \
                 WHERE (an.network_id = $1 OR a.all_networks = true) AND enabled = true \
                 AND state = 'applied'::aclrule_state \
@@ -648,7 +647,10 @@ mod test {
     use rand::{thread_rng, Rng};
     use sqlx::{query, PgPool};
 
-    use super::process_destination_addrs;
+    use super::{
+        get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges,
+        process_destination_addrs,
+    };
     use crate::{
         db::{
             models::device::{DeviceType, WireguardNetworkDevice},
@@ -669,8 +671,6 @@ mod test {
             IpVersion, Port, PortRange as PortRangeProto, Protocol,
         },
     };
-
-    use super::{get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges};
 
     fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
         let mut user: User<Id> = rng.gen();
@@ -2081,5 +2081,150 @@ mod test {
             .unwrap()
             .rules;
         assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_acl_rules_all_locations(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location_1 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        };
+        let location_1 = location_1.save(&pool).await.unwrap();
+
+        // Create another test location
+        let location_2 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        };
+        let location_2 = location_2.save(&pool).await.unwrap();
+        // Setup some test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_1.id,
+                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_2.id,
+                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        10,
+                        user.id as u8,
+                        device_num as u8,
+                    )),
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // create ACL rules
+        let acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Applied,
+            destination: vec!["192.168.1.0/24".parse().unwrap()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let _acl_rule_3 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            allow_all_users: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to locations
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_1.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+        for rule in [&acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_2.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location_1
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were assigned to this location
+        assert_eq!(generated_firewall_rules.len(), 4);
+
+        let generated_firewall_rules = location_2
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // rule with `all_networks` enabled was used for this location
+        assert_eq!(generated_firewall_rules.len(), 3);
     }
 }

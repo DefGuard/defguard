@@ -10,11 +10,13 @@ use crate::{
     db::GatewayEvent,
     enterprise::{
         directory_sync::{do_directory_sync, get_directory_sync_interval},
+        ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
     updates::do_new_version_check,
 };
 
+// Times in seconds
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
@@ -26,6 +28,7 @@ pub async fn run_utility_thread(
     let mut last_count_update = Instant::now();
     let mut last_directory_sync = Instant::now();
     let mut last_updates_check = Instant::now();
+    let mut last_ldap_sync = Instant::now();
 
     let directory_sync_task = || async {
         if let Err(e) = do_directory_sync(pool, &wireguard_tx).await {
@@ -45,9 +48,16 @@ pub async fn run_utility_thread(
         }
     };
 
+    let ldap_sync_task = || async {
+        if let Err(e) = do_ldap_sync(pool).await {
+            error!("There was an error while performing LDAP sync job: {e}");
+        }
+    };
+
     directory_sync_task().await;
     count_update_task().await;
     updates_check_task().await;
+    ldap_sync_task().await;
 
     loop {
         sleep(Duration::from_secs(UTILITY_THREAD_MAIN_SLEEP_TIME)).await;
@@ -68,6 +78,11 @@ pub async fn run_utility_thread(
         if last_updates_check.elapsed().as_secs() >= UPDATES_CHECK_INTERVAL {
             updates_check_task().await;
             last_updates_check = Instant::now();
+        }
+
+        if last_ldap_sync.elapsed().as_secs() >= get_ldap_sync_interval() {
+            ldap_sync_task().await;
+            last_ldap_sync = Instant::now();
         }
     }
 }

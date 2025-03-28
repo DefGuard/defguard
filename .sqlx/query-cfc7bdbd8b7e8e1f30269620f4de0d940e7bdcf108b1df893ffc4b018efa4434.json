@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub FROM \"user\" WHERE username = $1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized FROM \"user\" WHERE is_active = true",
   "describe": {
     "columns": [
       {
@@ -50,13 +50,13 @@
       },
       {
         "ordinal": 9,
-        "name": "email_mfa_enabled",
-        "type_info": "Bool"
+        "name": "totp_secret",
+        "type_info": "Bytea"
       },
       {
         "ordinal": 10,
-        "name": "totp_secret",
-        "type_info": "Bytea"
+        "name": "email_mfa_enabled",
+        "type_info": "Bool"
       },
       {
         "ordinal": 11,
@@ -94,12 +94,20 @@
         "ordinal": 15,
         "name": "openid_sub",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "from_ldap",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "ldap_pass_randomized",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -111,14 +119,16 @@
       true,
       false,
       false,
-      false,
-      true,
       true,
       false,
+      true,
       false,
       false,
-      true
+      false,
+      true,
+      false,
+      false
     ]
   },
-  "hash": "fc807754b75355939c8b77602eb9a691cc5d4f228326a0ffdb0cfcdedee438a5"
+  "hash": "cfc7bdbd8b7e8e1f30269620f4de0d940e7bdcf108b1df893ffc4b018efa4434"
 }

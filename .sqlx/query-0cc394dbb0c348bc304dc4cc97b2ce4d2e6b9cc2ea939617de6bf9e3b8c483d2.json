@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\"",
+  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"from_ldap\",\"ldap_pass_randomized\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,31 +50,41 @@
       },
       {
         "ordinal": 9,
-        "name": "openid_sub",
-        "type_info": "Text"
+        "name": "from_ldap",
+        "type_info": "Bool"
       },
       {
         "ordinal": 10,
-        "name": "totp_enabled",
+        "name": "ldap_pass_randomized",
         "type_info": "Bool"
       },
       {
         "ordinal": 11,
+        "name": "openid_sub",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "totp_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 15,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 16,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -91,13 +101,15 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 17,
         "name": "recovery_codes: _",
         "type_info": "TextArray"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -109,6 +121,8 @@
       true,
       false,
       false,
+      false,
+      false,
       true,
       false,
       false,
@@ -118,5 +132,5 @@
       false
     ]
   },
-  "hash": "244d19b770616a733faa1626de860d1d6d5d836bf759a4747726000515b7ae3e"
+  "hash": "0cc394dbb0c348bc304dc4cc97b2ce4d2e6b9cc2ea939617de6bf9e3b8c483d2"
 }

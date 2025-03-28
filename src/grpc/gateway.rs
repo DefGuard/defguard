@@ -17,17 +17,16 @@ use tokio_stream::Stream;
 use tonic::{metadata::MetadataMap, Code, Request, Response, Status};
 
 use super::{proto::enterprise::firewall::FirewallConfig, GatewayMap};
+pub use crate::grpc::proto::gateway::{
+    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
+    PeerStats, StatsUpdate, Update,
+};
 use crate::{
     db::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId,
     },
     mail::Mail,
-};
-
-pub use crate::grpc::proto::gateway::{
-    gateway_service_server, stats_update, update, Configuration, ConfigurationRequest, Peer,
-    PeerStats, StatsUpdate, Update,
 };
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server

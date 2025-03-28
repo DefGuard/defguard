@@ -11,11 +11,11 @@ use crate::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         User,
     },
+    enterprise::ldap::utils::ldap_change_password,
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
     },
-    ldap::utils::ldap_change_password,
     mail::Mail,
     server_config,
 };
@@ -250,14 +250,12 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        // if self.ldap_feature_active {
-        let _ = ldap_change_password(&user.username, &request.password).await;
-        // };
-
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        ldap_change_password(&mut user, &request.password, &self.pool).await;
 
         send_password_reset_success_email(
             &user,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\" \"mfa_method: _\",\"recovery_codes\" \"recovery_codes: _\" FROM \"user\" WHERE id = $1",
+  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -45,36 +45,26 @@
       },
       {
         "ordinal": 8,
-        "name": "is_active",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 9,
-        "name": "openid_sub",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 10,
         "name": "totp_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "email_mfa_enabled",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 10,
         "name": "totp_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "email_mfa_secret",
         "type_info": "Bytea"
       },
       {
-        "ordinal": 14,
+        "ordinal": 12,
         "name": "mfa_method: _",
         "type_info": {
           "Custom": {
@@ -91,14 +81,34 @@
         }
       },
       {
-        "ordinal": 15,
-        "name": "recovery_codes: _",
+        "ordinal": 13,
+        "name": "recovery_codes",
         "type_info": "TextArray"
+      },
+      {
+        "ordinal": 14,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "openid_sub",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "from_ldap",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "ldap_pass_randomized",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -111,14 +121,16 @@
       true,
       false,
       false,
+      false,
+      true,
       true,
       false,
       false,
-      true,
+      false,
       true,
       false,
       false
     ]
   },
-  "hash": "69ddae4f160f29172f491b926ffa357cf56d6a61c792c619b3d127bf285ff680"
+  "hash": "8d7e945a21d0e16bdae395d29617b5bce9aaf5226e2d095259e49536c5cebbca"
 }

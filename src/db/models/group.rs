@@ -83,7 +83,8 @@ impl Group<Id> {
             User,
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized \
             FROM \"user\" \
             JOIN group_user ON \"user\".id = group_user.user_id \
             WHERE group_user.group_id = $1",
@@ -212,7 +213,7 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {self} to : {allowed_groups:?}");
+        info!("Setting allowed groups for network {self} to: {allowed_groups:?}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }

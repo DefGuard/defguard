@@ -69,5 +69,7 @@ export const patternValidDomain =
 
 export const patternSafeUsernameCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_]*$/;
 
+export const patternLoginCharacters = /^[a-zA-Z0-9]+[a-zA-Z0-9.\-_@]*$/;
+
 export const patternSafePasswordCharacters =
   /^[a-zA-Z0-9.!@#$%^&*()_+\-=\[\]{}|,<>\/?~]+$/;
