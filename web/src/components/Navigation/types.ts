@@ -6,6 +6,7 @@ export interface NavigationItem {
   enabled: boolean | undefined;
   onClick?: () => void;
   className?: string;
+  enterpriseOnly?: boolean;
 }
 
 export type NavigationTitleMapItem = {
