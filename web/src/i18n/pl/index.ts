@@ -1075,8 +1075,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
           ldap_sync_enabled: 'Włącz synchronizację w dwie strony',
-          ldap_is_authority:
-            'Użyj LDAP jako autorytetu podczas synchronizacji w obie strony',
+          ldap_authoritative_source: 'Użyj autorytatywne źródło danych',
           ldap_sync_interval: 'Interwał synchronizacji',
           ldap_use_starttls: 'Użyj StartTLS',
           ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',

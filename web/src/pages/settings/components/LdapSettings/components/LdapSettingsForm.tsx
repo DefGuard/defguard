@@ -9,6 +9,7 @@ import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
 import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -17,6 +18,10 @@ import {
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import {
+  SelectOption,
+  SelectSizeVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -141,6 +146,22 @@ export const LdapSettingsForm = () => {
     defaultValues,
     mode: 'all',
   });
+
+  const options: SelectOption<boolean>[] = useMemo(
+    () => [
+      {
+        value: false,
+        label: 'Defguard',
+        key: 0,
+      },
+      {
+        value: true,
+        label: 'LDAP',
+        key: 1,
+      },
+    ],
+    [],
+  );
 
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     const formattedData = {
@@ -290,15 +311,14 @@ export const LdapSettingsForm = () => {
           />
           <Helper>{localLL.sync.helpers.sync_enabled()}</Helper>
         </div>
-        <div className="checkbox-row">
-          <FormCheckBox
-            controller={{ control, name: 'ldap_is_authoritative' }}
-            label={localLL.form.labels.ldap_is_authority()}
-            labelPlacement="right"
-            disabled={!enterpriseEnabled}
-          />
-          <Helper>{localLL.sync.helpers.authority()}</Helper>
-        </div>
+        <FormSelect
+          controller={{ control, name: 'ldap_is_authoritative' }}
+          sizeVariant={SelectSizeVariant.STANDARD}
+          options={options}
+          label={localLL.form.labels.ldap_authoritative_source()}
+          labelExtras={<Helper>{localLL.sync.helpers.authority()}</Helper>}
+          disabled={!enterpriseEnabled}
+        />
         <FormInput
           controller={{ control, name: 'ldap_sync_interval' }}
           label={localLL.form.labels.ldap_sync_interval()}
