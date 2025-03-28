@@ -1104,15 +1104,15 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: 'LDAP Settings',
       sync: {
         header: 'LDAP two-way synchronization',
-        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features).',
+        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-integration/ldap-two-way-synchronization).',
         info_enterprise: 'This feature is available only in Defguard Enterprise.',
         helpers: {
           sync_enabled:
             'If enabled, Defguard will attempt to pull LDAP user data at the specified interval.',
-          authority: `If enabled, Defguard will use the LDAP server as the authoritative source for
-          user data, meaning that the Defguard data will be overwritten with the LDAP
-          data in case of a desynchronization. If left disabled, the Defguard data will
-          be kept as the authoritative source, overwriting the LDAP data if necessary.
+          authority: `Defguard will use the selected server as the authoritative source of
+          user data, meaning that if LDAP is selected, Defguard data will be overwritten with the LDAP
+          data in case of a desynchronization. If Defguard was selected as the authority, it's data will
+          overwrite LDAP data if necessary.
           Make sure to check the documentation to understand the implications of this
           setting.`,
           interval: 'The interval with which the synchronization will be attempted.',
@@ -1134,7 +1134,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
           ldap_sync_enabled: 'Enable LDAP two-way synchronization',
-          ldap_is_authority: 'Consider the LDAP server as the authority',
+          ldap_authoritative_source: 'Consider the following source as the authority',
           ldap_sync_interval: 'Synchronization interval',
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',

@@ -2703,7 +2703,7 @@ type RootTranslation = {
 				 */
 				header: string
 				/**
-				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​)​.
+				 * B​e​f​o​r​e​ ​e​n​a​b​l​i​n​g​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​,​ ​p​l​e​a​s​e​ ​r​e​a​d​ ​m​o​r​e​ ​a​b​o​u​t​ ​i​t​ ​i​n​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​l​d​a​p​-​i​n​t​e​g​r​a​t​i​o​n​/​l​d​a​p​-​t​w​o​-​w​a​y​-​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​)​.
 				 */
 				info: string
 				/**
@@ -2716,10 +2716,10 @@ type RootTranslation = {
 					 */
 					sync_enabled: string
 					/**
-					 * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​L​D​A​P​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​ ​f​o​r​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​u​s​e​r​ ​d​a​t​a​,​ ​m​e​a​n​i​n​g​ ​t​h​a​t​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​ ​b​e​ ​o​v​e​r​w​r​i​t​t​e​n​ ​w​i​t​h​ ​t​h​e​ ​L​D​A​P​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​a​t​a​ ​i​n​ ​c​a​s​e​ ​o​f​ ​a​ ​d​e​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​I​f​ ​l​e​f​t​ ​d​i​s​a​b​l​e​d​,​ ​t​h​e​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​b​e​ ​k​e​p​t​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​,​ ​o​v​e​r​w​r​i​t​i​n​g​ ​t​h​e​ ​L​D​A​P​ ​d​a​t​a​ ​i​f​ ​n​e​c​e​s​s​a​r​y​.​
+					 * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​u​s​e​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​a​t​i​v​e​ ​s​o​u​r​c​e​ ​o​f​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​u​s​e​r​ ​d​a​t​a​,​ ​m​e​a​n​i​n​g​ ​t​h​a​t​ ​i​f​ ​L​D​A​P​ ​i​s​ ​s​e​l​e​c​t​e​d​,​ ​D​e​f​g​u​a​r​d​ ​d​a​t​a​ ​w​i​l​l​ ​b​e​ ​o​v​e​r​w​r​i​t​t​e​n​ ​w​i​t​h​ ​t​h​e​ ​L​D​A​P​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​d​a​t​a​ ​i​n​ ​c​a​s​e​ ​o​f​ ​a​ ​d​e​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​.​ ​I​f​ ​D​e​f​g​u​a​r​d​ ​w​a​s​ ​s​e​l​e​c​t​e​d​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y​,​ ​i​t​'​s​ ​d​a​t​a​ ​w​i​l​l​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​o​v​e​r​w​r​i​t​e​ ​L​D​A​P​ ​d​a​t​a​ ​i​f​ ​n​e​c​e​s​s​a​r​y​.​
 				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​t​h​e​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​t​o​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​e​ ​i​m​p​l​i​c​a​t​i​o​n​s​ ​o​f​ ​t​h​i​s​
 				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​s​e​t​t​i​n​g​.
 					 */
@@ -2789,9 +2789,9 @@ type RootTranslation = {
 					 */
 					ldap_sync_enabled: string
 					/**
-					 * C​o​n​s​i​d​e​r​ ​t​h​e​ ​L​D​A​P​ ​s​e​r​v​e​r​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
+					 * C​o​n​s​i​d​e​r​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​s​o​u​r​c​e​ ​a​s​ ​t​h​e​ ​a​u​t​h​o​r​i​t​y
 					 */
-					ldap_is_authority: string
+					ldap_authoritative_source: string
 					/**
 					 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
 					 */
@@ -8098,7 +8098,7 @@ export type TranslationFunctions = {
 				 */
 				header: () => LocalizedString
 				/**
-				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features).
+				 * Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-integration/ldap-two-way-synchronization).
 				 */
 				info: () => LocalizedString
 				/**
@@ -8111,10 +8111,10 @@ export type TranslationFunctions = {
 					 */
 					sync_enabled: () => LocalizedString
 					/**
-					 * If enabled, Defguard will use the LDAP server as the authoritative source for
-				          user data, meaning that the Defguard data will be overwritten with the LDAP
-				          data in case of a desynchronization. If left disabled, the Defguard data will
-				          be kept as the authoritative source, overwriting the LDAP data if necessary.
+					 * Defguard will use the selected server as the authoritative source of
+				          user data, meaning that if LDAP is selected, Defguard data will be overwritten with the LDAP
+				          data in case of a desynchronization. If Defguard was selected as the authority, it's data will
+				          overwrite LDAP data if necessary.
 				          Make sure to check the documentation to understand the implications of this
 				          setting.
 					 */
@@ -8184,9 +8184,9 @@ export type TranslationFunctions = {
 					 */
 					ldap_sync_enabled: () => LocalizedString
 					/**
-					 * Consider the LDAP server as the authority
+					 * Consider the following source as the authority
 					 */
-					ldap_is_authority: () => LocalizedString
+					ldap_authoritative_source: () => LocalizedString
 					/**
 					 * Synchronization interval
 					 */
