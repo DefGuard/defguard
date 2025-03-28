@@ -399,6 +399,8 @@ impl super::LDAPConnection {
         let mut all_ldap_users = vec![];
         let mut all_defguard_users = User::all(pool).await?;
 
+        all_defguard_users.retain(|u| u.is_active && u.is_enrolled());
+
         let username_attr = &self.config.ldap_username_attr;
 
         for entry in all_entries {
@@ -439,10 +441,19 @@ impl super::LDAPConnection {
                 .members(pool)
                 .await?
                 .into_iter()
-                .filter_map(|u| if u.is_active { Some(u.username) } else { None })
+                .filter_map(|u| {
+                    if u.is_active && u.is_enrolled() {
+                        Some(u.username)
+                    } else {
+                        None
+                    }
+                })
                 .collect::<HashSet<_>>();
             defguard_memberships.insert(group.name, members);
         }
+
+        debug!("Defguard group memberships: {:?}", defguard_memberships);
+        debug!("LDAP group memberships: {:?}", ldap_memberships);
 
         let membership_changes =
             compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);

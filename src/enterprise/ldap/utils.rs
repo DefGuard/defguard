@@ -211,19 +211,31 @@ pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, po
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {} in LDAP", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection
-            .set_password(&user.username, password)
-            .await?;
-        debug!(
-            "Password changed for user {} in LDAP, marking the LDAP password as set in Defguard",
-            user.username
-        );
-        user.ldap_pass_randomized = false;
-        user.save(pool).await?;
-        debug!(
-            "LDAP password state updated in Defguard for user {}",
-            user.username
-        );
+        if !ldap_connection.user_exists(&user.username).await? {
+            debug!("User {} doesn't exist in LDAP, creating it with the provided password", user.username);
+            let user_groups = user.member_of_names(pool).await?;
+            ldap_connection.add_user(user, Some(password), pool).await?;
+            for group in user_groups {
+                ldap_connection.add_user_to_group(&user.username, &group).await?;
+            }
+           debug!("User {} created in LDAP with the provided password", user.username);
+        } else {
+            debug!("User {} exists in LDAP, changing password", user.username);
+            ldap_connection
+                .set_password(&user.username, password)
+                .await?;
+            debug!(
+                "Password changed for user {} in LDAP, marking the LDAP password as set in Defguard",
+                user.username
+            );
+            user.ldap_pass_randomized = false;
+            user.save(pool).await?;
+            debug!(
+                "LDAP password state updated in Defguard for user {}",
+                user.username
+            );
+        }
+
         Ok(())
     })
     .await;

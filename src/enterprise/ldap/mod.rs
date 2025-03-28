@@ -317,6 +317,15 @@ impl LDAPConnection {
         Ok(!res.is_empty())
     }
 
+    async fn user_exists(&mut self, username: &str) -> Result<bool, LdapError> {
+        let username_attr = self.config.ldap_username_attr.clone();
+        let res = self
+            .search_users(format!("({username_attr}={username})").as_str())
+            .await?;
+
+        Ok(!res.is_empty())
+    }
+
     /// Searches LDAP for groups.
     async fn search_groups(&mut self, filter: &str) -> Result<Vec<SearchEntry>, LdapError> {
         let (rs, res) = self
