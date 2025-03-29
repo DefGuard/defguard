@@ -54,6 +54,10 @@ jobs:
         run: |
           rustup component add clippy
           cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run cargo audit
+        run: |
+          cargo install cargo-audit
+          cargo audit
 
       - name: Run tests
         env:
