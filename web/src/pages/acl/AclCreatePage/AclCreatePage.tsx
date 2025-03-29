@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import { intersection } from 'lodash-es';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { useSearchParams } from 'react-router-dom';
@@ -97,14 +97,6 @@ export const AlcCreatePage = () => {
   }, [editMode, ruleToEdit]);
 
   // const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
-  const [allowAllUsers, setAllowAllUsers] = useState(initialValue.allow_all_users);
-  const [denyAllUsers, setDenyAllUsers] = useState(initialValue.deny_all_users);
-  const [allowAllNetworkDevices, setAllowAllNetworkDevices] = useState(
-    initialValue.allow_all_network_devices,
-  );
-  const [denyAllNetworkDevices, setDenyAllNetworkDevices] = useState(
-    initialValue.deny_all_network_devices,
-  );
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
@@ -163,6 +155,10 @@ export const AlcCreatePage = () => {
           networks: z.number().array(),
           expires: z.string().nullable(),
           enabled: z.boolean(),
+          allow_all_users: z.boolean(),
+          deny_all_users: z.boolean(),
+          allow_all_network_devices: z.boolean(),
+          deny_all_network_devices: z.boolean(),
           allowed_users: z.number().array(),
           denied_users: z.number().array(),
           allowed_groups: z.number().array(),
@@ -177,7 +173,7 @@ export const AlcCreatePage = () => {
         .superRefine((vals, ctx) => {
           // check for collisions
           const message = LL.acl.createPage.formError.allowDenyConflict();
-          if (!allowAllUsers && !denyAllUsers) {
+          if (!vals.allow_all_users && !vals.deny_all_users) {
             if (intersection(vals.allowed_users, vals.denied_users).length) {
               ctx.addIssue({
                 path: ['allowed_users'],
@@ -203,7 +199,7 @@ export const AlcCreatePage = () => {
               });
             }
           }
-          if (!allowAllNetworkDevices && !denyAllNetworkDevices) {
+          if (!vals.allow_all_network_devices && !vals.deny_all_network_devices) {
             if (intersection(vals.allowed_devices, vals.denied_devices).length) {
               ctx.addIssue({
                 path: ['allowed_devices'],
@@ -220,14 +216,19 @@ export const AlcCreatePage = () => {
 
           // check if one of allowed users/groups/devices fields is set
           const isAllowConfigured =
-            allowAllUsers ||
-            allowAllNetworkDevices ||
+            vals.allow_all_users ||
+            vals.allow_all_network_devices ||
             vals.allowed_users.length !== 0 ||
             vals.allowed_groups.length !== 0 ||
             vals.allowed_devices.length !== 0;
           if (!isAllowConfigured) {
             const message = LL.acl.createPage.formError.allowNotConfigured();
 
+            ctx.addIssue({
+              path: ['allow_all_users'],
+              code: 'custom',
+              message,
+            });
             ctx.addIssue({
               path: ['allowed_users'],
               code: 'custom',
@@ -239,20 +240,18 @@ export const AlcCreatePage = () => {
               message,
             });
             ctx.addIssue({
+              path: ['allow_all_network_devices'],
+              code: 'custom',
+              message,
+            });
+            ctx.addIssue({
               path: ['allowed_devices'],
               code: 'custom',
               message,
             });
           }
         }),
-    [
-      LL,
-      allowAllNetworkDevices,
-      allowAllUsers,
-      denyAllNetworkDevices,
-      denyAllUsers,
-      formErrors,
-    ],
+    [LL, formErrors],
   );
 
   type FormFields = z.infer<typeof schema>;
@@ -260,9 +259,13 @@ export const AlcCreatePage = () => {
   const defaultValues = useMemo((): FormFields => {
     const res: FormFields = {
       aliases: initialValue.aliases,
+      allow_all_users: initialValue.allow_all_users,
+      allow_all_network_devices: initialValue.allow_all_network_devices,
       allowed_devices: initialValue.allowed_devices,
       allowed_groups: initialValue.allowed_groups,
       allowed_users: initialValue.allowed_users,
+      deny_all_users: initialValue.deny_all_users,
+      deny_all_network_devices: initialValue.deny_all_network_devices,
       denied_devices: initialValue.denied_devices,
       denied_groups: initialValue.denied_groups,
       denied_users: initialValue.denied_users,
@@ -277,7 +280,7 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit, trigger } = useForm<FormFields>({
+  const { control, handleSubmit, register, watch } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
@@ -297,10 +300,6 @@ export const AlcCreatePage = () => {
     if (editMode) {
       const requestData: EditAclRuleRequest = {
         ...cleaned,
-        allow_all_users: allowAllUsers,
-        deny_all_users: denyAllUsers,
-        allow_all_network_devices: allowAllNetworkDevices,
-        deny_all_network_devices: denyAllNetworkDevices,
         all_networks: allowAllLocations,
         id: initialValue.id,
         expires,
@@ -309,10 +308,6 @@ export const AlcCreatePage = () => {
     } else {
       const requestData: CreateAclRuleRequest = {
         ...cleaned,
-        allow_all_users: allowAllUsers,
-        deny_all_users: denyAllUsers,
-        allow_all_network_devices: allowAllNetworkDevices,
-        deny_all_network_devices: denyAllNetworkDevices,
         all_networks: allowAllLocations,
         expires,
       };
@@ -320,28 +315,10 @@ export const AlcCreatePage = () => {
     }
   };
 
-  // retrigger validation for multiple affected fields when checking allow/deny all
-  useEffect(() => {
-    void trigger(
-      [
-        'allowed_devices',
-        'allowed_groups',
-        'allowed_users',
-        'denied_devices',
-        'denied_groups',
-        'denied_users',
-      ],
-      {
-        shouldFocus: false,
-      },
-    );
-  }, [
-    allowAllLocations,
-    denyAllUsers,
-    allowAllNetworkDevices,
-    denyAllNetworkDevices,
-    trigger,
-  ]);
+  const allowAllUsers = watch('allow_all_users');
+  const denyAllUsers = watch('deny_all_users');
+  const allowAllNetworkDevices = watch('allow_all_network_devices');
+  const denyAllNetworkDevices = watch('deny_all_network_devices');
 
   return (
     <PageContainer id="acl-create-page">
@@ -453,15 +430,19 @@ export const AlcCreatePage = () => {
             <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
-            <LabeledCheckbox
-              value={allowAllUsers}
-              onChange={(val) => {
-                if (val) {
-                  setDenyAllUsers(false);
-                }
-                setAllowAllUsers(val);
-              }}
+            <FormCheckBox
+              controller={{ control, name: 'allow_all_users' }}
               label={labelsLL.allowAllUsers()}
+              labelPlacement="right"
+              {...register('allow_all_users', {
+                deps: [
+                  'allowed_users',
+                  'allowed_groups',
+                  'allowed_devices',
+                  'denied_users',
+                  'denied_groups',
+                ],
+              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
@@ -472,10 +453,10 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['email', 'last_name', 'first_name']}
               disabled={allowAllUsers}
-              onChange={() => {
-                void trigger('denied_users', { shouldFocus: false });
-              }}
               forceShowErrorMessage
+              {...register('allowed_users', {
+                deps: ['allowed_groups', 'allowed_devices', 'denied_users'],
+              })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
@@ -485,22 +466,23 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllUsers}
-              onChange={() => {
-                void trigger('denied_groups', {
-                  shouldFocus: false,
-                });
-              }}
               forceShowErrorMessage
+              {...register('allowed_groups', {
+                deps: ['allowed_users', 'allowed_devices', 'denied_groups'],
+              })}
             />
-            <LabeledCheckbox
-              value={allowAllNetworkDevices}
-              onChange={(val) => {
-                if (val) {
-                  setDenyAllNetworkDevices(false);
-                }
-                setAllowAllNetworkDevices(val);
-              }}
+            <FormCheckBox
+              controller={{ control, name: 'allow_all_network_devices' }}
               label={labelsLL.allowAllNetworkDevices()}
+              labelPlacement="right"
+              {...register('allow_all_network_devices', {
+                deps: [
+                  'allowed_users',
+                  'allowed_groups',
+                  'allowed_devices',
+                  'denied_devices',
+                ],
+              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
@@ -510,27 +492,28 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllNetworkDevices}
-              onChange={() => {
-                void trigger('denied_devices', {
-                  shouldFocus: false,
-                });
-              }}
               forceShowErrorMessage
+              {...register('allowed_devices', {
+                deps: ['allowed_groups', 'allowed_users', 'denied_devices'],
+              })}
             />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.denied()} id="denied-card">
             <MessageBox styleVariant={MessageBoxStyleVariant.OUTLINED}>
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
-            <LabeledCheckbox
+            <FormCheckBox
+              controller={{ control, name: 'deny_all_users' }}
               label={labelsLL.denyAllUsers()}
-              value={denyAllUsers}
-              onChange={(val) => {
-                if (val) {
-                  setAllowAllUsers(false);
-                }
-                setDenyAllUsers(val);
-              }}
+              labelPlacement="right"
+              {...register('deny_all_users', {
+                deps: [
+                  'allowed_users',
+                  'allowed_groups',
+                  'denied_users',
+                  'denied_groups',
+                ],
+              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
@@ -541,12 +524,8 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['username', 'first_name', 'last_name']}
               disabled={denyAllUsers}
-              onChange={() => {
-                void trigger('allowed_users', {
-                  shouldFocus: false,
-                });
-              }}
               forceShowErrorMessage
+              {...register('denied_users', { deps: ['allowed_users'] })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
@@ -556,22 +535,21 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllUsers}
-              onChange={() => {
-                void trigger('allowed_groups', {
-                  shouldFocus: false,
-                });
-              }}
               forceShowErrorMessage
+              {...register('denied_groups', { deps: ['allowed_groups'] })}
             />
-            <LabeledCheckbox
+            <FormCheckBox
+              controller={{ control, name: 'deny_all_network_devices' }}
               label={labelsLL.denyAllNetworkDevices()}
-              value={denyAllNetworkDevices}
-              onChange={(val) => {
-                if (val) {
-                  setAllowAllNetworkDevices(false);
-                }
-                setDenyAllNetworkDevices(val);
-              }}
+              labelPlacement="right"
+              {...register('deny_all_network_devices', {
+                deps: [
+                  'allowed_users',
+                  'allowed_groups',
+                  'allowed_devices',
+                  'denied_devices',
+                ],
+              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
@@ -581,12 +559,8 @@ export const AlcCreatePage = () => {
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllNetworkDevices}
-              onChange={() => {
-                void trigger('allowed_devices', {
-                  shouldFocus: false,
-                });
-              }}
               forceShowErrorMessage
+              {...register('denied_devices', { deps: ['allowed_devices'] })}
             />
           </SectionWithCard>
         </div>
