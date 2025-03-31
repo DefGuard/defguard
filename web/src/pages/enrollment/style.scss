@@ -50,6 +50,10 @@
     .message-box.type-info.variant-filled {
       background-color: var(--surface-tag-modal);
       margin-bottom: 26px;
+
+      @include media-breakpoint-down(lg) {
+        background-color: var(--surface-info-modal);
+      }
     }
 
     @include media-breakpoint-down(lg) {
