@@ -25,6 +25,7 @@ export const enableTOTP = async (
   await page.goto(routes.base + routes.me);
   await waitForRoute(page, routes.me);
   await page.getByTestId('edit-user').click();
+  await page.getByTestId('edit-totp').scrollIntoViewIfNeeded();
   await page.getByTestId('edit-totp').click();
   await page.getByTestId('enable-totp-option').click();
   await page.getByTestId('copy-totp').click();
