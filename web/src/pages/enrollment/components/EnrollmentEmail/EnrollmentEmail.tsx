@@ -29,10 +29,12 @@ export const EnrollmentEmail = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const [duplicateMessage, setDuplicateMessage] = useState(false);
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const componentLL = LL.enrollmentPage.settings.welcomeEmail;
   const settings = useEnrollmentStore((state) => state.settings);
+  const [email, setEmail] = useState(settings?.enrollment_welcome_email ?? '');
+  const [subject, setSubject] = useState(
+    settings?.enrollment_welcome_email_subject ?? '',
+  );
+  const componentLL = LL.enrollmentPage.settings.welcomeEmail;
   const toaster = useToaster();
 
   const { isPending: isLoading, mutate } = useMutation({

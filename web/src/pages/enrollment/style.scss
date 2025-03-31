@@ -32,12 +32,13 @@
     padding: 20px;
     display: flex;
     flex-direction: column;
-    @include media-breakpoint-up(lg) {
-      gap: 50px;
-    }
 
     & > .message-box-spacer {
       align-self: stretch;
+
+      @include media-breakpoint-up(lg) {
+        padding: 50px 0;
+      }
 
       & > .message-box {
         padding: var(--spacing-s);
@@ -49,7 +50,6 @@
 
     .message-box.type-info.variant-filled {
       background-color: var(--surface-tag-modal);
-      margin-bottom: 26px;
 
       @include media-breakpoint-down(lg) {
         background-color: var(--surface-info-modal);
@@ -74,6 +74,10 @@
 
       @include media-breakpoint-up(xxl) {
         flex-flow: row nowrap;
+      }
+
+      .message-box-spacer {
+        padding-bottom: 26px;
       }
 
       & > .left,

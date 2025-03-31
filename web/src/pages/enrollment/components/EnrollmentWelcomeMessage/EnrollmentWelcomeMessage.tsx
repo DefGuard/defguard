@@ -25,8 +25,7 @@ export const EnrollmentWelcomeMessage = () => {
     settings: { editSettings },
   } = useApi();
   const settings = useEnrollmentStore((state) => state.settings);
-
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(settings?.enrollment_welcome_message ?? '');
   const { LL } = useI18nContext();
   const componentLL = LL.enrollmentPage.settings.welcomeMessage;
   const queryClient = useQueryClient();
