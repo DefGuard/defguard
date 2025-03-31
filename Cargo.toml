@@ -81,6 +81,10 @@ webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"]
 webauthn-rs-proto = "0.5"
 x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 
+# https://github.com/juhaku/utoipa/issues/1345
+[dependencies.zip]
+version = "=2.4.2"
+
 [dev-dependencies]
 bytes = "1.6"
 claims = "0.8"
