@@ -66,8 +66,7 @@ export const EnrollmentEmail = () => {
       setEmail(settings.enrollment_welcome_email);
       setSubject(settings.enrollment_welcome_email_subject);
     }
-    //eslint-disable-next-line
-  }, []);
+  }, [settings]);
 
   return (
     <div id="enrollment-email">

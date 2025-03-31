@@ -25,6 +25,7 @@ export const EnrollmentWelcomeMessage = () => {
     settings: { editSettings },
   } = useApi();
   const settings = useEnrollmentStore((state) => state.settings);
+
   const [message, setMessage] = useState('');
   const { LL } = useI18nContext();
   const componentLL = LL.enrollmentPage.settings.welcomeMessage;
@@ -49,8 +50,7 @@ export const EnrollmentWelcomeMessage = () => {
     if (settings) {
       setMessage(settings?.enrollment_welcome_message);
     }
-    //eslint-disable-next-line
-  }, []);
+  }, [settings]);
 
   return (
     <div id="enrollment-welcome-message">
@@ -76,9 +76,9 @@ export const EnrollmentWelcomeMessage = () => {
         <div className="text-wrapper">
           <TextareaAutoResizable
             value={message}
-            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) =>
-              setMessage(ev.target.value)
-            }
+            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) => {
+              setMessage(ev.target.value);
+            }}
             disabled={isUndefined(settings) || isLoading}
           />
         </div>
