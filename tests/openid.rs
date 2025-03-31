@@ -366,21 +366,18 @@ async fn test_openid_flow() {
 /// Helper function for translating HTTP communication from `HttpRequest` to `LocalClient`.
 async fn http_client(
     request: HttpRequest,
-    pool: PgPool,
-    config: DefGuardConfig,
+    client: &TestClient,
 ) -> Result<HttpResponse, ToStrError> {
-    let client = make_client_v2(pool, config).await;
-
-    let uri = request.url.path();
+    let uri = request.uri().path();
     eprintln!("HTTP client request path: {uri}");
-    if let Some(query) = request.url.query() {
+    if let Some(query) = request.uri().query() {
         eprintln!("HTTP client request query: {query}");
     }
-    eprintln!("HTTP client request headers: {:#?}", request.headers);
-    if let Ok(text) = String::from_utf8(request.body.clone()) {
+    eprintln!("HTTP client request headers: {:#?}", request.headers());
+    if let Ok(text) = String::from_utf8(request.body().clone()) {
         eprintln!("HTTP client body: {text}");
     }
-    let mut test_request = match request.method {
+    let mut test_request = match *request.method() {
         Method::GET => client.get(uri),
         Method::HEAD => client.head(uri),
         Method::POST => client.post(uri),
@@ -388,19 +385,22 @@ async fn http_client(
         Method::DELETE => client.delete(uri),
         _ => unimplemented!(),
     };
-    for (key, value) in &request.headers {
+    for (key, value) in request.headers().iter() {
         test_request = test_request.header(
             HeaderName::from_str(key.as_str()).unwrap(),
             value.to_str().unwrap(),
         );
     }
-    let response = test_request.body(request.body).send().await;
+    let response = test_request.body(request.body().clone()).send().await;
+    let status_code = response.status();
+    let headers = response.headers().clone();
+    let body = response.bytes().await.to_vec();
 
-    Ok(HttpResponse {
-        status_code: response.status(),
-        headers: response.headers().clone(),
-        body: response.bytes().await.to_vec(),
-    })
+    let mut http_response = HttpResponse::new(body);
+    *http_response.status_mut() = status_code;
+    *http_response.headers_mut() = headers;
+
+    Ok(http_response)
 }
 
 static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
@@ -412,15 +412,12 @@ async fn test_openid_authorization_code() {
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
-    let pool_clone = pool.clone();
-    let config_clone = config.clone();
 
     // discover OpenID service
-    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, move |r| {
-        http_client(r, pool_clone.clone(), config_clone.clone())
-    })
-    .await
-    .unwrap();
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
+            .await
+            .unwrap();
 
     // create OAuth2 client
     let auth = Auth::new("admin", "pass123");
@@ -482,11 +479,10 @@ async fn test_openid_authorization_code() {
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token
-    let pool_clone_2 = pool.clone();
-    let config_clone_2 = config.clone();
     let token_response = core_client
         .exchange_code(AuthorizationCode::new(auth_response.code.into()))
-        .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
+        .unwrap()
+        .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
 
@@ -503,7 +499,8 @@ async fn test_openid_authorization_code() {
     let refresh_token = token_response.refresh_token().unwrap();
     let refresh_response = core_client
         .exchange_refresh_token(refresh_token)
-        .request_async(move |r| http_client(r, pool, config))
+        .unwrap()
+        .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
     assert!(refresh_response.refresh_token().is_some());
@@ -518,15 +515,12 @@ async fn test_openid_authorization_code_with_pkce() {
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
     let client = make_client_v2(pool.clone(), config.clone()).await;
-    let pool_clone = pool.clone();
-    let config_clone = config.clone();
 
     // discover OpenID service
-    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, move |r| {
-        http_client(r, pool_clone.clone(), config_clone.clone())
-    })
-    .await
-    .unwrap();
+    let provider_metadata =
+        CoreProviderMetadata::discover_async(issuer_url, &|r| http_client(r, &client))
+            .await
+            .unwrap();
 
     // create OAuth2 client/application
     let auth = Auth::new("admin", "pass123");
@@ -588,12 +582,11 @@ async fn test_openid_authorization_code_with_pkce() {
     let auth_response: AuthenticationResponse = serde_qs::from_str(query).unwrap();
 
     // exchange authorization code for token
-    let pool_clone_2 = pool.clone();
-    let config_clone_2 = config.clone();
     let token_response = core_client
         .exchange_code(AuthorizationCode::new(auth_response.code.into()))
+        .unwrap()
         .set_pkce_verifier(pkce_verifier)
-        .request_async(move |r| http_client(r, pool_clone_2, config_clone_2))
+        .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
 
@@ -607,12 +600,11 @@ async fn test_openid_authorization_code_with_pkce() {
         .unwrap();
 
     // refresh token
-    let pool_clone_3 = pool.clone();
-    let config_clone_3 = config.clone();
     let refresh_token = token_response.refresh_token().unwrap();
     let refresh_response = core_client
         .exchange_refresh_token(refresh_token)
-        .request_async(move |r| http_client(r, pool_clone_3, config_clone_3))
+        .unwrap()
+        .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
     assert!(refresh_response.refresh_token().is_some());
@@ -621,7 +613,7 @@ async fn test_openid_authorization_code_with_pkce() {
     let _userinfo_claims: UserInfoClaims<EmptyAdditionalClaims, CoreGenderClaim> = core_client
         .user_info(token_response.access_token().clone(), None)
         .expect("Missing info endpoint")
-        .request_async(move |r| http_client(r, pool, config))
+        .request_async(&|r| http_client(r, &client))
         .await
         .unwrap();
 }
