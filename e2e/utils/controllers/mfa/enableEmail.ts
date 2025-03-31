@@ -49,6 +49,7 @@ export const enableEmailMFA = async (
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await page.getByTestId('edit-user').click();
+  await page.getByTestId('edit-email-mfa').scrollIntoViewIfNeeded();
   await page.getByTestId('edit-email-mfa').click();
   const requestPromise = page.waitForRequest('**/init');
   await page.getByTestId('enable-email-mfa-option').click();
