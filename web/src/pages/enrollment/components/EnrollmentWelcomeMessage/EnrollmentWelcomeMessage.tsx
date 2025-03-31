@@ -76,9 +76,9 @@ export const EnrollmentWelcomeMessage = () => {
         <div className="text-wrapper">
           <TextareaAutoResizable
             value={message}
-            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) => {
-              setMessage(ev.target.value);
-            }}
+            onChange={(ev: ChangeEvent<HTMLTextAreaElement>) =>
+              setMessage(ev.target.value)
+            }
             disabled={isUndefined(settings) || isLoading}
           />
         </div>
