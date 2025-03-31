@@ -14,17 +14,6 @@
     user-select: none;
   }
 
-  .message-box {
-    padding: var(--spacing-s);
-    display: flex;
-    justify-content: center;
-    gap: var(--spacing-s);
-  }
-
-  .message-box-spacer {
-    align-self: stretch;
-  }
-
   h3 {
     @include typography(app-body-1);
 
@@ -43,7 +32,25 @@
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 50px;
+    @include media-breakpoint-up(lg) {
+      gap: 50px;
+    }
+
+    & > .message-box-spacer {
+      align-self: stretch;
+
+      & > .message-box {
+        padding: var(--spacing-s);
+        display: flex;
+        justify-content: center;
+        gap: var(--spacing-s);
+      }
+    }
+
+    .message-box.type-info.variant-filled {
+      background-color: var(--surface-tag-modal);
+      margin-bottom: 26px;
+    }
 
     @include media-breakpoint-down(lg) {
       background-color: var(--surface-default-modal);
@@ -51,17 +58,6 @@
 
     @include media-breakpoint-up(lg) {
       padding: 64px 75px;
-    }
-
-    & > .message-box {
-      margin-bottom: 26px;
-      justify-items: center;
-      @include media-breakpoint-up(lg) {
-        margin-bottom: 50px;
-      }
-      p {
-        text-align: center;
-      }
     }
 
     & > .settings {
