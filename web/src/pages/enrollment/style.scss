@@ -11,8 +11,18 @@
     @include typography(app-title);
 
     color: var(--text-body-primary);
-    margin-bottom: 50px;
     user-select: none;
+  }
+
+  .message-box {
+    padding: var(--spacing-s);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-s);
+  }
+
+  .message-box-spacer {
+    align-self: stretch;
   }
 
   h3 {
@@ -31,6 +41,9 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
 
     @include media-breakpoint-down(lg) {
       background-color: var(--surface-default-modal);
