@@ -16,17 +16,6 @@ on:
       - "*.md"
       - "LICENSE"
 
-env:
-  CARGO_TERM_COLOR: always
-  DEFGUARD_SECRET_KEY: aa5a506b11d719dd7170f57f5d9947faf8eb0bc2be1325e42aa0237c3dcfd26456e73dff9eef3b12c7bcf8711b45e3e703d8e21ee1c08520f5e12e3f5772da94
-  DEFGUARD_DB_HOST: postgres
-  DEFGUARD_DB_PORT: 5432
-  DEFGUARD_DB_NAME: defguard
-  DEFGUARD_DB_USER: defguard
-  DEFGUARD_DB_PASSWORD: defguard
-  DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
-  SQLX_OFFLINE: true
-
 jobs:
   test:
     runs-on: [self-hosted, Linux, X64]
@@ -44,6 +33,17 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
+    env:
+      CARGO_TERM_COLOR: always
+      DEFGUARD_SECRET_KEY: aa5a506b11d719dd7170f57f5d9947faf8eb0bc2be1325e42aa0237c3dcfd26456e73dff9eef3b12c7bcf8711b45e3e703d8e21ee1c08520f5e12e3f5772da94
+      DEFGUARD_DB_HOST: postgres
+      DEFGUARD_DB_PORT: 5432
+      DEFGUARD_DB_NAME: defguard
+      DEFGUARD_DB_USER: defguard
+      DEFGUARD_DB_PASSWORD: defguard
+      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
+      SQLX_OFFLINE: true
 
     steps:
       - name: Checkout
