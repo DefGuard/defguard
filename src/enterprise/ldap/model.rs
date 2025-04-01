@@ -280,5 +280,3 @@ mod tests {
         ));
     }
 }
-
-impl<I> User<I> {}
