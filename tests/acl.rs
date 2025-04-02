@@ -3,10 +3,10 @@ use common::{
 };
 use defguard::{
     config::DefGuardConfig,
-    db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
+    db::{models::device::DeviceType, Device, Group, Id, User, WireguardNetwork},
     enterprise::{
         db::models::acl::{AclAlias, AclRule, AliasState, RuleState},
-        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
         license::{get_cached_license, set_cached_license},
     },
     handlers::Auth,
@@ -67,10 +67,8 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
     rule.save(pool).await.unwrap();
 }
 
-fn make_alias() -> ApiAclAlias {
-    ApiAclAlias {
-        id: NoId,
-        state: AliasState::Applied,
+fn make_alias() -> EditAclAlias {
+    EditAclAlias {
         name: "alias".to_string(),
         destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
@@ -78,7 +76,7 @@ fn make_alias() -> ApiAclAlias {
     }
 }
 
-fn edit_data_into_api_response(
+fn edit_rule_data_into_api_response(
     data: &EditAclRule,
     id: Id,
     parent_id: Option<Id>,
@@ -110,6 +108,23 @@ fn edit_data_into_api_response(
     }
 }
 
+fn edit_alias_data_into_api_response(
+    data: &EditAclAlias,
+    id: Id,
+    parent_id: Option<Id>,
+    state: AliasState,
+) -> ApiAclAlias {
+    ApiAclAlias {
+        id,
+        parent_id,
+        state,
+        name: data.name.clone(),
+        destination: data.destination.clone(),
+        ports: data.ports.clone(),
+        protocols: data.protocols.clone(),
+    }
+}
+
 #[tokio::test]
 async fn test_rule_crud() {
     let (client, _) = make_test_client().await;
@@ -121,7 +136,7 @@ async fn test_rule_crud() {
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_rule: ApiAclRule = response.json().await;
-    let expected_response = edit_data_into_api_response(
+    let expected_response = edit_rule_data_into_api_response(
         &rule,
         response_rule.id,
         response_rule.parent_id,
@@ -214,32 +229,33 @@ async fn test_alias_crud() {
     // create
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response_alias: ApiAclAlias<NoId> = omit_id(response.json().await);
-    assert_eq!(response_alias, alias);
+    let response_alias: ApiAclAlias = response.json().await;
+    let expected_response =
+        edit_alias_data_into_api_response(&alias, response_alias.id, None, AliasState::Applied);
+    assert_eq!(response_alias, expected_response);
 
     // list
     let response = client.get("/api/v1/acl/alias").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_aliases: Vec<Value> = response.json().await;
+    let response_aliases: Vec<ApiAclAlias> = response.json().await;
     assert_eq!(response_aliases.len(), 1);
-    let response_alias: ApiAclAlias<NoId> = omit_id(response_aliases[0].clone());
-    assert_eq!(response_alias, alias);
+    let response_alias = response_aliases[0].clone();
+    assert_eq!(response_alias, expected_response);
 
     // retrieve
     let response = client.get("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_alias: ApiAclAlias<NoId> = omit_id(response.json().await);
-    assert_eq!(response_alias, alias);
+    let response_alias: ApiAclAlias = response.json().await;
+    assert_eq!(response_alias, expected_response);
 
     // update
-    let mut alias: ApiAclAlias<Id> = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
     alias.name = "modified".to_string();
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_alias: ApiAclAlias<Id> = response.json().await;
+    let response_alias: ApiAclAlias = response.json().await;
     assert_eq!(response_alias, alias);
-    let response_alias: ApiAclAlias<Id> =
-        client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let response_alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
     assert_eq!(response_alias, alias);
 
     // delete
@@ -286,7 +302,7 @@ async fn test_alias_enterprise() {
     assert_eq!(response_aliases.len(), 1);
     let response = client.get("/api/v1/acl/alias").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let alias: ApiAclAlias<Id> = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response = client.delete("/api/v1/acl/alias/1").send().await;
@@ -306,7 +322,7 @@ async fn test_empty_strings() {
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_rule: ApiAclRule = response.json().await;
-    let expected_response = edit_data_into_api_response(
+    let expected_response = edit_rule_data_into_api_response(
         &rule,
         response_rule.id,
         response_rule.parent_id,
@@ -318,11 +334,12 @@ async fn test_empty_strings() {
     let mut alias = make_alias();
     alias.destination = String::new();
     alias.ports = String::new();
-
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
-    let response_alias: ApiAclAlias<NoId> = omit_id(response.json().await);
-    assert_eq!(response_alias, alias);
+    let response_alias: ApiAclAlias = response.json().await;
+    let expected_response =
+        edit_alias_data_into_api_response(&alias, response_alias.id, None, AliasState::Applied);
+    assert_eq!(response_alias, expected_response);
 }
 
 #[tokio::test]

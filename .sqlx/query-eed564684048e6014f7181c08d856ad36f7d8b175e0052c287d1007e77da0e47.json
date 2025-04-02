@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"state\" \"state: _\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\" FROM \"aclalias\" WHERE id = $1",
+  "query": "SELECT id, \"parent_id\",\"name\",\"state\" \"state: _\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\" FROM \"aclalias\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,16 @@
       },
       {
         "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
         "name": "name",
         "type_info": "Text"
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "state: _",
         "type_info": {
           "Custom": {
@@ -30,17 +35,17 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "destination: _",
         "type_info": "InetArray"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "protocols: _",
         "type_info": "Int4Array"
       }
@@ -52,6 +57,7 @@
     },
     "nullable": [
       false,
+      true,
       false,
       false,
       false,
@@ -59,5 +65,5 @@
       false
     ]
   },
-  "hash": "fb05a106d3a1385b8e299371ee985d89b3964f9c0dc815bbd2be7c8317ad9277"
+  "hash": "eed564684048e6014f7181c08d856ad36f7d8b175e0052c287d1007e77da0e47"
 }

@@ -19,7 +19,7 @@ use crate::{
     db::{Device, GatewayEvent, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
         firewall::FirewallError,
-        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
+        handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
     },
     DeviceType,
 };
@@ -40,8 +40,12 @@ pub enum AclError {
     InvalidRelationError(String),
     #[error("RuleNotFoundError: {0}")]
     RuleNotFoundError(Id),
+    #[error("AliasNotFoundError: {0}")]
+    AliasNotFoundError(Id),
     #[error("RuleAlreadyAppliedError: {0}")]
     RuleAlreadyAppliedError(Id),
+    #[error("AliasAlreadyAppliedError: {0}")]
+    AliasAlreadyAppliedError(Id),
     #[error(transparent)]
     FirewallError(#[from] FirewallError),
     #[error("InvalidIpRangeError: {0}")]
@@ -418,18 +422,14 @@ impl AclRule {
         Ok(())
     }
 
-    /// Changes rule state to [`RuleState::Applied`] for all specified rules
+    /// Applies pending changes for all specified rules
     ///
     /// # Errors
     ///
     /// - `AclError::RuleNotFoundError`
-    pub async fn apply_rules(
-        pool: &PgPool,
-        rules: &[Id],
-        appstate: &AppState,
-    ) -> Result<(), AclError> {
+    pub async fn apply_rules(rules: &[Id], appstate: &AppState) -> Result<(), AclError> {
         debug!("Applying {} ACL rules: {rules:?}", rules.len());
-        let mut transaction = pool.begin().await?;
+        let mut transaction = appstate.pool.begin().await?;
 
         // prepare variable for collecting affected locations
         let mut affected_locations = HashSet::new();
@@ -887,7 +887,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, state AS \"state: AliasState\", destination, ports, protocols \
+            "SELECT a.id, parent_id, name, state AS \"state: AliasState\", destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1292,6 +1292,7 @@ impl AclRuleInfo<Id> {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AclAliasInfo<I = NoId> {
     pub id: I,
+    pub parent_id: Option<Id>,
     pub name: String,
     pub state: AliasState,
     pub destination: Vec<IpNetwork>,
@@ -1342,19 +1343,20 @@ impl<I> AclAliasInfo<I> {
     }
 }
 
-impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
+impl TryFrom<EditAclAlias> for AclAlias<NoId> {
     type Error = AclError;
 
-    fn try_from(alias: ApiAclAlias<I>) -> Result<Self, Self::Error> {
+    fn try_from(alias: EditAclAlias) -> Result<Self, Self::Error> {
         Ok(Self {
             destination: parse_destination(&alias.destination)?.addrs,
             ports: parse_ports(&alias.ports)?
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            id: alias.id,
+            id: NoId,
+            parent_id: None,
             name: alias.name,
-            state: alias.state,
+            state: AliasState::Applied,
             protocols: alias.protocols,
         })
     }
@@ -1385,6 +1387,8 @@ pub enum AliasState {
 #[derive(Clone, Debug, Model, PartialEq)]
 pub struct AclAlias<I = NoId> {
     pub id: I,
+    // if present points to the original alias before modification / deletion
+    pub parent_id: Option<Id>,
     pub name: String,
     #[model(enum)]
     pub state: AliasState,
@@ -1407,6 +1411,7 @@ impl AclAlias {
     ) -> Self {
         Self {
             id: NoId,
+            parent_id: None,
             name: name.into(),
             state,
             destination,
@@ -1418,8 +1423,8 @@ impl AclAlias {
     /// Creates new [`AclAlias`] with all related objects based on [`AclAliasInfo`]
     pub(crate) async fn create_from_api(
         pool: &PgPool,
-        api_alias: &ApiAclAlias<NoId>,
-    ) -> Result<ApiAclAlias<Id>, AclError> {
+        api_alias: &EditAclAlias,
+    ) -> Result<ApiAclAlias, AclError> {
         let mut transaction = pool.begin().await?;
 
         // save the alias
@@ -1430,7 +1435,7 @@ impl AclAlias {
         Self::create_related_objects(&mut transaction, alias.id, api_alias).await?;
 
         transaction.commit().await?;
-        let result: ApiAclAlias<Id> = alias.to_info(pool).await?.into();
+        let result: ApiAclAlias = alias.to_info(pool).await?.into();
         Ok(result)
     }
 
@@ -1438,36 +1443,183 @@ impl AclAlias {
     pub(crate) async fn update_from_api(
         pool: &PgPool,
         id: Id,
-        api_alias: &ApiAclAlias<Id>,
-    ) -> Result<ApiAclAlias<Id>, AclError> {
+        api_alias: &EditAclAlias,
+    ) -> Result<ApiAclAlias, AclError> {
         let mut transaction = pool.begin().await?;
 
-        // save the alias
-        let mut alias: AclAlias<Id> = api_alias.clone().try_into()?;
-        alias.id = id; // frontend may PUT an object with incorrect id
-        alias.save(&mut *transaction).await?;
+        // find existing alias
+        let existing_alias = AclAlias::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Update of nonexistent alias ({id}) failed");
+                AclError::AliasNotFoundError(id)
+            })?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, alias.id).await?;
+        // convert API alias to model
+        let mut alias: AclAlias<NoId> = api_alias.clone().try_into()?;
 
-        // create related objects
-        AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias).await?;
+        // perform appropriate updates depending on existing alias' state
+        let alias = match existing_alias.state {
+            AliasState::Applied => {
+                // create new `AliasState::Modified` rule
+                debug!("Alias {id} state is `Applied` - creating new `Modified` alias object",);
+                // remove old modifications of this alias
+                let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                    .await?;
+                debug!(
+                    "Removed {} old modifications of alias {id}",
+                    result.rows_affected(),
+                );
+
+                // save as a new rule with appropriate parent_id and state
+                alias.state = AliasState::Modified;
+                alias.parent_id = Some(id);
+                let alias = alias.save(&mut *transaction).await?;
+
+                // create related objects
+                AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias)
+                    .await?;
+
+                alias
+            }
+            _ => {
+                debug!(
+                    "Alias {id} is a modification to alias {:?} - updating the modification",
+                    existing_alias.parent_id,
+                );
+                // update the not-yet applied modification itself
+                let mut alias = alias.with_id(id);
+                alias.parent_id = existing_alias.parent_id;
+                alias.save(&mut *transaction).await?;
+
+                // recreate related objects
+                Self::delete_related_objects(&mut transaction, alias.id).await?;
+                AclAlias::<Id>::create_related_objects(&mut transaction, alias.id, api_alias)
+                    .await?;
+
+                alias
+            }
+        };
 
         transaction.commit().await?;
         Ok(alias.to_info(pool).await?.into())
     }
 
     /// Deletes [`AclAlias`] with all it's related objects
+    ///
+    /// State handling:
+    ///
+    /// - For aliases in `AliasState::Applied` state (aliases that are currently active):
+    ///   1. Any existing modifications of this alias are deleted
+    ///   2. A copy of the alias is created with `AliasState::Deleted` state and the original alias as parent
+    ///
+    /// This preserves the original alias while tracking the deletion.
+    ///
+    /// - For aliases in other states (`Modified` or `Deleted`):
+    ///   1. All related objects are deleted
+    ///   2. The alias itself is deleted from the database
+    ///
+    /// Since these aliases were not yet applied, we can safely remove them.
     pub(crate) async fn delete_from_api(pool: &PgPool, id: Id) -> Result<(), AclError> {
+        debug!("Deleting alias {id}");
         let mut transaction = pool.begin().await?;
 
-        // delete related objects
-        Self::delete_related_objects(&mut transaction, id).await?;
+        // find the existing alias
+        let existing_alias = AclAlias::find_by_id(&mut *transaction, id)
+            .await?
+            .ok_or_else(|| {
+                warn!("Deletion of nonexistent alias ({id}) failed");
+                AclError::AliasNotFoundError(id)
+            })?;
 
-        // delete the alias
-        query!("DELETE FROM aclalias WHERE id = $1", id)
-            .execute(&mut *transaction)
-            .await?;
+        // perform appropriate modifications depending on existing alias's state
+        match existing_alias.state {
+            AliasState::Applied => {
+                // create new `AliasState::Modified` alias
+                debug!(
+                    "Alias {} state is `Applied` - creating new `Deleted` alias object",
+                    id,
+                );
+                // delete all modifications of this alias
+                let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
+                    .execute(&mut *transaction)
+                    .await?;
+                debug!(
+                    "Removed {} old modifications of alias {id}",
+                    result.rows_affected(),
+                );
+
+                // save as a new alias with appropriate parent_id and state
+                let mut alias = existing_alias.as_noid();
+                alias.state = AliasState::Deleted;
+                alias.parent_id = Some(id);
+                alias.save(&mut *transaction).await?;
+            }
+            _ => {
+                // delete the not-yet applied modification itself
+                debug!(
+                    "Alias {} is a modification to alias {:?} - updating the modification",
+                    id, existing_alias.parent_id,
+                );
+                // delete related objects
+                Self::delete_related_objects(&mut transaction, id).await?;
+
+                // delete the alias
+                existing_alias.delete(&mut *transaction).await?;
+            }
+        };
+
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    /// Applies pending changes for all specified aliases
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::AliasNotFoundError`
+    pub async fn apply_aliases(aliases: &[Id], appstate: &AppState) -> Result<(), AclError> {
+        debug!("Applying {} ACL aliases: {aliases:?}", aliases.len());
+        let mut transaction = appstate.pool.begin().await?;
+
+        // prepare variable for collecting affected locations
+        // let mut affected_locations = HashSet::new();
+
+        for id in aliases {
+            let alias = AclAlias::find_by_id(&mut *transaction, *id)
+                .await?
+                .ok_or_else(|| AclError::AliasNotFoundError(*id))?;
+            // FIXME: actually deal with affected locatios
+            // let locations = alias.get_networks(&mut *transaction).await?;
+            // for location in locations {
+            //     affected_locations.insert(location);
+            // }
+            alias.apply(&mut transaction).await?;
+        }
+        info!("Applied {} ACL aliases: {aliases:?}", aliases.len());
+
+        // let affected_locations: Vec<WireguardNetwork<Id>> =
+        //     affected_locations.into_iter().collect();
+        // debug!(
+        //     "{} locations affected by applied ACL aliases. Sending gateway firewall update events for each location",
+        //     affected_locations.len()
+        // );
+        //
+        // for location in affected_locations {
+        //     match location.try_get_firewall_config(&mut transaction).await? {
+        //         Some(firewall_config) => {
+        //             debug!("Sending firewall update event for location {location}");
+        //             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+        //                 location.id,
+        //                 firewall_config,
+        //             ));
+        //         }
+        //         None => {
+        //             debug!("No firewall config generated for location {location}. Not sending a gateway event")
+        //         }
+        //     }
+        // }
 
         transaction.commit().await?;
         Ok(())
@@ -1479,7 +1631,7 @@ impl<I: std::fmt::Debug> AclAlias<I> {
     async fn create_related_objects(
         transaction: &mut PgConnection,
         alias_id: Id,
-        api_alias: &ApiAclAlias<I>,
+        api_alias: &EditAclAlias,
     ) -> Result<(), AclError> {
         debug!("Creating related objects for ACL alias {api_alias:?}");
         // save related destination ranges
@@ -1548,6 +1700,7 @@ impl AclAlias<Id> {
 
         Ok(AclAliasInfo {
             id: self.id,
+            parent_id: self.parent_id,
             name: self.name.clone(),
             state: self.state.clone(),
             destination: self.destination.clone(),
@@ -1555,6 +1708,64 @@ impl AclAlias<Id> {
             protocols: self.protocols.clone(),
             destination_ranges,
         })
+    }
+
+    /// Applies pending state change if necessary.
+    ///
+    /// If current state is [`AliasState::Modified`] it does the following:
+    /// - changes the state of the alias to `Applied`
+    /// - clears alias' `parent_id`.
+    /// - deletes it's parent alias
+    ///
+    /// If current state is ['AliasState::Deleted'] it removes the parent alias and the alias itself.
+    ///
+    /// # Errors
+    ///
+    /// - `AclError::AliasAreadyApplied`
+    pub async fn apply(mut self, transaction: &mut PgConnection) -> Result<(), AclError> {
+        let alias_id = self.id;
+        debug!("Applying ACL alias {alias_id} pending state change");
+
+        // Ensure the alias is in a state that can be applied
+        match self.state {
+            AliasState::Modified => {
+                debug!("Changing ACL alias {alias_id} state to applied");
+                self.state = AliasState::Applied;
+                let parent_id = self.parent_id;
+                self.parent_id = None;
+                self.save(&mut *transaction).await?;
+
+                // delete parent alias
+                if let Some(parent_id) = parent_id {
+                    query!("DELETE FROM aclalias WHERE id = $1", parent_id)
+                        .execute(&mut *transaction)
+                        .await?;
+                }
+                info!("Changed ACL alias {alias_id} state to applied");
+            }
+            AliasState::Deleted => {
+                debug!("Removing ACL alias {alias_id} which has been marked for deletion",);
+                let parent_id = &self
+                    .parent_id
+                    .expect("ACL alias marked for deletion must have parent ID");
+
+                // delete current ACL alias itself
+                self.delete(&mut *transaction).await?;
+
+                // delete parent alias
+                query!("DELETE FROM aclalias WHERE id = $1", parent_id)
+                    .execute(&mut *transaction)
+                    .await?;
+
+                info!("ACL alias {alias_id} was deleted");
+            }
+            AliasState::Applied => {
+                warn!("ACL alias {alias_id} already applied");
+                return Err(AclError::AliasAlreadyAppliedError(self.id));
+            }
+        }
+
+        Ok(())
     }
 }
 

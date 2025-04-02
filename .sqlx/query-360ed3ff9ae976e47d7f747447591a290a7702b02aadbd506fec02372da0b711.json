@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclalias\" (\"name\",\"state\",\"destination\",\"ports\",\"protocols\") VALUES ($1,$2,$3,$4,$5) RETURNING id",
+  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"state\",\"destination\",\"ports\",\"protocols\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Text",
         {
           "Custom": {
@@ -33,5 +34,5 @@
       false
     ]
   },
-  "hash": "e45e12d0d923d67bd91d1bb4ef62542303cb46ed9133abb4d03fa5737341cba9"
+  "hash": "360ed3ff9ae976e47d7f747447591a290a7702b02aadbd506fec02372da0b711"
 }
