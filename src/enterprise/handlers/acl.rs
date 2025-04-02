@@ -12,7 +12,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
     enterprise::db::models::acl::{
-        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, Protocol, RuleState,
+        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasState, Protocol, RuleState,
     },
     error::WebError,
     handlers::{ApiResponse, ApiResult},
@@ -128,6 +128,7 @@ pub struct ApiAclAlias<I = NoId> {
     #[serde(default)]
     pub id: I,
     pub name: String,
+    pub state: AliasState,
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
@@ -140,6 +141,7 @@ impl<I> From<AclAliasInfo<I>> for ApiAclAlias<I> {
             ports: info.format_ports(),
             id: info.id,
             name: info.name,
+            state: info.state,
             protocols: info.protocols,
         }
     }

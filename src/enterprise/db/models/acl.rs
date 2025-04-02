@@ -887,7 +887,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, name, destination, ports, protocols \
+            "SELECT a.id, name, state AS \"state: AliasState\", destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1293,6 +1293,7 @@ impl AclRuleInfo<Id> {
 pub struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub name: String,
+    pub state: AliasState,
     pub destination: Vec<IpNetwork>,
     pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
     pub ports: Vec<PortRange>,
@@ -1353,9 +1354,27 @@ impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
                 .collect(),
             id: alias.id,
             name: alias.name,
+            state: alias.state,
             protocols: alias.protocols,
         })
     }
+}
+
+/// ACL alias can be in one of the following states:
+/// - Applied: the alias can be used in ACL rules
+/// - Modified: the alias has been modified and the changes have not yet been applied
+/// - Deleted: the alias has been marked for deletion but not yet removed
+///
+/// Unlike ACL rules themselves aliases do not require a `New` state,
+/// since they do not cause any changes to locations until they
+/// are used by a rule.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "aclalias_state", rename_all = "lowercase")]
+pub enum AliasState {
+    #[default]
+    Applied,
+    Modified,
+    Deleted,
 }
 
 /// Database representation of an ACL alias. Aliases can be used to define
@@ -1367,6 +1386,8 @@ impl<I> TryFrom<ApiAclAlias<I>> for AclAlias<I> {
 pub struct AclAlias<I = NoId> {
     pub id: I,
     pub name: String,
+    #[model(enum)]
+    pub state: AliasState,
     #[model(ref)]
     pub destination: Vec<IpNetwork>,
     #[model(ref)]
@@ -1379,6 +1400,7 @@ impl AclAlias {
     #[must_use]
     pub fn new<S: Into<String>>(
         name: S,
+        state: AliasState,
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         protocols: Vec<Protocol>,
@@ -1386,6 +1408,7 @@ impl AclAlias {
         Self {
             id: NoId,
             name: name.into(),
+            state,
             destination,
             ports,
             protocols,
@@ -1526,6 +1549,7 @@ impl AclAlias<Id> {
         Ok(AclAliasInfo {
             id: self.id,
             name: self.name.clone(),
+            state: self.state.clone(),
             destination: self.destination.clone(),
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
@@ -1672,10 +1696,16 @@ mod test {
                 end: Bound::Excluded(201),
             },
         ];
-        let alias = AclAlias::new("alias", destination.clone(), ports.clone(), vec![20, 30])
-            .save(&pool)
-            .await
-            .unwrap();
+        let alias = AclAlias::new(
+            "alias",
+            AliasState::Applied,
+            destination.clone(),
+            ports.clone(),
+            vec![20, 30],
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         assert_eq!(alias.id, 1);
 
@@ -1960,14 +1990,26 @@ mod test {
         .unwrap();
 
         // create 2 aliases
-        let alias1 = AclAlias::new("alias1", Vec::new(), Vec::new(), Vec::new())
-            .save(&pool)
-            .await
-            .unwrap();
-        let _alias2 = AclAlias::new("alias2", Vec::new(), Vec::new(), Vec::new())
-            .save(&pool)
-            .await
-            .unwrap();
+        let alias1 = AclAlias::new(
+            "alias1",
+            AliasState::Applied,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let _alias2 = AclAlias::new(
+            "alias2",
+            AliasState::Applied,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )
+        .save(&pool)
+        .await
+        .unwrap();
 
         // only alias1 applies to the rule
         let _ra = AclRuleAlias {

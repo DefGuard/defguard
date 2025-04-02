@@ -5,7 +5,7 @@ use defguard::{
     config::DefGuardConfig,
     db::{models::device::DeviceType, Device, Group, Id, NoId, User, WireguardNetwork},
     enterprise::{
-        db::models::acl::{AclAlias, AclRule, RuleState},
+        db::models::acl::{AclAlias, AclRule, AliasState, RuleState},
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclRule},
         license::{get_cached_license, set_cached_license},
     },
@@ -70,6 +70,7 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
 fn make_alias() -> ApiAclAlias {
     ApiAclAlias {
         id: NoId,
+        state: AliasState::Applied,
         name: "alias".to_string(),
         destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
@@ -432,14 +433,26 @@ async fn test_related_objects(pool: PgPool) {
     .unwrap();
 
     // aliases
-    AclAlias::new("alias1", Vec::new(), Vec::new(), Vec::new())
-        .save(&pool)
-        .await
-        .unwrap();
-    AclAlias::new("alias2", Vec::new(), Vec::new(), Vec::new())
-        .save(&pool)
-        .await
-        .unwrap();
+    AclAlias::new(
+        "alias1",
+        AliasState::Applied,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .save(&pool)
+    .await
+    .unwrap();
+    AclAlias::new(
+        "alias2",
+        AliasState::Applied,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .save(&pool)
+    .await
+    .unwrap();
 
     // create an acl rule with related objects
     let mut rule = make_rule();

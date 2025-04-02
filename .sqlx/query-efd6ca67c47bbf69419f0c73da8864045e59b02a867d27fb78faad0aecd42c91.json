@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"name\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\" FROM \"aclalias\"",
+  "query": "SELECT id, \"name\",\"state\" \"state: _\",\"destination\" \"destination: _\",\"ports\" \"ports: _\",\"protocols\" \"protocols: _\" FROM \"aclalias\"",
   "describe": {
     "columns": [
       {
@@ -15,16 +15,32 @@
       },
       {
         "ordinal": 2,
+        "name": "state: _",
+        "type_info": {
+          "Custom": {
+            "name": "aclalias_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "modified",
+                "deleted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "destination: _",
         "type_info": "InetArray"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "ports: _",
         "type_info": "Int4RangeArray"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "protocols: _",
         "type_info": "Int4Array"
       }
@@ -37,8 +53,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "c9cc2a63e8a4cbcca0f70edc62b0024d9f89bfecf66aacf88d65af7e40da24a2"
+  "hash": "efd6ca67c47bbf69419f0c73da8864045e59b02a867d27fb78faad0aecd42c91"
 }
