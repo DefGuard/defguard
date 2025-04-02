@@ -5,7 +5,6 @@ import { AxiosError } from 'axios';
 import parse from 'html-react-parser';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import { Card } from '../../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
@@ -45,11 +44,13 @@ export const EnterpriseForm = () => {
   return (
     <section id="enterprise-settings">
       <header>
-        <h2>{LL.settingsPage.enterprise.header()}</h2>
-        <Helper>{parse(LL.settingsPage.enterprise.helper())}</Helper>
+        <div className="helper-row">
+          <h2>{LL.settingsPage.enterprise.header()}</h2>
+          <Helper>{LL.settingsPage.enterprise.helper()}</Helper>
+        </div>
       </header>
-      <Card shaded bordered hideMobile>
-        <div className="checkbox-row">
+      <div className="checkbox-column">
+        <div className="helper-row">
           <LabeledCheckbox
             disabled={isLoading}
             label={LL.settingsPage.enterprise.fields.deviceManagement.label()}
@@ -62,7 +63,7 @@ export const EnterpriseForm = () => {
             {parse(LL.settingsPage.enterprise.fields.deviceManagement.helper())}
           </Helper>
         </div>
-        <div className="checkbox-row">
+        <div className="helper-row">
           <LabeledCheckbox
             disabled={isLoading}
             label={LL.settingsPage.enterprise.fields.manualConfig.label()}
@@ -75,7 +76,7 @@ export const EnterpriseForm = () => {
             {parse(LL.settingsPage.enterprise.fields.manualConfig.helper())}
           </Helper>
         </div>
-        <div className="checkbox-row">
+        <div className="helper-row">
           <LabeledCheckbox
             disabled={isLoading}
             label={LL.settingsPage.enterprise.fields.disableAllTraffic.label()}
@@ -88,7 +89,7 @@ export const EnterpriseForm = () => {
             {parse(LL.settingsPage.enterprise.fields.disableAllTraffic.helper())}
           </Helper>
         </div>
-      </Card>
+      </div>
     </section>
   );
 };

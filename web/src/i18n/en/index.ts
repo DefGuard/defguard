@@ -743,6 +743,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       password: {
         header: 'Password settings',
         changePassword: 'Change password',
+        ldap_change_heading: '{ldapName:string} password update required',
+        ldap_change_message:
+          "Defguard doesn't store your password in plain text, so we can’t retrieve it for automatic synchronization with your {ldapName:string} credentials. To enable {ldapName:string} login to other services, please update your Defguard password for your {ldapName:string} password to be set — you can re-enter your current password if you wish. This step is necessary to ensure consistent and secure authentication across both systems.",
       },
       recovery: {
         header: 'Recovery options',
@@ -1107,6 +1110,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).',
         info_enterprise: 'This feature is available only in Defguard Enterprise.',
         helpers: {
+          heading:
+            'Configure LDAP synchronization settings here. If configured, Defguard will pull user information from LDAP and synchronize it with local users.',
           sync_enabled:
             'If enabled, Defguard will attempt to pull LDAP user data at the specified interval.',
           authority: `Defguard will use the selected server as the authoritative source of
@@ -1140,6 +1145,25 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_uses_ad: 'LDAP server is Active Directory',
         },
+        helpers: {
+          ldap_user_obj_class:
+            'The object class that will be added to the user object during its creation. This is used to determine if an LDAP object is a user.',
+          ldap_user_auxiliary_obj_classes:
+            "The additional object classes that will be added to the user object during its creation. They may also influence the added user's attributes (e.g. simpleSecurityObject class will add userPassword attribute).",
+          user_settings:
+            'Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.',
+          connection_settings:
+            'Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).',
+          group_settings:
+            'Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.',
+          ldap_group_obj_class:
+            'The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.',
+        },
+        headings: {
+          user_settings: 'User settings',
+          connection_settings: 'Connection settings',
+          group_settings: 'Group settings',
+        },
         delete: 'Delete configuration',
       },
       test: {
@@ -1152,8 +1176,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
     },
     openIdSettings: {
+      heading: 'External OpenID settings',
       general: {
-        title: 'External OpenID general settings',
+        title: 'General settings',
         helper: 'Here you can change general OpenID behavior in your Defguard instance.',
         createAccount: {
           label:
@@ -1163,15 +1188,16 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
       },
       form: {
-        title: 'External OpenID Client Settings',
+        title: 'Client settings',
         helper:
           'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
         custom: 'Custom',
         none: 'None',
-        documentation: 'Documentation',
+        documentation:
+          'Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.',
         delete: 'Delete provider',
         directory_sync_settings: {
-          title: 'Directory Sync Settings',
+          title: 'Directory synchronization settings',
           helper:
             "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
           notSupported: 'Directory sync is not supported for this provider.',
@@ -1217,7 +1243,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
               "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
           },
           enable_directory_sync: {
-            label: 'Enable directory sync',
+            label: 'Enable directory synchronization',
           },
           sync_target: {
             label: 'Synchronize',
@@ -1317,12 +1343,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
           mainLogoUrl: {
             label: 'Login logo url',
-            helper: '<p>Maximum picture size is 250x100  px</p>',
+            helper: 'Maximum picture size is 250x100  px',
             placeholder: 'Default image',
           },
           navLogoUrl: {
             label: 'Menu & navigation small logo',
-            helper: '<p>Maximum picture size is 100x100 px</p>',
+            helper: 'Maximum picture size is 100x100 px',
             placeholder: 'Default image',
           },
         },
@@ -1403,6 +1429,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     smtp: {
       form: {
         title: 'SMTP configuration',
+        sections: {
+          server: 'Server settings',
+        },
         fields: {
           encryption: {
             label: 'Encryption',
@@ -1441,23 +1470,30 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
+        subtitle: 'Enter recipent email address',
         fields: {
           to: {
-            label: 'Address',
+            label: 'Send test email to',
             placeholder: 'Address',
           },
         },
         controls: {
           submit: 'Send',
+          resend: 'Resend',
+          retry: 'Retry',
           success: 'Test email sent',
           error: 'Error sending email',
         },
+        success: {
+          message: 'Test email has been sent successully.',
+        },
+        error: {
+          message:
+            'There was an error sending the test email. Please check your SMTP configuration and try again.',
+          fullError: 'Error: {error: string}',
+        },
       },
-      helper: `
-        <p>
-          Here you can configure SMTP server used to send system messages to the users.
-        </p>
-			`,
+      helper: `Here you can configure SMTP server used to send system messages to the users.`,
     },
     enrollment: {
       helper:
@@ -1513,7 +1549,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     enterprise: {
       header: 'Enterprise Features',
-      helper: '<p>Here you can change enterprise settings.</p>',
+      helper: 'Here you can change enterprise settings.',
       fields: {
         deviceManagement: {
           label: "Disable users' ability to manage their devices",
@@ -1533,10 +1569,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
     },
     gatewayNotifications: {
-      smtpWarning:
-        'To enable gateway disconnect notifications you must first configure an SMTP server',
-      header: 'Gateway disconnect notifications',
-      helper: '<p>Here you can enable gateway disconnect notifications.</p>',
+      smtpWarning: 'To enable notifications you must first configure an SMTP server',
+      header: 'Notifications',
+      sections: {
+        gateway: 'Gateway disconnect notifications',
+      },
+      helper: 'Here you can manage email notifications.',
       form: {
         submit: 'Save changes',
         fields: {

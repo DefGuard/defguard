@@ -1,5 +1,3 @@
-import './styles.scss';
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import parse from 'html-react-parser';
@@ -9,14 +7,13 @@ import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
-import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
+import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -24,14 +21,15 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { ApiError } from '../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../shared/utils/invalidateMultipleQueries';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { GatewayNotificationsForm } from './GatewayNotificationsForm';
 
-type FormFields = {
+export type FormFields = {
   gateway_disconnect_notifications_enabled: boolean;
   gateway_disconnect_notifications_inactivity_threshold: number;
   gateway_disconnect_notifications_reconnect_notification_enabled: boolean;
 };
 
-export const GatewayNotificationsForm = () => {
+export const NotificationsForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.gatewayNotifications;
   const settings = useSettingsPage((state) => state.settings);
@@ -101,8 +99,10 @@ export const GatewayNotificationsForm = () => {
   return (
     <section id="gateway-notifications-settings">
       <header>
-        <h2>{localLL.header()}</h2>
-        <Helper>{parse(localLL.helper())}</Helper>
+        <div className="helper-row">
+          <h2>{localLL.header()}</h2>
+          <Helper>{parse(localLL.helper())}</Helper>
+        </div>
         <div className="controls">
           <Button
             form="gateway-notifications-form"
@@ -117,46 +117,14 @@ export const GatewayNotificationsForm = () => {
         </div>
       </header>
       <form id="gateway-notifications-form" onSubmit={handleSubmit(onSubmit)}>
-        <div className="checkbox-row">
-          <FormCheckBox
-            disabled={isLoading || !smtpConfigured}
-            label={localLL.form.fields.disconnectNotificationsEnabled.label()}
-            controller={{
-              control,
-              name: 'gateway_disconnect_notifications_enabled',
-            }}
-            labelPlacement="right"
-          />
-          <Helper>
-            {parse(localLL.form.fields.disconnectNotificationsEnabled.help())}
-          </Helper>
-        </div>
-        <FormInput
-          type="number"
-          controller={{
-            control,
-            name: 'gateway_disconnect_notifications_inactivity_threshold',
-          }}
-          label={localLL.form.fields.inactivityThreshold.label()}
-          labelExtras={
-            <Helper>{parse(localLL.form.fields.inactivityThreshold.help())}</Helper>
-          }
-          disabled={isLoading || !smtpConfigured}
-          required
-        />
-        <div className="checkbox-row">
-          <FormCheckBox
-            disabled={isLoading || !smtpConfigured}
-            label={localLL.form.fields.reconnectNotificationsEnabled.label()}
-            controller={{
-              control,
-              name: 'gateway_disconnect_notifications_reconnect_notification_enabled',
-            }}
-            labelPlacement="right"
-          />
-          <Helper>
-            {parse(localLL.form.fields.reconnectNotificationsEnabled.help())}
-          </Helper>
+        <div className="column-layout">
+          <div className="left">
+            <MessageBox
+              className="info"
+              message={parse(LL.settingsPage.gatewayNotifications.smtpWarning())}
+            />
+            <GatewayNotificationsForm control={control} isLoading={isLoading} />
+          </div>
         </div>
       </form>
     </section>

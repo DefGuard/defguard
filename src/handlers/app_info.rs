@@ -25,6 +25,14 @@ struct LicenseInfo {
     is_enterprise_free: bool,
 }
 
+#[derive(Serialize)]
+struct LdapInfo {
+    /// Whether that integration is enabled (at least one way synchronization)
+    enabled: bool,
+    /// Whether AD is used
+    ad: bool,
+}
+
 /// Additional information about core state.
 #[derive(Serialize)]
 pub struct AppInfo {
@@ -32,6 +40,7 @@ pub struct AppInfo {
     network_present: bool,
     smtp_enabled: bool,
     license_info: LicenseInfo,
+    ldap_info: LdapInfo,
 }
 
 pub(crate) async fn get_app_info(
@@ -54,6 +63,10 @@ pub(crate) async fn get_app_info(
             limits_exceeded,
             any_limit_exceeded,
             is_enterprise_free: is_enterprise_free(),
+        },
+        ldap_info: LdapInfo {
+            enabled: settings.ldap_enabled,
+            ad: settings.ldap_uses_ad,
         },
     };
 

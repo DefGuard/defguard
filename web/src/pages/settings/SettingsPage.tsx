@@ -16,9 +16,9 @@ import { useAppStore } from '../../shared/hooks/store/useAppStore';
 import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { EnterpriseSettings } from './components/EnterpriseSettings/EnterpriseSettings';
-import { GatewayNotificationsSettings } from './components/GatewayNotificationsSettings/GatewayNotificationsSettings';
 import { GlobalSettings } from './components/GlobalSettings/GlobalSettings';
 import { LdapSettings } from './components/LdapSettings/LdapSettings';
+import { NotificationSettings } from './components/NotificationSettings/NotificationSettings';
 import { OpenIdSettings } from './components/OpenIdSettings/OpenIdSettings';
 import { SmtpSettings } from './components/SmtpSettings/SmtpSettings';
 import { useSettingsPage } from './hooks/useSettingsPage';
@@ -29,7 +29,7 @@ const tabsContent: ReactNode[] = [
   <LdapSettings key={2} />,
   <OpenIdSettings key={3} />,
   <EnterpriseSettings key={4} />,
-  <GatewayNotificationsSettings key={5} />,
+  <NotificationSettings key={5} />,
 ];
 
 const enterpriseTabs: number[] = [2, 3, 4];

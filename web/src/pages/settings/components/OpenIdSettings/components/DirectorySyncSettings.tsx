@@ -7,30 +7,20 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
-import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
-import { ButtonStyleVariant } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
 import SvgIconDownload from '../../../../../shared/defguard-ui/components/svg/IconDownload';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
-import useApi from '../../../../../shared/hooks/useApi';
-import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { titleCase } from '../../../../../shared/utils/titleCase';
-
-const SUPPORTED_SYNC_PROVIDERS = ['Google', 'Microsoft', 'Okta'];
+import { SUPPORTED_SYNC_PROVIDERS } from './SupportedProviders';
 
 export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
-  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const [googleServiceAccountFileName, setGoogleServiceAccountFileName] = useState<
     string | null
   >(null);
-  const {
-    settings: { testDirsync },
-  } = useApi();
+
   const { control, setValue } = useFormContext();
-  const toaster = useToaster();
 
   const userBehaviorOptions = useMemo(
     () => [
@@ -82,11 +72,11 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
   const showDirsync = SUPPORTED_SYNC_PROVIDERS.includes(providerName ?? '');
 
   return (
-    <section id="dirsync-settings">
-      <header id="dirsync-header">
-        <h2>{localLL.form.directory_sync_settings.title()}</h2>
+    <div id="dirsync-settings">
+      <div className="subsection-header helper-row">
+        <h3>{localLL.form.directory_sync_settings.title()}</h3>
         <Helper>{localLL.form.directory_sync_settings.helper()}</Helper>
-      </header>
+      </div>
       <div id="directory-sync-settings">
         {showDirsync ? (
           <>
@@ -256,26 +246,6 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
                 </div>
               </>
             ) : null}
-            <div className="test-connection">
-              <Button
-                onClick={() => {
-                  void testDirsync().then((res) => {
-                    if (res.success) {
-                      toaster.success(
-                        localLL.form.directory_sync_settings.connectionTest.success(),
-                      );
-                    } else {
-                      toaster.error(
-                        `${localLL.form.directory_sync_settings.connectionTest.error()} ${res.message}`,
-                      );
-                    }
-                  });
-                }}
-                disabled={!enterpriseEnabled}
-                text="Test connection"
-                styleVariant={ButtonStyleVariant.PRIMARY}
-              ></Button>
-            </div>
           </>
         ) : (
           <p id="sync-not-supported">
@@ -283,6 +253,6 @@ export const DirsyncSettings = ({ isLoading }: { isLoading: boolean }) => {
           </p>
         )}
       </div>
-    </section>
+    </div>
   );
 };
