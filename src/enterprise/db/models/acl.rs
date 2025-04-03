@@ -1289,7 +1289,7 @@ impl AclRuleInfo<Id> {
 
 /// Helper struct combining all DB objects related to given [`AclAlias`].
 /// All related objects are stored in vectors.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub parent_id: Option<Id>,
@@ -1299,6 +1299,7 @@ pub struct AclAliasInfo<I = NoId> {
     pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
     pub ports: Vec<PortRange>,
     pub protocols: Vec<Protocol>,
+    pub rules: Vec<AclRule<Id>>,
 }
 
 impl<I> AclAliasInfo<I> {
@@ -1693,10 +1694,29 @@ impl AclAlias<Id> {
         .await
     }
 
+    /// Returns all [`AclRule`]s which use this alias
+    pub(crate) async fn get_rules<'e, E>(&self, executor: E) -> Result<Vec<AclRule<Id>>, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        query_as!(
+            AclRule,
+            "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, \
+                all_networks, destination, ports, protocols, enabled, expires \
+            FROM aclrulealias ara \
+            JOIN aclrule ar ON ar.id = ara.rule_id \
+            WHERE ara.alias_id = $1",
+            self.id,
+        )
+        .fetch_all(executor)
+        .await
+    }
+
     /// Retrieves all related objects from the db and converts [`AclAlias`]
     /// instance to [`AclAliasInfo`].
     pub(crate) async fn to_info(&self, pool: &PgPool) -> Result<AclAliasInfo<Id>, SqlxError> {
         let destination_ranges = self.get_destination_ranges(pool).await?;
+        let rules = self.get_rules(pool).await?;
 
         Ok(AclAliasInfo {
             id: self.id,
@@ -1707,6 +1727,7 @@ impl AclAlias<Id> {
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
             protocols: self.protocols.clone(),
             destination_ranges,
+            rules,
         })
     }
 

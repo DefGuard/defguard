@@ -119,6 +119,7 @@ fn edit_alias_data_into_api_response(
     id: Id,
     parent_id: Option<Id>,
     state: AliasState,
+    rules: Vec<Id>,
 ) -> ApiAclAlias {
     ApiAclAlias {
         id,
@@ -128,6 +129,7 @@ fn edit_alias_data_into_api_response(
         destination: data.destination.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
+        rules,
     }
 }
 
@@ -232,8 +234,13 @@ async fn test_alias_crud() {
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_alias: ApiAclAlias = response.json().await;
-    let expected_response =
-        edit_alias_data_into_api_response(&alias, response_alias.id, None, AliasState::Applied);
+    let expected_response = edit_alias_data_into_api_response(
+        &alias,
+        response_alias.id,
+        None,
+        AliasState::Applied,
+        Vec::new(),
+    );
     assert_eq!(response_alias, expected_response);
 
     // list
@@ -256,19 +263,28 @@ async fn test_alias_crud() {
     let response = client.put("/api/v1/acl/alias/1").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_alias: ApiAclAlias = response.json().await;
-    assert_eq!(response_alias, alias);
-    let response_alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let alias: ApiAclAlias = client.get("/api/v1/acl/alias/2").send().await.json().await;
     assert_eq!(response_alias, alias);
 
     // delete
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response = client.get("/api/v1/acl/alias/1").send().await;
+    let response = client.get("/api/v1/acl/alias").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_aliases: Vec<ApiAclAlias> = response.json().await;
+    assert_eq!(response_aliases.len(), 2);
+    let response = client.get("/api/v1/acl/alias/2").send().await;
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = client.get("/api/v1/acl/alias/3").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client.delete("/api/v1/acl/alias/3").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = client.get("/api/v1/acl/alias/3").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let response = client.get("/api/v1/acl/alias").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let response_aliases: Vec<Value> = response.json().await;
-    assert_eq!(response_aliases.len(), 0);
+    let response_aliases: Vec<ApiAclAlias> = response.json().await;
+    assert_eq!(response_aliases.len(), 1);
 }
 
 #[tokio::test]
@@ -339,8 +355,13 @@ async fn test_empty_strings() {
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_alias: ApiAclAlias = response.json().await;
-    let expected_response =
-        edit_alias_data_into_api_response(&alias, response_alias.id, None, AliasState::Applied);
+    let expected_response = edit_alias_data_into_api_response(
+        &alias,
+        response_alias.id,
+        None,
+        AliasState::Applied,
+        Vec::new(),
+    );
     assert_eq!(response_alias, expected_response);
 }
 

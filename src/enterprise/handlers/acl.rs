@@ -133,6 +133,7 @@ pub struct ApiAclAlias {
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
+    pub rules: Vec<Id>,
 }
 
 impl From<AclAliasInfo<Id>> for ApiAclAlias {
@@ -145,6 +146,7 @@ impl From<AclAliasInfo<Id>> for ApiAclAlias {
             name: info.name,
             state: info.state,
             protocols: info.protocols,
+            rules: info.rules.iter().map(|v| v.id).collect(),
         }
     }
 }
