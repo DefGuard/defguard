@@ -1743,6 +1743,7 @@ impl AclAlias<Id> {
     /// If current state is [`AliasState::Modified`] it does the following:
     /// - changes the state of the alias to `Applied`
     /// - clears alias' `parent_id`.
+    /// - updates `alias_id` fields in `aclrulealias` table records
     /// - deletes it's parent alias
     ///
     /// If current state is ['AliasState::Deleted'] it removes the parent alias and the alias itself.
@@ -1763,12 +1764,22 @@ impl AclAlias<Id> {
                 self.parent_id = None;
                 self.save(&mut *transaction).await?;
 
-                // delete parent alias
                 if let Some(parent_id) = parent_id {
+                    // delete parent alias
                     query!("DELETE FROM aclalias WHERE id = $1", parent_id)
                         .execute(&mut *transaction)
                         .await?;
+
+                    // update ACL -> rule relations
+                    query!(
+                        "UPDATE aclrulealias SET alias_id = $1 WHERE alias_id = $2",
+                        alias_id,
+                        parent_id
+                    )
+                    .execute(&mut *transaction)
+                    .await?;
                 }
+
                 info!("Changed ACL alias {alias_id} state to applied");
             }
             AliasState::Deleted => {
