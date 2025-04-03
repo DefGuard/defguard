@@ -5314,6 +5314,149 @@ type RootTranslation = {
 				}
 			}
 			aliases: {
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * A​l​i​a​s​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 */
+						ip: string
+						/**
+						 * P​o​r​t​s
+						 */
+						ports: string
+						/**
+						 * P​r​o​t​o​c​o​l​s
+						 */
+						protocols: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+					status: {
+						/**
+						 * N​e​w
+						 */
+						'new': string
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+						 */
+						change: string
+						/**
+						 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
+						 */
+						'delete': string
+						/**
+						 * E​n​a​b​l​e​d
+						 */
+						enabled: string
+						/**
+						 * D​i​s​a​b​l​e​d
+						 */
+						disabled: string
+						/**
+						 * D​e​p​l​o​y​e​d
+						 */
+						deployed: string
+					}
+					tags: {
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
+						 */
+						discard: string
+						/**
+						 * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
+						 */
+						'delete': string
+					}
+				}
 			}
 		}
 		createPage: {
@@ -10696,6 +10839,146 @@ export type TranslationFunctions = {
 				}
 			}
 			aliases: {
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Rules
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed rules
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed rules found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Alias name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Ipv4/6 CIDR range address
+						 */
+						ip: () => LocalizedString
+						/**
+						 * Ports
+						 */
+						ports: () => LocalizedString
+						/**
+						 * Protocols
+						 */
+						protocols: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+					status: {
+						/**
+						 * New
+						 */
+						'new': () => LocalizedString
+						/**
+						 * Pending Change
+						 */
+						change: () => LocalizedString
+						/**
+						 * Pending Deletion
+						 */
+						'delete': () => LocalizedString
+						/**
+						 * Enabled
+						 */
+						enabled: () => LocalizedString
+						/**
+						 * Disabled
+						 */
+						disabled: () => LocalizedString
+						/**
+						 * Deployed
+						 */
+						deployed: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard Changes
+						 */
+						discard: () => LocalizedString
+						/**
+						 * Mark for Deletion
+						 */
+						'delete': () => LocalizedString
+					}
+				}
 			}
 		}
 		createPage: {

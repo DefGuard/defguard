@@ -44,16 +44,13 @@ import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
-
-type ListTagDisplay = {
-  key: string | number;
-  label: string;
-  displayAsTag?: boolean;
-};
+import { DividerHeader } from '../shared/DividerHeader';
+import { ListTagDisplay } from '../shared/types';
+import { RenderTagDisplay } from '../shared/RenderTagDisplay';
 
 type RulesFilters = {
   networks: number[];
-  // aliases: number[];
+  aliases: number[];
   status: number[];
   groups: number[];
 };
@@ -68,7 +65,7 @@ type ListData = {
 } & AclRuleInfo;
 
 const defaultFilters: RulesFilters = {
-  // aliases: [],
+  aliases: [],
   networks: [],
   status: [],
   groups: [],
@@ -141,13 +138,13 @@ export const AclIndexRules = () => {
     () =>
       isPresent(aclRules)
         ? prepareDisplay(
-            rulesAfterSearch,
-            appliedFilters,
-            localLL.list.tags.allAllowed(),
-            localLL.list.tags.allDenied(),
-            true,
-            aclContext,
-          )
+          rulesAfterSearch,
+          appliedFilters,
+          localLL.list.tags.allAllowed(),
+          localLL.list.tags.allDenied(),
+          true,
+          aclContext,
+        )
         : [],
     [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
@@ -214,15 +211,15 @@ export const AclIndexRules = () => {
         value: network.id,
       })),
     };
-    // res.aliases = {
-    //   label: filterLL.alias(),
-    //   order: 2,
-    //   items: aclContext.aliases.map((alias) => ({
-    //     label: alias.name,
-    //     searchValues: [alias.name],
-    //     value: alias.id,
-    //   })),
-    // };
+    res.aliases = {
+      label: filterLL.alias(),
+      order: 2,
+      items: aclContext.aliases.map((alias) => ({
+        label: alias.name,
+        searchValues: [alias.name],
+        value: alias.id,
+      })),
+    };
 
     res.status = {
       label: filterLL.status(),
@@ -437,21 +434,6 @@ export const AclIndexRules = () => {
   );
 };
 
-type DividerHeaderProps = {
-  text: string;
-} & PropsWithChildren;
-
-const DividerHeader = ({ text, children }: DividerHeaderProps) => {
-  return (
-    <div className="divider-header spacer">
-      <div className="inner">
-        <p className="header">{text}</p>
-        {children}
-      </div>
-    </div>
-  );
-};
-
 type RulesListProps = {
   data: ListData[];
   header: {
@@ -601,25 +583,6 @@ const RulesList = ({
           </ul>
         </div>
       )}
-    </div>
-  );
-};
-
-type RenderTagsProps = {
-  data: ListTagDisplay[];
-};
-
-const RenderTagDisplay = ({ data }: RenderTagsProps) => {
-  return (
-    <div className="tags-display">
-      <div className="track">
-        {data.map((d) => {
-          if (d.displayAsTag) {
-            return <Tag key={d.key} text={d.label} />;
-          }
-          return <span key={d.key}>{d.label}</span>;
-        })}
-      </div>
     </div>
   );
 };

@@ -1,0 +1,42 @@
+.acl-alias-status {
+  width: 100%;
+  max-width: 100%;
+  display: inline-flex;
+  flex-flow: row nowrap;
+  column-gap: 5px;
+  user-select: none;
+  overflow: hidden;
+  align-items: center;
+  justify-content: flex-start;
+
+  & > p {
+    @include typography(app-modal-3);
+    color: inherit;
+    max-width: calc(100% - 13px);
+    overflow: hidden;
+
+    @include text-overflow-dots;
+  }
+
+  &.status-new {
+    color: var(--text-positive);
+  }
+
+  &.status-modified {
+    color: var(--text-important);
+  }
+
+  &.status-deleted {
+    color: var(--text-alert);
+  }
+
+  &.status-applied {
+    &.disabled {
+      color: var(--text-important);
+    }
+
+    &.enabled {
+      color: var(--text-positive);
+    }
+  }
+}

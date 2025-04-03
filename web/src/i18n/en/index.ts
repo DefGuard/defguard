@@ -2243,7 +2243,58 @@ Any other requests you can reach us at: support@defguard.net
           },
         },
       },
-      aliases: {},
+      aliases: {
+        listControls: {
+          searchPlaceholder: 'Find name',
+          addNew: 'Add new',
+          filter: {
+            nothingApplied: 'Filter',
+            applied: 'Filters ({count: number})',
+          },
+          apply: {
+            noChanges: 'Deploy pending changes',
+            all: 'Deploy pending changes ({count: number})',
+            selective: 'Deploy selected changes ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Pending Changes',
+            noData: 'No pending changes',
+            noDataSearch: 'No pending changes found',
+          },
+          deployedList: {
+            title: 'Deployed Rules',
+            noData: 'No deployed rules',
+            noDataSearch: 'No deployed rules found',
+          },
+          headers: {
+            id: 'ID',
+            name: 'Alias name',
+            ip: 'Ipv4/6 CIDR range address',
+            ports: 'Ports',
+            protocols: 'Protocols',
+            status: 'Status',
+            edit: 'Edit',
+          },
+          status: {
+            new: 'New',
+            change: 'Pending Change',
+            delete: 'Pending Deletion',
+            enabled: 'Enabled',
+            disabled: 'Disabled',
+            deployed: 'Deployed',
+          },
+          tags: {
+            allDenied: 'All denied',
+            allAllowed: 'All allowed',
+          },
+          editMenu: {
+            discard: 'Discard Changes',
+            delete: 'Mark for Deletion',
+          },
+        },
+      },
     },
     createPage: {
       formError: {

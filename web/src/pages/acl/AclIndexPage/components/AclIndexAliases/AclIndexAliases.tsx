@@ -2,7 +2,7 @@ import './style.scss';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderBy } from 'lodash-es';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { upperCaseFirst } from 'text-case';
 import { shallow } from 'zustand/shallow';
 
@@ -25,24 +25,218 @@ import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { useAclCreateSelector } from '../../../acl-context';
-import { AclAlias } from '../../../types';
+import { AclAlias, AclAliasStatus } from '../../../types';
 import { AlcAliasCEModal } from './modals/AlcAliasCEModal/AlcAliasCEModal';
 import { useAclAliasCEModal } from './modals/AlcAliasCEModal/store';
+import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { AclAliasInfo } from '../../../../../shared/types';
+import { AliasesList } from './components/AliasesList';
+
+type ListTagDisplay = {
+  key: string | number;
+  label: string;
+  displayAsTag?: boolean;
+};
+
+type AliasesFilters = {
+  status: number[];
+};
+
+export type ListData = {
+  context: {
+    usedBy: ListTagDisplay[];
+  };
+} & AclAliasInfo;
+
+const defaultFilters: AliasesFilters = {
+  status: [],
+};
 
 export const AclIndexAliases = () => {
   const openCEModal = useAclAliasCEModal((s) => s.open, shallow);
   const aliases = useAclCreateSelector((s) => s.aliases);
   const itemCount = useMemo(() => aliases?.length ?? 0, [aliases?.length]);
   const [searchValue, setSearchValue] = useState('');
+  const { LL } = useI18nContext();
+  const localLL = LL.acl.listPage.aliases;
 
-  const filteredAliases = useMemo(() => {
-    if (searchValue !== '' && aliases) {
-      return aliases?.filter((alias) =>
-        alias.name.toLowerCase().trim().includes(searchValue.trim().toLowerCase()),
+  const pendingAliasesCount = useMemo(() => {
+    if (aliases) {
+      return aliases.filter((alias) => alias.state !== AclAliasStatus.APPLIED).length;
+    }
+    return 0;
+  }, [aliases]);
+
+  const aliasesAfterSearch = useMemo(() => {
+    if (aliases && searchValue) {
+      return aliases.filter((rule) =>
+        rule.name.trim().toLowerCase().includes(searchValue.toLowerCase().trim()),
       );
     }
     return aliases ?? [];
   }, [aliases, searchValue]);
+
+  const pendingAliases = useMemo(
+    () =>
+      isPresent(aliases)
+        ? prepareDisplay(
+          aliasesAfterSearch,
+          appliedFilters,
+          true,
+          aclContext,
+        )
+        : [],
+    [aclContext, aliases, appliedFilters, localLL.list.tags, aliasesAfterSearch],
+  );
+
+  const [selectedPending, setSelectedPending] = useState<Record<number, boolean>>({});
+  const handlePendingSelect = useCallback((key: number, value: boolean) => {
+    setSelectedPending((s) => ({ ...s, [key]: value }));
+  }, []);
+  const handlePendingSelectAll = useCallback(
+    (value: boolean, state: Record<number, boolean>) => {
+      const newState = { ...state };
+      for (const key in newState) {
+        newState[key] = value;
+      }
+      setSelectedPending(newState);
+    },
+    [],
+  );
+  const pendingSelectionCount = useMemo(() => {
+    let count = 0;
+    for (const key in selectedPending) {
+      if (selectedPending[key]) count++;
+    }
+    return count;
+  }, [selectedPending]);
+
+  const deployedRules = useMemo(() => {
+    if (aliases) {
+      return prepareDisplay(
+        aliasesAfterSearch,
+        appliedFilters,
+        localLL.list.tags.allAllowed(),
+        localLL.list.tags.allDenied(),
+        false,
+        aclContext,
+      );
+    }
+    return [];
+  }, [aclContext, aliases, appliedFilters, localLL.list.tags, aliasesAfterSearch]);
+
+  const displayItemsCount = useMemo(
+    () => deployedRules.length + pendingAliases.length,
+    [deployedRules.length, pendingAliases.length],
+  );
+
+  const filters = useMemo(() => {
+    const res: Record<string, FilterGroupsModalFilter> = {};
+    const filterLL = localLL.modals.filterGroupsModal.groupHeaders;
+    res.groups = {
+      label: filterLL.groups(),
+      order: 3,
+      items: aclContext.groups.map((group) => ({
+        label: group.name,
+        searchValues: [group.name],
+        value: group.id,
+      })),
+    };
+    res.networks = {
+      label: filterLL.location(),
+      order: 1,
+      items: aclContext.networks.map((network) => ({
+        label: network.name,
+        searchValues: [network.name],
+        value: network.id,
+      })),
+    };
+    res.aliases = {
+      label: filterLL.alias(),
+      order: 2,
+      items: aclContext.aliases.map((alias) => ({
+        label: alias.name,
+        searchValues: [alias.name],
+        value: alias.id,
+      })),
+    };
+
+    res.status = {
+      label: filterLL.status(),
+      order: 4,
+      items: [
+        {
+          label: ruleStatusLL.enabled(),
+          value: 1000,
+          searchValues: [ruleStatusLL.enabled()],
+        },
+        {
+          label: ruleStatusLL.disabled(),
+          value: 999,
+          searchValues: [ruleStatusLL.disabled()],
+        },
+        {
+          label: ruleStatusLL.new(),
+          value: aclStatusToInt(AclStatus.NEW),
+          searchValues: [ruleStatusLL.new()],
+        },
+        {
+          label: ruleStatusLL.change(),
+          value: aclStatusToInt(AclStatus.MODIFIED),
+          searchValues: [ruleStatusLL.change()],
+        },
+        {
+          label: ruleStatusLL.deployed(),
+          value: aclStatusToInt(AclStatus.APPLIED),
+          searchValues: [ruleStatusLL.deployed()],
+        },
+        {
+          label: ruleStatusLL.delete(),
+          value: aclStatusToInt(AclStatus.DELETED),
+          searchValues: [ruleStatusLL.delete()],
+        },
+      ],
+    };
+    return res;
+  }, [
+    aclContext.groups,
+    aclContext.networks,
+    localLL.modals.filterGroupsModal.groupHeaders,
+    ruleStatusLL,
+  ]);
+
+  const controlFilterDisplay = useMemo(() => {
+    return appliedFiltersCount
+      ? localLL.listControls.filter.applied({ count: appliedFiltersCount })
+      : localLL.listControls.filter.nothingApplied();
+  }, [appliedFiltersCount, localLL.listControls.filter]);
+
+  const filtersPresent = appliedFiltersCount > 0;
+
+  const applyText = useMemo(() => {
+    if (pendingSelectionCount) {
+      return localLL.listControls.apply.selective({ count: pendingSelectionCount });
+    }
+    if (pendingRulesCount) {
+      return localLL.listControls.apply.all({ count: pendingRulesCount });
+    }
+    return localLL.listControls.apply.noChanges();
+  }, [localLL.listControls.apply, pendingRulesCount, pendingSelectionCount]);
+
+  // update or build selection state for list when rules are done loading
+  useEffect(() => {
+    if (aliases) {
+      const pending = aliases.filter((rule) => rule.state !== AclStatus.APPLIED);
+      const selectionEntries = Object.keys(selectedPending).length;
+      if (selectionEntries !== pending.length) {
+        const newSelectionState: Record<number, boolean> = {};
+        for (const rule of pending) {
+          newSelectionState[rule.id] = newSelectionState[rule.id] ?? false;
+        }
+        setSelectedPending(newSelectionState);
+      }
+    }
+  }, [aliases, selectedPending]);
 
   return (
     <div id="acl-aliases">
@@ -57,7 +251,7 @@ export const AclIndexAliases = () => {
           }}
         />
         <div className="controls">
-          {/* <Button
+          <Button
             className="filter"
             text="Filters"
             size={ButtonSize.SMALL}
@@ -76,9 +270,34 @@ export const AclIndexAliases = () => {
                 />
               </svg>
             }
-          /> */}
+          />
           <Button
-            text="Add new"
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            text={applyText}
+            disabled={pendingAliases.length === 0}
+            onClick={() => {
+              if (aclAliases) {
+                if (pendingSelectionCount === 0) {
+                  const aliasesToApply = aclAliases
+                    .filter((alias) => alias.state !== AclAliasStatus.APPLIED)
+                    .map((alias) => alias.id);
+                  applyPendingChangesMutation(aliasesToApply);
+                } else {
+                  const aliasesToApply: number[] = [];
+                  for (const key in selectedPending) {
+                    if (selectedPending[key]) {
+                      aliasesToApply.push(Number(key));
+                    }
+                  }
+                  applyPendingChangesMutation(aliasesToApply);
+                }
+              }
+            }}
+            loading={applyPending}
+          />
+          <Button
+            text={localLL.listControls.addNew()}
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.PRIMARY}
             onClick={() => {
@@ -109,140 +328,106 @@ export const AclIndexAliases = () => {
           />
         </div>
       </header>
-      {filteredAliases.length > 0 && <AliasesList aliases={filteredAliases} />}
-      {filteredAliases.length === 0 && (
-        <NoData customMessage="No aliases" messagePosition="center" />
-      )}
+      <AliasesList
+        header={{
+          text: localLL.list.pendingList.title(),
+        }}
+        data={pendingAliases}
+        noDataMessage={
+          filtersPresent
+            ? localLL.list.pendingList.noDataSearch()
+            : localLL.list.pendingList.noData()
+        }
+        selected={selectedPending}
+        allSelected={pendingSelectionCount === pendingAliasesCount}
+        onSelect={handlePendingSelect}
+        onSelectAll={handlePendingSelectAll}
+      />
+      <AliasesList
+        isAppliedList
+        header={{
+          text: localLL.list.deployedList.title(),
+        }}
+        data={deployedAliases}
+        noDataMessage={
+          filtersPresent
+            ? localLL.list.deployedList.noDataSearch()
+            : localLL.list.deployedList.noData()
+        }
+      />
       <AlcAliasCEModal />
     </div>
   );
 };
+const prepareDisplay = (
+  aclAliases: AclAliasInfo[],
+  appliedFilters: AliasesFilters,
+  pending: boolean,
+  aclContext: Omit<AclCreateContextLoaded, 'ruleToEdit'>,
+): ListData[] => {
+  let aliases: AclAliasInfo[];
+  let statusFilters: number[];
+  let disabledStateFilter = false;
+  let enabledStateFilter = false;
+  if (pending) {
+    aliases = aclAliases.filter((rule) => rule.state !== AclAliasStatus.APPLIED);
+    statusFilters = appliedFilters.status.filter((s) => ![999, 1000].includes(s));
+  } else {
+    aliases = aclAliases.filter((rule) => rule.state === AclAliasStatus.APPLIED);
+    statusFilters = appliedFilters.status;
+    disabledStateFilter = statusFilters.includes(999);
+    enabledStateFilter = statusFilters.includes(1000);
+  }
 
-type ListProps = {
-  aliases: AclAlias[];
-};
+  const aclStateFilter = statusFilters.map((f) => aclStatusFromInt(f));
 
-export const AliasesList = ({ aliases }: ListProps) => {
-  const [activeOrderKey, setActiveOrderKey] = useState<keyof AclAlias>('name');
-  const [orderDirection, setOrderDirection] = useState<ListSortDirection>(
-    ListSortDirection.ASC,
-  );
-
-  const headers = useMemo(
-    (): ListHeaderColumnConfig<AclAlias>[] => [
-      {
-        label: 'Name',
-        sortKey: 'name',
-        enabled: true,
-      },
-      {
-        label: 'Ipv4/6 CIDR range address',
-        key: 'ip',
-        enabled: false,
-      },
-      {
-        label: 'Ports',
-        key: 'ports',
-        enabled: false,
-      },
-      {
-        label: 'Protocols',
-        key: 'protocols',
-        enabled: false,
-      },
-      {
-        label: 'Edit',
-        key: 'edit',
-        enabled: false,
-      },
-    ],
-    [],
-  );
-
-  const displayAliases = useMemo(() => {
-    const res = aliases;
-    if (isPresent(aliases)) {
-      // apply filters
-      // apply ordering
-      const orderDir = orderDirection.valueOf().toLowerCase() as 'asc' | 'desc';
-      orderBy(res, [activeOrderKey], [orderDir]);
+  aliases = aliases.filter((rule) => {
+    const filterChecks: boolean[] = [];
+    if (statusFilters.length) {
+      if (pending) {
+        filterChecks.push(aclStateFilter.includes(rule.state));
+      } else {
+        filterChecks.push(
+          (disabledStateFilter && !rule.enabled) || (enabledStateFilter && rule.enabled),
+        );
+      }
     }
-    return res;
-  }, [activeOrderKey, aliases, orderDirection]);
-
-  return (
-    <div id="aliases-list">
-      <ListHeader
-        headers={headers}
-        activeKey={activeOrderKey}
-        sortDirection={orderDirection}
-        onChange={(key, direction) => {
-          setActiveOrderKey(key);
-          setOrderDirection(direction);
-        }}
-      />
-      {isPresent(displayAliases) && (
-        <ul>
-          {displayAliases.map((alias) => (
-            <li className="row" key={alias.id}>
-              <div className="cell name">{upperCaseFirst(alias.name)}</div>
-              <div className="cell ip">{alias.destination}</div>
-              <div className="cell ports">{alias.ports}</div>
-              <div className="cell protocols">{alias.protocols}</div>
-              <div className="cell edit">
-                <AliasRowEdit alias={alias} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
-
-type EditProps = {
-  alias: AclAlias;
-};
-
-const AliasRowEdit = ({ alias }: EditProps) => {
-  const {
-    acl: {
-      aliases: { deleteAlias },
-    },
-  } = useApi();
-  const queryClient = useQueryClient();
-  const toaster = useToaster();
-  const { mutate: deleteAliasMutation, isPending } = useMutation({
-    mutationFn: deleteAlias,
-    onSuccess: () => {
-      toaster.success('Alias deleted');
-      void queryClient.invalidateQueries({
-        predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_ALIASES),
-      });
-    },
-    onError: (e) => {
-      console.error(e);
-    },
+    if (appliedFilters.networks.length && !rule.all_networks) {
+      filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);
+    }
+    // if (appliedFilters.aliases.length) {
+    //   filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    // }
+    if (appliedFilters.groups.length) {
+      const groups = concat(rule.denied_groups, rule.allowed_groups);
+      filterChecks.push(intersection(groups, appliedFilters.groups).length > 0);
+    }
+    return !filterChecks.includes(false);
   });
-  const openEditModal = useAclAliasCEModal((s) => s.open, shallow);
 
-  return (
-    <EditButton>
-      <EditButtonOption
-        text="Edit"
-        onClick={() => {
-          openEditModal({ alias });
-        }}
-        disabled={isPending}
-      />
-      <EditButtonOption
-        text="Delete Alias"
-        onClick={() => {
-          deleteAliasMutation(alias.id);
-        }}
-        disabled={isPending}
-        styleVariant={EditButtonOptionStyleVariant.WARNING}
-      />
-    </EditButton>
-  );
+  const listData: ListData[] = aliases.map((alias) => {
+
+    const usedBy: ListTagDisplay[] = concat(
+      alias.destination
+        .split(',')
+        .filter((s) => s === '')
+        .map((dest, index) => ({
+          key: index.toString(),
+          label: dest,
+          displayAsTag: false,
+        })),
+    );
+
+    return {
+      ...alias,
+      context: {
+        allowed,
+        denied,
+        destination: usedBy,
+        networks,
+      },
+    };
+  });
+
+  return listData;
 };
