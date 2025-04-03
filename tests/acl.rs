@@ -513,6 +513,27 @@ async fn test_related_objects(pool: PgPool) {
     assert_eq!(response.status(), StatusCode::OK);
     let response_rule: EditAclRule = omit_id(response.json().await);
     assert_eq!(response_rule, rule);
+
+    // related rules in alias details
+    let response = client.get("/api/v1/acl/alias/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_alias: ApiAclAlias = response.json().await;
+    assert_eq!(response_alias.rules, vec![1]);
+
+    // add another rule
+    let mut rule = make_rule();
+    rule.aliases = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let response = client.get("/api/v1/acl/alias/1").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_alias: ApiAclAlias = response.json().await;
+    assert_eq!(response_alias.rules, vec![1, 2]);
+    let response = client.get("/api/v1/acl/alias/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let response_alias: ApiAclAlias = response.json().await;
+    assert_eq!(response_alias.rules, vec![1]);
 }
 
 #[tokio::test]
