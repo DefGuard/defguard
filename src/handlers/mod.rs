@@ -116,6 +116,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Alias {id} already applied")}),
                     StatusCode::BAD_REQUEST,
                 ),
+                AclError::AliasUsedByRulesError(id) => ApiResponse::new(
+                    json!({"msg": format!("Alias {id} is used by some existing ACL rules")}),
+                    StatusCode::BAD_REQUEST,
+                ),
                 AclError::DbError(_) | AclError::FirewallError(_) => {
                     error!("{err}");
                     ApiResponse::new(

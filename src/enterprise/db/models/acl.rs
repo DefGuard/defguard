@@ -46,6 +46,8 @@ pub enum AclError {
     RuleAlreadyAppliedError(Id),
     #[error("AliasAlreadyAppliedError: {0}")]
     AliasAlreadyAppliedError(Id),
+    #[error("AliasUsedByRulesError: {0}")]
+    AliasUsedByRulesError(Id),
     #[error(transparent)]
     FirewallError(#[from] FirewallError),
     #[error("InvalidIpRangeError: {0}")]
@@ -1507,17 +1509,16 @@ impl AclAlias {
         Ok(alias.to_info(pool).await?.into())
     }
 
-    /// Deletes [`AclAlias`] with all it's related objects
+    /// Deletes [`AclAlias`] with all it's related objects.
     ///
     /// State handling:
     ///
     /// - For aliases in `AliasState::Applied` state (aliases that are currently active):
-    ///   1. Any existing modifications of this alias are deleted
-    ///   2. A copy of the alias is created with `AliasState::Deleted` state and the original alias as parent
+    ///   1. Check if the alias is being used by any ACL rules. Return an error if it is
+    ///   2. Any existing modifications of this alias are deleted
+    ///   3. Delete the alias itself
     ///
-    /// This preserves the original alias while tracking the deletion.
-    ///
-    /// - For aliases in other states (`Modified` or `Deleted`):
+    /// - For aliases in `Modified` state (tracking modifications of already applied aliases):
     ///   1. All related objects are deleted
     ///   2. The alias itself is deleted from the database
     ///
@@ -1530,14 +1531,20 @@ impl AclAlias {
         let existing_alias = AclAlias::find_by_id(&mut *transaction, id)
             .await?
             .ok_or_else(|| {
-                warn!("Deletion of nonexistent alias ({id}) failed");
+                error!("Deletion of nonexistent alias ({id}) failed");
                 AclError::AliasNotFoundError(id)
             })?;
 
         // perform appropriate modifications depending on existing alias's state
         match existing_alias.state {
             AliasState::Applied => {
-                // create new `AliasState::Modified` alias
+                // check if any rules are using this alias
+                let rules = existing_alias.get_rules(&mut *transaction).await?;
+                if !rules.is_empty() {
+                    error!("Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}");
+                    return Err(AclError::AliasUsedByRulesError(id));
+                }
+
                 debug!(
                     "Alias {} state is `Applied` - creating new `Deleted` alias object",
                     id,
