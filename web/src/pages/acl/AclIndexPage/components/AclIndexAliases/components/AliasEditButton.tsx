@@ -1,21 +1,21 @@
-import { useCallback } from "react";
-import { AclAliasInfo } from "../../../../../../shared/types";
-import { ListData } from "../AclIndexAliases";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AclAliasStatus } from "../../../../types";
-import { useI18nContext } from "../../../../../../i18n/i18n-react";
-import { useToaster } from "../../../../../../shared/hooks/useToaster";
-import useApi from "../../../../../../shared/hooks/useApi";
-import { QueryKeys } from "../../../../../../shared/queries";
-import { AxiosError } from "axios";
-import { EditButton } from "../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton";
-import { EditButtonOption } from "../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption";
-import { EditButtonOptionStyleVariant } from "../../../../../../shared/defguard-ui/components/Layout/EditButton/types";
-import { useAclAliasCEModal } from "../modals/AlcAliasCEModal/store";
-import { shallow } from "zustand/shallow";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { useCallback } from 'react';
+import { shallow } from 'zustand/shallow';
+
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { EditButton } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
+import { EditButtonOption } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/EditButtonOption';
+import { EditButtonOptionStyleVariant } from '../../../../../../shared/defguard-ui/components/Layout/EditButton/types';
+import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
+import { QueryKeys } from '../../../../../../shared/queries';
+import { AclAliasStatus } from '../../../../types';
+import { useAclAliasCEModal } from '../modals/AlcAliasCEModal/store';
+import { AclAliasListData } from '../types';
 
 type EditProps = {
-  alias: ListData;
+  alias: AclAliasListData;
 };
 
 export const AliasEditButton = ({ alias }: EditProps) => {

@@ -1,5 +1,5 @@
-import { Tag } from "../../../../../shared/defguard-ui/components/Layout/Tag/Tag";
-import { ListTagDisplay } from "./types";
+import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
+import { ListTagDisplay } from './types';
 
 type RenderTagsProps = {
   data: ListTagDisplay[];

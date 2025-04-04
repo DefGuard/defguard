@@ -20,17 +20,13 @@ export const AclAliasStatusDisplay = ({ status }: Props) => {
     switch (status) {
       case AclAliasStatus.APPLIED:
         return [statusLL.enabled(), ActivityIconVariant.CONNECTED];
-      case AclAliasStatus.DELETED:
-        return [statusLL.deleted(), ActivityIconVariant.ERROR];
       case AclAliasStatus.MODIFIED:
         return [statusLL.modified(), ActivityIconVariant.DISCONNECTED];
     }
   }, [status, statusLL]);
 
   return (
-    <div
-      className={clsx('acl-alias-status', `status-${status.valueOf().toLowerCase()}`)}
-    >
+    <div className={clsx('acl-alias-status', `status-${status.valueOf().toLowerCase()}`)}>
       <p>{label}</p>
       <ActivityIcon status={iconStatus} />
     </div>

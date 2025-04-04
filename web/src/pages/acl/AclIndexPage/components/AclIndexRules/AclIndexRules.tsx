@@ -4,14 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { concat, intersection, orderBy } from 'lodash-es';
-import {
-  PropsWithChildren,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
 
@@ -33,7 +26,6 @@ import { InteractionBox } from '../../../../../shared/defguard-ui/components/Lay
 import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
-import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -43,10 +35,10 @@ import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
-import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 import { DividerHeader } from '../shared/DividerHeader';
-import { ListTagDisplay } from '../shared/types';
 import { RenderTagDisplay } from '../shared/RenderTagDisplay';
+import { ListTagDisplay } from '../shared/types';
+import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 
 type RulesFilters = {
   networks: number[];
@@ -138,13 +130,13 @@ export const AclIndexRules = () => {
     () =>
       isPresent(aclRules)
         ? prepareDisplay(
-          rulesAfterSearch,
-          appliedFilters,
-          localLL.list.tags.allAllowed(),
-          localLL.list.tags.allDenied(),
-          true,
-          aclContext,
-        )
+            rulesAfterSearch,
+            appliedFilters,
+            localLL.list.tags.allAllowed(),
+            localLL.list.tags.allDenied(),
+            true,
+            aclContext,
+          )
         : [],
     [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
@@ -259,6 +251,7 @@ export const AclIndexRules = () => {
     };
     return res;
   }, [
+    aclContext.aliases,
     aclContext.groups,
     aclContext.networks,
     localLL.modals.filterGroupsModal.groupHeaders,
@@ -823,7 +816,7 @@ const prepareDisplay = (
     const destination: ListTagDisplay[] = concat(
       rule.destination
         .split(',')
-        .filter((s) => s === '')
+        .filter((s) => s !== '')
         .map((dest, index) => ({
           key: index.toString(),
           label: dest,
