@@ -17,14 +17,14 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
   }) as boolean;
 
   return (
-    <section id="openid-settings">
-      <header>
-        <h2>{localLL.general.title()}</h2>
+    <div id="general-settings">
+      <div className="subsection-header helper-row">
+        <h3>{localLL.general.title()}</h3>
         <Helper>{parse(localLL.general.helper())}</Helper>
-      </header>
+      </div>
       <div>
         <div>
-          <div className="checkbox-row">
+          <div className="helper-row">
             {/* FIXME: Really buggy when using the controller, investigate why */}
             <LabeledCheckbox
               label={localLL.general.createAccount.label()}
@@ -42,6 +42,6 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };

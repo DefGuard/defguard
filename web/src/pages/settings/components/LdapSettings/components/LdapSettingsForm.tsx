@@ -1,33 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
-import { FormCheckBox } from '../../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox';
-import { FormInput } from '../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
-import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
+import SvgIconX from '../../../../../shared/components/svg/IconX';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
-import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import {
-  SelectOption,
-  SelectSizeVariant,
-} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
-import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../shared/queries';
 import { SettingsLDAP } from '../../../../../shared/types';
 import { useSettingsPage } from '../../../hooks/useSettingsPage';
+import { LdapConnectionTest } from './LdapConnectionTest';
+import { LdapSettingsLeft } from './LdapSettingsLeft';
+import { LdapSettingsRight } from './LdapSettingsRight';
 
 type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes'> & {
   ldap_user_auxiliary_obj_classes: string;
@@ -36,16 +28,12 @@ type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes'> & {
 export const LdapSettingsForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.ldapSettings;
-  const submitRef = useRef<HTMLInputElement | null>(null);
   const settings = useSettingsPage((state) => state.settings);
   const {
     settings: { patchSettings },
   } = useApi();
-
   const queryClient = useQueryClient();
-
   const toaster = useToaster();
-  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const { isPending: isLoading, mutate } = useMutation({
     mutationFn: patchSettings,
@@ -147,22 +135,6 @@ export const LdapSettingsForm = () => {
     mode: 'all',
   });
 
-  const options: SelectOption<boolean>[] = useMemo(
-    () => [
-      {
-        value: false,
-        label: 'Defguard',
-        key: 0,
-      },
-      {
-        value: true,
-        label: 'LDAP',
-        key: 1,
-      },
-    ],
-    [],
-  );
-
   const handleValidSubmit: SubmitHandler<FormFields> = (data) => {
     const formattedData = {
       ...data,
@@ -187,6 +159,17 @@ export const LdapSettingsForm = () => {
       <header>
         <h2>{localLL.title()}</h2>
         <div className="controls">
+          <LdapConnectionTest />
+          <Button
+            text={localLL.form.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            icon={<SvgIconX />}
+            onClick={() => {
+              handleDeleteSubmit();
+            }}
+          />
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.SAVE}
@@ -194,139 +177,17 @@ export const LdapSettingsForm = () => {
             type="submit"
             loading={isLoading}
             icon={<IconCheckmarkWhite />}
-            onClick={() => submitRef.current?.click()}
-          />
-          <Button
-            text={localLL.form.delete()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.CONFIRM}
-            loading={isLoading}
-            onClick={() => {
-              handleDeleteSubmit();
-            }}
+            form="ldap-settings-form"
           />
         </div>
       </header>
-      <form id="ldap-settings-form" onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormCheckBox
-          controller={{ control, name: 'ldap_enabled' }}
-          label={localLL.form.labels.ldap_enable()}
-          labelPlacement="right"
-          disabled={!enterpriseEnabled}
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_use_starttls' }}
-          label={localLL.form.labels.ldap_use_starttls()}
-          labelPlacement="right"
-          disabled={!enterpriseEnabled}
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_uses_ad' }}
-          label={localLL.form.labels.ldap_uses_ad()}
-          labelPlacement="right"
-          disabled={!enterpriseEnabled}
-        />
-        <FormCheckBox
-          controller={{ control, name: 'ldap_tls_verify_cert' }}
-          label={localLL.form.labels.ldap_tls_verify_cert()}
-          labelPlacement="right"
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_url' }}
-          label={localLL.form.labels.ldap_url()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_bind_username' }}
-          label={localLL.form.labels.ldap_bind_username()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_bind_password' }}
-          label={localLL.form.labels.ldap_bind_password()}
-          type="password"
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_member_attr' }}
-          label={localLL.form.labels.ldap_member_attr()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_username_attr' }}
-          label={localLL.form.labels.ldap_username_attr()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_user_search_base' }}
-          label={localLL.form.labels.ldap_user_search_base()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_user_obj_class' }}
-          label={localLL.form.labels.ldap_user_obj_class()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_user_auxiliary_obj_classes' }}
-          label={localLL.form.labels.ldap_user_auxiliary_obj_classes()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_groupname_attr' }}
-          label={localLL.form.labels.ldap_groupname_attr()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_obj_class' }}
-          label={localLL.form.labels.ldap_group_obj_class()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_member_attr' }}
-          label={localLL.form.labels.ldap_group_member_attr()}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_group_search_base' }}
-          label={localLL.form.labels.ldap_group_search_base()}
-          disabled={!enterpriseEnabled}
-        />
-        <h3>{localLL.sync.header()}</h3>
-        <MessageBox type={MessageBoxType.INFO}>
-          <ReactMarkdown>{localLL.sync.info()}</ReactMarkdown>
-        </MessageBox>
-        {!enterpriseEnabled && (
-          <MessageBox type={MessageBoxType.WARNING}>
-            <ReactMarkdown>{localLL.sync.info_enterprise()}</ReactMarkdown>
-          </MessageBox>
-        )}
-        <div className="checkbox-row">
-          <FormCheckBox
-            controller={{ control, name: 'ldap_sync_enabled' }}
-            label={localLL.form.labels.ldap_sync_enabled()}
-            labelPlacement="right"
-            disabled={!enterpriseEnabled}
-          />
-          <Helper>{localLL.sync.helpers.sync_enabled()}</Helper>
-        </div>
-        <FormSelect
-          controller={{ control, name: 'ldap_is_authoritative' }}
-          sizeVariant={SelectSizeVariant.STANDARD}
-          options={options}
-          label={localLL.form.labels.ldap_authoritative_source()}
-          labelExtras={<Helper>{localLL.sync.helpers.authority()}</Helper>}
-          disabled={!enterpriseEnabled}
-        />
-        <FormInput
-          controller={{ control, name: 'ldap_sync_interval' }}
-          label={localLL.form.labels.ldap_sync_interval()}
-          type="number"
-          disabled={!enterpriseEnabled}
-          labelExtras={<Helper>{localLL.sync.helpers.interval()}</Helper>}
-        />
-        <input type="submit" aria-hidden="true" className="hidden" ref={submitRef} />
+      <form
+        id="ldap-settings-form"
+        className="column-layout"
+        onSubmit={handleSubmit(handleValidSubmit)}
+      >
+        <LdapSettingsLeft control={control} />
+        <LdapSettingsRight control={control} />
       </form>
     </section>
   );

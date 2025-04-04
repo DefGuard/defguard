@@ -16,23 +16,6 @@ export const EnterpriseSettings = () => {
 
   return (
     <>
-      {!appInfo.license_info.enterprise && (
-        <div className="enterprise-info-backdrop">
-          <div className="enterprise-info">
-            <div>
-              <h2>{localLL.title()}</h2>
-              {enterpriseInfo?.expired && <p>{localLL.currentExpired()}</p>}
-              <p>
-                {localLL.subtitle()}{' '}
-                <a href="https://defguard.net/pricing/" target="_blank" rel="noreferrer">
-                  {localLL.website()}
-                </a>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
       {appInfo.license_info.is_enterprise_free && (
         <div className="license-not-required-container">
           <BigInfoBox
@@ -40,10 +23,33 @@ export const EnterpriseSettings = () => {
           />
         </div>
       )}
-      <div className="left">
-        <EnterpriseForm />
+      <div className="column-layout">
+        {!appInfo.license_info.enterprise && (
+          <div className="enterprise-info-backdrop">
+            <div className="enterprise-info">
+              <div>
+                <h2>{localLL.title()}</h2>
+                {enterpriseInfo?.expired && <p>{localLL.currentExpired()}</p>}
+                <p>
+                  {localLL.subtitle()}{' '}
+                  <a
+                    href="https://defguard.net/pricing/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {localLL.website()}
+                  </a>
+                  .
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="left">
+          <EnterpriseForm />
+        </div>
+        <div className="right"></div>
       </div>
-      <div className="right"></div>
     </>
   );
 };

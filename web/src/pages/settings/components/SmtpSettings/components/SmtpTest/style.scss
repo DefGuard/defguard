@@ -1,12 +1,37 @@
 @use '@scssutils' as *;
 
 #smtp-test-mail {
-  header {
-    .btn {
-      min-width: 100px;
-      margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-s);
+  align-items: center;
+
+  .hidden {
+    display: none;
+  }
+
+  h2 {
+    color: var(--text-button-primary);
+    @include typography(app-body-1);
+  }
+
+  p {
+    color: var(--text-button-primary);
+    @include typography(app-body-2);
+    text-align: center;
+  }
+
+  .button-row {
+    display: flex;
+    gap: var(--spacing-xs);
+    justify-content: center;
+    width: 100%;
+
+    button {
+      width: 100%;
     }
   }
+
   form {
     width: 100%;
     & > * {
