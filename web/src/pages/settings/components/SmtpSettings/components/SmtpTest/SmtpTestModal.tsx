@@ -20,12 +20,13 @@ import { useSmtpTestModal } from './useSmtpTestModal';
 
 type SMTPError = AxiosError<{ error: string }>;
 
-export const SmtpTestModal = () => {
+const ModalContent = () => {
   const { LL } = useI18nContext();
   const modal = useSmtpTestModal((s) => s);
   const {
     mail: { sendTestMail },
   } = useApi();
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
@@ -64,78 +65,81 @@ export const SmtpTestModal = () => {
   };
 
   return (
+    <div id="smtp-test-mail">
+      <header>
+        <h2>{LL.settingsPage.smtp.testForm.title()}</h2>
+      </header>
+      {status === 'success' && (
+        <p className="success">{LL.settingsPage.smtp.testForm.success.message()}</p>
+      )}
+      {status === 'error' && (
+        <div>
+          <p className="error">{LL.settingsPage.smtp.testForm.error.message()}</p>
+          <p>
+            {LL.settingsPage.smtp.testForm.error.fullError({
+              error: errorMessage || 'Unknown error',
+            })}
+          </p>
+        </div>
+      )}
+      {(status === 'idle' || status === 'pending') && (
+        <>
+          <p>{LL.settingsPage.smtp.testForm.subtitle()}</p>
+          <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
+            <FormInput
+              label={LL.settingsPage.smtp.testForm.fields.to.label()}
+              controller={{ control: testControl, name: 'to' }}
+              placeholder={LL.settingsPage.smtp.testForm.fields.to.placeholder()}
+              required
+            />
+          </form>
+        </>
+      )}
+      <div className="button-row">
+        <Button
+          text={
+            status === 'idle' ? LL.common.controls.cancel() : LL.common.controls.close()
+          }
+          styleVariant={ButtonStyleVariant.LINK}
+          onClick={() => {
+            modal.close();
+          }}
+        />
+        <Button
+          text={
+            status === 'idle'
+              ? LL.settingsPage.smtp.testForm.controls.submit()
+              : LL.settingsPage.smtp.testForm.controls.retry()
+          }
+          icon={status === 'idle' ? <IconCheckmark /> : undefined}
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          loading={isLoading}
+          type="submit"
+          form="smtp-test-form"
+          onClick={() => {
+            if (status === 'error') {
+              resetMutation();
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const SmtpTestModal = () => {
+  const modal = useSmtpTestModal((s) => s);
+
+  return (
     <ModalWithTitle
       isOpen={modal.visible}
       onClose={() => {
         modal.close();
       }}
-      afterClose={() => {
-        modal.reset();
-        resetMutation();
-        setErrorMessage(null);
-      }}
       backdrop
       disableClose
     >
-      <div id="smtp-test-mail">
-        <header>
-          <h2>{LL.settingsPage.smtp.testForm.title()}</h2>
-        </header>
-        {status === 'success' && (
-          <p className="success">{LL.settingsPage.smtp.testForm.success.message()}</p>
-        )}
-        {status === 'error' && (
-          <div>
-            <p className="error">{LL.settingsPage.smtp.testForm.error.message()}</p>
-            <p>
-              {LL.settingsPage.smtp.testForm.error.fullError({
-                error: errorMessage || 'Unknown error',
-              })}
-            </p>
-          </div>
-        )}
-        {(status === 'idle' || status === 'pending') && (
-          <>
-            <p>{LL.settingsPage.smtp.testForm.subtitle()}</p>
-            <form id="smtp-test-form" onSubmit={handleTestSubmit(onSubmit)}>
-              <FormInput
-                label={LL.settingsPage.smtp.testForm.fields.to.label()}
-                controller={{ control: testControl, name: 'to' }}
-                placeholder={LL.settingsPage.smtp.testForm.fields.to.placeholder()}
-                required
-              />
-            </form>
-          </>
-        )}
-        <div className="button-row">
-          <Button
-            text={
-              status === 'idle' ? LL.common.controls.cancel() : LL.common.controls.close()
-            }
-            styleVariant={ButtonStyleVariant.LINK}
-            onClick={() => {
-              modal.close();
-            }}
-          />
-          <Button
-            text={
-              status === 'idle'
-                ? LL.settingsPage.smtp.testForm.controls.submit()
-                : LL.settingsPage.smtp.testForm.controls.retry()
-            }
-            icon={status === 'idle' ? <IconCheckmark /> : undefined}
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            loading={isLoading}
-            type="submit"
-            form="smtp-test-form"
-            onClick={() => {
-              if (status === 'error') {
-                resetMutation();
-              }
-            }}
-          />
-        </div>
-      </div>
+      <ModalContent />
     </ModalWithTitle>
   );
 };
