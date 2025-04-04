@@ -1463,7 +1463,7 @@ impl AclAlias {
         // perform appropriate updates depending on existing alias' state
         let alias = match existing_alias.state {
             AliasState::Applied => {
-                // create new `AliasState::Modified` rule
+                // create new `AliasState::Modified` alias
                 debug!("Alias {id} state is `Applied` - creating new `Modified` alias object",);
                 // remove old modifications of this alias
                 let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
@@ -1474,7 +1474,7 @@ impl AclAlias {
                     result.rows_affected(),
                 );
 
-                // save as a new rule with appropriate parent_id and state
+                // save as a new alias with appropriate parent_id and state
                 alias.state = AliasState::Modified;
                 alias.parent_id = Some(id);
                 let alias = alias.save(&mut *transaction).await?;
