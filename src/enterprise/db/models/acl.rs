@@ -1743,11 +1743,6 @@ impl AclAlias<Id> {
                 self.save(&mut *transaction).await?;
 
                 if let Some(parent_id) = parent_id {
-                    // delete parent alias
-                    query!("DELETE FROM aclalias WHERE id = $1", parent_id)
-                        .execute(&mut *transaction)
-                        .await?;
-
                     // update ACL -> rule relations
                     query!(
                         "UPDATE aclrulealias SET alias_id = $1 WHERE alias_id = $2",
@@ -1756,6 +1751,11 @@ impl AclAlias<Id> {
                     )
                     .execute(&mut *transaction)
                     .await?;
+
+                    // delete parent alias
+                    query!("DELETE FROM aclalias WHERE id = $1", parent_id)
+                        .execute(&mut *transaction)
+                        .await?;
                 }
 
                 info!("Changed ACL alias {alias_id} state to applied");

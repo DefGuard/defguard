@@ -272,19 +272,7 @@ async fn test_alias_crud() {
     let response = client.get("/api/v1/acl/alias").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let response_aliases: Vec<ApiAclAlias> = response.json().await;
-    assert_eq!(response_aliases.len(), 2);
-    let response = client.get("/api/v1/acl/alias/2").send().await;
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    let response = client.get("/api/v1/acl/alias/3").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response = client.delete("/api/v1/acl/alias/3").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response = client.get("/api/v1/acl/alias/3").send().await;
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    let response = client.get("/api/v1/acl/alias").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    let response_aliases: Vec<ApiAclAlias> = response.json().await;
-    assert_eq!(response_aliases.len(), 1);
+    assert_eq!(response_aliases.len(), 0);
 }
 
 #[tokio::test]
@@ -911,7 +899,7 @@ async fn test_alias_create_modify_state(pool: PgPool) {
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
-    let alias = make_rule();
+    let alias = make_alias();
 
     // assert created alias has correct state
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
@@ -944,39 +932,71 @@ async fn test_alias_create_modify_state(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_alias_delete_state_applied(pool: PgPool) {
+async fn test_alias_delete(pool: PgPool) {
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
-    // test APPLIED alias deletion
+    // create alias
     let alias = make_alias();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
 
-    let alias_before_mods: ApiAclAlias =
-        client.get("/api/v1/acl/alias/1").send().await.json().await;
+    // use alias in a new rule
+    let mut rule = make_rule();
+    rule.aliases = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // cannot delete alias if used by a rule
+    let response = client.delete("/api/v1/acl/alias/1").send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
+
+    // remove alias from rule
+    rule.aliases = Vec::new();
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
+
+    // delete alias
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 0);
+
+    // create another alias
+    let mut alias = make_alias();
+    let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
+
+    // modify alias
+    alias.name = "modified".to_string();
+    let response = client.put("/api/v1/acl/alias/2").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
-    let alias_parent: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
-    let alias_child: ApiAclAlias = client.get("/api/v1/acl/alias/2").send().await.json().await;
-    assert_eq!(alias_parent, alias_before_mods);
-    let mut alias_after_mods = alias_before_mods.clone();
-    alias_after_mods.id = 2;
-    alias_after_mods.state = AliasState::Deleted;
-    alias_after_mods.parent_id = Some(1);
 
-    // don't care about related objects of deleted alias
-    alias_after_mods.destination = alias_child.destination.clone();
+    // delete pending modification
+    let response = client.delete("/api/v1/acl/alias/3").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
 
-    assert_eq!(alias_after_mods, alias_child);
+    // modify alias again
+    alias.name = "modified again".to_string();
+    let response = client.put("/api/v1/acl/alias/2").json(&alias).send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
+
+    // delete original alias
+    let response = client.delete("/api/v1/acl/alias/2").send().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 0);
 }
 
 #[sqlx::test]
 async fn test_alias_duplication(pool: PgPool) {
-    // each modification / deletion of parent alias should remove the child and create a new one
+    // each modification of parent alias should remove the child and create a new one
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -996,10 +1016,7 @@ async fn test_alias_duplication(pool: PgPool) {
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
     let response = client.delete("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
-    let response = client.delete("/api/v1/acl/alias/1").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
+    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 0);
 }
 
 #[sqlx::test]
@@ -1008,15 +1025,24 @@ async fn test_alias_application(pool: PgPool) {
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
-    let alias = make_alias();
-
     // create new alias
+    let alias = make_alias();
     let response = client.post("/api/v1/acl/alias").json(&alias).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // verify initial status
-    let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    let alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
     assert_eq!(alias.state, AliasState::Applied);
+
+    // use alias in a new rule
+    let mut rule = make_rule();
+    rule.aliases = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    // verify rule assignment
+    let mut alias: ApiAclAlias = client.get("/api/v1/acl/alias/1").send().await.json().await;
+    assert_eq!(alias.rules, vec![1]);
 
     // modify alias
     alias.name = "modified".to_string();
@@ -1044,32 +1070,12 @@ async fn test_alias_application(pool: PgPool) {
     let alias: ApiAclAlias = client.get("/api/v1/acl/alias/2").send().await.json().await;
     assert_eq!(alias.state, AliasState::Applied);
     assert_eq!(alias.parent_id, None);
+    assert_eq!(alias.rules, vec![1]);
 
     // initial alias was deleted
     let response = client.get("/api/v1/acl/alias/1").send().await;
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 1);
-
-    // delete alias
-    let response = client.delete("/api/v1/acl/alias/2").send().await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // verify alias was marked for deletion
-    let alias: ApiAclAlias = client.get("/api/v1/acl/alias/3").send().await.json().await;
-    assert_eq!(alias.state, AliasState::Deleted);
-    assert_eq!(alias.parent_id, Some(2));
-    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 2);
-
-    // apply modification
-    let response = client
-        .put("/api/v1/acl/alias/apply")
-        .json(&json!({ "aliases": vec![3] }))
-        .send()
-        .await;
-    assert_eq!(response.status(), StatusCode::OK);
-
-    // verify aliass were removed
-    assert_eq!(AclAlias::all(&pool).await.unwrap().len(), 0);
 }
 
 #[sqlx::test]
