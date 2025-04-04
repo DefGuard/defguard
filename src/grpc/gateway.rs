@@ -68,7 +68,10 @@ impl WireguardNetwork<Id> {
         debug!("Fetching all peers for network {}", self.id);
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                array[host(wnd.wireguard_ip)] \"allowed_ips!: Vec<String>\" \
+                ARRAY(
+                    SELECT host(ip)
+                    FROM unnest(wnd.wireguard_ip) AS ip
+                ) \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
