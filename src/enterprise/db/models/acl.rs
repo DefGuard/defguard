@@ -1368,11 +1368,11 @@ impl TryFrom<EditAclAlias> for AclAlias<NoId> {
 /// ACL alias can be in one of the following states:
 /// - Applied: the alias can be used in ACL rules
 /// - Modified: the alias has been modified and the changes have not yet been applied
-/// - Deleted: the alias has been marked for deletion but not yet removed
 ///
 /// Unlike ACL rules themselves aliases do not require a `New` state,
 /// since they do not cause any changes to locations until they
 /// are used by a rule.
+/// `Deleted` state is also omitted since we don't allow deleting if an alias is used by any rules.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
 #[sqlx(type_name = "aclalias_state", rename_all = "lowercase")]
 pub enum AliasState {
@@ -1389,7 +1389,7 @@ pub enum AliasState {
 #[derive(Clone, Debug, Model, PartialEq)]
 pub struct AclAlias<I = NoId> {
     pub id: I,
-    // if present points to the original alias before modification / deletion
+    // if present points to the original alias before modification
     pub parent_id: Option<Id>,
     pub name: String,
     #[model(enum)]
@@ -1485,7 +1485,7 @@ impl AclAlias {
 
                 alias
             }
-            _ => {
+            AliasState::Modified => {
                 debug!(
                     "Alias {id} is a modification to alias {:?} - updating the modification",
                     existing_alias.parent_id,
@@ -1723,8 +1723,6 @@ impl AclAlias<Id> {
     /// - clears alias' `parent_id`.
     /// - updates `alias_id` fields in `aclrulealias` table records
     /// - deletes it's parent alias
-    ///
-    /// If current state is ['AliasState::Deleted'] it removes the parent alias and the alias itself.
     ///
     /// # Errors
     ///
