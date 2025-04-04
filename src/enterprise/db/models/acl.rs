@@ -1379,7 +1379,6 @@ pub enum AliasState {
     #[default]
     Applied,
     Modified,
-    Deleted,
 }
 
 /// Database representation of an ACL alias. Aliases can be used to define
@@ -1535,48 +1534,27 @@ impl AclAlias {
                 AclError::AliasNotFoundError(id)
             })?;
 
-        // perform appropriate modifications depending on existing alias's state
-        match existing_alias.state {
-            AliasState::Applied => {
-                // check if any rules are using this alias
-                let rules = existing_alias.get_rules(&mut *transaction).await?;
-                if !rules.is_empty() {
-                    error!("Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}");
-                    return Err(AclError::AliasUsedByRulesError(id));
-                }
+        // check if any rules are using this alias
+        let rules = existing_alias.get_rules(&mut *transaction).await?;
+        if !rules.is_empty() {
+            error!("Deletion of alias ({id}) failed. Alias is currently used by following ACL rules: {rules:?}");
+            return Err(AclError::AliasUsedByRulesError(id));
+        }
 
-                debug!(
-                    "Alias {} state is `Applied` - creating new `Deleted` alias object",
-                    id,
-                );
-                // delete all modifications of this alias
-                let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
-                    .execute(&mut *transaction)
-                    .await?;
-                debug!(
-                    "Removed {} old modifications of alias {id}",
-                    result.rows_affected(),
-                );
-
-                // save as a new alias with appropriate parent_id and state
-                let mut alias = existing_alias.as_noid();
-                alias.state = AliasState::Deleted;
-                alias.parent_id = Some(id);
-                alias.save(&mut *transaction).await?;
-            }
-            _ => {
-                // delete the not-yet applied modification itself
-                debug!(
-                    "Alias {} is a modification to alias {:?} - updating the modification",
-                    id, existing_alias.parent_id,
-                );
-                // delete related objects
-                Self::delete_related_objects(&mut transaction, id).await?;
-
-                // delete the alias
-                existing_alias.delete(&mut *transaction).await?;
-            }
+        // delete all modifications of this alias if any exist
+        let result = query!("DELETE FROM aclalias WHERE parent_id = $1", id)
+            .execute(&mut *transaction)
+            .await?;
+        let removed_modifications = result.rows_affected();
+        if removed_modifications > 0 {
+            debug!("Removed {removed_modifications} old modifications of alias {id}",);
         };
+
+        // delete related objects
+        Self::delete_related_objects(&mut transaction, id).await?;
+
+        // delete the alias itself
+        existing_alias.delete(&mut *transaction).await?;
 
         transaction.commit().await?;
         Ok(())
@@ -1782,24 +1760,8 @@ impl AclAlias<Id> {
 
                 info!("Changed ACL alias {alias_id} state to applied");
             }
-            AliasState::Deleted => {
-                debug!("Removing ACL alias {alias_id} which has been marked for deletion",);
-                let parent_id = &self
-                    .parent_id
-                    .expect("ACL alias marked for deletion must have parent ID");
-
-                // delete current ACL alias itself
-                self.delete(&mut *transaction).await?;
-
-                // delete parent alias
-                query!("DELETE FROM aclalias WHERE id = $1", parent_id)
-                    .execute(&mut *transaction)
-                    .await?;
-
-                info!("ACL alias {alias_id} was deleted");
-            }
             AliasState::Applied => {
-                warn!("ACL alias {alias_id} already applied");
+                error!("ACL alias {alias_id} already applied");
                 return Err(AclError::AliasAlreadyAppliedError(self.id));
             }
         }

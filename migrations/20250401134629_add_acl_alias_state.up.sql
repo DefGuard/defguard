@@ -1,7 +1,6 @@
 CREATE TYPE aclalias_state AS ENUM (
     'applied',
-    'modified',
-    'deleted'
+    'modified'
 );
 ALTER TABLE aclalias ADD COLUMN state aclalias_state NOT NULL DEFAULT 'applied';
 ALTER TABLE aclalias ADD COLUMN parent_id bigint;

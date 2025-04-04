@@ -14,8 +14,7 @@
             "kind": {
               "Enum": [
                 "applied",
-                "modified",
-                "deleted"
+                "modified"
               ]
             }
           }
