@@ -68,6 +68,7 @@ impl WireguardNetwork<Id> {
         debug!("Fetching all peers for network {}", self.id);
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, preshared_key, \
+                -- TODO possible to not use ARRAY-unnest here?
                 ARRAY(
                     SELECT host(ip)
                     FROM unnest(wnd.wireguard_ip) AS ip

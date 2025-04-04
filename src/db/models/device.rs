@@ -160,11 +160,8 @@ impl DeviceInfo {
         let network_info = query_as!(
             DeviceNetworkInfo,
             "SELECT wireguard_network_id network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
-            preshared_key, is_authorized \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
             device.id
@@ -382,10 +379,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
@@ -410,11 +404,8 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
-            preshared_key, is_authorized, authorized_at \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 ORDER BY id LIMIT 1",
             device_id
@@ -435,11 +426,8 @@ impl WireguardNetworkDevice {
         let result = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
-            preshared_key, is_authorized, authorized_at \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -463,11 +451,8 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
-            preshared_key, is_authorized, authorized_at \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
@@ -492,11 +477,8 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                ARRAY(
-                    SELECT host(ip)
-                    FROM unnest(wireguard_ip) as ip
-                ) \"wireguard_ip!: Vec<IpAddr>\", \
-            preshared_key, is_authorized, authorized_at \
+                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1 AND device_id IN \
             (SELECT id FROM device WHERE user_id = $2 AND device_type = 'user'::device_type)",
