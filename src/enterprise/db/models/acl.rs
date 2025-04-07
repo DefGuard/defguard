@@ -117,6 +117,7 @@ impl From<PortRange> for PgRange<i32> {
 /// - Modified: the rule has been modified and not yet applied
 /// - Deleted: the rule has been marked for deletion but not yed removed
 /// - Applied: the rule was applied
+/// - Expired: the rule is past it's expiration date
 ///
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
@@ -129,6 +130,7 @@ pub enum RuleState {
     Modified,
     Deleted,
     Applied,
+    Expired,
 }
 
 /// Helper struct combining all DB objects related to given [`AclRule`].
@@ -841,7 +843,7 @@ impl AclRule<Id> {
 
                 info!("ACL rule {acl_id} was deleted");
             }
-            RuleState::Applied => {
+            RuleState::Applied | RuleState::Expired => {
                 warn!("ACL rule {acl_id} already applied");
                 return Err(AclError::RuleAlreadyAppliedError(self.id));
             }
