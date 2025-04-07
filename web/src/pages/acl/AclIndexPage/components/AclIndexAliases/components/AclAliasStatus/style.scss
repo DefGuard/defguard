@@ -18,25 +18,11 @@
     @include text-overflow-dots;
   }
 
-  &.status-new {
-    color: var(--text-positive);
-  }
-
   &.status-modified {
     color: var(--text-important);
   }
 
-  &.status-deleted {
-    color: var(--text-alert);
-  }
-
   &.status-applied {
-    &.disabled {
-      color: var(--text-important);
-    }
-
-    &.enabled {
-      color: var(--text-positive);
-    }
+    color: var(--text-positive);
   }
 }

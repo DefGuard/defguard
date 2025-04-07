@@ -14,14 +14,14 @@ type Props = {
 
 export const AclAliasStatusDisplay = ({ status }: Props) => {
   const { LL } = useI18nContext();
-  const statusLL = LL.acl.ruleStatus;
+  const statusLL = LL.acl.listPage.aliases.list.status;
 
   const [label, iconStatus] = useMemo(() => {
     switch (status) {
       case AclAliasStatus.APPLIED:
-        return [statusLL.enabled(), ActivityIconVariant.CONNECTED];
+        return [statusLL.applied(), ActivityIconVariant.CONNECTED];
       case AclAliasStatus.MODIFIED:
-        return [statusLL.modified(), ActivityIconVariant.DISCONNECTED];
+        return [statusLL.changed(), ActivityIconVariant.DISCONNECTED];
     }
   }, [status, statusLL]);
 

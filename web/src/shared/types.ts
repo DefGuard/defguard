@@ -459,9 +459,12 @@ export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires' | 'state' | 'parent
   expires: string | null;
 };
 
-export type CreateAclAliasRequest = Omit<AclAlias, 'id' | 'state' | 'parent_id'>;
+export type CreateAclAliasRequest = Omit<
+  AclAlias,
+  'id' | 'state' | 'parent_id' | 'rules'
+>;
 
-export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'parent_id'>;
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'parent_id' | 'rules'>;
 
 export type AclRuleInfo = {
   id: number;

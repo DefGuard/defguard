@@ -21,6 +21,7 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclAlias, AclAliasStatus } from '../../../types';
 import {
+  aclAliasStatusToInt,
   aclDestinationToListTagDisplay,
   aclPortsToListTagDisplay,
   aclProtocolsToListTagDisplay,
@@ -39,6 +40,7 @@ type ListTagDisplay = {
 
 type AliasesFilters = {
   rules: number[];
+  status: number[];
 };
 
 export type ListData = {
@@ -49,6 +51,7 @@ export type ListData = {
 
 const defaultFilters: AliasesFilters = {
   rules: [],
+  status: [],
 };
 
 const intersects = (...args: Array<number[]>): boolean => intersection(args).length > 0;
@@ -221,11 +224,32 @@ export const AclIndexAliases = () => {
             searchValues: [rule.name],
             value: rule.id,
           })) ?? [],
+        order: 2,
+      },
+      status: {
+        label: localLL.modals.filterGroupsModal.groupLabels.status(),
+        items: [
+          {
+            label: localLL.list.status.changed(),
+            searchValues: [LL.acl.listPage.rules.list.status.change()],
+            value: aclAliasStatusToInt(AclAliasStatus.MODIFIED),
+          },
+          {
+            label: localLL.list.status.applied(),
+            searchValues: [localLL.list.status.applied()],
+            value: aclAliasStatusToInt(AclAliasStatus.APPLIED),
+          },
+        ],
         order: 1,
       },
     };
     return res;
-  }, [aclRules, localLL.modals.filterGroupsModal.groupLabels]);
+  }, [
+    LL.acl.listPage.rules.list.status,
+    aclRules,
+    localLL.list.status,
+    localLL.modals.filterGroupsModal.groupLabels,
+  ]);
 
   // update or build selection state for list when rules are done loading
   useEffect(() => {

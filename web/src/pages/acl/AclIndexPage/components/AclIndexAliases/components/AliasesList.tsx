@@ -134,6 +134,7 @@ export const AliasesList = ({
                     selectable: selectionEnabled,
                   })}
                 >
+                  {!selectionEnabled && <div className="cell empty"></div>}
                   {selectionEnabled && (
                     <div className="cell select-cell">
                       <InteractionBox

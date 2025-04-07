@@ -5321,6 +5321,10 @@ type RootTranslation = {
 							 * R​u​l​e​s
 							 */
 							rules: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
 						}
 					}
 				}
@@ -5422,29 +5426,13 @@ type RootTranslation = {
 					}
 					status: {
 						/**
-						 * N​e​w
+						 * A​p​p​l​i​e​d
 						 */
-						'new': string
+						applied: string
 						/**
-						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+						 * M​o​d​i​f​i​e​d
 						 */
-						change: string
-						/**
-						 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
-						 */
-						'delete': string
-						/**
-						 * E​n​a​b​l​e​d
-						 */
-						enabled: string
-						/**
-						 * D​i​s​a​b​l​e​d
-						 */
-						disabled: string
-						/**
-						 * D​e​p​l​o​y​e​d
-						 */
-						deployed: string
+						changed: string
 					}
 					tags: {
 						/**
@@ -5458,11 +5446,11 @@ type RootTranslation = {
 					}
 					editMenu: {
 						/**
-						 * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
+						 * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
 						 */
-						discard: string
+						discardChanges: string
 						/**
-						 * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
+						 * D​e​l​e​t​e​ ​a​l​i​a​s
 						 */
 						'delete': string
 					}
@@ -10856,6 +10844,10 @@ export type TranslationFunctions = {
 							 * Rules
 							 */
 							rules: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
 						}
 					}
 				}
@@ -10954,29 +10946,13 @@ export type TranslationFunctions = {
 					}
 					status: {
 						/**
-						 * New
+						 * Applied
 						 */
-						'new': () => LocalizedString
+						applied: () => LocalizedString
 						/**
-						 * Pending Change
+						 * Modified
 						 */
-						change: () => LocalizedString
-						/**
-						 * Pending Deletion
-						 */
-						'delete': () => LocalizedString
-						/**
-						 * Enabled
-						 */
-						enabled: () => LocalizedString
-						/**
-						 * Disabled
-						 */
-						disabled: () => LocalizedString
-						/**
-						 * Deployed
-						 */
-						deployed: () => LocalizedString
+						changed: () => LocalizedString
 					}
 					tags: {
 						/**
@@ -10990,11 +10966,11 @@ export type TranslationFunctions = {
 					}
 					editMenu: {
 						/**
-						 * Discard Changes
+						 * Discard changes
 						 */
-						discard: () => LocalizedString
+						discardChanges: () => LocalizedString
 						/**
-						 * Mark for Deletion
+						 * Delete alias
 						 */
 						'delete': () => LocalizedString
 					}

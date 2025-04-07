@@ -2248,6 +2248,7 @@ Any other requests you can reach us at: support@defguard.net
           filterGroupsModal: {
             groupLabels: {
               rules: 'Rules',
+              status: 'Status',
             },
           },
         },
@@ -2285,20 +2286,16 @@ Any other requests you can reach us at: support@defguard.net
             edit: 'Edit',
           },
           status: {
-            new: 'New',
-            change: 'Pending Change',
-            delete: 'Pending Deletion',
-            enabled: 'Enabled',
-            disabled: 'Disabled',
-            deployed: 'Deployed',
+            applied: 'Applied',
+            changed: 'Modified',
           },
           tags: {
             allDenied: 'All denied',
             allAllowed: 'All allowed',
           },
           editMenu: {
-            discard: 'Discard Changes',
-            delete: 'Mark for Deletion',
+            discardChanges: 'Discard changes',
+            delete: 'Delete alias',
           },
         },
       },

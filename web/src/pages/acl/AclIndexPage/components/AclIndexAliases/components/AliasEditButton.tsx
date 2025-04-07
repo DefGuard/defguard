@@ -22,7 +22,7 @@ export const AliasEditButton = ({ alias }: EditProps) => {
   const queryClient = useQueryClient();
   const isApplied = alias.state === AclAliasStatus.APPLIED;
   const { LL } = useI18nContext();
-  const localLL = LL.acl.listPage.rules.list.editMenu;
+  const localLL = LL.acl.listPage.aliases.list.editMenu;
   const toaster = useToaster();
 
   const {
@@ -71,7 +71,7 @@ export const AliasEditButton = ({ alias }: EditProps) => {
       />
       <EditButtonOption
         disabled={deletionPending}
-        text={isApplied ? localLL.delete() : localLL.discard()}
+        text={isApplied ? localLL.delete() : localLL.discardChanges()}
         styleVariant={EditButtonOptionStyleVariant.WARNING}
         onClick={() => {
           deleteAliasMutation(alias.id);
