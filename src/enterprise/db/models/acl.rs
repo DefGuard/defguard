@@ -299,9 +299,12 @@ impl AclRule {
 
         // perform appropriate updates depending on existing rule's state
         let rule = match existing_rule.state {
-            RuleState::Applied => {
+            RuleState::Applied | RuleState::Expired => {
                 // create new `RuleState::Modified` rule
-                debug!("Rule {id} state is `Applied` - creating new `Modified` rule object",);
+                debug!(
+                    "Rule {id} state is {:?} - creating new `Modified` rule object",
+                    existing_rule.state
+                );
                 // remove old modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
@@ -378,11 +381,11 @@ impl AclRule {
 
         // perform appropriate modifications depending on existing rule's state
         match existing_rule.state {
-            RuleState::Applied => {
+            RuleState::Applied | RuleState::Expired => {
                 // create new `RuleState::Modified` rule
                 debug!(
-                    "Rule {} state is `Applied` - creating new `Deleted` rule object",
-                    id,
+                    "Rule {id} state is {:?} - creating new `Deleted` rule object",
+                    existing_rule.state,
                 );
                 // delete all modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
