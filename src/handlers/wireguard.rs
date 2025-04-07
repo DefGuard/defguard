@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
+    CommaSeparated,
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
@@ -664,11 +665,7 @@ pub(crate) async fn add_device(
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
             assigned_ip: c
-                .address
-                .iter()
-                .map(IpAddr::to_string)
-                .collect::<Vec<String>>()
-                .join(","),
+                .address.comma_separated()
         })
         .collect();
 

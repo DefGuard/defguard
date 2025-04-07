@@ -1,6 +1,3 @@
-use std::net::IpAddr;
-
-use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
@@ -32,6 +29,7 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
+    CommaSeparated,
 };
 
 pub(super) struct EnrollmentServer {
@@ -633,12 +631,7 @@ impl EnrollmentServer {
             .iter()
             .map(|c| TemplateLocation {
                 name: c.network_name.clone(),
-                assigned_ip: c
-                    .address
-                    .iter()
-                    .map(IpAddr::to_string)
-                    .collect::<Vec<String>>()
-                    .join(","),
+                assigned_ip: c.address.comma_separated(),
             })
             .collect();
 
@@ -725,26 +718,14 @@ impl InitialUserInfo {
 
 impl From<DeviceConfig> for ProtoDeviceConfig {
     fn from(config: DeviceConfig) -> Self {
-        let allowed_ips = config
-            .allowed_ips
-            .iter()
-            .map(IpNetwork::to_string)
-            .collect::<Vec<String>>()
-            .join(",");
-        let assigned_ip = config
-            .address
-            .iter()
-            .map(IpAddr::to_string)
-            .collect::<Vec<String>>()
-            .join(",");
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
             endpoint: config.endpoint,
-            assigned_ip,
+            assigned_ip: config.address.comma_separated(),
             pubkey: config.pubkey,
-            allowed_ips,
+            allowed_ips: config.allowed_ips.comma_separated(),
             dns: config.dns,
             mfa_enabled: config.mfa_enabled,
             keepalive_interval: config.keepalive_interval,

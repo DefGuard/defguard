@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     db::{Id, NoId, User},
-    KEY_LENGTH,
+    CommaSeparated, KEY_LENGTH,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -301,15 +301,6 @@ impl WireguardNetworkDevice {
             .collect()
     }
 
-    #[must_use]
-    pub(crate) fn ips_to_string(&self) -> String {
-        self.wireguard_ip
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<String>>()
-            .join(",")
-    }
-
     pub(crate) async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
     where
         E: PgExecutor<'e>,
@@ -576,15 +567,7 @@ impl Device<Id> {
         let allowed_ips = if network.allowed_ips.is_empty() {
             String::new()
         } else {
-            format!(
-                "AllowedIPs = {}\n",
-                network
-                    .allowed_ips
-                    .iter()
-                    .map(IpNetwork::to_string)
-                    .collect::<Vec<String>>()
-                    .join(",")
-            )
+            format!("AllowedIPs = {}\n", network.allowed_ips.comma_separated())
         };
 
         format!(
@@ -598,7 +581,7 @@ impl Device<Id> {
             {allowed_ips}\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.ips_to_string(),
+            wireguard_network_device.wireguard_ip.comma_separated(),
             network.pubkey,
             network.endpoint,
             network.port,
@@ -778,7 +761,7 @@ impl Device<Id> {
             {
                 debug!(
                     "Assigned IPs {} for device {} (user {}) in network {network}",
-                    wireguard_network_device.ips_to_string(),
+                    wireguard_network_device.wireguard_ip.comma_separated(),
                     self.name,
                     self.user_id
                 );
@@ -1074,12 +1057,7 @@ mod test {
                 .await
                 .unwrap();
         assert_eq!(
-            wireguard_network_device
-                .wireguard_ip
-                .iter()
-                .map(IpAddr::to_string)
-                .collect::<Vec<String>>()
-                .join(","),
+            wireguard_network_device.wireguard_ip.comma_separated(),
             "10.1.1.2"
         );
 

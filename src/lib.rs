@@ -773,3 +773,21 @@ pub async fn init_vpn_location(
 
     Ok(token)
 }
+
+pub trait CommaSeparated {
+    fn comma_separated(&self) -> String;
+}
+
+impl<T, I> CommaSeparated for I
+where
+    I: ?Sized + std::iter::IntoIterator<Item = T>,
+    for<'a> &'a I: IntoIterator<Item = &'a T>,
+    T: ToString,
+{
+    fn comma_separated(&self) -> String {
+        self.into_iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>()
+            .join(",")
+    }
+}

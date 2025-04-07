@@ -24,6 +24,7 @@ use crate::{
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
+    CommaSeparated,
 };
 
 #[derive(Serialize)]
@@ -642,12 +643,7 @@ pub(crate) async fn add_network_device(
 
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
-        assigned_ip: config
-            .address
-            .iter()
-            .map(IpAddr::to_string)
-            .collect::<Vec<String>>()
-            .join(","),
+        assigned_ip: config.address.comma_separated(),
     }];
 
     send_new_device_added_email(
@@ -760,10 +756,7 @@ pub async fn modify_network_device(
             // TODO(jck)
             wireguard_network_device
                 .wireguard_ip
-                .iter()
-                .map(IpAddr::to_string)
-                .collect::<Vec<String>>()
-                .join(","),
+                .comma_separated(),
             device_network.name
         );
     }
