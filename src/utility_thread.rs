@@ -7,9 +7,10 @@ use tokio::{
 };
 
 use crate::{
-    db::GatewayEvent,
+    db::{GatewayEvent, Id, WireguardNetwork},
     enterprise::{
         directory_sync::{do_directory_sync, get_directory_sync_interval},
+        is_enterprise_enabled,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
     },
@@ -29,6 +30,7 @@ pub async fn run_utility_thread(
     let mut last_directory_sync = Instant::now();
     let mut last_updates_check = Instant::now();
     let mut last_ldap_sync = Instant::now();
+    let mut enterprise_enabled = is_enterprise_enabled();
 
     let directory_sync_task = || async {
         if let Err(e) = do_directory_sync(pool, &wireguard_tx).await {
@@ -80,9 +82,50 @@ pub async fn run_utility_thread(
             last_updates_check = Instant::now();
         }
 
+        // Perform LDAP sync
         if last_ldap_sync.elapsed().as_secs() >= get_ldap_sync_interval() {
             ldap_sync_task().await;
             last_ldap_sync = Instant::now();
+        }
+
+        // Check if enterprise features got enabled or disabled
+        let new_enterprise_enabled = is_enterprise_enabled();
+        if new_enterprise_enabled != enterprise_enabled {
+            debug!("Enterprise feature status changed from {enterprise_enabled} to {new_enterprise_enabled}");
+
+            // update stored value
+            enterprise_enabled = new_enterprise_enabled;
+
+            // fetch all ACL-enabled networks
+            let locations: Vec<WireguardNetwork<Id>> = WireguardNetwork::all(pool)
+                .await?
+                .into_iter()
+                .filter(|location| location.acl_enabled)
+                .collect();
+
+            if enterprise_enabled {
+                // handle switch from disabled -> enabled
+                debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
+                for location in locations {
+                    debug!("Re-enabling gateway firewall configuration for location {location:?}");
+                    let mut conn = pool.acquire().await?;
+                    let firewall_config = location
+                        .try_get_firewall_config(&mut conn)
+                        .await?
+                        .expect("ACL-enabled location must have firewall config");
+                    wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ))?;
+                }
+            } else {
+                // handle switch from enabled -> disabled
+                debug!("Disabling gateway firewall configuration for ACL-enabled locations");
+                for location in locations {
+                    debug!("Disabling gateway firewall configuration for location {location:?}");
+                    wireguard_tx.send(GatewayEvent::FirewallDisabled(location.id))?;
+                }
+            }
         }
     }
 }
