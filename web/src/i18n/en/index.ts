@@ -2173,11 +2173,11 @@ Any other requests you can reach us at: support@defguard.net
     },
     listPage: {
       message: {
-        rulesApply: 'Pending changes applied',
-        rulesApplyFail: 'Failed to apply changes',
         changeDiscarded: 'Change discarded',
         changeAdded: 'Pending change added',
         changeFail: 'Failed to make change',
+        applyChanges: 'Pending changes applied',
+        applyFail: 'Failed to apply changes',
       },
       rules: {
         modals: {
@@ -2244,7 +2244,20 @@ Any other requests you can reach us at: support@defguard.net
         },
       },
       aliases: {
+        message: {
+          rulesApply: 'Pending changes applied',
+          rulesApplyFail: 'Failed to apply changes',
+          aliasDeleted: 'Alias deleted',
+          aliasDeleteFail: 'Alias deletion failed',
+        },
         modals: {
+          deleteBlock: {
+            title: 'Deletion blocked',
+            //md
+            content: `
+Alias is used in {rulesCount: number} rules and cannot be deleted.
+`,
+          },
           filterGroupsModal: {
             groupLabels: {
               rules: 'Rules',

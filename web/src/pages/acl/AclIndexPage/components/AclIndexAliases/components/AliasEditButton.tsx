@@ -11,6 +11,7 @@ import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../../../shared/queries';
 import { AclAliasStatus } from '../../../../types';
+import { useAclAliasDeleteBlockModal } from '../modals/AclAliasDeleteBlockModal/store';
 import { useAclAliasCEModal } from '../modals/AlcAliasCEModal/store';
 import { AclAliasListData } from '../types';
 
@@ -24,6 +25,7 @@ export const AliasEditButton = ({ alias }: EditProps) => {
   const { LL } = useI18nContext();
   const localLL = LL.acl.listPage.aliases.list.editMenu;
   const toaster = useToaster();
+  const openDeleteBlockModal = useAclAliasDeleteBlockModal((s) => s.open, shallow);
 
   const {
     acl: {
@@ -50,7 +52,7 @@ export const AliasEditButton = ({ alias }: EditProps) => {
     onSuccess: () => {
       invalidateQueries();
       if (isApplied) {
-        toaster.success(LL.acl.listPage.message.changeAdded());
+        toaster.success(LL.acl.listPage.aliases.message.aliasDeleted());
       } else {
         toaster.success(LL.acl.listPage.message.changeDiscarded());
       }
@@ -74,7 +76,11 @@ export const AliasEditButton = ({ alias }: EditProps) => {
         text={isApplied ? localLL.delete() : localLL.discardChanges()}
         styleVariant={EditButtonOptionStyleVariant.WARNING}
         onClick={() => {
-          deleteAliasMutation(alias.id);
+          if (alias.rules.length === 0) {
+            deleteAliasMutation(alias.id);
+          } else {
+            openDeleteBlockModal(alias);
+          }
         }}
       />
     </EditButton>

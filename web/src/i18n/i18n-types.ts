@@ -5118,14 +5118,6 @@ type RootTranslation = {
 		listPage: {
 			message: {
 				/**
-				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-				 */
-				rulesApply: string
-				/**
-				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-				 */
-				rulesApplyFail: string
-				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
 				 */
 				changeDiscarded: string
@@ -5137,6 +5129,14 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
 				 */
 				changeFail: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				applyChanges: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				applyFail: string
 			}
 			rules: {
 				modals: {
@@ -5314,7 +5314,38 @@ type RootTranslation = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+					 */
+					rulesApply: string
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+					 */
+					rulesApplyFail: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​e​d
+					 */
+					aliasDeleted: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
+					 */
+					aliasDeleteFail: string
+				}
 				modals: {
+					deleteBlock: {
+						/**
+						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
+						 */
+						title: string
+						/**
+						 * 
+					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+				
+						 * @param {number} rulesCount
+						 */
+						content: RequiredParams<'rulesCount'>
+					}
 					filterGroupsModal: {
 						groupLabels: {
 							/**
@@ -10644,14 +10675,6 @@ export type TranslationFunctions = {
 		listPage: {
 			message: {
 				/**
-				 * Pending changes applied
-				 */
-				rulesApply: () => LocalizedString
-				/**
-				 * Failed to apply changes
-				 */
-				rulesApplyFail: () => LocalizedString
-				/**
 				 * Change discarded
 				 */
 				changeDiscarded: () => LocalizedString
@@ -10663,6 +10686,14 @@ export type TranslationFunctions = {
 				 * Failed to make change
 				 */
 				changeFail: () => LocalizedString
+				/**
+				 * Pending changes applied
+				 */
+				applyChanges: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				applyFail: () => LocalizedString
 			}
 			rules: {
 				modals: {
@@ -10837,7 +10868,37 @@ export type TranslationFunctions = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * Pending changes applied
+					 */
+					rulesApply: () => LocalizedString
+					/**
+					 * Failed to apply changes
+					 */
+					rulesApplyFail: () => LocalizedString
+					/**
+					 * Alias deleted
+					 */
+					aliasDeleted: () => LocalizedString
+					/**
+					 * Alias deletion failed
+					 */
+					aliasDeleteFail: () => LocalizedString
+				}
 				modals: {
+					deleteBlock: {
+						/**
+						 * Deletion blocked
+						 */
+						title: () => LocalizedString
+						/**
+						 * 
+					Alias is used in {rulesCount} rules and cannot be deleted.
+				
+						 */
+						content: (arg: { rulesCount: number }) => LocalizedString
+					}
 					filterGroupsModal: {
 						groupLabels: {
 							/**

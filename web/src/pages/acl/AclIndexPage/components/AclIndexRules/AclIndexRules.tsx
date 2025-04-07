@@ -88,13 +88,13 @@ export const AclIndexRules = () => {
   const { mutate: applyPendingChangesMutation, isPending: applyPending } = useMutation({
     mutationFn: applyRules,
     onSuccess: () => {
-      toaster.success(messagesLL.rulesApply());
+      toaster.success(messagesLL.applyChanges());
       void queryClient.invalidateQueries({
         predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_RULES),
       });
     },
     onError: (e) => {
-      toaster.error(messagesLL.rulesApplyFail());
+      toaster.error(messagesLL.applyFail());
       console.error(e);
     },
   });
