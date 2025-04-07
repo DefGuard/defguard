@@ -460,7 +460,7 @@ impl WireguardNetwork<Id> {
             device.device_id
         );
         let wireguard_network_device =
-            WireguardNetworkDevice::new(self.id, device.device_id, &[ip]);
+            WireguardNetworkDevice::new(self.id, device.device_id, [ip]);
         wireguard_network_device.insert(&mut *transaction).await?;
         Ok(wireguard_network_device)
     }
@@ -673,7 +673,7 @@ impl WireguardNetwork<Id> {
                                 self.id,
                                 existing_device.id,
                                 // TODO(jck) allow assignment of multiple ips for a network device
-                                &[imported_device.wireguard_ip],
+                                [imported_device.wireguard_ip],
                             );
                             wireguard_network_device.insert(&mut *transaction).await?;
                             // store ID of device with already generated config
@@ -759,7 +759,7 @@ impl WireguardNetwork<Id> {
                     let wireguard_network_device = WireguardNetworkDevice::new(
                         self.id,
                         device.id,
-                        &[mapped_device.wireguard_ip],
+                        [mapped_device.wireguard_ip],
                     );
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
@@ -777,7 +777,7 @@ impl WireguardNetwork<Id> {
                             self.id,
                             device.id,
                             // TODO(jck) allow assignment of multiple ips for a network device
-                            &[mapped_device.wireguard_ip],
+                            [mapped_device.wireguard_ip],
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {

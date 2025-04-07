@@ -1,6 +1,5 @@
 pub mod common;
 
-use std::net::IpAddr;
 
 use claims::assert_err;
 use defguard::{

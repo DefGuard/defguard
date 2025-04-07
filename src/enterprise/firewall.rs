@@ -1507,7 +1507,12 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location.id,
-                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        0,
+                        user.id as u8,
+                        device_num as u8,
+                    ))],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -1608,7 +1613,7 @@ mod test {
             let network_device = WireguardNetworkDevice {
                 device_id,
                 wireguard_network_id: location.id,
-                wireguard_ip: ip,
+                wireguard_ip: vec![ip],
                 preshared_key: None,
                 is_authorized: true,
                 authorized_at: None,
@@ -2127,7 +2132,12 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        0,
+                        user.id as u8,
+                        device_num as u8,
+                    ))],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -2136,12 +2146,12 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(
+                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
                         10,
                         10,
                         user.id as u8,
                         device_num as u8,
-                    )),
+                    ))],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,

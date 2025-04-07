@@ -297,7 +297,7 @@ impl WireguardNetworkDevice {
     pub(crate) fn ips_as_network(&self) -> Vec<IpNetwork> {
         self.wireguard_ip
             .iter()
-            .map(|ip| IpNetwork::from(ip.clone()))
+            .map(|ip| IpNetwork::from(*ip))
             .collect()
     }
 
@@ -889,7 +889,7 @@ impl Device<Id> {
             {
                 info!("Assigned IP: {ip} for device: {}", self.name);
                 let wireguard_network_device =
-                    WireguardNetworkDevice::new(network.id, self.id, &[ip]);
+                    WireguardNetworkDevice::new(network.id, self.id, [ip]);
                 wireguard_network_device.insert(&mut *transaction).await?;
                 return Ok(wireguard_network_device);
             }
@@ -1021,7 +1021,7 @@ mod test {
                         info!("Created device: {}", device.name);
                         debug!("For user: {}", device.user_id);
                         let wireguard_network_device =
-                            WireguardNetworkDevice::new(network.id, device.id, &[ip]);
+                            WireguardNetworkDevice::new(network.id, device.id, [ip]);
                         wireguard_network_device.insert(pool).await?;
                         info!(
                             "Assigned IP: {ip} for device: {name} in network: {}",
@@ -1179,7 +1179,7 @@ mod test {
         WireguardNetworkDevice::new(
             network.id,
             device4.id,
-            &[IpAddr::from_str("10.1.1.10").unwrap()],
+            [IpAddr::from_str("10.1.1.10").unwrap()],
         )
         .insert(&mut *transaction)
         .await

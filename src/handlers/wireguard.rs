@@ -18,7 +18,6 @@ use uuid::Uuid;
 
 use super::{device_for_admin_or_self, user_for_admin_or_self, ApiResponse, ApiResult, WebError};
 use crate::{
-    CommaSeparated,
     appstate::AppState,
     auth::{AdminRole, Claims, ClaimsType, SessionInfo},
     db::{
@@ -40,6 +39,7 @@ use crate::{
     server_config,
     templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
+    CommaSeparated,
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -664,8 +664,7 @@ pub(crate) async fn add_device(
         .iter()
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
-            assigned_ip: c
-                .address.comma_separated()
+            assigned_ip: c.address.comma_separated(),
         })
         .collect();
 

@@ -78,7 +78,7 @@ impl NetworkDeviceInfo {
             )))?;
         // TODO(jck) deal with all ips
         let split_ip = split_ip(
-            &wireguard_device
+            wireguard_device
                 .wireguard_ip
                 .first()
                 .expect("missing NetworkDevice IP"),
@@ -754,9 +754,7 @@ pub async fn modify_network_device(
             session.user.username,
             device.name,
             // TODO(jck)
-            wireguard_network_device
-                .wireguard_ip
-                .comma_separated(),
+            wireguard_network_device.wireguard_ip.comma_separated(),
             device_network.name
         );
     }
