@@ -36,6 +36,7 @@ struct NetworkDeviceLocation {
 struct NetworkDeviceInfo {
     id: Id,
     name: String,
+    // TODO(jck) mulitple ips
     assigned_ip: IpAddr,
     description: Option<String>,
     added_by: String,
@@ -74,11 +75,22 @@ impl NetworkDeviceInfo {
                 "Failed to find the network address for network {}",
                 network.name
             )))?;
-        let split_ip = split_ip(&wireguard_device.wireguard_ip, net_addr);
+        // TODO(jck) deal with all ips
+        let split_ip = split_ip(
+            &wireguard_device
+                .wireguard_ip
+                .first()
+                .expect("missing NetworkDevice IP"),
+            net_addr,
+        );
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
-            assigned_ip: wireguard_device.wireguard_ip,
+            // TODO(jck) multiple IPs
+            assigned_ip: *wireguard_device
+                .wireguard_ip
+                .first()
+                .expect("missing NetworkDevice IP"),
             description: device.description,
             added_by: added_by.username,
             added_date: device.created,
@@ -630,7 +642,12 @@ pub(crate) async fn add_network_device(
 
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
-        assigned_ip: config.address.to_string(),
+        assigned_ip: config
+            .address
+            .iter()
+            .map(IpAddr::to_string)
+            .collect::<Vec<String>>()
+            .join(","),
     }];
 
     send_new_device_added_email(
@@ -709,9 +726,16 @@ pub async fn modify_network_device(
     device.save(&mut *transaction).await?;
 
     // IP address has changed, so remove device from network and add it again with new IP address.
-    if new_ip != wireguard_network_device.wireguard_ip {
+    // TODO(jck) implement for multiple addresses
+    if new_ip
+        != *wireguard_network_device
+            .wireguard_ip
+            .first()
+            .expect("missing NetworkDevice IP")
+    {
         check_ip(new_ip, &device_network, &mut transaction).await?;
-        wireguard_network_device.wireguard_ip = new_ip;
+        // TODO(jck)
+        wireguard_network_device.wireguard_ip = vec![new_ip];
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
@@ -733,7 +757,13 @@ pub async fn modify_network_device(
             "User {} changed IP address of network device {} from {} to {new_ip} in network {}",
             session.user.username,
             device.name,
-            wireguard_network_device.wireguard_ip,
+            // TODO(jck)
+            wireguard_network_device
+                .wireguard_ip
+                .iter()
+                .map(IpAddr::to_string)
+                .collect::<Vec<String>>()
+                .join(","),
             device_network.name
         );
     }

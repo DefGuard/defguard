@@ -452,15 +452,25 @@ impl WireguardNetwork<Id> {
         &self,
         transaction: &mut PgConnection,
         device: &WireguardNetworkDevice,
+        // TODO(jck) allow assignment of multiple ips for a network device
         ip: IpAddr,
     ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
         info!(
             "Adding network device {} with IP {ip} to network {self}",
             device.device_id
         );
-        let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, ip);
+        let wireguard_network_device =
+            WireguardNetworkDevice::new(self.id, device.device_id, &[ip]);
         wireguard_network_device.insert(&mut *transaction).await?;
         Ok(wireguard_network_device)
+    }
+
+    /// Checks if all device addresses are contained in at least one of the network addresses
+    fn contains_all(&self, addresses: &[IpAddr]) -> bool {
+        !self
+            .address
+            .iter()
+            .any(|net| !addresses.iter().any(|addr| net.contains(*addr)))
     }
 
     /// Works out which devices need to be added, removed, or readdressed
@@ -479,7 +489,8 @@ impl WireguardNetwork<Id> {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
                 // network address changed and IP needs to be updated
-                if !self.address[0].contains(device_network_config.wireguard_ip) {
+                if !self.contains_all(&device_network_config.wireguard_ip) {
+                    // TODO(jck) ensure we don't leak IP addresses here
                     let wireguard_network_device = device
                         .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
@@ -661,7 +672,8 @@ impl WireguardNetwork<Id> {
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
-                                imported_device.wireguard_ip,
+                                // TODO(jck) allow assignment of multiple ips for a network device
+                                &[imported_device.wireguard_ip],
                             );
                             wireguard_network_device.insert(&mut *transaction).await?;
                             // store ID of device with already generated config
@@ -743,8 +755,12 @@ impl WireguardNetwork<Id> {
             let mut network_info = Vec::new();
             match &allowed_groups {
                 None => {
-                    let wireguard_network_device =
-                        WireguardNetworkDevice::new(self.id, device.id, mapped_device.wireguard_ip);
+                    // TODO(jck) allow assignment of multiple ips for a network device
+                    let wireguard_network_device = WireguardNetworkDevice::new(
+                        self.id,
+                        device.id,
+                        &[mapped_device.wireguard_ip],
+                    );
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
                         network_id: self.id,
@@ -760,7 +776,8 @@ impl WireguardNetwork<Id> {
                         let wireguard_network_device = WireguardNetworkDevice::new(
                             self.id,
                             device.id,
-                            mapped_device.wireguard_ip,
+                            // TODO(jck) allow assignment of multiple ips for a network device
+                            &[mapped_device.wireguard_ip],
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {

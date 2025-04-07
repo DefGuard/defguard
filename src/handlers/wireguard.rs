@@ -637,7 +637,7 @@ pub(crate) async fn add_device(
         )));
     }
 
-    // save device
+    // save the device
     let mut transaction = appstate.pool.begin().await?;
     let device = Device::new(
         add_device.name,
@@ -652,11 +652,6 @@ pub(crate) async fn add_device(
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
-    let mut network_ips: Vec<String> = Vec::new();
-    for network_info_item in network_info.clone() {
-        network_ips.push(network_info_item.device_wireguard_ip.to_string());
-    }
-
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: network_info.clone(),
@@ -668,7 +663,12 @@ pub(crate) async fn add_device(
         .iter()
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
-            assigned_ip: c.address.to_string(),
+            assigned_ip: c
+                .address
+                .iter()
+                .map(IpAddr::to_string)
+                .collect::<Vec<String>>()
+                .join(","),
         })
         .collect();
 

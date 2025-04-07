@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
@@ -631,7 +633,12 @@ impl EnrollmentServer {
             .iter()
             .map(|c| TemplateLocation {
                 name: c.network_name.clone(),
-                assigned_ip: c.address.to_string(),
+                assigned_ip: c
+                    .address
+                    .iter()
+                    .map(IpAddr::to_string)
+                    .collect::<Vec<String>>()
+                    .join(","),
             })
             .collect();
 
@@ -724,12 +731,18 @@ impl From<DeviceConfig> for ProtoDeviceConfig {
             .map(IpNetwork::to_string)
             .collect::<Vec<String>>()
             .join(",");
+        let assigned_ip = config
+            .address
+            .iter()
+            .map(IpAddr::to_string)
+            .collect::<Vec<String>>()
+            .join(",");
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
             endpoint: config.endpoint,
-            assigned_ip: config.address.to_string(),
+            assigned_ip,
             pubkey: config.pubkey,
             allowed_ips,
             dns: config.dns,

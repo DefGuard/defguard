@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tonic::Status;
@@ -115,11 +117,17 @@ pub(crate) async fn build_device_config_response(
                 .map(IpNetwork::to_string)
                 .collect::<Vec<String>>()
                 .join(",");
+            let assigned_ip = wireguard_network_device
+                .wireguard_ip
+                .iter()
+                .map(IpAddr::to_string)
+                .collect::<Vec<String>>()
+                .join(",");
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
                 network_name: network.name,
-                assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                assigned_ip,
                 endpoint: format!("{}:{}", network.endpoint, network.port),
                 pubkey: network.pubkey,
                 allowed_ips,
@@ -148,11 +156,17 @@ pub(crate) async fn build_device_config_response(
                     .map(IpNetwork::to_string)
                     .collect::<Vec<String>>()
                     .join(",");
+                let assigned_ip = wireguard_network_device
+                    .wireguard_ip
+                    .iter()
+                    .map(IpAddr::to_string)
+                    .collect::<Vec<String>>()
+                    .join(",");
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
                     network_id: network.id,
                     network_name: network.name,
-                    assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                    assigned_ip,
                     endpoint: format!("{}:{}", network.endpoint, network.port),
                     pubkey: network.pubkey,
                     allowed_ips,

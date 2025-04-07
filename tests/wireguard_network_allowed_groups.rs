@@ -1,5 +1,7 @@
 pub mod common;
 
+use std::net::IpAddr;
+
 use claims::assert_err;
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
@@ -392,7 +394,12 @@ async fn test_import_network_existing_devices() {
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0].device_wireguard_ip.to_string(),
+        device_info.network_info[0]
+            .device_wireguard_ip
+            .iter()
+            .map(IpAddr::to_string)
+            .collect::<Vec<String>>()
+            .join(","),
         peers[1].allowed_ips[0]
     );
 
@@ -403,7 +410,12 @@ async fn test_import_network_existing_devices() {
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0].device_wireguard_ip.to_string(),
+        device_info.network_info[0]
+            .device_wireguard_ip
+            .iter()
+            .map(IpAddr::to_string)
+            .collect::<Vec<String>>()
+            .join(","),
         peers[0].allowed_ips[0]
     );
 
@@ -497,7 +509,8 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0].device_wireguard_ip,
-        mapped_devices[0].wireguard_ip
+        // TODO(jck)
+        vec![mapped_devices[0].wireguard_ip],
     );
 
     let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
@@ -511,7 +524,7 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0].device_wireguard_ip,
-        mapped_devices[1].wireguard_ip
+        vec![mapped_devices[1].wireguard_ip],
     );
 
     assert_err!(wg_rx.try_recv());

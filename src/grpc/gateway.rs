@@ -1,4 +1,5 @@
 use std::{
+    net::IpAddr,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
@@ -285,7 +286,11 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    allowed_ips: network_info
+                                        .device_wireguard_ip
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
@@ -315,7 +320,12 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    allowed_ips: vec![network_info
+                                        .device_wireguard_ip
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect::<Vec<String>>()
+                                        .join(",")],
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,

@@ -160,7 +160,7 @@ impl DeviceInfo {
         let network_info = query_as!(
             DeviceNetworkInfo,
             "SELECT wireguard_network_id network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ip \"device_wireguard_ip: Vec<IpAddr>\", \
                 preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
@@ -279,10 +279,13 @@ pub struct ModifyDevice {
 
 impl WireguardNetworkDevice {
     #[must_use]
-    pub(crate) fn new(network_id: Id, device_id: Id, wireguard_ip: &[IpAddr]) -> Self {
+    pub(crate) fn new<I>(network_id: Id, device_id: Id, wireguard_ip: I) -> Self
+    where
+        I: Into<Vec<IpAddr>>,
+    {
         Self {
             wireguard_network_id: network_id,
-            wireguard_ip,
+            wireguard_ip: wireguard_ip.into(),
             device_id,
             preshared_key: None,
             is_authorized: false,
@@ -843,6 +846,7 @@ impl Device<Id> {
         let mut ips = Vec::new();
         // Iterate over all network addresses and assign new IP for the device in each of them.
         for address in &network.address {
+            // TODO(jck) make sure all network.address addresses are from different network?
             let net_ip = address.ip();
             let net_network = address.network();
             let net_broadcast = address.broadcast();
@@ -872,16 +876,20 @@ impl Device<Id> {
             return Err(ModelError::CannotCreate);
         }
         info!("Assigned IP addresses {ips:?} for device: {}", self.name);
-        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, &ips);
+        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
         wireguard_network_device.insert(&mut *transaction).await?;
 
         Ok(wireguard_network_device)
     }
 
+    /// Assigns specific IP address to the device in specified [`WireguardNetwork`].
+    /// This method is currently used only for network devices. For regular user
+    /// devices [`assign_next_network_ip`] method is used.
     pub(crate) async fn assign_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
+        // TODO(jck) allow assignment of multiple ips for a network device
         ip: IpAddr,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         if let Some(network_address) = network.address.first() {
@@ -897,7 +905,8 @@ impl Device<Id> {
                 .is_none()
             {
                 info!("Assigned IP: {ip} for device: {}", self.name);
-                let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ip);
+                let wireguard_network_device =
+                    WireguardNetworkDevice::new(network.id, self.id, &[ip]);
                 wireguard_network_device.insert(&mut *transaction).await?;
                 return Ok(wireguard_network_device);
             }
@@ -1029,7 +1038,7 @@ mod test {
                         info!("Created device: {}", device.name);
                         debug!("For user: {}", device.user_id);
                         let wireguard_network_device =
-                            WireguardNetworkDevice::new(network.id, device.id, ip);
+                            WireguardNetworkDevice::new(network.id, device.id, &[ip]);
                         wireguard_network_device.insert(pool).await?;
                         info!(
                             "Assigned IP: {ip} for device: {name} in network: {}",
@@ -1065,7 +1074,12 @@ mod test {
                 .await
                 .unwrap();
         assert_eq!(
-            wireguard_network_device.wireguard_ip.to_string(),
+            wireguard_network_device
+                .wireguard_ip
+                .iter()
+                .map(IpAddr::to_string)
+                .collect::<Vec<String>>()
+                .join(","),
             "10.1.1.2"
         );
 
@@ -1187,7 +1201,7 @@ mod test {
         WireguardNetworkDevice::new(
             network.id,
             device4.id,
-            IpAddr::from_str("10.1.1.10").unwrap(),
+            &[IpAddr::from_str("10.1.1.10").unwrap()],
         )
         .insert(&mut *transaction)
         .await
