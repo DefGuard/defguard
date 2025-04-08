@@ -130,13 +130,13 @@ export const AclIndexRules = () => {
     () =>
       isPresent(aclRules)
         ? prepareDisplay(
-          rulesAfterSearch,
-          appliedFilters,
-          localLL.list.tags.allAllowed(),
-          localLL.list.tags.allDenied(),
-          true,
-          aclContext,
-        )
+            rulesAfterSearch,
+            appliedFilters,
+            localLL.list.tags.allAllowed(),
+            localLL.list.tags.allDenied(),
+            true,
+            aclContext,
+          )
         : [],
     [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
