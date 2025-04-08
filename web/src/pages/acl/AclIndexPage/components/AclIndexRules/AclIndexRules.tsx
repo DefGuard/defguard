@@ -130,13 +130,13 @@ export const AclIndexRules = () => {
     () =>
       isPresent(aclRules)
         ? prepareDisplay(
-            rulesAfterSearch,
-            appliedFilters,
-            localLL.list.tags.allAllowed(),
-            localLL.list.tags.allDenied(),
-            true,
-            aclContext,
-          )
+          rulesAfterSearch,
+          appliedFilters,
+          localLL.list.tags.allAllowed(),
+          localLL.list.tags.allDenied(),
+          true,
+          aclContext,
+        )
         : [],
     [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
@@ -725,9 +725,9 @@ const prepareDisplay = (
     if (appliedFilters.networks.length && !rule.all_networks) {
       filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);
     }
-    // if (appliedFilters.aliases.length) {
-    //   filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
-    // }
+    if (appliedFilters.aliases.length) {
+      filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    }
     if (appliedFilters.groups.length) {
       const groups = concat(rule.denied_groups, rule.allowed_groups);
       filterChecks.push(intersection(groups, appliedFilters.groups).length > 0);
