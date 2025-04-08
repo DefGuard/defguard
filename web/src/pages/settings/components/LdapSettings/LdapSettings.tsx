@@ -5,7 +5,6 @@ import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/BigInfoBox/BigInfoBox';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { LdapConnectionTest } from './components/LdapConnectionTest';
 import { LdapSettingsForm } from './components/LdapSettingsForm';
 
 export const LdapSettings = () => {
@@ -22,12 +21,7 @@ export const LdapSettings = () => {
           />
         </div>
       )}
-      <div className="left">
-        <LdapSettingsForm />
-      </div>
-      <div className="right">
-        <LdapConnectionTest />
-      </div>
+      <LdapSettingsForm />
     </>
   );
 };

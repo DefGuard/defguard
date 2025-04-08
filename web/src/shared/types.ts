@@ -50,6 +50,7 @@ export type User = {
   is_active: boolean;
   enrolled: boolean;
   is_admin: boolean;
+  ldap_pass_requires_change: boolean;
 };
 
 export type UserProfile = {
@@ -337,11 +338,17 @@ export interface MappedDevice extends ImportedDevice {
   user_id: number;
 }
 
+export interface LdapInfo {
+  enabled: boolean;
+  ad: boolean;
+}
+
 export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
   license_info: LicenseInfo;
+  ldap_info: LdapInfo;
 }
 
 export type GetDeviceConfigRequest = {

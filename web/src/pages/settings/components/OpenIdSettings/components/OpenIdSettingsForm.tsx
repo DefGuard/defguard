@@ -4,15 +4,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
+import ReactMarkdown from 'react-markdown';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
 import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
+import SvgIconX from '../../../../../shared/components/svg/IconX';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { useAppStore } from '../../../../../shared/hooks/store/useAppStore';
 import useApi from '../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../shared/hooks/useToaster';
@@ -20,17 +24,21 @@ import { QueryKeys } from '../../../../../shared/queries';
 import { OpenIdProvider } from '../../../../../shared/types';
 import { DirsyncSettings } from './DirectorySyncSettings';
 import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
-import { OpenIdSettingsForm } from './OpenIdProviderSettings';
+import { OpenIdProviderSettings } from './OpenIdProviderSettings';
+import { SUPPORTED_SYNC_PROVIDERS } from './SupportedProviders';
 
 type FormFields = OpenIdProvider & {
   create_account: boolean;
 };
 
-export const OpenIdSettingsRootForm = () => {
+export const OpenIdSettingsForm = () => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
   const queryClient = useQueryClient();
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
+  const {
+    settings: { testDirsync },
+  } = useApi();
 
   const {
     settings: { fetchOpenIdProviders, addOpenIdProvider, deleteOpenIdProvider },
@@ -213,39 +221,75 @@ export const OpenIdSettingsRootForm = () => {
     }
   }, [openidData, deleteProvider]);
 
+  const showDirsync = SUPPORTED_SYNC_PROVIDERS.includes(openidData?.provider?.name ?? '');
+
   return (
-    <FormProvider {...formControl}>
-      <form id="root-form" onSubmit={handleSubmit(handleValidSubmit)}>
+    <>
+      <header>
+        <h2>{localLL.heading()}</h2>
         <div className="controls">
+          {showDirsync && (
+            <Button
+              onClick={() => {
+                void testDirsync().then((res) => {
+                  if (res.success) {
+                    toaster.success(
+                      localLL.form.directory_sync_settings.connectionTest.success(),
+                    );
+                  } else {
+                    toaster.error(
+                      `${localLL.form.directory_sync_settings.connectionTest.error()} ${res.message}`,
+                    );
+                  }
+                });
+              }}
+              disabled={!enterpriseEnabled}
+              text="Test OpenID connection"
+              styleVariant={ButtonStyleVariant.LINK}
+              size={ButtonSize.SMALL}
+            ></Button>
+          )}
+          <Button
+            text={localLL.form.delete()}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.CONFIRM}
+            loading={isLoading}
+            icon={<SvgIconX />}
+            onClick={() => {
+              handleDeleteProvider();
+            }}
+            disabled={!enterpriseEnabled}
+          />
           <Button
             size={ButtonSize.SMALL}
             styleVariant={ButtonStyleVariant.SAVE}
             text={LL.common.controls.saveChanges()}
             type="submit"
             loading={isLoading}
-            form="root-form"
+            form="openid-form"
             icon={<IconCheckmarkWhite />}
             disabled={!enterpriseEnabled}
           />
-          <Button
-            text={localLL.form.delete()}
-            size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.CONFIRM}
-            loading={isLoading}
-            onClick={() => {
-              handleDeleteProvider();
-            }}
-            disabled={!enterpriseEnabled}
-          />
         </div>
-        <div className="left">
-          <OpenIdSettingsForm isLoading={isLoading} />
-        </div>
-        <div className="right">
-          <OpenIdGeneralSettings isLoading={isLoading} />
-          <DirsyncSettings isLoading={isLoading} />
-        </div>
-      </form>
-    </FormProvider>
+      </header>
+      <FormProvider {...formControl}>
+        <form
+          id="openid-form"
+          className="column-layout"
+          onSubmit={handleSubmit(handleValidSubmit)}
+        >
+          <div className="left">
+            <MessageBox type={MessageBoxType.INFO}>
+              <ReactMarkdown>{localLL.form.documentation()}</ReactMarkdown>
+            </MessageBox>
+            <OpenIdGeneralSettings isLoading={isLoading} />
+            <OpenIdProviderSettings isLoading={isLoading} />
+          </div>
+          <div className="right">
+            <DirsyncSettings isLoading={isLoading} />
+          </div>
+        </form>
+      </FormProvider>
+    </>
   );
 };

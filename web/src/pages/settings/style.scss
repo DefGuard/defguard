@@ -13,7 +13,7 @@
 
     h1 {
       display: none;
-      margin-bottom: 50px;
+      margin-bottom: var(--spacing-l);
 
       @include typography(app-title);
 
@@ -41,23 +41,44 @@
       width: 100% !important;
     }
 
+    .helper-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
     section {
       & > header {
         display: flex;
         flex-flow: row nowrap;
         align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        margin-bottom: 26px;
+        justify-content: space-between;
+        gap: var(--spacing-s);
 
-        & > .controls,
-        .btn {
-          margin-left: auto;
+        h2 {
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-xs);
+          @include typography(app-welcome-1);
+
+          .helper-floating {
+            @include typography(modal-title);
+          }
         }
-        .btn {
-          min-width: 130px;
+
+        & > .controls {
+          display: flex;
+          gap: var(--spacing-s);
         }
       }
+
+      display: flex;
+      flex-flow: column nowrap;
+      gap: var(--spacing-m);
+    }
+
+    .license-not-required-container {
+      padding-bottom: var(--spacing-s);
     }
 
     .card {
@@ -67,7 +88,7 @@
         align-items: center;
         justify-content: flex-start;
 
-        column-gap: 10px;
+        column-gap: var(--spacing-xs);
 
         & > .btn {
           &:first-of-type {
@@ -79,37 +100,71 @@
 
     & > .settings-card {
       padding: 0;
-
       @include media-breakpoint-up(lg) {
-        padding: 50px 20px;
+        padding: var(--spacing-m);
         border-top-left-radius: 0;
       }
 
-      @include media-breakpoint-up(xxl) {
-        display: grid;
-        grid-template-rows: auto;
-        grid-template-columns: 1fr 1fr;
-        align-items: start;
-        justify-items: center;
-        row-gap: 48px;
-        column-gap: 56px;
+      @include media-breakpoint-down(lg) {
+        padding: var(--spacing-m) 0;
       }
-
-      & > .left {
-        grid-column: 1;
-      }
-
-      & > .right {
-        grid-column: 2;
-      }
-
-      & > .left,
-      & > .right {
-        width: 100%;
-        max-width: 750px;
+      h3 {
         display: flex;
-        flex-flow: column;
-        row-gap: 48px;
+        align-items: center;
+        gap: var(--spacing-xs);
+
+        @include typography(app-side-bar);
+
+        .helper-floating {
+          @include typography(modal-title);
+        }
+      }
+
+      .subsection-header {
+        margin-bottom: var(--spacing-s);
+      }
+
+      .subsection-header-with-controls {
+        margin-bottom: var(--spacing-s);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .checkbox-column {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-s);
+        padding-bottom: var(--spacing-s);
+      }
+
+      .column-layout {
+        @include media-breakpoint-up(xxl) {
+          display: grid;
+          grid-template-rows: auto;
+          grid-template-columns: 1fr 1fr;
+          align-items: start;
+          justify-items: start;
+          row-gap: 48px;
+          column-gap: 56px;
+        }
+
+        & > .left {
+          grid-column: 1;
+        }
+
+        & > .right {
+          grid-column: 2;
+        }
+
+        & > .left,
+        & > .right {
+          width: 100%;
+          max-width: 800px;
+          display: flex;
+          flex-flow: column;
+          row-gap: var(--spacing-s);
+        }
       }
 
       .spinner-container {
