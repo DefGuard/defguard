@@ -76,14 +76,6 @@ impl NetworkDeviceInfo {
                 "Failed to find the network address for network {}",
                 network.name
             )))?;
-        // TODO(jck) deal with all ips
-        // let split_ip = split_ip(
-        //     wireguard_device
-        //         .wireguard_ip
-        //         .first()
-        //         .expect("missing NetworkDevice IP"),
-        //     net_addr,
-        // );
         let split_ips = wireguard_device
             .wireguard_ip
             .iter()
@@ -222,66 +214,25 @@ async fn check_ips(
     network: &WireguardNetwork<Id>,
     transaction: &mut PgConnection,
 ) -> Result<(), WebError> {
-    // if let Some(network_address) = network.address.first() {
-    //     if !network_address.contains(ip_addr) {
-    //         return Err(WebError::BadRequest(format!(
-    //             "Provided IP address {ip_addr} is not in the network ({}) range {network_address}",
-    //             network.name,
-    //         )));
-    //     }
-    //     if ip_addr == network_address.network() || ip_addr == network_address.broadcast() {
-    //         return Err(WebError::BadRequest(format!(
-    //             "Provided IP address {ip_addr} is network or broadcast address of network {}",
-    //             network.name
-    //         )));
-    //     }
-    //     if ip_addr == network_address.ip() {
-    //         return Err(WebError::BadRequest(format!(
-    //             "Provided IP address {ip_addr} may overlap with the network's gateway IP in network {}",
-    //             network.name
-    //         )));
-    //     }
-
-    //     let device = Device::find_by_ip(transaction, ip_addr, network.id).await?;
-    //     if let Some(device) = device {
-    //         return Err(WebError::BadRequest(format!(
-    //             "Provided IP address {ip_addr} is already assigned to device {} in network {}",
-    //             device.name, network.name
-    //         )));
-    //     }
-    // }
-
+    // make sure the network contains all provided ips
     let networks = ip_addrs
         .iter()
         .map(|ip| network.get_containing_network(*ip).ok_or(()))
         .collect::<Result<Vec<IpNetwork>, ()>>()
         .map_err(|_| {
             WebError::BadRequest(format!(
-                // "Provided IP address {ip_addrs} is not in the network ({}) range {network_address}",
                 "Provided IP addresses {ip_addrs:?} are not in the network ({}) range {:?}",
                 network.name, network.address,
             ))
         })?;
-    // if !network.contains_all(ip_addrs) {
-    //     return Err(WebError::BadRequest(format!(
-    //         // "Provided IP address {ip_addrs} is not in the network ({}) range {network_address}",
-    //         "Provided IP addresses {ip_addrs} are not in the network ({}) range {:?}",
-    //         network.name, network.address,
-    //     )));
-    // }
     for (ip, network_address) in zip(ip_addrs, networks) {
-        // if !network_address.contains(ip_addrs) {
-        //     return Err(WebError::BadRequest(format!(
-        //         "Provided IP address {ip_addrs} is not in the network ({}) range {network_address}",
-        //         network.name,
-        //     )));
-        // }
+        // validate ip address within network
         let net_ip = network_address.ip();
         let net_network = network_address.network();
         let net_broadcast = network_address.broadcast();
         if *ip == net_network || *ip == net_broadcast {
             return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip} is network or broadcast address of network {}",
+                "Provided IP address {ip} is a network or broadcast address of network {}",
                 network.name
             )));
         }
@@ -292,6 +243,7 @@ async fn check_ips(
             )));
         }
 
+        // make sure the ip is unassigned
         let device = Device::find_by_ip(&mut *transaction, *ip, network.id).await?;
         if let Some(device) = device {
             return Err(WebError::BadRequest(format!(
@@ -504,10 +456,6 @@ pub(crate) async fn start_network_device_setup(
         device.id
     );
 
-    // let ips: IpAddr = setup_start.assigned_ips.parse().map_err(|e| {
-    //     error!("Failed to add network device {device_name}, invalid IP address: {e}");
-    //     WebError::BadRequest("Invalid IP address".to_string())
-    // })?;
     let ips = setup_start
         .assigned_ips
         .iter()

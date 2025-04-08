@@ -1,6 +1,5 @@
 pub mod common;
 
-
 use claims::assert_err;
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},

@@ -798,38 +798,9 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
-        // if let Some(address) = network.address.first() {
-        //     let net_ip = address.ip();
-        //     let net_network = address.network();
-        //     let net_broadcast = address.broadcast();
-        //     for ip in address {
-        //         if ip == net_ip || ip == net_network || ip == net_broadcast {
-        //             continue;
-        //         }
-        //         if let Some(reserved_ips) = reserved_ips {
-        //             if reserved_ips.contains(&ip) {
-        //                 continue;
-        //             }
-        //         }
-
-        //         // Break loop if IP is unassigned and return network device
-        //         if Self::find_by_ip(&mut *transaction, ip, network.id)
-        //             .await?
-        //             .is_none()
-        //         {
-        //             info!("Assigned IP address {ip} for device: {}", self.name);
-        //             let wireguard_network_device =
-        //                 WireguardNetworkDevice::new(network.id, self.id, ip);
-        //             wireguard_network_device.insert(&mut *transaction).await?;
-        //             return Ok(wireguard_network_device);
-        //         }
-        //     }
-        // }
-        // Err(ModelError::CannotCreate)
         let mut ips = Vec::new();
         // Iterate over all network addresses and assign new IP for the device in each of them.
         for address in &network.address {
-            // TODO(jck) make sure all network.address addresses are from different network?
             let net_ip = address.ip();
             let net_network = address.network();
             let net_broadcast = address.broadcast();
@@ -874,6 +845,7 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         ips: &[IpAddr],
     ) -> Result<WireguardNetworkDevice, ModelError> {
+        // make sure the network contains all provided ips
         let networks = ips
             .iter()
             .map(|ip| {
@@ -882,14 +854,6 @@ impl Device<Id> {
                     .ok_or(ModelError::CannotCreate)
             })
             .collect::<Result<Vec<IpNetwork>, ModelError>>()?;
-        //     let networks = ips
-        //         .iter()
-        //         .map(|ip| network.get_containing_network(*ip))
-        //         .collect::<Vec<Option<IpNetwork>>>();
-        // // make sure network contains all provided ips
-        // if networks.iter().any(|net| net.is_none()) {
-        //     return Err(ModelError::CannotCreate);
-        // }
         for (ip, network_address) in zip(ips, networks) {
             // validate ip address
             let net_ip = network_address.ip();
@@ -907,56 +871,11 @@ impl Device<Id> {
                 return Err(ModelError::CannotCreate);
             }
         }
+        // if all checks passed, assign the ips
         let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
         wireguard_network_device.insert(&mut *transaction).await?;
         info!("Assigned IPs: {ips:?} for device: {}", self.name);
-        return Ok(wireguard_network_device);
-        // make sure network contains all provided ips
-        // for ip in ips {
-        //     let Some(network_address) = network.get_containing_network(ip) else {
-        //         return Err(ModelError::CannotCreate);
-        //     }
-        //     let net_ip = network_address.ip();
-        //     let net_network = network_address.network();
-        //     let net_broadcast = network_address.broadcast();
-        //     if ips == net_ip || ips == net_network || ips == net_broadcast {
-        //         return Err(ModelError::CannotCreate);
-        //     }
-
-        //     if Self::find_by_ip(&mut *transaction, ip, network.id)
-        //         .await?
-        //         .is_none()
-        //     {
-        //         info!("Assigned IP: {ip} for device: {}", self.name);
-        //         let wireguard_network_device =
-        //             WireguardNetworkDevice::new(network.id, self.id, ips);
-        //         wireguard_network_device.insert(&mut *transaction).await?;
-        //         return Ok(wireguard_network_device);
-        //     } else {
-
-        // return Err(ModelError::CannotCreate);
-        //     }
-        // }
-        // for network_address in network.address {
-        //     let net_ip = network_address.ip();
-        //     let net_network = network_address.network();
-        //     let net_broadcast = network_address.broadcast();
-        //     if ips == net_ip || ips == net_network || ips == net_broadcast {
-        //         return Err(ModelError::CannotCreate);
-        //     }
-
-        //     if Self::find_by_ip(&mut *transaction, ips, network.id)
-        //         .await?
-        //         .is_none()
-        //     {
-        //         info!("Assigned IP: {ips} for device: {}", self.name);
-        //         let wireguard_network_device =
-        //             WireguardNetworkDevice::new(network.id, self.id, ips);
-        //         wireguard_network_device.insert(&mut *transaction).await?;
-        //         return Ok(wireguard_network_device);
-        //     }
-        // }
-        // Err(ModelError::CannotCreate)
+        Ok(wireguard_network_device)
     }
 
     /// Gets the first network of the network device
