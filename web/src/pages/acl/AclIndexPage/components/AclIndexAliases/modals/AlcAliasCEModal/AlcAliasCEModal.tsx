@@ -27,6 +27,8 @@ import { useAclAliasCEModal } from './store';
 
 export const AlcAliasCEModal = () => {
   const isOpen = useAclAliasCEModal((s) => s.visible);
+  const alias = useAclAliasCEModal((s) => s.alias);
+  const isEdit = isPresent(alias);
 
   const [close, reset] = useAclAliasCEModal((s) => [s.close, s.reset], shallow);
 
@@ -40,7 +42,7 @@ export const AlcAliasCEModal = () => {
   return (
     <ModalWithTitle
       id="acl-alias-ce-modal"
-      title="Create Alias"
+      title={isEdit ? 'Edit Alias' : 'Create Alias'}
       isOpen={isOpen}
       onClose={() => {
         close();
@@ -161,7 +163,7 @@ const ModalContent = () => {
         />
         <Button
           className="submit"
-          text="Create Alias"
+          text={isEditMode ? 'Edit Alias' : 'Create Alias'}
           size={ButtonSize.LARGE}
           styleVariant={ButtonStyleVariant.PRIMARY}
           type="submit"

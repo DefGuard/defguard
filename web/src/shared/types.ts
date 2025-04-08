@@ -6,7 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
-import { AclAlias, AclAliasPost, AclAliasStatus, AclStatus } from '../pages/acl/types';
+import { AclAlias, AclStatus } from '../pages/acl/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -460,11 +460,11 @@ export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires' | 'state' | 'parent
 };
 
 export type CreateAclAliasRequest = Omit<
-  AclAliasInfo,
-  'id' | 'state' | 'parent_id'
+  AclAlias,
+  'id' | 'state' | 'parent_id' | 'rules'
 >;
 
-export type EditAclAliasRequest = Omit<AclAliasInfo, 'state' | 'parent_id'>;
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'parent_id' | 'rules'>;
 
 export type AclRuleInfo = {
   id: number;
@@ -491,16 +491,6 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export type AclAliasInfo = {
-  id: number;
-  parent_id?: number;
-  state: AclAliasStatus;
-  name: string;
-  destination: string;
-  ports: string;
-  protocols: number[];
-};
-
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo>;
@@ -513,6 +503,7 @@ export interface ApiHook {
       createAlias: (data: CreateAclAliasRequest) => Promise<EmptyApiResponse>;
       editAlias: (data: EditAclAliasRequest) => Promise<EmptyApiResponse>;
       deleteAlias: (id: number) => Promise<EmptyApiResponse>;
+      applyAliases: (aliases: number[]) => Promise<EmptyApiResponse>;
     };
     rules: {
       getRule: (id: number) => Promise<AclRuleInfo>;

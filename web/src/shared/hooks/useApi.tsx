@@ -538,6 +538,13 @@ const useApi = (props?: HookProps): ApiHook => {
       })
       .then(unpackRequest);
 
+  const applyAclAliases: ApiHook['acl']['aliases']['applyAliases'] = (aliases) =>
+    client
+      .put(`/acl/alias/apply`, {
+        aliases: aliases,
+      })
+      .then(unpackRequest);
+
   useEffect(() => {
     client.interceptors.response.use(
       (res) => {
@@ -577,6 +584,7 @@ const useApi = (props?: HookProps): ApiHook => {
         editAlias,
         getAlias,
         getAliases,
+        applyAliases: applyAclAliases,
       },
       rules: {
         createRule: createAclRule,

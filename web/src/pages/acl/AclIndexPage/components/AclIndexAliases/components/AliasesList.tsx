@@ -1,33 +1,35 @@
-import { ReactNode, useMemo, useState } from "react";
-import { useI18nContext } from "../../../../../../i18n/i18n-react";
-import { AclAliasInfo } from "../../../../../../shared/types";
-import { ListSortDirection } from "../../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types";
-import { isPresent } from "../../../../../../shared/defguard-ui/utils/isPresent";
-import { orderBy } from "lodash-es";
-import { ListHeaderColumnConfig } from "../../../../../../shared/components/Layout/ListHeader/types";
-import { DividerHeader } from "../../shared/DividerHeader";
-import { NoData } from "../../../../../../shared/defguard-ui/components/Layout/NoData/NoData";
-import clsx from "clsx";
-import { ListHeader } from "../../../../../../shared/components/Layout/ListHeader/ListHeader";
-import { InteractionBox } from "../../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox";
-import { CheckBox } from "../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox";
-import { upperCaseFirst } from "text-case";
-import { RenderTagDisplay } from "../../shared/RenderTagDisplay";
-import { AclAliasStatusDisplay } from "./AclAliasStatus/AclAliasStatus";
-import { AliasEditButton } from "./AliasEditButton";
+import clsx from 'clsx';
+import { orderBy } from 'lodash-es';
+import { ReactNode, useMemo, useState } from 'react';
+import { upperCaseFirst } from 'text-case';
+
+import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { ListHeader } from '../../../../../../shared/components/Layout/ListHeader/ListHeader';
+import { ListHeaderColumnConfig } from '../../../../../../shared/components/Layout/ListHeader/types';
+import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
+import { InteractionBox } from '../../../../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
+import { NoData } from '../../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
+import { ListSortDirection } from '../../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
+import { AclAlias } from '../../../../types';
+import { DividerHeader } from '../../shared/DividerHeader';
+import { RenderTagDisplay } from '../../shared/RenderTagDisplay';
+import { AclAliasListData } from '../types';
+import { AclAliasStatusDisplay } from './AclAliasStatus/AclAliasStatus';
+import { AliasEditButton } from './AliasEditButton';
 
 type AliasesListProps = {
-  data: ListData[];
+  data: AclAliasListData[];
   header: {
     text: string;
     extras?: ReactNode;
   };
   noDataMessage: string;
   isAppliedList?: boolean;
-  selected?: Record<number, boolean>;
+  selected?: Record<number, boolean | undefined>;
   allSelected?: boolean;
   onSelect?: (key: number, value: boolean) => void;
-  onSelectAll?: (value: boolean, state: Record<number, boolean>) => void;
+  onSelectAll?: (value: boolean, state: Record<number, boolean | undefined>) => void;
 };
 
 export const AliasesList = ({
@@ -41,7 +43,7 @@ export const AliasesList = ({
 }: AliasesListProps) => {
   const { LL } = useI18nContext();
   const headersLL = LL.acl.listPage.aliases.list.headers;
-  const [sortKey, setSortKey] = useState<keyof AclAliasInfo>('name');
+  const [sortKey, setSortKey] = useState<keyof AclAlias>('name');
   const [sortDir, setSortDir] = useState<ListSortDirection>(ListSortDirection.ASC);
 
   const selectionEnabled = useMemo(
@@ -59,7 +61,7 @@ export const AliasesList = ({
   );
 
   const listHeaders = useMemo(
-    (): ListHeaderColumnConfig<AclAliasInfo>[] => [
+    (): ListHeaderColumnConfig<AclAlias>[] => [
       {
         label: headersLL.name(),
         sortKey: 'name',
@@ -103,7 +105,7 @@ export const AliasesList = ({
       {sortedAliases.length > 0 && (
         <div className="list-container">
           <div className={clsx('header-track')}>
-            <ListHeader<AclAliasInfo>
+            <ListHeader<AclAlias>
               headers={listHeaders}
               sortDirection={sortDir}
               activeKey={sortKey}
@@ -132,6 +134,7 @@ export const AliasesList = ({
                     selectable: selectionEnabled,
                   })}
                 >
+                  {!selectionEnabled && <div className="cell empty"></div>}
                   {selectionEnabled && (
                     <div className="cell select-cell">
                       <InteractionBox
@@ -145,13 +148,13 @@ export const AliasesList = ({
                   )}
                   <div className="cell name">{upperCaseFirst(alias.name)}</div>
                   <div className="cell ip">
-                    <RenderTagDisplay data={alias.destination} />
+                    <RenderTagDisplay data={alias.display.destination} />
                   </div>
                   <div className="cell ports">
-                    <RenderTagDisplay data={alias.ports} />
+                    <RenderTagDisplay data={alias.display.ports} />
                   </div>
                   <div className="cell protocols">
-                    <RenderTagDisplay data={alias.protocols} />
+                    <RenderTagDisplay data={alias.display.protocols} />
                   </div>
                   <div className="cell status">
                     <AclAliasStatusDisplay status={alias.state} />

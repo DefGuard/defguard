@@ -474,7 +474,7 @@ type RootTranslation = {
 			/**
 			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​i​s​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
 			 */
 			message: string
 			/**
@@ -5118,14 +5118,6 @@ type RootTranslation = {
 		listPage: {
 			message: {
 				/**
-				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-				 */
-				rulesApply: string
-				/**
-				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-				 */
-				rulesApplyFail: string
-				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
 				 */
 				changeDiscarded: string
@@ -5137,6 +5129,14 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
 				 */
 				changeFail: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				applyChanges: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				applyFail: string
 			}
 			rules: {
 				modals: {
@@ -5314,6 +5314,51 @@ type RootTranslation = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+					 */
+					rulesApply: string
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+					 */
+					rulesApplyFail: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​e​d
+					 */
+					aliasDeleted: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
+					 */
+					aliasDeleteFail: string
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
+						 */
+						title: string
+						/**
+						 * 
+					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+				
+						 * @param {number} rulesCount
+						 */
+						content: RequiredParams<'rulesCount'>
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * R​u​l​e​s
+							 */
+							rules: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+					}
+				}
 				listControls: {
 					/**
 					 * F​i​n​d​ ​n​a​m​e
@@ -5412,29 +5457,13 @@ type RootTranslation = {
 					}
 					status: {
 						/**
-						 * N​e​w
+						 * A​p​p​l​i​e​d
 						 */
-						'new': string
+						applied: string
 						/**
-						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
+						 * M​o​d​i​f​i​e​d
 						 */
-						change: string
-						/**
-						 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
-						 */
-						'delete': string
-						/**
-						 * E​n​a​b​l​e​d
-						 */
-						enabled: string
-						/**
-						 * D​i​s​a​b​l​e​d
-						 */
-						disabled: string
-						/**
-						 * D​e​p​l​o​y​e​d
-						 */
-						deployed: string
+						changed: string
 					}
 					tags: {
 						/**
@@ -5448,11 +5477,11 @@ type RootTranslation = {
 					}
 					editMenu: {
 						/**
-						 * D​i​s​c​a​r​d​ ​C​h​a​n​g​e​s
+						 * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
 						 */
-						discard: string
+						discardChanges: string
 						/**
-						 * M​a​r​k​ ​f​o​r​ ​D​e​l​e​t​i​o​n
+						 * D​e​l​e​t​e​ ​a​l​i​a​s
 						 */
 						'delete': string
 					}
@@ -6040,7 +6069,7 @@ export type TranslationFunctions = {
 			/**
 			 * You've exceeded the limit of your current Defguard plan and the enterprise
 		          features will be disabled. Purchase an enterprise license or upgrade your
-		          exsiting one to continue using these features.
+		          existing one to continue using these features.
 			 */
 			message: () => LocalizedString
 			/**
@@ -10646,14 +10675,6 @@ export type TranslationFunctions = {
 		listPage: {
 			message: {
 				/**
-				 * Pending changes applied
-				 */
-				rulesApply: () => LocalizedString
-				/**
-				 * Failed to apply changes
-				 */
-				rulesApplyFail: () => LocalizedString
-				/**
 				 * Change discarded
 				 */
 				changeDiscarded: () => LocalizedString
@@ -10665,6 +10686,14 @@ export type TranslationFunctions = {
 				 * Failed to make change
 				 */
 				changeFail: () => LocalizedString
+				/**
+				 * Pending changes applied
+				 */
+				applyChanges: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				applyFail: () => LocalizedString
 			}
 			rules: {
 				modals: {
@@ -10839,6 +10868,50 @@ export type TranslationFunctions = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * Pending changes applied
+					 */
+					rulesApply: () => LocalizedString
+					/**
+					 * Failed to apply changes
+					 */
+					rulesApplyFail: () => LocalizedString
+					/**
+					 * Alias deleted
+					 */
+					aliasDeleted: () => LocalizedString
+					/**
+					 * Alias deletion failed
+					 */
+					aliasDeleteFail: () => LocalizedString
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * Deletion blocked
+						 */
+						title: () => LocalizedString
+						/**
+						 * 
+					Alias is used in {rulesCount} rules and cannot be deleted.
+				
+						 */
+						content: (arg: { rulesCount: number }) => LocalizedString
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * Rules
+							 */
+							rules: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+					}
+				}
 				listControls: {
 					/**
 					 * Find name
@@ -10934,29 +11007,13 @@ export type TranslationFunctions = {
 					}
 					status: {
 						/**
-						 * New
+						 * Applied
 						 */
-						'new': () => LocalizedString
+						applied: () => LocalizedString
 						/**
-						 * Pending Change
+						 * Modified
 						 */
-						change: () => LocalizedString
-						/**
-						 * Pending Deletion
-						 */
-						'delete': () => LocalizedString
-						/**
-						 * Enabled
-						 */
-						enabled: () => LocalizedString
-						/**
-						 * Disabled
-						 */
-						disabled: () => LocalizedString
-						/**
-						 * Deployed
-						 */
-						deployed: () => LocalizedString
+						changed: () => LocalizedString
 					}
 					tags: {
 						/**
@@ -10970,11 +11027,11 @@ export type TranslationFunctions = {
 					}
 					editMenu: {
 						/**
-						 * Discard Changes
+						 * Discard changes
 						 */
-						discard: () => LocalizedString
+						discardChanges: () => LocalizedString
 						/**
-						 * Mark for Deletion
+						 * Delete alias
 						 */
 						'delete': () => LocalizedString
 					}

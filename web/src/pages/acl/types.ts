@@ -31,9 +31,10 @@ export type AclAlias = {
   destination: string;
   ports: string;
   protocols: AclProtocol[];
+  rules: number[];
 };
 
-export type AclAliasPost = Omit<AclAlias, 'id'>;
+export type AclAliasPost = Omit<AclAlias, 'id' | 'rules' | 'state'>;
 
 export enum AclProtocol {
   TCP = 6,
@@ -49,7 +50,6 @@ export enum AclStatus {
 }
 
 export enum AclAliasStatus {
-  APPLIED = 'Applied',
-  MODIFIED = 'Modified',
-  DELETED = 'Deleted',
+  APPLIED = AclStatus.APPLIED,
+  MODIFIED = AclStatus.MODIFIED,
 }
