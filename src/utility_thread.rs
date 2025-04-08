@@ -1,14 +1,15 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
-use sqlx::PgPool;
+use sqlx::{query_as, PgPool};
 use tokio::{
     sync::broadcast::Sender,
     time::{sleep, Instant},
 };
 
 use crate::{
-    db::GatewayEvent,
+    db::{GatewayEvent, Id},
     enterprise::{
+        db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
         limits::do_count_update,
@@ -20,6 +21,7 @@ use crate::{
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
+const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 
 pub async fn run_utility_thread(
     pool: &PgPool,
@@ -29,6 +31,7 @@ pub async fn run_utility_thread(
     let mut last_directory_sync = Instant::now();
     let mut last_updates_check = Instant::now();
     let mut last_ldap_sync = Instant::now();
+    let mut last_expired_acl_rules_sync = Instant::now();
 
     let directory_sync_task = || async {
         if let Err(e) = do_directory_sync(pool, &wireguard_tx).await {
@@ -54,10 +57,35 @@ pub async fn run_utility_thread(
         }
     };
 
+    let expired_rules_task = || async {
+        // mark relevant rules as expired
+        match query_as!(
+            AclRule::<Id>,
+            "UPDATE aclrule SET state = 'expired'::aclrule_state \
+            WHERE state = 'applied'::aclrule_state AND expires < NOW() \
+            RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, \
+                allow_all_network_devices, deny_all_network_devices, all_networks, \
+                destination, ports, protocols, enabled, expires"
+        )
+        .fetch_all(pool)
+        .await
+        {
+            Ok(rules) => {
+                // send firewall config updates to locations which have been affected by updated
+                // rules
+                debug!("Marked {} ACL rules as expired. Sending firewall config updates to affected locations.");
+
+                let mut affected_locations = HashSet::new();
+            },
+            Err(e) => error!("There was an error marking expired ACL rules: {e}")
+        };
+    };
+
     directory_sync_task().await;
     count_update_task().await;
     updates_check_task().await;
     ldap_sync_task().await;
+    expired_rules_task().await;
 
     loop {
         sleep(Duration::from_secs(UTILITY_THREAD_MAIN_SLEEP_TIME)).await;
@@ -83,6 +111,12 @@ pub async fn run_utility_thread(
         if last_ldap_sync.elapsed().as_secs() >= get_ldap_sync_interval() {
             ldap_sync_task().await;
             last_ldap_sync = Instant::now();
+        }
+
+        // Mark expired ACL rules
+        if last_expired_acl_rules_sync.elapsed().as_secs() >= EXPIRED_ACL_RULES_CHECK_INTERVAL {
+            expired_rules_task().await;
+            last_expired_acl_rules_sync = Instant::now();
         }
     }
 }
