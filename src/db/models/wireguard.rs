@@ -459,18 +459,22 @@ impl WireguardNetwork<Id> {
             "Adding network device {} with IP {ip} to network {self}",
             device.device_id
         );
-        let wireguard_network_device =
-            WireguardNetworkDevice::new(self.id, device.device_id, [ip]);
+        let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, [ip]);
         wireguard_network_device.insert(&mut *transaction).await?;
         Ok(wireguard_network_device)
     }
 
     /// Checks if all device addresses are contained in at least one of the network addresses
-    fn contains_all(&self, addresses: &[IpAddr]) -> bool {
+    pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
         !self
             .address
             .iter()
             .any(|net| !addresses.iter().any(|addr| net.contains(*addr)))
+    }
+
+    /// Finds [`IpNetwork`] containing given [`IpAddr`]
+    pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
+        self.address.iter().find(|net| net.contains(addr)).copied()
     }
 
     /// Works out which devices need to be added, removed, or readdressed
