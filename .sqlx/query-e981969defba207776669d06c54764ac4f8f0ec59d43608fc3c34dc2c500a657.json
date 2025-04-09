@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wireguard_ip \"wireguard_ip: Vec<IpAddr>\" FROM wireguard_network_device wnd WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "wireguard_ip: Vec<IpAddr>",
+        "type_info": "InetArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e981969defba207776669d06c54764ac4f8f0ec59d43608fc3c34dc2c500a657"
+}
