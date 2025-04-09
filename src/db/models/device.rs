@@ -819,6 +819,7 @@ impl Device<Id> {
                     .is_none()
                 {
                     ips.push(ip);
+                    break;
                 }
             }
         }
@@ -860,6 +861,7 @@ impl Device<Id> {
             let net_network = network_address.network();
             let net_broadcast = network_address.broadcast();
             if *ip == net_ip || *ip == net_network || *ip == net_broadcast {
+                // TODO(jck) more relevant error
                 return Err(ModelError::CannotCreate);
             }
 
@@ -868,6 +870,7 @@ impl Device<Id> {
                 .await?
                 .is_some()
             {
+                // TODO(jck) more relevant error
                 return Err(ModelError::CannotCreate);
             }
         }
@@ -979,6 +982,7 @@ mod test {
             pubkey: String,
             network: &WireguardNetwork<Id>,
         ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
+            // TODO(jck)
             if let Some(address) = network.address.first() {
                 let net_ip = address.ip();
                 let net_network = address.network();

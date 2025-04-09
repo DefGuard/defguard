@@ -353,7 +353,6 @@ impl WireguardNetwork<Id> {
                 .await?
             }
         };
-
         Ok(devices)
     }
 

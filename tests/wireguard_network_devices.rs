@@ -90,11 +90,13 @@ async fn test_network_devices() {
     let response = client.get("/api/v1/device/network/ip/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
     let res = response.json::<Value>().await;
-    let ip = res["ip"].as_str().unwrap();
-    let ip = ip.parse::<IpAddr>().unwrap();
+    let ips = res["ip"].as_str().unwrap();
+    let ips: Vec<IpAddr> = ips.split(",").map(|ip| ip.parse().unwrap()).collect();
     let net_ip = IpAddr::from_str("10.1.1.1").unwrap();
     let network_range = IpNetwork::new(net_ip, 24).unwrap();
-    assert!(network_range.contains(ip));
+    for ip in &ips {
+        assert!(network_range.contains(*ip));
+    }
 
     // checking whether ip is valid/available
     let ip_check = json!(
@@ -161,7 +163,7 @@ async fn test_network_devices() {
     let network_device = AddNetworkDevice {
         name: "device-1".into(),
         wireguard_pubkey: "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=".into(),
-        assigned_ip: ip.to_string(),
+        assigned_ips: ips.iter().map(IpAddr::to_string).collect(),
         location_id: 1,
         description: None,
     };

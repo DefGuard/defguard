@@ -291,6 +291,7 @@ pub(crate) async fn check_ip_availability(
         });
     };
 
+    // TODO(jck)
     if let Some(network_address) = network.address.first() {
         if !network_address.contains(ip) {
             warn!(
@@ -372,6 +373,7 @@ pub(crate) async fn find_available_ip(
         })?;
 
     let mut transaction = appstate.pool.begin().await?;
+    // TODO(jck)
     if let Some(network_address) = network.address.first() {
         let net_ip = network_address.ip();
         let net_network = network_address.network();
