@@ -370,25 +370,6 @@ fn process_destination_addrs(
                 }
             }
         });
-    // let alias_destination_range_iterator =
-    //     alias_destination_ranges
-    //         .iter()
-    //         .filter_map(|dst| match ip_version {
-    //             IpVersion::Ipv4 => {
-    //                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
-    //                     Some(ip_to_range(dst.start, dst.end))
-    //                 } else {
-    //                     None
-    //                 }
-    //             }
-    //             IpVersion::Ipv6 => {
-    //                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
-    //                     Some(ip_to_range(dst.start, dst.end))
-    //                 } else {
-    //                     None
-    //                 }
-    //             }
-    //         });
 
     // combine both iterators to return a single list
     let destination_addrs = destination_iterator
