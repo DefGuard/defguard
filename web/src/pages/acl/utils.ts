@@ -1,5 +1,7 @@
 import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
-import { AclProtocol, AclStatus } from './types';
+import { AclRuleInfo } from '../../shared/types';
+import { ListTagDisplay } from './AclIndexPage/components/shared/types';
+import { AclAliasStatus, AclProtocol, AclStatus } from './types';
 
 export const aclStatusToInt = (status: AclStatus): number => {
   switch (status) {
@@ -14,6 +16,15 @@ export const aclStatusToInt = (status: AclStatus): number => {
   }
 };
 
+export const aclAliasStatusToInt = (status: AclAliasStatus): number => {
+  switch (status) {
+    case AclAliasStatus.APPLIED:
+      return 2;
+    case AclAliasStatus.MODIFIED:
+      return 1;
+  }
+};
+
 export const aclStatusFromInt = (statusInt: number): AclStatus => {
   switch (statusInt) {
     case 0:
@@ -25,10 +36,19 @@ export const aclStatusFromInt = (statusInt: number): AclStatus => {
     case 3:
       return AclStatus.DELETED;
     default:
-      console.error(
+      throw Error(
         `AclStatus conversion from ${statusInt} not possible, returned 'New' instead.`,
       );
-      return AclStatus.NEW;
+  }
+};
+export const aclAliasStatusFromInt = (statusInt: number): AclAliasStatus => {
+  switch (statusInt) {
+    case 1:
+      return AclAliasStatus.APPLIED;
+    case 2:
+      return AclAliasStatus.MODIFIED;
+    default:
+      throw Error(`Unexpected alias status code of ${statusInt}`);
   }
 };
 
@@ -60,3 +80,39 @@ export const protocolOptions: SelectOption<number>[] = [
     value: AclProtocol.ICMP,
   },
 ];
+
+export const aclDestinationToListTagDisplay = (destination: string): ListTagDisplay[] =>
+  destination
+    .split(',')
+    .filter((s) => s !== '')
+    .map((dest, index) => ({
+      key: `destination-${index}`,
+      label: dest,
+      displayAsTag: false,
+    }));
+
+export const aclPortsToListTagDisplay = (ports: string): ListTagDisplay[] =>
+  ports
+    .split(',')
+    .filter((s) => s !== '')
+    .map((port, index) => ({
+      key: `port-${index}`,
+      label: port,
+      displayAsTag: false,
+    }));
+
+export const aclProtocolsToListTagDisplay = (
+  protocols: AclProtocol[],
+): ListTagDisplay[] =>
+  protocols.map((protocol) => ({
+    key: protocol.toString(),
+    label: protocolToString(protocol),
+    displayAsTag: false,
+  }));
+
+export const aclRuleToListTagDisplay = (rules: AclRuleInfo[]): ListTagDisplay[] =>
+  rules.map((rule) => ({
+    key: rule.id,
+    label: rule.name,
+    displayAsTag: true,
+  }));

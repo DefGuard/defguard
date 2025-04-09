@@ -4,14 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import clsx from 'clsx';
 import { concat, intersection, orderBy } from 'lodash-es';
-import {
-  PropsWithChildren,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { upperCaseFirst } from 'text-case';
 
@@ -33,7 +26,6 @@ import { InteractionBox } from '../../../../../shared/defguard-ui/components/Lay
 import { ListItemCount } from '../../../../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
 import { NoData } from '../../../../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { Search } from '../../../../../shared/defguard-ui/components/Layout/Search/Search';
-import { Tag } from '../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
 import { ListSortDirection } from '../../../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../shared/hooks/useApi';
@@ -43,17 +35,14 @@ import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
+import { DividerHeader } from '../shared/DividerHeader';
+import { RenderTagDisplay } from '../shared/RenderTagDisplay';
+import { ListTagDisplay } from '../shared/types';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
-
-type ListTagDisplay = {
-  key: string | number;
-  label: string;
-  displayAsTag?: boolean;
-};
 
 type RulesFilters = {
   networks: number[];
-  // aliases: number[];
+  aliases: number[];
   status: number[];
   groups: number[];
 };
@@ -68,7 +57,7 @@ type ListData = {
 } & AclRuleInfo;
 
 const defaultFilters: RulesFilters = {
-  // aliases: [],
+  aliases: [],
   networks: [],
   status: [],
   groups: [],
@@ -99,13 +88,13 @@ export const AclIndexRules = () => {
   const { mutate: applyPendingChangesMutation, isPending: applyPending } = useMutation({
     mutationFn: applyRules,
     onSuccess: () => {
-      toaster.success(messagesLL.rulesApply());
+      toaster.success(messagesLL.applyChanges());
       void queryClient.invalidateQueries({
         predicate: (query) => query.queryKey.includes(QueryKeys.FETCH_ACL_RULES),
       });
     },
     onError: (e) => {
-      toaster.error(messagesLL.rulesApplyFail());
+      toaster.error(messagesLL.applyFail());
       console.error(e);
     },
   });
@@ -214,15 +203,15 @@ export const AclIndexRules = () => {
         value: network.id,
       })),
     };
-    // res.aliases = {
-    //   label: filterLL.alias(),
-    //   order: 2,
-    //   items: aclContext.aliases.map((alias) => ({
-    //     label: alias.name,
-    //     searchValues: [alias.name],
-    //     value: alias.id,
-    //   })),
-    // };
+    res.aliases = {
+      label: filterLL.alias(),
+      order: 2,
+      items: aclContext.aliases.map((alias) => ({
+        label: alias.name,
+        searchValues: [alias.name],
+        value: alias.id,
+      })),
+    };
 
     res.status = {
       label: filterLL.status(),
@@ -262,6 +251,7 @@ export const AclIndexRules = () => {
     };
     return res;
   }, [
+    aclContext.aliases,
     aclContext.groups,
     aclContext.networks,
     localLL.modals.filterGroupsModal.groupHeaders,
@@ -437,21 +427,6 @@ export const AclIndexRules = () => {
   );
 };
 
-type DividerHeaderProps = {
-  text: string;
-} & PropsWithChildren;
-
-const DividerHeader = ({ text, children }: DividerHeaderProps) => {
-  return (
-    <div className="divider-header spacer">
-      <div className="inner">
-        <p className="header">{text}</p>
-        {children}
-      </div>
-    </div>
-  );
-};
-
 type RulesListProps = {
   data: ListData[];
   header: {
@@ -605,25 +580,6 @@ const RulesList = ({
   );
 };
 
-type RenderTagsProps = {
-  data: ListTagDisplay[];
-};
-
-const RenderTagDisplay = ({ data }: RenderTagsProps) => {
-  return (
-    <div className="tags-display">
-      <div className="track">
-        {data.map((d) => {
-          if (d.displayAsTag) {
-            return <Tag key={d.key} text={d.label} />;
-          }
-          return <span key={d.key}>{d.label}</span>;
-        })}
-      </div>
-    </div>
-  );
-};
-
 type EditProps = {
   rule: ListData;
 };
@@ -769,9 +725,9 @@ const prepareDisplay = (
     if (appliedFilters.networks.length && !rule.all_networks) {
       filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);
     }
-    // if (appliedFilters.aliases.length) {
-    //   filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
-    // }
+    if (appliedFilters.aliases.length) {
+      filterChecks.push(intersection(rule.aliases, appliedFilters.aliases).length > 0);
+    }
     if (appliedFilters.groups.length) {
       const groups = concat(rule.denied_groups, rule.allowed_groups);
       filterChecks.push(intersection(groups, appliedFilters.groups).length > 0);
@@ -860,7 +816,7 @@ const prepareDisplay = (
     const destination: ListTagDisplay[] = concat(
       rule.destination
         .split(',')
-        .filter((s) => s === '')
+        .filter((s) => s !== '')
         .map((dest, index) => ({
           key: index.toString(),
           label: dest,

@@ -83,22 +83,6 @@
     }
   }
 
-  .divider-header {
-    padding-bottom: var(--spacing-s);
-
-    .inner {
-      display: flex;
-      flex-flow: row;
-      align-items: center;
-      justify-content: flex-start;
-      border-bottom: 1px solid var(--border-primary);
-    }
-
-    .header {
-      @include typography(app-side-bar);
-    }
-  }
-
   .rules-list {
     width: 100%;
 

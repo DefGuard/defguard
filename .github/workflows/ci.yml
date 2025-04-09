@@ -23,7 +23,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_DB: defguard
           POSTGRES_USER: defguard
