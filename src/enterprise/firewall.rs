@@ -59,6 +59,18 @@ pub async fn generate_firewall_rules_from_acls(
 
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
+        // separate IPv4 and IPv6 user-device addresses
+        let user_device_ips =
+            user_device_ips
+                .iter()
+                .flatten()
+                .fold((Vec::new(), Vec::new()), |mut acc, ip| {
+                    match ip {
+                        IpAddr::V4(_) => acc.0.push(*ip),
+                        IpAddr::V6(_) => acc.1.push(*ip),
+                    };
+                    acc
+                });
 
         // fetch allowed network devices
         let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn).await?;
@@ -71,13 +83,28 @@ pub async fn generate_firewall_rules_from_acls(
             get_source_network_devices(allowed_network_devices, denied_network_devices);
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
+        // separate IPv4 and IPv6 network-device addresses
+        let network_device_ips =
+            network_device_ips
+                .iter()
+                .flatten()
+                .fold((Vec::new(), Vec::new()), |mut acc, ip| {
+                    match ip {
+                        IpAddr::V4(_) => acc.0.push(*ip),
+                        IpAddr::V6(_) => acc.1.push(*ip),
+                    };
+                    acc
+                });
 
         // convert device IPs into source addresses for a firewall rule
-        let source_addrs = get_source_addrs(user_device_ips, network_device_ips, ip_version);
+        let ipv4_source_addrs =
+            get_source_addrs(user_device_ips.0, network_device_ips.0, IpVersion::Ipv4);
+        let ipv6_source_addrs =
+            get_source_addrs(user_device_ips.1, network_device_ips.1, IpVersion::Ipv6);
 
         // extract destination parameters from ACL rule
         let AclRuleInfo {
-            mut destination,
+            destination,
             destination_ranges,
             mut ports,
             mut protocols,
@@ -85,73 +112,150 @@ pub async fn generate_firewall_rules_from_acls(
             ..
         } = acl;
 
+        // separate IPv4 and IPv6 destination addresses
+        let destination = destination
+            .iter()
+            .fold((Vec::new(), Vec::new()), |mut acc, ip| {
+                match ip {
+                    IpNetwork::V4(_) => acc.0.push(*ip),
+                    IpNetwork::V6(_) => acc.1.push(*ip),
+                };
+                acc
+            });
+        let destination_ranges =
+            destination_ranges
+                .iter()
+                .fold((Vec::new(), Vec::new()), |mut acc, range| {
+                    // TODO(jck) make sure ranges only accept the same IP versions
+                    match range.start {
+                        IpAddr::V4(_) => acc.0.push(range.clone()),
+                        IpAddr::V6(_) => acc.1.push(range.clone()),
+                    };
+                    acc
+                });
+
+        // TODO(jck): handle aliases with separate alias.destination for IPv4 and IPv6
         // store alias ranges separately since they use a different struct
         let mut alias_destination_ranges = Vec::new();
+        // // process aliases by appending destination parameters from each of them to existing lists
+        // for alias in aliases {
+        //     // fetch destination ranges for a fiven alias
+        //     alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
 
-        // process aliases by appending destination parameters from each of them to existing lists
-        for alias in aliases {
-            // fetch destination ranges for a fiven alias
-            alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
-
-            // extend existing parameter lists
-            destination.extend(alias.destination);
-            ports.extend(
-                alias
-                    .ports
-                    .into_iter()
-                    .map(|port_range| port_range.into())
-                    .collect::<Vec<PortRange>>(),
-            );
-            protocols.extend(alias.protocols);
-        }
+        //     // extend existing parameter lists
+        //     destination.0.extend(alias.destination);
+        //     ports.extend(
+        //         alias
+        //             .ports
+        //             .into_iter()
+        //             .map(|port_range| port_range.into())
+        //             .collect::<Vec<PortRange>>(),
+        //     );
+        //     protocols.extend(alias.protocols);
+        // }
 
         // prepare destination addresses
-        let destination_addrs = process_destination_addrs(
-            destination,
-            destination_ranges,
+        let ipv4_destination_addrs = process_destination_addrs(
+            destination.0,
+            destination_ranges.0,
+            // TODO(jck) ipv4 only
+            alias_destination_ranges.clone(),
+            IpVersion::Ipv4,
+        );
+
+        let ipv6_destination_addrs = process_destination_addrs(
+            destination.1,
+            destination_ranges.1,
+            // TODO(jck) ipv6 only
             alias_destination_ranges,
-            ip_version,
+            IpVersion::Ipv6,
         );
 
         // prepare destination ports
+        // TODO(jck) what should happen to ports when we have separate rules for ipv4 and ipv6?
         let destination_ports = merge_port_ranges(ports);
 
         // remove duplicates protocol entries
         protocols.sort();
         protocols.dedup();
 
+        // create IPv4 ALLOW rule
         // check if source addrs list is empty
-        if source_addrs.is_empty() {
-            debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
+        if ipv4_source_addrs.is_empty() {
+            debug!("IPv4 source address list is empty. Skipping generating the ALLOW rule for this ACL");
         } else {
             // prepare ALLOW rule for this ACL
             let allow_rule = FirewallRule {
                 id: acl.id,
-                source_addrs,
-                destination_addrs: destination_addrs.clone(),
-                destination_ports,
-                protocols,
+                source_addrs: ipv4_source_addrs,
+                destination_addrs: ipv4_destination_addrs.clone(),
+                destination_ports: destination_ports.clone(),
+                protocols: protocols.clone(),
                 verdict: i32::from(FirewallPolicy::Allow),
                 comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+                ip_version: i32::from(IpVersion::Ipv4),
             };
             debug!("ALLOW rule generated from ACL: {allow_rule:?}");
             allow_rules.push(allow_rule);
         };
 
-        // prepare DENY rule for this ACL
-        //
-        // it should specify only the destination addrs to block all remaining traffic
-        let deny_rule = FirewallRule {
-            id: acl.id,
-            source_addrs: Vec::new(),
-            destination_addrs,
-            destination_ports: Vec::new(),
-            protocols: Vec::new(),
-            verdict: i32::from(FirewallPolicy::Deny),
-            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+        // create IPv6 ALLOW rule
+        // check if source addrs list is empty
+        if ipv6_source_addrs.is_empty() {
+            debug!("IPv6 source address list is empty. Skipping generating the ALLOW rule for this ACL");
+        } else {
+            // prepare ALLOW rule for this ACL
+            let allow_rule = FirewallRule {
+                id: acl.id,
+                source_addrs: ipv6_source_addrs,
+                destination_addrs: ipv6_destination_addrs.clone(),
+                destination_ports,
+                protocols,
+                verdict: i32::from(FirewallPolicy::Allow),
+                comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+                ip_version: i32::from(IpVersion::Ipv6),
+            };
+            debug!("ALLOW rule generated from ACL: {allow_rule:?}");
+            allow_rules.push(allow_rule);
         };
-        debug!("DENY rule generated from ACL: {deny_rule:?}");
-        deny_rules.push(deny_rule)
+
+        // create IPv4 DENY rule
+        // it should specify only the destination addrs to block all remaining traffic
+        if ipv4_destination_addrs.is_empty() {
+            debug!("IPv4 destination address list is empty. Skipping generating the DENY rule for this ACL");
+        } else {
+            let deny_rule = FirewallRule {
+                id: acl.id,
+                source_addrs: Vec::new(),
+                destination_addrs: ipv4_destination_addrs,
+                destination_ports: Vec::new(),
+                protocols: Vec::new(),
+                verdict: i32::from(FirewallPolicy::Deny),
+                comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+                ip_version: i32::from(IpVersion::Ipv4),
+            };
+            debug!("DENY rule generated from ACL: {deny_rule:?}");
+            deny_rules.push(deny_rule);
+        }
+
+        // create IPv6 DENY rule
+        // it should specify only the destination addrs to block all remaining traffic
+        if ipv6_destination_addrs.is_empty() {
+            debug!("IPv6 destination address list is empty. Skipping generating the DENY rule for this ACL");
+        } else {
+            let deny_rule = FirewallRule {
+                id: acl.id,
+                source_addrs: Vec::new(),
+                destination_addrs: ipv6_destination_addrs,
+                destination_ports: Vec::new(),
+                protocols: Vec::new(),
+                verdict: i32::from(FirewallPolicy::Deny),
+                comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+                ip_version: i32::from(IpVersion::Ipv6),
+            };
+            debug!("DENY rule generated from ACL: {deny_rule:?}");
+            deny_rules.push(deny_rule);
+        }
     }
 
     // combine both rule lists
@@ -172,18 +276,18 @@ fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: Vec<User<Id>>) -
 }
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
-// We specifically only fetch user devices since network devices are handled separately.
+/// We specifically only fetch user devices since network devices are handled separately.
 async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
     users: &[User<Id>],
     location_id: Id,
     executor: E,
-) -> Result<Vec<IpAddr>, SqlxError> {
-    // prepeare a list of user IDs
+) -> Result<Vec<Vec<IpAddr>>, SqlxError> {
+    // prepare a list of user IDs
     let user_ids: Vec<Id> = users.iter().map(|user| user.id).collect();
 
     // fetch network IPs
     query_scalar!(
-            "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+            "SELECT wireguard_ip \"wireguard_ip: Vec<IpAddr>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON d.id = wnd.device_id \
             WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
@@ -215,13 +319,13 @@ async fn get_network_device_ips(
     network_devices: &[Device<Id>],
     location_id: Id,
     conn: &mut PgConnection,
-) -> Result<Vec<IpAddr>, SqlxError> {
+) -> Result<Vec<Vec<IpAddr>>, SqlxError> {
     // prepare a list of IDs
     let network_device_ids: Vec<Id> = network_devices.iter().map(|device| device.id).collect();
 
     // fetch network IPs
     query_scalar!(
-        "SELECT wireguard_ip \"wireguard_ip: IpAddr\" \
+        "SELECT wireguard_ip \"wireguard_ip: Vec<IpAddr>\" \
             FROM wireguard_network_device wnd \
             WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
         location_id,
@@ -609,9 +713,7 @@ impl WireguardNetwork<Id> {
         let firewall_rules =
             generate_firewall_rules_from_acls(self.id, ip_version, location_acls, &mut *conn)
                 .await?;
-
         let firewall_config = FirewallConfig {
-            ip_version: ip_version.into(),
             default_policy: default_policy.into(),
             rules: firewall_rules,
         };
