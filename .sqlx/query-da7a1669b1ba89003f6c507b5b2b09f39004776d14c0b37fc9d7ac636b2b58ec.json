@@ -7,7 +7,7 @@
       "Left": [
         "Int8",
         "Int8",
-        "Inet",
+        "InetArray",
         "Bool",
         "Timestamp",
         "Text"

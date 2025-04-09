@@ -21,7 +21,7 @@
       {
         "ordinal": 3,
         "name": "device_wireguard_ip: IpAddr",
-        "type_info": "Inet"
+        "type_info": "InetArray"
       },
       {
         "ordinal": 4,

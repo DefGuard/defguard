@@ -6,7 +6,7 @@
       {
         "ordinal": 0,
         "name": "wireguard_ip: IpAddr",
-        "type_info": "Inet"
+        "type_info": "InetArray"
       }
     ],
     "parameters": {
