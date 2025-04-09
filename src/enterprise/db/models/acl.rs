@@ -127,7 +127,7 @@ impl From<PortRange> for PgRange<i32> {
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
 /// is being sent it will include this rule.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq, Hash)]
 #[sqlx(type_name = "aclrule_state", rename_all = "lowercase")]
 pub enum RuleState {
     #[default]
@@ -1569,43 +1569,56 @@ impl AclAlias {
         debug!("Applying {} ACL aliases: {aliases:?}", aliases.len());
         let mut transaction = appstate.pool.begin().await?;
 
-        // prepare variable for collecting affected locations
-        // let mut affected_locations = HashSet::new();
+        // prepare variable for collecting affected rules
+        // we are unable to use `HashSet` because `PgRange` does not implement `Hash` trait
+        let mut affected_rules = Vec::new();
 
         for id in aliases {
             let alias = AclAlias::find_by_id(&mut *transaction, *id)
                 .await?
                 .ok_or_else(|| AclError::AliasNotFoundError(*id))?;
-            // FIXME: actually deal with affected locatios
-            // let locations = alias.get_networks(&mut *transaction).await?;
-            // for location in locations {
-            //     affected_locations.insert(location);
-            // }
-            alias.apply(&mut transaction).await?;
+            // run `apply` before fetching relations, since they'll get updated
+            alias.clone().apply(&mut transaction).await?;
+
+            // fetch ACL rules which are using this alias
+            let rules = alias.get_rules(&mut *transaction).await?;
+            affected_rules.extend(rules);
         }
         info!("Applied {} ACL aliases: {aliases:?}", aliases.len());
 
-        // let affected_locations: Vec<WireguardNetwork<Id>> =
-        //     affected_locations.into_iter().collect();
-        // debug!(
-        //     "{} locations affected by applied ACL aliases. Sending gateway firewall update events for each location",
-        //     affected_locations.len()
-        // );
-        //
-        // for location in affected_locations {
-        //     match location.try_get_firewall_config(&mut transaction).await? {
-        //         Some(firewall_config) => {
-        //             debug!("Sending firewall update event for location {location}");
-        //             appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-        //                 location.id,
-        //                 firewall_config,
-        //             ));
-        //         }
-        //         None => {
-        //             debug!("No firewall config generated for location {location}. Not sending a gateway event")
-        //         }
-        //     }
-        // }
+        // find locations affected by applying selected aliases
+        let mut affected_locations = HashSet::new();
+        let mut unique_rule_ids = HashSet::new();
+        for rule in affected_rules {
+            if unique_rule_ids.insert(rule.id) {
+                let locations = rule.get_networks(&mut *transaction).await?;
+                for location in locations {
+                    affected_locations.insert(location);
+                }
+            }
+        }
+
+        let affected_locations: Vec<WireguardNetwork<Id>> =
+            affected_locations.into_iter().collect();
+        debug!(
+            "{} locations affected by applied ACL aliases. Sending gateway firewall update events for each location",
+            affected_locations.len()
+        );
+
+        for location in affected_locations {
+            match location.try_get_firewall_config(&mut transaction).await? {
+                Some(firewall_config) => {
+                    debug!("Sending firewall update event for location {location}");
+                    appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                        location.id,
+                        firewall_config,
+                    ));
+                }
+                None => {
+                    debug!("No firewall config generated for location {location}. Not sending a gateway event")
+                }
+            }
+        }
 
         transaction.commit().await?;
         Ok(())
