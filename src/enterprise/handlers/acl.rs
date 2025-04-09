@@ -10,9 +10,9 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{Id, NoId},
+    db::Id,
     enterprise::db::models::acl::{
-        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, Protocol, RuleState,
+        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasState, Protocol, RuleState,
     },
     error::WebError,
     handlers::{ApiResponse, ApiResult},
@@ -124,30 +124,50 @@ impl EditAclRule {
 /// API representation of [`AclAlias`]
 /// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct ApiAclAlias<I = NoId> {
+pub struct ApiAclAlias {
     #[serde(default)]
-    pub id: I,
+    pub id: Id,
+    pub parent_id: Option<Id>,
+    pub name: String,
+    pub state: AliasState,
+    pub destination: String,
+    pub ports: String,
+    pub protocols: Vec<Protocol>,
+    pub rules: Vec<Id>,
+}
+
+impl From<AclAliasInfo<Id>> for ApiAclAlias {
+    fn from(info: AclAliasInfo<Id>) -> Self {
+        Self {
+            destination: info.format_destination(),
+            ports: info.format_ports(),
+            id: info.id,
+            parent_id: info.parent_id,
+            name: info.name,
+            state: info.state,
+            protocols: info.protocols,
+            rules: info.rules.iter().map(|v| v.id).collect(),
+        }
+    }
+}
+
+/// API representation of [`AclAlias`] used in API requests for modification operations
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub struct EditAclAlias {
     pub name: String,
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,
 }
 
-impl<I> From<AclAliasInfo<I>> for ApiAclAlias<I> {
-    fn from(info: AclAliasInfo<I>) -> Self {
-        Self {
-            destination: info.format_destination(),
-            ports: info.format_ports(),
-            id: info.id,
-            name: info.name,
-            protocols: info.protocols,
-        }
-    }
-}
-
 #[derive(Debug, Deserialize)]
 pub struct ApplyAclRulesData {
     rules: Vec<Id>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ApplyAclAliasesData {
+    aliases: Vec<Id>,
 }
 
 pub async fn list_acl_rules(
@@ -281,7 +301,7 @@ pub async fn list_acl_aliases(
 ) -> ApiResult {
     debug!("User {} listing ACL aliases", session.user.username);
     let aliases = AclAlias::all(&appstate.pool).await?;
-    let mut api_aliases: Vec<ApiAclAlias<Id>> = Vec::with_capacity(aliases.len());
+    let mut api_aliases: Vec<ApiAclAlias> = Vec::with_capacity(aliases.len());
     for a in aliases.iter() {
         // TODO: may require optimisation wrt. sql queries
         let info = a.to_info(&appstate.pool).await.map_err(|err| {
@@ -307,7 +327,7 @@ pub async fn get_acl_alias(
     debug!("User {} retrieving ACL alias {id}", session.user.username);
     let (alias, status) = match AclAlias::find_by_id(&appstate.pool, id).await? {
         Some(alias) => (
-            json!(Into::<ApiAclAlias<Id>>::into(
+            json!(Into::<ApiAclAlias>::into(
                 alias.to_info(&appstate.pool).await.map_err(|err| {
                     error!("Error retrieving ACL alias {alias:?}: {err}");
                     err
@@ -330,7 +350,7 @@ pub async fn create_acl_alias(
     _admin: AdminRole,
     State(appstate): State<AppState>,
     session: SessionInfo,
-    Json(data): Json<ApiAclAlias>,
+    Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} creating ACL alias {data:?}", session.user.username);
     let alias = AclAlias::create_from_api(&appstate.pool, &data)
@@ -355,7 +375,7 @@ pub async fn update_acl_alias(
     State(appstate): State<AppState>,
     session: SessionInfo,
     Path(id): Path<Id>,
-    Json(data): Json<ApiAclAlias<Id>>,
+    Json(data): Json<EditAclAlias>,
 ) -> ApiResult {
     debug!("User {} updating ACL alias {data:?}", session.user.username);
     let alias = AclAlias::update_from_api(&appstate.pool, id, &data)
@@ -400,7 +420,7 @@ pub async fn apply_acl_rules(
         "User {} applying ACL rules: {:?}",
         session.user.username, data.rules
     );
-    AclRule::apply_rules(&appstate.pool, &data.rules, &appstate)
+    AclRule::apply_rules(&data.rules, &appstate)
         .await
         .map_err(|err| {
             error!("Error applying ACL rules {data:?}: {err}");
@@ -409,6 +429,30 @@ pub async fn apply_acl_rules(
     info!(
         "User {} applied ACL rules: {:?}",
         session.user.username, data.rules
+    );
+    Ok(ApiResponse::default())
+}
+
+pub async fn apply_acl_aliases(
+    _license: LicenseInfo,
+    _admin: AdminRole,
+    State(appstate): State<AppState>,
+    session: SessionInfo,
+    Json(data): Json<ApplyAclAliasesData>,
+) -> ApiResult {
+    debug!(
+        "User {} applying ACL aliases: {:?}",
+        session.user.username, data.aliases
+    );
+    AclAlias::apply_aliases(&data.aliases, &appstate)
+        .await
+        .map_err(|err| {
+            error!("Error applying ACL aliases {data:?}: {err}");
+            err
+        })?;
+    info!(
+        "User {} applied ACL aliases: {:?}",
+        session.user.username, data.aliases
     );
     Ok(ApiResponse::default())
 }

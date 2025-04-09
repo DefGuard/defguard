@@ -50,10 +50,10 @@ import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
-// type Alias = {
-//   id: number;
-//   name: string;
-// };
+type Alias = {
+  id: number;
+  name: string;
+};
 
 type AclForm = Omit<AclRuleInfo, 'parent_id' | 'state'>;
 
@@ -66,6 +66,8 @@ export const AlcCreatePage = () => {
   const formErrors = LL.form.error;
   const { networks, devices, groups, users, ruleToEdit } = useAclLoadedContext();
   const queryClient = useQueryClient();
+  const aclContext = useAclLoadedContext();
+  const { aliases } = aclContext;
 
   const initialValue = useMemo(() => {
     if (editMode) {
@@ -397,15 +399,15 @@ export const AlcCreatePage = () => {
             >
               <RenderMarkdown content={localLL.infoBox.destinationInstructions()} />
             </MessageBox>
-            {/* <FormDialogSelect
-            controller={{ control, name: 'aliases' }}
-            options={aliases}
-            label="Aliases"
-            identKey="id"
-            renderTagContent={renderAlias}
-            searchKeys={['name']}
-          /> */}
-            {/* <CardHeader title="Manual Input" /> */}
+            <FormDialogSelect
+              controller={{ control, name: 'aliases' }}
+              options={aliases}
+              label="Aliases"
+              identKey="id"
+              renderTagContent={renderAlias}
+              searchKeys={['name']}
+            />
+            <CardHeader title="Manual Input" />
             <FormTextarea
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
@@ -570,14 +572,14 @@ export const AlcCreatePage = () => {
   );
 };
 
-// const CardHeader = ({ title }: { title: string }) => {
-//   return (
-//     <div className="header">
-//       <h3>{title}</h3>
-//       <hr />
-//     </div>
-//   );
-// };
+const CardHeader = ({ title }: { title: string }) => {
+  return (
+    <div className="header">
+      <h3>{title}</h3>
+      <hr />
+    </div>
+  );
+};
 
 const renderNetworkSelectTag = (network: Network) => (
   <>
@@ -604,6 +606,6 @@ const renderUserListItem = (user: User) => (
 
 const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 
-// const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
+const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
 
 const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;

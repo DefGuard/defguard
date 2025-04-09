@@ -112,6 +112,7 @@ export const ListHeader = <T extends object>({
       })}
       id={id}
     >
+      {!selectEnabled && <div className="cell empty"></div>}
       {selectEnabled && (
         <div className="cell select-cell">
           <InteractionBox
