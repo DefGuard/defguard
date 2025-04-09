@@ -1849,7 +1849,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
   networkConfiguration: {
     messages: {
       delete: {
-        success: 'Network delted',
+        success: 'Network deleted',
         error: 'Failed to delete network',
       },
     },
