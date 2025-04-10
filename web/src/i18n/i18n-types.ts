@@ -4406,7 +4406,7 @@ type RootTranslation = {
 		messages: {
 			'delete': {
 				/**
-				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
 				 */
 				success: string
 				/**
@@ -10059,7 +10059,7 @@ export type TranslationFunctions = {
 		messages: {
 			'delete': {
 				/**
-				 * Network delted
+				 * Network deleted
 				 */
 				success: () => LocalizedString
 				/**
