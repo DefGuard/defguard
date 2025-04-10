@@ -42,8 +42,8 @@ jobs:
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
-      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard?max_connections=100"
-      # SQLX_OFFLINE: true
+      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard?max_connections=200"
+      SQLX_OFFLINE: true
 
     steps:
       - name: Checkout
