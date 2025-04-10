@@ -195,7 +195,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: `You've reached the enterprise functionality limit.`,
       message: `You've exceeded the limit of your current Defguard plan and the enterprise
           features will be disabled. Purchase an enterprise license or upgrade your
-          exsiting one to continue using these features.`,
+          existing one to continue using these features.`,
       link: 'See all enterprise plans',
     },
     updatesNotification: {
@@ -1849,7 +1849,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
   networkConfiguration: {
     messages: {
       delete: {
-        success: 'Network delted',
+        success: 'Network deleted',
         error: 'Failed to delete network',
       },
     },
@@ -2211,11 +2211,11 @@ Any other requests you can reach us at: support@defguard.net
     },
     listPage: {
       message: {
-        rulesApply: 'Pending changes applied',
-        rulesApplyFail: 'Failed to apply changes',
         changeDiscarded: 'Change discarded',
         changeAdded: 'Pending change added',
         changeFail: 'Failed to make change',
+        applyChanges: 'Pending changes applied',
+        applyFail: 'Failed to apply changes',
       },
       rules: {
         modals: {
@@ -2281,7 +2281,75 @@ Any other requests you can reach us at: support@defguard.net
           },
         },
       },
-      aliases: {},
+      aliases: {
+        message: {
+          rulesApply: 'Pending changes applied',
+          rulesApplyFail: 'Failed to apply changes',
+          aliasDeleted: 'Alias deleted',
+          aliasDeleteFail: 'Alias deletion failed',
+        },
+        modals: {
+          deleteBlock: {
+            title: 'Deletion blocked',
+            //md
+            content: `
+Alias is used in {rulesCount: number} rules and cannot be deleted.
+`,
+          },
+          filterGroupsModal: {
+            groupLabels: {
+              rules: 'Rules',
+              status: 'Status',
+            },
+          },
+        },
+        listControls: {
+          searchPlaceholder: 'Find name',
+          addNew: 'Add new',
+          filter: {
+            nothingApplied: 'Filter',
+            applied: 'Filters ({count: number})',
+          },
+          apply: {
+            noChanges: 'Deploy pending changes',
+            all: 'Deploy pending changes ({count: number})',
+            selective: 'Deploy selected changes ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Pending Changes',
+            noData: 'No pending changes',
+            noDataSearch: 'No pending changes found',
+          },
+          deployedList: {
+            title: 'Deployed Rules',
+            noData: 'No deployed rules',
+            noDataSearch: 'No deployed rules found',
+          },
+          headers: {
+            id: 'ID',
+            name: 'Alias name',
+            ip: 'Ipv4/6 CIDR range address',
+            ports: 'Ports',
+            protocols: 'Protocols',
+            status: 'Status',
+            edit: 'Edit',
+          },
+          status: {
+            applied: 'Applied',
+            changed: 'Modified',
+          },
+          tags: {
+            allDenied: 'All denied',
+            allAllowed: 'All allowed',
+          },
+          editMenu: {
+            discardChanges: 'Discard changes',
+            delete: 'Delete alias',
+          },
+        },
+      },
     },
     createPage: {
       formError: {

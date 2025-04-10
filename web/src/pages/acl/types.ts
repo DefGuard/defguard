@@ -27,12 +27,14 @@ export type AclCreateContextLoaded = {
 export type AclAlias = {
   id: number;
   name: string;
+  state: AclAliasStatus;
   destination: string;
   ports: string;
   protocols: AclProtocol[];
+  rules: number[];
 };
 
-export type AclAliasPost = Omit<AclAlias, 'id'>;
+export type AclAliasPost = Omit<AclAlias, 'id' | 'rules' | 'state'>;
 
 export enum AclProtocol {
   TCP = 6,
@@ -45,4 +47,9 @@ export enum AclStatus {
   APPLIED = 'Applied',
   MODIFIED = 'Modified',
   DELETED = 'Deleted',
+}
+
+export enum AclAliasStatus {
+  APPLIED = AclStatus.APPLIED,
+  MODIFIED = AclStatus.MODIFIED,
 }

@@ -25,12 +25,12 @@ export const AclIndexPage = () => {
       content: <p>Rules</p>,
       onClick: () => setActiveTab(AclTab.RULES),
     },
-    // {
-    //   key: AclTab.ALIASES,
-    //   active: activeTab === AclTab.ALIASES,
-    //   content: <p>Aliases</p>,
-    //   onClick: () => setActiveTab(AclTab.ALIASES),
-    // },
+    {
+      key: AclTab.ALIASES,
+      active: activeTab === AclTab.ALIASES,
+      content: <p>Aliases</p>,
+      onClick: () => setActiveTab(AclTab.ALIASES),
+    },
   ];
 
   const tabRender = useMemo(() => {

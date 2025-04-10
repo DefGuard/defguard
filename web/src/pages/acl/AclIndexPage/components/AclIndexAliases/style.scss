@@ -1,38 +1,49 @@
-#acl-aliases {
-}
-
 @mixin list-row {
   display: inline-grid;
   grid-template-rows: 1fr;
-  grid-template-columns: 200px repeat(3, 350px) 60px;
   column-gap: var(--spacing-s);
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
   padding: 0 15px;
 
-  .cell {
-    display: flex;
-    flex-flow: row nowrap;
+  grid-template-columns: 40px 200px repeat(3, 250px) 100px 60px;
 
-    p,
-    span {
-      text-wrap: nowrap;
-    }
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 40px 0.5fr repeat(3, 0.75fr) 100px 60px;
+  }
+
+  .cell {
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
 
     &:last-child {
       justify-content: center;
     }
   }
+
+  .select-cell {
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+
+    & > .interaction-box {
+      width: 18px;
+      height: 18px;
+    }
+  }
 }
 
-#aliases-list {
+.aliases-list {
   .list-headers {
     @include list-row;
     padding-bottom: var(--spacing-xs);
   }
 
-  & > ul {
+  ul {
     list-style: none;
     display: flex;
     flex-flow: column;
@@ -46,7 +57,7 @@
       @include typography(app-modal-2);
 
       .cell {
-        &:first-child {
+        &.name {
           @include typography(app-modal-1);
         }
       }

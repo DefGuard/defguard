@@ -474,7 +474,7 @@ type RootTranslation = {
 			/**
 			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​i​s​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
 			 */
 			message: string
 			/**
@@ -4406,7 +4406,7 @@ type RootTranslation = {
 		messages: {
 			'delete': {
 				/**
-				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
 				 */
 				success: string
 				/**
@@ -5213,14 +5213,6 @@ type RootTranslation = {
 		listPage: {
 			message: {
 				/**
-				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-				 */
-				rulesApply: string
-				/**
-				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-				 */
-				rulesApplyFail: string
-				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
 				 */
 				changeDiscarded: string
@@ -5232,6 +5224,14 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
 				 */
 				changeFail: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				applyChanges: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				applyFail: string
 			}
 			rules: {
 				modals: {
@@ -5409,6 +5409,178 @@ type RootTranslation = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+					 */
+					rulesApply: string
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+					 */
+					rulesApplyFail: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​e​d
+					 */
+					aliasDeleted: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
+					 */
+					aliasDeleteFail: string
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
+						 */
+						title: string
+						/**
+						 * 
+					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+				
+						 * @param {number} rulesCount
+						 */
+						content: RequiredParams<'rulesCount'>
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * R​u​l​e​s
+							 */
+							rules: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * A​l​i​a​s​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 */
+						ip: string
+						/**
+						 * P​o​r​t​s
+						 */
+						ports: string
+						/**
+						 * P​r​o​t​o​c​o​l​s
+						 */
+						protocols: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+					status: {
+						/**
+						 * A​p​p​l​i​e​d
+						 */
+						applied: string
+						/**
+						 * M​o​d​i​f​i​e​d
+						 */
+						changed: string
+					}
+					tags: {
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
+						 */
+						discardChanges: string
+						/**
+						 * D​e​l​e​t​e​ ​a​l​i​a​s
+						 */
+						'delete': string
+					}
+				}
 			}
 		}
 		createPage: {
@@ -5992,7 +6164,7 @@ export type TranslationFunctions = {
 			/**
 			 * You've exceeded the limit of your current Defguard plan and the enterprise
 		          features will be disabled. Purchase an enterprise license or upgrade your
-		          exsiting one to continue using these features.
+		          existing one to continue using these features.
 			 */
 			message: () => LocalizedString
 			/**
@@ -9887,7 +10059,7 @@ export type TranslationFunctions = {
 		messages: {
 			'delete': {
 				/**
-				 * Network delted
+				 * Network deleted
 				 */
 				success: () => LocalizedString
 				/**
@@ -10690,14 +10862,6 @@ export type TranslationFunctions = {
 		listPage: {
 			message: {
 				/**
-				 * Pending changes applied
-				 */
-				rulesApply: () => LocalizedString
-				/**
-				 * Failed to apply changes
-				 */
-				rulesApplyFail: () => LocalizedString
-				/**
 				 * Change discarded
 				 */
 				changeDiscarded: () => LocalizedString
@@ -10709,6 +10873,14 @@ export type TranslationFunctions = {
 				 * Failed to make change
 				 */
 				changeFail: () => LocalizedString
+				/**
+				 * Pending changes applied
+				 */
+				applyChanges: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				applyFail: () => LocalizedString
 			}
 			rules: {
 				modals: {
@@ -10883,6 +11055,174 @@ export type TranslationFunctions = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * Pending changes applied
+					 */
+					rulesApply: () => LocalizedString
+					/**
+					 * Failed to apply changes
+					 */
+					rulesApplyFail: () => LocalizedString
+					/**
+					 * Alias deleted
+					 */
+					aliasDeleted: () => LocalizedString
+					/**
+					 * Alias deletion failed
+					 */
+					aliasDeleteFail: () => LocalizedString
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * Deletion blocked
+						 */
+						title: () => LocalizedString
+						/**
+						 * 
+					Alias is used in {rulesCount} rules and cannot be deleted.
+				
+						 */
+						content: (arg: { rulesCount: number }) => LocalizedString
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * Rules
+							 */
+							rules: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Rules
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed rules
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed rules found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Alias name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Ipv4/6 CIDR range address
+						 */
+						ip: () => LocalizedString
+						/**
+						 * Ports
+						 */
+						ports: () => LocalizedString
+						/**
+						 * Protocols
+						 */
+						protocols: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+					status: {
+						/**
+						 * Applied
+						 */
+						applied: () => LocalizedString
+						/**
+						 * Modified
+						 */
+						changed: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard changes
+						 */
+						discardChanges: () => LocalizedString
+						/**
+						 * Delete alias
+						 */
+						'delete': () => LocalizedString
+					}
+				}
 			}
 		}
 		createPage: {

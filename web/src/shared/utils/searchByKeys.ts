@@ -1,4 +1,4 @@
-import { compareTwoStrings } from 'string-similarity';
+import { diceCoefficient } from 'dice-coefficient';
 // Search in object by multiple keys, this assumes that value under given keys is a string
 export const searchByKeys = <T extends object>(
   obj: T,
@@ -15,7 +15,7 @@ export const searchByKeys = <T extends object>(
     const val = obj[key] as string;
     const loweredValue = val.toLowerCase();
     const loweredSearch = searchValue.toLowerCase();
-    const score = compareTwoStrings(loweredValue, loweredSearch);
+    const score = diceCoefficient(loweredValue, loweredSearch);
     const includes = loweredValue.includes(loweredSearch);
     if (score >= 0.6 || includes) {
       return true;

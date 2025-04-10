@@ -1,6 +1,6 @@
 services:
   core:
-    image: ghcr.io/defguard/defguard:latest
+    image: ghcr.io/defguard/defguard:test_firewall_disable
     build:
       context: .
       dockerfile: Dockerfile

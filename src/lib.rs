@@ -14,9 +14,9 @@ use axum::{
 use db::models::device::DeviceType;
 use enterprise::handlers::{
     acl::{
-        apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias, delete_acl_rule,
-        get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules, update_acl_alias,
-        update_acl_rule,
+        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
+        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
+        update_acl_alias, update_acl_rule,
     },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
@@ -495,7 +495,8 @@ pub fn build_webapp(
             .route("/alias", post(create_acl_alias))
             .route("/alias/{id}", get(get_acl_alias))
             .route("/alias/{id}", put(update_acl_alias))
-            .route("/alias/{id}", delete(delete_acl_alias)),
+            .route("/alias/{id}", delete(delete_acl_alias))
+            .route("/alias/apply", put(apply_acl_aliases)),
     );
 
     #[cfg(feature = "wireguard")]
