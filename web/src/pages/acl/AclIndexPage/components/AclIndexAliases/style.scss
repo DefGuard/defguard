@@ -5,7 +5,6 @@
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
-  padding: 0 15px;
 
   grid-template-columns: 40px 200px repeat(3, 250px) 100px 60px;
 
@@ -52,7 +51,7 @@
     & > li {
       @include list-row;
       box-sizing: border-box;
-      padding: 9px 15px;
+      padding: 9px 0px;
 
       @include typography(app-modal-2);
 
