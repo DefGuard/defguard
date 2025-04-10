@@ -36,7 +36,7 @@ import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
 import { DividerHeader } from '../shared/DividerHeader';
-import { RenderTagDisplay } from '../shared/RenderTagDisplay';
+import { RenderTagDisplay } from '../shared/RenderTagDisplay/RenderTagDisplay';
 import { ListTagDisplay } from '../shared/types';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 
@@ -543,6 +543,7 @@ const RulesList = ({
                     selectable: selectionEnabled,
                   })}
                 >
+                  {!selectionEnabled && <div className="cell empty-cell"></div>}
                   {selectionEnabled && (
                     <div className="cell select-cell">
                       <InteractionBox
