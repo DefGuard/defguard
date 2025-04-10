@@ -4,8 +4,9 @@
   flex-flow: column;
   row-gap: var(--spacing-xs);
   max-height: 250px;
-  overflow-x: none;
-  overflow-y: auto;
+  max-width: 100dvh;
+  min-height: 35px;
+  overflow: auto;
   padding-right: var(--spacing-xs);
   min-width: 201px;
 
