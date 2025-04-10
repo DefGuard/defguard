@@ -5209,6 +5209,10 @@ type RootTranslation = {
 			 * D​i​s​a​b​l​e​d
 			 */
 			disabled: string
+			/**
+			 * E​x​p​i​r​e​d
+			 */
+			expired: string
 		}
 		listPage: {
 			message: {
@@ -10858,6 +10862,10 @@ export type TranslationFunctions = {
 			 * Disabled
 			 */
 			disabled: () => LocalizedString
+			/**
+			 * Expired
+			 */
+			expired: () => LocalizedString
 		}
 		listPage: {
 			message: {
