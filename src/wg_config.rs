@@ -20,6 +20,7 @@ pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
     pub wireguard_pubkey: String,
+    // TODO(jck)
     pub wireguard_ip: IpAddr,
 }
 

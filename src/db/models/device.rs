@@ -208,7 +208,7 @@ impl UserDevice {
                 ORDER BY network, collected_at DESC \
             ) \
             SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-            wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
+            wnd.wireguard_ip \"device_wireguard_ip: Vec<IpAddr>\", stats.endpoint device_endpoint, \
             stats.latest_handshake \"latest_handshake?\", \
             COALESCE((NOW() - stats.latest_handshake) < $1, FALSE) \"is_active!\" \
             FROM wireguard_network_device wnd \
@@ -238,7 +238,7 @@ impl UserDevice {
                     network_id: r.network_id,
                     network_name: r.network_name,
                     network_gateway_ip: r.gateway_endpoint,
-                    device_wireguard_ip: r.device_wireguard_ip.to_string(),
+                    device_wireguard_ip: r.device_wireguard_ip.comma_separated(),
                     last_connected_ip: device_ip,
                     last_connected_location: None,
                     last_connected_at: r.latest_handshake,

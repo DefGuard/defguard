@@ -36,11 +36,10 @@ pub enum FirewallError {
 /// end. This way we can avoid conflicts when some ACLs are overlapping.
 pub async fn generate_firewall_rules_from_acls(
     location_id: Id,
-    ip_version: IpVersion,
     acl_rules: Vec<AclRuleInfo<Id>>,
     conn: &mut PgConnection,
 ) -> Result<Vec<FirewallRule>, FirewallError> {
-    debug!("Generating firewall rules for location {location_id} with IP version {ip_version:?}");
+    debug!("Generating firewall rules for location {location_id}");
     // initialize empty rules Vec
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
@@ -651,6 +650,7 @@ impl WireguardNetwork<Id> {
     pub(crate) async fn get_active_acl_rules(
         &self,
         conn: &mut PgConnection,
+        // TODO(jck) maybe flatten here already?
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
         let rules: Vec<AclRule<Id>> = query_as(
@@ -703,15 +703,12 @@ impl WireguardNetwork<Id> {
         // fetch all active ACLs for location
         let location_acls = self.get_active_acl_rules(&mut *conn).await?;
 
-        // determine IP version based on location subnet
-        let ip_version = self.get_ip_version();
-
         let default_policy = match self.acl_default_allow {
             true => FirewallPolicy::Allow,
             false => FirewallPolicy::Deny,
         };
         let firewall_rules =
-            generate_firewall_rules_from_acls(self.id, ip_version, location_acls, &mut *conn)
+            generate_firewall_rules_from_acls(self.id, location_acls, &mut *conn)
                 .await?;
         let firewall_config = FirewallConfig {
             default_policy: default_policy.into(),
@@ -722,22 +719,6 @@ impl WireguardNetwork<Id> {
         Ok(Some(firewall_config))
     }
 
-    fn get_ip_version(&self) -> IpVersion {
-        // get the subnet from which device IPs are being assigned
-        // by default only the first configured subnet is being used
-        let vpn_subnet = self
-            .address
-            .first()
-            .expect("WireguardNetwork must have an address");
-
-        let ip_version = match vpn_subnet {
-            IpNetwork::V4(_ipv4_network) => IpVersion::Ipv4,
-            IpNetwork::V6(_ipv6_network) => IpVersion::Ipv6,
-        };
-        debug!("VPN subnet {vpn_subnet:?} for location {self} has IP version {ip_version:?}");
-
-        ip_version
-    }
 }
 
 #[cfg(test)]
@@ -1831,10 +1812,6 @@ mod test {
         assert_eq!(
             generated_firewall_config.default_policy,
             i32::from(FirewallPolicy::Allow)
-        );
-        assert_eq!(
-            generated_firewall_config.ip_version,
-            i32::from(IpVersion::Ipv4)
         );
 
         let generated_firewall_rules = generated_firewall_config.rules;
