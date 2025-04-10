@@ -42,7 +42,7 @@ jobs:
       DEFGUARD_DB_NAME: defguard
       DEFGUARD_DB_USER: defguard
       DEFGUARD_DB_PASSWORD: defguard
-      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard?max_connections=200"
+      DATABASE_URL: "postgresql://defguard:defguard@postgres/defguard"
       SQLX_OFFLINE: true
 
     steps:
@@ -54,15 +54,15 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Install protoc
         run: apt-get update && apt-get -y install protobuf-compiler
-      # - name: Check format
-      #   run: |
-      #     rustup component add rustfmt
-      #     cargo fmt -- --check
-      # - name: Run clippy linter
-      #   run: |
-      #     rustup component add clippy
-      #     cargo clippy --all-targets --all-features -- -D warnings
-      # - name: Run cargo deny
-      #   uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Check format
+        run: |
+          rustup component add rustfmt
+          cargo fmt -- --check
+      - name: Run clippy linter
+        run: |
+          rustup component add clippy
+          cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run cargo deny
+        uses: EmbarkStudios/cargo-deny-action@v2
       - name: Run tests
         run: cargo test --locked --no-fail-fast
