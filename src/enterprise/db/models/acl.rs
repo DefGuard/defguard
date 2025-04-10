@@ -339,6 +339,7 @@ impl AclRule {
                 // update the not-yet applied modification itself
                 let mut rule = rule.with_id(id);
                 rule.parent_id = existing_rule.parent_id;
+                rule.state = existing_rule.state;
                 rule.save(&mut *transaction).await?;
 
                 // recreate related objects
