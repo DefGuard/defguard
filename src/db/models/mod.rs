@@ -74,6 +74,7 @@ pub struct UserInfo {
     pub is_active: bool,
     pub enrolled: bool,
     pub is_admin: bool,
+    pub ldap_pass_requires_change: bool,
 }
 
 #[derive(Debug, Default)]
@@ -109,6 +110,7 @@ impl UserInfo {
             is_active: user.is_active,
             enrolled: user.is_enrolled(),
             is_admin: user.is_admin(pool).await?,
+            ldap_pass_requires_change: user.ldap_pass_randomized,
         })
     }
 

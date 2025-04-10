@@ -14,7 +14,7 @@ import {
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 
-export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
+export const OpenIdProviderSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
   const localLL = LL.settingsPage.openIdSettings;
   const { control, setValue } = useFormContext();
@@ -107,11 +107,11 @@ export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
   );
 
   return (
-    <section id="openid-settings">
-      <header>
-        <h2>{localLL.form.title()}</h2>
+    <div id="provider-settings">
+      <div className="subsection-header helper-row">
+        <h3>{localLL.form.title()}</h3>
         <Helper>{parse(localLL.form.helper())}</Helper>
-      </header>
+      </div>
       <FormSelect
         controller={{
           control,
@@ -153,15 +153,6 @@ export const OpenIdSettingsForm = ({ isLoading }: { isLoading: boolean }) => {
         labelExtras={<Helper>{parse(localLL.form.labels.display_name.helper())}</Helper>}
         disabled={isLoading || providerName !== 'Custom'}
       />
-      <a
-        href={
-          'https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers'
-        }
-        target="_blank"
-        rel="noreferrer"
-      >
-        {localLL.form.documentation()}
-      </a>
-    </section>
+    </div>
   );
 };

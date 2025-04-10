@@ -6,7 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
-import { AclAlias, AclAliasPost, AclStatus } from '../pages/acl/types';
+import { AclAlias, AclStatus } from '../pages/acl/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -50,6 +50,7 @@ export type User = {
   is_active: boolean;
   enrolled: boolean;
   is_admin: boolean;
+  ldap_pass_requires_change: boolean;
 };
 
 export type UserProfile = {
@@ -337,11 +338,17 @@ export interface MappedDevice extends ImportedDevice {
   user_id: number;
 }
 
+export interface LdapInfo {
+  enabled: boolean;
+  ad: boolean;
+}
+
 export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
   license_info: LicenseInfo;
+  ldap_info: LdapInfo;
 }
 
 export type GetDeviceConfigRequest = {
@@ -459,6 +466,13 @@ export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires' | 'state' | 'parent
   expires: string | null;
 };
 
+export type CreateAclAliasRequest = Omit<
+  AclAlias,
+  'id' | 'state' | 'parent_id' | 'rules'
+>;
+
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'parent_id' | 'rules'>;
+
 export type AclRuleInfo = {
   id: number;
   parent_id?: number;
@@ -493,9 +507,10 @@ export interface ApiHook {
     aliases: {
       getAliases: () => Promise<AclAlias[]>;
       getAlias: (id: number) => Promise<AclAlias>;
-      createAlias: (data: AclAliasPost) => Promise<EmptyApiResponse>;
-      editAlias: (data: AclAlias) => Promise<EmptyApiResponse>;
+      createAlias: (data: CreateAclAliasRequest) => Promise<EmptyApiResponse>;
+      editAlias: (data: EditAclAliasRequest) => Promise<EmptyApiResponse>;
       deleteAlias: (id: number) => Promise<EmptyApiResponse>;
+      applyAliases: (aliases: number[]) => Promise<EmptyApiResponse>;
     };
     rules: {
       getRule: (id: number) => Promise<AclRuleInfo>;

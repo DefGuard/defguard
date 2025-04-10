@@ -5,7 +5,7 @@ import parse from 'html-react-parser';
 import { useI18nContext } from '../../../../i18n/i18n-react';
 import { BigInfoBox } from '../../../../shared/defguard-ui/components/Layout/BigInfoBox/BigInfoBox';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
-import { OpenIdSettingsRootForm } from './components/OpenIdSettingsRootForm';
+import { OpenIdSettingsForm } from './components/OpenIdSettingsForm';
 
 export const OpenIdSettings = () => {
   const { LL } = useI18nContext();
@@ -22,7 +22,9 @@ export const OpenIdSettings = () => {
           />
         </div>
       )}
-      <OpenIdSettingsRootForm />
+      <section id="openid-settings">
+        <OpenIdSettingsForm />
+      </section>
     </>
   );
 };

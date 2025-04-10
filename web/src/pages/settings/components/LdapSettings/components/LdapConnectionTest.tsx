@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
-import IconCheckmarkWhite from '../../../../../shared/components/svg/IconCheckmarkWhite';
 import { Button } from '../../../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -30,20 +29,16 @@ export const LdapConnectionTest = () => {
   });
 
   return (
-    <section id="ldap-connection-test">
-      <header>
-        <h2>{localLL.title()}</h2>
-        <Button
-          size={ButtonSize.SMALL}
-          styleVariant={ButtonStyleVariant.SAVE}
-          text={localLL.submit()}
-          icon={<IconCheckmarkWhite />}
-          loading={isLoading}
-          onClick={() => {
-            mutate();
-          }}
-        />
-      </header>
-    </section>
+    <Button
+      size={ButtonSize.SMALL}
+      styleVariant={ButtonStyleVariant.LINK}
+      // text={localLL.submit()}
+      text="Test LDAP connection"
+      // icon={<SvgIconCheckmark />}
+      loading={isLoading}
+      onClick={() => {
+        mutate();
+      }}
+    />
   );
 };

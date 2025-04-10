@@ -29,6 +29,8 @@ import { SettingsSMTP } from '../../../../../../shared/types';
 import { invalidateMultipleQueries } from '../../../../../../shared/utils/invalidateMultipleQueries';
 import { validateIpOrDomain } from '../../../../../../shared/validators';
 import { useSettingsPage } from '../../../../hooks/useSettingsPage';
+import { SmtpTestModal } from '../SmtpTest/SmtpTestModal';
+import { useSmtpTestModal } from '../SmtpTest/useSmtpTestModal';
 
 type FormFields = {
   smtp_server: string;
@@ -44,6 +46,7 @@ export const SmtpSettingsForm = () => {
   const localLL = LL.settingsPage.smtp;
 
   const settings = useSettingsPage((state) => state.settings);
+  const openSmtpTest = useSmtpTestModal((state) => state.open);
 
   const toaster = useToaster();
 
@@ -170,18 +173,21 @@ export const SmtpSettingsForm = () => {
 
   return (
     <section id="smtp-settings">
+      <SmtpTestModal />
       <header>
-        <h2>{localLL.form.title()}</h2>
-        <Helper>{parse(localLL.helper())}</Helper>
+        <div className="helper-row">
+          <h2>{localLL.form.title()}</h2>
+          <Helper>{localLL.helper()}</Helper>
+        </div>
         <div className="controls">
           <Button
-            form="smtp-form"
-            text={localLL.form.controls.submit()}
-            icon={<IconCheckmarkWhite />}
+            text={localLL.testForm.title()}
             size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.SAVE}
+            styleVariant={ButtonStyleVariant.LINK}
             loading={isLoading}
-            type="submit"
+            onClick={() => {
+              openSmtpTest();
+            }}
           />
           <Button
             text={localLL.delete()}
@@ -192,47 +198,63 @@ export const SmtpSettingsForm = () => {
               handleDeleteSubmit();
             }}
           />
+          <Button
+            form="smtp-form"
+            text={localLL.form.controls.submit()}
+            icon={<IconCheckmarkWhite />}
+            size={ButtonSize.SMALL}
+            styleVariant={ButtonStyleVariant.SAVE}
+            loading={isLoading}
+            type="submit"
+          />
         </div>
       </header>
-      <form id="smtp-form" onSubmit={handleSubmit(onSubmit)}>
-        <FormInput
-          label={localLL.form.fields.server.label()}
-          controller={{ control, name: 'smtp_server' }}
-          placeholder={localLL.form.fields.server.placeholder()}
-          required
-        />
-        <FormInput
-          label={localLL.form.fields.port.label()}
-          controller={{ control, name: 'smtp_port' }}
-          placeholder={localLL.form.fields.port.placeholder()}
-          type="number"
-          required
-        />
-        <FormInput
-          label={localLL.form.fields.user.label()}
-          controller={{ control, name: 'smtp_user' }}
-          placeholder={localLL.form.fields.user.placeholder()}
-        />
-        <FormInput
-          label={localLL.form.fields.password.label()}
-          controller={{ control, name: 'smtp_password' }}
-          placeholder={localLL.form.fields.password.placeholder()}
-          type="password"
-        />
-        <FormInput
-          labelExtras={<Helper>{parse(localLL.form.fields.sender.helper())}</Helper>}
-          label={localLL.form.fields.sender.label()}
-          controller={{ control, name: 'smtp_sender' }}
-          placeholder={localLL.form.fields.sender.placeholder()}
-          required
-        />
-        <FormSelect
-          data-testid="smtp-encryption-select"
-          label={localLL.form.fields.encryption.label()}
-          renderSelected={renderSelectedEncryption}
-          options={encryptionOptions}
-          controller={{ control, name: 'smtp_encryption' }}
-        />
+      <form id="smtp-form" onSubmit={handleSubmit(onSubmit)} className="column-layout">
+        <div className="left">
+          <div>
+            <div className="subsection-header helper-row">
+              <h3>{localLL.form.sections.server()}</h3>
+            </div>
+            <FormInput
+              label={localLL.form.fields.server.label()}
+              controller={{ control, name: 'smtp_server' }}
+              placeholder={localLL.form.fields.server.placeholder()}
+              required
+            />
+            <FormInput
+              label={localLL.form.fields.port.label()}
+              controller={{ control, name: 'smtp_port' }}
+              placeholder={localLL.form.fields.port.placeholder()}
+              type="number"
+              required
+            />
+            <FormInput
+              label={localLL.form.fields.user.label()}
+              controller={{ control, name: 'smtp_user' }}
+              placeholder={localLL.form.fields.user.placeholder()}
+            />
+            <FormInput
+              label={localLL.form.fields.password.label()}
+              controller={{ control, name: 'smtp_password' }}
+              placeholder={localLL.form.fields.password.placeholder()}
+              type="password"
+            />
+            <FormInput
+              labelExtras={<Helper>{parse(localLL.form.fields.sender.helper())}</Helper>}
+              label={localLL.form.fields.sender.label()}
+              controller={{ control, name: 'smtp_sender' }}
+              placeholder={localLL.form.fields.sender.placeholder()}
+              required
+            />
+            <FormSelect
+              data-testid="smtp-encryption-select"
+              label={localLL.form.fields.encryption.label()}
+              renderSelected={renderSelectedEncryption}
+              options={encryptionOptions}
+              controller={{ control, name: 'smtp_encryption' }}
+            />
+          </div>
+        </div>
       </form>
     </section>
   );

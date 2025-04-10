@@ -103,39 +103,40 @@ pub async fn generate_firewall_rules_from_acls(
 
         // extract destination parameters from ACL rule
         let AclRuleInfo {
+            id,
             destination,
             destination_ranges,
-            mut ports,
+            ports,
             mut protocols,
             aliases,
             ..
         } = acl;
 
-        // separate IPv4 and IPv6 destination addresses
-        let destination = destination
-            .iter()
-            .fold((Vec::new(), Vec::new()), |mut acc, ip| {
-                match ip {
-                    IpNetwork::V4(_) => acc.0.push(*ip),
-                    IpNetwork::V6(_) => acc.1.push(*ip),
-                };
-                acc
-            });
-        let destination_ranges =
-            destination_ranges
-                .iter()
-                .fold((Vec::new(), Vec::new()), |mut acc, range| {
-                    // TODO(jck) make sure ranges only accept the same IP versions
-                    match range.start {
-                        IpAddr::V4(_) => acc.0.push(range.clone()),
-                        IpAddr::V6(_) => acc.1.push(range.clone()),
-                    };
-                    acc
-                });
+        // // separate IPv4 and IPv6 destination addresses
+        // let destination = destination
+        //     .iter()
+        //     .fold((Vec::new(), Vec::new()), |mut acc, ip| {
+        //         match ip {
+        //             IpNetwork::V4(_) => acc.0.push(*ip),
+        //             IpNetwork::V6(_) => acc.1.push(*ip),
+        //         };
+        //         acc
+        //     });
+        // let destination_ranges =
+        //     destination_ranges
+        //         .iter()
+        //         .fold((Vec::new(), Vec::new()), |mut acc, range| {
+        //             // TODO(jck) make sure ranges only accept the same IP versions
+        //             match range.start {
+        //                 IpAddr::V4(_) => acc.0.push(range.clone()),
+        //                 IpAddr::V6(_) => acc.1.push(range.clone()),
+        //             };
+        //             acc
+        //         });
 
         // TODO(jck): handle aliases with separate alias.destination for IPv4 and IPv6
         // store alias ranges separately since they use a different struct
-        let mut alias_destination_ranges = Vec::new();
+        // let mut alias_destination_ranges = Vec::new();
         // // process aliases by appending destination parameters from each of them to existing lists
         // for alias in aliases {
         //     // fetch destination ranges for a fiven alias
@@ -154,27 +155,22 @@ pub async fn generate_firewall_rules_from_acls(
         // }
 
         // prepare destination addresses
-        let ipv4_destination_addrs = process_destination_addrs(
-            destination.0,
-            destination_ranges.0,
-            // TODO(jck) ipv4 only
-            alias_destination_ranges.clone(),
-            IpVersion::Ipv4,
+        let destination_addrs = process_destination_addrs(
+            destination,
+            destination_ranges,
         );
 
-        let ipv6_destination_addrs = process_destination_addrs(
-            destination.1,
-            destination_ranges.1,
-            // TODO(jck) ipv6 only
-            alias_destination_ranges,
-            IpVersion::Ipv6,
-        );
+        // let ipv6_destination_addrs = process_destination_addrs(
+        //     destination.1,
+        //     destination_ranges.1,
+        //     IpVersion::Ipv6,
+        // );
 
         // prepare destination ports
         // TODO(jck) what should happen to ports when we have separate rules for ipv4 and ipv6?
         let destination_ports = merge_port_ranges(ports);
 
-        // remove duplicates protocol entries
+        // remove duplicate protocol entries
         protocols.sort();
         protocols.dedup();
 
@@ -186,8 +182,8 @@ pub async fn generate_firewall_rules_from_acls(
             // prepare ALLOW rule for this ACL
             let allow_rule = FirewallRule {
                 id: acl.id,
-                source_addrs: ipv4_source_addrs,
-                destination_addrs: ipv4_destination_addrs.clone(),
+                source_addrs: ipv4_source_addrs.clone(),
+                destination_addrs: destination_addrs.0.clone(),
                 destination_ports: destination_ports.clone(),
                 protocols: protocols.clone(),
                 verdict: i32::from(FirewallPolicy::Allow),
@@ -198,6 +194,21 @@ pub async fn generate_firewall_rules_from_acls(
             allow_rules.push(allow_rule);
         };
 
+        // create IPv4 DENY rule
+        // it should specify only the destination addrs to block all remaining traffic
+        let deny_rule = FirewallRule {
+            id: acl.id,
+            source_addrs: Vec::new(),
+            destination_addrs: destination_addrs.0,
+            destination_ports: Vec::new(),
+            protocols: Vec::new(),
+            verdict: i32::from(FirewallPolicy::Deny),
+            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+            ip_version: i32::from(IpVersion::Ipv4),
+        };
+        debug!("DENY rule generated from ACL: {deny_rule:?}");
+        deny_rules.push(deny_rule);
+
         // create IPv6 ALLOW rule
         // check if source addrs list is empty
         if ipv6_source_addrs.is_empty() {
@@ -206,8 +217,8 @@ pub async fn generate_firewall_rules_from_acls(
             // prepare ALLOW rule for this ACL
             let allow_rule = FirewallRule {
                 id: acl.id,
-                source_addrs: ipv6_source_addrs,
-                destination_addrs: ipv6_destination_addrs.clone(),
+                source_addrs: ipv6_source_addrs.clone(),
+                destination_addrs: destination_addrs.1.clone(),
                 destination_ports,
                 protocols,
                 verdict: i32::from(FirewallPolicy::Allow),
@@ -218,42 +229,147 @@ pub async fn generate_firewall_rules_from_acls(
             allow_rules.push(allow_rule);
         };
 
-        // create IPv4 DENY rule
-        // it should specify only the destination addrs to block all remaining traffic
-        if ipv4_destination_addrs.is_empty() {
-            debug!("IPv4 destination address list is empty. Skipping generating the DENY rule for this ACL");
-        } else {
-            let deny_rule = FirewallRule {
-                id: acl.id,
-                source_addrs: Vec::new(),
-                destination_addrs: ipv4_destination_addrs,
-                destination_ports: Vec::new(),
-                protocols: Vec::new(),
-                verdict: i32::from(FirewallPolicy::Deny),
-                comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
-                ip_version: i32::from(IpVersion::Ipv4),
-            };
-            debug!("DENY rule generated from ACL: {deny_rule:?}");
-            deny_rules.push(deny_rule);
-        }
-
         // create IPv6 DENY rule
         // it should specify only the destination addrs to block all remaining traffic
-        if ipv6_destination_addrs.is_empty() {
-            debug!("IPv6 destination address list is empty. Skipping generating the DENY rule for this ACL");
-        } else {
-            let deny_rule = FirewallRule {
+        let deny_rule = FirewallRule {
+            id: acl.id,
+            source_addrs: Vec::new(),
+            destination_addrs: destination_addrs.1,
+            destination_ports: Vec::new(),
+            protocols: Vec::new(),
+            verdict: i32::from(FirewallPolicy::Deny),
+            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+            ip_version: i32::from(IpVersion::Ipv6),
+        };
+        debug!("DENY rule generated from ACL: {deny_rule:?}");
+        deny_rules.push(deny_rule);
+
+        // process aliases by creating a dedicated set of rules for each alias
+        if !aliases.is_empty() {
+            debug!(
+                "Generating firewall rules for {} aliases used in ACL rule {id:?}",
+                aliases.len()
+            );
+        }
+        for alias in aliases {
+            debug!("Processing ACL alias: {alias:?}");
+
+            // fetch destination ranges for a given alias
+            let alias_destination_ranges = alias.get_destination_ranges(&mut *conn).await?;
+            // let alias_destination_ranges =
+            //     alias_destination_ranges
+            //         .iter()
+            //         .fold((Vec::new(), Vec::new()), |mut acc, range| {
+            //             // TODO(jck) make sure ranges only accept the same IP versions
+            //             match range.start {
+            //                 IpAddr::V4(_) => acc.0.push(range.clone()),
+            //                 IpAddr::V6(_) => acc.1.push(range.clone()),
+            //             };
+            //             acc
+            //         });
+
+            // combine destination addrs
+            let destination_addrs = process_alias_destination_addrs(
+                alias.destination,
+                alias_destination_ranges,
+            );
+
+            // process alias ports
+            let alias_ports = alias
+                .ports
+                .into_iter()
+                .map(|port_range| port_range.into())
+                .collect::<Vec<PortRange>>();
+            let destination_ports = merge_port_ranges(alias_ports);
+
+            // remove duplicates protocol entries
+            let mut protocols = alias.protocols;
+            protocols.sort();
+            protocols.dedup();
+
+            // create IPv4 ALLOW rule
+            if ipv4_source_addrs.is_empty() {
+                debug!(
+                    "Source address list is empty. Skipping generating the ALLOW rule for this alias"
+                );
+            } else {
+                // prepare ALLOW rule for this alias
+                let alias_allow_rule = FirewallRule {
+                    id: acl.id,
+                    source_addrs: ipv4_source_addrs.clone(),
+                    destination_addrs: destination_addrs.0.clone(),
+                    destination_ports: destination_ports.clone(),
+                    protocols: protocols.clone(),
+                    verdict: i32::from(FirewallPolicy::Allow),
+                    comment: Some(format!(
+                        "ACL {} - {}, ALIAS {} - {} ALLOW",
+                        acl.id, acl.name, alias.id, alias.name
+                    )),
+                    ip_version: i32::from(IpVersion::Ipv4),
+                };
+                debug!("ALLOW rule generated from ACL: {alias_allow_rule:?}");
+                allow_rules.push(alias_allow_rule);
+            };
+
+            // create IPv4 DENY rule
+            // it should specify only the destination addrs to block all remaining traffic
+            let alias_deny_rule = FirewallRule {
                 id: acl.id,
                 source_addrs: Vec::new(),
-                destination_addrs: ipv6_destination_addrs,
+                destination_addrs: destination_addrs.0,
                 destination_ports: Vec::new(),
                 protocols: Vec::new(),
                 verdict: i32::from(FirewallPolicy::Deny),
-                comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+                comment: Some(format!(
+                    "ACL {} - {}, ALIAS {} - {} DENY",
+                    acl.id, acl.name, alias.id, alias.name
+                )),
+                ip_version: i32::from(IpVersion::Ipv4),
+            };
+            debug!("DENY rule generated from ACL: {alias_deny_rule:?}");
+            deny_rules.push(alias_deny_rule);
+
+            // create IPv6 ALLOW rule
+            if ipv6_source_addrs.is_empty() {
+                debug!(
+                    "Source address list is empty. Skipping generating the ALLOW rule for this alias"
+                );
+            } else {
+                // prepare ALLOW rule for this alias
+                let alias_allow_rule = FirewallRule {
+                    id: acl.id,
+                    source_addrs: ipv6_source_addrs.clone(),
+                    destination_addrs: destination_addrs.1.clone(),
+                    destination_ports,
+                    protocols,
+                    verdict: i32::from(FirewallPolicy::Allow),
+                    comment: Some(format!(
+                        "ACL {} - {}, ALIAS {} - {} ALLOW",
+                        acl.id, acl.name, alias.id, alias.name
+                    )),
+                    ip_version: i32::from(IpVersion::Ipv6),
+                };
+                debug!("ALLOW rule generated from ACL: {alias_allow_rule:?}");
+                allow_rules.push(alias_allow_rule);
+            };
+
+            // create IPv6 DENY rule
+            // it should specify only the destination addrs to block all remaining traffic
+            let alias_deny_rule = FirewallRule {
+                id: acl.id,
+                source_addrs: Vec::new(),
+                destination_addrs: destination_addrs.1,
+                destination_ports: Vec::new(),
+                protocols: Vec::new(),
+                verdict: i32::from(FirewallPolicy::Deny),
+                comment: Some(format!(
+                    "ACL {} - {}, ALIAS {} - {} DENY",
+                    acl.id, acl.name, alias.id, alias.name
+                )),
                 ip_version: i32::from(IpVersion::Ipv6),
             };
-            debug!("DENY rule generated from ACL: {deny_rule:?}");
-            deny_rules.push(deny_rule);
+            debug!("DENY rule generated from ACL: {alias_deny_rule:?}");
+            deny_rules.push(alias_deny_rule);
         }
     }
 
@@ -276,6 +392,7 @@ fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: Vec<User<Id>>) -
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
 /// We specifically only fetch user devices since network devices are handled separately.
+// TODO(jck) return 2-tupes (IpV4, IpV6)
 async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
     users: &[User<Id>],
     location_id: Id,
@@ -314,6 +431,7 @@ fn get_source_network_devices(
 }
 
 /// Fetches all IPs of specified network devices within a given location's VPN subnet.
+// TODO(jck) return 2-tuple (IPv4, IPv6)
 async fn get_network_device_ips(
     network_devices: &[Device<Id>],
     location_id: Id,
@@ -373,84 +491,186 @@ fn get_source_addrs(
 /// into the correct format for a firewall rule. This includes:
 /// - combining all addr lists
 /// - converting to gRPC IpAddress struct
-/// - filtering out incompatible IP version
 /// - merging into the smallest possible list of non-overlapping ranges,
 ///   subnets and addresses
+///
+/// Returs a 2-tuple of `Vec<IpAddress>` with all IPv4 addresses in the
+/// first field and IPv6 addresses in the second.
 fn process_destination_addrs(
     destination_ips: Vec<IpNetwork>,
     destination_ranges: Vec<AclRuleDestinationRange<Id>>,
-    alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
-    ip_version: IpVersion,
-) -> Vec<IpAddress> {
+) -> (Vec<IpAddress>, Vec<IpAddress>) {
     // filter out destinations with incompatible IP version and convert to intermediate
     // range representation for merging
-    let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
-        IpVersion::Ipv4 => {
-            if dst.is_ipv4() {
-                Some(ip_to_range(dst.network(), dst.broadcast()))
-            } else {
-                None
-            }
-        }
-        IpVersion::Ipv6 => {
+    // let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
+    //     IpVersion::Ipv4 => {
+    //         if dst.is_ipv4() {
+    //             Some(ip_to_range(dst.network(), dst.broadcast()))
+    //         } else {
+    //             None
+    //         }
+    //     }
+    //     IpVersion::Ipv6 => {
+    //         if let IpNetwork::V6(subnet) = dst {
+    //             let range_start = subnet.network().into();
+    //             let range_end = get_last_ip_in_v6_subnet(subnet);
+    //             Some(ip_to_range(range_start, range_end))
+    //         } else {
+    //             None
+    //         }
+    //     }
+    // });
+
+    // separate ipv4 and ipv6 addresses and convert to intermediate range
+    // representation for merging
+    let ipv4_destination_iterator = destination_ips
+        .iter()
+        .filter(|dst| dst.is_ipv4())
+        .map(|dst| ip_to_range(dst.network(), dst.broadcast()));
+    let ipv6_destination_iterator = destination_ips
+        .iter()
+        .filter(|dst| dst.is_ipv6())
+        .filter_map(|dst| 
             if let IpNetwork::V6(subnet) = dst {
                 let range_start = subnet.network().into();
                 let range_end = get_last_ip_in_v6_subnet(subnet);
                 Some(ip_to_range(range_start, range_end))
             } else {
                 None
-            }
-        }
-    });
+            });
 
     // filter out destination ranges with incompatible IP version and convert to intermediate
     // range representation for merging
-    let destination_range_iterator = destination_ranges
+    // let destination_range_iterator = destination_ranges
+    //     .iter()
+    //     .filter_map(|dst| match ip_version {
+    //         IpVersion::Ipv4 => {
+    //             if dst.start.is_ipv4() && dst.end.is_ipv4() {
+    //                 Some(ip_to_range(dst.start, dst.end))
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //         IpVersion::Ipv6 => {
+    //             if dst.start.is_ipv6() && dst.end.is_ipv6() {
+    //                 Some(ip_to_range(dst.start, dst.end))
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //     });
+    let ipv4_destination_range_iterator = destination_ranges
         .iter()
-        .filter_map(|dst| match ip_version {
-            IpVersion::Ipv4 => {
-                if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                    Some(ip_to_range(dst.start, dst.end))
-                } else {
-                    None
-                }
-            }
-            IpVersion::Ipv6 => {
-                if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                    Some(ip_to_range(dst.start, dst.end))
-                } else {
-                    None
-                }
-            }
-        });
-    let alias_destination_range_iterator =
-        alias_destination_ranges
-            .iter()
-            .filter_map(|dst| match ip_version {
-                IpVersion::Ipv4 => {
-                    if dst.start.is_ipv4() && dst.end.is_ipv4() {
-                        Some(ip_to_range(dst.start, dst.end))
-                    } else {
-                        None
-                    }
-                }
-                IpVersion::Ipv6 => {
-                    if dst.start.is_ipv6() && dst.end.is_ipv6() {
-                        Some(ip_to_range(dst.start, dst.end))
-                    } else {
-                        None
-                    }
-                }
-            });
+        .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
+        .map(|dst| (ip_to_range(dst.start, dst.end)));
+    let ipv6_destination_range_iterator = destination_ranges
+        .iter()
+        .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
+        .map(|dst| (ip_to_range(dst.start, dst.end)));
 
-    // combine both iterators to return a single list
-    let destination_addrs = destination_iterator
-        .chain(destination_range_iterator)
-        .chain(alias_destination_range_iterator)
+    // combine iterators to return a single list
+    let ipv4_destination_addrs = ipv4_destination_iterator
+        .chain(ipv4_destination_range_iterator)
+        .collect();
+    let ipv6_destination_addrs = ipv6_destination_iterator
+        .chain(ipv6_destination_range_iterator)
         .collect();
 
     // merge address ranges into non-overlapping elements
-    merge_addrs(destination_addrs)
+    (merge_addrs(ipv4_destination_addrs), merge_addrs(ipv6_destination_addrs))
+}
+
+/// Convert destination networks and ranges configured in an ACL alias
+/// into the correct format for a firewall rule. This includes:
+/// - combining all addr lists
+/// - converting to gRPC IpAddress struct
+/// - merging into the smallest possible list of non-overlapping ranges,
+///   subnets and addresses
+///
+/// Returs a 2-tuple of `Vec<IpAddress>` with all IPv4 addresses in the
+/// first field and IPv6 addresses in the second.
+fn process_alias_destination_addrs(
+    alias_destination_ips: Vec<IpNetwork>,
+    alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
+) -> (Vec<IpAddress>, Vec<IpAddress>) {
+    // filter out destinations with incompatible IP version and convert to intermediate
+    // range representation for merging
+    // let destination_iterator = alias_destination_ips
+    //     .iter()
+    //     .filter_map(|dst| match ip_version {
+    //         IpVersion::Ipv4 => {
+    //             if dst.is_ipv4() {
+    //                 Some(ip_to_range(dst.network(), dst.broadcast()))
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //         IpVersion::Ipv6 => {
+    //             if let IpNetwork::V6(subnet) = dst {
+    //                 let range_start = subnet.network().into();
+    //                 let range_end = get_last_ip_in_v6_subnet(subnet);
+    //                 Some(ip_to_range(range_start, range_end))
+    //             } else {
+    //                 None
+    //             }
+    //         }
+    //     });
+    let ipv4_destination_iterator = alias_destination_ips
+        .iter()
+        .filter(|dst| dst.is_ipv4())
+        .map(|dst| ip_to_range(dst.network(), dst.broadcast()));
+    let ipv6_destination_iterator = alias_destination_ips
+        .iter()
+        .filter(|dst| dst.is_ipv6())
+        .filter_map(|dst| 
+            if let IpNetwork::V6(subnet) = dst {
+                let range_start = subnet.network().into();
+                let range_end = get_last_ip_in_v6_subnet(subnet);
+                Some(ip_to_range(range_start, range_end))
+            } else {
+                None
+            });
+
+    // filter out destination ranges with incompatible IP version and convert to intermediate
+    // range representation for merging
+    // let destination_range_iterator =
+    //     alias_destination_ranges
+    //         .iter()
+    //         .filter_map(|dst| match ip_version {
+    //             IpVersion::Ipv4 => {
+    //                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
+    //                     Some(ip_to_range(dst.start, dst.end))
+    //                 } else {
+    //                     None
+    //                 }
+    //             }
+    //             IpVersion::Ipv6 => {
+    //                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
+    //                     Some(ip_to_range(dst.start, dst.end))
+    //                 } else {
+    //                     None
+    //                 }
+    //             }
+    //         });
+    let ipv4_destination_range_iterator = alias_destination_ranges
+        .iter()
+        .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
+        .map(|dst| ip_to_range(dst.start, dst.end));
+    let ipv6_destination_range_iterator = alias_destination_ranges
+        .iter()
+        .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
+        .map(|dst| ip_to_range(dst.start, dst.end));
+
+    // combine iterators to return a single list
+    let ipv4_destination_addrs = ipv4_destination_iterator
+        .chain(ipv4_destination_range_iterator)
+        .collect();
+    let ipv6_destination_addrs = ipv6_destination_iterator
+        .chain(ipv6_destination_range_iterator)
+        .collect();
+
+    // merge address ranges into non-overlapping elements
+    (merge_addrs(ipv4_destination_addrs), merge_addrs(ipv6_destination_addrs))
 }
 
 fn ip_to_range(first_ip: IpAddr, last_ip: IpAddr) -> Range<IpAddr> {
@@ -741,9 +961,8 @@ mod test {
         },
         enterprise::{
             db::models::acl::{
-                AclAliasDestinationRange, AclRule, AclRuleAlias, AclRuleDestinationRange,
-                AclRuleDevice, AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, PortRange,
-                RuleState,
+                AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
+                AclRuleInfo, AclRuleNetwork, AclRuleUser, PortRange, RuleState,
             },
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
@@ -934,25 +1153,8 @@ mod test {
             },
         ];
 
-        let alias_destination_ranges = vec![
-            AclAliasDestinationRange {
-                start: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 1)),
-                end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 50)),
-                ..Default::default()
-            },
-            AclAliasDestinationRange {
-                start: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 40)),
-                end: IpAddr::V4(Ipv4Addr::new(10, 0, 4, 100)),
-                ..Default::default()
-            },
-        ];
-
-        let destination_addrs = process_destination_addrs(
-            destination_ips,
-            destination_ranges,
-            alias_destination_ranges,
-            IpVersion::Ipv4,
-        );
+        let destination_addrs =
+            process_destination_addrs(destination_ips, destination_ranges, IpVersion::Ipv4);
 
         assert_eq!(
             destination_addrs,
@@ -971,12 +1173,6 @@ mod test {
                 },
                 IpAddress {
                     address: Some(Address::IpRange(IpRange {
-                        start: "10.0.4.1".to_string(),
-                        end: "10.0.4.100".to_string(),
-                    })),
-                },
-                IpAddress {
-                    address: Some(Address::IpRange(IpRange {
                         start: "192.168.1.0".to_string(),
                         end: "192.168.1.255".to_string(),
                     })),
@@ -985,13 +1181,12 @@ mod test {
         );
 
         // Test with empty input
-        let empty_addrs = process_destination_addrs(vec![], vec![], vec![], IpVersion::Ipv4);
+        let empty_addrs = process_destination_addrs(vec![], vec![], IpVersion::Ipv4);
         assert!(empty_addrs.is_empty());
 
         // Test with only IPv6 addresses - should return empty result for IPv4
         let ipv6_only = process_destination_addrs(
             vec!["2001:db8::/64".parse().unwrap()],
-            vec![],
             vec![],
             IpVersion::Ipv4,
         );
@@ -1021,25 +1216,8 @@ mod test {
             },
         ];
 
-        let alias_destination_ranges = vec![
-            AclAliasDestinationRange {
-                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 1)),
-                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 50)),
-                ..Default::default()
-            },
-            AclAliasDestinationRange {
-                start: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 40)),
-                end: IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 5, 0, 0, 0, 0, 100)),
-                ..Default::default()
-            },
-        ];
-
-        let destination_addrs = process_destination_addrs(
-            destination_ips,
-            destination_ranges,
-            alias_destination_ranges,
-            IpVersion::Ipv6,
-        );
+        let destination_addrs =
+            process_destination_addrs(destination_ips, destination_ranges, IpVersion::Ipv6);
 
         assert_eq!(
             destination_addrs,
@@ -1068,23 +1246,16 @@ mod test {
                         end: "2001:db8:4::64".to_string(),
                     })),
                 },
-                IpAddress {
-                    address: Some(Address::IpRange(IpRange {
-                        start: "2001:db8:5::1".to_string(),
-                        end: "2001:db8:5::64".to_string(),
-                    })),
-                },
             ]
         );
 
         // Test with empty input
-        let empty_addrs = process_destination_addrs(vec![], vec![], vec![], IpVersion::Ipv6);
+        let empty_addrs = process_destination_addrs(vec![], vec![], IpVersion::Ipv6);
         assert!(empty_addrs.is_empty());
 
         // Test with only IPv4 addresses - should return empty result for IPv6
         let ipv4_only = process_destination_addrs(
             vec!["192.168.1.0/24".parse().unwrap()],
-            vec![],
             vec![],
             IpVersion::Ipv6,
         );

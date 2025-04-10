@@ -474,7 +474,7 @@ type RootTranslation = {
 			/**
 			 * Y​o​u​'​v​e​ ​e​x​c​e​e​d​e​d​ ​t​h​e​ ​l​i​m​i​t​ ​o​f​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​D​e​f​g​u​a​r​d​ ​p​l​a​n​ ​a​n​d​ ​t​h​e​ ​e​n​t​e​r​p​r​i​s​e​
 		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​f​e​a​t​u​r​e​s​ ​w​i​l​l​ ​b​e​ ​d​i​s​a​b​l​e​d​.​ ​P​u​r​c​h​a​s​e​ ​a​n​ ​e​n​t​e​r​p​r​i​s​e​ ​l​i​c​e​n​s​e​ ​o​r​ ​u​p​g​r​a​d​e​ ​y​o​u​r​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​s​i​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
+		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​e​x​i​s​t​i​n​g​ ​o​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e​ ​u​s​i​n​g​ ​t​h​e​s​e​ ​f​e​a​t​u​r​e​s​.
 			 */
 			message: string
 			/**
@@ -1689,6 +1689,16 @@ type RootTranslation = {
 				 * C​h​a​n​g​e​ ​p​a​s​s​w​o​r​d
 				 */
 				changePassword: string
+				/**
+				 * {​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​u​p​d​a​t​e​ ​r​e​q​u​i​r​e​d
+				 * @param {string} ldapName
+				 */
+				ldap_change_heading: RequiredParams<'ldapName'>
+				/**
+				 * D​e​f​g​u​a​r​d​ ​d​o​e​s​n​'​t​ ​s​t​o​r​e​ ​y​o​u​r​ ​p​a​s​s​w​o​r​d​ ​i​n​ ​p​l​a​i​n​ ​t​e​x​t​,​ ​s​o​ ​w​e​ ​c​a​n​’​t​ ​r​e​t​r​i​e​v​e​ ​i​t​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​t​h​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​c​r​e​d​e​n​t​i​a​l​s​.​ ​T​o​ ​e​n​a​b​l​e​ ​{​l​d​a​p​N​a​m​e​}​ ​l​o​g​i​n​ ​t​o​ ​o​t​h​e​r​ ​s​e​r​v​i​c​e​s​,​ ​p​l​e​a​s​e​ ​u​p​d​a​t​e​ ​y​o​u​r​ ​D​e​f​g​u​a​r​d​ ​p​a​s​s​w​o​r​d​ ​f​o​r​ ​y​o​u​r​ ​{​l​d​a​p​N​a​m​e​}​ ​p​a​s​s​w​o​r​d​ ​t​o​ ​b​e​ ​s​e​t​ ​—​ ​y​o​u​ ​c​a​n​ ​r​e​-​e​n​t​e​r​ ​y​o​u​r​ ​c​u​r​r​e​n​t​ ​p​a​s​s​w​o​r​d​ ​i​f​ ​y​o​u​ ​w​i​s​h​.​ ​T​h​i​s​ ​s​t​e​p​ ​i​s​ ​n​e​c​e​s​s​a​r​y​ ​t​o​ ​e​n​s​u​r​e​ ​c​o​n​s​i​s​t​e​n​t​ ​a​n​d​ ​s​e​c​u​r​e​ ​a​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​a​c​r​o​s​s​ ​b​o​t​h​ ​s​y​s​t​e​m​s​.
+				 * @param {string} ldapName
+				 */
+				ldap_change_message: RequiredParams<'ldapName' | 'ldapName' | 'ldapName'>
 			}
 			recovery: {
 				/**
@@ -2712,6 +2722,10 @@ type RootTranslation = {
 				info_enterprise: string
 				helpers: {
 					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​I​f​ ​c​o​n​f​i​g​u​r​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​p​u​l​l​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​f​r​o​m​ ​L​D​A​P​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​ ​i​t​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
+					 */
+					heading: string
+					/**
 					 * I​f​ ​e​n​a​b​l​e​d​,​ ​D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​p​u​l​l​ ​L​D​A​P​ ​u​s​e​r​ ​d​a​t​a​ ​a​t​ ​t​h​e​ ​s​p​e​c​i​f​i​e​d​ ​i​n​t​e​r​v​a​l​.
 					 */
 					sync_enabled: string
@@ -2809,6 +2823,46 @@ type RootTranslation = {
 					 */
 					ldap_uses_ad: string
 				}
+				helpers: {
+					/**
+					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​u​s​e​r​.
+					 */
+					ldap_user_obj_class: string
+					/**
+					 * T​h​e​ ​a​d​d​i​t​i​o​n​a​l​ ​o​b​j​e​c​t​ ​c​l​a​s​s​e​s​ ​t​h​a​t​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​u​s​e​r​ ​o​b​j​e​c​t​ ​d​u​r​i​n​g​ ​i​t​s​ ​c​r​e​a​t​i​o​n​.​ ​T​h​e​y​ ​m​a​y​ ​a​l​s​o​ ​i​n​f​l​u​e​n​c​e​ ​t​h​e​ ​a​d​d​e​d​ ​u​s​e​r​'​s​ ​a​t​t​r​i​b​u​t​e​s​ ​(​e​.​g​.​ ​s​i​m​p​l​e​S​e​c​u​r​i​t​y​O​b​j​e​c​t​ ​c​l​a​s​s​ ​w​i​l​l​ ​a​d​d​ ​u​s​e​r​P​a​s​s​w​o​r​d​ ​a​t​t​r​i​b​u​t​e​)​.
+					 */
+					ldap_user_auxiliary_obj_classes: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​u​s​e​r​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​u​s​e​r​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​u​s​e​r​s​.
+					 */
+					user_settings: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​c​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​c​o​n​n​e​c​t​s​ ​t​o​ ​y​o​u​r​ ​L​D​A​P​ ​s​e​r​v​e​r​.​ ​E​n​c​r​y​p​t​e​d​ ​c​o​n​n​e​c​t​i​o​n​s​ ​a​r​e​ ​a​l​s​o​ ​s​u​p​p​o​r​t​e​d​ ​(​S​t​a​r​t​T​L​S​,​ ​L​D​A​P​S​)​.
+					 */
+					connection_settings: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​L​D​A​P​ ​g​r​o​u​p​ ​s​e​t​t​i​n​g​s​ ​h​e​r​e​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​d​e​t​e​r​m​i​n​e​ ​h​o​w​ ​D​e​f​g​u​a​r​d​ ​m​a​p​s​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​e​s​ ​L​D​A​P​ ​g​r​o​u​p​ ​i​n​f​o​r​m​a​t​i​o​n​ ​w​i​t​h​ ​l​o​c​a​l​ ​g​r​o​u​p​s​.
+					 */
+					group_settings: string
+					/**
+					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​r​e​p​r​e​s​e​n​t​s​ ​a​ ​g​r​o​u​p​ ​i​n​ ​L​D​A​P​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​g​r​o​u​p​.
+					 */
+					ldap_group_obj_class: string
+				}
+				headings: {
+					/**
+					 * U​s​e​r​ ​s​e​t​t​i​n​g​s
+					 */
+					user_settings: string
+					/**
+					 * C​o​n​n​e​c​t​i​o​n​ ​s​e​t​t​i​n​g​s
+					 */
+					connection_settings: string
+					/**
+					 * G​r​o​u​p​ ​s​e​t​t​i​n​g​s
+					 */
+					group_settings: string
+				}
 				/**
 				 * D​e​l​e​t​e​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
@@ -2836,9 +2890,13 @@ type RootTranslation = {
 			}
 		}
 		openIdSettings: {
+			/**
+			 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​s​e​t​t​i​n​g​s
+			 */
+			heading: string
 			general: {
 				/**
-				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​g​e​n​e​r​a​l​ ​s​e​t​t​i​n​g​s
+				 * G​e​n​e​r​a​l​ ​s​e​t​t​i​n​g​s
 				 */
 				title: string
 				/**
@@ -2858,7 +2916,7 @@ type RootTranslation = {
 			}
 			form: {
 				/**
-				 * E​x​t​e​r​n​a​l​ ​O​p​e​n​I​D​ ​C​l​i​e​n​t​ ​S​e​t​t​i​n​g​s
+				 * C​l​i​e​n​t​ ​s​e​t​t​i​n​g​s
 				 */
 				title: string
 				/**
@@ -2874,7 +2932,7 @@ type RootTranslation = {
 				 */
 				none: string
 				/**
-				 * D​o​c​u​m​e​n​t​a​t​i​o​n
+				 * M​a​k​e​ ​s​u​r​e​ ​t​o​ ​c​h​e​c​k​ ​o​u​r​ ​[​d​o​c​u​m​e​n​t​a​t​i​o​n​]​(​h​t​t​p​s​:​/​/​d​o​c​s​.​d​e​f​g​u​a​r​d​.​n​e​t​/​e​n​t​e​r​p​r​i​s​e​/​a​l​l​-​e​n​t​e​p​r​i​s​e​-​f​e​a​t​u​r​e​s​/​e​x​t​e​r​n​a​l​-​o​p​e​n​i​d​-​p​r​o​v​i​d​e​r​s​)​ ​f​o​r​ ​m​o​r​e​ ​i​n​f​o​r​m​a​t​i​o​n​ ​a​n​d​ ​e​x​a​m​p​l​e​s​.
 				 */
 				documentation: string
 				/**
@@ -2883,7 +2941,7 @@ type RootTranslation = {
 				'delete': string
 				directory_sync_settings: {
 					/**
-					 * D​i​r​e​c​t​o​r​y​ ​S​y​n​c​ ​S​e​t​t​i​n​g​s
+					 * D​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​s​e​t​t​i​n​g​s
 					 */
 					title: string
 					/**
@@ -2988,7 +3046,7 @@ type RootTranslation = {
 					}
 					enable_directory_sync: {
 						/**
-						 * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c
+						 * E​n​a​b​l​e​ ​d​i​r​e​c​t​o​r​y​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n
 						 */
 						label: string
 					}
@@ -3196,7 +3254,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x​<​/​p​>
+						 * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​2​5​0​x​1​0​0​ ​ ​p​x
 						 */
 						helper: string
 						/**
@@ -3210,7 +3268,7 @@ type RootTranslation = {
 						 */
 						label: string
 						/**
-						 * <​p​>​M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x​<​/​p​>
+						 * M​a​x​i​m​u​m​ ​p​i​c​t​u​r​e​ ​s​i​z​e​ ​i​s​ ​1​0​0​x​1​0​0​ ​p​x
 						 */
 						helper: string
 						/**
@@ -3378,6 +3436,12 @@ type RootTranslation = {
 				 * S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 				 */
 				title: string
+				sections: {
+					/**
+					 * S​e​r​v​e​r​ ​s​e​t​t​i​n​g​s
+					 */
+					server: string
+				}
 				fields: {
 					encryption: {
 						/**
@@ -3461,10 +3525,14 @@ type RootTranslation = {
 				 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l
 				 */
 				title: string
+				/**
+				 * E​n​t​e​r​ ​r​e​c​i​p​e​n​t​ ​e​m​a​i​l​ ​a​d​d​r​e​s​s
+				 */
+				subtitle: string
 				fields: {
 					to: {
 						/**
-						 * A​d​d​r​e​s​s
+						 * S​e​n​d​ ​t​e​s​t​ ​e​m​a​i​l​ ​t​o
 						 */
 						label: string
 						/**
@@ -3479,6 +3547,14 @@ type RootTranslation = {
 					 */
 					submit: string
 					/**
+					 * R​e​s​e​n​d
+					 */
+					resend: string
+					/**
+					 * R​e​t​r​y
+					 */
+					retry: string
+					/**
 					 * T​e​s​t​ ​e​m​a​i​l​ ​s​e​n​t
 					 */
 					success: string
@@ -3487,13 +3563,26 @@ type RootTranslation = {
 					 */
 					error: string
 				}
+				success: {
+					/**
+					 * T​e​s​t​ ​e​m​a​i​l​ ​h​a​s​ ​b​e​e​n​ ​s​e​n​t​ ​s​u​c​c​e​s​s​u​l​l​y​.
+					 */
+					message: string
+				}
+				error: {
+					/**
+					 * T​h​e​r​e​ ​w​a​s​ ​a​n​ ​e​r​r​o​r​ ​s​e​n​d​i​n​g​ ​t​h​e​ ​t​e​s​t​ ​e​m​a​i​l​.​ ​P​l​e​a​s​e​ ​c​h​e​c​k​ ​y​o​u​r​ ​S​M​T​P​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+					 */
+					message: string
+					/**
+					 * E​r​r​o​r​:​ ​{​e​r​r​o​r​}
+					 * @param {string} error
+					 */
+					fullError: RequiredParams<'error'>
+				}
 			}
 			/**
-			 * 
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​p​>​
-		​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.​
-		​ ​ ​ ​ ​ ​ ​ ​ ​<​/​p​>​
-		​	​	​
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​o​n​f​i​g​u​r​e​ ​S​M​T​P​ ​s​e​r​v​e​r​ ​u​s​e​d​ ​t​o​ ​s​e​n​d​ ​s​y​s​t​e​m​ ​m​e​s​s​a​g​e​s​ ​t​o​ ​t​h​e​ ​u​s​e​r​s​.
 			 */
 			helper: string
 		}
@@ -3593,7 +3682,7 @@ type RootTranslation = {
 			 */
 			header: string
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.​<​/​p​>
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​c​h​a​n​g​e​ ​e​n​t​e​r​p​r​i​s​e​ ​s​e​t​t​i​n​g​s​.
 			 */
 			helper: string
 			fields: {
@@ -3631,15 +3720,21 @@ type RootTranslation = {
 		}
 		gatewayNotifications: {
 			/**
-			 * T​o​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
+			 * T​o​ ​e​n​a​b​l​e​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​c​o​n​f​i​g​u​r​e​ ​a​n​ ​S​M​T​P​ ​s​e​r​v​e​r
 			 */
 			smtpWarning: string
 			/**
-			 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+			 * N​o​t​i​f​i​c​a​t​i​o​n​s
 			 */
 			header: string
+			sections: {
+				/**
+				 * G​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s
+				 */
+				gateway: string
+			}
 			/**
-			 * <​p​>​H​e​r​e​ ​y​o​u​ ​c​a​n​ ​e​n​a​b​l​e​ ​g​a​t​e​w​a​y​ ​d​i​s​c​o​n​n​e​c​t​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.​<​/​p​>
+			 * H​e​r​e​ ​y​o​u​ ​c​a​n​ ​m​a​n​a​g​e​ ​e​m​a​i​l​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​.
 			 */
 			helper: string
 			form: {
@@ -5118,14 +5213,6 @@ type RootTranslation = {
 		listPage: {
 			message: {
 				/**
-				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
-				 */
-				rulesApply: string
-				/**
-				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
-				 */
-				rulesApplyFail: string
-				/**
 				 * C​h​a​n​g​e​ ​d​i​s​c​a​r​d​e​d
 				 */
 				changeDiscarded: string
@@ -5137,6 +5224,14 @@ type RootTranslation = {
 				 * F​a​i​l​e​d​ ​t​o​ ​m​a​k​e​ ​c​h​a​n​g​e
 				 */
 				changeFail: string
+				/**
+				 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+				 */
+				applyChanges: string
+				/**
+				 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+				 */
+				applyFail: string
 			}
 			rules: {
 				modals: {
@@ -5314,6 +5409,178 @@ type RootTranslation = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * P​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​a​p​p​l​i​e​d
+					 */
+					rulesApply: string
+					/**
+					 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​c​h​a​n​g​e​s
+					 */
+					rulesApplyFail: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​e​d
+					 */
+					aliasDeleted: string
+					/**
+					 * A​l​i​a​s​ ​d​e​l​e​t​i​o​n​ ​f​a​i​l​e​d
+					 */
+					aliasDeleteFail: string
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
+						 */
+						title: string
+						/**
+						 * 
+					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+				
+						 * @param {number} rulesCount
+						 */
+						content: RequiredParams<'rulesCount'>
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * R​u​l​e​s
+							 */
+							rules: string
+							/**
+							 * S​t​a​t​u​s
+							 */
+							status: string
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * F​i​n​d​ ​n​a​m​e
+					 */
+					searchPlaceholder: string
+					/**
+					 * A​d​d​ ​n​e​w
+					 */
+					addNew: string
+					filter: {
+						/**
+						 * F​i​l​t​e​r
+						 */
+						nothingApplied: string
+						/**
+						 * F​i​l​t​e​r​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						applied: RequiredParams<'count'>
+					}
+					apply: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noChanges: string
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						all: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​s​e​l​e​c​t​e​d​ ​c​h​a​n​g​e​s​ ​(​{​c​o​u​n​t​}​)
+						 * @param {number} count
+						 */
+						selective: RequiredParams<'count'>
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					deployedList: {
+						/**
+						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 */
+						title: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 */
+						noData: string
+						/**
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 */
+						noDataSearch: string
+					}
+					headers: {
+						/**
+						 * I​D
+						 */
+						id: string
+						/**
+						 * A​l​i​a​s​ ​n​a​m​e
+						 */
+						name: string
+						/**
+						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 */
+						ip: string
+						/**
+						 * P​o​r​t​s
+						 */
+						ports: string
+						/**
+						 * P​r​o​t​o​c​o​l​s
+						 */
+						protocols: string
+						/**
+						 * S​t​a​t​u​s
+						 */
+						status: string
+						/**
+						 * E​d​i​t
+						 */
+						edit: string
+					}
+					status: {
+						/**
+						 * A​p​p​l​i​e​d
+						 */
+						applied: string
+						/**
+						 * M​o​d​i​f​i​e​d
+						 */
+						changed: string
+					}
+					tags: {
+						/**
+						 * A​l​l​ ​d​e​n​i​e​d
+						 */
+						allDenied: string
+						/**
+						 * A​l​l​ ​a​l​l​o​w​e​d
+						 */
+						allAllowed: string
+					}
+					editMenu: {
+						/**
+						 * D​i​s​c​a​r​d​ ​c​h​a​n​g​e​s
+						 */
+						discardChanges: string
+						/**
+						 * D​e​l​e​t​e​ ​a​l​i​a​s
+						 */
+						'delete': string
+					}
+				}
 			}
 		}
 		createPage: {
@@ -5897,7 +6164,7 @@ export type TranslationFunctions = {
 			/**
 			 * You've exceeded the limit of your current Defguard plan and the enterprise
 		          features will be disabled. Purchase an enterprise license or upgrade your
-		          exsiting one to continue using these features.
+		          existing one to continue using these features.
 			 */
 			message: () => LocalizedString
 			/**
@@ -7097,6 +7364,14 @@ export type TranslationFunctions = {
 				 * Change password
 				 */
 				changePassword: () => LocalizedString
+				/**
+				 * {ldapName} password update required
+				 */
+				ldap_change_heading: (arg: { ldapName: string }) => LocalizedString
+				/**
+				 * Defguard doesn't store your password in plain text, so we can’t retrieve it for automatic synchronization with your {ldapName} credentials. To enable {ldapName} login to other services, please update your Defguard password for your {ldapName} password to be set — you can re-enter your current password if you wish. This step is necessary to ensure consistent and secure authentication across both systems.
+				 */
+				ldap_change_message: (arg: { ldapName: string }) => LocalizedString
 			}
 			recovery: {
 				/**
@@ -8111,6 +8386,10 @@ export type TranslationFunctions = {
 				info_enterprise: () => LocalizedString
 				helpers: {
 					/**
+					 * Configure LDAP synchronization settings here. If configured, Defguard will pull user information from LDAP and synchronize it with local users.
+					 */
+					heading: () => LocalizedString
+					/**
 					 * If enabled, Defguard will attempt to pull LDAP user data at the specified interval.
 					 */
 					sync_enabled: () => LocalizedString
@@ -8208,6 +8487,46 @@ export type TranslationFunctions = {
 					 */
 					ldap_uses_ad: () => LocalizedString
 				}
+				helpers: {
+					/**
+					 * The object class that will be added to the user object during its creation. This is used to determine if an LDAP object is a user.
+					 */
+					ldap_user_obj_class: () => LocalizedString
+					/**
+					 * The additional object classes that will be added to the user object during its creation. They may also influence the added user's attributes (e.g. simpleSecurityObject class will add userPassword attribute).
+					 */
+					ldap_user_auxiliary_obj_classes: () => LocalizedString
+					/**
+					 * Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.
+					 */
+					user_settings: () => LocalizedString
+					/**
+					 * Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).
+					 */
+					connection_settings: () => LocalizedString
+					/**
+					 * Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.
+					 */
+					group_settings: () => LocalizedString
+					/**
+					 * The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.
+					 */
+					ldap_group_obj_class: () => LocalizedString
+				}
+				headings: {
+					/**
+					 * User settings
+					 */
+					user_settings: () => LocalizedString
+					/**
+					 * Connection settings
+					 */
+					connection_settings: () => LocalizedString
+					/**
+					 * Group settings
+					 */
+					group_settings: () => LocalizedString
+				}
 				/**
 				 * Delete configuration
 				 */
@@ -8235,9 +8554,13 @@ export type TranslationFunctions = {
 			}
 		}
 		openIdSettings: {
+			/**
+			 * External OpenID settings
+			 */
+			heading: () => LocalizedString
 			general: {
 				/**
-				 * External OpenID general settings
+				 * General settings
 				 */
 				title: () => LocalizedString
 				/**
@@ -8257,7 +8580,7 @@ export type TranslationFunctions = {
 			}
 			form: {
 				/**
-				 * External OpenID Client Settings
+				 * Client settings
 				 */
 				title: () => LocalizedString
 				/**
@@ -8273,7 +8596,7 @@ export type TranslationFunctions = {
 				 */
 				none: () => LocalizedString
 				/**
-				 * Documentation
+				 * Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.
 				 */
 				documentation: () => LocalizedString
 				/**
@@ -8282,7 +8605,7 @@ export type TranslationFunctions = {
 				'delete': () => LocalizedString
 				directory_sync_settings: {
 					/**
-					 * Directory Sync Settings
+					 * Directory synchronization settings
 					 */
 					title: () => LocalizedString
 					/**
@@ -8387,7 +8710,7 @@ export type TranslationFunctions = {
 					}
 					enable_directory_sync: {
 						/**
-						 * Enable directory sync
+						 * Enable directory synchronization
 						 */
 						label: () => LocalizedString
 					}
@@ -8593,7 +8916,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * <p>Maximum picture size is 250x100  px</p>
+						 * Maximum picture size is 250x100  px
 						 */
 						helper: () => LocalizedString
 						/**
@@ -8607,7 +8930,7 @@ export type TranslationFunctions = {
 						 */
 						label: () => LocalizedString
 						/**
-						 * <p>Maximum picture size is 100x100 px</p>
+						 * Maximum picture size is 100x100 px
 						 */
 						helper: () => LocalizedString
 						/**
@@ -8774,6 +9097,12 @@ export type TranslationFunctions = {
 				 * SMTP configuration
 				 */
 				title: () => LocalizedString
+				sections: {
+					/**
+					 * Server settings
+					 */
+					server: () => LocalizedString
+				}
 				fields: {
 					encryption: {
 						/**
@@ -8857,10 +9186,14 @@ export type TranslationFunctions = {
 				 * Send test email
 				 */
 				title: () => LocalizedString
+				/**
+				 * Enter recipent email address
+				 */
+				subtitle: () => LocalizedString
 				fields: {
 					to: {
 						/**
-						 * Address
+						 * Send test email to
 						 */
 						label: () => LocalizedString
 						/**
@@ -8875,6 +9208,14 @@ export type TranslationFunctions = {
 					 */
 					submit: () => LocalizedString
 					/**
+					 * Resend
+					 */
+					resend: () => LocalizedString
+					/**
+					 * Retry
+					 */
+					retry: () => LocalizedString
+					/**
 					 * Test email sent
 					 */
 					success: () => LocalizedString
@@ -8883,13 +9224,25 @@ export type TranslationFunctions = {
 					 */
 					error: () => LocalizedString
 				}
+				success: {
+					/**
+					 * Test email has been sent successully.
+					 */
+					message: () => LocalizedString
+				}
+				error: {
+					/**
+					 * There was an error sending the test email. Please check your SMTP configuration and try again.
+					 */
+					message: () => LocalizedString
+					/**
+					 * Error: {error}
+					 */
+					fullError: (arg: { error: string }) => LocalizedString
+				}
 			}
 			/**
-			 * 
-		        <p>
-		          Here you can configure SMTP server used to send system messages to the users.
-		        </p>
-				
+			 * Here you can configure SMTP server used to send system messages to the users.
 			 */
 			helper: () => LocalizedString
 		}
@@ -8989,7 +9342,7 @@ export type TranslationFunctions = {
 			 */
 			header: () => LocalizedString
 			/**
-			 * <p>Here you can change enterprise settings.</p>
+			 * Here you can change enterprise settings.
 			 */
 			helper: () => LocalizedString
 			fields: {
@@ -9027,15 +9380,21 @@ export type TranslationFunctions = {
 		}
 		gatewayNotifications: {
 			/**
-			 * To enable gateway disconnect notifications you must first configure an SMTP server
+			 * To enable notifications you must first configure an SMTP server
 			 */
 			smtpWarning: () => LocalizedString
 			/**
-			 * Gateway disconnect notifications
+			 * Notifications
 			 */
 			header: () => LocalizedString
+			sections: {
+				/**
+				 * Gateway disconnect notifications
+				 */
+				gateway: () => LocalizedString
+			}
 			/**
-			 * <p>Here you can enable gateway disconnect notifications.</p>
+			 * Here you can manage email notifications.
 			 */
 			helper: () => LocalizedString
 			form: {
@@ -10503,14 +10862,6 @@ export type TranslationFunctions = {
 		listPage: {
 			message: {
 				/**
-				 * Pending changes applied
-				 */
-				rulesApply: () => LocalizedString
-				/**
-				 * Failed to apply changes
-				 */
-				rulesApplyFail: () => LocalizedString
-				/**
 				 * Change discarded
 				 */
 				changeDiscarded: () => LocalizedString
@@ -10522,6 +10873,14 @@ export type TranslationFunctions = {
 				 * Failed to make change
 				 */
 				changeFail: () => LocalizedString
+				/**
+				 * Pending changes applied
+				 */
+				applyChanges: () => LocalizedString
+				/**
+				 * Failed to apply changes
+				 */
+				applyFail: () => LocalizedString
 			}
 			rules: {
 				modals: {
@@ -10696,6 +11055,174 @@ export type TranslationFunctions = {
 				}
 			}
 			aliases: {
+				message: {
+					/**
+					 * Pending changes applied
+					 */
+					rulesApply: () => LocalizedString
+					/**
+					 * Failed to apply changes
+					 */
+					rulesApplyFail: () => LocalizedString
+					/**
+					 * Alias deleted
+					 */
+					aliasDeleted: () => LocalizedString
+					/**
+					 * Alias deletion failed
+					 */
+					aliasDeleteFail: () => LocalizedString
+				}
+				modals: {
+					deleteBlock: {
+						/**
+						 * Deletion blocked
+						 */
+						title: () => LocalizedString
+						/**
+						 * 
+					Alias is used in {rulesCount} rules and cannot be deleted.
+				
+						 */
+						content: (arg: { rulesCount: number }) => LocalizedString
+					}
+					filterGroupsModal: {
+						groupLabels: {
+							/**
+							 * Rules
+							 */
+							rules: () => LocalizedString
+							/**
+							 * Status
+							 */
+							status: () => LocalizedString
+						}
+					}
+				}
+				listControls: {
+					/**
+					 * Find name
+					 */
+					searchPlaceholder: () => LocalizedString
+					/**
+					 * Add new
+					 */
+					addNew: () => LocalizedString
+					filter: {
+						/**
+						 * Filter
+						 */
+						nothingApplied: () => LocalizedString
+						/**
+						 * Filters ({count})
+						 */
+						applied: (arg: { count: number }) => LocalizedString
+					}
+					apply: {
+						/**
+						 * Deploy pending changes
+						 */
+						noChanges: () => LocalizedString
+						/**
+						 * Deploy pending changes ({count})
+						 */
+						all: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy selected changes ({count})
+						 */
+						selective: (arg: { count: number }) => LocalizedString
+					}
+				}
+				list: {
+					pendingList: {
+						/**
+						 * Pending Changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * No pending changes
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No pending changes found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					deployedList: {
+						/**
+						 * Deployed Rules
+						 */
+						title: () => LocalizedString
+						/**
+						 * No deployed rules
+						 */
+						noData: () => LocalizedString
+						/**
+						 * No deployed rules found
+						 */
+						noDataSearch: () => LocalizedString
+					}
+					headers: {
+						/**
+						 * ID
+						 */
+						id: () => LocalizedString
+						/**
+						 * Alias name
+						 */
+						name: () => LocalizedString
+						/**
+						 * Ipv4/6 CIDR range address
+						 */
+						ip: () => LocalizedString
+						/**
+						 * Ports
+						 */
+						ports: () => LocalizedString
+						/**
+						 * Protocols
+						 */
+						protocols: () => LocalizedString
+						/**
+						 * Status
+						 */
+						status: () => LocalizedString
+						/**
+						 * Edit
+						 */
+						edit: () => LocalizedString
+					}
+					status: {
+						/**
+						 * Applied
+						 */
+						applied: () => LocalizedString
+						/**
+						 * Modified
+						 */
+						changed: () => LocalizedString
+					}
+					tags: {
+						/**
+						 * All denied
+						 */
+						allDenied: () => LocalizedString
+						/**
+						 * All allowed
+						 */
+						allAllowed: () => LocalizedString
+					}
+					editMenu: {
+						/**
+						 * Discard changes
+						 */
+						discardChanges: () => LocalizedString
+						/**
+						 * Delete alias
+						 */
+						'delete': () => LocalizedString
+					}
+				}
 			}
 		}
 		createPage: {

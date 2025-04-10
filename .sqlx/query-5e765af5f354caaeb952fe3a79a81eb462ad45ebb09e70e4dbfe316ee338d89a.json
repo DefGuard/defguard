@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, all_networks, destination, ports, protocols, enabled, expires FROM aclrulealias ara JOIN aclrule ar ON ar.id = ara.rule_id WHERE ara.alias_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "state: RuleState",
+        "type_info": {
+          "Custom": {
+            "name": "aclrule_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "new",
+                "modified",
+                "deleted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "allow_all_users",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "deny_all_users",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "allow_all_network_devices",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "deny_all_network_devices",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "all_networks",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "destination",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "ports",
+        "type_info": "Int4RangeArray"
+      },
+      {
+        "ordinal": 11,
+        "name": "protocols",
+        "type_info": "Int4Array"
+      },
+      {
+        "ordinal": 12,
+        "name": "enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "expires",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "5e765af5f354caaeb952fe3a79a81eb462ad45ebb09e70e4dbfe316ee338d89a"
+}
