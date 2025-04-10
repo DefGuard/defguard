@@ -112,7 +112,9 @@ export const AclIndexRules = () => {
   });
   const pendingRulesCount = useMemo(() => {
     if (aclRules) {
-      return aclRules.filter((rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED).length;
+      return aclRules.filter(
+        (rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
+      ).length;
     }
     return 0;
   }, [aclRules]);
@@ -130,13 +132,13 @@ export const AclIndexRules = () => {
     () =>
       isPresent(aclRules)
         ? prepareDisplay(
-          rulesAfterSearch,
-          appliedFilters,
-          localLL.list.tags.allAllowed(),
-          localLL.list.tags.allDenied(),
-          true,
-          aclContext,
-        )
+            rulesAfterSearch,
+            appliedFilters,
+            localLL.list.tags.allAllowed(),
+            localLL.list.tags.allDenied(),
+            true,
+            aclContext,
+          )
         : [],
     [aclContext, aclRules, appliedFilters, localLL.list.tags, rulesAfterSearch],
   );
@@ -336,7 +338,11 @@ export const AclIndexRules = () => {
               if (aclRules) {
                 if (pendingSelectionCount === 0) {
                   const rulesToApply = aclRules
-                    .filter((rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED)
+                    .filter(
+                      (rule) =>
+                        rule.state !== AclStatus.APPLIED &&
+                        rule.state !== AclStatus.EXPIRED,
+                    )
                     .map((rule) => rule.id);
                   applyPendingChangesMutation(rulesToApply);
                 } else {
@@ -700,10 +706,14 @@ const prepareDisplay = (
   let disabledStateFilter = false;
   let enabledStateFilter = false;
   if (pending) {
-    rules = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED);
+    rules = aclRules.filter(
+      (rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
+    );
     statusFilters = appliedFilters.status.filter((s) => ![999, 1000].includes(s));
   } else {
-    rules = aclRules.filter((rule) => rule.state === AclStatus.APPLIED || rule.state === AclStatus.EXPIRED);
+    rules = aclRules.filter(
+      (rule) => rule.state === AclStatus.APPLIED || rule.state === AclStatus.EXPIRED,
+    );
     statusFilters = appliedFilters.status;
     disabledStateFilter = statusFilters.includes(999);
     enabledStateFilter = statusFilters.includes(1000);

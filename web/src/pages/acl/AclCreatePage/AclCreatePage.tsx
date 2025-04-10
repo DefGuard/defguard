@@ -12,6 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
@@ -32,6 +33,7 @@ import {
   MessageBoxStyleVariant,
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
@@ -49,8 +51,6 @@ import { useAclLoadedContext } from '../acl-context';
 import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 
 type Alias = {
   id: number;
@@ -298,7 +298,7 @@ export const AlcCreatePage = () => {
     let expires = cleaned.expires;
     // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
     if (expires) {
-      expires = dayjs(expires).utc().startOf('day').format('YYYY-MM-DDTHH:mm:ss');  // remove time zone info
+      expires = dayjs(expires).utc().startOf('day').format('YYYY-MM-DDTHH:mm:ss'); // remove time zone info
     }
 
     if (editMode) {
