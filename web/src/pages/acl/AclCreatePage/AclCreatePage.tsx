@@ -49,6 +49,8 @@ import { useAclLoadedContext } from '../acl-context';
 import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 
 type Alias = {
   id: number;
@@ -98,7 +100,7 @@ export const AlcCreatePage = () => {
     return defaultValue;
   }, [editMode, ruleToEdit]);
 
-  // const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
+  const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
@@ -282,21 +284,21 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit, register, watch } = useForm<FormFields>({
+  const { control, handleSubmit, register, watch, setValue } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
     criteriaMode: 'all',
   });
 
-  // const watchedExpires = watch('expires');
+  const watchedExpires = watch('expires');
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
     let expires = cleaned.expires;
     // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
     if (expires) {
-      expires = dayjs(expires).utc().startOf('day').toISOString();
+      expires = dayjs(expires).utc().startOf('day').format('YYYY-MM-DDTHH:mm:ss');  // remove time zone info
     }
 
     if (editMode) {
@@ -372,25 +374,25 @@ export const AlcCreatePage = () => {
               disabled={allowAllLocations}
               forceShowErrorMessage
             />
-            {/* <CardHeader title="Expiration Date" />
-          <LabeledCheckbox
-            label="Never Expire"
-            value={neverExpires && watchedExpires === null}
-            onChange={(change) => {
-              if (change) {
-                setValue('expires', null, {
-                  shouldValidate: false,
-                  shouldDirty: true,
-                });
-              }
-              setNeverExpires(change);
-            }}
-          />
-          <FormDateInput
-            controller={{ control, name: 'expires' }}
-            label="Expiration Date"
-            disabled={neverExpires}
-          /> */}
+            <CardHeader title="Expiration Date" />
+            <LabeledCheckbox
+              label="Never Expire"
+              value={neverExpires && watchedExpires === null}
+              onChange={(change) => {
+                if (change) {
+                  setValue('expires', null, {
+                    shouldValidate: false,
+                    shouldDirty: true,
+                  });
+                }
+                setNeverExpires(change);
+              }}
+            />
+            <FormDateInput
+              controller={{ control, name: 'expires' }}
+              label="Expiration Date"
+              disabled={neverExpires}
+            />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.destination()} id="destination-card">
             <MessageBox
