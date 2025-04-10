@@ -124,96 +124,29 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.dedup();
 
         // create IPv4 rules
-        let rules = create_rules(
+        let comment = format!("ACL {} - {}", acl.id, acl.name);
+        let ipv4_rules = create_rules(
             acl.id,
             &ipv4_source_addrs,
             &destination_addrs.0,
             &destination_ports,
             &protocols,
-            &format!("ACL {} - {}", acl.id, acl.name),
+            &comment,
         );
-        rules.0.map(|rule| allow_rules.push(rule));
-        deny_rules.push(rules.1);
-
-        // // check if source addrs list is empty
-        // if ipv4_source_addrs.is_empty() {
-        //     debug!("IPv4 source address list is empty. Skipping generating the ALLOW rule for this ACL");
-        // } else {
-        //     // prepare ALLOW rule for this ACL
-        //     let allow_rule = FirewallRule {
-        //         id: acl.id,
-        //         source_addrs: ipv4_source_addrs.clone(),
-        //         destination_addrs: destination_addrs.0.clone(),
-        //         destination_ports: destination_ports.clone(),
-        //         protocols: protocols.clone(),
-        //         verdict: i32::from(FirewallPolicy::Allow),
-        //         comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
-        //         ip_version: i32::from(IpVersion::Ipv4),
-        //     };
-        //     debug!("ALLOW rule generated from ACL: {allow_rule:?}");
-        //     allow_rules.push(allow_rule);
-        // };
-
-        // // create IPv4 DENY rule
-        // // it should specify only the destination addrs to block all remaining traffic
-        // let deny_rule = FirewallRule {
-        //     id: acl.id,
-        //     source_addrs: Vec::new(),
-        //     destination_addrs: destination_addrs.0,
-        //     destination_ports: Vec::new(),
-        //     protocols: Vec::new(),
-        //     verdict: i32::from(FirewallPolicy::Deny),
-        //     comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
-        //     ip_version: i32::from(IpVersion::Ipv4),
-        // };
-        // debug!("DENY rule generated from ACL: {deny_rule:?}");
-        // deny_rules.push(deny_rule);
+        ipv4_rules.0.map(|rule| allow_rules.push(rule));
+        deny_rules.push(ipv4_rules.1);
 
         // create IPv6 rules
-        let rules = create_rules(
+        let ipv6_rules = create_rules(
             acl.id,
             &ipv6_source_addrs,
             &destination_addrs.1,
             &destination_ports,
             &protocols,
-            &format!("ACL {} - {}", acl.id, acl.name),
+            &comment,
         );
-        rules.0.map(|rule| allow_rules.push(rule));
-        deny_rules.push(rules.1);
-        // // create IPv6 ALLOW rule
-        // // check if source addrs list is empty
-        // if ipv6_source_addrs.is_empty() {
-        //     debug!("IPv6 source address list is empty. Skipping generating the ALLOW rule for this ACL");
-        // } else {
-        //     // prepare ALLOW rule for this ACL
-        //     let allow_rule = FirewallRule {
-        //         id: acl.id,
-        //         source_addrs: ipv6_source_addrs.clone(),
-        //         destination_addrs: destination_addrs.1.clone(),
-        //         destination_ports,
-        //         protocols,
-        //         verdict: i32::from(FirewallPolicy::Allow),
-        //         comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
-        //         ip_version: i32::from(IpVersion::Ipv6),
-        //     };
-        //     debug!("ALLOW rule generated from ACL: {allow_rule:?}");
-        //     allow_rules.push(allow_rule);
-        // };
-
-        // // create IPv6 DENY rule
-        // // it should specify only the destination addrs to block all remaining traffic
-        // let deny_rule = FirewallRule {
-        //     id: acl.id,
-        //     source_addrs: Vec::new(),
-        //     destination_addrs: destination_addrs.1,
-        //     destination_ports: Vec::new(),
-        //     protocols: Vec::new(),
-        //     verdict: i32::from(FirewallPolicy::Deny),
-        //     comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
-        //     ip_version: i32::from(IpVersion::Ipv6),
-        // };
-        // debug!("DENY rule generated from ACL: {deny_rule:?}");
-        // deny_rules.push(deny_rule);
+        ipv6_rules.0.map(|rule| allow_rules.push(rule));
+        deny_rules.push(ipv6_rules.1);
 
         // process aliases by creating a dedicated set of rules for each alias
         if !aliases.is_empty() {
@@ -246,114 +179,32 @@ pub async fn generate_firewall_rules_from_acls(
             protocols.dedup();
 
             // create IPv4 rules
-            let rules = create_rules(
+            let comment = format!(
+                "ACL {} - {}, ALIAS {} - {}",
+                acl.id, acl.name, alias.id, alias.name
+            );
+            let ipv4_rules = create_rules(
                 alias.id,
                 &ipv4_source_addrs,
                 &destination_addrs.0,
                 &destination_ports,
                 &protocols,
-                &format!(
-                    "ACL {} - {}, ALIAS {} - {}",
-                    acl.id, acl.name, alias.id, alias.name
-                ),
+                &comment,
             );
-            rules.0.map(|rule| allow_rules.push(rule));
-            deny_rules.push(rules.1);
-            // // create IPv4 ALLOW rule
-            // if ipv4_source_addrs.is_empty() {
-            //     debug!(
-            //         "Source address list is empty. Skipping generating the ALLOW rule for this alias"
-            //     );
-            // } else {
-            //     let alias_allow_rule = FirewallRule {
-            //         id: acl.id,
-            //         source_addrs: ipv4_source_addrs.clone(),
-            //         destination_addrs: destination_addrs.0.clone(),
-            //         destination_ports: destination_ports.clone(),
-            //         protocols: protocols.clone(),
-            //         verdict: i32::from(FirewallPolicy::Allow),
-            //         comment: Some(format!(
-            //             "ACL {} - {}, ALIAS {} - {} ALLOW",
-            //             acl.id, acl.name, alias.id, alias.name
-            //         )),
-            //         ip_version: i32::from(IpVersion::Ipv4),
-            //     };
-            //     debug!("ALLOW rule generated from ACL: {alias_allow_rule:?}");
-            //     allow_rules.push(alias_allow_rule);
-            // };
-
-            // // create IPv4 DENY rule
-            // // it should specify only the destination addrs to block all remaining traffic
-            // let alias_deny_rule = FirewallRule {
-            //     id: acl.id,
-            //     source_addrs: Vec::new(),
-            //     destination_addrs: destination_addrs.0,
-            //     destination_ports: Vec::new(),
-            //     protocols: Vec::new(),
-            //     verdict: i32::from(FirewallPolicy::Deny),
-            //     comment: Some(format!(
-            //         "ACL {} - {}, ALIAS {} - {} DENY",
-            //         acl.id, acl.name, alias.id, alias.name
-            //     )),
-            //     ip_version: i32::from(IpVersion::Ipv4),
-            // };
-            // debug!("DENY rule generated from ACL: {alias_deny_rule:?}");
-            // deny_rules.push(alias_deny_rule);
+            ipv4_rules.0.map(|rule| allow_rules.push(rule));
+            deny_rules.push(ipv4_rules.1);
 
             // create IPv6 rules
-            let rules = create_rules(
+            let ipv6_rules = create_rules(
                 alias.id,
                 &ipv6_source_addrs,
                 &destination_addrs.1,
                 &destination_ports,
                 &protocols,
-                &format!(
-                    "ACL {} - {}, ALIAS {} - {}",
-                    acl.id, acl.name, alias.id, alias.name
-                ),
+                &comment,
             );
-            rules.0.map(|rule| allow_rules.push(rule));
-            deny_rules.push(rules.1);
-            // // create IPv6 ALLOW rule
-            // if ipv6_source_addrs.is_empty() {
-            //     debug!(
-            //         "Source address list is empty. Skipping generating the ALLOW rule for this alias"
-            //     );
-            // } else {
-            //     let alias_allow_rule = FirewallRule {
-            //         id: acl.id,
-            //         source_addrs: ipv6_source_addrs.clone(),
-            //         destination_addrs: destination_addrs.1.clone(),
-            //         destination_ports,
-            //         protocols,
-            //         verdict: i32::from(FirewallPolicy::Allow),
-            //         comment: Some(format!(
-            //             "ACL {} - {}, ALIAS {} - {} ALLOW",
-            //             acl.id, acl.name, alias.id, alias.name
-            //         )),
-            //         ip_version: i32::from(IpVersion::Ipv6),
-            //     };
-            //     debug!("ALLOW rule generated from ACL: {alias_allow_rule:?}");
-            //     allow_rules.push(alias_allow_rule);
-            // };
-
-            // // create IPv6 DENY rule
-            // // it should specify only the destination addrs to block all remaining traffic
-            // let alias_deny_rule = FirewallRule {
-            //     id: acl.id,
-            //     source_addrs: Vec::new(),
-            //     destination_addrs: destination_addrs.1,
-            //     destination_ports: Vec::new(),
-            //     protocols: Vec::new(),
-            //     verdict: i32::from(FirewallPolicy::Deny),
-            //     comment: Some(format!(
-            //         "ACL {} - {}, ALIAS {} - {} DENY",
-            //         acl.id, acl.name, alias.id, alias.name
-            //     )),
-            //     ip_version: i32::from(IpVersion::Ipv6),
-            // };
-            // debug!("DENY rule generated from ACL: {alias_deny_rule:?}");
-            // deny_rules.push(alias_deny_rule);
+            ipv6_rules.0.map(|rule| allow_rules.push(rule));
+            deny_rules.push(ipv6_rules.1);
         }
     }
 
