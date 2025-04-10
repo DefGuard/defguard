@@ -1044,10 +1044,10 @@ mod test {
         ];
 
         let destination_addrs =
-            process_destination_addrs(destination_ips, destination_ranges, IpVersion::Ipv4);
+            process_destination_addrs(destination_ips, destination_ranges);
 
         assert_eq!(
-            destination_addrs,
+            destination_addrs.0,
             vec![
                 IpAddress {
                     address: Some(Address::IpRange(IpRange {
@@ -1071,16 +1071,15 @@ mod test {
         );
 
         // Test with empty input
-        let empty_addrs = process_destination_addrs(vec![], vec![], IpVersion::Ipv4);
-        assert!(empty_addrs.is_empty());
+        let empty_addrs = process_destination_addrs(vec![], vec![]);
+        assert!(empty_addrs.0.is_empty());
 
         // Test with only IPv6 addresses - should return empty result for IPv4
         let ipv6_only = process_destination_addrs(
             vec!["2001:db8::/64".parse().unwrap()],
             vec![],
-            IpVersion::Ipv4,
         );
-        assert!(ipv6_only.is_empty());
+        assert!(ipv6_only.0.is_empty());
     }
 
     #[test]
@@ -1107,10 +1106,10 @@ mod test {
         ];
 
         let destination_addrs =
-            process_destination_addrs(destination_ips, destination_ranges, IpVersion::Ipv6);
+            process_destination_addrs(destination_ips, destination_ranges);
 
         assert_eq!(
-            destination_addrs,
+            destination_addrs.1,
             vec![
                 IpAddress {
                     address: Some(Address::IpRange(IpRange {
@@ -1140,16 +1139,15 @@ mod test {
         );
 
         // Test with empty input
-        let empty_addrs = process_destination_addrs(vec![], vec![], IpVersion::Ipv6);
-        assert!(empty_addrs.is_empty());
+        let empty_addrs = process_destination_addrs(vec![], vec![]);
+        assert!(empty_addrs.1.is_empty());
 
         // Test with only IPv4 addresses - should return empty result for IPv6
         let ipv4_only = process_destination_addrs(
             vec!["192.168.1.0/24".parse().unwrap()],
             vec![],
-            IpVersion::Ipv6,
         );
-        assert!(ipv4_only.is_empty());
+        assert!(ipv4_only.1.is_empty());
     }
 
     #[test]
@@ -2364,6 +2362,7 @@ mod test {
             .unwrap()
             .rules;
 
+        println!("{generated_firewall_rules:#?}");
         // both rules were assigned to this location
         assert_eq!(generated_firewall_rules.len(), 4);
 
