@@ -27,6 +27,12 @@ use self::common::{make_base_client, make_test_client};
 
 pub mod common;
 
+// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
+// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
+async fn setup_pool(options: PgConnectOptions) -> PgPool {
+    PgPoolOptions::new().connect_with(options).await.unwrap()
+}
+
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
@@ -399,9 +405,7 @@ async fn test_nonadmin() {
 
 #[sqlx::test]
 async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -645,9 +649,7 @@ async fn test_invalid_data() {
 
 #[sqlx::test]
 async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -702,9 +704,7 @@ async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptio
 
 #[sqlx::test]
 async fn test_rule_delete_state_new(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -723,9 +723,7 @@ async fn test_rule_delete_state_new(_: PgPoolOptions, options: PgConnectOptions)
 
 #[sqlx::test]
 async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -759,9 +757,7 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
 
 #[sqlx::test]
 async fn test_rule_duplication(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     // each modification / deletion of parent rule should remove the child and create a new one
     let config = init_config(None);
@@ -792,9 +788,7 @@ async fn test_rule_duplication(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -886,9 +880,7 @@ async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -926,9 +918,7 @@ async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOpt
 
 #[sqlx::test]
 async fn test_alias_create_modify_state(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -968,9 +958,7 @@ async fn test_alias_create_modify_state(_: PgPoolOptions, options: PgConnectOpti
 
 #[sqlx::test]
 async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -1035,9 +1023,7 @@ async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_alias_duplication(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     // each modification of parent alias should remove the child and create a new one
     let config = init_config(None);
@@ -1064,9 +1050,7 @@ async fn test_alias_duplication(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -1127,9 +1111,7 @@ async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
 
 #[sqlx::test]
 async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectOptions) {
-    // instantiate pool manually
-    // reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-    let pool = PgPoolOptions::new().connect_with(options).await.unwrap();
+    let pool = setup_pool(options).await;
 
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
