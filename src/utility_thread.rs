@@ -1,6 +1,6 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
-use sqlx::PgPool;
+use sqlx::{query_as, PgPool};
 use tokio::{
     sync::broadcast::Sender,
     time::{sleep, Instant},
@@ -9,6 +9,7 @@ use tokio::{
 use crate::{
     db::{GatewayEvent, Id, WireguardNetwork},
     enterprise::{
+        db::models::acl::{AclRule, RuleState},
         directory_sync::{do_directory_sync, get_directory_sync_interval},
         is_enterprise_enabled,
         ldap::{do_ldap_sync, sync::get_ldap_sync_interval},
@@ -21,7 +22,8 @@ use crate::{
 const UTILITY_THREAD_MAIN_SLEEP_TIME: u64 = 5;
 const COUNT_UPDATE_INTERVAL: u64 = 60 * 60;
 const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
-const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60;
+const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
+const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
 
 pub async fn run_utility_thread(
     pool: &PgPool,
@@ -31,7 +33,10 @@ pub async fn run_utility_thread(
     let mut last_directory_sync = Instant::now();
     let mut last_updates_check = Instant::now();
     let mut last_ldap_sync = Instant::now();
+    let mut last_expired_acl_rules_check = Instant::now();
     let mut last_enterprise_status_check = Instant::now();
+
+    // helper variable which stores previous enterprise features status
     let mut enterprise_enabled = is_enterprise_enabled();
 
     let directory_sync_task = || async {
@@ -90,6 +95,14 @@ pub async fn run_utility_thread(
             last_ldap_sync = Instant::now();
         }
 
+        // Mark expired ACL rules
+        if last_expired_acl_rules_check.elapsed().as_secs() >= EXPIRED_ACL_RULES_CHECK_INTERVAL {
+            if let Err(err) = expired_acl_rules_check(pool, wireguard_tx.clone()).await {
+                error!("Failed to check expired ACL rules: {err}");
+            };
+            last_expired_acl_rules_check = Instant::now();
+        }
+
         // Check if enterprise features got enabled or disabled
         if last_enterprise_status_check.elapsed().as_secs() >= ENTERPRISE_STATUS_CHECK_INTERVAL {
             let new_enterprise_enabled = is_enterprise_enabled();
@@ -111,6 +124,7 @@ pub async fn run_utility_thread(
     }
 }
 
+/// Check if enterprise status has changed and perform any necessary actions
 async fn enterprise_status_check(
     pool: &PgPool,
     wireguard_tx: Sender<GatewayEvent>,
@@ -130,9 +144,9 @@ async fn enterprise_status_check(
         if new_enterprise_enabled {
             // handle switch from disabled -> enabled
             debug!("Re-enabling gateway firewall configuration for ACL-enabled locations");
+            let mut conn = pool.acquire().await?;
             for location in locations {
                 debug!("Re-enabling gateway firewall configuration for location {location:?}");
-                let mut conn = pool.acquire().await?;
                 let firewall_config = location
                     .try_get_firewall_config(&mut conn)
                     .await?
@@ -152,5 +166,63 @@ async fn enterprise_status_check(
             }
         }
     };
+    Ok(())
+}
+
+/// Find newly expired ACL rules and update their status.
+async fn expired_acl_rules_check(
+    pool: &PgPool,
+    wireguard_tx: Sender<GatewayEvent>,
+) -> Result<(), anyhow::Error> {
+    // mark relevant rules as expired
+    let updated_rules = query_as!(
+            AclRule::<Id>,
+            "UPDATE aclrule SET state = 'expired'::aclrule_state \
+            WHERE state = 'applied'::aclrule_state AND expires < NOW() \
+            RETURNING id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, \
+                allow_all_network_devices, deny_all_network_devices, all_networks, \
+                destination, ports, protocols, enabled, expires"
+        )
+        .fetch_all(pool)
+        .await?;
+
+    // send firewall config updates to locations which have been affected by updated
+    // rules
+    debug!(
+        "Marked {} ACL rules as expired. Sending firewall config updates to affected locations.",
+        updated_rules.len()
+    );
+
+    // find affected locations
+    let mut affected_locations = HashSet::new();
+    for rule in updated_rules {
+        let locations = rule.get_networks(pool).await?;
+        for location in locations {
+            affected_locations.insert(location);
+        }
+    }
+
+    let affected_locations: Vec<WireguardNetwork<Id>> = affected_locations.into_iter().collect();
+    debug!(
+            "{} locations affected by expired ACL rules. Sending gateway firewall update events for each location",
+            affected_locations.len()
+        );
+
+    let mut conn = pool.acquire().await?;
+    for location in affected_locations {
+        match location.try_get_firewall_config(&mut conn).await? {
+            Some(firewall_config) => {
+                debug!("Sending firewall update event for location {location}");
+                wireguard_tx.send(GatewayEvent::FirewallConfigChanged(
+                    location.id,
+                    firewall_config,
+                ))?;
+            }
+            None => {
+                debug!("No firewall config generated for location {location}. Not sending a gateway event")
+            }
+        }
+    }
+
     Ok(())
 }

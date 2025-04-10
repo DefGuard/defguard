@@ -15,7 +15,8 @@
                 "applied",
                 "new",
                 "modified",
-                "deleted"
+                "deleted",
+                "expired"
               ]
             }
           }

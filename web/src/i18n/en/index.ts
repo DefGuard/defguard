@@ -2208,6 +2208,7 @@ Any other requests you can reach us at: support@defguard.net
       deleted: 'Pending Deletion',
       enabled: 'Enabled',
       disabled: 'Disabled',
+      expired: 'Expired',
     },
     listPage: {
       message: {
