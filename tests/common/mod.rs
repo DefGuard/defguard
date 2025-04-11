@@ -200,12 +200,12 @@ fn get_test_url(listener: &TcpListener) -> String {
 }
 
 #[allow(dead_code)]
-pub(crate) async fn make_test_client() -> (TestClient, ClientState) {
+pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("Could not bind ephemeral socket");
     let config = init_config(None);
-    let pool = init_test_db(&config).await;
+    initialize_users(&pool, &config).await;
     initialize_current_settings(&pool)
         .await
         .expect("Could not initialize settings");
