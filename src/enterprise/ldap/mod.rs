@@ -510,6 +510,14 @@ impl LDAPConnection {
         let nt_password = hash::nthash(&password);
         let user_obj_classes = self.config.get_all_user_obj_classes();
         let username_attr = self.config.ldap_username_attr.clone();
+        if !self.is_username_available(&user.username).await
+            || !self.is_rdn_available(user_rdn).await
+        {
+            return Err(LdapError::ObjectAlreadyExists(format!(
+                "User with username {} or RDN {user_rdn} already exists",
+                user.username
+            )));
+        }
         self.add(
             &dn,
             user.as_ldap_attrs(

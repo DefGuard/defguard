@@ -26,4 +26,6 @@ pub enum LdapError {
     changing your LDAP username attribute or changing the username in LDAP to a valid one"
     )]
     InvalidUsername(String),
+    #[error("LDAP object already exists: {0}")]
+    ObjectAlreadyExists(String),
 }
