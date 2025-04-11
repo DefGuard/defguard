@@ -2290,11 +2290,17 @@ Any other requests you can reach us at: support@defguard.net
           aliasDeleteFail: 'Alias deletion failed',
         },
         modals: {
+          applyConfirm: {
+            title: 'Confirm Alias Deployment',
+            message: `The updated aliases will modify the following rule(s) currently deployed on the gateway.\nPlease ensure these changes are intended before proceeding.`,
+            listLabel: 'Affected Rules',
+            submit: 'Deploy Changes',
+          },
           deleteBlock: {
             title: 'Deletion blocked',
             //md
             content: `
-Alias is used in {rulesCount: number} rules and cannot be deleted.
+This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount: number}):
 `,
           },
           filterGroupsModal: {
