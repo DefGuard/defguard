@@ -4,7 +4,9 @@ use std::time::SystemTime;
 
 use chrono::NaiveDateTime;
 use claims::{assert_err, assert_ok};
-use common::fetch_user_details;
+use common::{
+    fetch_user_details, make_client, make_client_with_db, make_client_with_state, setup_pool,
+};
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{
@@ -15,12 +17,15 @@ use defguard::{
 use reqwest::{header::USER_AGENT, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::{query, PgPool};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query,
+};
 use totp_lite::{totp_custom, Sha1};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-use self::common::{client::TestClient, make_test_client, ClientState, X_FORWARDED_FOR};
+use self::common::{make_test_client, X_FORWARDED_FOR};
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 
@@ -29,24 +34,11 @@ pub struct RecoveryCodes {
     codes: Option<Vec<String>>,
 }
 
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
+#[sqlx::test]
+async fn test_logout(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client_with_db() -> (TestClient, PgPool) {
-    let (client, client_state) = make_test_client().await;
-    (client, client_state.pool)
-}
-
-async fn make_client_with_state() -> (TestClient, ClientState) {
-    let (client, client_state) = make_test_client().await;
-    (client, client_state)
-}
-
-#[tokio::test]
-async fn test_logout() {
-    let mut client = make_client().await;
+    let mut client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -73,9 +65,11 @@ async fn test_logout() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
-async fn test_login_bruteforce() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_login_bruteforce(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let invalid_auth = Auth::new("hpotter", "invalid");
 
@@ -90,9 +84,11 @@ async fn test_login_bruteforce() {
     }
 }
 
-#[tokio::test]
-async fn test_login_disabled() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_login_disabled(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let user_auth = Auth::new("hpotter", "pass123");
     let admin_auth = Auth::new("admin", "pass123");
@@ -130,9 +126,11 @@ async fn test_login_disabled() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_cannot_enable_mfa() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_cannot_enable_mfa(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -161,9 +159,11 @@ fn totp_code(auth_totp: &AuthTotp) -> AuthCode {
     AuthCode::new(code)
 }
 
-#[tokio::test]
-async fn test_totp() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_totp(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -277,9 +277,11 @@ fn extract_email_code(content: &str) -> &str {
     code
 }
 
-#[tokio::test]
-async fn test_email_mfa() {
-    let (client, state) = make_client_with_state().await;
+#[sqlx::test]
+async fn test_email_mfa(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
     let pool = state.pool;
     let mut mail_rx = state.mail_rx;
 
@@ -421,9 +423,11 @@ async fn test_email_mfa() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_webauthn() {
-    let (client, pool) = make_client_with_db().await;
+#[sqlx::test]
+async fn test_webauthn(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, pool) = make_client_with_db(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
     let origin = Url::parse("http://localhost:8000").unwrap();
@@ -501,9 +505,11 @@ async fn test_webauthn() {
     assert_eq!(record.recovery_codes.len(), 0);
 }
 
-#[tokio::test]
-async fn test_cannot_skip_otp_by_adding_yubikey() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_cannot_skip_otp_by_adding_yubikey(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -533,9 +539,14 @@ async fn test_cannot_skip_otp_by_adding_yubikey() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
-async fn test_cannot_skip_security_key_by_adding_yubikey() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_cannot_skip_security_key_by_adding_yubikey(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let mut authenticator = WebauthnAuthenticator::new(SoftPasskey::new(true));
     let origin = Url::parse("http://localhost:8000").unwrap();
@@ -574,9 +585,14 @@ async fn test_cannot_skip_security_key_by_adding_yubikey() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
-async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // login
     let auth = Auth::new("hpotter", "pass123");
@@ -666,9 +682,11 @@ async fn test_mfa_method_is_updated_when_removing_last_webauthn_passkey() {
     assert_eq!(mfa_info.current_mfa_method(), &MFAMethod::OneTimePassword);
 }
 
-#[tokio::test]
-async fn test_mfa_method_totp_enabled_mail() {
-    let (client, state) = make_test_client().await;
+#[sqlx::test]
+async fn test_mfa_method_totp_enabled_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
@@ -705,9 +723,11 @@ async fn test_mfa_method_totp_enabled_mail() {
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 }
 
-#[tokio::test]
-async fn test_new_device_login() {
-    let (client, state) = make_test_client().await;
+#[sqlx::test]
+async fn test_new_device_login(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
     let user_agent_header_android = "Mozilla/5.0 (Linux; Android 7.0; SM-G930VC Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/58.0.3029.83 Mobile Safari/537.36";
@@ -769,9 +789,11 @@ async fn test_new_device_login() {
         .contains("Device type:</span> SM-G930VC, OS: Android 7.0, Chrome Mobile WebView"));
 }
 
-#[tokio::test]
-async fn test_login_ip_headers() {
-    let (client, state) = make_test_client().await;
+#[sqlx::test]
+async fn test_login_ip_headers(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
@@ -795,9 +817,11 @@ async fn test_login_ip_headers() {
     assert!(mail.content.contains("IP Address:</span> 10.0.0.20"));
 }
 
-#[tokio::test]
-async fn test_session_cookie() {
-    let (client, pool) = make_client_with_db().await;
+#[sqlx::test]
+async fn test_session_cookie(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, pool) = make_client_with_db(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -827,9 +851,11 @@ async fn test_session_cookie() {
     assert!(auth_cookie.is_none());
 }
 
-#[tokio::test]
-async fn test_all_session_logout() {
-    let (client, pool) = make_client_with_db().await;
+#[sqlx::test]
+async fn test_all_session_logout(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, pool) = make_client_with_db(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
