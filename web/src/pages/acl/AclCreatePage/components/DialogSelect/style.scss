@@ -140,3 +140,24 @@
     }
   }
 }
+
+.dialog-select-track-floating-menu {
+  min-width: 200px;
+  max-width: 100dvh;
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+
+    li {
+      @include typography(app-modal-2);
+      display: flex;
+      flex-flow: row wrap;
+      gap: var(--spacing-xs);
+      align-items: center;
+      justify-content: flex-start;
+    }
+  }
+}

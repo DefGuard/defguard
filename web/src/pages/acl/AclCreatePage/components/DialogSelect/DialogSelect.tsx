@@ -4,6 +4,9 @@ import clsx from 'clsx';
 import { useCallback, useId, useMemo, useState } from 'react';
 
 import { FieldError } from '../../../../../shared/defguard-ui/components/Layout/FieldError/FieldError';
+import { FloatingMenu } from '../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
+import { FloatingMenuProvider } from '../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuProvider';
+import { FloatingMenuTrigger } from '../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuTrigger';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
 import { DialogSelectModal } from './DialogSelectModal/DialogSelectModal';
@@ -32,6 +35,8 @@ export const DialogSelect = <T extends object, I extends number | string>({
 
   const error = !disabled ? errorMessage : undefined;
 
+  const getLabel = renderDialogListItem ? renderDialogListItem : renderTagContent;
+
   return (
     <>
       <div className="dialog-select spacer">
@@ -43,20 +48,32 @@ export const DialogSelect = <T extends object, I extends number | string>({
               invalid: isPresent(error),
             })}
           >
-            <div className={clsx('track')}>
-              <div className="options">
-                {renderTagContent !== undefined &&
-                  selectedOptions.map((o) => {
+            <FloatingMenuProvider placement="top">
+              <FloatingMenuTrigger asChild>
+                <div className={clsx('track')}>
+                  <div className="options">
+                    {renderTagContent !== undefined &&
+                      selectedOptions.map((o) => {
+                        const id = getIdent(o);
+                        return (
+                          <div className="dialog-select-tag" key={id}>
+                            {renderTagContent(o)}
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <TrackGradient />
+                </div>
+              </FloatingMenuTrigger>
+              <FloatingMenu className="dialog-select-track-floating-menu">
+                <ul>
+                  {selectedOptions.map((o) => {
                     const id = getIdent(o);
-                    return (
-                      <div className="dialog-select-tag" key={id}>
-                        {renderTagContent(o)}
-                      </div>
-                    );
+                    return <li key={id}>{getLabel(o)}</li>;
                   })}
-              </div>
-              <TrackGradient />
-            </div>
+                </ul>
+              </FloatingMenu>
+            </FloatingMenuProvider>
             <button
               disabled={disabled}
               className="open-button"
@@ -88,7 +105,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
         options={options}
         getIdent={getIdent}
         initiallySelected={selected}
-        getLabel={renderDialogListItem ? renderDialogListItem : renderTagContent}
+        getLabel={getLabel}
         onChange={(vals) => {
           onChange?.(vals);
         }}
