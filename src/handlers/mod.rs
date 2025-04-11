@@ -131,6 +131,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Port out of range: {port}")}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
+                AclError::CannotModifyDeletedRuleError(id) => ApiResponse::new(
+                    json!({"msg": format!("Cannot modify deleted ACL rule {id}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
             },
             WebError::Http(status) => {
                 error!("{status}");
