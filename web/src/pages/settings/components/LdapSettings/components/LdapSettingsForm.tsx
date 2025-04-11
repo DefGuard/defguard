@@ -74,6 +74,7 @@ export const LdapSettingsForm = () => {
         ldap_tls_verify_cert: z.boolean(),
         ldap_sync_interval: z.number().default(300),
         ldap_uses_ad: z.boolean(),
+        ldap_user_rdn_attr: z.string().optional(),
       }),
     [LL.form.error],
   );
@@ -100,6 +101,7 @@ export const LdapSettingsForm = () => {
       ldap_tls_verify_cert: settings?.ldap_tls_verify_cert ?? true,
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
+      ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
     }),
     [settings],
   );
@@ -125,6 +127,7 @@ export const LdapSettingsForm = () => {
       ldap_tls_verify_cert: true,
       ldap_sync_interval: 300,
       ldap_uses_ad: false,
+      ldap_user_rdn_attr: '',
     }),
     [],
   );

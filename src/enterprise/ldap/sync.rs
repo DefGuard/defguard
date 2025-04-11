@@ -57,7 +57,7 @@ use std::collections::{HashMap, HashSet};
 use ldap3::{adapters::PagedResults, Scope, SearchEntry};
 use sqlx::{PgConnection, PgPool, Type};
 
-use super::{error::LdapError, model::extract_dn_value};
+use super::{error::LdapError, model::extract_dn_value, LDAPConfig};
 use crate::db::{models::settings::update_current_settings, Group, Id, Settings, User};
 
 async fn get_or_create_group(
@@ -319,11 +319,12 @@ fn compute_group_sync_changes(
     sync_changes
 }
 
-fn attrs_different(defguard_user: &User<Id>, ldap_user: &User) -> bool {
+fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConfig) -> bool {
     defguard_user.last_name != ldap_user.last_name
         || defguard_user.first_name != ldap_user.first_name
         || defguard_user.email != ldap_user.email
         || defguard_user.phone != ldap_user.phone
+        || (config.username_not_in_dn() && defguard_user.username != ldap_user.username)
 }
 
 /// Extracts users that are in both sources for later comparison and attritubte modification (emails, phone numbers)
@@ -378,7 +379,7 @@ impl super::LDAPConnection {
         let mut transaction = pool.begin().await?;
 
         for (ldap_user, defguard_user) in intersecting_users.iter_mut() {
-            if attrs_different(defguard_user, ldap_user) {
+            if attrs_different(defguard_user, ldap_user, &self.config) {
                 debug!(
                     "User {} attributes differ between LDAP and Defguard, merging...",
                     defguard_user.username
@@ -386,7 +387,7 @@ impl super::LDAPConnection {
                 match authority {
                     Authority::LDAP => {
                         debug!("Applying LDAP user attributes to Defguard user");
-                        defguard_user.update_from_ldap_user(ldap_user);
+                        defguard_user.update_from_ldap_user(ldap_user, &self.config);
                         defguard_user.save(&mut *transaction).await?;
                     }
                     Authority::Defguard => {
@@ -421,7 +422,7 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
-        let all_entries = self.list_users().await?;
+        let all_ldap_user_entries = self.list_users().await?;
         let mut all_ldap_users = vec![];
         let mut all_defguard_users = User::all(pool).await?;
 
@@ -429,7 +430,7 @@ impl super::LDAPConnection {
 
         let username_attr = &self.config.ldap_username_attr;
 
-        for entry in all_entries {
+        for entry in all_ldap_user_entries {
             let username = entry
                 .attrs
                 .get(username_attr)
@@ -447,6 +448,13 @@ impl super::LDAPConnection {
             }
         }
 
+        // To perform LDAP operations, we need access to the user's RDN value, on the other hand, Defguard operations are
+        // performed using the username, so here is a helper mapping to translate between the two.
+        let mut username_rdn_lookup = HashMap::new();
+        for user in all_ldap_users.iter() {
+            username_rdn_lookup.insert(user.username.clone(), user.ldap_rdn_value().to_string());
+        }
+
         let ldap_usernames = all_ldap_users
             .iter()
             .map(|u| u.username.as_str())
@@ -459,11 +467,32 @@ impl super::LDAPConnection {
         debug!("LDAP users: {:?}", ldap_usernames);
         debug!("Defguard users: {:?}", defguard_usernames);
 
-        let ldap_memberships = self
-            .get_ldap_group_memberships(
-                all_ldap_users.iter().map(|u| u.username.as_str()).collect(),
-            )
+        let ldap_memberships_rdns = self
+            .get_ldap_group_memberships(all_ldap_users.iter().map(|u| u.ldap_rdn_value()).collect())
             .await?;
+
+        // Translate rdns to usernames if needed
+        let ldap_memberships = if self.config.username_not_in_dn() {
+            ldap_memberships_rdns
+                .into_iter()
+                .map(|(k, v)| {
+                    (
+                        k,
+                        v.into_iter()
+                            .filter_map(|rdn| {
+                                all_ldap_users
+                                    .iter()
+                                    .find(|u| u.ldap_rdn_value() == rdn)
+                                    .map(|u| u.username.clone())
+                            })
+                            .collect(),
+                    )
+                })
+                .collect()
+        } else {
+            ldap_memberships_rdns
+        };
+
         let mut defguard_memberships = HashMap::new();
 
         let intersecting_users =
@@ -497,7 +526,7 @@ impl super::LDAPConnection {
             compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);
 
         self.apply_user_sync_changes(pool, user_changes).await?;
-        self.apply_user_group_sync_changes(pool, membership_changes)
+        self.apply_user_group_sync_changes(pool, membership_changes, &username_rdn_lookup)
             .await?;
 
         if full {
@@ -513,6 +542,7 @@ impl super::LDAPConnection {
         &mut self,
         pool: &PgPool,
         changes: GroupSyncChanges,
+        rdn_lookup: &HashMap<String, String>,
     ) -> Result<(), LdapError> {
         debug!("Applying group memberships sync changes");
         let mut transaction = pool.begin().await?;
@@ -576,13 +606,33 @@ impl super::LDAPConnection {
 
         for (groupname, members) in changes.delete_ldap {
             for member in members {
-                self.remove_user_from_group(&member, &groupname).await?;
+                if let Some(rdn) = rdn_lookup.get(&member) {
+                    debug!("Removing user {} from LDAP group {}", member, groupname);
+                    self.remove_user_from_group(rdn, &groupname).await?;
+                    debug!("User {} removed from LDAP group {}", member, groupname);
+                } else {
+                    warn!(
+                        "User {} should be removed from the group {} but he is not present in LDAP, skipping",
+                        member, groupname
+                    );
+                    continue;
+                }
             }
         }
 
         for (groupname, members) in changes.add_ldap {
             for member in members {
-                self.add_user_to_group(&member, &groupname).await?;
+                if let Some(rdn) = rdn_lookup.get(&member) {
+                    debug!("Adding user {} to LDAP group {}", member, groupname);
+                    self.add_user_to_group(rdn, &groupname).await?;
+                    debug!("User {} added to LDAP group {}", member, groupname);
+                } else {
+                    warn!(
+                        "User {} should be added to the group {} but he is not present in LDAP, skipping",
+                        member, groupname
+                    );
+                    continue;
+                }
             }
         }
 
@@ -624,7 +674,8 @@ impl super::LDAPConnection {
 
         for user in changes.delete_ldap {
             debug!("Deleting user {} from LDAP", user.username);
-            self.delete_user(&user.username).await?;
+            let rdn_value = user.ldap_rdn_value();
+            self.delete_user(rdn_value).await?;
         }
 
         for user in changes.add_ldap.iter_mut() {
@@ -660,7 +711,7 @@ impl super::LDAPConnection {
     /// Returns a map of group names to a set of member usernames
     async fn get_ldap_group_memberships(
         &mut self,
-        all_ldap_usernames: Vec<&str>,
+        all_ldap_rdns: Vec<&str>,
     ) -> Result<HashMap<String, HashSet<String>>, LdapError> {
         debug!("Retrieving LDAP group memberships");
         let mut membership_entries = self.list_group_memberships().await?;
@@ -678,7 +729,7 @@ impl super::LDAPConnection {
                         .iter()
                         .filter_map(|v| {
                             extract_dn_value(v).and_then(|v| {
-                                if all_ldap_usernames.contains(&v.as_str()) {
+                                if all_ldap_rdns.contains(&v.as_str()) {
                                     Some(v)
                                 } else {
                                     debug!(

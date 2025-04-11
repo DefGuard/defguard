@@ -21,4 +21,9 @@ pub enum LdapError {
     Desynced,
     #[error("Enterprise features are disabled, not performing LDAP operation: {0}")]
     EnterpriseDisabled(String),
+    #[error(
+        "User's username \"{0}\" is invalid and cannot be used in Defguard, you can try \
+    changing your LDAP username attribute or changing the username in LDAP to a valid one"
+    )]
+    InvalidUsername(String),
 }

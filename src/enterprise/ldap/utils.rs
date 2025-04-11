@@ -79,36 +79,39 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
     .await;
 }
 
-pub(crate) async fn ldap_modify_user(username: &str, user: &User<Id>, pool: &PgPool) {
+pub(crate) async fn ldap_modify_user(old_user_rdn: &str, current_user: &User<Id>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Modifying user {username} in LDAP");
+        debug!("Modifying user {old_user_rdn} in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.modify_user(username, user).await
+        ldap_connection
+            .modify_user(old_user_rdn, current_user)
+            .await
     })
     .await;
 }
 
-pub(crate) async fn ldap_delete_user(username: &str, pool: &PgPool) {
+pub(crate) async fn ldap_delete_user(user_rdn_value: &str, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Deleting user {username} from LDAP");
+        debug!("Deleting user {user_rdn_value} from LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.delete_user(username).await
+        ldap_connection.delete_user(user_rdn_value).await
     })
     .await;
 }
 
 /// Remove singular user from multiple groups in ldap.
-pub(crate) async fn ldap_add_user_to_groups(username: &str, groups: HashSet<&str>, pool: &PgPool) {
+pub(crate) async fn ldap_add_user_to_groups(user: &User<Id>, groups: HashSet<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Adding user {username} to groups {groups:?}");
+        let rdn = user.ldap_rdn_value();
+        debug!("Adding user {} to groups {groups:?}", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
         for group in groups {
             if ldap_connection.group_exists(group).await? {
-                ldap_connection.add_user_to_group(username, group).await?;
+                ldap_connection.add_user_to_group(rdn, group).await?;
             } else {
                 debug!("Group {} doesn't exist in LDAP, creating it", group);
                 ldap_connection
-                    .add_group_with_members(group, vec![username])
+                    .add_group_with_members(group, vec![rdn])
                     .await?;
                 debug!("Group {} created and member added in LDAP", group);
             }
@@ -121,22 +124,21 @@ pub(crate) async fn ldap_add_user_to_groups(username: &str, groups: HashSet<&str
 
 /// Remove singular user from multiple groups in ldap.
 pub(crate) async fn ldap_remove_user_from_groups(
-    username: &str,
+    user: &User<Id>,
     groups: HashSet<&str>,
     pool: &PgPool,
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Removing user {username} from groups {groups:?}");
+        let rdn = user.ldap_rdn_value();
+        debug!("Removing user {} from groups {groups:?}", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
         for group in groups {
             if ldap_connection.group_exists(group).await? {
-                ldap_connection
-                    .remove_user_from_group(username, group)
-                    .await?;
+                ldap_connection.remove_user_from_group(rdn, group).await?;
             } else {
                 debug!(
-                    "Group {} doesn't exist in LDAP, skipping removal of member {}",
-                    group, username
+                    "Group {group} doesn't exist in LDAP, skipping removal of member {}",
+                    user.username
                 );
             }
         }
@@ -149,22 +151,24 @@ pub(crate) async fn ldap_remove_user_from_groups(
 /// Bulk add users to groups in ldap.
 ///
 /// Pass in the following parameters:
-/// - `user_groups`: A HashMap containing usernames as keys and a HashSet of group names as values.
+/// - `user_groups`: A HashMap containing user rdns as keys and a HashSet of group names as values.
 pub(crate) async fn ldap_add_users_to_groups(
-    user_groups: HashMap<&str, HashSet<&str>>,
+    user_groups: HashMap<String, HashSet<&str>>,
     pool: &PgPool,
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
 
-        for (username, groups) in user_groups {
+        for (user_rdn_value, groups) in user_groups {
             for group in groups {
                 if ldap_connection.group_exists(group).await? {
-                    ldap_connection.add_user_to_group(username, group).await?;
+                    ldap_connection
+                        .add_user_to_group(&user_rdn_value, group)
+                        .await?;
                 } else {
                     debug!("Group {} doesn't exist in LDAP, creating it", group);
                     ldap_connection
-                        .add_group_with_members(group, vec![username])
+                        .add_group_with_members(group, vec![&user_rdn_value])
                         .await?;
                     debug!("Group {} created and member added in LDAP", group);
                 }
@@ -211,18 +215,18 @@ pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, po
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {} in LDAP", user.username);
         let mut ldap_connection = LDAPConnection::create().await?;
-        if !ldap_connection.user_exists(&user.username).await? {
+        if !ldap_connection.user_exists_by_username(&user.username).await? && !ldap_connection.user_exists_by_rdn(user.ldap_rdn_value()).await? {
             debug!("User {} doesn't exist in LDAP, creating it with the provided password", user.username);
             let user_groups = user.member_of_names(pool).await?;
             ldap_connection.add_user(user, Some(password), pool).await?;
             for group in user_groups {
-                ldap_connection.add_user_to_group(&user.username, &group).await?;
+                ldap_connection.add_user_to_group(user.ldap_rdn_value(), &group).await?;
             }
            debug!("User {} created in LDAP with the provided password", user.username);
         } else {
             debug!("User {} exists in LDAP, changing password", user.username);
             ldap_connection
-                .set_password(&user.username, password)
+                .set_password(user.ldap_rdn_value(), password)
                 .await?;
             debug!(
                 "Password changed for user {} in LDAP, marking the LDAP password as set in Defguard",

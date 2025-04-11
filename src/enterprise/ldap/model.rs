@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use ldap3::{Mod, SearchEntry};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::{db::User, hashset};
+use crate::{db::User, handlers::user::check_username, hashset};
 
 pub(crate) enum UserObjectClass {
     SambaSamAccount,
@@ -64,20 +64,43 @@ impl User {
             get_value(entry, "mobile"),
         );
         user.from_ldap = true;
+        if let Some(rdn) = extract_dn_value(&entry.dn) {
+            user.ldap_rdn = Some(rdn);
+        } else {
+            return Err(LdapError::InvalidDN(entry.dn.clone()));
+        }
+        // Print the warning only if everything else checks out
+        if check_username(username).is_err() {
+            warn!(
+                "LDAP User \"{}\" has username that cannot be used in Defguard, \
+                change the LDAP username attribute or change the username in LDAP to a valid one",
+                username
+            );
+            return Err(LdapError::InvalidUsername(username.to_string()));
+        }
         Ok(user)
     }
 }
 
 impl<I> User<I> {
-    pub(crate) fn update_from_ldap_user(&mut self, ldap_user: &User) {
+    pub(crate) fn update_from_ldap_user(&mut self, ldap_user: &User, config: &LDAPConfig) {
         self.last_name = ldap_user.last_name.clone();
         self.first_name = ldap_user.first_name.clone();
         self.email = ldap_user.email.clone();
         self.phone = ldap_user.phone.clone();
+        // It should be ok to update the username if we are not using it in the DN
+        if config.username_not_in_dn() {
+            self.username = ldap_user.username.clone();
+        } else {
+            debug!(
+                "Not updating username {} from LDAP because no rdn_attr is set",
+                self.username
+            );
+        }
     }
 
     #[must_use]
-    pub fn as_ldap_mod(&self, config: &LDAPConfig) -> Vec<Mod<&str>> {
+    pub fn as_ldap_mod<'a>(&'a self, config: &'a LDAPConfig) -> Vec<Mod<&'a str>> {
         let obj_classes = config.get_all_user_obj_classes();
         let mut changes = vec![];
         if obj_classes.contains(&UserObjectClass::InetOrgPerson.into())
@@ -103,12 +126,18 @@ impl<I> User<I> {
             );
         }
         // Be careful when changing naming attribute (the one in distingushed name)
-        if config.ldap_username_attr != "cn" {
-            changes.push(Mod::Replace("cn", hashset![self.username.as_str()]));
+        // RDN not defined = we're using the username attr for DN
+        if config.username_not_in_dn() {
+            changes.push(Mod::Replace(
+                &config.ldap_username_attr,
+                hashset![self.username.as_str()],
+            ));
         }
-        if config.ldap_username_attr != "uid" {
+
+        if config.ldap_username_attr != "uid" && config.ldap_user_rdn_attr != Some("uid".into()) {
             changes.push(Mod::Replace("uid", hashset![self.username.as_str()]));
         }
+
         changes
     }
 
@@ -119,13 +148,14 @@ impl<I> User<I> {
         nt_password: &'a str,
         object_classes: HashSet<&'a str>,
         uses_ad: bool,
+        username_attr: &'a str,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
         if object_classes.contains(UserObjectClass::InetOrgPerson.into())
             || object_classes.contains(UserObjectClass::User.into())
         {
             attrs.extend_from_slice(&[
-                ("cn", hashset![self.username.as_str()]),
+                (username_attr, hashset![self.username.as_str()]),
                 ("sn", hashset![self.last_name.as_str()]),
                 ("givenName", hashset![self.first_name.as_str()]),
                 ("mail", hashset![self.email.as_str()]),

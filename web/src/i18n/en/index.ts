@@ -1144,6 +1144,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_uses_ad: 'LDAP server is Active Directory',
+          ldap_user_rdn_attr: 'User RDN Attribute',
         },
         helpers: {
           ldap_user_obj_class:
@@ -1158,6 +1159,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             'Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.',
           ldap_group_obj_class:
             'The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.',
+          ldap_user_rdn_attr:
+            "If your user\'s RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.",
         },
         headings: {
           user_settings: 'User settings',
