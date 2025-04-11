@@ -284,7 +284,7 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit, register, watch, setValue } = useForm<FormFields>({
+  const { control, handleSubmit, watch, setValue } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
@@ -435,22 +435,29 @@ export const AlcCreatePage = () => {
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
             <FormCheckBox
-              controller={{ control, name: 'allow_all_users' }}
+              controller={{
+                control,
+                name: 'allow_all_users',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_users',
+                    'denied_groups',
+                  ],
+                },
+              }}
               label={labelsLL.allowAllUsers()}
               labelPlacement="right"
-              {...register('allow_all_users', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_users',
-                  'denied_groups',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
-              controller={{ control, name: 'allowed_users' }}
+              controller={{
+                control,
+                name: 'allowed_users',
+                rules: { deps: ['allowed_groups', 'allowed_devices', 'denied_users'] },
+              }}
               options={users}
               renderTagContent={renderUserTag}
               renderDialogListItem={renderUserListItem}
@@ -458,48 +465,54 @@ export const AlcCreatePage = () => {
               searchKeys={['email', 'last_name', 'first_name']}
               disabled={allowAllUsers}
               forceShowErrorMessage
-              {...register('allowed_users', {
-                deps: ['allowed_groups', 'allowed_devices', 'denied_users'],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
-              controller={{ control, name: 'allowed_groups' }}
+              controller={{
+                control,
+                name: 'allowed_groups',
+                rules: {
+                  deps: ['allowed_users', 'allowed_devices', 'denied_groups'],
+                },
+              }}
               options={groups}
               renderTagContent={renderGroup}
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllUsers}
               forceShowErrorMessage
-              {...register('allowed_groups', {
-                deps: ['allowed_users', 'allowed_devices', 'denied_groups'],
-              })}
             />
             <FormCheckBox
-              controller={{ control, name: 'allow_all_network_devices' }}
+              controller={{
+                control,
+                name: 'allow_all_network_devices',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_devices',
+                  ],
+                },
+              }}
               label={labelsLL.allowAllNetworkDevices()}
               labelPlacement="right"
-              {...register('allow_all_network_devices', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_devices',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
-              controller={{ control, name: 'allowed_devices' }}
+              controller={{
+                control,
+                name: 'allowed_devices',
+                rules: {
+                  deps: ['allowed_groups', 'allowed_users', 'denied_devices'],
+                },
+              }}
               options={devices}
               renderTagContent={renderNetworkDevice}
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllNetworkDevices}
               forceShowErrorMessage
-              {...register('allowed_devices', {
-                deps: ['allowed_groups', 'allowed_users', 'denied_devices'],
-              })}
             />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.denied()} id="denied-card">
@@ -507,21 +520,30 @@ export const AlcCreatePage = () => {
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
             <FormCheckBox
-              controller={{ control, name: 'deny_all_users' }}
+              controller={{
+                control,
+                name: 'deny_all_users',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'denied_users',
+                    'denied_groups',
+                  ],
+                },
+              }}
               label={labelsLL.denyAllUsers()}
               labelPlacement="right"
-              {...register('deny_all_users', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'denied_users',
-                  'denied_groups',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
-              controller={{ control, name: 'denied_users' }}
+              controller={{
+                control,
+                name: 'denied_users',
+                rules: {
+                  deps: ['allowed_users'],
+                },
+              }}
               options={users}
               renderTagContent={renderUserTag}
               renderDialogListItem={renderUserListItem}
@@ -529,42 +551,54 @@ export const AlcCreatePage = () => {
               searchKeys={['username', 'first_name', 'last_name']}
               disabled={denyAllUsers}
               forceShowErrorMessage
-              {...register('denied_users', { deps: ['allowed_users'] })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
-              controller={{ control, name: 'denied_groups' }}
+              controller={{
+                control,
+                name: 'denied_groups',
+                rules: {
+                  deps: ['allowed_groups'],
+                },
+              }}
               options={groups}
               renderTagContent={renderGroup}
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllUsers}
               forceShowErrorMessage
-              {...register('denied_groups', { deps: ['allowed_groups'] })}
             />
             <FormCheckBox
-              controller={{ control, name: 'deny_all_network_devices' }}
+              controller={{
+                control,
+                name: 'deny_all_network_devices',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_devices',
+                  ],
+                },
+              }}
               label={labelsLL.denyAllNetworkDevices()}
               labelPlacement="right"
-              {...register('deny_all_network_devices', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_devices',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
-              controller={{ control, name: 'denied_devices' }}
+              controller={{
+                control,
+                name: 'denied_devices',
+                rules: {
+                  deps: ['allowed_devices'],
+                },
+              }}
               options={devices}
               renderTagContent={renderNetworkDevice}
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllNetworkDevices}
               forceShowErrorMessage
-              {...register('denied_devices', { deps: ['allowed_devices'] })}
             />
           </SectionWithCard>
         </div>

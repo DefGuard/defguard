@@ -1,5 +1,4 @@
 #modify-group-modal {
-  --modal-side-padding: 40px;
   width: 100%;
   background-color: var(--surface-frame-bg);
 
@@ -8,10 +7,7 @@
   }
 
   & > .content {
-    padding: 0 0 40px 0;
-
     .controls {
-      padding-top: 40px;
       margin: 0;
     }
 
@@ -69,6 +65,7 @@
         flex-flow: column;
         row-gap: 10px;
         max-height: calc(60px * 5 + (10px * 4));
+        padding-right: 10px;
       }
 
       .select-row {
