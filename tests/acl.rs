@@ -729,8 +729,28 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
+    // create a location
+    WireguardNetwork::new(
+        "test location".to_string(),
+        Vec::new(),
+        1000,
+        "endpoint1".to_string(),
+        None,
+        Vec::new(),
+        false,
+        100,
+        100,
+        false,
+        false,
+    )
+    .unwrap()
+    .save(&pool)
+    .await
+    .unwrap();
+
     // test APPLIED rule deletion
-    let rule = make_rule();
+    let mut rule = make_rule();
+    rule.networks = vec![1];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
@@ -748,11 +768,18 @@ async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOpti
     rule_after_mods.state = RuleState::Deleted;
     rule_after_mods.parent_id = Some(1);
 
-    // don't care about related objects of deleted rule
-    rule_after_mods.destination = rule_child.destination.clone();
-    rule_after_mods.allowed_users = rule_child.allowed_users.clone();
-
     assert_eq!(rule_after_mods, rule_child);
+
+    // related networks are returned correctly
+    assert_eq!(rule_child.networks, vec![1]);
+
+    // cannot modify a DELETED rule
+    let response = client
+        .put("/api/v1/acl/rule/2")
+        .json(&rule_after_mods)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]

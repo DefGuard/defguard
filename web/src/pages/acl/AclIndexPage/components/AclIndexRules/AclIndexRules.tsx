@@ -594,6 +594,7 @@ type EditProps = {
 const RuleEditButton = ({ rule }: EditProps) => {
   const queryClient = useQueryClient();
   const isApplied = rule.state === AclStatus.APPLIED;
+  const isDeleted = rule.state === AclStatus.DELETED;
   const { LL } = useI18nContext();
   const localLL = LL.acl.listPage.rules.list.editMenu;
   const statusLL = LL.acl.ruleStatus;
@@ -653,12 +654,14 @@ const RuleEditButton = ({ rule }: EditProps) => {
 
   return (
     <EditButton disabled={deletionPending || editPending}>
-      <EditButtonOption
-        text={LL.common.controls.edit()}
-        onClick={() => {
-          navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
-        }}
-      />
+      {!isDeleted && (
+        <EditButtonOption
+          text={LL.common.controls.edit()}
+          onClick={() => {
+            navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
+          }}
+        />
+      )}
       {isApplied && (
         <>
           {!rule.enabled && (

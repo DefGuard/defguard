@@ -54,6 +54,8 @@ pub enum AclError {
     InvalidIpRangeError(String),
     #[error("PortOutOfRangeError: {0}")]
     PortOutOfRangeError(i32),
+    #[error("CannotModifyDeletedRuleError: {0}")]
+    CannotModifyDeletedRuleError(Id),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -276,7 +278,8 @@ impl AclRule {
     /// - For rules in `RuleState::Applied` state (rules that are currently active):
     ///   1. Any existing modifications of this rule are deleted
     ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
-    /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
+    /// - For rules in `RuleState::Deleted` we return an error since those should not be modified
+    /// - For rules in other states (`New`, `Modified` ), we directly update the existing rule
     ///   since they haven't been applied.
     ///
     /// This approach allows us to track changes to applied rules while maintaining their history.
@@ -331,7 +334,11 @@ impl AclRule {
 
                 rule
             }
-            _ => {
+            RuleState::Deleted => {
+                error!("Cannot update a deleted ACL rule {id}");
+                return Err(AclError::CannotModifyDeletedRuleError(id));
+            }
+            RuleState::New | RuleState::Modified => {
                 debug!(
                     "Rule {id} is a modification to rule {:?} - updating the modification",
                     existing_rule.parent_id,
@@ -389,7 +396,7 @@ impl AclRule {
         // perform appropriate modifications depending on existing rule's state
         match existing_rule.state {
             RuleState::Applied | RuleState::Expired => {
-                // create new `RuleState::Modified` rule
+                // create new `RuleState::Deleted` rule
                 debug!(
                     "Rule {id} state is {:?} - creating new `Deleted` rule object",
                     existing_rule.state,
@@ -403,11 +410,18 @@ impl AclRule {
                     result.rows_affected(),
                 );
 
+                // prefetch related objects for use later
+                let rule_info = existing_rule.to_info(&mut transaction).await?;
+
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();
                 rule.state = RuleState::Deleted;
                 rule.parent_id = Some(id);
-                rule.save(&mut *transaction).await?;
+                let rule = rule.save(&mut *transaction).await?;
+
+                // inherit related objects from parent rule
+                rule.create_related_objects(&mut transaction, &rule_info.into())
+                    .await?;
             }
             _ => {
                 // delete the not-yet applied modification itself
