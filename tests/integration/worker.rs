@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{make_client_with_state, setup_pool};
+use crate::common::{make_client_with_state, setup_pool};
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail},
     handlers::{

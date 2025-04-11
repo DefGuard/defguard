@@ -1,5 +1,5 @@
+use crate::common::{make_client, make_client_with_state, setup_pool};
 use chrono::Utc;
-use common::{make_client, make_client_with_state, setup_pool};
 use defguard::{
     db::UserInfo,
     enterprise::{
@@ -11,8 +11,6 @@ use defguard::{
 use reqwest::{header::HeaderName, StatusCode};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-pub mod common;
 
 #[sqlx::test]
 async fn test_normal_user_cannot_access_token_endpoints(

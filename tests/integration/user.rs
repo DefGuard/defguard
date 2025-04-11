@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
+use crate::common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},

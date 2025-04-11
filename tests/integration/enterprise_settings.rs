@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{exceed_enterprise_limits, setup_pool};
+use crate::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 use defguard::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -11,8 +9,6 @@ use defguard::{
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-use self::common::{make_network, make_test_client};
 
 #[sqlx::test]
 async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {

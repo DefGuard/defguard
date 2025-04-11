@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{make_client, setup_pool};
+use crate::common::{make_client, setup_pool};
 use defguard::{
     db::{Id, NoId, WebHook},
     handlers::Auth,

@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use axum::http::header::ToStrError;
-use claims::assert_err;
-use common::{
+use crate::common::{
     client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
 };
+use axum::http::header::ToStrError;
+use claims::assert_err;
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
@@ -28,8 +28,6 @@ use reqwest::{
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-pub mod common;
 
 #[derive(Deserialize)]
 pub struct AuthenticationResponse<'r> {

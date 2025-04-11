@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{fetch_user_details, make_client_with_db, setup_pool};
+use crate::common::{fetch_user_details, make_client_with_db, setup_pool};
 use defguard::{
     db::models::enrollment::Token,
     handlers::{AddUserData, Auth},

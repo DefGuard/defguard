@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::{make_network, make_test_client, setup_pool};
+use crate::common::{make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{

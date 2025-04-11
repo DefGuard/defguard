@@ -1,7 +1,5 @@
-pub mod common;
-
+use crate::common::{fetch_user_details, make_test_client, setup_pool};
 use claims::assert_err;
-use common::{fetch_user_details, make_test_client, setup_pool};
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
     handlers::{wireguard::ImportedNetworkData, Auth},

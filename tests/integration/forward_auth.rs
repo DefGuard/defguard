@@ -1,11 +1,7 @@
-pub mod common;
-
-use common::{make_client, setup_pool};
+use crate::common::{make_client, setup_pool, X_FORWARDED_HOST, X_FORWARDED_URI};
 use defguard::{handlers::Auth, SERVER_CONFIG};
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
-
-use self::common::{X_FORWARDED_HOST, X_FORWARDED_URI};
 
 #[sqlx::test]
 async fn test_forward_auth(_: PgPoolOptions, options: PgConnectOptions) {

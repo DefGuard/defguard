@@ -1,12 +1,11 @@
-pub mod common;
-
 use std::time::SystemTime;
 
+use crate::common::{
+    fetch_user_details, make_client, make_client_with_db, make_client_with_state, make_test_client,
+    setup_pool, X_FORWARDED_FOR,
+};
 use chrono::NaiveDateTime;
 use claims::{assert_err, assert_ok};
-use common::{
-    fetch_user_details, make_client, make_client_with_db, make_client_with_state, setup_pool,
-};
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
     db::{
@@ -24,8 +23,6 @@ use sqlx::{
 use totp_lite::{totp_custom, Sha1};
 use webauthn_authenticator_rs::{prelude::Url, softpasskey::SoftPasskey, WebauthnAuthenticator};
 use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
-
-use self::common::{make_test_client, X_FORWARDED_FOR};
 
 static SESSION_COOKIE_NAME: &str = "defguard_session";
 

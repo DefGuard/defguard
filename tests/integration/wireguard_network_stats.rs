@@ -1,7 +1,5 @@
-pub mod common;
-
+use crate::common::{make_network, make_test_client, setup_pool};
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
-use common::{make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{

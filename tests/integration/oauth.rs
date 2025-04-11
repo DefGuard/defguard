@@ -1,8 +1,6 @@
-pub mod common;
-
 use std::borrow::Cow;
 
-use common::{make_client_with_db, setup_pool};
+use crate::common::{make_client_with_db, setup_pool};
 use defguard::{
     db::{
         models::{

@@ -39,11 +39,11 @@ use tokio::{
 
 use self::client::TestClient;
 
-#[allow(dead_code, clippy::declare_interior_mutable_const)]
+#[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_HOST: HeaderName = HeaderName::from_static("x-forwarded-host");
-#[allow(dead_code, clippy::declare_interior_mutable_const)]
+#[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
-#[allow(dead_code, clippy::declare_interior_mutable_const)]
+#[allow(clippy::declare_interior_mutable_const)]
 pub const X_FORWARDED_URI: HeaderName = HeaderName::from_static("x-forwarded-uri");
 
 /// Allows overriding the default DefGuard URL for tests, as during the tests, the server has a random port, making the URL unpredictable beforehand.
@@ -103,13 +103,11 @@ pub(crate) async fn initialize_users(pool: &PgPool, config: &DefGuardConfig) {
     .unwrap();
 }
 
-#[allow(dead_code)]
 pub(crate) struct ClientState {
     pub pool: PgPool,
     pub worker_state: Arc<Mutex<WorkerState>>,
     pub wireguard_rx: Receiver<GatewayEvent>,
     pub mail_rx: UnboundedReceiver<Mail>,
-    pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     pub test_user: User<Id>,
     pub config: DefGuardConfig,
 }
@@ -120,7 +118,6 @@ impl ClientState {
         worker_state: Arc<Mutex<WorkerState>>,
         wireguard_rx: Receiver<GatewayEvent>,
         mail_rx: UnboundedReceiver<Mail>,
-        failed_logins: Arc<Mutex<FailedLoginMap>>,
         test_user: User<Id>,
         config: DefGuardConfig,
     ) -> Self {
@@ -129,7 +126,6 @@ impl ClientState {
             worker_state,
             wireguard_rx,
             mail_rx,
-            failed_logins,
             test_user,
             config,
         }
@@ -171,7 +167,6 @@ pub(crate) async fn make_base_client(
         worker_state.clone(),
         wg_rx,
         mail_rx,
-        failed_logins.clone(),
         User::find_by_username(&pool, "hpotter")
             .await
             .unwrap()
@@ -210,7 +205,6 @@ fn get_test_url(listener: &TcpListener) -> String {
     format!("http://localhost:{port}")
 }
 
-#[allow(dead_code)]
 pub(crate) async fn make_test_client(pool: PgPool) -> (TestClient, ClientState) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
@@ -235,7 +229,6 @@ pub(crate) async fn make_test_client_with_real_url() -> (TestClient, ClientState
     make_base_client(pool, config, listener).await
 }
 
-#[allow(dead_code)]
 pub(crate) async fn fetch_user_details(client: &TestClient, username: &str) -> UserDetails {
     let response = client.get(format!("/api/v1/user/{username}")).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -243,7 +236,6 @@ pub(crate) async fn fetch_user_details(client: &TestClient, username: &str) -> U
 }
 
 /// Exceeds enterprise free version limits by creating more than 1 network
-#[allow(dead_code)]
 pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     let auth = Auth::new("admin", "pass123");
     client.post("/api/v1/auth").json(&auth).send().await;
@@ -289,7 +281,6 @@ pub(crate) async fn exceed_enterprise_limits(client: &TestClient) {
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
-#[allow(dead_code)]
 pub(crate) fn make_network() -> Value {
     json!({
         "name": "network",
@@ -308,25 +299,21 @@ pub(crate) fn make_network() -> Value {
 }
 
 /// Replaces id field in json response with NoId
-#[allow(dead_code)]
 pub(crate) fn omit_id<T: DeserializeOwned>(mut value: Value) -> T {
     *value.get_mut("id").unwrap() = json!(NoId);
     serde_json::from_value(value).unwrap()
 }
 
-#[allow(dead_code)]
 pub(crate) async fn make_client(pool: PgPool) -> TestClient {
     let (client, _) = make_test_client(pool).await;
     client
 }
 
-#[allow(dead_code)]
 pub(crate) async fn make_client_with_db(pool: PgPool) -> (TestClient, PgPool) {
     let (client, client_state) = make_test_client(pool).await;
     (client, client_state.pool)
 }
 
-#[allow(dead_code)]
 pub(crate) async fn make_client_with_state(pool: PgPool) -> (TestClient, ClientState) {
     let (client, client_state) = make_test_client(pool).await;
     (client, client_state)

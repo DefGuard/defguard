@@ -1,8 +1,6 @@
-pub mod common;
-
 use std::{net::IpAddr, str::FromStr};
 
-use common::{make_test_client, setup_pool};
+use crate::common::{make_test_client, setup_pool};
 use defguard::{
     db::{Device, GatewayEvent, Id, WireguardNetwork},
     handlers::{network_devices::AddNetworkDevice, Auth},
