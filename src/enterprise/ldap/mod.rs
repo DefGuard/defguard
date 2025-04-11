@@ -530,8 +530,8 @@ impl LDAPConnection {
         )
         .await?;
         if self.config.ldap_uses_ad {
-            self.set_password(&user.username, &password).await?;
-            self.activate_ad_user(&user.username).await?;
+            self.set_password(user_rdn, &password).await?;
+            self.activate_ad_user(user_rdn).await?;
         }
         if password_is_random {
             user.ldap_pass_randomized = true;
