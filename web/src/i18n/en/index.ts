@@ -1160,7 +1160,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_group_obj_class:
             'The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.',
           ldap_user_rdn_attr:
-            "If your user\'s RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.",
+            "If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.",
         },
         headings: {
           user_settings: 'User settings',
