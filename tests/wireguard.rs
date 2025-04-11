@@ -1,5 +1,6 @@
 pub mod common;
 
+use common::{make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{
@@ -13,12 +14,13 @@ use defguard::{
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{make_network, make_test_client};
+#[sqlx::test]
+async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-#[tokio::test]
-async fn test_network() {
-    let (client, client_state) = make_test_client().await;
+    let (client, client_state) = make_test_client(pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
 
@@ -100,9 +102,11 @@ async fn test_network() {
     assert_matches!(event, GatewayEvent::NetworkDeleted(..));
 }
 
-#[tokio::test]
-async fn test_device() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_device(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
 
@@ -261,9 +265,11 @@ async fn test_device() {
     assert!(devices.is_empty());
 }
 
-#[tokio::test]
-async fn test_device_permissions() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -404,9 +410,11 @@ async fn test_device_permissions() {
     assert_eq!(user_devices.len(), 3);
 }
 
-#[tokio::test]
-async fn test_device_pubkey() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
 

@@ -2,6 +2,7 @@ pub mod common;
 
 use std::{net::IpAddr, str::FromStr};
 
+use common::{make_test_client, setup_pool};
 use defguard::{
     db::{Device, GatewayEvent, Id, WireguardNetwork},
     handlers::{network_devices::AddNetworkDevice, Auth},
@@ -11,8 +12,7 @@ use matches::assert_matches;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::{json, Value};
-
-use self::common::make_test_client;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 fn make_network() -> Value {
     json!({
@@ -54,9 +54,11 @@ struct IpCheckRes {
     valid: bool,
 }
 
-#[tokio::test]
-async fn test_network_devices() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
 

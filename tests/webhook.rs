@@ -1,21 +1,18 @@
 pub mod common;
 
+use common::{make_client, setup_pool};
 use defguard::{
     db::{Id, NoId, WebHook},
     handlers::Auth,
 };
 use reqwest::StatusCode;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{client::TestClient, make_test_client};
+#[sqlx::test]
+async fn test_webhooks(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
-
-#[tokio::test]
-async fn test_webhooks() {
-    let client = make_client().await;
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
