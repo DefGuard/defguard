@@ -389,7 +389,7 @@ impl AclRule {
         // perform appropriate modifications depending on existing rule's state
         match existing_rule.state {
             RuleState::Applied | RuleState::Expired => {
-                // create new `RuleState::Modified` rule
+                // create new `RuleState::Deleted` rule
                 debug!(
                     "Rule {id} state is {:?} - creating new `Deleted` rule object",
                     existing_rule.state,
@@ -403,11 +403,18 @@ impl AclRule {
                     result.rows_affected(),
                 );
 
+                // prefetch related objects for use later
+                let rule_info = existing_rule.to_info(&mut transaction).await?;
+
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();
                 rule.state = RuleState::Deleted;
                 rule.parent_id = Some(id);
-                rule.save(&mut *transaction).await?;
+                let rule = rule.save(&mut *transaction).await?;
+
+                // inherit related objects from parent rule
+                rule.create_related_objects(&mut transaction, &rule_info.into())
+                    .await?;
             }
             _ => {
                 // delete the not-yet applied modification itself

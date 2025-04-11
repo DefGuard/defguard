@@ -121,6 +121,32 @@ impl EditAclRule {
     }
 }
 
+impl From<AclRuleInfo<Id>> for EditAclRule {
+    fn from(info: AclRuleInfo<Id>) -> Self {
+        Self {
+            destination: info.format_destination(),
+            ports: info.format_ports(),
+            name: info.name,
+            all_networks: info.all_networks,
+            networks: info.networks.iter().map(|v| v.id).collect(),
+            expires: info.expires,
+            allow_all_users: info.allow_all_users,
+            deny_all_users: info.deny_all_users,
+            allow_all_network_devices: info.allow_all_network_devices,
+            deny_all_network_devices: info.deny_all_network_devices,
+            allowed_users: info.allowed_users.iter().map(|v| v.id).collect(),
+            denied_users: info.denied_users.iter().map(|v| v.id).collect(),
+            allowed_groups: info.allowed_groups.iter().map(|v| v.id).collect(),
+            denied_groups: info.denied_groups.iter().map(|v| v.id).collect(),
+            allowed_devices: info.allowed_devices.iter().map(|v| v.id).collect(),
+            denied_devices: info.denied_devices.iter().map(|v| v.id).collect(),
+            aliases: info.aliases.iter().map(|v| v.id).collect(),
+            protocols: info.protocols,
+            enabled: info.enabled,
+        }
+    }
+}
+
 /// API representation of [`AclAlias`]
 /// All relations represented as arrays of ids.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
