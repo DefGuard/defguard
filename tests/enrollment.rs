@@ -1,6 +1,6 @@
 pub mod common;
 
-use common::fetch_user_details;
+use common::{fetch_user_details, make_client_with_db, setup_pool};
 use defguard::{
     db::models::enrollment::Token,
     handlers::{AddUserData, Auth},
@@ -8,18 +8,13 @@ use defguard::{
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{client::TestClient, make_test_client};
+#[sqlx::test]
+async fn test_initialize_enrollment(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> (TestClient, PgPool) {
-    let (client, client_state) = make_test_client().await;
-    (client, client_state.pool)
-}
-
-#[tokio::test]
-async fn test_initialize_enrollment() {
-    let (client, pool) = make_client().await;
+    let (client, pool) = make_client_with_db(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -87,9 +82,11 @@ async fn test_initialize_enrollment() {
     assert_eq!(enrollment.used_at, None);
 }
 
-#[tokio::test]
-async fn test_enroll_disabled_user() {
-    let (client, _) = make_client().await;
+#[sqlx::test]
+async fn test_enroll_disabled_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_client_with_db(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
