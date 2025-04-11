@@ -23,7 +23,12 @@ use reqwest::{header::HeaderName, StatusCode, Url};
 use secrecy::ExposeSecret;
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
-use sqlx::{postgres::PgConnectOptions, query, types::Uuid, PgPool};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    query,
+    types::Uuid,
+    PgPool,
+};
 use tokio::{
     net::TcpListener,
     sync::{
@@ -129,6 +134,12 @@ impl ClientState {
             config,
         }
     }
+}
+
+// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
+// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
+pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
+    PgPoolOptions::new().connect_with(options).await.unwrap()
 }
 
 pub(crate) async fn make_base_client(
@@ -301,4 +312,22 @@ pub(crate) fn make_network() -> Value {
 pub(crate) fn omit_id<T: DeserializeOwned>(mut value: Value) -> T {
     *value.get_mut("id").unwrap() = json!(NoId);
     serde_json::from_value(value).unwrap()
+}
+
+#[allow(dead_code)]
+pub(crate) async fn make_client(pool: PgPool) -> TestClient {
+    let (client, _) = make_test_client(pool).await;
+    client
+}
+
+#[allow(dead_code)]
+pub(crate) async fn make_client_with_db(pool: PgPool) -> (TestClient, PgPool) {
+    let (client, client_state) = make_test_client(pool).await;
+    (client, client_state.pool)
+}
+
+#[allow(dead_code)]
+pub(crate) async fn make_client_with_state(pool: PgPool) -> (TestClient, ClientState) {
+    let (client, client_state) = make_test_client(pool).await;
+    (client, client_state)
 }

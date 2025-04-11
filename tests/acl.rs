@@ -1,5 +1,6 @@
 use common::{
     client::TestClient, exceed_enterprise_limits, init_config, initialize_users, omit_id,
+    setup_pool,
 };
 use defguard::{
     config::DefGuardConfig,
@@ -26,12 +27,6 @@ use tokio::net::TcpListener;
 use self::common::{make_base_client, make_test_client};
 
 pub mod common;
-
-// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
-// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-async fn setup_pool(options: PgConnectOptions) -> PgPool {
-    PgPoolOptions::new().connect_with(options).await.unwrap()
-}
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
