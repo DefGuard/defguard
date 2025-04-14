@@ -56,7 +56,7 @@ pub enum AclError {
     PortOutOfRangeError(i32),
     #[error("CannotModifyDeletedRuleError: {0}")]
     CannotModifyDeletedRuleError(Id),
-    #[error("CannotUseModifiedAliasIndRuleError: {0:?}")]
+    #[error("CannotUseModifiedAliasInRuleError: {0:?}")]
     CannotUseModifiedAliasInRuleError(Vec<Id>),
 }
 
