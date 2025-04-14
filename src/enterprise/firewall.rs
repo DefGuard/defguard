@@ -2083,7 +2083,11 @@ mod test {
                     wireguard_network_id: location.id,
                     wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
                         0xff00,
-                        0, 0, 0, 0, 0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
                         user.id as u16,
                         device_num as u16,
                     ))],
@@ -2452,7 +2456,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_expired_acl_rules(pool: PgPool) {
+    async fn test_expired_acl_rules_ipv4(pool: PgPool) {
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -2521,7 +2525,150 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_disabled_acl_rules(pool: PgPool) {
+    async fn test_expired_acl_rules_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create expired ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were expired
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules not expired
+        acl_rule_1.expires = None;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.expires = Some(NaiveDateTime::MAX);
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_expired_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+            ],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create expired ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            enabled: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were expired
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules not expired
+        acl_rule_1.expires = None;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.expires = Some(NaiveDateTime::MAX);
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 4);
+    }
+
+    #[sqlx::test]
+    async fn test_disabled_acl_rules_ipv4(pool: PgPool) {
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -2590,7 +2737,150 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_unapplied_acl_rules(pool: PgPool) {
+    async fn test_disabled_acl_rules_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create disabled ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were disabled
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules enabled
+        acl_rule_1.enabled = true;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.enabled = true;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_disabled_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+            ],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create disabled ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: false,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were disabled
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules enabled
+        acl_rule_1.enabled = true;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.enabled = true;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 4);
+    }
+
+    #[sqlx::test]
+    async fn test_unapplied_acl_rules_ipv4(pool: PgPool) {
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -2659,7 +2949,150 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_acl_rules_all_locations(pool: PgPool) {
+    async fn test_unapplied_acl_rules_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create unapplied ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::New,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Modified,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were not applied
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules applied
+        acl_rule_1.state = RuleState::Applied;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.state = RuleState::Applied;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_unapplied_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+            ],
+            ..Default::default()
+        };
+        let location = location.save(&pool).await.unwrap();
+
+        // create unapplied ACL rules
+        let mut acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::New,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let mut acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Modified,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to location
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were not applied
+        assert_eq!(generated_firewall_rules.len(), 0);
+
+        // make both rules applied
+        acl_rule_1.state = RuleState::Applied;
+        acl_rule_1.save(&pool).await.unwrap();
+
+        acl_rule_2.state = RuleState::Applied;
+        acl_rule_2.save(&pool).await.unwrap();
+
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+        assert_eq!(generated_firewall_rules.len(), 4);
+    }
+
+    #[sqlx::test]
+    async fn test_acl_rules_all_locations_ipv4(pool: PgPool) {
         let mut rng = thread_rng();
 
         // Create test location
@@ -2806,5 +3239,340 @@ mod test {
 
         // rule with `all_networks` enabled was used for this location
         assert_eq!(generated_firewall_rules.len(), 3);
+    }
+
+    #[sqlx::test]
+    async fn test_acl_rules_all_locations_ipv6(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location_1 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let location_1 = location_1.save(&pool).await.unwrap();
+
+        // Create another test location
+        let location_2 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let location_2 = location_2.save(&pool).await.unwrap();
+        // Setup some test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_1.id,
+                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                        0xff00,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        user.id as u16,
+                        device_num as u16,
+                    ))],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_2.id,
+                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                        0xff00,
+                        0,
+                        0,
+                        0,
+                        10,
+                        10,
+                        user.id as u16,
+                        device_num as u16,
+                    ))],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // create ACL rules
+        let acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Applied,
+            destination: vec!["fc00::0/112".parse().unwrap()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let _acl_rule_3 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            allow_all_users: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to locations
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_1.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+        for rule in [&acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_2.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location_1
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were assigned to this location
+        assert_eq!(generated_firewall_rules.len(), 4);
+
+        let generated_firewall_rules = location_2
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // rule with `all_networks` enabled was used for this location
+        assert_eq!(generated_firewall_rules.len(), 3);
+    }
+
+    #[sqlx::test]
+    async fn test_acl_rules_all_locations_ipv4_and_ipv6(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location_1 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+            ],
+            ..Default::default()
+        };
+        let location_1 = location_1.save(&pool).await.unwrap();
+
+        // Create another test location
+        let location_2 = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            address: vec![
+                IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap(),
+                IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap(),
+            ],
+            ..Default::default()
+        };
+        let location_2 = location_2.save(&pool).await.unwrap();
+        // Setup some test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_1.id,
+                    wireguard_ip: vec![
+                        IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                        IpAddr::V6(Ipv6Addr::new(
+                            0xff00,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            user.id as u16,
+                            device_num as u16,
+                        )),
+                    ],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location_2.id,
+                    wireguard_ip: vec![
+                        IpAddr::V4(Ipv4Addr::new(10, 10, user.id as u8, device_num as u8)),
+                        IpAddr::V6(Ipv6Addr::new(
+                            0xff00,
+                            0,
+                            0,
+                            0,
+                            10,
+                            10,
+                            user.id as u16,
+                            device_num as u16,
+                        )),
+                    ],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // create ACL rules
+        let acl_rule_1 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            state: RuleState::Applied,
+            destination: vec![
+                "192.168.1.0/24".parse().unwrap(),
+                "fc00::0/112".parse().unwrap(),
+            ],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let acl_rule_2 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let _acl_rule_3 = AclRule {
+            id: NoId,
+            expires: None,
+            enabled: true,
+            all_networks: true,
+            allow_all_users: true,
+            state: RuleState::Applied,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign rules to locations
+        for rule in [&acl_rule_1, &acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_1.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+        for rule in [&acl_rule_2] {
+            let obj = AclRuleNetwork {
+                id: NoId,
+                rule_id: rule.id,
+                network_id: location_2.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location_1
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // both rules were assigned to this location
+        assert_eq!(generated_firewall_rules.len(), 8);
+
+        let generated_firewall_rules = location_2
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // rule with `all_networks` enabled was used for this location
+        assert_eq!(generated_firewall_rules.len(), 6);
     }
 }
