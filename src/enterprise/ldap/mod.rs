@@ -510,6 +510,7 @@ impl LDAPConnection {
         let nt_password = hash::nthash(&password);
         let user_obj_classes = self.config.get_all_user_obj_classes();
         let username_attr = self.config.ldap_username_attr.clone();
+        let rdn_attr = self.config.get_rdn_attr().to_string();
         if !self.is_username_available(&user.username).await
             || !self.is_rdn_available(user_rdn).await
         {
@@ -526,6 +527,7 @@ impl LDAPConnection {
                 user_obj_classes.iter().map(|s| s.as_str()).collect(),
                 self.config.ldap_uses_ad,
                 &username_attr,
+                &rdn_attr,
             ),
         )
         .await?;
@@ -615,7 +617,9 @@ impl LDAPConnection {
             &user_dn,
             &user_dn,
             vec![
+                // Enables the user
                 Mod::Replace("userAccountControl", hashset!["512"]),
+                // The user doesn't have to change password at next login
                 Mod::Replace("pwdLastSet", hashset!["-1"]),
             ],
         )

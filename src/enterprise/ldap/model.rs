@@ -149,6 +149,7 @@ impl<I> User<I> {
         object_classes: HashSet<&'a str>,
         uses_ad: bool,
         username_attr: &'a str,
+        rdn_attr: &'a str,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
         if object_classes.contains(UserObjectClass::InetOrgPerson.into())
@@ -161,6 +162,7 @@ impl<I> User<I> {
                 ("mail", hashset![self.email.as_str()]),
                 ("uid", hashset![self.username.as_str()]),
             ]);
+
             if let Some(phone) = &self.phone {
                 if !phone.is_empty() {
                     attrs.push(("mobile", hashset![phone.as_str()]));
@@ -175,6 +177,11 @@ impl<I> User<I> {
             // sambaSamAccount
             attrs.push(("sambaSID", hashset!["0"]));
             attrs.push(("sambaNTPassword", hashset![nt_password]));
+        }
+        // Make sure to add the user defined RDN attribute if it's not the same as the username
+        // attribute or sAMAccountName, as we already add those
+        if rdn_attr != username_attr && rdn_attr != "sAMAccountName" {
+            attrs.push((rdn_attr, hashset![self.ldap_rdn_value()]));
         }
         if uses_ad {
             attrs.push(("sAMAccountName", hashset![self.username.as_str()]));
