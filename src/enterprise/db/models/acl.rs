@@ -662,7 +662,7 @@ impl AclRule<Id> {
         // aliases used for tracking modifications (`AliasState::Modified`) cannot be used by ACL
         // rules
         let invalid_alias_ids: Vec<Id> = query_scalar!(
-            "SELECT id FROM aclalias WHERE id = ANY($1) AND state = 'modified'::aclalias_state",
+            "SELECT id FROM aclalias WHERE id = ANY($1) AND state != 'applied'::aclalias_state",
             &api_rule.aliases
         )
         .fetch_all(&mut *transaction)
