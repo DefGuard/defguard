@@ -191,7 +191,7 @@ async fn test_network_devices() {
     let modify_device = json!({
         "name": "device-1",
         "description": "new description",
-        "assigned_ip": "10.1.1.3"
+        "assigned_ips": ["10.1.1.3"]
     });
     let response = client
         .put(format!("/api/v1/device/network/{device_id}"))
@@ -201,11 +201,10 @@ async fn test_network_devices() {
     assert_eq!(response.status(), StatusCode::OK);
     let json = response.json::<Value>().await;
     let description = json["description"].as_str().unwrap();
-    let assigned_ip = json["assigned_ip"].as_str().unwrap();
     assert_eq!(description, "new description");
     assert_eq!(
-        assigned_ip,
-        IpAddr::from_str("10.1.1.3").unwrap().to_string()
+        json["assigned_ips"],
+        serde_json::from_str::<Value>("[\"10.1.1.3\"]").unwrap()
     );
     let device = Device::find_by_id(&client_state.pool, device_id)
         .await
@@ -241,7 +240,7 @@ async fn test_network_devices() {
         {
             "name": "device-2",
             "description": "new description",
-            "assigned_ip": "10.1.1.10",
+            "assigned_ips": ["10.1.1.10"],
             "location_id": 1,
         }
     );
