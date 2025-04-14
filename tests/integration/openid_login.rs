@@ -1,5 +1,5 @@
+use crate::common::{exceed_enterprise_limits, make_client, setup_pool};
 use chrono::{Duration, Utc};
-use common::{exceed_enterprise_limits, make_test_client};
 use defguard::{
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
@@ -10,14 +10,7 @@ use defguard::{
 };
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-
-pub mod common;
-use self::common::client::TestClient;
-
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 // Temporarily disabled because of the issue with test_openid_login
 // async fn make_client_with_real_url() -> TestClient {
@@ -30,9 +23,11 @@ struct UrlResponse {
     url: String,
 }
 
-#[tokio::test]
-async fn test_openid_providers() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -104,7 +99,7 @@ async fn test_openid_providers() {
 
 // FIXME: tihs test sometimes fails because of test_openid_providers.
 // The license state is possibly preserved between those two. This requires further research.
-// #[tokio::test]
+// #[sqlx::test]
 // async fn test_openid_login() {
 //     // Test setup
 //     let client = make_client_with_real_url().await;

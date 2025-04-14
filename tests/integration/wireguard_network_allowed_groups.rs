@@ -1,5 +1,4 @@
-pub mod common;
-
+use crate::common::{fetch_user_details, make_test_client, setup_pool};
 use claims::assert_err;
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
@@ -8,9 +7,10 @@ use defguard::{
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
-use sqlx::PgPool;
-
-use self::common::{fetch_user_details, make_test_client};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    PgPool,
+};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
@@ -119,9 +119,11 @@ async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {
     (users, devices)
 }
 
-#[tokio::test]
-async fn test_create_new_network() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_create_new_network(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
@@ -163,9 +165,11 @@ async fn test_create_new_network() {
     assert_eq!(peers[1].pubkey, devices[1].wireguard_pubkey);
 }
 
-#[tokio::test]
-async fn test_modify_network() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_network(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
@@ -322,9 +326,11 @@ async fn test_modify_network() {
 }
 
 /// Test that devices that already exist are handled correctly during config import
-#[tokio::test]
-async fn test_import_network_existing_devices() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
@@ -410,9 +416,11 @@ async fn test_import_network_existing_devices() {
     assert_err!(wg_rx.try_recv());
 }
 
-#[tokio::test]
-async fn test_import_mapping_devices() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_import_mapping_devices(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
@@ -518,9 +526,11 @@ PersistentKeepalive = 300
 }
 
 /// Test that changing groups for a particular user generates correct update events
-#[tokio::test]
-async fn test_modify_user() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;
@@ -615,9 +625,11 @@ async fn test_modify_user() {
     assert_eq!(peers[1].pubkey, devices[3].wireguard_pubkey);
 }
 
-#[tokio::test]
-async fn test_delete_only_allowed_group() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_delete_only_allowed_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let (_users, devices) = setup_test_users(&client_state.pool).await;
 
     let mut wg_rx = client_state.wireguard_rx;

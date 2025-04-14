@@ -1,0 +1,26 @@
+#acl-aliases-delete-alias-block-modal {
+  .title {
+    text-align: center;
+    color: var(--text-button-primary);
+  }
+
+  .content {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+    text-align: left;
+
+    p {
+      @include typography(app-body-2);
+      color: var(--text-button-primary);
+      text-align: left;
+
+      &.rules {
+        text-wrap: wrap;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        font-weight: 700;
+      }
+    }
+  }
+}

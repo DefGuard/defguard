@@ -13,7 +13,7 @@ import { ListSortDirection } from '../../../../../../shared/defguard-ui/componen
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import { AclAlias } from '../../../../types';
 import { DividerHeader } from '../../shared/DividerHeader';
-import { RenderTagDisplay } from '../../shared/RenderTagDisplay';
+import { RenderTagDisplay } from '../../shared/RenderTagDisplay/RenderTagDisplay';
 import { AclAliasListData } from '../types';
 import { AclAliasStatusDisplay } from './AclAliasStatus/AclAliasStatus';
 import { AliasEditButton } from './AliasEditButton';

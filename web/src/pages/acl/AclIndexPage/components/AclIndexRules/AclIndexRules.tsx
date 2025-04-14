@@ -36,7 +36,7 @@ import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
 import { DividerHeader } from '../shared/DividerHeader';
-import { RenderTagDisplay } from '../shared/RenderTagDisplay';
+import { RenderTagDisplay } from '../shared/RenderTagDisplay/RenderTagDisplay';
 import { ListTagDisplay } from '../shared/types';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 
@@ -112,7 +112,9 @@ export const AclIndexRules = () => {
   });
   const pendingRulesCount = useMemo(() => {
     if (aclRules) {
-      return aclRules.filter((rule) => rule.state !== AclStatus.APPLIED).length;
+      return aclRules.filter(
+        (rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
+      ).length;
     }
     return 0;
   }, [aclRules]);
@@ -336,7 +338,11 @@ export const AclIndexRules = () => {
               if (aclRules) {
                 if (pendingSelectionCount === 0) {
                   const rulesToApply = aclRules
-                    .filter((rule) => rule.state !== AclStatus.APPLIED)
+                    .filter(
+                      (rule) =>
+                        rule.state !== AclStatus.APPLIED &&
+                        rule.state !== AclStatus.EXPIRED,
+                    )
                     .map((rule) => rule.id);
                   applyPendingChangesMutation(rulesToApply);
                 } else {
@@ -543,6 +549,7 @@ const RulesList = ({
                     selectable: selectionEnabled,
                   })}
                 >
+                  {!selectionEnabled && <div className="cell empty-cell"></div>}
                   {selectionEnabled && (
                     <div className="cell select-cell">
                       <InteractionBox
@@ -587,6 +594,7 @@ type EditProps = {
 const RuleEditButton = ({ rule }: EditProps) => {
   const queryClient = useQueryClient();
   const isApplied = rule.state === AclStatus.APPLIED;
+  const isDeleted = rule.state === AclStatus.DELETED;
   const { LL } = useI18nContext();
   const localLL = LL.acl.listPage.rules.list.editMenu;
   const statusLL = LL.acl.ruleStatus;
@@ -646,12 +654,14 @@ const RuleEditButton = ({ rule }: EditProps) => {
 
   return (
     <EditButton disabled={deletionPending || editPending}>
-      <EditButtonOption
-        text={LL.common.controls.edit()}
-        onClick={() => {
-          navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
-        }}
-      />
+      {!isDeleted && (
+        <EditButtonOption
+          text={LL.common.controls.edit()}
+          onClick={() => {
+            navigate(`/admin/acl/form?edit=1&rule=${rule.id}`);
+          }}
+        />
+      )}
       {isApplied && (
         <>
           {!rule.enabled && (
@@ -700,10 +710,14 @@ const prepareDisplay = (
   let disabledStateFilter = false;
   let enabledStateFilter = false;
   if (pending) {
-    rules = aclRules.filter((rule) => rule.state !== AclStatus.APPLIED);
+    rules = aclRules.filter(
+      (rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
+    );
     statusFilters = appliedFilters.status.filter((s) => ![999, 1000].includes(s));
   } else {
-    rules = aclRules.filter((rule) => rule.state === AclStatus.APPLIED);
+    rules = aclRules.filter(
+      (rule) => rule.state === AclStatus.APPLIED || rule.state === AclStatus.EXPIRED,
+    );
     statusFilters = appliedFilters.status;
     disabledStateFilter = statusFilters.includes(999);
     enabledStateFilter = statusFilters.includes(1000);

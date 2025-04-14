@@ -1,5 +1,4 @@
-pub mod common;
-
+use crate::common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
@@ -8,18 +7,14 @@ use defguard::{
     handlers::{AddUserData, Auth, PasswordChange, PasswordChangeSelf, Username},
 };
 use reqwest::{header::USER_AGENT, StatusCode};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
 
-use self::common::{client::TestClient, fetch_user_details, make_network, make_test_client};
+#[sqlx::test]
+async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
-
-#[tokio::test]
-async fn test_authenticate() {
-    let client = make_client().await;
+    let client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -34,9 +29,11 @@ async fn test_authenticate() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
-#[tokio::test]
-async fn test_me() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_me(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -49,9 +46,11 @@ async fn test_me() {
     assert_eq!(user_info.last_name, "Potter");
 }
 
-#[tokio::test]
-async fn test_change_self_password() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_change_self_password(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
 
@@ -108,9 +107,11 @@ async fn test_change_self_password() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_change_password() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_change_password(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -155,9 +156,11 @@ async fn test_change_password() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn test_list_users() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_list_users(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let response = client.get("/api/v1/user").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
@@ -179,9 +182,11 @@ async fn test_list_users() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_get_user() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_get_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let response = client.get("/api/v1/user/hpotter").send().await;
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
@@ -195,9 +200,11 @@ async fn test_get_user() {
     assert_eq!(user_info.user.last_name, "Potter");
 }
 
-#[tokio::test]
-async fn test_username_available() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_username_available(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // standard user cannot check username availability
     let auth = Auth::new("hpotter", "pass123");
@@ -250,9 +257,11 @@ async fn test_username_available() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn test_crud_user() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_crud_user(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -288,9 +297,11 @@ async fn test_crud_user() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_admin_group() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -305,9 +316,11 @@ async fn test_admin_group() {
     // TODO: check group membership
 }
 
-#[tokio::test]
-async fn test_check_username() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_check_username(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -343,9 +356,11 @@ async fn test_check_username() {
     }
 }
 
-#[tokio::test]
-async fn test_check_password_strength() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_check_password_strength(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // auth session with admin
     let auth = Auth::new("admin", "pass123");
@@ -392,9 +407,11 @@ async fn test_check_password_strength() {
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
-#[tokio::test]
-async fn test_user_unregister_authorized_app() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_user_unregister_authorized_app(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -442,9 +459,11 @@ async fn test_user_unregister_authorized_app() {
     assert_eq!(user_info.authorized_apps.len(), 0);
 }
 
-#[tokio::test]
-async fn test_user_add_device() {
-    let (client, state) = make_test_client().await;
+#[sqlx::test]
+async fn test_user_add_device(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 
@@ -584,9 +603,11 @@ async fn test_user_add_device() {
         .contains("Device type:</span> iPhone, OS: iOS 17.1, Mobile Safari"));
 }
 
-#[tokio::test]
-async fn test_disable() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_disable(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -631,9 +652,11 @@ async fn test_disable() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_unique_email() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_unique_email(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;

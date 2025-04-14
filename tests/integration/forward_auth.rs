@@ -1,18 +1,13 @@
-pub mod common;
-
+use crate::common::{make_client, setup_pool, X_FORWARDED_HOST, X_FORWARDED_URI};
 use defguard::{handlers::Auth, SERVER_CONFIG};
 use reqwest::StatusCode;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{client::TestClient, make_test_client, X_FORWARDED_HOST, X_FORWARDED_URI};
+#[sqlx::test]
+async fn test_forward_auth(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> TestClient {
-    let (client, _client_state) = make_test_client().await;
-    client
-}
-
-#[tokio::test]
-async fn test_forward_auth() {
-    let mut client = make_client().await;
+    let mut client = make_client(pool).await;
 
     // auth request from reverse proxy
     let response = client

@@ -1,0 +1,27 @@
+.acl-floating-tags-display {
+  list-style: none;
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-xs);
+  max-height: 250px;
+  max-width: 100dvh;
+  min-height: 35px;
+  overflow: auto;
+  padding-right: var(--spacing-xs);
+  min-width: 201px;
+
+  li {
+    @include typography(app-modal-1);
+    color: var(--text-body-secondary);
+  }
+}
+
+#acl-index-page {
+  .tags-display {
+    cursor: help;
+
+    .tag {
+      user-select: none;
+    }
+  }
+}

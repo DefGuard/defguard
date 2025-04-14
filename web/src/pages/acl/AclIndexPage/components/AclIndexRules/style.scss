@@ -6,20 +6,10 @@
   padding: 0 var(--spacing-s) 0 0;
   column-gap: var(--spacing-xs);
 
-  &:not(.selectable) {
-    grid-template-columns: 350px repeat(3, 300px) 75px 40px;
+  grid-template-columns: 40px 350px repeat(3, 300px) 75px 40px;
 
-    @include media-breakpoint-up(lg) {
-      grid-template-columns: 1.25fr repeat(3, 1fr) 0.5fr 45px;
-    }
-  }
-
-  &.selectable {
-    grid-template-columns: 40px 350px repeat(3, 300px) 75px 40px;
-
-    @include media-breakpoint-up(lg) {
-      grid-template-columns: 40px 1.25fr repeat(3, 1fr) 0.5fr 45px;
-    }
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 40px 1.25fr repeat(3, 1fr) 0.5fr 45px;
   }
 
   & > .cell {

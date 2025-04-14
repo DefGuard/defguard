@@ -4414,7 +4414,7 @@ type RootTranslation = {
 		messages: {
 			'delete': {
 				/**
-				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
 				 */
 				success: string
 				/**
@@ -5217,6 +5217,10 @@ type RootTranslation = {
 			 * D​i​s​a​b​l​e​d
 			 */
 			disabled: string
+			/**
+			 * E​x​p​i​r​e​d
+			 */
+			expired: string
 		}
 		listPage: {
 			message: {
@@ -5436,6 +5440,25 @@ type RootTranslation = {
 					aliasDeleteFail: string
 				}
 				modals: {
+					applyConfirm: {
+						/**
+						 * C​o​n​f​i​r​m​ ​A​l​i​a​s​ ​D​e​p​l​o​y​m​e​n​t
+						 */
+						title: string
+						/**
+						 * T​h​e​ ​u​p​d​a​t​e​d​ ​a​l​i​a​s​e​s​ ​w​i​l​l​ ​m​o​d​i​f​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​c​u​r​r​e​n​t​l​y​ ​d​e​p​l​o​y​e​d​ ​o​n​ ​t​h​e​ ​g​a​t​e​w​a​y​.​
+					​P​l​e​a​s​e​ ​e​n​s​u​r​e​ ​t​h​e​s​e​ ​c​h​a​n​g​e​s​ ​a​r​e​ ​i​n​t​e​n​d​e​d​ ​b​e​f​o​r​e​ ​p​r​o​c​e​e​d​i​n​g​.
+						 */
+						message: string
+						/**
+						 * A​f​f​e​c​t​e​d​ ​R​u​l​e​s
+						 */
+						listLabel: string
+						/**
+						 * D​e​p​l​o​y​ ​C​h​a​n​g​e​s
+						 */
+						submit: string
+					}
 					deleteBlock: {
 						/**
 						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
@@ -5443,7 +5466,7 @@ type RootTranslation = {
 						title: string
 						/**
 						 * 
-					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​
 				
 						 * @param {number} rulesCount
 						 */
@@ -10075,7 +10098,7 @@ export type TranslationFunctions = {
 		messages: {
 			'delete': {
 				/**
-				 * Network delted
+				 * Network deleted
 				 */
 				success: () => LocalizedString
 				/**
@@ -10874,6 +10897,10 @@ export type TranslationFunctions = {
 			 * Disabled
 			 */
 			disabled: () => LocalizedString
+			/**
+			 * Expired
+			 */
+			expired: () => LocalizedString
 		}
 		listPage: {
 			message: {
@@ -11090,6 +11117,25 @@ export type TranslationFunctions = {
 					aliasDeleteFail: () => LocalizedString
 				}
 				modals: {
+					applyConfirm: {
+						/**
+						 * Confirm Alias Deployment
+						 */
+						title: () => LocalizedString
+						/**
+						 * The updated aliases will modify the following rule(s) currently deployed on the gateway.
+					Please ensure these changes are intended before proceeding.
+						 */
+						message: () => LocalizedString
+						/**
+						 * Affected Rules
+						 */
+						listLabel: () => LocalizedString
+						/**
+						 * Deploy Changes
+						 */
+						submit: () => LocalizedString
+					}
 					deleteBlock: {
 						/**
 						 * Deletion blocked
@@ -11097,7 +11143,7 @@ export type TranslationFunctions = {
 						title: () => LocalizedString
 						/**
 						 * 
-					Alias is used in {rulesCount} rules and cannot be deleted.
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount})
 				
 						 */
 						content: (arg: { rulesCount: number }) => LocalizedString

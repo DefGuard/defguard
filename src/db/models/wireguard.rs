@@ -78,6 +78,7 @@ pub enum GatewayEvent {
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
     FirewallConfigChanged(Id, FirewallConfig),
+    FirewallDisabled(Id),
 }
 
 /// Stores configuration required to setup a WireGuard network

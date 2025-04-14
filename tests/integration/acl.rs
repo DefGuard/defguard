@@ -1,5 +1,6 @@
-use common::{
-    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, omit_id,
+use crate::common::{
+    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, make_base_client,
+    make_test_client, omit_id, setup_pool,
 };
 use defguard::{
     config::DefGuardConfig,
@@ -17,12 +18,11 @@ use defguard::{
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 use serial_test::serial;
-use sqlx::PgPool;
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    PgPool,
+};
 use tokio::net::TcpListener;
-
-use self::common::{make_base_client, make_test_client};
-
-pub mod common;
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -133,9 +133,11 @@ fn edit_alias_data_into_api_response(
     }
 }
 
-#[tokio::test]
-async fn test_rule_crud() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let rule = make_rule();
@@ -183,10 +185,12 @@ async fn test_rule_crud() {
     assert_eq!(response_rules.len(), 0);
 }
 
-#[tokio::test]
+#[sqlx::test]
 #[serial]
-async fn test_rule_enterprise() {
-    let (client, _) = make_test_client().await;
+async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
@@ -223,9 +227,11 @@ async fn test_rule_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_alias_crud() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let alias = make_alias();
@@ -275,10 +281,12 @@ async fn test_alias_crud() {
     assert_eq!(response_aliases.len(), 0);
 }
 
-#[tokio::test]
+#[sqlx::test]
 #[serial]
-async fn test_alias_enterprise() {
-    let (client, _) = make_test_client().await;
+async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
@@ -315,9 +323,11 @@ async fn test_alias_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_empty_strings() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     // rule
@@ -353,9 +363,11 @@ async fn test_empty_strings() {
     assert_eq!(response_alias, expected_response);
 }
 
-#[tokio::test]
-async fn test_nonadmin() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_nonadmin(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -395,7 +407,9 @@ async fn test_nonadmin() {
 }
 
 #[sqlx::test]
-async fn test_related_objects(pool: PgPool) {
+async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -524,9 +538,11 @@ async fn test_related_objects(pool: PgPool) {
     assert_eq!(response_alias.rules, vec![1]);
 }
 
-#[tokio::test]
-async fn test_invalid_related_objects() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let rule = make_rule();
@@ -606,9 +622,11 @@ async fn test_invalid_related_objects() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_invalid_data() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     // invalid port
@@ -637,7 +655,9 @@ async fn test_invalid_data() {
 }
 
 #[sqlx::test]
-async fn test_rule_create_modify_state(pool: PgPool) {
+async fn test_rule_create_modify_state(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -690,7 +710,9 @@ async fn test_rule_create_modify_state(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_rule_delete_state_new(pool: PgPool) {
+async fn test_rule_delete_state_new(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -707,13 +729,35 @@ async fn test_rule_delete_state_new(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_rule_delete_state_applied(pool: PgPool) {
+async fn test_rule_delete_state_applied(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
 
+    // create a location
+    WireguardNetwork::new(
+        "test location".to_string(),
+        Vec::new(),
+        1000,
+        "endpoint1".to_string(),
+        None,
+        Vec::new(),
+        false,
+        100,
+        100,
+        false,
+        false,
+    )
+    .unwrap()
+    .save(&pool)
+    .await
+    .unwrap();
+
     // test APPLIED rule deletion
-    let rule = make_rule();
+    let mut rule = make_rule();
+    rule.networks = vec![1];
     let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::CREATED);
     assert_eq!(AclRule::all(&pool).await.unwrap().len(), 1);
@@ -731,15 +775,24 @@ async fn test_rule_delete_state_applied(pool: PgPool) {
     rule_after_mods.state = RuleState::Deleted;
     rule_after_mods.parent_id = Some(1);
 
-    // don't care about related objects of deleted rule
-    rule_after_mods.destination = rule_child.destination.clone();
-    rule_after_mods.allowed_users = rule_child.allowed_users.clone();
-
     assert_eq!(rule_after_mods, rule_child);
+
+    // related networks are returned correctly
+    assert_eq!(rule_child.networks, vec![1]);
+
+    // cannot modify a DELETED rule
+    let response = client
+        .put("/api/v1/acl/rule/2")
+        .json(&rule_after_mods)
+        .send()
+        .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]
-async fn test_rule_duplication(pool: PgPool) {
+async fn test_rule_duplication(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     // each modification / deletion of parent rule should remove the child and create a new one
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -768,7 +821,9 @@ async fn test_rule_duplication(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_rule_application(pool: PgPool) {
+async fn test_rule_application(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -858,7 +913,9 @@ async fn test_rule_application(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_multiple_rules_application(pool: PgPool) {
+async fn test_multiple_rules_application(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -894,7 +951,9 @@ async fn test_multiple_rules_application(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_alias_create_modify_state(pool: PgPool) {
+async fn test_alias_create_modify_state(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -932,7 +991,9 @@ async fn test_alias_create_modify_state(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_alias_delete(pool: PgPool) {
+async fn test_alias_delete(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -995,7 +1056,9 @@ async fn test_alias_delete(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_alias_duplication(pool: PgPool) {
+async fn test_alias_duplication(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     // each modification of parent alias should remove the child and create a new one
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
@@ -1020,7 +1083,9 @@ async fn test_alias_duplication(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_alias_application(pool: PgPool) {
+async fn test_alias_application(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
@@ -1079,7 +1144,9 @@ async fn test_alias_application(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn test_multiple_aliases_application(pool: PgPool) {
+async fn test_multiple_aliases_application(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let config = init_config(None);
     let client = make_client_v2(pool.clone(), config).await;
     authenticate(&client).await;
