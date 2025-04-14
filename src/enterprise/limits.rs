@@ -90,7 +90,7 @@ impl Counts {
         let maybe_license = get_cached_license();
 
         // validate limits against license if available, use defaults otherwise
-        if let Some(license) = &maybe_license {
+        if let Some(license) = maybe_license.as_ref() {
             debug!("Cached license found. Validating license limits...");
             self.is_over_license_limits(license)
         }
