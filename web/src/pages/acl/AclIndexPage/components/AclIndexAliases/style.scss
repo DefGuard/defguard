@@ -6,10 +6,10 @@
   align-items: center;
   box-sizing: border-box;
 
-  grid-template-columns: 40px 200px repeat(3, 250px) 100px 60px;
+  grid-template-columns: 40px 200px repeat(2, 250px) 160px 250px 100px 60px;
 
   @include media-breakpoint-up(lg) {
-    grid-template-columns: 40px 0.5fr repeat(3, 0.75fr) 100px 60px;
+    grid-template-columns: 40px 0.5fr repeat(2, 0.75fr) 160px 0.75fr 100px 60px;
   }
 
   .cell {

@@ -27,8 +27,8 @@
     svg {
       path {
         @include animate-field;
-        transition-property: stroke;
-        stroke: var(--surface-icon-primary);
+        transition-property: fill;
+        fill: var(--surface-icon-primary);
       }
     }
 
@@ -42,7 +42,7 @@
 
         svg {
           path {
-            stroke: var(--surface-icon-secondary);
+            fill: var(--surface-icon-secondary);
           }
         }
       }
