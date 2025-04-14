@@ -667,7 +667,22 @@ impl super::LDAPConnection {
 
         for user in changes.add_defguard {
             debug!("Adding user {} to Defguard", user.username);
-            user.save(&mut *transaction).await?;
+            // check if the user doesnt exist in defguard
+            if !User::find_by_username(&mut *transaction, &user.username)
+                .await?
+                .is_some()
+            {
+                debug!(
+                    "LDAP user {} does not exist in Defguard yet, adding...",
+                    user.username
+                );
+                user.save(&mut *transaction).await?;
+            } else {
+                debug!(
+                    "LDAP user {} already exists in Defguard, skipping",
+                    user.username
+                );
+            }
         }
 
         transaction.commit().await?;
