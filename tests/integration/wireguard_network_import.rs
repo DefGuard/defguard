@@ -1,5 +1,4 @@
-pub mod common;
-
+use crate::common::{fetch_user_details, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{
@@ -13,12 +12,13 @@ use defguard::{
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio::sync::broadcast::error::TryRecvError;
 
-use self::common::{fetch_user_details, make_test_client};
+#[sqlx::test]
+async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-#[tokio::test]
-async fn test_config_import() {
     let wg_config = "
         [Interface]
         PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
@@ -41,7 +41,7 @@ async fn test_config_import() {
         AllowedIPs = 10.0.0.12/24
         PersistentKeepalive = 300
     ";
-    let (client, client_state) = make_test_client().await;
+    let (client, client_state) = make_test_client(pool).await;
     let pool = client_state.pool;
 
     // setup initial network
@@ -229,8 +229,10 @@ async fn test_config_import() {
     );
 }
 
-#[tokio::test]
-async fn test_config_import_missing_interface() {
+#[sqlx::test]
+async fn test_config_import_missing_interface(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let wg_config = "
         PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
         Address = 10.0.0.1/24
@@ -247,7 +249,7 @@ async fn test_config_import_missing_interface() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -262,8 +264,10 @@ async fn test_config_import_missing_interface() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_config_import_invalid_key() {
+#[sqlx::test]
+async fn test_config_import_invalid_key(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let wg_config = "
         [Interface]
         PrivateKey = DEFINITELY_NOT_A_VALID_WG_KEY
@@ -281,7 +285,7 @@ async fn test_config_import_invalid_key() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -321,8 +325,10 @@ async fn test_config_import_invalid_key() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_config_import_invalid_ip() {
+#[sqlx::test]
+async fn test_config_import_invalid_ip(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let wg_config = "
         [Interface]
         PrivateKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
@@ -340,7 +346,7 @@ async fn test_config_import_invalid_ip() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
@@ -355,8 +361,10 @@ async fn test_config_import_invalid_ip() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_config_import_nonadmin() {
+#[sqlx::test]
+async fn test_config_import_nonadmin(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     let wg_config = "
         [Interface]
         PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
@@ -374,7 +382,7 @@ async fn test_config_import_nonadmin() {
         AllowedIPs = 10.0.0.11/24
         PersistentKeepalive = 300
     ";
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
     let auth = Auth::new("hpotter", "pass123");
     let response = &client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);

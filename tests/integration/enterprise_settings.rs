@@ -1,6 +1,4 @@
-pub mod common;
-
-use common::exceed_enterprise_limits;
+use crate::common::{exceed_enterprise_limits, make_network, make_test_client, setup_pool};
 use defguard::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
@@ -10,13 +8,14 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use serde_json::json;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{make_network, make_test_client};
+#[sqlx::test]
+async fn test_only_enterprise_can_modify(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-#[tokio::test]
-async fn test_only_enterprise_can_modify() {
     // admin login
-    let (client, _client_state) = make_test_client().await;
+    let (client, _client_state) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -55,10 +54,12 @@ async fn test_only_enterprise_can_modify() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_admin_devices_management_is_enforced() {
+#[sqlx::test]
+async fn test_admin_devices_management_is_enforced(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     // admin login
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -134,10 +135,12 @@ async fn test_admin_devices_management_is_enforced() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn test_regular_user_device_management() {
+#[sqlx::test]
+async fn test_regular_user_device_management(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
     // admin login
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);

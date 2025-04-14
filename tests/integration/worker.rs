@@ -1,30 +1,23 @@
-pub mod common;
-
-use std::sync::{Arc, Mutex};
-
+use crate::common::{make_client_with_state, setup_pool};
 use defguard::{
-    grpc::{worker::JobStatus, WorkerDetail, WorkerState},
+    grpc::{worker::JobStatus, WorkerDetail},
     handlers::{
         worker::{JobData, Jobid},
         Auth,
     },
 };
 use reqwest::StatusCode;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{client::TestClient, make_test_client};
+#[sqlx::test]
+async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> (TestClient, Arc<Mutex<WorkerState>>) {
-    let (client, client_status) = make_test_client().await;
-    (client, client_status.worker_state)
-}
-
-#[tokio::test]
-async fn test_scheduling_worker_jobs() {
-    let (client, worker_state) = make_client().await;
+    let (client, state) = make_client_with_state(pool).await;
 
     // register a fake worker
     {
-        let mut state = worker_state.lock().unwrap();
+        let mut state = state.worker_state.lock().unwrap();
         state.register_worker("YubiBridge".to_string());
     };
 
@@ -87,7 +80,7 @@ async fn test_scheduling_worker_jobs() {
 
     // add status for created jobs
     {
-        let mut state = worker_state.lock().unwrap();
+        let mut state = state.worker_state.lock().unwrap();
         state.set_job_status(
             JobStatus {
                 id: "YubiBridge".to_string(),
@@ -169,13 +162,15 @@ async fn test_scheduling_worker_jobs() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_worker_management_permissions() {
-    let (client, worker_state) = make_client().await;
+#[sqlx::test]
+async fn test_worker_management_permissions(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
 
     // add some fake workers
     {
-        let mut state = worker_state.lock().unwrap();
+        let mut state = state.worker_state.lock().unwrap();
         state.register_worker("worker_1".into());
         state.register_worker("worker_2".into());
         state.register_worker("worker_3".into());

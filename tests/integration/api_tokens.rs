@@ -1,5 +1,5 @@
+use crate::common::{make_client, make_client_with_state, setup_pool};
 use chrono::Utc;
-use common::{client::TestClient, make_test_client, ClientState};
 use defguard::{
     db::UserInfo,
     enterprise::{
@@ -10,22 +10,16 @@ use defguard::{
 };
 use reqwest::{header::HeaderName, StatusCode};
 use serde::Deserialize;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-pub mod common;
+#[sqlx::test]
+async fn test_normal_user_cannot_access_token_endpoints(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
-
-async fn make_client_with_state() -> (TestClient, ClientState) {
-    let (client, client_state) = make_test_client().await;
-    (client, client_state)
-}
-
-#[tokio::test]
-async fn test_normal_user_cannot_access_token_endpoints() {
-    let client = make_client().await;
+    let client = make_client(pool).await;
 
     // log in as normal user
     let auth = Auth::new("hpotter", "pass123");
@@ -61,9 +55,11 @@ async fn test_normal_user_cannot_access_token_endpoints() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn test_normal_user_cannot_use_token_auth() {
-    let (client, state) = make_client_with_state().await;
+#[sqlx::test]
+async fn test_normal_user_cannot_use_token_auth(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
 
     // sidestep API access restrictions by creating a token manually
     let token_string = "test-token-string";
@@ -87,9 +83,11 @@ async fn test_normal_user_cannot_use_token_auth() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
-#[tokio::test]
-async fn test_admin_user_can_manage_api_tokens() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_admin_user_can_manage_api_tokens(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // log in as admin user
     let auth = Auth::new("admin", "pass123");
@@ -195,9 +193,14 @@ async fn test_admin_user_can_manage_api_tokens() {
     assert_eq!(first_token.name, "dummy token 2");
 }
 
-#[tokio::test]
-async fn test_admin_user_can_use_api_tokens_to_authenticate() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_admin_user_can_use_api_tokens_to_authenticate(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     // log in as admin user
     let auth = Auth::new("admin", "pass123");

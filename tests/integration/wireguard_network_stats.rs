@@ -1,5 +1,4 @@
-pub mod common;
-
+use crate::common::{make_network, make_test_client, setup_pool};
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
@@ -18,8 +17,7 @@ use defguard::{
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
-
-use self::common::{make_network, make_test_client};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 
@@ -30,9 +28,11 @@ struct StatsResponse {
     _network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
-#[tokio::test]
-async fn test_stats() {
-    let (client, client_state) = make_test_client().await;
+#[sqlx::test]
+async fn test_stats(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, client_state) = make_test_client(pool).await;
     let pool = client_state.pool;
 
     let auth = Auth::new("admin", "pass123");

@@ -1,7 +1,6 @@
-pub mod common;
-
 use std::borrow::Cow;
 
+use crate::common::{make_client_with_db, setup_pool};
 use defguard::{
     db::{
         models::{
@@ -14,18 +13,13 @@ use defguard::{
 };
 use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
 use serde_json::json;
-use sqlx::PgPool;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::{client::TestClient, make_test_client};
+#[sqlx::test]
+async fn test_authorize(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-async fn make_client() -> (TestClient, PgPool) {
-    let (client, client_state) = make_test_client().await;
-    (client, client_state.pool)
-}
-
-#[tokio::test]
-async fn test_authorize() {
-    let (client, pool) = make_client().await;
+    let (client, pool) = make_client_with_db(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -163,9 +157,11 @@ async fn test_authorize() {
     );
 }
 
-#[tokio::test]
-async fn test_openid_app_management_access() {
-    let (client, _) = make_client().await;
+#[sqlx::test]
+async fn test_openid_app_management_access(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_client_with_db(pool).await;
 
     // login as admin
     let auth = Auth::new("admin", "pass123");
@@ -328,7 +324,7 @@ async fn test_openid_app_management_access() {
 }
 
 // FIXME: revive these tests
-// #[tokio::test]
+// #[sqlx::test]
 // async fn test_authorize_consent() {
 //     let client = make_client().await;
 
@@ -390,7 +386,7 @@ async fn test_openid_app_management_access() {
 //     assert_eq!(response.status(), StatusCode::OK);
 // }
 
-// #[tokio::test]
+// #[sqlx::test]
 // async fn test_authorize_consent_wrong_client() {
 //     let client = make_client().await;
 
@@ -409,9 +405,11 @@ async fn test_openid_app_management_access() {
 //     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 // }
 
-#[tokio::test]
-async fn test_token_client_credentials() {
-    let (client, _) = make_client().await;
+#[sqlx::test]
+async fn test_token_client_credentials(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_client_with_db(pool).await;
 
     let response = client
         .post("/api/v1/oauth/token")

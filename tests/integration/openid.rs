@@ -1,10 +1,11 @@
 use std::str::FromStr;
 
+use crate::common::{
+    client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
+};
 use axum::http::header::ToStrError;
 use claims::assert_err;
-use common::init_config;
 use defguard::{
-    config::DefGuardConfig,
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
         Id,
@@ -26,24 +27,7 @@ use reqwest::{
 };
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
-use sqlx::PgPool;
-use tokio::net::TcpListener;
-
-pub mod common;
-use self::common::{client::TestClient, init_test_db, make_base_client, make_test_client};
-
-async fn make_client() -> TestClient {
-    let (client, _) = make_test_client().await;
-    client
-}
-
-async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("Could not bind ephemeral socket");
-    let (client, _) = make_base_client(pool, config, listener).await;
-    client
-}
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
 #[derive(Deserialize)]
 pub struct AuthenticationResponse<'r> {
@@ -51,9 +35,11 @@ pub struct AuthenticationResponse<'r> {
     pub state: &'r str,
 }
 
-#[tokio::test]
-async fn test_openid_client() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_openid_client(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
 
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -110,9 +96,11 @@ async fn test_openid_client() {
     assert!(openid_clients.is_empty());
 }
 
-#[tokio::test]
-async fn test_openid_flow() {
-    let client = make_client().await;
+#[sqlx::test]
+async fn test_openid_flow(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let client = make_client(pool).await;
     let auth = Auth::new("admin", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -405,13 +393,14 @@ async fn http_client(
 
 static FAKE_REDIRECT_URI: &str = "http://test.server.tnt:12345/";
 
-#[tokio::test]
-async fn test_openid_authorization_code() {
-    let config = init_config(None);
-    let pool = init_test_db(&config).await;
+#[sqlx::test]
+async fn test_openid_authorization_code(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
+    let config = state.config;
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
-    let client = make_client_v2(pool.clone(), config.clone()).await;
 
     // discover OpenID service
     let provider_metadata =
@@ -506,15 +495,17 @@ async fn test_openid_authorization_code() {
     assert!(refresh_response.refresh_token().is_some());
 }
 
-#[tokio::test]
-async fn test_openid_authorization_code_with_pkce() {
-    let mut config = init_config(None);
-    let pool = init_test_db(&config).await;
+#[sqlx::test]
+async fn test_openid_authorization_code_with_pkce(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_client_with_state(pool).await;
+    let mut config = state.config;
+
     let mut rng = rand::thread_rng();
     config.openid_signing_key = RsaPrivateKey::new(&mut rng, 2048).ok();
 
     let issuer_url = IssuerUrl::from_url(config.url.clone());
-    let client = make_client_v2(pool.clone(), config.clone()).await;
 
     // discover OpenID service
     let provider_metadata =
@@ -618,9 +609,11 @@ async fn test_openid_authorization_code_with_pkce() {
         .unwrap();
 }
 
-#[tokio::test]
-async fn test_openid_flow_new_login_mail() {
-    let (client, state) = make_test_client().await;
+#[sqlx::test]
+async fn test_openid_flow_new_login_mail(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, state) = make_test_client(pool).await;
     let mut mail_rx = state.mail_rx;
     let user_agent_header = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1";
 

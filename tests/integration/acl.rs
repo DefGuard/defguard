@@ -1,5 +1,6 @@
-use common::{
-    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, omit_id,
+use crate::common::{
+    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, make_base_client,
+    make_test_client, omit_id, setup_pool,
 };
 use defguard::{
     config::DefGuardConfig,
@@ -22,16 +23,6 @@ use sqlx::{
     PgPool,
 };
 use tokio::net::TcpListener;
-
-use self::common::{make_base_client, make_test_client};
-
-pub mod common;
-
-// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
-// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
-async fn setup_pool(options: PgConnectOptions) -> PgPool {
-    PgPoolOptions::new().connect_with(options).await.unwrap()
-}
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -142,9 +133,11 @@ fn edit_alias_data_into_api_response(
     }
 }
 
-#[tokio::test]
-async fn test_rule_crud() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let rule = make_rule();
@@ -192,10 +185,12 @@ async fn test_rule_crud() {
     assert_eq!(response_rules.len(), 0);
 }
 
-#[tokio::test]
+#[sqlx::test]
 #[serial]
-async fn test_rule_enterprise() {
-    let (client, _) = make_test_client().await;
+async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
@@ -232,9 +227,11 @@ async fn test_rule_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_alias_crud() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let alias = make_alias();
@@ -284,10 +281,12 @@ async fn test_alias_crud() {
     assert_eq!(response_aliases.len(), 0);
 }
 
-#[tokio::test]
+#[sqlx::test]
 #[serial]
-async fn test_alias_enterprise() {
-    let (client, _) = make_test_client().await;
+async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     exceed_enterprise_limits(&client).await;
@@ -324,9 +323,11 @@ async fn test_alias_enterprise() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn test_empty_strings() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     // rule
@@ -362,9 +363,11 @@ async fn test_empty_strings() {
     assert_eq!(response_alias, expected_response);
 }
 
-#[tokio::test]
-async fn test_nonadmin() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_nonadmin(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     let auth = Auth::new("hpotter", "pass123");
     let response = client.post("/api/v1/auth").json(&auth).send().await;
@@ -535,9 +538,11 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response_alias.rules, vec![1]);
 }
 
-#[tokio::test]
-async fn test_invalid_related_objects() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let rule = make_rule();
@@ -617,9 +622,11 @@ async fn test_invalid_related_objects() {
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn test_invalid_data() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_invalid_data(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
     authenticate(&client).await;
 
     // invalid port

@@ -1,14 +1,14 @@
-pub mod common;
-
+use crate::common::{make_test_client, setup_pool};
 use defguard::handlers::{Auth, EditGroupInfo, GroupInfo};
 use reqwest::StatusCode;
 use serde_json::json;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-use self::common::make_test_client;
+#[sqlx::test]
+async fn test_create_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
 
-#[tokio::test]
-async fn test_create_group() {
-    let (client, _) = make_test_client().await;
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
@@ -33,9 +33,11 @@ async fn test_create_group() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
-async fn test_modify_group() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
@@ -67,9 +69,11 @@ async fn test_modify_group() {
     assert_eq!(group_info.name, "gryffindor");
 }
 
-#[tokio::test]
-async fn test_modify_group_members() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_group_members(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
@@ -103,9 +107,11 @@ async fn test_modify_group_members() {
     assert!(group_info.members.is_empty());
 }
 
-#[tokio::test]
-async fn test_modify_group_no_locations_in_request() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_group_no_locations_in_request(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
@@ -151,9 +157,11 @@ async fn test_modify_group_no_locations_in_request() {
     assert_eq!(group_info.members, vec!["hpotter"]);
 }
 
-#[tokio::test]
-async fn test_remove_last_admin_group() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_remove_last_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
@@ -170,9 +178,11 @@ async fn test_remove_last_admin_group() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn test_modify_last_admin_group() {
-    let (client, _) = make_test_client().await;
+#[sqlx::test]
+async fn test_modify_last_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
+    let pool = setup_pool(options).await;
+
+    let (client, _) = make_test_client(pool).await;
 
     // Authorize as an administrator.
     let auth = Auth::new("admin", "pass123");
