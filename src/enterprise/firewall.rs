@@ -127,6 +127,7 @@ pub async fn generate_firewall_rules_from_acls(
         let comment = format!("ACL {} - {}", acl.id, acl.name);
         let ipv4_rules = create_rules(
             acl.id,
+            IpVersion::Ipv4,
             &ipv4_source_addrs,
             &destination_addrs.0,
             &destination_ports,
@@ -139,6 +140,7 @@ pub async fn generate_firewall_rules_from_acls(
         // create IPv6 rules
         let ipv6_rules = create_rules(
             acl.id,
+            IpVersion::Ipv6,
             &ipv6_source_addrs,
             &destination_addrs.1,
             &destination_ports,
@@ -185,6 +187,7 @@ pub async fn generate_firewall_rules_from_acls(
             );
             let ipv4_rules = create_rules(
                 alias.id,
+                IpVersion::Ipv4,
                 &ipv4_source_addrs,
                 &destination_addrs.0,
                 &destination_ports,
@@ -197,6 +200,7 @@ pub async fn generate_firewall_rules_from_acls(
             // create IPv6 rules
             let ipv6_rules = create_rules(
                 alias.id,
+                IpVersion::Ipv6,
                 &ipv6_source_addrs,
                 &destination_addrs.1,
                 &destination_ports,
@@ -220,12 +224,14 @@ pub async fn generate_firewall_rules_from_acls(
 /// rule if it should be created and the second field is the DENY rule.
 fn create_rules(
     id: Id,
+    ip_version: IpVersion,
     source_addrs: &[IpAddress],
     destination_addrs: &[IpAddress],
     destination_ports: &[Port],
     protocols: &[i32],
     comment: &str,
 ) -> (Option<FirewallRule>, FirewallRule) {
+    let ip_version = i32::from(ip_version);
     let allow = if source_addrs.is_empty() {
         debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
         None
@@ -239,7 +245,7 @@ fn create_rules(
             protocols: protocols.to_vec(),
             verdict: i32::from(FirewallPolicy::Allow),
             comment: Some(format!("{comment} ALLOW")),
-            ip_version: i32::from(IpVersion::Ipv4),
+            ip_version,
         });
         debug!("ALLOW rule generated from ACL: {rule:?}");
         rule
@@ -254,7 +260,7 @@ fn create_rules(
         protocols: Vec::new(),
         verdict: i32::from(FirewallPolicy::Deny),
         comment: Some(format!("{comment} DENY")),
-        ip_version: i32::from(IpVersion::Ipv4),
+        ip_version,
     };
     debug!("DENY rule generated from ACL: {deny:?}");
 
@@ -1043,8 +1049,7 @@ mod test {
             },
         ];
 
-        let destination_addrs =
-            process_destination_addrs(destination_ips, destination_ranges);
+        let destination_addrs = process_destination_addrs(destination_ips, destination_ranges);
 
         assert_eq!(
             destination_addrs.0,
@@ -1075,10 +1080,7 @@ mod test {
         assert!(empty_addrs.0.is_empty());
 
         // Test with only IPv6 addresses - should return empty result for IPv4
-        let ipv6_only = process_destination_addrs(
-            vec!["2001:db8::/64".parse().unwrap()],
-            vec![],
-        );
+        let ipv6_only = process_destination_addrs(vec!["2001:db8::/64".parse().unwrap()], vec![]);
         assert!(ipv6_only.0.is_empty());
     }
 
@@ -1105,8 +1107,7 @@ mod test {
             },
         ];
 
-        let destination_addrs =
-            process_destination_addrs(destination_ips, destination_ranges);
+        let destination_addrs = process_destination_addrs(destination_ips, destination_ranges);
 
         assert_eq!(
             destination_addrs.1,
@@ -1143,10 +1144,7 @@ mod test {
         assert!(empty_addrs.1.is_empty());
 
         // Test with only IPv4 addresses - should return empty result for IPv6
-        let ipv4_only = process_destination_addrs(
-            vec!["192.168.1.0/24".parse().unwrap()],
-            vec![],
-        );
+        let ipv4_only = process_destination_addrs(vec!["192.168.1.0/24".parse().unwrap()], vec![]);
         assert!(ipv4_only.1.is_empty());
     }
 
@@ -2085,7 +2083,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 2);
+        assert_eq!(generated_firewall_rules.len(), 4);
     }
 
     #[sqlx::test]
@@ -2154,7 +2152,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 2);
+        assert_eq!(generated_firewall_rules.len(), 4);
     }
 
     #[sqlx::test]
@@ -2223,7 +2221,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 2);
+        assert_eq!(generated_firewall_rules.len(), 4);
     }
 
     #[sqlx::test]
@@ -2270,12 +2268,19 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
-                        10,
-                        0,
-                        user.id as u8,
-                        device_num as u8,
-                    ))],
+                    wireguard_ip: vec![
+                        IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                        IpAddr::V6(Ipv6Addr::new(
+                            0xf000,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            user.id as u16,
+                            device_num as u16,
+                        )),
+                    ],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -2284,12 +2289,19 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
-                        10,
-                        10,
-                        user.id as u8,
-                        device_num as u8,
-                    ))],
+                    wireguard_ip: vec![
+                        IpAddr::V4(Ipv4Addr::new(10, 10, user.id as u8, device_num as u8)),
+                        IpAddr::V6(Ipv6Addr::new(
+                            0xf010,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            user.id as u16,
+                            device_num as u16,
+                        )),
+                    ],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -2304,7 +2316,10 @@ mod test {
             expires: None,
             enabled: true,
             state: RuleState::Applied,
-            destination: vec!["192.168.1.0/24".parse().unwrap()],
+            destination: vec![
+                "192.168.1.0/24".parse().unwrap(),
+                "fc00::0/96".parse().unwrap(),
+            ],
             ..Default::default()
         }
         .save(&pool)
@@ -2362,9 +2377,8 @@ mod test {
             .unwrap()
             .rules;
 
-        println!("{generated_firewall_rules:#?}");
         // both rules were assigned to this location
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 8);
 
         let generated_firewall_rules = location_2
             .try_get_firewall_config(&mut conn)
@@ -2374,6 +2388,6 @@ mod test {
             .rules;
 
         // rule with `all_networks` enabled was used for this location
-        assert_eq!(generated_firewall_rules.len(), 3);
+        assert_eq!(generated_firewall_rules.len(), 6);
     }
 }
