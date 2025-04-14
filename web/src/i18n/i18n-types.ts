@@ -2742,6 +2742,10 @@ type RootTranslation = {
 					 * T​h​e​ ​i​n​t​e​r​v​a​l​ ​w​i​t​h​ ​w​h​i​c​h​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​t​t​e​m​p​t​e​d​.
 					 */
 					interval: string
+					/**
+					 * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​o​n​l​y​ ​u​s​e​r​s​ ​b​e​l​o​n​g​i​n​g​ ​t​o​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​g​r​o​u​p​s​.​ ​P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​s​.​ ​I​f​ ​e​m​p​t​y​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
+					 */
+					groups: string
 				}
 			}
 			form: {
@@ -2810,6 +2814,10 @@ type RootTranslation = {
 					 * S​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​i​n​t​e​r​v​a​l
 					 */
 					ldap_sync_interval: string
+					/**
+					 * L​i​m​i​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​t​o​ ​t​h​e​s​e​ ​g​r​o​u​p​s
+					 */
+					ldap_sync_groups: string
 					/**
 					 * U​s​e​ ​S​t​a​r​t​T​L​S
 					 */
@@ -5466,7 +5474,7 @@ type RootTranslation = {
 						title: string
 						/**
 						 * 
-					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
 				
 						 * @param {number} rulesCount
 						 */
@@ -8437,6 +8445,10 @@ export type TranslationFunctions = {
 					 * The interval with which the synchronization will be attempted.
 					 */
 					interval: () => LocalizedString
+					/**
+					 * Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.
+					 */
+					groups: () => LocalizedString
 				}
 			}
 			form: {
@@ -8505,6 +8517,10 @@ export type TranslationFunctions = {
 					 * Synchronization interval
 					 */
 					ldap_sync_interval: () => LocalizedString
+					/**
+					 * Limit synchronization to these groups
+					 */
+					ldap_sync_groups: () => LocalizedString
 					/**
 					 * Use StartTLS
 					 */
@@ -11143,7 +11159,7 @@ export type TranslationFunctions = {
 						title: () => LocalizedString
 						/**
 						 * 
-					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount})
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
 				
 						 */
 						content: (arg: { rulesCount: number }) => LocalizedString

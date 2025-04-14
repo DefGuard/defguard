@@ -952,6 +952,7 @@ export type SettingsLDAP = {
   ldap_sync_interval: number;
   ldap_uses_ad: boolean;
   ldap_user_rdn_attr?: string;
+  ldap_sync_groups: string[];
 };
 
 export type SettingsOpenID = {

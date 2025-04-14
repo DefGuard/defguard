@@ -1121,6 +1121,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           Make sure to check the documentation to understand the implications of this
           setting.`,
           interval: 'The interval with which the synchronization will be attempted.',
+          groups: `Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.`,
         },
       },
       form: {
@@ -1141,6 +1142,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_sync_enabled: 'Enable LDAP two-way synchronization',
           ldap_authoritative_source: 'Consider the following source as the authority',
           ldap_sync_interval: 'Synchronization interval',
+          ldap_sync_groups: 'Limit synchronization to these groups',
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_uses_ad: 'LDAP server is Active Directory',

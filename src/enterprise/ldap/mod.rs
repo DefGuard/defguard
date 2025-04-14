@@ -136,6 +136,7 @@ pub struct LDAPConfig {
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     pub ldap_uses_ad: bool,
     pub ldap_user_rdn_attr: Option<String>,
+    pub ldap_sync_groups: Vec<String>,
 }
 
 impl LDAPConfig {
@@ -247,6 +248,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_user_auxiliary_obj_classes: settings.ldap_user_auxiliary_obj_classes,
             ldap_uses_ad: settings.ldap_uses_ad,
             ldap_user_rdn_attr: settings.ldap_user_rdn_attr,
+            ldap_sync_groups: settings.ldap_sync_groups,
         })
     }
 }

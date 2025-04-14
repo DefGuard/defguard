@@ -425,8 +425,24 @@ impl super::LDAPConnection {
         let all_ldap_user_entries = self.list_users().await?;
         let mut all_ldap_users = vec![];
         let mut all_defguard_users = User::all(pool).await?;
+        let sync_groups = &self.config.ldap_sync_groups.clone();
+        debug!("The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced", sync_groups);
+        let mut sync_group_members = HashSet::new();
+        for sync_group in sync_groups {
+            if let Some(group) = Group::find_by_name(pool, sync_group).await? {
+                let members = group.members(pool).await?;
+                sync_group_members.extend(members.into_iter().map(|u| u.username));
+            } else {
+                debug!("Sync group {} not found in Defguard, skipping", sync_group);
+            }
+        }
 
-        all_defguard_users.retain(|u| u.is_active && u.is_enrolled());
+        all_defguard_users.retain(|u| {
+            u.is_active
+                && u.is_enrolled()
+                // Consider only users from sync groups, if defined
+                && (sync_groups.is_empty() || sync_group_members.contains(&u.username))
+        });
 
         let username_attr = &self.config.ldap_username_attr;
 
@@ -502,7 +518,9 @@ impl super::LDAPConnection {
 
         let user_changes = compute_user_sync_changes(all_ldap_users, all_defguard_users, authority);
 
-        let defguard_groups = Group::all(pool).await?;
+        let mut defguard_groups = Group::all(pool).await?;
+        // Sync only groups belonging to the sync groups, if defined
+        defguard_groups.retain(|g| sync_groups.is_empty() || sync_groups.contains(&g.name));
         for group in defguard_groups {
             let members = group
                 .members(pool)
@@ -702,13 +720,42 @@ impl super::LDAPConnection {
     }
 
     async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
+        let filter = if !self.config.ldap_sync_groups.is_empty() {
+            debug!(
+                "LDAP sync groups are defined, filtering users by those groups: {:?}",
+                self.config.ldap_sync_groups
+            );
+            let mut group_filters = vec![];
+            for group in self.config.ldap_sync_groups.iter() {
+                let group_dn = self.config.group_dn(group);
+                group_filters.push(format!("({}={})", self.config.ldap_member_attr, group_dn));
+            }
+            debug!(
+                "Using the following group filters for user search: {:?}",
+                group_filters
+            );
+            format!(
+                "(&(objectClass={})(|{}))",
+                self.config.ldap_user_obj_class,
+                group_filters.join("")
+            )
+        } else {
+            debug!("No LDAP sync groups defined, searching for all users in the base DN");
+            format!("(objectClass={})", self.config.ldap_user_obj_class)
+        };
+
+        debug!(
+            "Using the following filter for user search: {filter} and base: {}",
+            self.config.ldap_user_search_base
+        );
+
         let mut search_stream = self
             .ldap
             .streaming_search_with(
                 PagedResults::new(500),
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
-                format!("(objectClass={})", self.config.ldap_user_obj_class).as_str(),
+                &filter,
                 vec!["*", &self.config.ldap_member_attr],
             )
             .await?;
@@ -817,10 +864,26 @@ impl super::LDAPConnection {
 
     async fn list_group_memberships(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
         debug!("Searching for group memberships");
-        let filter = format!(
-            "(&(objectClass={})({}=*))",
-            self.config.ldap_group_obj_class, self.config.ldap_group_member_attr
-        );
+        let filter = if self.config.ldap_sync_groups.is_empty() {
+            debug!("LDAP sync groups are not defined, searching for all groups memberships");
+            format!(
+                "(&(objectClass={})({}=*))",
+                self.config.ldap_group_obj_class, self.config.ldap_group_member_attr
+            )
+        } else {
+            debug!("LDAP sync groups are defined, only the following memberships will be considered: {:?}", self.config.ldap_sync_groups);
+            let mut group_filters = vec![];
+            for group in self.config.ldap_sync_groups.iter() {
+                group_filters.push(format!("({}={})", self.config.ldap_groupname_attr, group));
+            }
+            format!(
+                "(&(objectClass={})({}=*)(|{}))",
+                self.config.ldap_group_obj_class,
+                self.config.ldap_group_member_attr,
+                group_filters.join("")
+            )
+        };
+
         debug!(
             "Using the following filter for group search: {filter} and base: {}",
             self.config.ldap_group_search_base
@@ -845,6 +908,7 @@ impl super::LDAPConnection {
         }
 
         debug!("Performed LDAP group memberships search");
+        debug!("Membership search results: {:?}", memberships);
 
         Ok(memberships)
     }
