@@ -2564,6 +2564,22 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
+			 */
+			label: string
+			options: {
+				/**
+				 * A​l​l​o​w
+				 */
+				allow: string
+				/**
+				 * D​e​n​y
+				 */
+				deny: string
+			}
+		}
 		standaloneDeviceTokenModalContent: {
 			/**
 			 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
@@ -5184,6 +5200,16 @@ type RootTranslation = {
 		 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
 		 */
 		sharedTitle: string
+		fieldsSelectionLabels: {
+			/**
+			 * A​l​l​ ​p​o​r​t​s
+			 */
+			ports: string
+			/**
+			 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+			 */
+			protocols: string
+		}
 		ruleStatus: {
 			/**
 			 * N​e​w
@@ -5458,7 +5484,7 @@ type RootTranslation = {
 						title: string
 						/**
 						 * 
-					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
 				
 						 * @param {number} rulesCount
 						 */
@@ -5572,6 +5598,10 @@ type RootTranslation = {
 						 * E​d​i​t
 						 */
 						edit: string
+						/**
+						 * R​u​l​e​s
+						 */
+						rules: string
 					}
 					status: {
 						/**
@@ -5628,6 +5658,26 @@ type RootTranslation = {
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
+				networkSelectionIndicatorsHelper: {
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					denied: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					allowed: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					unmanaged: string
+				}
 			}
 			message: {
 				/**
@@ -5641,9 +5691,13 @@ type RootTranslation = {
 			}
 			headers: {
 				/**
-				 * C​r​e​a​t​e​ ​R​u​l​e
+				 * R​u​l​e
 				 */
 				rule: string
+				/**
+				 * C​r​e​a​t​e​ ​R​u​l​e
+				 */
+				createRule: string
 				/**
 				 * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
 				 */
@@ -8251,6 +8305,22 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * Default ACL Policy
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Allow
+				 */
+				allow: () => LocalizedString
+				/**
+				 * Deny
+				 */
+				deny: () => LocalizedString
+			}
+		}
 		standaloneDeviceTokenModalContent: {
 			/**
 			 * First download defguard command line client binaries and install them on your server.
@@ -10856,6 +10926,16 @@ export type TranslationFunctions = {
 		 * Access Control List
 		 */
 		sharedTitle: () => LocalizedString
+		fieldsSelectionLabels: {
+			/**
+			 * All ports
+			 */
+			ports: () => LocalizedString
+			/**
+			 * All protocols
+			 */
+			protocols: () => LocalizedString
+		}
 		ruleStatus: {
 			/**
 			 * New
@@ -11127,7 +11207,7 @@ export type TranslationFunctions = {
 						title: () => LocalizedString
 						/**
 						 * 
-					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount})
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
 				
 						 */
 						content: (arg: { rulesCount: number }) => LocalizedString
@@ -11237,6 +11317,10 @@ export type TranslationFunctions = {
 						 * Edit
 						 */
 						edit: () => LocalizedString
+						/**
+						 * Rules
+						 */
+						rules: () => LocalizedString
 					}
 					status: {
 						/**
@@ -11293,6 +11377,26 @@ export type TranslationFunctions = {
 			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
+				networkSelectionIndicatorsHelper: {
+					/**
+					 * 
+				          Location access **denied** by default - must be explicitly allowed
+				          
+					 */
+					denied: () => LocalizedString
+					/**
+					 * 
+				          Location access **allowed** by default - can be explicitly denied
+				          
+					 */
+					allowed: () => LocalizedString
+					/**
+					 * 
+				          Location access unmanaged (ACL disabled)
+				          
+					 */
+					unmanaged: () => LocalizedString
+				}
 			}
 			message: {
 				/**
@@ -11306,9 +11410,13 @@ export type TranslationFunctions = {
 			}
 			headers: {
 				/**
-				 * Create Rule
+				 * Rule
 				 */
 				rule: () => LocalizedString
+				/**
+				 * Create Rule
+				 */
+				createRule: () => LocalizedString
 				/**
 				 * Allowed Users/Groups/Devices
 				 */

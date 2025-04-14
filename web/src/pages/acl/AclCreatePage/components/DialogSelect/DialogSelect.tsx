@@ -9,6 +9,7 @@ import { FloatingMenuProvider } from '../../../../../shared/defguard-ui/componen
 import { FloatingMenuTrigger } from '../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuTrigger';
 import { Label } from '../../../../../shared/defguard-ui/components/Layout/Label/Label';
 import { isPresent } from '../../../../../shared/defguard-ui/utils/isPresent';
+import { DialogSelectButtonIcon } from './DialogSelectButtonIcon';
 import { DialogSelectModal } from './DialogSelectModal/DialogSelectModal';
 import { DialogSelectProps } from './types';
 
@@ -23,6 +24,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
   searchFn,
   searchKeys,
   errorMessage,
+  modalExtrasTop,
   disabled = false,
 }: DialogSelectProps<T, I>) => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -82,16 +84,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
               }}
               type="button"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 22 22"
-                fill="none"
-              >
-                <path d="M5.5 11H16.5" strokeWidth="2" strokeLinecap="round" />
-                <path d="M11 5.5L11 16.5" strokeWidth="2" strokeLinecap="round" />
-              </svg>
+              <DialogSelectButtonIcon />
             </button>
           </div>
           <FieldError errorMessage={error} />
@@ -106,6 +99,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
         getIdent={getIdent}
         initiallySelected={selected}
         getLabel={getLabel}
+        extrasTop={modalExtrasTop}
         onChange={(vals) => {
           onChange?.(vals);
         }}

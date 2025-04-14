@@ -83,6 +83,11 @@ export const AliasesList = ({
         enabled: false,
       },
       {
+        label: headersLL.rules(),
+        key: 'rules',
+        enabled: false,
+      },
+      {
         label: headersLL.status(),
         key: 'status',
         enabled: false,
@@ -151,10 +156,19 @@ export const AliasesList = ({
                     <RenderTagDisplay data={alias.display.destination} />
                   </div>
                   <div className="cell ports">
-                    <RenderTagDisplay data={alias.display.ports} />
+                    <RenderTagDisplay
+                      data={alias.display.ports}
+                      placeholder={LL.acl.fieldsSelectionLabels.ports()}
+                    />
                   </div>
                   <div className="cell protocols">
-                    <RenderTagDisplay data={alias.display.protocols} />
+                    <RenderTagDisplay
+                      data={alias.display.protocols}
+                      placeholder={LL.acl.fieldsSelectionLabels.protocols()}
+                    />
+                  </div>
+                  <div className="cell rules">
+                    <RenderTagDisplay data={alias.display.rules} />
                   </div>
                   <div className="cell status">
                     <AclAliasStatusDisplay status={alias.state} />
