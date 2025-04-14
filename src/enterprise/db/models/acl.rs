@@ -1259,6 +1259,7 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all allowed network devices for ACL rule {}",
@@ -1268,10 +1269,13 @@ impl AclRuleInfo<Id> {
         if self.allow_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;
@@ -1286,19 +1290,23 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all denied network devices for ACL rule {}",
             self.id
         );
         // return all active devices if `allow_all_network_devices` flag is enabled
-        if self.allow_all_network_devices {
+        if self.deny_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;
