@@ -64,5 +64,7 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
       - name: Run cargo deny
         uses: EmbarkStudios/cargo-deny-action@v2
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
       - name: Run tests
-        run: cargo test --locked --no-fail-fast
+        run: cargo nextest run --locked --no-fail-fast
