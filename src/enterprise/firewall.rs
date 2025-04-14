@@ -43,6 +43,11 @@ pub async fn generate_firewall_rules_from_acls(
     // initialize empty rules Vec
     let mut allow_rules = Vec::new();
     let mut deny_rules = Vec::new();
+    let location = WireguardNetwork::find_by_id(&mut *conn, location_id)
+        .await?
+        .ok_or(ModelError::NotFound)?;
+    let has_ipv4_addresses = location.address.iter().any(|ip| ip.is_ipv4());
+    let has_ipv6_addresses = location.address.iter().any(|ip| ip.is_ipv6());
 
     // convert each ACL into a corresponding `FirewallRule`s
     for acl in acl_rules {
@@ -123,33 +128,36 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        // create IPv4 rules
         let comment = format!("ACL {} - {}", acl.id, acl.name);
-        let ipv4_rules = create_rules(
-            acl.id,
-            IpVersion::Ipv4,
-            &ipv4_source_addrs,
-            &destination_addrs.0,
-            &destination_ports,
-            &protocols,
-            &comment,
-        );
-        ipv4_rules.0.map(|rule| allow_rules.push(rule));
-        deny_rules.push(ipv4_rules.1);
+        if has_ipv4_addresses {
+            // create IPv4 rules
+            let ipv4_rules = create_rules(
+                acl.id,
+                IpVersion::Ipv4,
+                &ipv4_source_addrs,
+                &destination_addrs.0,
+                &destination_ports,
+                &protocols,
+                &comment,
+            );
+            ipv4_rules.0.map(|rule| allow_rules.push(rule));
+            deny_rules.push(ipv4_rules.1);
+        }
 
-        // create IPv6 rules
-        let ipv6_rules = create_rules(
-            acl.id,
-            IpVersion::Ipv6,
-            &ipv6_source_addrs,
-            &destination_addrs.1,
-            &destination_ports,
-            &protocols,
-            &comment,
-        );
-        ipv6_rules.0.map(|rule| allow_rules.push(rule));
-        deny_rules.push(ipv6_rules.1);
-
+        if has_ipv6_addresses {
+            // create IPv6 rules
+            let ipv6_rules = create_rules(
+                acl.id,
+                IpVersion::Ipv6,
+                &ipv6_source_addrs,
+                &destination_addrs.1,
+                &destination_ports,
+                &protocols,
+                &comment,
+            );
+            ipv6_rules.0.map(|rule| allow_rules.push(rule));
+            deny_rules.push(ipv6_rules.1);
+        }
         // process aliases by creating a dedicated set of rules for each alias
         if !aliases.is_empty() {
             debug!(
@@ -180,35 +188,39 @@ pub async fn generate_firewall_rules_from_acls(
             protocols.sort();
             protocols.dedup();
 
-            // create IPv4 rules
             let comment = format!(
                 "ACL {} - {}, ALIAS {} - {}",
                 acl.id, acl.name, alias.id, alias.name
             );
-            let ipv4_rules = create_rules(
-                alias.id,
-                IpVersion::Ipv4,
-                &ipv4_source_addrs,
-                &destination_addrs.0,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            ipv4_rules.0.map(|rule| allow_rules.push(rule));
-            deny_rules.push(ipv4_rules.1);
+            if has_ipv4_addresses {
+                // create IPv4 rules
+                let ipv4_rules = create_rules(
+                    alias.id,
+                    IpVersion::Ipv4,
+                    &ipv4_source_addrs,
+                    &destination_addrs.0,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                ipv4_rules.0.map(|rule| allow_rules.push(rule));
+                deny_rules.push(ipv4_rules.1);
+            }
 
-            // create IPv6 rules
-            let ipv6_rules = create_rules(
-                alias.id,
-                IpVersion::Ipv6,
-                &ipv6_source_addrs,
-                &destination_addrs.1,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            ipv6_rules.0.map(|rule| allow_rules.push(rule));
-            deny_rules.push(ipv6_rules.1);
+            if has_ipv6_addresses {
+                // create IPv6 rules
+                let ipv6_rules = create_rules(
+                    alias.id,
+                    IpVersion::Ipv6,
+                    &ipv6_source_addrs,
+                    &destination_addrs.1,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                ipv6_rules.0.map(|rule| allow_rules.push(rule));
+                deny_rules.push(ipv6_rules.1);
+            }
         }
     }
 
@@ -2083,7 +2095,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 
     #[sqlx::test]
@@ -2152,7 +2164,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 
     #[sqlx::test]
@@ -2221,7 +2233,7 @@ mod test {
             .unwrap()
             .unwrap()
             .rules;
-        assert_eq!(generated_firewall_rules.len(), 4);
+        assert_eq!(generated_firewall_rules.len(), 2);
     }
 
     #[sqlx::test]
@@ -2268,19 +2280,12 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: vec![
-                        IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
-                        IpAddr::V6(Ipv6Addr::new(
-                            0xf000,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            user.id as u16,
-                            device_num as u16,
-                        )),
-                    ],
+                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        0,
+                        user.id as u8,
+                        device_num as u8,
+                    ))],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -2289,19 +2294,12 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: vec![
-                        IpAddr::V4(Ipv4Addr::new(10, 10, user.id as u8, device_num as u8)),
-                        IpAddr::V6(Ipv6Addr::new(
-                            0xf010,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            user.id as u16,
-                            device_num as u16,
-                        )),
-                    ],
+                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        10,
+                        user.id as u8,
+                        device_num as u8,
+                    ))],
                     preshared_key: None,
                     is_authorized: true,
                     authorized_at: None,
@@ -2316,10 +2314,7 @@ mod test {
             expires: None,
             enabled: true,
             state: RuleState::Applied,
-            destination: vec![
-                "192.168.1.0/24".parse().unwrap(),
-                "fc00::0/96".parse().unwrap(),
-            ],
+            destination: vec!["192.168.1.0/24".parse().unwrap()],
             ..Default::default()
         }
         .save(&pool)
@@ -2378,7 +2373,7 @@ mod test {
             .rules;
 
         // both rules were assigned to this location
-        assert_eq!(generated_firewall_rules.len(), 8);
+        assert_eq!(generated_firewall_rules.len(), 4);
 
         let generated_firewall_rules = location_2
             .try_get_firewall_config(&mut conn)
@@ -2388,6 +2383,6 @@ mod test {
             .rules;
 
         // rule with `all_networks` enabled was used for this location
-        assert_eq!(generated_firewall_rules.len(), 6);
+        assert_eq!(generated_firewall_rules.len(), 3);
     }
 }
