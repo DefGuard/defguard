@@ -140,7 +140,9 @@ pub async fn generate_firewall_rules_from_acls(
                 &protocols,
                 &comment,
             );
-            ipv4_rules.0.map(|rule| allow_rules.push(rule));
+            if let Some(rule) = ipv4_rules.0 {
+                allow_rules.push(rule)
+            }
             deny_rules.push(ipv4_rules.1);
         }
 
@@ -155,7 +157,9 @@ pub async fn generate_firewall_rules_from_acls(
                 &protocols,
                 &comment,
             );
-            ipv6_rules.0.map(|rule| allow_rules.push(rule));
+            if let Some(rule) = ipv6_rules.0 {
+                allow_rules.push(rule)
+            }
             deny_rules.push(ipv6_rules.1);
         }
         // process aliases by creating a dedicated set of rules for each alias
@@ -203,7 +207,9 @@ pub async fn generate_firewall_rules_from_acls(
                     &protocols,
                     &comment,
                 );
-                ipv4_rules.0.map(|rule| allow_rules.push(rule));
+                if let Some(rule) = ipv4_rules.0 {
+                    allow_rules.push(rule)
+                }
                 deny_rules.push(ipv4_rules.1);
             }
 
@@ -218,7 +224,9 @@ pub async fn generate_firewall_rules_from_acls(
                     &protocols,
                     &comment,
                 );
-                ipv6_rules.0.map(|rule| allow_rules.push(rule));
+                if let Some(rule) = ipv6_rules.0 {
+                    allow_rules.push(rule)
+                }
                 deny_rules.push(ipv6_rules.1);
             }
         }
@@ -854,7 +862,7 @@ mod test {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
     use chrono::NaiveDateTime;
-    use ipnetwork::Ipv6Network;
+    use ipnetwork::{IpNetwork, Ipv6Network};
     use rand::{thread_rng, Rng};
     use sqlx::{query, PgPool};
 
@@ -1617,7 +1625,7 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_generate_firewall_rules(pool: PgPool) {
+    async fn test_generate_firewall_rules_ipv4(pool: PgPool) {
         let mut rng = thread_rng();
 
         // Create test location
@@ -2023,6 +2031,420 @@ mod test {
                     address: Some(Address::IpRange(IpRange {
                         start: "10.0.1.52".to_string(),
                         end: "10.0.2.43".to_string(),
+                    })),
+                }
+            ]
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_generate_firewall_rules_ipv6(pool: PgPool) {
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: false,
+            address: vec![IpNetwork::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), 0).unwrap()],
+            ..Default::default()
+        };
+        let mut location = location.save(&pool).await.unwrap();
+
+        // Setup test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+        let user_3: User<NoId> = rng.gen();
+        let user_3 = user_3.save(&pool).await.unwrap();
+        let user_4: User<NoId> = rng.gen();
+        let user_4 = user_4.save(&pool).await.unwrap();
+        let user_5: User<NoId> = rng.gen();
+        let user_5 = user_5.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2, &user_3, &user_4, &user_5] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                        0xff00,
+                        0, 0, 0, 0, 0,
+                        user.id as u16,
+                        device_num as u16,
+                    ))],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // Setup test groups
+        let group_1 = Group {
+            id: NoId,
+            name: "group_1".into(),
+            ..Default::default()
+        };
+        let group_1 = group_1.save(&pool).await.unwrap();
+        let group_2 = Group {
+            id: NoId,
+            name: "group_2".into(),
+            ..Default::default()
+        };
+        let group_2 = group_2.save(&pool).await.unwrap();
+
+        // Assign users to groups:
+        // Group 1: users 1,2
+        // Group 2: users 3,4
+        let group_assignments = vec![
+            (&group_1, vec![&user_1, &user_2]),
+            (&group_2, vec![&user_3, &user_4]),
+        ];
+
+        for (group, users) in group_assignments {
+            for user in users {
+                query!(
+                    "INSERT INTO group_user (user_id, group_id) VALUES ($1, $2)",
+                    user.id,
+                    group.id
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
+            }
+        }
+
+        // Create some network devices
+        let network_device_1 = Device {
+            id: NoId,
+            name: "network-device-1".into(),
+            user_id: user_1.id, // Owned by user 1
+            device_type: DeviceType::Network,
+            description: Some("Test network device 1".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_1 = network_device_1.save(&pool).await.unwrap();
+
+        let network_device_2 = Device {
+            id: NoId,
+            name: "network-device-2".into(),
+            user_id: user_2.id, // Owned by user 2
+            device_type: DeviceType::Network,
+            description: Some("Test network device 2".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_2 = network_device_2.save(&pool).await.unwrap();
+
+        let network_device_3 = Device {
+            id: NoId,
+            name: "network-device-3".into(),
+            user_id: user_3.id, // Owned by user 3
+            device_type: DeviceType::Network,
+            description: Some("Test network device 3".into()),
+            wireguard_pubkey: Default::default(),
+            created: Default::default(),
+            configured: true,
+        };
+        let network_device_3 = network_device_3.save(&pool).await.unwrap();
+
+        // Add network devices to location's VPN network
+        let network_devices = vec![
+            (
+                network_device_1.id,
+                IpAddr::V6(Ipv6Addr::new(0xff00, 0, 0, 0, 0, 0, 0x0100, 1)),
+            ),
+            (
+                network_device_2.id,
+                IpAddr::V6(Ipv6Addr::new(0xff00, 0, 0, 0, 0, 0, 0x0100, 2)),
+            ),
+            (
+                network_device_3.id,
+                IpAddr::V6(Ipv6Addr::new(0xff00, 0, 0, 0, 0, 0, 0x0100, 3)),
+            ),
+        ];
+
+        for (device_id, ip) in network_devices {
+            let network_device = WireguardNetworkDevice {
+                device_id,
+                wireguard_network_id: location.id,
+                wireguard_ip: vec![ip],
+                preshared_key: None,
+                is_authorized: true,
+                authorized_at: None,
+            };
+            network_device.insert(&pool).await.unwrap();
+        }
+
+        // Create first ACL rule - Web access
+        let acl_rule_1 = AclRule {
+            id: NoId,
+            name: "Web Access".into(),
+            all_networks: false,
+            expires: None,
+            allow_all_users: false,
+            deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
+            destination: vec!["fc00::0/112".parse().unwrap()],
+            ports: vec![
+                PortRange::new(80, 80).into(),
+                PortRange::new(443, 443).into(),
+            ],
+            protocols: vec![Protocol::Tcp.into()],
+            enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
+        };
+        let locations = vec![location.id];
+        let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
+        let denied_users = vec![user_3.id]; // Third user explicitly denied
+        let allowed_groups = vec![group_1.id]; // First group allowed
+        let denied_groups = vec![];
+        let allowed_devices = vec![network_device_1.id];
+        let denied_devices = vec![network_device_2.id, network_device_3.id];
+        let destination_ranges = vec![];
+        let aliases = vec![];
+
+        let _acl_rule_1 = create_acl_rule(
+            &pool,
+            acl_rule_1,
+            locations,
+            allowed_users,
+            denied_users,
+            allowed_groups,
+            denied_groups,
+            allowed_devices,
+            denied_devices,
+            destination_ranges,
+            aliases,
+        )
+        .await;
+
+        // Create second ACL rule - DNS access
+        let acl_rule_2 = AclRule {
+            id: NoId,
+            name: "DNS Access".into(),
+            all_networks: false,
+            expires: None,
+            allow_all_users: true, // Allow all users
+            deny_all_users: false,
+            allow_all_network_devices: false,
+            deny_all_network_devices: false,
+            destination: vec![], // Will use destination ranges instead
+            ports: vec![PortRange::new(53, 53).into()],
+            protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
+            enabled: true,
+            parent_id: None,
+            state: RuleState::Applied,
+        };
+        let locations_2 = vec![location.id];
+        let allowed_users_2 = vec![];
+        let denied_users_2 = vec![user_5.id]; // Fifth user denied DNS
+        let allowed_groups_2 = vec![];
+        let denied_groups_2 = vec![group_2.id];
+        let allowed_devices_2 = vec![network_device_1.id, network_device_2.id]; // First two network devices allowed
+        let denied_devices_2 = vec![network_device_3.id]; // Third network device denied
+        let destination_ranges_2 = vec![
+            ("fc00::1:13".parse().unwrap(), "fc00::1:43".parse().unwrap()),
+            ("fc00::1:52".parse().unwrap(), "fc00::2:43".parse().unwrap()),
+        ];
+        let aliases_2 = vec![];
+
+        let _acl_rule_2 = create_acl_rule(
+            &pool,
+            acl_rule_2,
+            locations_2,
+            allowed_users_2,
+            denied_users_2,
+            allowed_groups_2,
+            denied_groups_2,
+            allowed_devices_2,
+            denied_devices_2,
+            destination_ranges_2,
+            aliases_2,
+        )
+        .await;
+
+        let mut conn = pool.acquire().await.unwrap();
+
+        // try to generate firewall config with ACL disabled
+        location.acl_enabled = false;
+        let generated_firewall_config = location.try_get_firewall_config(&mut conn).await.unwrap();
+        assert!(generated_firewall_config.is_none());
+
+        // generate firewall config with default policy Allow
+        location.acl_enabled = true;
+        location.acl_default_allow = true;
+        let generated_firewall_config = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            generated_firewall_config.default_policy,
+            i32::from(FirewallPolicy::Allow)
+        );
+
+        let generated_firewall_rules = generated_firewall_config.rules;
+
+        assert_eq!(generated_firewall_rules.len(), 4);
+
+        // First ACL - Web Access ALLOW
+        let web_allow_rule = &generated_firewall_rules[0];
+        assert_eq!(web_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(web_allow_rule.protocols, vec![i32::from(Protocol::Tcp)]);
+        assert_eq!(
+            web_allow_rule.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "fc00::".to_string(),
+                    end: "fc00::ffff".to_string(),
+                })),
+            }]
+        );
+        assert_eq!(
+            web_allow_rule.destination_ports,
+            vec![
+                Port {
+                    port: Some(PortInner::SinglePort(80))
+                },
+                Port {
+                    port: Some(PortInner::SinglePort(443))
+                }
+            ]
+        );
+        // Source addresses should include devices of users 1,2 and network_device_1
+        assert_eq!(
+            web_allow_rule.source_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "ff00::1:1".to_string(),
+                        end: "ff00::1:2".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "ff00::2:1".to_string(),
+                        end: "ff00::2:2".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::Ip("ff00::100:1".to_string())),
+                },
+            ]
+        );
+
+        // First ACL - Web Access DENY
+        let web_deny_rule = &generated_firewall_rules[2];
+        assert_eq!(web_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(web_deny_rule.protocols.is_empty());
+        assert!(web_deny_rule.destination_ports.is_empty());
+        assert!(web_deny_rule.source_addrs.is_empty());
+        assert_eq!(
+            web_deny_rule.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "fc00::".to_string(),
+                    end: "fc00::ffff".to_string(),
+                })),
+            }]
+        );
+
+        // Second ACL - DNS Access ALLOW
+        let dns_allow_rule = &generated_firewall_rules[1];
+        assert_eq!(dns_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(
+            dns_allow_rule.protocols,
+            vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
+        );
+        assert_eq!(
+            dns_allow_rule.destination_ports,
+            vec![Port {
+                port: Some(PortInner::SinglePort(53))
+            }]
+        );
+        // Source addresses should include network_devices 1,2
+        assert_eq!(
+            dns_allow_rule.source_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "ff00::1:1".to_string(),
+                        end: "ff00::1:2".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "ff00::2:1".to_string(),
+                        end: "ff00::2:2".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "ff00::100:1".to_string(),
+                        end: "ff00::100:2".to_string(),
+                    })),
+                },
+            ]
+        );
+        assert_eq!(
+            dns_allow_rule.destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "fc00::1:13".to_string(),
+                        end: "fc00::1:43".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "fc00::1:52".to_string(),
+                        end: "fc00::2:43".to_string(),
+                    })),
+                }
+            ]
+        );
+
+        // Second ACL - DNS Access DENY
+        let dns_deny_rule = &generated_firewall_rules[3];
+        assert_eq!(dns_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(dns_deny_rule.protocols.is_empty(),);
+        assert!(dns_deny_rule.destination_ports.is_empty(),);
+        assert!(dns_deny_rule.source_addrs.is_empty(),);
+        assert_eq!(
+            dns_deny_rule.destination_addrs,
+            vec![
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "fc00::1:13".to_string(),
+                        end: "fc00::1:43".to_string(),
+                    })),
+                },
+                IpAddress {
+                    address: Some(Address::IpRange(IpRange {
+                        start: "fc00::1:52".to_string(),
+                        end: "fc00::2:43".to_string(),
                     })),
                 }
             ]
