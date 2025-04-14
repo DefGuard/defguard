@@ -183,7 +183,7 @@ impl LDAPConfig {
     pub(crate) fn username_not_in_dn(&self) -> bool {
         self.ldap_user_rdn_attr
             .as_deref()
-            .map_or(false, |rdn| rdn != self.ldap_username_attr)
+            .is_some_and(|rdn| rdn != self.ldap_username_attr)
     }
 }
 
@@ -485,7 +485,7 @@ impl LDAPConnection {
     ) -> Result<(), LdapError> {
         debug!("Adding LDAP user {}", user.username);
         let user_rdn = user.ldap_rdn_value();
-        let dn = self.config.user_dn(&user_rdn);
+        let dn = self.config.user_dn(user_rdn);
         let password_is_random = password.is_none();
         let password = if let Some(password) = password {
             debug!("Using provided password for user {}", user.username);
