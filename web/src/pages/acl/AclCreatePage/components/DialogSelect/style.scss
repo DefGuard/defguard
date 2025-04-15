@@ -66,6 +66,22 @@
     @include animate-field;
     transition-property: border-color, opacity;
 
+    &.overflows {
+      &::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 65px;
+        height: 100%;
+        content: ' ';
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0) 0%,
+          var(--surface-default-modal) 100%
+        );
+      }
+    }
+
     .options {
       display: flex;
       flex-flow: row nowrap;
@@ -90,6 +106,7 @@
         p {
           @include typography(app-input);
           user-select: none;
+          text-wrap: nowrap;
         }
       }
     }

@@ -27,6 +27,7 @@ import {
   aclProtocolsToListTagDisplay,
   aclRuleToListTagDisplay,
 } from '../../../utils';
+import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
 import { AliasesList } from './components/AliasesList';
 import { AclAliasApplyConfirmModal } from './modals/AclAliasApplyConfirmModal/AclAliasApplyConfirmModal';
 import { AclAliasDeleteBlockModal } from './modals/AclAliasDeleteBlockModal/AclAliasDeleteBlockModal';
@@ -79,7 +80,7 @@ export const AclIndexAliases = () => {
     },
   } = useApi();
 
-  const { data: aclRules } = useQuery({
+  const { data: aclRules, isLoading: aliasesLoading } = useQuery({
     queryFn: getRules,
     queryKey: [QueryKeys.FETCH_ACL_RULES],
     refetchOnMount: true,
@@ -415,33 +416,38 @@ export const AclIndexAliases = () => {
             />
           </div>
         </header>
-        <AliasesList
-          header={{
-            text: localLL.list.pendingList.title(),
-          }}
-          data={pendingDisplay}
-          noDataMessage={
-            filtersPresent
-              ? localLL.list.pendingList.noDataSearch()
-              : localLL.list.pendingList.noData()
-          }
-          selected={selectedPending}
-          allSelected={pendingSelectionCount === pendingAliasesCount}
-          onSelect={handlePendingSelect}
-          onSelectAll={handlePendingSelectAll}
-        />
-        <AliasesList
-          isAppliedList
-          header={{
-            text: localLL.list.deployedList.title(),
-          }}
-          data={deployedDisplay}
-          noDataMessage={
-            filtersPresent
-              ? localLL.list.deployedList.noDataSearch()
-              : localLL.list.deployedList.noData()
-          }
-        />
+        {aliasesLoading && <AclListSkeleton />}
+        {!aliasesLoading && (
+          <>
+            <AliasesList
+              header={{
+                text: localLL.list.pendingList.title(),
+              }}
+              data={pendingDisplay}
+              noDataMessage={
+                filtersPresent
+                  ? localLL.list.pendingList.noDataSearch()
+                  : localLL.list.pendingList.noData()
+              }
+              selected={selectedPending}
+              allSelected={pendingSelectionCount === pendingAliasesCount}
+              onSelect={handlePendingSelect}
+              onSelectAll={handlePendingSelectAll}
+            />
+            <AliasesList
+              isAppliedList
+              header={{
+                text: localLL.list.deployedList.title(),
+              }}
+              data={deployedDisplay}
+              noDataMessage={
+                filtersPresent
+                  ? localLL.list.deployedList.noDataSearch()
+                  : localLL.list.deployedList.noData()
+              }
+            />
+          </>
+        )}
         <AlcAliasCEModal />
         <FilterGroupsModal
           isOpen={filtersModalOpen}

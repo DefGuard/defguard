@@ -38,20 +38,23 @@
       align-items: center;
       justify-content: flex-start;
       column-gap: var(--spacing-xs);
+      overflow: visible;
     }
 
-    &::after {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 65px;
-      height: 100%;
-      content: ' ';
-      background: linear-gradient(
-        90deg,
-        rgba(0, 0, 0, 0) 0%,
-        var(--surface-default-modal) 100%
-      );
+    &.overflows {
+      &::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 65px;
+        height: 100%;
+        content: ' ';
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0) 0%,
+          var(--surface-default-modal) 100%
+        );
+      }
     }
 
     .no-data {
