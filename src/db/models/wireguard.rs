@@ -1214,12 +1214,15 @@ pub struct WireguardNetworkStats {
 #[cfg(test)]
 mod test {
     use chrono::{SubsecRound, TimeDelta};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::Group;
+    use crate::db::{setup_pool, Group};
 
     #[sqlx::test]
-    async fn test_connected_at_reconnection(pool: PgPool) {
+    async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1282,7 +1285,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_connected_at_always_connected(pool: PgPool) {
+    async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1343,7 +1348,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_allowed_devices_for_user(pool: PgPool) {
+    async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1431,7 +1438,12 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_allowed_devices_for_user_with_groups(pool: PgPool) {
+    async fn test_get_allowed_devices_for_user_with_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1512,7 +1524,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user(pool: PgPool) {
+    async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1620,7 +1634,12 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user_with_groups(pool: PgPool) {
+    async fn test_sync_allowed_devices_for_user_with_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
