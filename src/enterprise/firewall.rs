@@ -61,10 +61,10 @@ pub async fn generate_firewall_rules_from_acls(
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
 
         // fetch allowed network devices
-        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn).await?;
+        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
 
         // fetch denied network devices
-        let denied_network_devices = acl.get_all_denied_devices(&mut *conn).await?;
+        let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
 
         // get network device IPs for rule source
         let network_devices =

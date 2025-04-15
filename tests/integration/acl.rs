@@ -539,7 +539,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
 async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
-    let (client, _) = make_test_client(pool).await;
+    let (client, state) = make_test_client(pool).await;
     authenticate(&client).await;
 
     let rule = make_rule();
@@ -617,6 +617,24 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // alias with invalid state
+    AclAlias::new(
+        "alias1",
+        AliasState::Modified,
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .save(&state.pool)
+    .await
+    .unwrap();
+    let mut rule = make_rule();
+    rule.aliases = vec![1];
+    let response = client.post("/api/v1/acl/rule").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let response = client.put("/api/v1/acl/rule/1").json(&rule).send().await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]

@@ -135,6 +135,10 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Cannot modify deleted ACL rule {id}")}),
                     StatusCode::BAD_REQUEST,
                 ),
+                AclError::CannotUseModifiedAliasInRuleError(alias_ids) => ApiResponse::new(
+                    json!({"msg": format!("Cannot use modified alias in ACL rule {alias_ids:?}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
             },
             WebError::Http(status) => {
                 error!("{status}");

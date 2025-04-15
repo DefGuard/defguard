@@ -9,8 +9,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
-    PgConnection, PgExecutor, PgPool, Type,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, query_scalar, Error as SqlxError,
+    FromRow, PgConnection, PgExecutor, PgPool, Type,
 };
 use thiserror::Error;
 
@@ -56,6 +56,8 @@ pub enum AclError {
     PortOutOfRangeError(i32),
     #[error("CannotModifyDeletedRuleError: {0}")]
     CannotModifyDeletedRuleError(Id),
+    #[error("CannotUseModifiedAliasInRuleError: {0:?}")]
+    CannotUseModifiedAliasInRuleError(Vec<Id>),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -656,6 +658,21 @@ impl AclRule<Id> {
 
         // save related aliases
         debug!("Creating related aliases for ACL rule {rule_id}");
+        // verify if all aliases have a correct state
+        // aliases used for tracking modifications (`AliasState::Modified`) cannot be used by ACL
+        // rules
+        let invalid_alias_ids: Vec<Id> = query_scalar!(
+            "SELECT id FROM aclalias WHERE id = ANY($1) AND state != 'applied'::aclalias_state",
+            &api_rule.aliases
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
+        if !invalid_alias_ids.is_empty() {
+            error!("Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}");
+            return Err(AclError::CannotUseModifiedAliasInRuleError(
+                invalid_alias_ids,
+            ));
+        };
         for alias_id in &api_rule.aliases {
             let obj = AclRuleAlias {
                 id: NoId,
@@ -1259,6 +1276,7 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all allowed network devices for ACL rule {}",
@@ -1268,10 +1286,13 @@ impl AclRuleInfo<Id> {
         if self.allow_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;
@@ -1286,19 +1307,23 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all denied network devices for ACL rule {}",
             self.id
         );
         // return all active devices if `allow_all_network_devices` flag is enabled
-        if self.allow_all_network_devices {
+        if self.deny_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;

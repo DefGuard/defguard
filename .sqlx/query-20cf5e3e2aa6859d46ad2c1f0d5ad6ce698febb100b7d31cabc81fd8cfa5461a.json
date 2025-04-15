@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device WHERE device_type = 'network'::device_type AND configured = true",
+  "query": "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", configured FROM device d JOIN wireguard_network_device wnd ON d.id = wnd.device_id WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
   "describe": {
     "columns": [
       {
@@ -55,7 +55,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -68,5 +70,5 @@
       false
     ]
   },
-  "hash": "7a1fd9a69b398f51efd5199aefb305d358693b0211cdb27b14b910a3515d501e"
+  "hash": "20cf5e3e2aa6859d46ad2c1f0d5ad6ce698febb100b7d31cabc81fd8cfa5461a"
 }
