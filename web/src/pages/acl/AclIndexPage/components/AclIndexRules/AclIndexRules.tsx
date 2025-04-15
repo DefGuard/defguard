@@ -35,6 +35,7 @@ import { AclRuleInfo } from '../../../../../shared/types';
 import { useAclLoadedContext } from '../../../acl-context';
 import { AclCreateContextLoaded, AclStatus } from '../../../types';
 import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
+import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
 import { DividerHeader } from '../shared/DividerHeader';
 import { RenderTagDisplay } from '../shared/RenderTagDisplay/RenderTagDisplay';
 import { ListTagDisplay } from '../shared/types';
@@ -105,11 +106,12 @@ export const AclIndexRules = () => {
     },
   } = useApi();
 
-  const { data: aclRules } = useQuery({
+  const { data: aclRules, isLoading: rulesLoading } = useQuery({
     queryFn: getRules,
     queryKey: [QueryKeys.FETCH_ACL_RULES],
     refetchOnMount: true,
   });
+
   const pendingRulesCount = useMemo(() => {
     if (aclRules) {
       return aclRules.filter(
@@ -390,33 +392,38 @@ export const AclIndexRules = () => {
           />
         </div>
       </header>
-      <RulesList
-        header={{
-          text: localLL.list.pendingList.title(),
-        }}
-        data={pendingRules}
-        noDataMessage={
-          filtersPresent
-            ? localLL.list.pendingList.noDataSearch()
-            : localLL.list.pendingList.noData()
-        }
-        selected={selectedPending}
-        allSelected={pendingSelectionCount === pendingRulesCount}
-        onSelect={handlePendingSelect}
-        onSelectAll={handlePendingSelectAll}
-      />
-      <RulesList
-        isAppliedList
-        header={{
-          text: localLL.list.deployedList.title(),
-        }}
-        data={deployedRules}
-        noDataMessage={
-          filtersPresent
-            ? localLL.list.deployedList.noDataSearch()
-            : localLL.list.deployedList.noData()
-        }
-      />
+      {rulesLoading && <AclListSkeleton />}
+      {!rulesLoading && (
+        <>
+          <RulesList
+            header={{
+              text: localLL.list.pendingList.title(),
+            }}
+            data={pendingRules}
+            noDataMessage={
+              filtersPresent
+                ? localLL.list.pendingList.noDataSearch()
+                : localLL.list.pendingList.noData()
+            }
+            selected={selectedPending}
+            allSelected={pendingSelectionCount === pendingRulesCount}
+            onSelect={handlePendingSelect}
+            onSelectAll={handlePendingSelectAll}
+          />
+          <RulesList
+            isAppliedList
+            header={{
+              text: localLL.list.deployedList.title(),
+            }}
+            data={deployedRules}
+            noDataMessage={
+              filtersPresent
+                ? localLL.list.deployedList.noDataSearch()
+                : localLL.list.deployedList.noData()
+            }
+          />
+        </>
+      )}
       <FilterGroupsModal
         currentState={appliedFilters}
         data={filters}

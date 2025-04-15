@@ -1,6 +1,8 @@
 import './style.scss';
 
+import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
+import { useCallback, useRef, useState } from 'react';
 
 import { FloatingMenu } from '../../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
 import { FloatingMenuProvider } from '../../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuProvider';
@@ -15,13 +17,25 @@ type RenderTagsProps = {
 };
 
 export const RenderTagDisplay = ({ data, placeholder }: RenderTagsProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  const handleResize = useCallback(() => {
+    if (containerRef.current) {
+      setOverflows(containerRef.current.scrollWidth > containerRef.current.clientWidth);
+    }
+  }, []);
+
+  useResizeObserver(containerRef, handleResize);
   return (
     <FloatingMenuProvider placement="right" disabled={data.length === 0}>
       <FloatingMenuTrigger asChild>
         <div
           className={clsx('tags-display', {
             empty: data.length === 0,
+            overflows,
           })}
+          ref={containerRef}
         >
           <TagContent data={data} />
           {data.length === 0 && isPresent(placeholder) && (

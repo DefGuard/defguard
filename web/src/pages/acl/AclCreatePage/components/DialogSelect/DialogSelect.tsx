@@ -1,7 +1,8 @@
 import './style.scss';
 
+import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
-import { useCallback, useId, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { FieldError } from '../../../../../shared/defguard-ui/components/Layout/FieldError/FieldError';
 import { FloatingMenu } from '../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
@@ -27,6 +28,16 @@ export const DialogSelect = <T extends object, I extends number | string>({
   modalExtrasTop,
   disabled = false,
 }: DialogSelectProps<T, I>) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = useState(false);
+
+  const handleResize = useCallback(() => {
+    if (containerRef.current) {
+      setOverflows(containerRef.current.scrollWidth > containerRef.current.clientWidth);
+    }
+  }, []);
+
+  useResizeObserver(containerRef, handleResize);
   const [modalOpen, setModalOpen] = useState(false);
   const getIdent = useCallback((val: T): I => val[identKey] as I, [identKey]);
 
@@ -52,7 +63,12 @@ export const DialogSelect = <T extends object, I extends number | string>({
           >
             <FloatingMenuProvider placement="top">
               <FloatingMenuTrigger asChild>
-                <div className={clsx('track')}>
+                <div
+                  className={clsx('track', {
+                    overflows,
+                  })}
+                  ref={containerRef}
+                >
                   <div className="options">
                     {renderTagContent !== undefined &&
                       selectedOptions.map((o) => {
@@ -64,7 +80,6 @@ export const DialogSelect = <T extends object, I extends number | string>({
                         );
                       })}
                   </div>
-                  <TrackGradient />
                 </div>
               </FloatingMenuTrigger>
               <FloatingMenu className="dialog-select-track-floating-menu">
@@ -105,37 +120,5 @@ export const DialogSelect = <T extends object, I extends number | string>({
         }}
       />
     </>
-  );
-};
-
-const TrackGradient = () => {
-  const id = useId();
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={65}
-      height={48}
-      viewBox="0 0 65 48"
-      fill="none"
-    >
-      <rect width={65} height={48} fill={`url(#${id})`} />
-      <defs>
-        <linearGradient
-          id={id}
-          x1={-4.13636}
-          y1={48}
-          x2={32.5}
-          y2={48}
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopOpacity={0} style={{ stopColor: 'var(--surface-frame-bg)' }} />
-          <stop
-            offset={1}
-            stopOpacity={0.9}
-            style={{ stopColor: 'var(--surface-frame-bg)' }}
-          />
-        </linearGradient>
-      </defs>
-    </svg>
   );
 };
