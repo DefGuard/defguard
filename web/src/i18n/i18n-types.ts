@@ -5433,6 +5433,10 @@ type RootTranslation = {
 					}
 					tags: {
 						/**
+						 * A​l​l
+						 */
+						all: string
+						/**
 						 * A​l​l​ ​d​e​n​i​e​d
 						 */
 						allDenied: string
@@ -11169,6 +11173,10 @@ export type TranslationFunctions = {
 						deployed: () => LocalizedString
 					}
 					tags: {
+						/**
+						 * All
+						 */
+						all: () => LocalizedString
 						/**
 						 * All denied
 						 */

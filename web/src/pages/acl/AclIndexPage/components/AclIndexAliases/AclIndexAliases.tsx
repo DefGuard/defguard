@@ -28,6 +28,7 @@ import {
   aclRuleToListTagDisplay,
 } from '../../../utils';
 import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
+import { DeployChangesIcon } from '../DeployChangesIcon';
 import { AliasesList } from './components/AliasesList';
 import { AclAliasApplyConfirmModal } from './modals/AclAliasApplyConfirmModal/AclAliasApplyConfirmModal';
 import { AclAliasDeleteBlockModal } from './modals/AclAliasDeleteBlockModal/AclAliasDeleteBlockModal';
@@ -383,6 +384,7 @@ export const AclIndexAliases = () => {
               disabled={pendingDisplay.length === 0}
               loading={applyPending}
               onClick={handleApply}
+              icon={<DeployChangesIcon />}
             />
             <Button
               text={localLL.listControls.addNew()}
