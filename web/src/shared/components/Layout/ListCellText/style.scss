@@ -1,0 +1,25 @@
+.list-cell-text {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+
+  p {
+    display: inline-block;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.overflows {
+    p {
+      cursor: help;
+    }
+  }
+}
+
+.list-cell-text-floating {
+  p {
+    @include typography(app-modal-1);
+    color: var(--text-body-primary);
+  }
+}

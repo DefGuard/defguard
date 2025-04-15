@@ -48,6 +48,7 @@ import {
 } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
+import { AclAliasStatus } from '../types';
 import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
 import { AclCreateNetworkSelectMessage } from './components/DialogSelect/AclCreateNetwrokSelectMessage/AclCreateNetwrokSelectMessage';
@@ -105,6 +106,9 @@ export const AlcCreatePage = () => {
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
+  const aliasesOptions = aliases.filter(
+    (alias) => alias.state === AclAliasStatus.APPLIED,
+  );
 
   const navigate = useNavigate();
 
@@ -410,7 +414,7 @@ export const AlcCreatePage = () => {
             </MessageBox>
             <FormDialogSelect
               controller={{ control, name: 'aliases' }}
-              options={aliases}
+              options={aliasesOptions}
               label="Aliases"
               identKey="id"
               renderTagContent={renderAlias}

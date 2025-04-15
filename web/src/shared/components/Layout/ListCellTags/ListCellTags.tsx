@@ -4,19 +4,19 @@ import useResizeObserver from '@react-hook/resize-observer';
 import clsx from 'clsx';
 import { useCallback, useRef, useState } from 'react';
 
-import { FloatingMenu } from '../../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
-import { FloatingMenuProvider } from '../../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuProvider';
-import { FloatingMenuTrigger } from '../../../../../../shared/defguard-ui/components/Layout/FloatingMenu/FloatingMenuTrigger';
-import { Tag } from '../../../../../../shared/defguard-ui/components/Layout/Tag/Tag';
-import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
-import { ListTagDisplay } from '../types';
+import { ListCellTag } from '../../../../pages/acl/AclIndexPage/components/shared/types';
+import { FloatingMenu } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenu';
+import { FloatingMenuProvider } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenuProvider';
+import { FloatingMenuTrigger } from '../../../defguard-ui/components/Layout/FloatingMenu/FloatingMenuTrigger';
+import { Tag } from '../../../defguard-ui/components/Layout/Tag/Tag';
+import { isPresent } from '../../../defguard-ui/utils/isPresent';
 
 type RenderTagsProps = {
-  data: ListTagDisplay[];
+  data: ListCellTag[];
   placeholder?: string;
 };
 
-export const RenderTagDisplay = ({ data, placeholder }: RenderTagsProps) => {
+export const ListCellTags = ({ data, placeholder }: RenderTagsProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [overflows, setOverflows] = useState(false);
 
@@ -31,7 +31,7 @@ export const RenderTagDisplay = ({ data, placeholder }: RenderTagsProps) => {
     <FloatingMenuProvider placement="right" disabled={data.length === 0}>
       <FloatingMenuTrigger asChild>
         <div
-          className={clsx('tags-display', {
+          className={clsx('list-cell-tags', {
             empty: data.length === 0,
             overflows,
           })}
@@ -52,7 +52,7 @@ export const RenderTagDisplay = ({ data, placeholder }: RenderTagsProps) => {
 
 const FloatingContent = ({ data }: RenderTagsProps) => {
   return (
-    <ul className="acl-floating-tags-display">
+    <ul className="list-cell-tags-floating">
       {data.map((d) => (
         <li key={d.key}>{d.label}</li>
       ))}

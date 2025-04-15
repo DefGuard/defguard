@@ -2289,6 +2289,7 @@ Any other requests you can reach us at: support@defguard.net
             deployed: 'Deployed',
           },
           tags: {
+            all: 'All',
             allDenied: 'All denied',
             allAllowed: 'All allowed',
           },

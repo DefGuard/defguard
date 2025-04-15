@@ -4,6 +4,8 @@ import { ReactNode, useMemo, useState } from 'react';
 import { upperCaseFirst } from 'text-case';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
+import { ListCellTags } from '../../../../../../shared/components/Layout/ListCellTags/ListCellTags';
+import { ListCellText } from '../../../../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../../../../shared/components/Layout/ListHeader/types';
 import { CheckBox } from '../../../../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
@@ -13,7 +15,6 @@ import { ListSortDirection } from '../../../../../../shared/defguard-ui/componen
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import { AclAlias } from '../../../../types';
 import { DividerHeader } from '../../shared/DividerHeader';
-import { RenderTagDisplay } from '../../shared/RenderTagDisplay/RenderTagDisplay';
 import { AclAliasListData } from '../types';
 import { AclAliasStatusDisplay } from './AclAliasStatus/AclAliasStatus';
 import { AliasEditButton } from './AliasEditButton';
@@ -151,24 +152,26 @@ export const AliasesList = ({
                       </InteractionBox>
                     </div>
                   )}
-                  <div className="cell name">{upperCaseFirst(alias.name)}</div>
+                  <div className="cell name">
+                    <ListCellText text={upperCaseFirst(alias.name)} />
+                  </div>
                   <div className="cell ip">
-                    <RenderTagDisplay data={alias.display.destination} />
+                    <ListCellTags data={alias.display.destination} />
                   </div>
                   <div className="cell ports">
-                    <RenderTagDisplay
+                    <ListCellTags
                       data={alias.display.ports}
                       placeholder={LL.acl.fieldsSelectionLabels.ports()}
                     />
                   </div>
                   <div className="cell protocols">
-                    <RenderTagDisplay
+                    <ListCellTags
                       data={alias.display.protocols}
                       placeholder={LL.acl.fieldsSelectionLabels.protocols()}
                     />
                   </div>
                   <div className="cell rules">
-                    <RenderTagDisplay data={alias.display.rules} />
+                    <ListCellTags data={alias.display.rules} />
                   </div>
                   <div className="cell status">
                     <AclAliasStatusDisplay status={alias.state} />
