@@ -1048,6 +1048,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    aclDefaultPolicySelect: {
+      label: 'Default ACL Policy',
+      options: {
+        allow: 'Allow',
+        deny: 'Deny',
+      },
+    },
     standaloneDeviceTokenModalContent: {
       headerMessage:
         'First download defguard command line client binaries and install them on your server.',
@@ -2201,6 +2208,10 @@ Any other requests you can reach us at: support@defguard.net
   },
   acl: {
     sharedTitle: 'Access Control List',
+    fieldsSelectionLabels: {
+      ports: 'All ports',
+      protocols: 'All protocols',
+    },
     ruleStatus: {
       new: 'New',
       applied: 'Applied',
@@ -2342,6 +2353,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             protocols: 'Protocols',
             status: 'Status',
             edit: 'Edit',
+            rules: 'Rules',
           },
           status: {
             applied: 'Applied',
@@ -2370,13 +2382,28 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         // md
         destinationInstructions: `
         Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        networkSelectionIndicatorsHelper: {
+          //md
+          denied: `
+          Location access **denied** by default - must be explicitly allowed
+          `,
+          //md
+          allowed: `
+          Location access **allowed** by default - can be explicitly denied
+          `,
+          //md
+          unmanaged: `
+          Location access unmanaged (ACL disabled)
+          `,
+        },
       },
       message: {
         create: 'Rule created and added to pending changes',
         createFail: 'Rule creation failed',
       },
       headers: {
-        rule: 'Create Rule',
+        rule: 'Rule',
+        createRule: 'Create Rule',
         allowed: 'Allowed Users/Groups/Devices',
         denied: 'Denied Users/Groups/Devices',
         destination: 'Destination',

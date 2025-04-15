@@ -3,12 +3,13 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormAclDefaultPolicy } from '../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
@@ -28,75 +29,6 @@ import {
   validateIpOrDomainList,
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-
-const aclDefaultPolicyOptions: SelectOption<boolean>[] = [
-  {
-    key: 'ALLOW',
-    label: 'Allow',
-    value: true,
-  },
-  {
-    key: 'DENY',
-    label: 'Deny',
-    value: false,
-  },
-];
-
-type FormFields = {
-  address: string;
-  endpoint: string;
-  port: number;
-  allowed_ips: string;
-  allowed_groups: string[];
-  name: string;
-  dns: string;
-  mfa_enabled: boolean;
-  keepalive_interval: number;
-  peer_disconnect_threshold: number;
-  acl_enabled: boolean;
-  acl_default_allow: boolean;
-};
-
-const defaultValues: FormFields = {
-  address: '',
-  endpoint: '',
-  name: '',
-  port: 50051,
-  allowed_ips: '',
-  allowed_groups: [],
-  dns: '',
-  mfa_enabled: false,
-  keepalive_interval: 25,
-  peer_disconnect_threshold: 180,
-  acl_enabled: false,
-  acl_default_allow: false,
-};
-
-const networkToForm = (data?: Network): FormFields => {
-  if (!data) return defaultValues;
-  let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, [
-    'id',
-    'connected_at',
-    'connected',
-    'allowed_ips',
-    'gateways',
-    'address',
-  ]);
-
-  let allowed_ips = '';
-  let address = '';
-
-  if (Array.isArray(data.allowed_ips)) {
-    allowed_ips = data.allowed_ips.join(',');
-  }
-
-  if (Array.isArray(data.address)) {
-    address = data.address.join(',');
-  }
-
-  return { ...defaultValues, ...omited, allowed_ips, address };
-};
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();
@@ -173,19 +105,6 @@ export const NetworkEditForm = () => {
     }
   }, [groupsData]);
 
-  const defaultFormValues = useMemo(() => {
-    if (selectedNetworkId && networks) {
-      const network = networks.find((n) => n.id === selectedNetworkId);
-      if (network) {
-        const res = networkToForm(network);
-        if (res) {
-          return res;
-        }
-      }
-    }
-    return defaultValues;
-  }, [networks, selectedNetworkId]);
-
   const zodSchema = useMemo(
     () =>
       z.object({
@@ -236,6 +155,68 @@ export const NetworkEditForm = () => {
       }),
     [LL.form.error],
   );
+
+  type FormFields = z.infer<typeof zodSchema>;
+
+  const defaultValues = useMemo(
+    (): FormFields => ({
+      address: '',
+      endpoint: '',
+      name: '',
+      port: 50051,
+      allowed_ips: '',
+      allowed_groups: [],
+      dns: '',
+      mfa_enabled: false,
+      keepalive_interval: 25,
+      peer_disconnect_threshold: 180,
+      acl_enabled: false,
+      acl_default_allow: false,
+    }),
+    [],
+  );
+
+  const networkToForm = useCallback(
+    (data?: Network): FormFields => {
+      if (!data) return defaultValues;
+      let omited = omitBy<Network>(data, isNull);
+      omited = omit(omited, [
+        'id',
+        'connected_at',
+        'connected',
+        'allowed_ips',
+        'gateways',
+        'address',
+      ]);
+
+      let allowed_ips = '';
+      let address = '';
+
+      if (Array.isArray(data.allowed_ips)) {
+        allowed_ips = data.allowed_ips.join(',');
+      }
+
+      if (Array.isArray(data.address)) {
+        address = data.address.join(',');
+      }
+
+      return { ...defaultValues, ...omited, allowed_ips, address };
+    },
+    [defaultValues],
+  );
+
+  const defaultFormValues = useMemo(() => {
+    if (selectedNetworkId && networks) {
+      const network = networks.find((n) => n.id === selectedNetworkId);
+      if (network) {
+        const res = networkToForm(network);
+        if (res) {
+          return res;
+        }
+      }
+    }
+    return defaultValues;
+  }, [defaultValues, networkToForm, networks, selectedNetworkId]);
 
   const { control, handleSubmit, reset } = useForm<FormFields>({
     defaultValues: defaultFormValues,
@@ -345,13 +326,7 @@ export const NetworkEditForm = () => {
           labelPlacement="right"
           disabled={!enterpriseEnabled}
         />
-        <FormSelect
-          controller={{ control, name: 'acl_default_allow' }}
-          label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
-          options={aclDefaultPolicyOptions}
-          searchable={false}
-          disabled={!enterpriseEnabled}
-        />
+        <FormAclDefaultPolicy controller={{ control, name: 'acl_default_allow' }} />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}

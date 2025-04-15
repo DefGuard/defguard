@@ -23,6 +23,7 @@ type Props<T, I> = {
   open: boolean;
   setOpen: (val: boolean) => void;
   onChange: (selected: I[]) => void;
+  extrasTop?: ReactNode;
 } & Pick<DialogSelectProps<T, I>, 'searchFn' | 'searchKeys'>;
 
 export const DialogSelectModal = <T extends object, I extends number | string>({
@@ -35,6 +36,7 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
   onChange,
   searchFn,
   searchKeys,
+  extrasTop,
 }: Props<T, I>) => {
   const { LL } = useI18nContext();
   const [searchValue, setSearch] = useState('');
@@ -87,6 +89,7 @@ export const DialogSelectModal = <T extends object, I extends number | string>({
       }}
       className="modal-dialog-select"
     >
+      {extrasTop}
       {searchEnabled && (
         <Search
           onDebounce={(value) => {

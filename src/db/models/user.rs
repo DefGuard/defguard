@@ -1170,13 +1170,19 @@ impl Distribution<User<NoId>> for Standard {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
     use crate::{
-        config::DefGuardConfig, db::models::settings::initialize_current_settings, SERVER_CONFIG,
+        config::DefGuardConfig,
+        db::{models::settings::initialize_current_settings, setup_pool},
+        SERVER_CONFIG,
     };
 
     #[sqlx::test]
-    async fn test_mfa_code(pool: PgPool) {
+    async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         initialize_current_settings(&pool).await.unwrap();
@@ -1203,7 +1209,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_user(pool: PgPool) {
+    async fn test_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -1234,7 +1242,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_users(pool: PgPool) {
+    async fn test_all_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         User::new(
             "hpotter",
             Some("pass123"),
@@ -1269,7 +1279,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_recovery_codes(pool: PgPool) {
+    async fn test_recovery_codes(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1301,7 +1313,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_email_case_insensitivity(pool: PgPool) {
+    async fn test_email_case_insensitivity(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1324,7 +1338,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_is_admin(pool: PgPool) {
+    async fn test_is_admin(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1358,7 +1374,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_admins(pool: PgPool) {
+    async fn test_find_admins(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1414,7 +1432,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_missing(pool: PgPool) {
+    async fn test_get_missing(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),
@@ -1456,7 +1476,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_many_by_emails(pool: PgPool) {
+    async fn test_find_many_by_emails(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),

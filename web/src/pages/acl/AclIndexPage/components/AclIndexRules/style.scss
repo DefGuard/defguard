@@ -39,40 +39,6 @@
 #acl-rules {
   width: 100%;
 
-  .tags-display {
-    position: relative;
-    overflow: hidden;
-    max-width: 100%;
-    width: 100%;
-
-    span,
-    p {
-      @include typography(app-modal-2);
-    }
-
-    & > .track {
-      display: flex;
-      flex-flow: row nowrap;
-      align-items: center;
-      justify-content: flex-start;
-      column-gap: var(--spacing-xs);
-    }
-
-    &::after {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 65px;
-      height: 100%;
-      content: ' ';
-      background: linear-gradient(
-        90deg,
-        rgba(0, 0, 0, 0) 0%,
-        var(--surface-default-modal) 100%
-      );
-    }
-  }
-
   .rules-list {
     width: 100%;
 

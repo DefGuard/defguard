@@ -13,6 +13,9 @@ use secrecy::{ExposeSecret, SecretString};
 
 #[derive(Clone, Parser, Serialize, Debug)]
 #[command(version)]
+// TODO: find a better workaround for clap not
+// working nice with test args
+#[cfg_attr(test, command(ignore_errors(true)))]
 pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_LOG_LEVEL", default_value = "info")]
     pub log_level: String,

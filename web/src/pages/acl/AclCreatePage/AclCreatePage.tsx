@@ -50,6 +50,7 @@ import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
 import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
+import { AclCreateNetworkSelectMessage } from './components/DialogSelect/AclCreateNetwrokSelectMessage/AclCreateNetwrokSelectMessage';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 type Alias = {
@@ -340,9 +341,11 @@ export const AlcCreatePage = () => {
           />
           <Button
             type="submit"
-            text={LL.common.controls.submit()}
+            text={
+              editMode ? LL.common.controls.saveChanges() : LL.common.controls.submit()
+            }
             size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.PRIMARY}
+            styleVariant={editMode ? ButtonStyleVariant.SAVE : ButtonStyleVariant.PRIMARY}
             loading={postPending || putPending}
             onClick={() => {
               submitRef.current?.click();
@@ -352,7 +355,10 @@ export const AlcCreatePage = () => {
       </div>
       <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
         <div className="column">
-          <SectionWithCard title={localLL.headers.rule()} id="rule-card">
+          <SectionWithCard
+            title={editMode ? localLL.headers.rule() : localLL.headers.createRule()}
+            id="rule-card"
+          >
             <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
             <LabeledCheckbox
               label={labelsLL.allowAllNetworks()}
@@ -372,6 +378,7 @@ export const AlcCreatePage = () => {
               label={labelsLL.locations()}
               searchKeys={['name']}
               disabled={allowAllLocations}
+              modalExtrasTop={<AclCreateNetworkSelectMessage />}
               forceShowErrorMessage
             />
             <CardHeader title="Expiration Date" />
@@ -414,7 +421,11 @@ export const AlcCreatePage = () => {
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
             />
-            <FormInput controller={{ control, name: 'ports' }} label={labelsLL.ports()} />
+            <FormInput
+              controller={{ control, name: 'ports' }}
+              label={labelsLL.ports()}
+              placeholder={LL.acl.fieldsSelectionLabels.ports()}
+            />
             <FormSelect
               controller={{ control, name: 'protocols' }}
               label={labelsLL.protocols()}

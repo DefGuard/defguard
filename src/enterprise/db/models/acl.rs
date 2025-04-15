@@ -1947,12 +1947,15 @@ mod test {
     use std::ops::Bound;
 
     use rand::{thread_rng, Rng};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::handlers::wireguard::parse_address_list;
+    use crate::{db::setup_pool, handlers::wireguard::parse_address_list};
 
     #[sqlx::test]
-    async fn test_alias(pool: PgPool) {
+    async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let destination = parse_address_list("10.0.0.1, 10.1.0.0/16");
         let ports = vec![
             PgRange {
@@ -1985,7 +1988,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_allow_conflicting_sources(pool: PgPool) {
+    async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // create the rule
         let rule = AclRule {
             id: NoId,
@@ -2085,7 +2090,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_rule_relations(pool: PgPool) {
+    async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // create the rule
         let mut rule = AclRule {
             id: NoId,
@@ -2402,7 +2409,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_allowed_users(pool: PgPool) {
+    async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test users
@@ -2515,7 +2524,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_denied_users(pool: PgPool) {
+    async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test users
