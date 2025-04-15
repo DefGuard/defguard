@@ -39,6 +39,7 @@ import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
 import { DividerHeader } from '../shared/DividerHeader';
 import { RenderTagDisplay } from '../shared/RenderTagDisplay/RenderTagDisplay';
 import { ListTagDisplay } from '../shared/types';
+import { AclRulesApplyConfirmModal } from './components/AclRulesApplyConfirmModal/AclRulesApplyConfirmModal';
 import { AclRuleStatus } from './components/AclRuleStatus/AclRuleStatus';
 
 type RulesFilters = {
@@ -83,6 +84,7 @@ export const AclIndexRules = () => {
     [appliedFilters],
   );
   const [searchValue, setSearchValue] = useState('');
+  const [applyConfirmOpen, setApplyConfirmOpen] = useState(false);
   const toaster = useToaster();
   const queryClient = useQueryClient();
 
@@ -280,6 +282,28 @@ export const AclIndexRules = () => {
     return localLL.listControls.apply.noChanges();
   }, [localLL.listControls.apply, pendingRulesCount, pendingSelectionCount]);
 
+  const handleApply = useCallback(() => {
+    if (aclRules) {
+      if (pendingSelectionCount === 0) {
+        const rulesToApply = aclRules
+          .filter(
+            (rule) =>
+              rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
+          )
+          .map((rule) => rule.id);
+        applyPendingChangesMutation(rulesToApply);
+      } else {
+        const rulesToApply: number[] = [];
+        for (const key in selectedPending) {
+          if (selectedPending[key]) {
+            rulesToApply.push(Number(key));
+          }
+        }
+        applyPendingChangesMutation(rulesToApply);
+      }
+    }
+  }, [aclRules, applyPendingChangesMutation, pendingSelectionCount, selectedPending]);
+
   // update or build selection state for list when rules are done loading
   useEffect(() => {
     if (aclRules) {
@@ -337,26 +361,7 @@ export const AclIndexRules = () => {
             text={applyText}
             disabled={pendingRules.length === 0}
             onClick={() => {
-              if (aclRules) {
-                if (pendingSelectionCount === 0) {
-                  const rulesToApply = aclRules
-                    .filter(
-                      (rule) =>
-                        rule.state !== AclStatus.APPLIED &&
-                        rule.state !== AclStatus.EXPIRED,
-                    )
-                    .map((rule) => rule.id);
-                  applyPendingChangesMutation(rulesToApply);
-                } else {
-                  const rulesToApply: number[] = [];
-                  for (const key in selectedPending) {
-                    if (selectedPending[key]) {
-                      rulesToApply.push(Number(key));
-                    }
-                  }
-                  applyPendingChangesMutation(rulesToApply);
-                }
-              }
+              setApplyConfirmOpen(true);
             }}
             loading={applyPending}
           />
@@ -435,6 +440,12 @@ export const AclIndexRules = () => {
           setAppliedFilters(vals as RulesFilters);
           setFiltersOpen(false);
         }}
+      />
+      <AclRulesApplyConfirmModal
+        changesCount={pendingSelectionCount || pendingRulesCount}
+        isOpen={applyConfirmOpen}
+        onSubmit={handleApply}
+        setOpen={setApplyConfirmOpen}
       />
     </div>
   );

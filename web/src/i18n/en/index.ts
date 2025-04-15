@@ -2231,6 +2231,11 @@ Any other requests you can reach us at: support@defguard.net
       },
       rules: {
         modals: {
+          applyConfirm: {
+            title: 'Deploy pending changes',
+            subtitle: '{count: number} changes will be deployed',
+            submit: 'Deploy changes',
+          },
           filterGroupsModal: {
             groupHeaders: {
               alias: 'Aliases',

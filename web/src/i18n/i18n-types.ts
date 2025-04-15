@@ -5265,6 +5265,21 @@ type RootTranslation = {
 			}
 			rules: {
 				modals: {
+					applyConfirm: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * {​c​o​u​n​t​}​ ​c​h​a​n​g​e​s​ ​w​i​l​l​ ​b​e​ ​d​e​p​l​o​y​e​d
+						 * @param {number} count
+						 */
+						subtitle: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​c​h​a​n​g​e​s
+						 */
+						submit: string
+					}
 					filterGroupsModal: {
 						groupHeaders: {
 							/**
@@ -10991,6 +11006,20 @@ export type TranslationFunctions = {
 			}
 			rules: {
 				modals: {
+					applyConfirm: {
+						/**
+						 * Deploy pending changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * {count} changes will be deployed
+						 */
+						subtitle: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy changes
+						 */
+						submit: () => LocalizedString
+					}
 					filterGroupsModal: {
 						groupHeaders: {
 							/**
