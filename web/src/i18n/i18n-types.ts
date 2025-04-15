@@ -5572,15 +5572,15 @@ type RootTranslation = {
 					}
 					deployedList: {
 						/**
-						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 * D​e​p​l​o​y​e​d​ ​A​l​i​a​s​e​s
 						 */
 						title: string
 						/**
-						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s
 						 */
 						noData: string
 						/**
-						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s​ ​f​o​u​n​d
 						 */
 						noDataSearch: string
 					}
@@ -11305,15 +11305,15 @@ export type TranslationFunctions = {
 					}
 					deployedList: {
 						/**
-						 * Deployed Rules
+						 * Deployed Aliases
 						 */
 						title: () => LocalizedString
 						/**
-						 * No deployed rules
+						 * No deployed aliases
 						 */
 						noData: () => LocalizedString
 						/**
-						 * No deployed rules found
+						 * No deployed aliases found
 						 */
 						noDataSearch: () => LocalizedString
 					}

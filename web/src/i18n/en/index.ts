@@ -2346,9 +2346,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             noDataSearch: 'No pending changes found',
           },
           deployedList: {
-            title: 'Deployed Rules',
-            noData: 'No deployed rules',
-            noDataSearch: 'No deployed rules found',
+            title: 'Deployed Aliases',
+            noData: 'No deployed aliases',
+            noDataSearch: 'No deployed aliases found',
           },
           headers: {
             id: 'ID',
