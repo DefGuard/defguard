@@ -17,7 +17,6 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use serde_json::{json, Value};
-use serial_test::serial;
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     PgPool,
@@ -186,7 +185,6 @@ async fn test_rule_crud(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-#[serial]
 async fn test_rule_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 
@@ -282,7 +280,6 @@ async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
 }
 
 #[sqlx::test]
-#[serial]
 async fn test_alias_enterprise(_: PgPoolOptions, options: PgConnectOptions) {
     let pool = setup_pool(options).await;
 

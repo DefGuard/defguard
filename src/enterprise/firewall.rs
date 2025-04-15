@@ -741,7 +741,10 @@ mod test {
     use chrono::NaiveDateTime;
     use ipnetwork::Ipv6Network;
     use rand::{thread_rng, Rng};
-    use sqlx::{query, PgPool};
+    use sqlx::{
+        postgres::{PgConnectOptions, PgPoolOptions},
+        query, PgPool,
+    };
 
     use super::{
         get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges,
@@ -750,7 +753,7 @@ mod test {
     use crate::{
         db::{
             models::device::{DeviceType, WireguardNetworkDevice},
-            Device, Group, Id, NoId, User, WireguardNetwork,
+            setup_pool, Device, Group, Id, NoId, User, WireguardNetwork,
         },
         enterprise::{
             db::models::acl::{
@@ -1512,7 +1515,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_generate_firewall_rules(pool: PgPool) {
+    async fn test_generate_firewall_rules(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test location
@@ -1924,7 +1929,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_expired_acl_rules(pool: PgPool) {
+    async fn test_expired_acl_rules(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -1993,7 +2000,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_disabled_acl_rules(pool: PgPool) {
+    async fn test_disabled_acl_rules(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -2062,7 +2071,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_unapplied_acl_rules(pool: PgPool) {
+    async fn test_unapplied_acl_rules(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -2131,7 +2142,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_acl_rules_all_locations(pool: PgPool) {
+    async fn test_acl_rules_all_locations(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test location

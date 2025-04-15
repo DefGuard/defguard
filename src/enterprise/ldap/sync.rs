@@ -786,6 +786,10 @@ impl super::LDAPConnection {
 
 #[cfg(test)]
 mod tests {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use crate::db::setup_pool;
+
     use super::*;
 
     #[test]
@@ -825,7 +829,9 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_ldap_authority_delete_from_defguard(pool: PgPool) {
+    fn test_ldap_authority_delete_from_defguard(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let defguard_user = User::new(
             "test_user",
             Some("test_password"),
@@ -851,7 +857,9 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_defguard_authority_add_to_ldap(pool: PgPool) {
+    fn test_defguard_authority_add_to_ldap(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let defguard_user = User::new(
             "test_user",
             Some("test_password"),
@@ -900,7 +908,9 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_matching_users_no_changes(pool: PgPool) {
+    fn test_matching_users_no_changes(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let ldap_user = User::new(
             "test_user",
             Some("test_password"),
@@ -1370,7 +1380,9 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_extract_intersecting_users_with_matches(pool: PgPool) {
+    fn test_extract_intersecting_users_with_matches(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // Create test users
         let user1 = User::new(
             "user1",
@@ -1462,7 +1474,9 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_extract_intersecting_users_no_matches(pool: PgPool) {
+    fn test_extract_intersecting_users_no_matches(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut defguard_users = vec![User::new(
             "user1",
             Some("password"),
