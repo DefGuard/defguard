@@ -466,10 +466,9 @@ impl WireguardNetwork<Id> {
 
     /// Checks if all device addresses are contained in at least one of the network addresses
     pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
-        !self
-            .address
+        addresses
             .iter()
-            .any(|net| !addresses.iter().any(|addr| net.contains(*addr)))
+            .all(|addr| self.address.iter().any(|net| net.contains(*addr)))
     }
 
     /// Finds [`IpNetwork`] containing given [`IpAddr`]

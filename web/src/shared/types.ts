@@ -1181,7 +1181,7 @@ export type DirsyncTestResponse = {
 export type CreateStandaloneDeviceRequest = {
   name: string;
   location_id: number;
-  assigned_ip: string;
+  assigned_ips: string;
   wireguard_pubkey?: string;
   description?: string;
 };
@@ -1210,7 +1210,7 @@ export type GetAvailableLocationIpResponse = {
 export type StandaloneDevice = {
   id: number;
   name: string;
-  assigned_ip: string;
+  assigned_ips: string;
   description?: string;
   added_by: string;
   added_date: string;
@@ -1247,7 +1247,7 @@ export type CreateStandaloneDeviceResponse = {
 
 export type StandaloneDeviceEditRequest = {
   id: number;
-  assigned_ip: string;
+  assigned_ips: string;
   description?: string;
   name: string;
 };

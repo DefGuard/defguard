@@ -357,7 +357,7 @@ pub(crate) async fn check_ip_availability(
     }
 }
 
-pub(crate) async fn find_available_ip(
+pub(crate) async fn find_available_ips(
     _admin_role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -373,8 +373,8 @@ pub(crate) async fn find_available_ip(
         })?;
 
     let mut transaction = appstate.pool.begin().await?;
-    // TODO(jck)
-    if let Some(network_address) = network.address.first() {
+    let mut split_ips = Vec::new();
+    for network_address in &network.address {
         let net_ip = network_address.ip();
         let net_network = network_address.network();
         let net_broadcast = network_address.broadcast();
@@ -383,25 +383,37 @@ pub(crate) async fn find_available_ip(
                 continue;
             }
 
-            // Break loop if IP is unassigned and return network device
+            // Break the loop if IP is unassigned and return network device
             if Device::find_by_ip(&mut *transaction, ip, network.id)
                 .await?
                 .is_none()
             {
-                let split_ip = split_ip(&ip, network_address);
-                transaction.commit().await?;
-                return Ok(ApiResponse {
-                    json: json!(split_ip),
-                    status: StatusCode::OK,
-                });
+                split_ips.push(split_ip(&ip, network_address));
+                break;
             }
         }
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::NOT_FOUND,
-    })
+    transaction.commit().await?;
+    if split_ips.len() != network.address.len() {
+        warn!(
+            "Failed to find available IPs for new device in network {} ({:?})",
+            network.name, network.address
+        );
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        })
+    } else {
+        debug!(
+            "Found addresses {:?} for new device i network {} ({:?})",
+            split_ips, network.name, network.address
+        );
+        return Ok(ApiResponse {
+            json: json!(split_ips),
+            status: StatusCode::OK,
+        });
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
