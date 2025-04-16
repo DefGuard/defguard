@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use crate::common::{make_client_with_db, setup_pool};
 use defguard::{
     db::{
         models::{
@@ -14,6 +13,8 @@ use defguard::{
 use reqwest::{header::CONTENT_TYPE, StatusCode, Url};
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_client_with_db, setup_pool};
 
 #[sqlx::test]
 async fn test_authorize(_: PgPoolOptions, options: PgConnectOptions) {

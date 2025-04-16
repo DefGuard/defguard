@@ -1,4 +1,3 @@
-use crate::common::{exceed_enterprise_limits, make_client, setup_pool};
 use chrono::{Duration, Utc};
 use defguard::{
     enterprise::{
@@ -11,6 +10,8 @@ use defguard::{
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{exceed_enterprise_limits, make_client, setup_pool};
 
 // Temporarily disabled because of the issue with test_openid_login
 // async fn make_client_with_real_url() -> TestClient {

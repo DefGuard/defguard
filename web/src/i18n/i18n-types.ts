@@ -5466,7 +5466,7 @@ type RootTranslation = {
 						title: string
 						/**
 						 * 
-					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
 				
 						 * @param {number} rulesCount
 						 */
@@ -11143,7 +11143,7 @@ export type TranslationFunctions = {
 						title: () => LocalizedString
 						/**
 						 * 
-					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount})
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
 				
 						 */
 						content: (arg: { rulesCount: number }) => LocalizedString

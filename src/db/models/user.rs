@@ -135,9 +135,10 @@ impl User {
         phone: Option<String>,
     ) -> Self {
         let password_hash = password.and_then(|password_hash| hash_password(password_hash).ok());
+        let username: String = username.into();
         Self {
             id: NoId,
-            username: username.into(),
+            username: username.clone(),
             password_hash,
             last_name: last_name.into(),
             first_name: first_name.into(),
@@ -154,8 +155,14 @@ impl User {
             openid_sub: None,
             from_ldap: false,
             ldap_pass_randomized: false,
-            ldap_rdn: None,
+            ldap_rdn: Some(username.clone()),
         }
+    }
+}
+
+impl<I> fmt::Display for User<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.username)
     }
 }
 
@@ -197,6 +204,10 @@ impl<I> User<I> {
         if let Some(ldap_rdn) = &self.ldap_rdn {
             ldap_rdn
         } else {
+            warn!(
+                "LDAP RDN is not set for user {}. Using username as a fallback.",
+                self.username
+            );
             &self.username
         }
     }

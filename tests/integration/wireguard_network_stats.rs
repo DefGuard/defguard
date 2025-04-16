@@ -1,4 +1,3 @@
-use crate::common::{make_network, make_test_client, setup_pool};
 use chrono::{Datelike, Duration, NaiveDate, SubsecRound, Timelike, Utc};
 use defguard::{
     db::{
@@ -18,6 +17,8 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_network, make_test_client, setup_pool};
 
 static DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:00Z";
 

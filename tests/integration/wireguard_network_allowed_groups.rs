@@ -1,4 +1,3 @@
-use crate::common::{fetch_user_details, make_test_client, setup_pool};
 use claims::assert_err;
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
@@ -11,6 +10,8 @@ use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     PgPool,
 };
+
+use crate::common::{fetch_user_details, make_test_client, setup_pool};
 
 // setup user groups, test users and devices
 async fn setup_test_users(pool: &PgPool) -> (Vec<User<Id>>, Vec<Device<Id>>) {

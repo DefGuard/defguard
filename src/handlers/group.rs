@@ -12,7 +12,7 @@ use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::group::Permission, Group, User, WireguardNetwork},
+    db::{models::group::Permission, Group, Id, User, WireguardNetwork},
     enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
         ldap_remove_user_from_groups, ldap_remove_users_from_groups,
@@ -100,13 +100,13 @@ pub(crate) async fn bulk_assign_to_groups(
         ));
     }
 
-    let mut ldap_user_groups: HashMap<String, HashSet<&str>> = HashMap::new();
+    let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
     for group in &groups {
         for user in &users {
             user.add_to_group(&mut *transaction, group).await?;
             ldap_user_groups
-                .entry(user.ldap_rdn_value().to_string())
+                .entry(&user)
                 .or_default()
                 .insert(&group.name);
         }
@@ -303,7 +303,7 @@ pub(crate) async fn create_group(
 ) -> Result<ApiResponse, WebError> {
     debug!("Creating group {}", group_info.name);
 
-    let mut ldap_user_groups: HashMap<String, HashSet<&str>> = HashMap::new();
+    let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
     // FIXME: conflicts must not return internal server error (500).
@@ -312,15 +312,21 @@ pub(crate) async fn create_group(
         .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
         .await?;
 
-    for username in &group_info.members {
-        let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
-            let msg = format!("Failed to find user {username}");
+    let mut members = Vec::new();
+    for member_username in &group_info.members {
+        if let Some(user) = User::find_by_username(&mut *transaction, member_username).await? {
+            members.push(user);
+        } else {
+            let msg = format!("Failed to find user {member_username}");
             error!(msg);
             return Err(WebError::ObjectNotFound(msg));
-        };
+        }
+    }
+
+    for user in members.iter() {
         user.add_to_group(&mut *transaction, &group).await?;
         ldap_user_groups
-            .entry(user.ldap_rdn_value().to_string())
+            .entry(user)
             .or_default()
             .insert(&group_info.name);
     }
@@ -376,8 +382,8 @@ pub(crate) async fn modify_group(
         return Err(WebError::ObjectNotFound(msg));
     };
 
-    let mut add_to_ldap_groups: HashMap<String, HashSet<&str>> = HashMap::new();
-    let mut remove_from_ldap_groups: HashMap<&str, HashSet<&str>> = HashMap::new();
+    let mut add_to_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
+    let mut remove_from_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
     // Rename only when needed.
@@ -410,6 +416,7 @@ pub(crate) async fn modify_group(
 
     // Modify group members.
     let mut current_members = group.members(&mut *transaction).await?;
+    let mut members = Vec::new();
     for username in &group_info.members {
         if let Some(index) = current_members
             .iter()
@@ -422,19 +429,23 @@ pub(crate) async fn modify_group(
 
         // Add new members to the group.
         if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
-            user.add_to_group(&mut *transaction, &group).await?;
-            add_to_ldap_groups
-                .entry(user.ldap_rdn_value().to_string())
-                .or_default()
-                .insert(group.name.as_str());
+            members.push(user);
         }
+    }
+
+    for user in members.iter() {
+        user.add_to_group(&mut *transaction, &group).await?;
+        add_to_ldap_groups
+            .entry(&user)
+            .or_default()
+            .insert(group.name.as_str());
     }
 
     // Remove outstanding members.
     for user in current_members.iter() {
         user.remove_from_group(&mut *transaction, &group).await?;
         remove_from_ldap_groups
-            .entry(user.ldap_rdn_value())
+            .entry(&user)
             .or_default()
             .insert(group.name.as_str());
     }

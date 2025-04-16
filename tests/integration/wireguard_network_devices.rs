@@ -1,6 +1,5 @@
 use std::{net::IpAddr, str::FromStr};
 
-use crate::common::{make_test_client, setup_pool};
 use defguard::{
     db::{Device, GatewayEvent, Id, WireguardNetwork},
     handlers::{network_devices::AddNetworkDevice, Auth},
@@ -11,6 +10,8 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_test_client, setup_pool};
 
 fn make_network() -> Value {
     json!({
