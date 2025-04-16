@@ -429,14 +429,10 @@ impl LDAPConnection {
         new_dn: &str,
         mods: Vec<Mod<&str>>,
     ) -> Result<(), LdapError> {
-        println!("Modifying LDAP object {old_dn}");
         let result = self.ldap.modify(old_dn, mods).await?;
-        println!("LDAP modification result: {result:?}");
         if old_dn != new_dn {
-            println!("Renaming LDAP object {old_dn} to {new_dn}");
             if let Some((new_rdn, _rest)) = new_dn.split_once(',') {
                 let result = self.ldap.modifydn(old_dn, new_rdn, true, None).await?;
-                println!("LDAP rename result: {result:?}");
             } else {
                 warn!("Failed to rename LDAP object {old_dn} to {new_dn}, new DN is invalid");
             }
