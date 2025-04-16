@@ -1,4 +1,8 @@
-use std::{collections::HashSet, future::Future, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    future::Future,
+    time::Duration,
+};
 
 use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
 use model::UserObjectClass;
@@ -12,10 +16,14 @@ use crate::{
     enterprise::{is_enterprise_enabled, limits::update_counts},
 };
 
+#[cfg(not(test))]
+pub mod client;
 pub mod error;
 pub mod hash;
 pub mod model;
 pub mod sync;
+#[cfg(test)]
+pub mod test_client;
 pub mod utils;
 
 pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
@@ -274,88 +282,22 @@ impl TryFrom<Settings> for LDAPConfig {
     }
 }
 
+#[cfg(not(test))]
 pub struct LDAPConnection {
     pub config: LDAPConfig,
     pub ldap: Ldap,
     pub url: String,
 }
 
+#[cfg(test)]
+pub struct LDAPConnection {
+    pub config: LDAPConfig,
+    pub test_users: Vec<User>,
+    pub test_memberships: HashMap<String, Vec<User>>,
+    pub url: String,
+}
+
 impl LDAPConnection {
-    pub async fn create() -> Result<LDAPConnection, LdapError> {
-        let settings = Settings::get_current_settings();
-        let config = LDAPConfig::try_from(settings.clone())?;
-        let url = settings.ldap_url.ok_or(LdapError::MissingSettings(
-            "LDAP URL is required for LDAP configuration to work".to_string(),
-        ))?;
-        let password = settings
-            .ldap_bind_password
-            .ok_or(LdapError::MissingSettings("LDAP bind password".to_string()))?;
-        let conn_settings = LdapConnSettings::new()
-            .set_starttls(settings.ldap_use_starttls)
-            .set_no_tls_verify(!settings.ldap_tls_verify_cert)
-            .set_conn_timeout(Duration::from_secs(8));
-        let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &url).await?;
-        drive!(conn);
-        info!("Connected to LDAP: {url}");
-        ldap.simple_bind(&config.ldap_bind_username, password.expose_secret())
-            .await?
-            .success()?;
-
-        Ok(Self { config, ldap, url })
-    }
-
-    /// Searches LDAP for users.
-    pub async fn search_users(&mut self, filter: &str) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, res) = self
-            .ldap
-            .search(
-                &self.config.ldap_user_search_base,
-                Scope::Subtree,
-                filter,
-                vec!["*", &self.config.ldap_member_attr],
-            )
-            .await?
-            .success()?;
-        debug!("LDAP user search result: {res:?}");
-        debug!("Performed LDAP user search with filter = {filter}");
-
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
-    }
-
-    async fn test_bind_user(&self, dn: &str, password: &str) -> Result<(), LdapError> {
-        debug!("Testing LDAP bind for user {dn}");
-        let settings = Settings::get_current_settings();
-        let conn_settings = LdapConnSettings::new()
-            .set_starttls(settings.ldap_use_starttls)
-            .set_no_tls_verify(!settings.ldap_tls_verify_cert)
-            .set_conn_timeout(Duration::from_secs(8));
-        let (conn, mut ldap) = LdapConnAsync::with_settings(conn_settings, &self.url).await?;
-        drive!(conn);
-        let res = ldap.simple_bind(dn, password).await?.success()?;
-        debug!("LDAP user bind test result: {res}");
-        ldap.unbind().await?;
-        info!("LDAP bind test for user {dn} successful");
-        Ok(())
-    }
-
-    // Check what groups user is member of
-    pub async fn get_user_groups(&mut self, user_dn: &str) -> Result<Vec<SearchEntry>, LdapError> {
-        let filter = format!("({}={})", self.config.ldap_group_member_attr, user_dn);
-        let (rs, res) = self
-            .ldap
-            .search(
-                &self.config.ldap_group_search_base,
-                Scope::Subtree,
-                filter.as_str(),
-                vec![&self.config.ldap_groupname_attr],
-            )
-            .await?
-            .success()?;
-        debug!("LDAP user groups search result: {res}");
-        debug!("Performed LDAP group search with filter = {filter}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
-    }
-
     async fn group_exists(&mut self, groupname: &str) -> Result<bool, LdapError> {
         let groupname_attr = self.config.ldap_groupname_attr.clone();
         let res = self
@@ -390,66 +332,6 @@ impl LDAPConnection {
         let rdn_exists = self.user_exists_by_rdn(&rdn).await?;
 
         Ok(username_exists || rdn_exists)
-    }
-
-    /// Searches LDAP for groups.
-    async fn search_groups(&mut self, filter: &str) -> Result<Vec<SearchEntry>, LdapError> {
-        let (rs, res) = self
-            .ldap
-            .search(
-                &self.config.ldap_group_search_base,
-                Scope::Subtree,
-                filter,
-                vec![
-                    &self.config.ldap_username_attr,
-                    &self.config.ldap_group_member_attr,
-                ],
-            )
-            .await?
-            .success()?;
-        debug!("LDAP group search result: {res}");
-        info!("Performed LDAP group search with filter = {filter}");
-        Ok(rs.into_iter().map(SearchEntry::construct).collect())
-    }
-
-    /// Creates LDAP object with specified distinguished name and attributes.
-    async fn add(&mut self, dn: &str, attrs: Vec<(&str, HashSet<&str>)>) -> Result<(), LdapError> {
-        debug!("Adding object {dn}");
-        let result = self.ldap.add(dn, attrs).await?.success()?;
-        debug!("LDAP add result: {result:?}");
-        info!("Added object {dn}");
-
-        Ok(())
-    }
-
-    /// Updates LDAP object with specified distinguished name and attributes.
-    async fn modify(
-        &mut self,
-        old_dn: &str,
-        new_dn: &str,
-        mods: Vec<Mod<&str>>,
-    ) -> Result<(), LdapError> {
-        let result = self.ldap.modify(old_dn, mods).await?;
-        if old_dn != new_dn {
-            if let Some((new_rdn, _rest)) = new_dn.split_once(',') {
-                let result = self.ldap.modifydn(old_dn, new_rdn, true, None).await?;
-            } else {
-                warn!("Failed to rename LDAP object {old_dn} to {new_dn}, new DN is invalid");
-            }
-        }
-        info!("Modified LDAP object {old_dn}");
-
-        Ok(())
-    }
-
-    /// Deletes LDAP object with specified distinguished name.
-    pub async fn delete(&mut self, dn: &str) -> Result<(), LdapError> {
-        debug!("Deleting LDAP object {dn}");
-        let result = self.ldap.delete(dn).await?;
-        debug!("LDAP deletion result: {result:?}");
-        info!("Deleted LDAP object {dn}");
-
-        Ok(())
     }
 
     // Checks if cn is available, including default LDAP admin class
@@ -661,7 +543,7 @@ impl LDAPConnection {
                 "unicodePwd".as_bytes(),
                 hashset![unicode_pwd.as_ref()],
             )];
-            let out = self.ldap.modify(&user_dn, mods).await?;
+            let out = self.modify(&user_dn, &user_dn, mods).await?;
             debug!("LDAP modification result: {out:?}");
             info!("Password set for user {user}");
         } else {
@@ -799,7 +681,7 @@ impl LDAPConnection {
                 &group_dn,
                 vec![Mod::Add(
                     &self.config.ldap_group_member_attr.clone(),
-                    hashset![user_dn.as_str()],
+                    hashset![&user_dn],
                 )],
             )
             .await?;
@@ -825,7 +707,7 @@ impl LDAPConnection {
                 &group_dn,
                 vec![Mod::Delete(
                     &self.config.ldap_group_member_attr.clone(),
-                    hashset![user_dn.as_str()],
+                    hashset![&user_dn],
                 )],
             )
             .await?;
