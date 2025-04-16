@@ -448,7 +448,7 @@ pub(crate) async fn import_network(
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
-        .map(|dev| dev.wireguard_ip)
+        .flat_map(|dev| dev.wireguard_ips.clone())
         .collect();
     let (devices, gateway_events) = network
         .handle_imported_devices(&mut transaction, imported_devices)

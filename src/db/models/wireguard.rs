@@ -36,6 +36,7 @@ use crate::{
         GatewayState,
     },
     wg_config::ImportedDevice,
+    CommaSeparated,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -669,14 +670,13 @@ impl WireguardNetwork<Id> {
                     match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IP {} for new network: {self}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ip
+                        "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
+                        existing_device.wireguard_pubkey, imported_device.wireguard_ips.comma_separated()
                     );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
-                                // TODO(jck) allow assignment of multiple ips for a network device
-                                [imported_device.wireguard_ip],
+                                imported_device.wireguard_ips,
                             );
                             wireguard_network_device.insert(&mut *transaction).await?;
                             // store ID of device with already generated config

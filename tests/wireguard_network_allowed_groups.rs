@@ -1,5 +1,7 @@
 pub mod common;
 
+use std::net::IpAddr;
+
 use claims::assert_err;
 use defguard::{
     db::{models::device::DeviceType, Device, GatewayEvent, Group, Id, User, WireguardNetwork},
@@ -374,7 +376,10 @@ async fn test_import_network_existing_devices() {
         response.devices[0].wireguard_pubkey,
         "l07+qPWs4jzW3Gp1DKbHgBMRRm4Jg3q2BJxw0ZYl6c4="
     );
-    assert_eq!(response.devices[0].wireguard_ip.to_string(), "10.0.0.12");
+    assert_eq!(
+        response.devices[0].wireguard_ips,
+        ["10.0.0.12".parse::<IpAddr>().unwrap()]
+    );
     let network = response.network;
 
     let peers = network.get_peers(&client_state.pool).await.unwrap();
@@ -502,8 +507,7 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0].device_wireguard_ip,
-        // TODO(jck)
-        vec![mapped_devices[0].wireguard_ip],
+        mapped_devices[0].wireguard_ips,
     );
 
     let GatewayEvent::DeviceCreated(device_info) = wg_rx.try_recv().unwrap() else {
@@ -517,7 +521,7 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0].device_wireguard_ip,
-        vec![mapped_devices[1].wireguard_ip],
+        mapped_devices[1].wireguard_ips,
     );
 
     assert_err!(wg_rx.try_recv());
