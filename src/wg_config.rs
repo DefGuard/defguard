@@ -1,7 +1,4 @@
-use std::{
-    array::TryFromSliceError,
-    net::{AddrParseError, IpAddr},
-};
+use std::{array::TryFromSliceError, net::IpAddr};
 
 use base64::{prelude::BASE64_STANDARD, DecodeError, Engine};
 use ipnetwork::{IpNetwork, IpNetworkError};
@@ -38,8 +35,6 @@ pub(crate) enum WireguardConfigParseError {
     InvalidIp(#[from] IpNetworkError),
     #[error("Invalid peer IP: {0}")]
     InvalidPeerIp(IpAddr),
-    #[error("Failed to parse IP: {0}")]
-    AddrParseError(#[from] AddrParseError),
     #[error("Invalid key: {0}")]
     InvalidKey(String),
     #[error("Invalid port: {0}")]
@@ -131,8 +126,9 @@ pub(crate) fn parse_wireguard_config(
 
         let mut peer_addresses: Vec<IpAddr> = Vec::new();
         for allowed_ip in allowed_ips.split(',') {
-            match allowed_ip.trim().parse::<IpAddr>() {
-                Ok(ip) => {
+            match allowed_ip.trim().parse::<IpNetwork>() {
+                Ok(network) => {
+                    let ip = network.ip();
                     // check if assigned IP collides with any of gateway IPs
                     for network_address in &addresses {
                         let net_ip = network_address.ip();
@@ -145,7 +141,7 @@ pub(crate) fn parse_wireguard_config(
                     // TODO(jck) ensure at least one of the networks contains the allowed_ip
                     peer_addresses.push(ip);
                 }
-                Err(err) => return Err(WireguardConfigParseError::AddrParseError(err)),
+                Err(err) => return Err(WireguardConfigParseError::InvalidIp(err)),
             }
         }
 

@@ -49,7 +49,7 @@ export const WizardMapDevices = () => {
       z.object({
         devices: z.array(
           z.object({
-            wireguard_ip: z.string().min(1, LL.form.error.required()),
+            wireguard_ip: z.array(z.string().min(1, LL.form.error.required())),
             user_id: z
               .number({
                 invalid_type_error: LL.form.error.required(),
@@ -103,7 +103,7 @@ export const WizardMapDevices = () => {
   const getHeaders = useMemo(
     (): ListHeader[] => [
       { text: 'Device Name', key: 0, sortable: false },
-      { text: 'IP', key: 1, sortable: false },
+      { text: 'IPs', key: 1, sortable: false },
       { text: 'User', key: 2, sortable: false },
     ],
     [],
@@ -129,7 +129,6 @@ export const WizardMapDevices = () => {
   const handleInvalidSubmit: SubmitErrorHandler<WizardMapFormValues> = () => {
     toaster.error(LL.wizard.deviceMap.messages.errorsInForm());
   };
-
   const devicesList = useMemo((): DeviceRowData[] => {
     if (importedDevices) {
       return importedDevices.map((_, index) => ({
@@ -171,7 +170,6 @@ export const WizardMapDevices = () => {
   }, [getValues, setImportedDevices]);
 
   if (isLoading || !importedDevices || createLoading) return <LoaderSpinner />;
-
   return (
     <Card id="wizard-map-devices" shaded>
       <form onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}>
