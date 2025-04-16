@@ -587,8 +587,8 @@ export interface ApiHook {
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
-      data: ValidateLocationIpRequest,
-    ) => Promise<ValidateLocationIpResponse>;
+      data: ValidateLocationIpsRequest,
+    ) => Promise<ValidateLocationIpsResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -1181,17 +1181,17 @@ export type DirsyncTestResponse = {
 export type CreateStandaloneDeviceRequest = {
   name: string;
   location_id: number;
-  assigned_ips: string;
+  assigned_ips: string[];
   wireguard_pubkey?: string;
   description?: string;
 };
 
-export type ValidateLocationIpRequest = {
-  ip: string;
+export type ValidateLocationIpsRequest = {
+  ips: string[];
   location: number | string;
 };
 
-export type ValidateLocationIpResponse = {
+export type ValidateLocationIpsResponse = {
   available: boolean;
   valid: boolean;
 };
@@ -1200,12 +1200,12 @@ export type GetAvailableLocationIpRequest = {
   locationId: number | string;
 };
 
-export type GetAvailableLocationIpResponse = {
+export type GetAvailableLocationIpResponse = [{
   ip: string;
   network_part: string;
   modifiable_part: string;
   network_prefix: string;
-};
+}];
 
 export type StandaloneDevice = {
   id: number;

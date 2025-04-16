@@ -95,7 +95,7 @@ export const SetupCliStep = () => {
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
       const response = await mutateAsync({
-        assigned_ip: values.modifiableIpPart,
+        assigned_ips: values.modifiableIpPart,
         location_id: values.location_id,
         name: values.name,
         description: values.description,

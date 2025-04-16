@@ -19,7 +19,7 @@ export enum WGConfigGenChoice {
 export type AddStandaloneDeviceFormFields = {
   name: string;
   location_id: number;
-  modifiableIpPart: string;
+  modifiableIpParts: string[];
   wireguard_pubkey: string;
   generationChoice: WGConfigGenChoice;
   description?: string;

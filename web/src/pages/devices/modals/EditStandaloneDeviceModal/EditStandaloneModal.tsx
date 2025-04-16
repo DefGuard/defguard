@@ -103,7 +103,7 @@ const ModalContent = () => {
 
   const defaultValues = useMemo(() => {
     if (locationOptions && device) {
-      let modifiablePart = device.assigned_ip.split(device.split_ip.network_part)[1];
+      let modifiablePart = device.assigned_ips.split(device.split_ip.network_part)[1];
 
       if (modifiablePart === undefined) {
         modifiablePart = device.split_ip.modifiable_part;
@@ -126,7 +126,7 @@ const ModalContent = () => {
     async (values: AddStandaloneDeviceFormFields) => {
       if (device) {
         await mutateAsync({
-          assigned_ip: values.modifiableIpPart,
+          assigned_ips: values.modifiableIpPart,
           id: device.id,
           name: values.name,
           description: values.description,
@@ -152,7 +152,7 @@ const ModalContent = () => {
           submitSubject={submitSubject}
           reservedNames={reservedDeviceNames}
           initialIpRecommendation={{
-            ip: device.assigned_ip,
+            ip: device.assigned_ips,
             ...device.split_ip,
           }}
         />
