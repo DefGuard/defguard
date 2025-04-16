@@ -18,10 +18,6 @@ export const ListCellText = ({ text }: Props) => {
 
   const handleResize = useCallback(() => {
     if (containerRef.current) {
-      console.log({
-        clientWidth: containerRef.current.clientWidth,
-        scrollWidth: containerRef.current.scrollWidth,
-      });
       setOverflows(containerRef.current.scrollWidth > containerRef.current.clientWidth);
     }
   }, []);
