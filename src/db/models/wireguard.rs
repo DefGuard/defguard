@@ -48,7 +48,7 @@ pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: IpAddr,
+    pub wireguard_ip: Vec<IpAddr>,
 }
 
 pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
@@ -758,11 +758,10 @@ impl WireguardNetwork<Id> {
             let mut network_info = Vec::new();
             match &allowed_groups {
                 None => {
-                    // TODO(jck) allow assignment of multiple ips for a network device
                     let wireguard_network_device = WireguardNetworkDevice::new(
                         self.id,
                         device.id,
-                        [mapped_device.wireguard_ip],
+                        mapped_device.wireguard_ip.clone(),
                     );
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
@@ -779,8 +778,7 @@ impl WireguardNetwork<Id> {
                         let wireguard_network_device = WireguardNetworkDevice::new(
                             self.id,
                             device.id,
-                            // TODO(jck) allow assignment of multiple ips for a network device
-                            [mapped_device.wireguard_ip],
+                            mapped_device.wireguard_ip.clone(),
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {
