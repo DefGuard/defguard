@@ -146,7 +146,6 @@ pub struct LDAPConfig {
     pub ldap_user_rdn_attr: Option<String>,
 }
 
-// implement deffault for tests
 #[cfg(test)]
 impl Default for LDAPConfig {
     fn default() -> Self {

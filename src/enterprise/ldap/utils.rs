@@ -147,9 +147,6 @@ pub(crate) async fn ldap_remove_user_from_groups(
 }
 
 /// Bulk add users to groups in ldap.
-///
-/// Pass in the following parameters:
-/// - `user_groups`: A HashMap containing user rdns as keys and a HashSet of group names as values.
 pub(crate) async fn ldap_add_users_to_groups(
     user_groups: HashMap<&User<Id>, HashSet<&str>>,
     pool: &PgPool,
@@ -177,9 +174,6 @@ pub(crate) async fn ldap_add_users_to_groups(
 }
 
 /// Bulk remove users from groups in ldap.
-///
-/// Pass in the following parameters:
-/// - `user_groups`: A HashMap containing usernames as keys and a HashSet of group names as values.
 pub(crate) async fn ldap_remove_users_from_groups(
     user_groups: HashMap<&User<Id>, HashSet<&str>>,
     pool: &PgPool,
