@@ -409,10 +409,10 @@ pub(crate) async fn find_available_ips(
             "Found addresses {:?} for new device i network {} ({:?})",
             split_ips, network.name, network.address
         );
-        return Ok(ApiResponse {
+        Ok(ApiResponse {
             json: json!(split_ips),
             status: StatusCode::OK,
-        });
+        })
     }
 }
 
@@ -675,7 +675,7 @@ pub(crate) async fn add_network_device(
 
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
-        assigned_ip: config.address.comma_separated(),
+        assigned_ips: config.address.comma_separated(),
     }];
 
     send_new_device_added_email(

@@ -1200,17 +1200,17 @@ export type GetAvailableLocationIpRequest = {
   locationId: number | string;
 };
 
-export type GetAvailableLocationIpResponse = [{
+export type GetAvailableLocationIpResponse = {
   ip: string;
   network_part: string;
   modifiable_part: string;
   network_prefix: string;
-}];
+}[];
 
 export type StandaloneDevice = {
   id: number;
   name: string;
-  assigned_ips: string;
+  assigned_ips: string[];
   description?: string;
   added_by: string;
   added_date: string;
@@ -1221,11 +1221,13 @@ export type StandaloneDevice = {
     id: number;
     name: string;
   };
-  split_ip: {
-    network_part: string;
-    modifiable_part: string;
-    network_prefix: string;
-  };
+  split_ips: [
+    {
+      network_part: string;
+      modifiable_part: string;
+      network_prefix: string;
+    },
+  ];
 };
 
 export type DeviceConfigurationResponse = {
@@ -1247,7 +1249,7 @@ export type CreateStandaloneDeviceResponse = {
 
 export type StandaloneDeviceEditRequest = {
   id: number;
-  assigned_ips: string;
+  assigned_ips: string[];
   description?: string;
   name: string;
 };

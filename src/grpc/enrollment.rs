@@ -631,7 +631,7 @@ impl EnrollmentServer {
             .iter()
             .map(|c| TemplateLocation {
                 name: c.network_name.clone(),
-                assigned_ip: c.address.comma_separated(),
+                assigned_ips: c.address.comma_separated(),
             })
             .collect();
 

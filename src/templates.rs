@@ -177,7 +177,7 @@ pub fn support_data_mail() -> Result<String, TemplateError> {
 #[derive(Serialize, Debug, Clone)]
 pub struct TemplateLocation {
     pub name: String,
-    pub assigned_ip: String,
+    pub assigned_ips: String,
 }
 
 pub fn new_device_added_mail(
@@ -408,11 +408,11 @@ mod test {
         let template_locations: Vec<TemplateLocation> = vec![
             TemplateLocation {
                 name: "Test 01".into(),
-                assigned_ip: "10.0.0.10".into(),
+                assigned_ips: "10.0.0.10".into(),
             },
             TemplateLocation {
                 name: "Test 02".into(),
-                assigned_ip: "10.0.0.10".into(),
+                assigned_ips: "10.0.0.10".into(),
             },
         ];
         assert_ok!(new_device_added_mail(
