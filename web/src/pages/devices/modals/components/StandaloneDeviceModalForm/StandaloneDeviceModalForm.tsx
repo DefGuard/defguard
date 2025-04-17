@@ -164,11 +164,8 @@ export const StandaloneDeviceModalForm = ({
     values.description = values.description?.trim();
     values.name = values.name.trim();
     const currentIpResp = internalRecommendedIps ?? initialIpRecommendation;
-    {/* values.modifiableIpParts = */}
-    {/*   currentIpResp.network_part + formValues.modifiableIpParts.trim(); */}
     values.modifiableIpParts =
       currentIpResp.map((resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim());
-    console.log("modifiableIpParts: ", values.modifiableIpParts);
     if (
       mode === StandaloneDeviceModalFormMode.EDIT &&
       modifiableIpPart === defaults.modifiableIpParts
@@ -239,20 +236,7 @@ export const StandaloneDeviceModalForm = ({
     return () => sub.unsubscribe();
   }, [submitSubject]);
 
-  let ips = [
-    {
-        "ip": "10.1.1.2",
-        "modifiable_part": "2",
-        "network_part": "10.1.1.",
-        "network_prefix": "24"
-    },
-    {
-        "ip": "fc00::2",
-        "modifiable_part": "0002",
-        "network_part": "fc00:0000:0000:0000:0000:0000:0000:",
-        "network_prefix": "112"
-    }
-  ]
+  const recommendedIps = internalRecommendedIps || initialIpRecommendation;
   return (
     <form onSubmit={handleSubmit(submitHandler)} className="standalone-device-modal-form">
       <FormInput controller={{ control, name: 'name' }} label={labels.deviceName()} />
@@ -269,46 +253,20 @@ export const StandaloneDeviceModalForm = ({
         controller={{ control, name: 'description' }}
         label={labels.description()}
       />
-      {ips.map((ip, i) => {
+      {recommendedIps.map((ip, i) => (
         <FormLocationIp
           key={i}
           controller={{ control, name: `modifiableIpParts.${i}` }}
           data={{
             networkPart:
-              ip.network_part,
+              ip?.network_part,
             networkPrefix:
-              ip.network_prefix,
+              ip?.network_prefix,
           }}
           label={labels.assignedAddress()}
           disabled={ipIsLoading}
         />
-      })}
-      {/* {internalRecommendedIps?.map((ip, i) => { */}
-      {/*   <FormLocationIp */}
-      {/*     controller={{ control, name: `modifiableIpParts.${i}` }} */}
-      {/*     data={{ */}
-      {/*       networkPart: */}
-      {/*         ip?.network_part ?? initialIpRecommendation[i].network_part, */}
-      {/*       networkPrefix: */}
-      {/*         ip?.network_prefix ?? */}
-      {/*         initialIpRecommendation[i].network_prefix, */}
-      {/*     }} */}
-      {/*     label={labels.assignedAddress()} */}
-      {/*     disabled={ipIsLoading} */}
-      {/*   /> */}
-      {/* })} */}
-      {/* <FormLocationIp */}
-      {/*   controller={{ control, name: 'modifiableIpParts' }} */}
-      {/*   data={{ */}
-      {/*     networkPart: */}
-      {/*       internalRecommendedIps?.network_part ?? initialIpRecommendation.network_part, */}
-      {/*     networkPrefix: */}
-      {/*       internalRecommendedIps?.network_prefix ?? */}
-      {/*       initialIpRecommendation.network_prefix, */}
-      {/*   }} */}
-      {/*   label={labels.assignedAddress()} */}
-      {/*   disabled={ipIsLoading} */}
-      {/* /> */}
+      ))}
       {mode === StandaloneDeviceModalFormMode.CREATE_MANUAL && (
         <>
           <FormToggle

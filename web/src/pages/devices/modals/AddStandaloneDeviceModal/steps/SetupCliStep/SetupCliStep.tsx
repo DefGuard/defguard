@@ -80,7 +80,7 @@ export const SetupCliStep = () => {
   const defaultValues = useMemo(() => {
     if (initIpResponse && locationOptions) {
       const res: AddStandaloneDeviceFormFields = {
-        modifiableIpPart: initIpResponse.modifiable_part,
+        modifiableIpParts: initIpResponse.map((ip) => ip.modifiable_part),
         generationChoice: WGConfigGenChoice.AUTO,
         location_id: locationOptions[0].value,
         name: '',
@@ -95,7 +95,7 @@ export const SetupCliStep = () => {
   const handleSubmit = useCallback(
     async (values: AddStandaloneDeviceFormFields) => {
       const response = await mutateAsync({
-        assigned_ips: values.modifiableIpPart,
+        assigned_ips: values.modifiableIpParts,
         location_id: values.location_id,
         name: values.name,
         description: values.description,

@@ -111,7 +111,7 @@ const ModalContent = () => {
 
       const res: AddStandaloneDeviceFormFields = {
         name: device?.name,
-        modifiableIpPart: modifiablePart,
+        modifiableIpParts: modifiablePart,
         location_id: device.location.id,
         description: device.description,
         generationChoice: WGConfigGenChoice.AUTO,
@@ -126,7 +126,7 @@ const ModalContent = () => {
     async (values: AddStandaloneDeviceFormFields) => {
       if (device) {
         await mutateAsync({
-          assigned_ips: values.modifiableIpPart,
+          assigned_ips: values.modifiableIpParts,
           id: device.id,
           name: values.name,
           description: values.description,
