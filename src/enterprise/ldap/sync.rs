@@ -54,10 +54,9 @@
 //!
 use std::collections::{HashMap, HashSet};
 
-use ldap3::{adapters::PagedResults, Scope, SearchEntry};
 use sqlx::{PgConnection, PgPool, Type};
 
-use super::{error::LdapError, model::extract_rdn_value, LDAPConfig};
+use super::{error::LdapError, LDAPConfig};
 use crate::db::{models::settings::update_current_settings, Group, Id, Settings, User};
 
 async fn get_or_create_group(

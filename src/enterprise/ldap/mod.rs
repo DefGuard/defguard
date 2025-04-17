@@ -1,10 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    future::Future,
-    time::Duration,
-};
+#[cfg(test)]
+use std::collections::HashMap;
+use std::{collections::HashSet, future::Future};
 
-use ldap3::{drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope, SearchEntry};
+#[cfg(not(test))]
+use ldap3::Ldap;
+use ldap3::{ldap_escape, Mod};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;

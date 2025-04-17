@@ -1,26 +1,12 @@
 use std::{
     collections::{HashMap, HashSet},
-    future::Future,
     hash::Hash,
-    time::Duration,
 };
 
-use ldap3::{
-    adapters::PagedResults, drive, ldap_escape, Ldap, LdapConnAsync, LdapConnSettings, Mod, Scope,
-    SearchEntry,
-};
-use rand::Rng;
-use sqlx::PgPool;
+use ldap3::{Mod, SearchEntry};
 
-use super::{
-    error::LdapError,
-    model::UserObjectClass,
-    sync::{get_ldap_sync_status, is_ldap_desynced, set_ldap_sync_status, SyncStatus},
-};
-use crate::{
-    db::{self, models::settings::update_current_settings, Id, Settings, User},
-    enterprise::{is_enterprise_enabled, ldap::model::extract_rdn_value, limits::update_counts},
-};
+use super::error::LdapError;
+use crate::db::User;
 
 impl super::LDAPConnection {
     pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
