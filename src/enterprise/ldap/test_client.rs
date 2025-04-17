@@ -84,8 +84,4 @@ impl super::LDAPConnection {
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
         Ok(vec![])
     }
-
-    pub(super) async fn list_group_memberships(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
-        Ok(vec![])
-    }
 }
