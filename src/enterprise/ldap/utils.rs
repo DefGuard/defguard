@@ -206,7 +206,7 @@ pub(crate) async fn ldap_change_password(user: &mut User<Id>, password: &str, po
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Changing password for user {user} in LDAP");
         let mut ldap_connection = LDAPConnection::create().await?;
-        if !ldap_connection.user_exists(&user).await? {
+        if !ldap_connection.user_exists(user).await? {
             debug!("User {user} doesn't exist in LDAP, creating it with the provided password");
             let user_groups = user.member_of_names(pool).await?;
             ldap_connection.add_user(user, Some(password), pool).await?;

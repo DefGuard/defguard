@@ -169,16 +169,20 @@ impl<I> User<I> {
         rdn_attr: &'a str,
     ) -> Vec<(&'a str, HashSet<&'a str>)> {
         let mut attrs = vec![];
+        attrs.push((rdn_attr, hashset![self.ldap_rdn_value()]));
         if object_classes.contains(UserObjectClass::InetOrgPerson.into())
             || object_classes.contains(UserObjectClass::User.into())
         {
             attrs.extend_from_slice(&[
-                ("cn", hashset![self.username.as_str()]),
                 ("sn", hashset![self.last_name.as_str()]),
                 ("givenName", hashset![self.first_name.as_str()]),
                 ("mail", hashset![self.email.as_str()]),
                 ("uid", hashset![self.username.as_str()]),
             ]);
+
+            if rdn_attr != "cn" {
+                attrs.push(("cn", hashset![self.username.as_str()]));
+            }
 
             if let Some(phone) = &self.phone {
                 if !phone.is_empty() {
@@ -202,10 +206,6 @@ impl<I> User<I> {
         // Add the username attr and RDN if we haven't already added it
         if attrs.iter().all(|(key, _)| *key != username_attr) {
             attrs.push((username_attr, hashset![self.username.as_str()]));
-        }
-
-        if attrs.iter().all(|(key, _)| *key != rdn_attr) {
-            attrs.push((rdn_attr, hashset![self.ldap_rdn_value()]));
         }
 
         attrs.push(("objectClass", object_classes));
@@ -441,9 +441,11 @@ mod tests {
             Some("5551234".to_string()),
         );
 
-        let mut config = LDAPConfig::default();
-        config.ldap_user_rdn_attr = Some("cn".to_string());
-        config.ldap_username_attr = "uid".to_string();
+        let config = LDAPConfig {
+            ldap_user_rdn_attr: Some("cn".to_string()),
+            ldap_username_attr: "uid".to_string(),
+            ..Default::default()
+        };
 
         let mods = user.as_ldap_mod(&config);
         assert!(mods.contains(&Mod::Replace("sn", hashset!["Smith"])));
@@ -463,9 +465,11 @@ mod tests {
             Some("".to_string()),
         );
 
-        let mut config = LDAPConfig::default();
-        config.ldap_user_rdn_attr = Some("cn".to_string());
-        config.ldap_username_attr = "uid".to_string();
+        let config = LDAPConfig {
+            ldap_user_rdn_attr: Some("cn".to_string()),
+            ldap_username_attr: "uid".to_string(),
+            ..Default::default()
+        };
 
         let mods = user.as_ldap_mod(&config);
 
@@ -486,11 +490,13 @@ mod tests {
             Some("5551234".to_string()),
         );
 
-        let mut config = LDAPConfig::default();
-        config.ldap_user_obj_class = "user".to_string();
-        config.ldap_user_rdn_attr = Some("cn".to_string());
-        config.ldap_username_attr = "sAMAccountName".to_string();
-        config.ldap_uses_ad = true;
+        let config = LDAPConfig {
+            ldap_user_obj_class: "user".to_string(),
+            ldap_user_rdn_attr: Some("cn".to_string()),
+            ldap_username_attr: "sAMAccountName".to_string(),
+            ldap_uses_ad: true,
+            ..Default::default()
+        };
 
         let mods = user.as_ldap_mod(&config);
 
@@ -511,10 +517,12 @@ mod tests {
             Some("5551234".to_string()),
         );
 
-        let mut config = LDAPConfig::default();
-        config.ldap_user_rdn_attr = Some("customRDN".to_string());
-        config.ldap_username_attr = "uid".to_string();
-        config.ldap_uses_ad = true;
+        let config = LDAPConfig {
+            ldap_user_rdn_attr: Some("customRDN".to_string()),
+            ldap_username_attr: "uid".to_string(),
+            ldap_uses_ad: true,
+            ..Default::default()
+        };
 
         let mods = user.as_ldap_mod(&config);
 

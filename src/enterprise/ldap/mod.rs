@@ -214,7 +214,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .map_or(true, |rdn| rdn == self.ldap_username_attr)
+            .is_none_or(|rdn| rdn == self.ldap_username_attr)
     }
 }
 
@@ -329,7 +329,7 @@ impl LDAPConnection {
         let username = &user.username;
         let rdn = user.ldap_rdn_value();
         let username_exists = self.user_exists_by_username(username).await?;
-        let rdn_exists = self.user_exists_by_rdn(&rdn).await?;
+        let rdn_exists = self.user_exists_by_rdn(rdn).await?;
 
         Ok(username_exists || rdn_exists)
     }
@@ -495,7 +495,7 @@ impl LDAPConnection {
                 .get(&self.config.ldap_groupname_attr)
                 .and_then(|v| v.first())
             {
-                self.remove_user_from_group(&user, groupname).await?;
+                self.remove_user_from_group(user, groupname).await?;
                 debug!("Removed user from group {groupname}");
             } else {
                 warn!("Group without name found for user {user}, full group entry: {group:?}");
@@ -543,8 +543,7 @@ impl LDAPConnection {
                 "unicodePwd".as_bytes(),
                 hashset![unicode_pwd.as_ref()],
             )];
-            let out = self.modify(&user_dn, &user_dn, mods).await?;
-            debug!("LDAP modification result: {out:?}");
+            self.modify(&user_dn, &user_dn, mods).await?;
             info!("Password set for user {user}");
         } else {
             let ssha_password = hash::salted_sha1_hash(password);
@@ -674,7 +673,7 @@ impl LDAPConnection {
             debug!("Group {groupname} created and member added in LDAP");
         } else {
             debug!("Group {groupname} exists in LDAP, adding user {user} to it");
-            let user_dn = self.config.user_dn(&user.ldap_rdn_value());
+            let user_dn = self.config.user_dn(user.ldap_rdn_value());
             let group_dn = self.config.group_dn(groupname);
             self.modify(
                 &group_dn,
@@ -700,7 +699,7 @@ impl LDAPConnection {
         debug!("Removing user {user} from group {groupname} in LDAP");
         let members = self.get_group_members(groupname).await?;
         if members.len() > 1 {
-            let user_dn = self.config.user_dn(&user.ldap_rdn_value());
+            let user_dn = self.config.user_dn(user.ldap_rdn_value());
             let group_dn = self.config.group_dn(groupname);
             self.modify(
                 &group_dn,

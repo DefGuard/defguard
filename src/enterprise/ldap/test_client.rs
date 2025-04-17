@@ -53,9 +53,9 @@ impl super::LDAPConnection {
 
     pub(super) async fn modify<S>(
         &mut self,
-        old_dn: &str,
-        new_dn: &str,
-        mods: Vec<Mod<S>>,
+        _old_dn: &str,
+        _new_dn: &str,
+        _mods: Vec<Mod<S>>,
     ) -> Result<(), LdapError>
     where
         S: AsRef<[u8]> + Eq + Hash,

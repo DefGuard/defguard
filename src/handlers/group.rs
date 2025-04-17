@@ -106,7 +106,7 @@ pub(crate) async fn bulk_assign_to_groups(
         for user in &users {
             user.add_to_group(&mut *transaction, group).await?;
             ldap_user_groups
-                .entry(&user)
+                .entry(user)
                 .or_default()
                 .insert(&group.name);
         }
@@ -436,7 +436,7 @@ pub(crate) async fn modify_group(
     for user in members.iter() {
         user.add_to_group(&mut *transaction, &group).await?;
         add_to_ldap_groups
-            .entry(&user)
+            .entry(user)
             .or_default()
             .insert(group.name.as_str());
     }
@@ -445,7 +445,7 @@ pub(crate) async fn modify_group(
     for user in current_members.iter() {
         user.remove_from_group(&mut *transaction, &group).await?;
         remove_from_ldap_groups
-            .entry(&user)
+            .entry(user)
             .or_default()
             .insert(group.name.as_str());
     }

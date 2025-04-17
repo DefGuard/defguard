@@ -217,11 +217,11 @@ struct GroupSyncChanges<'a> {
 }
 
 /// Computes what groups should be added/deleted and where
-fn compute_group_sync_changes<'a>(
+fn compute_group_sync_changes(
     defguard_memberships: HashMap<String, HashSet<User<Id>>>,
-    ldap_memberships: HashMap<String, HashSet<&'a User>>,
+    ldap_memberships: HashMap<String, HashSet<&User>>,
     authority: Authority,
-) -> GroupSyncChanges<'a> {
+) -> GroupSyncChanges<'_> {
     debug!("Computing group sync changes (group membership changes), authority: {authority:?}");
     let mut delete_defguard = HashMap::new();
     let mut add_defguard = HashMap::new();
