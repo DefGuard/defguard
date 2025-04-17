@@ -20,7 +20,7 @@ export type AddStandaloneDeviceFormFields = {
   name: string;
   location_id: number;
   modifiableIpParts: string[];
-  wireguard_pubkey: string;
+  wireguard_pubkey?: string;
   generationChoice: WGConfigGenChoice;
   description?: string;
 };

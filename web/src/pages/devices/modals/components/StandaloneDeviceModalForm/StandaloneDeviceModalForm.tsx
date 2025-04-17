@@ -112,7 +112,7 @@ export const StandaloneDeviceModalForm = ({
               return !reservedNames.includes(value.trim());
             }, LL.form.error.reservedName()),
           location_id: z.number(),
-          description: z.string(),
+          description: z.string().optional(),
           modifiableIpParts: z.array(z.string().min(1, LL.form.error.required())),
           generationChoice: z.nativeEnum(WGConfigGenChoice),
           wireguard_pubkey: z.string().optional(),
