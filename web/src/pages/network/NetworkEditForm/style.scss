@@ -2,7 +2,7 @@
 .network-setup {
   .network-config {
     & > .card {
-      padding: 1.5rem 3rem 4rem;
+      padding: 15px 30px 40px;
 
       & > form {
         justify-content: flex-start;
@@ -14,16 +14,16 @@
         }
 
         & > label {
-          margin-bottom: 1.2rem;
+          margin-bottom: 12px;
         }
 
         & > .input-container {
           width: 100%;
         }
 
-        & > .message-box {
+        & > .message-box-spacer {
           &:not(:last-child) {
-            margin-bottom: 2.5rem;
+            padding-bottom: 25px;
           }
         }
       }
