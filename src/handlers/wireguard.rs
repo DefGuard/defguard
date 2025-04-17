@@ -780,7 +780,7 @@ pub(crate) async fn modify_device(
         if let Some(wireguard_network_device) = wireguard_network_device {
             let device_network_info = DeviceNetworkInfo {
                 network_id: network.id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                device_wireguard_ips: wireguard_network_device.wireguard_ip,
                 preshared_key: wireguard_network_device.preshared_key,
                 is_authorized: wireguard_network_device.is_authorized,
             };

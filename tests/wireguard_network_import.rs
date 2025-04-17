@@ -141,7 +141,7 @@ async fn test_config_import() {
         .unwrap()
         .unwrap();
     assert_eq!(user_device_1.networks.len(), 2);
-    assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
+    assert_eq!(user_device_1.networks[1].device_wireguard_ips, vec!["10.0.0.12"]);
     // generated IP for other existing device
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
@@ -217,23 +217,23 @@ async fn test_config_import() {
     assert_eq!(user_info.devices.len(), 4);
     assert_eq!(user_info.devices[0].device.name, "test device");
     assert_eq!(
-        user_info.devices[0].networks[1].device_wireguard_ip,
-        "10.0.0.12"
+        user_info.devices[0].networks[1].device_wireguard_ips,
+        vec!["10.0.0.12"]
     );
     assert_eq!(user_info.devices[1].device.name, "another test device");
     assert_eq!(
-        user_info.devices[1].networks[1].device_wireguard_ip,
-        "10.0.0.2"
+        user_info.devices[1].networks[1].device_wireguard_ips,
+        vec!["10.0.0.2"]
     );
     assert_eq!(user_info.devices[2].device.name, "device_1");
     assert_eq!(
-        user_info.devices[2].networks[1].device_wireguard_ip,
-        "10.0.0.10"
+        user_info.devices[2].networks[1].device_wireguard_ips,
+        vec!["10.0.0.10"]
     );
     assert_eq!(user_info.devices[3].device.name, "device_2");
     assert_eq!(
-        user_info.devices[3].networks[1].device_wireguard_ip,
-        "10.0.0.11"
+        user_info.devices[3].networks[1].device_wireguard_ips,
+        vec!["10.0.0.11"]
     );
 }
 

@@ -501,7 +501,7 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         }],
@@ -521,7 +521,7 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: device_network_config.wireguard_ip,
+                            device_wireguard_ips: device_network_config.wireguard_ip,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,
                         }],
@@ -543,7 +543,7 @@ impl WireguardNetwork<Id> {
                 device,
                 network_info: vec![DeviceNetworkInfo {
                     network_id: self.id,
-                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    device_wireguard_ips: wireguard_network_device.wireguard_ip,
                     preshared_key: wireguard_network_device.preshared_key,
                     is_authorized: wireguard_network_device.is_authorized,
                 }],
@@ -685,7 +685,7 @@ impl WireguardNetwork<Id> {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id: self.id,
-                                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                                    device_wireguard_ips: wireguard_network_device.wireguard_ip,
                                     preshared_key: wireguard_network_device.preshared_key,
                                     is_authorized: wireguard_network_device.is_authorized,
                                 }],
@@ -765,7 +765,7 @@ impl WireguardNetwork<Id> {
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
                         network_id: self.id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        device_wireguard_ips: wireguard_network_device.wireguard_ip,
                         preshared_key: wireguard_network_device.preshared_key,
                         is_authorized: wireguard_network_device.is_authorized,
                     });
@@ -782,7 +782,7 @@ impl WireguardNetwork<Id> {
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ip,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         });

@@ -399,7 +399,7 @@ async fn test_import_network_existing_devices() {
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0]
-            .device_wireguard_ip
+            .device_wireguard_ips
             .comma_separated(),
         peers[1].allowed_ips[0]
     );
@@ -412,7 +412,7 @@ async fn test_import_network_existing_devices() {
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
         device_info.network_info[0]
-            .device_wireguard_ip
+            .device_wireguard_ips
             .comma_separated(),
         peers[0].allowed_ips[0]
     );
@@ -506,7 +506,7 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0].device_wireguard_ip,
+        device_info.network_info[0].device_wireguard_ips,
         mapped_devices[0].wireguard_ips,
     );
 
@@ -520,7 +520,7 @@ PersistentKeepalive = 300
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0].device_wireguard_ip,
+        device_info.network_info[0].device_wireguard_ips,
         mapped_devices[1].wireguard_ips,
     );
 

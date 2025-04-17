@@ -142,7 +142,7 @@ pub struct DeviceInfo {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DeviceNetworkInfo {
     pub network_id: Id,
-    pub device_wireguard_ip: Vec<IpAddr>,
+    pub device_wireguard_ips: Vec<IpAddr>,
     #[serde(skip_serializing)]
     pub preshared_key: Option<String>,
     pub is_authorized: bool,
@@ -160,7 +160,7 @@ impl DeviceInfo {
         let network_info = query_as!(
             DeviceNetworkInfo,
             "SELECT wireguard_network_id network_id, \
-                wireguard_ip \"device_wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ip \"device_wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
@@ -190,7 +190,7 @@ pub struct UserDeviceNetworkInfo {
     pub network_id: Id,
     pub network_name: String,
     pub network_gateway_ip: String,
-    pub device_wireguard_ip: String,
+    pub device_wireguard_ips: Vec<String>,
     pub last_connected_ip: Option<String>,
     pub last_connected_location: Option<String>,
     pub last_connected_at: Option<NaiveDateTime>,
@@ -238,7 +238,11 @@ impl UserDevice {
                     network_id: r.network_id,
                     network_name: r.network_name,
                     network_gateway_ip: r.gateway_endpoint,
-                    device_wireguard_ip: r.device_wireguard_ip.comma_separated(),
+                    device_wireguard_ips: r
+                        .device_wireguard_ip
+                        .iter()
+                        .map(IpAddr::to_string)
+                        .collect(),
                     last_connected_ip: device_ip,
                     last_connected_location: None,
                     last_connected_at: r.latest_handshake,
@@ -673,7 +677,7 @@ impl Device<Id> {
                 .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+            device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -706,7 +710,7 @@ impl Device<Id> {
             .await?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+            device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -767,7 +771,7 @@ impl Device<Id> {
                 );
                 let device_network_info = DeviceNetworkInfo {
                     network_id: network.id,
-                    device_wireguard_ip: wireguard_network_device.wireguard_ip.clone(),
+                    device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
                     preshared_key: wireguard_network_device.preshared_key.clone(),
                     is_authorized: wireguard_network_device.is_authorized,
                 };

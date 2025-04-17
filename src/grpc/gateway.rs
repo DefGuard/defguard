@@ -288,7 +288,7 @@ impl GatewayUpdatesHandler {
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
                                     allowed_ips: network_info
-                                        .device_wireguard_ip
+                                        .device_wireguard_ips
                                         .iter()
                                         .map(IpAddr::to_string)
                                         .collect(),
@@ -323,7 +323,7 @@ impl GatewayUpdatesHandler {
                                     pubkey: device.device.wireguard_pubkey,
                                     // TODO(jck)
                                     allowed_ips: vec![network_info
-                                        .device_wireguard_ip
+                                        .device_wireguard_ips
                                         .comma_separated()],
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
