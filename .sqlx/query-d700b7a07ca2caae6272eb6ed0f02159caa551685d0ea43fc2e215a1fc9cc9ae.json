@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, password_hash, last_name, first_name, email, phone, mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized FROM \"user\" WHERE email ILIKE $1",
+  "query": "\n            SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn FROM \"user\" u WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id WHERE is_admin = true AND user_id = u.id) AND u.is_active = true",
   "describe": {
     "columns": [
       {
@@ -104,12 +104,15 @@
         "ordinal": 17,
         "name": "ldap_pass_randomized",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "ldap_rdn",
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -129,8 +132,9 @@
       false,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "f6047cdc2bae721a1f4993b6ff013a9f7aea97336505f9ae74fc17810ced8e9d"
+  "hash": "d700b7a07ca2caae6272eb6ed0f02159caa551685d0ea43fc2e215a1fc9cc9ae"
 }

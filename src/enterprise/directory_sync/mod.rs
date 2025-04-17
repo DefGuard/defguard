@@ -320,11 +320,11 @@ async fn sync_user_groups<T: DirectorySync>(
     transaction.commit().await?;
 
     let mut user_groups = HashMap::new();
-    user_groups.insert(user.username.as_str(), add_to_ldap_groups);
+    user_groups.insert(user, add_to_ldap_groups);
     ldap_add_users_to_groups(user_groups, pool).await;
 
     let mut user_groups = HashMap::new();
-    user_groups.insert(user.username.as_str(), remove_from_ldap_groups);
+    user_groups.insert(user, remove_from_ldap_groups);
     ldap_remove_users_from_groups(user_groups, pool).await;
 
     Ok(())

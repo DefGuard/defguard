@@ -2838,6 +2838,10 @@ type RootTranslation = {
 					 * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
 					 */
 					ldap_uses_ad: string
+					/**
+					 * U​s​e​r​ ​R​D​N​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_user_rdn_attr: string
 				}
 				helpers: {
 					/**
@@ -2864,6 +2868,10 @@ type RootTranslation = {
 					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​r​e​p​r​e​s​e​n​t​s​ ​a​ ​g​r​o​u​p​ ​i​n​ ​L​D​A​P​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​g​r​o​u​p​.
 					 */
 					ldap_group_obj_class: string
+					/**
+					 * I​f​ ​y​o​u​r​ ​u​s​e​r​'​s​ ​R​D​N​ ​a​t​t​r​i​b​u​t​e​ ​i​s​ ​d​i​f​f​e​r​e​n​t​ ​t​h​a​n​ ​y​o​u​r​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​,​ ​p​l​e​a​s​e​ ​p​r​o​v​i​d​e​ ​i​t​ ​h​e​r​e​,​ ​o​t​h​e​r​w​i​s​e​ ​l​e​a​v​e​ ​i​t​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​ ​a​s​ ​t​h​e​ ​u​s​e​r​'​s​ ​R​D​N​.
+					 */
+					ldap_user_rdn_attr: string
 				}
 				headings: {
 					/**
@@ -8598,6 +8606,10 @@ export type TranslationFunctions = {
 					 * LDAP server is Active Directory
 					 */
 					ldap_uses_ad: () => LocalizedString
+					/**
+					 * User RDN Attribute
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
 				}
 				helpers: {
 					/**
@@ -8624,6 +8636,10 @@ export type TranslationFunctions = {
 					 * The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.
 					 */
 					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
 				}
 				headings: {
 					/**

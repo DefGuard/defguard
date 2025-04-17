@@ -1,16 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"user\" (\"username\",\"password_hash\",\"last_name\",\"first_name\",\"email\",\"phone\",\"mfa_enabled\",\"is_active\",\"from_ldap\",\"ldap_pass_randomized\",\"openid_sub\",\"totp_enabled\",\"email_mfa_enabled\",\"totp_secret\",\"email_mfa_secret\",\"mfa_method\",\"recovery_codes\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
+  "query": "UPDATE \"user\" SET \"username\" = $2,\"password_hash\" = $3,\"last_name\" = $4,\"first_name\" = $5,\"email\" = $6,\"phone\" = $7,\"mfa_enabled\" = $8,\"is_active\" = $9,\"from_ldap\" = $10,\"ldap_pass_randomized\" = $11,\"ldap_rdn\" = $12,\"openid_sub\" = $13,\"totp_enabled\" = $14,\"email_mfa_enabled\" = $15,\"totp_secret\" = $16,\"email_mfa_secret\" = $17,\"mfa_method\" = $18,\"recovery_codes\" = $19 WHERE id = $1",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int8"
-      }
-    ],
+    "columns": [],
     "parameters": {
       "Left": [
+        "Int8",
         "Text",
         "Text",
         "Text",
@@ -21,6 +16,7 @@
         "Bool",
         "Bool",
         "Bool",
+        "Text",
         "Text",
         "Bool",
         "Bool",
@@ -42,9 +38,7 @@
         "TextArray"
       ]
     },
-    "nullable": [
-      false
-    ]
+    "nullable": []
   },
-  "hash": "0adab165326774b3c1094695a9c0f85ff21e6f409a272fc469c7180a40b579e1"
+  "hash": "157ce4519cdb2347d30ca6d5f1efbcec8a262809ef40cffbe93bf16ef2254ba5"
 }

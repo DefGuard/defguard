@@ -1,7 +1,3 @@
-use crate::common::{
-    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, make_base_client,
-    make_test_client, omit_id, setup_pool,
-};
 use defguard::{
     config::DefGuardConfig,
     db::{
@@ -22,6 +18,11 @@ use sqlx::{
     PgPool,
 };
 use tokio::net::TcpListener;
+
+use crate::common::{
+    client::TestClient, exceed_enterprise_limits, init_config, initialize_users, make_base_client,
+    make_test_client, omit_id, setup_pool,
+};
 
 async fn make_client_v2(pool: PgPool, config: DefGuardConfig) -> TestClient {
     let listener = TcpListener::bind("127.0.0.1:0")

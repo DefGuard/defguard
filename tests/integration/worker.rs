@@ -1,4 +1,3 @@
-use crate::common::{make_client_with_state, setup_pool};
 use defguard::{
     grpc::{worker::JobStatus, WorkerDetail},
     handlers::{
@@ -8,6 +7,8 @@ use defguard::{
 };
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_client_with_state, setup_pool};
 
 #[sqlx::test]
 async fn test_scheduling_worker_jobs(_: PgPoolOptions, options: PgConnectOptions) {

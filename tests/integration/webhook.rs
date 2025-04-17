@@ -1,10 +1,11 @@
-use crate::common::{make_client, setup_pool};
 use defguard::{
     db::{Id, NoId, WebHook},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_client, setup_pool};
 
 #[sqlx::test]
 async fn test_webhooks(_: PgPoolOptions, options: PgConnectOptions) {

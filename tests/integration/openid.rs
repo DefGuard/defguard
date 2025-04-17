@@ -1,8 +1,5 @@
 use std::str::FromStr;
 
-use crate::common::{
-    client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
-};
 use axum::http::header::ToStrError;
 use claims::assert_err;
 use defguard::{
@@ -28,6 +25,10 @@ use reqwest::{
 use rsa::RsaPrivateKey;
 use serde::Deserialize;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{
+    client::TestClient, make_client, make_client_with_state, make_test_client, setup_pool,
+};
 
 #[derive(Deserialize)]
 pub struct AuthenticationResponse<'r> {

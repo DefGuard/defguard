@@ -1,8 +1,9 @@
-use crate::common::{make_test_client, setup_pool};
 use defguard::handlers::{Auth, EditGroupInfo, GroupInfo};
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_create_group(_: PgPoolOptions, options: PgConnectOptions) {

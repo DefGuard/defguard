@@ -1,4 +1,3 @@
-use crate::common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{oauth2client::OAuth2Client, NewOpenIDClient},
@@ -9,6 +8,8 @@ use defguard::{
 use reqwest::{header::USER_AGENT, StatusCode};
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use tokio_stream::{self as stream, StreamExt};
+
+use crate::common::{fetch_user_details, make_client, make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_authenticate(_: PgPoolOptions, options: PgConnectOptions) {

@@ -1,10 +1,11 @@
-use crate::common::{make_client_with_state, setup_pool};
 use defguard::{
     db::models::settings::{Settings, SettingsPatch},
     handlers::Auth,
 };
 use reqwest::StatusCode;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_client_with_state, setup_pool};
 
 #[sqlx::test]
 async fn test_settings(_: PgPoolOptions, options: PgConnectOptions) {

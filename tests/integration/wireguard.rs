@@ -1,4 +1,3 @@
-use crate::common::{make_network, make_test_client, setup_pool};
 use defguard::{
     db::{
         models::{
@@ -13,6 +12,8 @@ use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+use crate::common::{make_network, make_test_client, setup_pool};
 
 #[sqlx::test]
 async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {

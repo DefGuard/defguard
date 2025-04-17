@@ -647,6 +647,7 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let old_username = user.username.clone();
     if let Err(err) = check_username(&user_info.username) {
         debug!("Username {} rejected: {err}", user_info.username);
         return Ok(ApiResponse {
@@ -716,7 +717,7 @@ pub async fn modify_user(
             "User {} has been disabled, removing them from LDAP",
             user_info.username
         );
-        ldap_delete_user(&user_info.username, &appstate.pool).await;
+        ldap_delete_user(&user, &appstate.pool).await;
     } else if user_info.is_active && status_changing {
         debug!(
             "User {} has been enabled, adding them to LDAP",
@@ -725,19 +726,20 @@ pub async fn modify_user(
         ldap_add_user(&mut user, None, &appstate.pool).await;
         let groups = user.member_of_names(&appstate.pool).await?;
         let groups_set = groups.iter().map(|g| g.as_str()).collect::<HashSet<&str>>();
-        ldap_add_user_to_groups(&user_info.username, groups_set, &appstate.pool).await;
+        ldap_add_user_to_groups(&user, groups_set, &appstate.pool).await;
     } else {
         debug!(
             "User {} state (enabled/disabled) has not changed, updating their records in LDAP",
             user_info.username
         );
-        ldap_modify_user(&user_info.username, &user, &appstate.pool).await;
+
+        ldap_modify_user(&old_username, &mut user, &appstate.pool).await;
     }
 
     if group_diff.changed() {
         if !group_diff.added.is_empty() {
             ldap_add_user_to_groups(
-                &user_info.username,
+                &user,
                 group_diff
                     .added
                     .iter()
@@ -750,7 +752,7 @@ pub async fn modify_user(
 
         if !group_diff.removed.is_empty() {
             ldap_remove_user_from_groups(
-                &user_info.username,
+                &user,
                 group_diff
                     .removed
                     .iter()
@@ -814,13 +816,14 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
+        let user_for_ldap = user.clone().as_noid();
         user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
-        ldap_delete_user(&username, &appstate.pool).await;
+        ldap_delete_user(&user_for_ldap, &appstate.pool).await;
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())

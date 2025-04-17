@@ -5,7 +5,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::postgres::{PgConnectOptions, PgPool};
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
 pub struct NoId;
 pub type Id = i64;
 
