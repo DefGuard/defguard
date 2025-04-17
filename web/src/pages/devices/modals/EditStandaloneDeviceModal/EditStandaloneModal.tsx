@@ -103,15 +103,15 @@ const ModalContent = () => {
 
   const defaultValues = useMemo(() => {
     if (locationOptions && device) {
-      let modifiablePart = device.assigned_ips.split(device.split_ip.network_part)[1];
-
-      if (modifiablePart === undefined) {
-        modifiablePart = device.split_ip.modifiable_part;
-      }
+      const modifiableParts = device.assigned_ips.map(
+        (ip, i) =>
+          ip.split(device.split_ips[i].network_part)[1] ||
+          device.split_ips[i].modifiable_part,
+      );
 
       const res: AddStandaloneDeviceFormFields = {
         name: device?.name,
-        modifiableIpParts: modifiablePart,
+        modifiableIpParts: modifiableParts,
         location_id: device.location.id,
         description: device.description,
         generationChoice: WGConfigGenChoice.AUTO,
@@ -151,10 +151,10 @@ const ModalContent = () => {
           onSubmit={handleSubmit}
           submitSubject={submitSubject}
           reservedNames={reservedDeviceNames}
-          initialIpRecommendation={{
-            ip: device.assigned_ips,
-            ...device.split_ip,
-          }}
+          initialIpRecommendation={device.assigned_ips.map((_, i) => ({
+            ip: device.assigned_ips[i],
+            ...device.split_ips[i],
+          }))}
         />
       )}
       {!defaultValues && (

@@ -113,7 +113,7 @@ export const StandaloneDeviceModalForm = ({
             }, LL.form.error.reservedName()),
           location_id: z.number(),
           description: z.string(),
-          modifiableIpPart: z.string().min(1, LL.form.error.required()),
+          modifiableIpParts: z.array(z.string().min(1, LL.form.error.required())),
           generationChoice: z.nativeEnum(WGConfigGenChoice),
           wireguard_pubkey: z.string().optional(),
         })
@@ -164,8 +164,9 @@ export const StandaloneDeviceModalForm = ({
     values.description = values.description?.trim();
     values.name = values.name.trim();
     const currentIpResp = internalRecommendedIps ?? initialIpRecommendation;
-    values.modifiableIpParts =
-      currentIpResp.map((resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim());
+    values.modifiableIpParts = currentIpResp.map(
+      (resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim(),
+    );
     if (
       mode === StandaloneDeviceModalFormMode.EDIT &&
       modifiableIpPart === defaults.modifiableIpParts
@@ -258,10 +259,8 @@ export const StandaloneDeviceModalForm = ({
           key={i}
           controller={{ control, name: `modifiableIpParts.${i}` }}
           data={{
-            networkPart:
-              ip?.network_part,
-            networkPrefix:
-              ip?.network_prefix,
+            networkPart: ip?.network_part,
+            networkPrefix: ip?.network_prefix,
           }}
           label={labels.assignedAddress()}
           disabled={ipIsLoading}

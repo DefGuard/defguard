@@ -83,7 +83,7 @@ export const DevicesList = () => {
 };
 
 const DeviceRow = (props: StandaloneDevice) => {
-  const { description, id, location, name, added_by, added_date, assigned_ip } = props;
+  const { description, id, location, name, added_by, added_date, assigned_ips } = props;
   const formatDate = useMemo(() => {
     const day = dayjs(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
@@ -114,12 +114,12 @@ const DeviceRow = (props: StandaloneDevice) => {
       <div className="cell-3">
         <LimitedText
           floatingClassName="device-item-floating"
-          text={assigned_ip}
+          text={assigned_ips}
           otherContent={
             <button
               className="copy"
               onClick={() => {
-                void writeToClipboard(assigned_ip);
+                void writeToClipboard(assigned_ips);
               }}
             >
               <SvgIconCopy />
