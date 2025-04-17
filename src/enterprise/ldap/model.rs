@@ -195,18 +195,17 @@ impl<I> User<I> {
             attrs.push(("sambaSID", hashset!["0"]));
             attrs.push(("sambaNTPassword", hashset![nt_password]));
         }
-        // Make sure to add the user defined RDN attribute if it's not the same as the username
-        // attribute or sAMAccountName, as we already add those
-        if rdn_attr != username_attr && rdn_attr != "sAMAccountName" {
-            attrs.push((rdn_attr, hashset![self.ldap_rdn_value()]));
-        }
         if uses_ad {
             attrs.push(("sAMAccountName", hashset![self.username.as_str()]));
         }
 
-        // Add the username attr if we haven't already added it
+        // Add the username attr and RDN if we haven't already added it
         if attrs.iter().all(|(key, _)| *key != username_attr) {
             attrs.push((username_attr, hashset![self.username.as_str()]));
+        }
+
+        if attrs.iter().all(|(key, _)| *key != rdn_attr) {
+            attrs.push((rdn_attr, hashset![self.ldap_rdn_value()]));
         }
 
         attrs.push(("objectClass", object_classes));
