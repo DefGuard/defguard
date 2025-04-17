@@ -1,5 +1,4 @@
 use std::{
-    iter::zip,
     net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
@@ -18,7 +17,10 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
+        models::{
+            device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
+            wireguard::NetworkIpAssignmentError,
+        },
         Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
@@ -207,65 +209,16 @@ pub struct AddNetworkDeviceResult {
     device: NetworkDeviceInfo,
 }
 
-/// Checks if the IP addresses fall into the range of the network
-/// and if they are not already assigned to another device.
-async fn check_ips(
-    ip_addrs: &[IpAddr],
-    network: &WireguardNetwork<Id>,
-    transaction: &mut PgConnection,
-) -> Result<(), WebError> {
-    // make sure the network contains all provided ips
-    let networks = ip_addrs
-        .iter()
-        .map(|ip| network.get_containing_network(*ip).ok_or(()))
-        .collect::<Result<Vec<IpNetwork>, ()>>()
-        .map_err(|_| {
-            WebError::BadRequest(format!(
-                "Provided IP addresses {ip_addrs:?} are not in the network ({}) range {:?}",
-                network.name, network.address,
-            ))
-        })?;
-    for (ip, network_address) in zip(ip_addrs, networks) {
-        // validate ip address within network
-        let net_ip = network_address.ip();
-        let net_network = network_address.network();
-        let net_broadcast = network_address.broadcast();
-        if *ip == net_network || *ip == net_broadcast {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip} is a network or broadcast address of network {}",
-                network.name
-            )));
-        }
-        if *ip == net_ip {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip} may overlap with the network's gateway IP {net_ip} in network {}",
-                network.name
-            )));
-        }
-
-        // make sure the ip is unassigned
-        let device = Device::find_by_ip(&mut *transaction, *ip, network.id).await?;
-        if let Some(device) = device {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip} is already assigned to device {} in network {}",
-                device.name, network.name
-            )));
-        }
-    }
-
-    Ok(())
-}
-
 #[derive(Deserialize)]
 pub struct IpAvailabilityCheck {
-    ip: String,
+    ips: Vec<String>,
 }
 
 pub(crate) async fn check_ip_availability(
     _admin_role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
-    Json(ip): Json<IpAvailabilityCheck>,
+    Json(check): Json<IpAvailabilityCheck>,
 ) -> ApiResult {
     let mut transaction = appstate.pool.begin().await?;
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
@@ -277,10 +230,15 @@ pub(crate) async fn check_ip_availability(
             );
             WebError::BadRequest("Failed to check IP availability, network not found".into())
         })?;
-
-    let Ok(ip) = IpAddr::from_str(&ip.ip) else {
+    let ips = check
+        .ips
+        .iter()
+        .map(|ip| IpAddr::from_str(ip))
+        .collect::<Result<Vec<IpAddr>, AddrParseError>>();
+    let Ok(ips) = ips else {
         warn!(
-            "Failed to check IP availability for network with ID {network_id}, invalid IP address",
+            "Failed to check IP availability for network {}, invalid IP address",
+            network.name
         );
         return Ok(ApiResponse {
             json: json!({
@@ -291,70 +249,54 @@ pub(crate) async fn check_ip_availability(
         });
     };
 
-    // TODO(jck)
-    if let Some(network_address) = network.address.first() {
-        if !network_address.contains(ip) {
-            warn!(
-                "Provided device IP address is not in the network ({}) range {network_address}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": false,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-        if ip == network_address.network() || ip == network_address.broadcast() {
-            warn!(
-                "Provided device IP address is network or broadcast address of network {}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": true,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-        if ip == network_address.ip() {
-            warn!(
-                "Provided device IP address may overlap with the gateway's IP address on network {}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": true,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-    }
-
-    if let Some(device) = Device::find_by_ip(&mut *transaction, ip, network.id).await? {
-        warn!(
-            "Provided device IP is already assigned to device {} in network {}",
-            device.name, network.name
-        );
+    let mkresponse = |available: bool, valid: bool| {
         Ok(ApiResponse {
             json: json!({
-                "available": false,
-                "valid": true,
+                "available": available,
+                "valid": valid,
             }),
             status: StatusCode::OK,
         })
-    } else {
-        Ok(ApiResponse {
-            json: json!({
-                "available": true,
-                "valid": true,
-            }),
-            status: StatusCode::OK,
-        })
-    }
+    };
+    return match network.can_assign_ips(&ips, &mut *transaction).await {
+        Ok(_) => mkresponse(true, true),
+        Err(NetworkIpAssignmentError::NoContainingNetwork(ip)) => {
+            warn!(
+                "Provided device IP address {ip} is not in the network {} range: {:?}",
+                network.name, network.address
+            );
+            mkresponse(false, false)
+        }
+        Err(NetworkIpAssignmentError::ReservedForGateway(ip)) => {
+            warn!(
+                "Provided device IP {ip} address may overlap with the gateway's IP address on network {}",
+                network.name
+            );
+            mkresponse(false, true)
+        }
+        Err(NetworkIpAssignmentError::IsBroadcastAddress(ip)) => {
+            warn!(
+                "Provided device IP address {ip} is broadcast address of network {}",
+                network.name
+            );
+            mkresponse(false, true)
+        }
+        Err(NetworkIpAssignmentError::IsNetworkAddress(ip)) => {
+            warn!(
+                "Provided device IP address {ip} is network address of network {}",
+                network.name
+            );
+            mkresponse(false, true)
+        }
+        Err(NetworkIpAssignmentError::AddressAlreadyAssigned(ip)) => {
+            warn!(
+                "Provided device IP {ip} is already assigned in network {}",
+                network.name
+            );
+            mkresponse(false, true)
+        }
+        Err(NetworkIpAssignmentError::DbError(err)) => Err(err)?,
+    };
 }
 
 pub(crate) async fn find_available_ips(
@@ -761,7 +703,14 @@ pub async fn modify_network_device(
     // IP address has changed, so remove device from network and add it again with new IP address.
     // TODO(jck) order-insensitive comparison
     if new_ips != *wireguard_network_device.wireguard_ip {
-        check_ips(&new_ips, &device_network, &mut transaction).await?;
+        // check_ips(&new_ips, &device_network, &mut transaction).await?;
+        match device_network
+            .can_assign_ips(&new_ips, &mut *transaction)
+            .await
+        {
+            Ok(_) => (),
+            Err(_) => todo!(),
+        };
         // TODO(jck)
         wireguard_network_device.wireguard_ip = new_ips.clone();
         wireguard_network_device.update(&mut *transaction).await?;
