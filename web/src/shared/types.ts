@@ -90,7 +90,7 @@ export interface Device {
 }
 
 export type DeviceNetworkInfo = {
-  device_wireguard_ip: string;
+  device_wireguard_ips: string[];
   is_active: boolean;
   network_gateway_ip: string;
   network_id: number;
