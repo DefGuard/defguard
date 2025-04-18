@@ -943,13 +943,16 @@ impl WireguardNetwork<Id> {
         let mut result = Vec::new();
         for device in devices {
             let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
+            let wireguard_ips = if let Some(stats) = &latest_stats {
+                stats.trim_allowed_ips()
+            } else {
+                Vec::new()
+            };
             result.push(WireguardDeviceStatsRow {
                 id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
-                wireguard_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::trim_allowed_ips),
+                wireguard_ips,
                 public_ip: latest_stats
                     .as_ref()
                     .and_then(WireguardPeerStats::endpoint_without_port),
@@ -1195,7 +1198,7 @@ pub struct WireguardDeviceStatsRow {
     pub stats: Vec<WireguardDeviceTransferRow>,
     pub user_id: Id,
     pub name: String,
-    pub wireguard_ip: Option<String>,
+    pub wireguard_ips: Vec<String>,
     pub public_ip: Option<String>,
     pub connected_at: Option<NaiveDateTime>,
 }
