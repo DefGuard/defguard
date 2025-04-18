@@ -1,0 +1,23 @@
+.acl-network-selection-help {
+  .indicators-help {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+
+    & > div {
+      display: flex;
+      flex-flow: row wrap;
+      align-items: center;
+      justify-content: flex-start;
+
+      .icon-wrapper {
+        display: inline-flex;
+        flex-flow: column;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM aclalias WHERE id = ANY($1) AND state != 'applied'::aclalias_state",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "64e61e8f8552459c99bf90e12eb0f537b72fffa58509a03d0b3ee94b05b68914"
+}

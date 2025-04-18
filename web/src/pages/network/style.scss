@@ -17,6 +17,7 @@
       height: auto;
       margin-bottom: 5px;
       width: 100%;
+
       & > h1 {
         user-select: none;
 
@@ -25,6 +26,7 @@
 
       @include media-breakpoint-up(lg) {
         display: block;
+
         & > h1 {
           line-height: 62px;
         }
@@ -100,9 +102,9 @@
         }
       }
 
-      .message-box {
+      .message-box-spacer {
         &:not(:last-child) {
-          margin-bottom: 20px;
+          padding-bottom: 20px;
         }
       }
 
@@ -111,9 +113,9 @@
           width: 100%;
         }
 
-        & > .message-box {
+        & > .message-box-spacer {
           &:not(:last-child) {
-            margin-bottom: 32px;
+            padding-bottom: 32px;
           }
         }
 

@@ -1,9 +1,12 @@
 @use '@scssutils' as *;
 
 #enrollment-welcome-message {
-  & > .message-box {
-    margin-bottom: 26px;
-    background-color: var(--surface-tag-modal);
+  & > .message-box-spacer {
+    padding-bottom: 26px;
+
+    .message-box {
+      background-color: var(--surface-tag-modal);
+    }
   }
 
   & > .card {
@@ -26,6 +29,7 @@
         }
       }
     }
+
     & > .text-wrapper {
       border-radius: 15px;
       box-sizing: border-box;
@@ -34,6 +38,7 @@
       width: 100%;
       min-height: 700px;
       overflow: hidden;
+
       & > textarea {
         min-height: 660px;
         width: 100%;

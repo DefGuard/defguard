@@ -47,6 +47,7 @@ export enum AclStatus {
   APPLIED = 'Applied',
   MODIFIED = 'Modified',
   DELETED = 'Deleted',
+  EXPIRED = 'Expired',
 }
 
 export enum AclAliasStatus {

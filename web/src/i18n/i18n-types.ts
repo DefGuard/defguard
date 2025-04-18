@@ -2564,6 +2564,22 @@ type RootTranslation = {
 		}
 	}
 	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * D​e​f​a​u​l​t​ ​A​C​L​ ​P​o​l​i​c​y
+			 */
+			label: string
+			options: {
+				/**
+				 * A​l​l​o​w
+				 */
+				allow: string
+				/**
+				 * D​e​n​y
+				 */
+				deny: string
+			}
+		}
 		standaloneDeviceTokenModalContent: {
 			/**
 			 * F​i​r​s​t​ ​d​o​w​n​l​o​a​d​ ​d​e​f​g​u​a​r​d​ ​c​o​m​m​a​n​d​ ​l​i​n​e​ ​c​l​i​e​n​t​ ​b​i​n​a​r​i​e​s​ ​a​n​d​ ​i​n​s​t​a​l​l​ ​t​h​e​m​ ​o​n​ ​y​o​u​r​ ​s​e​r​v​e​r​.
@@ -2822,6 +2838,10 @@ type RootTranslation = {
 					 * L​D​A​P​ ​s​e​r​v​e​r​ ​i​s​ ​A​c​t​i​v​e​ ​D​i​r​e​c​t​o​r​y
 					 */
 					ldap_uses_ad: string
+					/**
+					 * U​s​e​r​ ​R​D​N​ ​A​t​t​r​i​b​u​t​e
+					 */
+					ldap_user_rdn_attr: string
 				}
 				helpers: {
 					/**
@@ -2848,6 +2868,10 @@ type RootTranslation = {
 					 * T​h​e​ ​o​b​j​e​c​t​ ​c​l​a​s​s​ ​t​h​a​t​ ​r​e​p​r​e​s​e​n​t​s​ ​a​ ​g​r​o​u​p​ ​i​n​ ​L​D​A​P​.​ ​T​h​i​s​ ​i​s​ ​u​s​e​d​ ​t​o​ ​d​e​t​e​r​m​i​n​e​ ​i​f​ ​a​n​ ​L​D​A​P​ ​o​b​j​e​c​t​ ​i​s​ ​a​ ​g​r​o​u​p​.
 					 */
 					ldap_group_obj_class: string
+					/**
+					 * I​f​ ​y​o​u​r​ ​u​s​e​r​'​s​ ​R​D​N​ ​a​t​t​r​i​b​u​t​e​ ​i​s​ ​d​i​f​f​e​r​e​n​t​ ​t​h​a​n​ ​y​o​u​r​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​,​ ​p​l​e​a​s​e​ ​p​r​o​v​i​d​e​ ​i​t​ ​h​e​r​e​,​ ​o​t​h​e​r​w​i​s​e​ ​l​e​a​v​e​ ​i​t​ ​e​m​p​t​y​ ​t​o​ ​u​s​e​ ​t​h​e​ ​u​s​e​r​n​a​m​e​ ​a​t​t​r​i​b​u​t​e​ ​a​s​ ​t​h​e​ ​u​s​e​r​'​s​ ​R​D​N​.
+					 */
+					ldap_user_rdn_attr: string
 				}
 				headings: {
 					/**
@@ -4406,7 +4430,7 @@ type RootTranslation = {
 		messages: {
 			'delete': {
 				/**
-				 * N​e​t​w​o​r​k​ ​d​e​l​t​e​d
+				 * N​e​t​w​o​r​k​ ​d​e​l​e​t​e​d
 				 */
 				success: string
 				/**
@@ -5184,6 +5208,16 @@ type RootTranslation = {
 		 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
 		 */
 		sharedTitle: string
+		fieldsSelectionLabels: {
+			/**
+			 * A​l​l​ ​p​o​r​t​s
+			 */
+			ports: string
+			/**
+			 * A​l​l​ ​p​r​o​t​o​c​o​l​s
+			 */
+			protocols: string
+		}
 		ruleStatus: {
 			/**
 			 * N​e​w
@@ -5209,6 +5243,10 @@ type RootTranslation = {
 			 * D​i​s​a​b​l​e​d
 			 */
 			disabled: string
+			/**
+			 * E​x​p​i​r​e​d
+			 */
+			expired: string
 		}
 		listPage: {
 			message: {
@@ -5235,6 +5273,21 @@ type RootTranslation = {
 			}
 			rules: {
 				modals: {
+					applyConfirm: {
+						/**
+						 * D​e​p​l​o​y​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+						 */
+						title: string
+						/**
+						 * {​c​o​u​n​t​}​ ​c​h​a​n​g​e​s​ ​w​i​l​l​ ​b​e​ ​d​e​p​l​o​y​e​d
+						 * @param {number} count
+						 */
+						subtitle: RequiredParams<'count'>
+						/**
+						 * D​e​p​l​o​y​ ​c​h​a​n​g​e​s
+						 */
+						submit: string
+					}
 					filterGroupsModal: {
 						groupHeaders: {
 							/**
@@ -5388,6 +5441,10 @@ type RootTranslation = {
 					}
 					tags: {
 						/**
+						 * A​l​l
+						 */
+						all: string
+						/**
 						 * A​l​l​ ​d​e​n​i​e​d
 						 */
 						allDenied: string
@@ -5428,6 +5485,25 @@ type RootTranslation = {
 					aliasDeleteFail: string
 				}
 				modals: {
+					applyConfirm: {
+						/**
+						 * C​o​n​f​i​r​m​ ​A​l​i​a​s​ ​D​e​p​l​o​y​m​e​n​t
+						 */
+						title: string
+						/**
+						 * T​h​e​ ​u​p​d​a​t​e​d​ ​a​l​i​a​s​e​s​ ​w​i​l​l​ ​m​o​d​i​f​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​c​u​r​r​e​n​t​l​y​ ​d​e​p​l​o​y​e​d​ ​o​n​ ​t​h​e​ ​g​a​t​e​w​a​y​.​
+					​P​l​e​a​s​e​ ​e​n​s​u​r​e​ ​t​h​e​s​e​ ​c​h​a​n​g​e​s​ ​a​r​e​ ​i​n​t​e​n​d​e​d​ ​b​e​f​o​r​e​ ​p​r​o​c​e​e​d​i​n​g​.
+						 */
+						message: string
+						/**
+						 * A​f​f​e​c​t​e​d​ ​R​u​l​e​s
+						 */
+						listLabel: string
+						/**
+						 * D​e​p​l​o​y​ ​C​h​a​n​g​e​s
+						 */
+						submit: string
+					}
 					deleteBlock: {
 						/**
 						 * D​e​l​e​t​i​o​n​ ​b​l​o​c​k​e​d
@@ -5435,7 +5511,7 @@ type RootTranslation = {
 						title: string
 						/**
 						 * 
-					​A​l​i​a​s​ ​i​s​ ​u​s​e​d​ ​i​n​ ​{​r​u​l​e​s​C​o​u​n​t​}​ ​r​u​l​e​s​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​
+					​T​h​i​s​ ​a​l​i​a​s​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​u​s​e​ ​b​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​ ​r​u​l​e​(​s​)​ ​a​n​d​ ​c​a​n​n​o​t​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​T​o​ ​p​r​o​c​e​e​d​ ​w​i​t​h​ ​d​e​l​e​t​i​o​n​,​ ​y​o​u​ ​m​u​s​t​ ​f​i​r​s​t​ ​r​e​m​o​v​e​ ​i​t​ ​f​r​o​m​ ​t​h​e​s​e​ ​r​u​l​e​s​(​{​r​u​l​e​s​C​o​u​n​t​}​)​:​
 				
 						 * @param {number} rulesCount
 						 */
@@ -5508,15 +5584,15 @@ type RootTranslation = {
 					}
 					deployedList: {
 						/**
-						 * D​e​p​l​o​y​e​d​ ​R​u​l​e​s
+						 * D​e​p​l​o​y​e​d​ ​A​l​i​a​s​e​s
 						 */
 						title: string
 						/**
-						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s
 						 */
 						noData: string
 						/**
-						 * N​o​ ​d​e​p​l​o​y​e​d​ ​r​u​l​e​s​ ​f​o​u​n​d
+						 * N​o​ ​d​e​p​l​o​y​e​d​ ​a​l​i​a​s​e​s​ ​f​o​u​n​d
 						 */
 						noDataSearch: string
 					}
@@ -5549,6 +5625,10 @@ type RootTranslation = {
 						 * E​d​i​t
 						 */
 						edit: string
+						/**
+						 * R​u​l​e​s
+						 */
+						rules: string
 					}
 					status: {
 						/**
@@ -5605,6 +5685,26 @@ type RootTranslation = {
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
+				networkSelectionIndicatorsHelper: {
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					denied: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					allowed: string
+					/**
+					 * 
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
+				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+					 */
+					unmanaged: string
+				}
 			}
 			message: {
 				/**
@@ -5618,9 +5718,13 @@ type RootTranslation = {
 			}
 			headers: {
 				/**
-				 * C​r​e​a​t​e​ ​R​u​l​e
+				 * R​u​l​e
 				 */
 				rule: string
+				/**
+				 * C​r​e​a​t​e​ ​R​u​l​e
+				 */
+				createRule: string
 				/**
 				 * A​l​l​o​w​e​d​ ​U​s​e​r​s​/​G​r​o​u​p​s​/​D​e​v​i​c​e​s
 				 */
@@ -8228,6 +8332,22 @@ export type TranslationFunctions = {
 		}
 	}
 	components: {
+		aclDefaultPolicySelect: {
+			/**
+			 * Default ACL Policy
+			 */
+			label: () => LocalizedString
+			options: {
+				/**
+				 * Allow
+				 */
+				allow: () => LocalizedString
+				/**
+				 * Deny
+				 */
+				deny: () => LocalizedString
+			}
+		}
 		standaloneDeviceTokenModalContent: {
 			/**
 			 * First download defguard command line client binaries and install them on your server.
@@ -8486,6 +8606,10 @@ export type TranslationFunctions = {
 					 * LDAP server is Active Directory
 					 */
 					ldap_uses_ad: () => LocalizedString
+					/**
+					 * User RDN Attribute
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
 				}
 				helpers: {
 					/**
@@ -8512,6 +8636,10 @@ export type TranslationFunctions = {
 					 * The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.
 					 */
 					ldap_group_obj_class: () => LocalizedString
+					/**
+					 * If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.
+					 */
+					ldap_user_rdn_attr: () => LocalizedString
 				}
 				headings: {
 					/**
@@ -10059,7 +10187,7 @@ export type TranslationFunctions = {
 		messages: {
 			'delete': {
 				/**
-				 * Network delted
+				 * Network deleted
 				 */
 				success: () => LocalizedString
 				/**
@@ -10833,6 +10961,16 @@ export type TranslationFunctions = {
 		 * Access Control List
 		 */
 		sharedTitle: () => LocalizedString
+		fieldsSelectionLabels: {
+			/**
+			 * All ports
+			 */
+			ports: () => LocalizedString
+			/**
+			 * All protocols
+			 */
+			protocols: () => LocalizedString
+		}
 		ruleStatus: {
 			/**
 			 * New
@@ -10858,6 +10996,10 @@ export type TranslationFunctions = {
 			 * Disabled
 			 */
 			disabled: () => LocalizedString
+			/**
+			 * Expired
+			 */
+			expired: () => LocalizedString
 		}
 		listPage: {
 			message: {
@@ -10884,6 +11026,20 @@ export type TranslationFunctions = {
 			}
 			rules: {
 				modals: {
+					applyConfirm: {
+						/**
+						 * Deploy pending changes
+						 */
+						title: () => LocalizedString
+						/**
+						 * {count} changes will be deployed
+						 */
+						subtitle: (arg: { count: number }) => LocalizedString
+						/**
+						 * Deploy changes
+						 */
+						submit: () => LocalizedString
+					}
 					filterGroupsModal: {
 						groupHeaders: {
 							/**
@@ -11034,6 +11190,10 @@ export type TranslationFunctions = {
 					}
 					tags: {
 						/**
+						 * All
+						 */
+						all: () => LocalizedString
+						/**
 						 * All denied
 						 */
 						allDenied: () => LocalizedString
@@ -11074,6 +11234,25 @@ export type TranslationFunctions = {
 					aliasDeleteFail: () => LocalizedString
 				}
 				modals: {
+					applyConfirm: {
+						/**
+						 * Confirm Alias Deployment
+						 */
+						title: () => LocalizedString
+						/**
+						 * The updated aliases will modify the following rule(s) currently deployed on the gateway.
+					Please ensure these changes are intended before proceeding.
+						 */
+						message: () => LocalizedString
+						/**
+						 * Affected Rules
+						 */
+						listLabel: () => LocalizedString
+						/**
+						 * Deploy Changes
+						 */
+						submit: () => LocalizedString
+					}
 					deleteBlock: {
 						/**
 						 * Deletion blocked
@@ -11081,7 +11260,7 @@ export type TranslationFunctions = {
 						title: () => LocalizedString
 						/**
 						 * 
-					Alias is used in {rulesCount} rules and cannot be deleted.
+					This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount}):
 				
 						 */
 						content: (arg: { rulesCount: number }) => LocalizedString
@@ -11150,15 +11329,15 @@ export type TranslationFunctions = {
 					}
 					deployedList: {
 						/**
-						 * Deployed Rules
+						 * Deployed Aliases
 						 */
 						title: () => LocalizedString
 						/**
-						 * No deployed rules
+						 * No deployed aliases
 						 */
 						noData: () => LocalizedString
 						/**
-						 * No deployed rules found
+						 * No deployed aliases found
 						 */
 						noDataSearch: () => LocalizedString
 					}
@@ -11191,6 +11370,10 @@ export type TranslationFunctions = {
 						 * Edit
 						 */
 						edit: () => LocalizedString
+						/**
+						 * Rules
+						 */
+						rules: () => LocalizedString
 					}
 					status: {
 						/**
@@ -11247,6 +11430,26 @@ export type TranslationFunctions = {
 			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
+				networkSelectionIndicatorsHelper: {
+					/**
+					 * 
+				          Location access **denied** by default - must be explicitly allowed
+				          
+					 */
+					denied: () => LocalizedString
+					/**
+					 * 
+				          Location access **allowed** by default - can be explicitly denied
+				          
+					 */
+					allowed: () => LocalizedString
+					/**
+					 * 
+				          Location access unmanaged (ACL disabled)
+				          
+					 */
+					unmanaged: () => LocalizedString
+				}
 			}
 			message: {
 				/**
@@ -11260,9 +11463,13 @@ export type TranslationFunctions = {
 			}
 			headers: {
 				/**
-				 * Create Rule
+				 * Rule
 				 */
 				rule: () => LocalizedString
+				/**
+				 * Create Rule
+				 */
+				createRule: () => LocalizedString
 				/**
 				 * Allowed Users/Groups/Devices
 				 */

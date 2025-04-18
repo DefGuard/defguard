@@ -960,7 +960,7 @@ impl Device<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await
@@ -972,9 +972,10 @@ mod test {
     use std::str::FromStr;
 
     use claims::{assert_err, assert_ok};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::User;
+    use crate::db::{setup_pool, User};
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network
@@ -1025,7 +1026,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_assign_device_ip(pool: PgPool) {
+    async fn test_assign_device_ip(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/30").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1064,7 +1067,9 @@ mod test {
     }
 
     #[sqlx::test]
-    fn test_all_for_network_and_user(pool: PgPool) {
+    fn test_all_for_network_and_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user = User::new(
             "testuser",
             Some("hunter2"),

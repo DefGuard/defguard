@@ -1,3 +1,5 @@
+import './style.scss';
+
 import { useEffect } from 'react';
 import { shallow } from 'zustand/shallow';
 
@@ -13,6 +15,7 @@ export const AclAliasDeleteBlockModal = () => {
   const localLL = LL.acl.listPage.aliases.modals.deleteBlock;
   const [close, reset] = useAclAliasDeleteBlockModal((s) => [s.close, s.reset], shallow);
   const alias = useAclAliasDeleteBlockModal((s) => s.alias);
+  const rules = useAclAliasDeleteBlockModal((s) => s.rulesNames);
   const isOpen = useAclAliasDeleteBlockModal((s) => s.visible);
 
   useEffect(() => {
@@ -24,9 +27,11 @@ export const AclAliasDeleteBlockModal = () => {
 
   return (
     <ConfirmModal
+      id="acl-aliases-delete-alias-block-modal"
       type={ConfirmModalType.WARNING}
       title={localLL.title()}
       isOpen={isOpen}
+      cancelText={LL.common.controls.close()}
       onClose={() => {
         close();
       }}
@@ -34,13 +39,16 @@ export const AclAliasDeleteBlockModal = () => {
         reset();
       }}
     >
-      {isPresent(alias) && (
-        <RenderMarkdown
-          content={localLL.content({
-            rulesCount: alias.rules.length,
-          })}
-        />
-      )}
+      <div className="content">
+        {isPresent(alias) && (
+          <RenderMarkdown
+            content={localLL.content({
+              rulesCount: alias.rules.length,
+            })}
+          />
+        )}
+        {rules.length > 0 && <p className="rules">{rules.join(', ')}</p>}
+      </div>
     </ConfirmModal>
   );
 };

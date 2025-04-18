@@ -6,6 +6,7 @@ import { AxiosError } from 'axios';
 import { useMemo, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../i18n/i18n-react';
 import IconCheckmark from '../../../../../../shared/components/svg/IconCheckmark';
@@ -128,13 +129,15 @@ const ModalContent = () => {
 };
 
 export const SmtpTestModal = () => {
-  const modal = useSmtpTestModal((s) => s);
+  const isOpen = useSmtpTestModal((s) => s.visible);
+  const close = useSmtpTestModal((s) => s.close, shallow);
 
   return (
     <ModalWithTitle
-      isOpen={modal.visible}
+      id="smtp-test-modal"
+      isOpen={isOpen}
       onClose={() => {
-        modal.close();
+        close();
       }}
       backdrop
       disableClose

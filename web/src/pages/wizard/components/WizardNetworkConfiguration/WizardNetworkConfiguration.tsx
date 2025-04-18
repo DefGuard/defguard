@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { FormAclDefaultPolicy } from '../../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormCheckBox } from '../../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
@@ -17,13 +18,10 @@ import { SelectOption } from '../../../../shared/defguard-ui/components/Layout/S
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
-import { ModifyNetworkRequest } from '../../../../shared/types';
 import { titleCase } from '../../../../shared/utils/titleCase';
 import { trimObjectStrings } from '../../../../shared/utils/trimObjectStrings.ts';
 import { validateIpList, validateIpOrDomainList } from '../../../../shared/validators';
 import { useWizardStore } from '../../hooks/useWizardStore';
-
-type FormInputs = ModifyNetworkRequest['network'];
 
 export const WizardNetworkConfiguration = () => {
   const [componentMount, setComponentMount] = useState(false);
@@ -137,6 +135,8 @@ export const WizardNetworkConfiguration = () => {
     [LL.form.error],
   );
 
+  type FormInputs = z.infer<typeof zodSchema>;
+
   const getDefaultValues = useMemo((): FormInputs => {
     return { ...wizardNetworkConfiguration, allowed_groups: [] };
   }, [wizardNetworkConfiguration]);
@@ -231,11 +231,7 @@ export const WizardNetworkConfiguration = () => {
           label={LL.networkConfiguration.form.fields.acl_enabled.label()}
           labelPlacement="right"
         />
-        <FormCheckBox
-          controller={{ control, name: 'acl_default_allow' }}
-          label={LL.networkConfiguration.form.fields.acl_default_allow.label()}
-          labelPlacement="right"
-        />
+        <FormAclDefaultPolicy controller={{ control, name: 'acl_default_allow' }} />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}

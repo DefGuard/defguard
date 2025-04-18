@@ -28,7 +28,7 @@ use super::{
 use crate::{
     appstate::AppState,
     auth::{
-        failed_login::{check_username, log_failed_login_attempt},
+        failed_login::{check_failed_logins, log_failed_login_attempt},
         SessionInfo,
     },
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
@@ -136,7 +136,7 @@ pub(crate) async fn authenticate(
     let username_or_email = data.username;
     debug!("Authenticating user {username_or_email}");
     // check if user can proceed with login
-    check_username(&appstate.failed_logins, &username_or_email)?;
+    check_failed_logins(&appstate.failed_logins, &username_or_email)?;
     let settings = Settings::get_current_settings();
 
     let mut user = match User::find_by_username(&appstate.pool, &username_or_email).await {

@@ -14,8 +14,8 @@
 }
 
 .copy-generated-token-content {
-  & > .message-box {
-    margin-bottom: 25px;
+  & > .message-box-spacer {
+    padding-bottom: 25px;
   }
 
   & > .expandable-card {

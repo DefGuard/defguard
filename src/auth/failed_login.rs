@@ -115,7 +115,7 @@ impl FailedLoginMap {
 }
 
 // Check if auth request with a given username can proceed
-pub fn check_username(
+pub fn check_failed_logins(
     failed_logins: &Mutex<FailedLoginMap>,
     username: &str,
 ) -> Result<(), FailedLoginError> {

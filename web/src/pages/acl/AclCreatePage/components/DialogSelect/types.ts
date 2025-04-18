@@ -14,6 +14,7 @@ export type DialogSelectProps<T, I> = {
   disabled?: boolean;
   searchFn?: DialogSelectSearch<T>;
   onChange?: (values: I[]) => void;
+  modalExtrasTop?: ReactNode;
 };
 
 export type DialogSelectSearch<T> = (obj: T, searchedValue: string) => boolean;

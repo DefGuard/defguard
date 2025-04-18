@@ -102,6 +102,8 @@ pub struct Settings {
     pub ldap_sync_interval: i32,
     // Additional object classes for users which determine the added attributes
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
+    // The attribute which is used to map LDAP usernames to Defguard usernames
+    pub ldap_user_rdn_attr: Option<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -134,7 +136,8 @@ impl Settings {
             gateway_disconnect_notifications_reconnect_notification_enabled, \
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
-            ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad \
+            ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
+            ldap_user_rdn_attr \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -203,7 +206,8 @@ impl Settings {
             ldap_is_authoritative = $42, \
             ldap_sync_interval = $43, \
             ldap_user_auxiliary_obj_classes = $44, \
-            ldap_uses_ad = $45 \
+            ldap_uses_ad = $45, \
+            ldap_user_rdn_attr = $46 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -249,7 +253,8 @@ impl Settings {
             self.ldap_is_authoritative,
             self.ldap_sync_interval,
             &self.ldap_user_auxiliary_obj_classes as &Vec<String>,
-            self.ldap_uses_ad
+            self.ldap_uses_ad,
+            self.ldap_user_rdn_attr,
         )
         .execute(executor)
         .await?;

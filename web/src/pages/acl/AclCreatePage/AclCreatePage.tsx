@@ -12,6 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormDateInput } from '../../../shared/components/Layout/DateInput/FormDateInput';
 import { PageContainer } from '../../../shared/components/Layout/PageContainer/PageContainer';
 import { RenderMarkdown } from '../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { SectionWithCard } from '../../../shared/components/Layout/SectionWithCard/SectionWithCard';
@@ -32,6 +33,7 @@ import {
   MessageBoxStyleVariant,
   MessageBoxType,
 } from '../../../shared/defguard-ui/components/Layout/MessageBox/types';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
@@ -46,8 +48,10 @@ import {
 } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
+import { AclAliasStatus } from '../types';
 import { protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
+import { AclCreateNetworkSelectMessage } from './components/DialogSelect/AclCreateNetwrokSelectMessage/AclCreateNetwrokSelectMessage';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
 
 type Alias = {
@@ -98,10 +102,13 @@ export const AlcCreatePage = () => {
     return defaultValue;
   }, [editMode, ruleToEdit]);
 
-  // const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
+  const [neverExpires, setNeverExpires] = useState(!isPresent(initialValue.expires));
   const [allowAllLocations, setAllowAllLocations] = useState(initialValue.all_networks);
   const submitRef = useRef<HTMLInputElement | null>(null);
   const toaster = useToaster();
+  const aliasesOptions = aliases.filter(
+    (alias) => alias.state === AclAliasStatus.APPLIED,
+  );
 
   const navigate = useNavigate();
 
@@ -282,21 +289,21 @@ export const AlcCreatePage = () => {
     return res;
   }, [initialValue]);
 
-  const { control, handleSubmit, register, watch } = useForm<FormFields>({
+  const { control, handleSubmit, watch, setValue } = useForm<FormFields>({
     defaultValues,
     mode: 'all',
     resolver: zodResolver(schema),
     criteriaMode: 'all',
   });
 
-  // const watchedExpires = watch('expires');
+  const watchedExpires = watch('expires');
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
     let expires = cleaned.expires;
     // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
     if (expires) {
-      expires = dayjs(expires).utc().startOf('day').toISOString();
+      expires = dayjs(expires).utc().startOf('day').format('YYYY-MM-DDTHH:mm:ss'); // remove time zone info
     }
 
     if (editMode) {
@@ -338,9 +345,11 @@ export const AlcCreatePage = () => {
           />
           <Button
             type="submit"
-            text={LL.common.controls.submit()}
+            text={
+              editMode ? LL.common.controls.saveChanges() : LL.common.controls.submit()
+            }
             size={ButtonSize.SMALL}
-            styleVariant={ButtonStyleVariant.PRIMARY}
+            styleVariant={editMode ? ButtonStyleVariant.SAVE : ButtonStyleVariant.PRIMARY}
             loading={postPending || putPending}
             onClick={() => {
               submitRef.current?.click();
@@ -350,7 +359,10 @@ export const AlcCreatePage = () => {
       </div>
       <form id="acl-sections" onSubmit={handleSubmit(handleValidSubmit)}>
         <div className="column">
-          <SectionWithCard title={localLL.headers.rule()} id="rule-card">
+          <SectionWithCard
+            title={editMode ? localLL.headers.rule() : localLL.headers.createRule()}
+            id="rule-card"
+          >
             <FormInput controller={{ control, name: 'name' }} label="Rule Name" />
             <LabeledCheckbox
               label={labelsLL.allowAllNetworks()}
@@ -370,27 +382,28 @@ export const AlcCreatePage = () => {
               label={labelsLL.locations()}
               searchKeys={['name']}
               disabled={allowAllLocations}
+              modalExtrasTop={<AclCreateNetworkSelectMessage />}
               forceShowErrorMessage
             />
-            {/* <CardHeader title="Expiration Date" />
-          <LabeledCheckbox
-            label="Never Expire"
-            value={neverExpires && watchedExpires === null}
-            onChange={(change) => {
-              if (change) {
-                setValue('expires', null, {
-                  shouldValidate: false,
-                  shouldDirty: true,
-                });
-              }
-              setNeverExpires(change);
-            }}
-          />
-          <FormDateInput
-            controller={{ control, name: 'expires' }}
-            label="Expiration Date"
-            disabled={neverExpires}
-          /> */}
+            <CardHeader title="Expiration Date" />
+            <LabeledCheckbox
+              label="Never Expire"
+              value={neverExpires && watchedExpires === null}
+              onChange={(change) => {
+                if (change) {
+                  setValue('expires', null, {
+                    shouldValidate: false,
+                    shouldDirty: true,
+                  });
+                }
+                setNeverExpires(change);
+              }}
+            />
+            <FormDateInput
+              controller={{ control, name: 'expires' }}
+              label="Expiration Date"
+              disabled={neverExpires}
+            />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.destination()} id="destination-card">
             <MessageBox
@@ -401,7 +414,7 @@ export const AlcCreatePage = () => {
             </MessageBox>
             <FormDialogSelect
               controller={{ control, name: 'aliases' }}
-              options={aliases}
+              options={aliasesOptions}
               label="Aliases"
               identKey="id"
               renderTagContent={renderAlias}
@@ -412,7 +425,11 @@ export const AlcCreatePage = () => {
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
             />
-            <FormInput controller={{ control, name: 'ports' }} label={labelsLL.ports()} />
+            <FormInput
+              controller={{ control, name: 'ports' }}
+              label={labelsLL.ports()}
+              placeholder={LL.acl.fieldsSelectionLabels.ports()}
+            />
             <FormSelect
               controller={{ control, name: 'protocols' }}
               label={labelsLL.protocols()}
@@ -433,22 +450,29 @@ export const AlcCreatePage = () => {
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
             <FormCheckBox
-              controller={{ control, name: 'allow_all_users' }}
+              controller={{
+                control,
+                name: 'allow_all_users',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_users',
+                    'denied_groups',
+                  ],
+                },
+              }}
               label={labelsLL.allowAllUsers()}
               labelPlacement="right"
-              {...register('allow_all_users', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_users',
-                  'denied_groups',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
-              controller={{ control, name: 'allowed_users' }}
+              controller={{
+                control,
+                name: 'allowed_users',
+                rules: { deps: ['allowed_groups', 'allowed_devices', 'denied_users'] },
+              }}
               options={users}
               renderTagContent={renderUserTag}
               renderDialogListItem={renderUserListItem}
@@ -456,48 +480,54 @@ export const AlcCreatePage = () => {
               searchKeys={['email', 'last_name', 'first_name']}
               disabled={allowAllUsers}
               forceShowErrorMessage
-              {...register('allowed_users', {
-                deps: ['allowed_groups', 'allowed_devices', 'denied_users'],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
-              controller={{ control, name: 'allowed_groups' }}
+              controller={{
+                control,
+                name: 'allowed_groups',
+                rules: {
+                  deps: ['allowed_users', 'allowed_devices', 'denied_groups'],
+                },
+              }}
               options={groups}
               renderTagContent={renderGroup}
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllUsers}
               forceShowErrorMessage
-              {...register('allowed_groups', {
-                deps: ['allowed_users', 'allowed_devices', 'denied_groups'],
-              })}
             />
             <FormCheckBox
-              controller={{ control, name: 'allow_all_network_devices' }}
+              controller={{
+                control,
+                name: 'allow_all_network_devices',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_devices',
+                  ],
+                },
+              }}
               label={labelsLL.allowAllNetworkDevices()}
               labelPlacement="right"
-              {...register('allow_all_network_devices', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_devices',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
-              controller={{ control, name: 'allowed_devices' }}
+              controller={{
+                control,
+                name: 'allowed_devices',
+                rules: {
+                  deps: ['allowed_groups', 'allowed_users', 'denied_devices'],
+                },
+              }}
               options={devices}
               renderTagContent={renderNetworkDevice}
               identKey="id"
               searchKeys={['name']}
               disabled={allowAllNetworkDevices}
               forceShowErrorMessage
-              {...register('allowed_devices', {
-                deps: ['allowed_groups', 'allowed_users', 'denied_devices'],
-              })}
             />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.denied()} id="denied-card">
@@ -505,21 +535,30 @@ export const AlcCreatePage = () => {
               <RenderMarkdown content={localLL.infoBox.allowInstructions()} />
             </MessageBox>
             <FormCheckBox
-              controller={{ control, name: 'deny_all_users' }}
+              controller={{
+                control,
+                name: 'deny_all_users',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'denied_users',
+                    'denied_groups',
+                  ],
+                },
+              }}
               label={labelsLL.denyAllUsers()}
               labelPlacement="right"
-              {...register('deny_all_users', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'denied_users',
-                  'denied_groups',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.users()}
-              controller={{ control, name: 'denied_users' }}
+              controller={{
+                control,
+                name: 'denied_users',
+                rules: {
+                  deps: ['allowed_users'],
+                },
+              }}
               options={users}
               renderTagContent={renderUserTag}
               renderDialogListItem={renderUserListItem}
@@ -527,42 +566,54 @@ export const AlcCreatePage = () => {
               searchKeys={['username', 'first_name', 'last_name']}
               disabled={denyAllUsers}
               forceShowErrorMessage
-              {...register('denied_users', { deps: ['allowed_users'] })}
             />
             <FormDialogSelect
               label={labelsLL.groups()}
-              controller={{ control, name: 'denied_groups' }}
+              controller={{
+                control,
+                name: 'denied_groups',
+                rules: {
+                  deps: ['allowed_groups'],
+                },
+              }}
               options={groups}
               renderTagContent={renderGroup}
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllUsers}
               forceShowErrorMessage
-              {...register('denied_groups', { deps: ['allowed_groups'] })}
             />
             <FormCheckBox
-              controller={{ control, name: 'deny_all_network_devices' }}
+              controller={{
+                control,
+                name: 'deny_all_network_devices',
+                rules: {
+                  deps: [
+                    'allowed_users',
+                    'allowed_groups',
+                    'allowed_devices',
+                    'denied_devices',
+                  ],
+                },
+              }}
               label={labelsLL.denyAllNetworkDevices()}
               labelPlacement="right"
-              {...register('deny_all_network_devices', {
-                deps: [
-                  'allowed_users',
-                  'allowed_groups',
-                  'allowed_devices',
-                  'denied_devices',
-                ],
-              })}
             />
             <FormDialogSelect
               label={labelsLL.devices()}
-              controller={{ control, name: 'denied_devices' }}
+              controller={{
+                control,
+                name: 'denied_devices',
+                rules: {
+                  deps: ['allowed_devices'],
+                },
+              }}
               options={devices}
               renderTagContent={renderNetworkDevice}
               identKey="id"
               searchKeys={['name']}
               disabled={denyAllNetworkDevices}
               forceShowErrorMessage
-              {...register('denied_devices', { deps: ['allowed_devices'] })}
             />
           </SectionWithCard>
         </div>

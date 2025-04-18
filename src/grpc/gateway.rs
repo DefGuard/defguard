@@ -355,6 +355,13 @@ impl GatewayUpdatesHandler {
                         Ok(())
                     }
                 }
+                GatewayEvent::FirewallDisabled(location_id) => {
+                    if location_id == self.network_id {
+                        self.send_firewall_disable().await
+                    } else {
+                        Ok(())
+                    }
+                }
             };
             if result.is_err() {
                 error!(
@@ -512,7 +519,32 @@ impl GatewayUpdatesHandler {
             error!(msg);
             return Err(Status::new(Code::Internal, msg));
         }
-        debug!("Peer delete command sent for network {}", self.network);
+        debug!("Firewall config update sent for network {}", self.network);
+        Ok(())
+    }
+
+    /// Send firewall disable command to gateway
+    async fn send_firewall_disable(&self) -> Result<(), Status> {
+        debug!(
+            "Sending firewall disable command for network {}",
+            self.network
+        );
+        if let Err(err) = self
+            .tx
+            .send(Ok(Update {
+                update_type: 2,
+                update: Some(update::Update::DisableFirewall(())),
+            }))
+            .await
+        {
+            let msg = format!(
+                "Failed to send firewall disable command for network {}, error: {err}",
+                self.network,
+            );
+            error!(msg);
+            return Err(Status::new(Code::Internal, msg));
+        }
+        debug!("Firewall disable command sent for network {}", self.network);
         Ok(())
     }
 }

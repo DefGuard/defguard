@@ -6,7 +6,7 @@ use tonic::{Request, Response, Status};
 
 use crate::{
     auth::{
-        failed_login::{check_username, log_failed_login_attempt, FailedLoginMap},
+        failed_login::{check_failed_logins, log_failed_login_attempt, FailedLoginMap},
         Claims, ClaimsType,
     },
     db::User,
@@ -53,7 +53,7 @@ impl auth_service_server::AuthService for AuthServer {
         let request = request.into_inner();
         debug!("Authenticating user {}", request.username);
         // check if user can proceed with login
-        check_username(&self.failed_logins, &request.username)
+        check_failed_logins(&self.failed_logins, &request.username)
             .map_err(|_| Status::resource_exhausted("too many login requests"))?;
 
         if let Ok(Some(user)) = User::find_by_username(&self.pool, &request.username).await {

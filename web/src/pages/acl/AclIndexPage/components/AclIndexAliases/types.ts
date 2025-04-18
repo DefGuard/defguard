@@ -1,12 +1,12 @@
 import { AclAlias } from '../../../types';
-import { ListTagDisplay } from '../shared/types';
+import { ListCellTag } from '../shared/types';
 
 export type AclAliasListData = {
   display: {
-    ports: ListTagDisplay[];
-    destination: ListTagDisplay[];
-    protocols: ListTagDisplay[];
-    rules: ListTagDisplay[];
+    ports: ListCellTag[];
+    destination: ListCellTag[];
+    protocols: ListCellTag[];
+    rules: ListCellTag[];
   };
 } & AclAlias;
 

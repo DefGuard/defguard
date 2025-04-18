@@ -33,6 +33,8 @@ export const AclRuleStatus = ({ enabled, status }: Props) => {
         return [statusLL.new(), ActivityIconVariant.CONNECTED];
       case AclStatus.MODIFIED:
         return [statusLL.modified(), ActivityIconVariant.DISCONNECTED];
+      case AclStatus.EXPIRED:
+        return [statusLL.expired(), ActivityIconVariant.DISCONNECTED];
       default:
         return [statusLL.new(), ActivityIconVariant.CONNECTED];
     }

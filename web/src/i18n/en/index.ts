@@ -1048,6 +1048,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    aclDefaultPolicySelect: {
+      label: 'Default ACL Policy',
+      options: {
+        allow: 'Allow',
+        deny: 'Deny',
+      },
+    },
     standaloneDeviceTokenModalContent: {
       headerMessage:
         'First download defguard command line client binaries and install them on your server.',
@@ -1144,6 +1151,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_uses_ad: 'LDAP server is Active Directory',
+          ldap_user_rdn_attr: 'User RDN Attribute',
         },
         helpers: {
           ldap_user_obj_class:
@@ -1158,6 +1166,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
             'Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.',
           ldap_group_obj_class:
             'The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.',
+          ldap_user_rdn_attr:
+            "If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.",
         },
         headings: {
           user_settings: 'User settings',
@@ -1849,7 +1859,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
   networkConfiguration: {
     messages: {
       delete: {
-        success: 'Network delted',
+        success: 'Network deleted',
         error: 'Failed to delete network',
       },
     },
@@ -2201,6 +2211,10 @@ Any other requests you can reach us at: support@defguard.net
   },
   acl: {
     sharedTitle: 'Access Control List',
+    fieldsSelectionLabels: {
+      ports: 'All ports',
+      protocols: 'All protocols',
+    },
     ruleStatus: {
       new: 'New',
       applied: 'Applied',
@@ -2208,6 +2222,7 @@ Any other requests you can reach us at: support@defguard.net
       deleted: 'Pending Deletion',
       enabled: 'Enabled',
       disabled: 'Disabled',
+      expired: 'Expired',
     },
     listPage: {
       message: {
@@ -2219,6 +2234,11 @@ Any other requests you can reach us at: support@defguard.net
       },
       rules: {
         modals: {
+          applyConfirm: {
+            title: 'Deploy pending changes',
+            subtitle: '{count: number} changes will be deployed',
+            submit: 'Deploy changes',
+          },
           filterGroupsModal: {
             groupHeaders: {
               alias: 'Aliases',
@@ -2272,6 +2292,7 @@ Any other requests you can reach us at: support@defguard.net
             deployed: 'Deployed',
           },
           tags: {
+            all: 'All',
             allDenied: 'All denied',
             allAllowed: 'All allowed',
           },
@@ -2289,11 +2310,17 @@ Any other requests you can reach us at: support@defguard.net
           aliasDeleteFail: 'Alias deletion failed',
         },
         modals: {
+          applyConfirm: {
+            title: 'Confirm Alias Deployment',
+            message: `The updated aliases will modify the following rule(s) currently deployed on the gateway.\nPlease ensure these changes are intended before proceeding.`,
+            listLabel: 'Affected Rules',
+            submit: 'Deploy Changes',
+          },
           deleteBlock: {
             title: 'Deletion blocked',
             //md
             content: `
-Alias is used in {rulesCount: number} rules and cannot be deleted.
+This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount: number}):
 `,
           },
           filterGroupsModal: {
@@ -2323,9 +2350,9 @@ Alias is used in {rulesCount: number} rules and cannot be deleted.
             noDataSearch: 'No pending changes found',
           },
           deployedList: {
-            title: 'Deployed Rules',
-            noData: 'No deployed rules',
-            noDataSearch: 'No deployed rules found',
+            title: 'Deployed Aliases',
+            noData: 'No deployed aliases',
+            noDataSearch: 'No deployed aliases found',
           },
           headers: {
             id: 'ID',
@@ -2335,6 +2362,7 @@ Alias is used in {rulesCount: number} rules and cannot be deleted.
             protocols: 'Protocols',
             status: 'Status',
             edit: 'Edit',
+            rules: 'Rules',
           },
           status: {
             applied: 'Applied',
@@ -2363,13 +2391,28 @@ Alias is used in {rulesCount: number} rules and cannot be deleted.
         // md
         destinationInstructions: `
         Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        networkSelectionIndicatorsHelper: {
+          //md
+          denied: `
+          Location access **denied** by default - must be explicitly allowed
+          `,
+          //md
+          allowed: `
+          Location access **allowed** by default - can be explicitly denied
+          `,
+          //md
+          unmanaged: `
+          Location access unmanaged (ACL disabled)
+          `,
+        },
       },
       message: {
         create: 'Rule created and added to pending changes',
         createFail: 'Rule creation failed',
       },
       headers: {
-        rule: 'Create Rule',
+        rule: 'Rule',
+        createRule: 'Create Rule',
         allowed: 'Allowed Users/Groups/Devices',
         denied: 'Denied Users/Groups/Devices',
         destination: 'Destination',

@@ -88,8 +88,20 @@ pub struct User<I = NoId> {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
+    /// Indicates whether the user has been created via the LDAP integration.
     pub from_ldap: bool,
+    /// Indicates whether a user has a random password set in LDAP, if so, the user
+    /// will be prompted to change it on their profile page.
+    ///
+    /// The random password is set if we are creating a new user in LDAP from a Defguard user
+    /// and we don't have access to the plain text password, e.g. during Defguard -> LDAP user import.
     pub ldap_pass_randomized: bool,
+    /// The user's LDAP RDN value. This is the first part of the DN.
+    /// For example, if the DN is `cn=John Doe,ou=users,dc=example,dc=com`,
+    /// the RDN is `cn=John Doe`.
+    /// This is used to identify the user in LDAP as we sometimes can't use the Defguard's username
+    /// since the RDN may contain spaces or other special characters and the username may not.
+    pub ldap_rdn: Option<String>,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -123,9 +135,10 @@ impl User {
         phone: Option<String>,
     ) -> Self {
         let password_hash = password.and_then(|password_hash| hash_password(password_hash).ok());
+        let username: String = username.into();
         Self {
             id: NoId,
-            username: username.into(),
+            username: username.clone(),
             password_hash,
             last_name: last_name.into(),
             first_name: first_name.into(),
@@ -142,7 +155,14 @@ impl User {
             openid_sub: None,
             from_ldap: false,
             ldap_pass_randomized: false,
+            ldap_rdn: Some(username.clone()),
         }
+    }
+}
+
+impl<I> fmt::Display for User<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.username)
     }
 }
 
@@ -177,6 +197,19 @@ impl<I> User<I> {
     #[must_use]
     pub(crate) fn is_enrolled(&self) -> bool {
         self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
+    }
+
+    #[must_use]
+    pub(crate) fn ldap_rdn_value(&self) -> &str {
+        if let Some(ldap_rdn) = &self.ldap_rdn {
+            ldap_rdn
+        } else {
+            warn!(
+                "LDAP RDN is not set for user {}. Using username as a fallback.",
+                self.username
+            );
+            &self.username
+        }
     }
 }
 
@@ -560,7 +593,7 @@ impl User<Id> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
                 mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized \
+                from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -592,7 +625,7 @@ impl User<Id> {
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -743,7 +776,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
             totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -762,7 +795,7 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -780,7 +813,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -801,7 +834,7 @@ impl User<Id> {
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
@@ -1031,7 +1064,7 @@ impl User<Id> {
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1053,7 +1086,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1082,7 +1115,7 @@ impl User<Id> {
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
             u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
@@ -1126,6 +1159,7 @@ impl Distribution<User<Id>> for Standard {
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
             from_ldap: false,
             ldap_pass_randomized: false,
+            ldap_rdn: None,
         }
     }
 }
@@ -1164,19 +1198,26 @@ impl Distribution<User<NoId>> for Standard {
             recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
             from_ldap: false,
             ldap_pass_randomized: false,
+            ldap_rdn: None,
         }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
     use crate::{
-        config::DefGuardConfig, db::models::settings::initialize_current_settings, SERVER_CONFIG,
+        config::DefGuardConfig,
+        db::{models::settings::initialize_current_settings, setup_pool},
+        SERVER_CONFIG,
     };
 
     #[sqlx::test]
-    async fn test_mfa_code(pool: PgPool) {
+    async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         initialize_current_settings(&pool).await.unwrap();
@@ -1203,7 +1244,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_user(pool: PgPool) {
+    async fn test_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -1234,7 +1277,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_users(pool: PgPool) {
+    async fn test_all_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         User::new(
             "hpotter",
             Some("pass123"),
@@ -1269,7 +1314,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_recovery_codes(pool: PgPool) {
+    async fn test_recovery_codes(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1301,7 +1348,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_email_case_insensitivity(pool: PgPool) {
+    async fn test_email_case_insensitivity(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1324,7 +1373,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_is_admin(pool: PgPool) {
+    async fn test_is_admin(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1358,7 +1409,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_admins(pool: PgPool) {
+    async fn test_find_admins(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1414,7 +1467,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_missing(pool: PgPool) {
+    async fn test_get_missing(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),
@@ -1456,7 +1511,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_many_by_emails(pool: PgPool) {
+    async fn test_find_many_by_emails(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),

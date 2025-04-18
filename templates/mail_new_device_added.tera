@@ -11,7 +11,7 @@ assigned_ip -> ip of device in location
 {# Generate locations list#}
 {% macro device_locations(locations) %}
 {% for location in locations %}
-{{ macros::paragraph_with_title(title=location.name ~ ":", content=location.assigned_ip)}}
+{{ macros::paragraph_with_title(title=location.name ~ ":", content=location.assigned_ips)}}
 {% endfor %}
 {% endmacro device_locations %}
 {# mail content #}

@@ -77,10 +77,10 @@ pub async fn generate_firewall_rules_from_acls(
                 });
 
         // fetch allowed network devices
-        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn).await?;
+        let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
 
         // fetch denied network devices
-        let denied_network_devices = acl.get_all_denied_devices(&mut *conn).await?;
+        let denied_network_devices = acl.get_all_denied_devices(&mut *conn, location_id).await?;
 
         // get network device IPs for rule source
         let network_devices =
@@ -864,7 +864,10 @@ mod test {
     use chrono::NaiveDateTime;
     use ipnetwork::{IpNetwork, Ipv6Network};
     use rand::{thread_rng, Rng};
-    use sqlx::{query, PgPool};
+    use sqlx::{
+        postgres::{PgConnectOptions, PgPoolOptions},
+        query, PgPool,
+    };
 
     use super::{
         get_last_ip_in_v6_subnet, get_source_users, merge_addrs, merge_port_ranges,
@@ -873,7 +876,7 @@ mod test {
     use crate::{
         db::{
             models::device::{DeviceType, WireguardNetworkDevice},
-            Device, Group, Id, NoId, User, WireguardNetwork,
+            setup_pool, Device, Group, Id, NoId, User, WireguardNetwork,
         },
         enterprise::{
             db::models::acl::{
@@ -1625,7 +1628,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_generate_firewall_rules_ipv4(pool: PgPool) {
+    async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test location
@@ -2038,7 +2043,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_generate_firewall_rules_ipv6(pool: PgPool) {
+    async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut rng = thread_rng();
 
         // Create test location
@@ -3049,7 +3055,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_expired_acl_rules_ipv4(pool: PgPool) {
+    async fn test_expired_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3118,7 +3125,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_expired_acl_rules_ipv6(pool: PgPool) {
+    async fn test_expired_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3261,7 +3269,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_disabled_acl_rules_ipv4(pool: PgPool) {
+    async fn test_disabled_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3330,7 +3339,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_disabled_acl_rules_ipv6(pool: PgPool) {
+    async fn test_disabled_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3473,7 +3483,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_unapplied_acl_rules_ipv4(pool: PgPool) {
+    async fn test_unapplied_acl_rules_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3542,7 +3553,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_unapplied_acl_rules_ipv6(pool: PgPool) {
+    async fn test_unapplied_acl_rules_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3685,7 +3697,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_acl_rules_all_locations_ipv4(pool: PgPool) {
+    async fn test_acl_rules_all_locations_ipv4(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut rng = thread_rng();
 
         // Create test location

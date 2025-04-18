@@ -39,4 +39,8 @@
       color: var(--text-positive);
     }
   }
+
+  &.status-expired {
+    color: var(--text-important);
+  }
 }

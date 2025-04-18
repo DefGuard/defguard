@@ -270,10 +270,16 @@ impl MFAInfo {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
+    use crate::db::setup_pool;
+
     use super::*;
 
     #[sqlx::test]
-    async fn test_user_info(pool: PgPool) {
+    async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user = User::new(
             "hpotter",
             Some("pass123"),

@@ -11,12 +11,11 @@
       }
     }
 
-    & > .message-box {
-      min-height: 15px;
-      margin-bottom: 20px;
+    & > .message-box-spacer {
+      padding-bottom: 20px;
 
       @include media-breakpoint-up(lg) {
-        margin-bottom: 40px;
+        padding-bottom: 40px;
       }
     }
 
@@ -59,6 +58,7 @@
       & > a {
         color: var(--text-body-secondary);
       }
+
       @include typography(app-modal-2);
       color: var(--text-body-secondary);
     }

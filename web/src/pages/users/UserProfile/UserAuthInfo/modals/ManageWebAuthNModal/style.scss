@@ -2,14 +2,12 @@
   padding-bottom: 26px;
 
   & > .content {
-    & > .message-box {
+    & > .message-box-spacer {
       box-sizing: border-box;
-      min-height: 70px;
-      margin-bottom: 20px;
+      padding-bottom: 20px;
 
       @include media-breakpoint-up(lg) {
-        width: calc(100% - 60px);
-        margin: 0 30px 34px;
+        padding: 0 30px 34px;
       }
     }
 

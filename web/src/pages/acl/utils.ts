@@ -1,6 +1,6 @@
 import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
 import { AclRuleInfo } from '../../shared/types';
-import { ListTagDisplay } from './AclIndexPage/components/shared/types';
+import { ListCellTag } from './AclIndexPage/components/shared/types';
 import { AclAliasStatus, AclProtocol, AclStatus } from './types';
 
 export const aclStatusToInt = (status: AclStatus): number => {
@@ -81,7 +81,7 @@ export const protocolOptions: SelectOption<number>[] = [
   },
 ];
 
-export const aclDestinationToListTagDisplay = (destination: string): ListTagDisplay[] =>
+export const aclDestinationToListTagDisplay = (destination: string): ListCellTag[] =>
   destination
     .split(',')
     .filter((s) => s !== '')
@@ -91,7 +91,7 @@ export const aclDestinationToListTagDisplay = (destination: string): ListTagDisp
       displayAsTag: false,
     }));
 
-export const aclPortsToListTagDisplay = (ports: string): ListTagDisplay[] =>
+export const aclPortsToListTagDisplay = (ports: string): ListCellTag[] =>
   ports
     .split(',')
     .filter((s) => s !== '')
@@ -101,16 +101,14 @@ export const aclPortsToListTagDisplay = (ports: string): ListTagDisplay[] =>
       displayAsTag: false,
     }));
 
-export const aclProtocolsToListTagDisplay = (
-  protocols: AclProtocol[],
-): ListTagDisplay[] =>
+export const aclProtocolsToListTagDisplay = (protocols: AclProtocol[]): ListCellTag[] =>
   protocols.map((protocol) => ({
     key: protocol.toString(),
     label: protocolToString(protocol),
     displayAsTag: false,
   }));
 
-export const aclRuleToListTagDisplay = (rules: AclRuleInfo[]): ListTagDisplay[] =>
+export const aclRuleToListTagDisplay = (rules: AclRuleInfo[]): ListCellTag[] =>
   rules.map((rule) => ({
     key: rule.id,
     label: rule.name,

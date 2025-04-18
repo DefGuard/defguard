@@ -1,0 +1,11 @@
+.acl-list-skeleton {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-s);
+  width: 100%;
+
+  .react-loading-skeleton {
+    border-radius: 10px;
+    height: 60px;
+  }
+}

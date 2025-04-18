@@ -1,9 +1,11 @@
 pub mod models;
 
+#[cfg(test)]
+use sqlx::postgres::PgPoolOptions;
 use sqlx::postgres::{PgConnectOptions, PgPool};
 use utoipa::ToSchema;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ToSchema, Eq, Default, Hash)]
 pub struct NoId;
 pub type Id = i64;
 
@@ -40,3 +42,10 @@ pub use models::{
     yubikey::YubiKey,
     MFAInfo, UserDetails, UserInfo,
 };
+
+#[cfg(test)]
+// Helper function to instantiate pool manually as a workaround for issues with `sqlx::test` macro
+// reference: https://github.com/launchbadge/sqlx/issues/2567#issuecomment-2009849261
+pub async fn setup_pool(options: PgConnectOptions) -> PgPool {
+    PgPoolOptions::new().connect_with(options).await.unwrap()
+}
