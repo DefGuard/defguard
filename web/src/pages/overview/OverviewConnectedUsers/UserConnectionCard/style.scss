@@ -23,7 +23,7 @@
     border-color: var(--gray-border);
   }
 
-  & > .card-expand {
+  &>.card-expand {
     width: 40px;
     height: 40px;
     border: 0 solid transparent;
@@ -34,16 +34,16 @@
     cursor: pointer;
   }
 
-  & > .devices {
+  &>.devices {
     grid-row: 2;
     grid-column: 1 / 2;
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: auto;
 
-    & > .device {
+    &>.device {
       display: grid;
-      grid-template-rows: 40px 50px;
+      grid-template-rows: auto 50px;
       grid-template-columns: 1fr;
       width: 100%;
       row-gap: 20px;
@@ -52,7 +52,7 @@
       overflow: hidden;
       border-top: 1px solid var(--gray-border);
 
-      & > .upper {
+      &>.upper {
         grid-row: 1;
         grid-column: 1 / 2;
         display: grid;
@@ -65,7 +65,7 @@
         height: 100%;
       }
 
-      & > .lower {
+      &>.lower {
         grid-row: 2;
         grid-column: 1 / 2;
         display: grid;
@@ -80,7 +80,7 @@
     }
   }
 
-  & > .user-info {
+  &>.user-info {
     grid-row: 1;
     grid-column: 1 / 2;
     display: grid;
@@ -96,7 +96,7 @@
       grid-template-rows: 40px 50px;
     }
 
-    & > .upper {
+    &>.upper {
       width: 100%;
       max-width: 100%;
       overflow: hidden;
@@ -107,12 +107,12 @@
       box-sizing: border-box;
       padding-right: 25px;
 
-      & > .user-initials-box {
+      &>.user-initials-box {
         grid-row: 1;
         grid-column: 1 / 2;
       }
 
-      & > .name-box {
+      &>.name-box {
         grid-row: 1;
         grid-column: 2 / 3;
       }
@@ -128,7 +128,7 @@
       }
     }
 
-    & > .lower {
+    &>.lower {
       width: 100%;
 
       display: grid;
@@ -190,7 +190,7 @@
     align-content: flex-start;
     justify-content: flex-start;
 
-    & > .content-wrapper {
+    &>.content-wrapper {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -223,7 +223,7 @@
         box-sizing: border-box;
         background-color: var(--bg-light);
 
-        & > span {
+        &>span {
           @include typography-legacy(12px, 14px, medium, var(--gray-light));
         }
       }
@@ -235,12 +235,12 @@
     max-width: 100%;
     overflow: hidden;
     display: grid;
-    grid-template-rows: 1fr 15px;
+    grid-template-rows: auto 1fr;
     grid-template-columns: 1fr;
     row-gap: 8px;
     overflow: hidden;
 
-    & > .name {
+    &>.name {
       grid-row: 1;
       grid-column: 1 / 2;
       @include typography-legacy(15px, 21px, medium, $font-family: 'Poppins');
@@ -248,16 +248,16 @@
       user-select: none;
     }
 
-    & > .lower {
+    &>.lower {
       grid-row: 2;
       grid-column: 1 / 2;
       display: flex;
-      flex-flow: row nowrap;
+      flex-flow: row wrap;
       overflow: hidden;
       align-items: center;
       align-content: center;
       justify-content: flex-start;
-      column-gap: 5px;
+      gap: 5px;
     }
   }
 
@@ -266,7 +266,7 @@
     grid-template-rows: auto 30px;
     grid-template-columns: auto;
 
-    & > .time {
+    &>.time {
       display: flex;
       flex-flow: row nowrap;
       column-gap: 5px;
@@ -274,7 +274,7 @@
       justify-content: center;
       height: 100%;
 
-      & > span {
+      &>span {
         @include typography-legacy(15px, 18px, medium);
         @include text-overflow-dots;
 
@@ -295,7 +295,7 @@
     width: 100%;
     height: 100%;
 
-    & > .network-usage-stats {
+    &>.network-usage-stats {
       grid-row: 1;
       grid-column: 1 / 2;
       display: flex;
@@ -309,7 +309,7 @@
       }
     }
 
-    & > .chart {
+    &>.chart {
       grid-row: 2;
       grid-column: 1 / 2;
     }
