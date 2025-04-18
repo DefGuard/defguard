@@ -2194,7 +2194,7 @@ Any other requests you can reach us at: support@defguard.net
         labels: {
           name: 'Device Name',
           location: 'Location',
-          assignedIp: 'IP Address',
+          assignedIps: 'IP Addresses',
           description: 'Description',
           addedBy: 'Added By',
           addedAt: 'Add Date',

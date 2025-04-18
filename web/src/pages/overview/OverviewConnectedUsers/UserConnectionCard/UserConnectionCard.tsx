@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import './style.scss';
 
 import classNames from 'classnames';
@@ -33,6 +34,7 @@ import {
 } from '../../helpers/stats';
 import { NetworkUsageChart } from '../shared/components/NetworkUsageChart/NetworkUsageChart';
 import { formatConnectionTime } from './formatConnectionTime';
+import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 
 type DeviceConnectionCardProps = {
   data: StandaloneDeviceStats;
@@ -98,7 +100,7 @@ const DeviceCardContent = (props: { data: StandaloneDeviceStats }) => {
         <NameBox
           name={data.name}
           publicIp={data.public_ip}
-          wireguardIp={data.wireguard_ip}
+          wireguardIps={data.wireguard_ips}
         />
       </div>
       <div className="lower device">
@@ -163,7 +165,7 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
         <NameBox
           name={getUserFullName(data.user)}
           publicIp={getOldestDevice.public_ip}
-          wireguardIp={getOldestDevice.wireguard_ip}
+          wireguardIps={getOldestDevice.wireguard_ips}
         />
       </div>
       <div className="lower">
@@ -202,21 +204,22 @@ const MainCardContent = ({ data }: MainCardContentProps) => {
 interface NameBoxProps {
   name: string;
   publicIp?: string;
-  wireguardIp?: string;
+  wireguardIps?: string[];
 }
 
-const NameBox = ({ name, publicIp, wireguardIp }: NameBoxProps) => {
+const NameBox = ({ name, publicIp, wireguardIps }: NameBoxProps) => {
   return (
     <div className="name-box">
       <span className="name">{name}</span>
-      {(publicIp || wireguardIp) && (
+      {(isPresent(publicIp) || isPresent(wireguardIps)) && (
         <div className="lower">
           {publicIp !== undefined && publicIp.length > 0 && (
             <Badge type={BadgeStyleVariant.STANDARD} text={publicIp} />
           )}
-          {wireguardIp !== undefined && wireguardIp.length > 0 && (
-            <Badge type={BadgeStyleVariant.STANDARD} text={wireguardIp} />
-          )}
+          {isPresent(wireguardIps) &&
+            wireguardIps.map((ip) => (
+              <Badge type={BadgeStyleVariant.STANDARD} text={ip} key={ip} />
+            ))}
         </div>
       )}
     </div>
@@ -332,7 +335,7 @@ const ExpandedDeviceCard = ({ data }: ExpandedDeviceCardProps) => {
         <NameBox
           name={titleCase(data.name)}
           publicIp={data.public_ip}
-          wireguardIp={data.wireguard_ip}
+          wireguardIps={data.wireguard_ips}
         />
       </div>
       <div className="lower">

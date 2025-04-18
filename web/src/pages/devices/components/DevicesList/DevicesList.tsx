@@ -48,7 +48,7 @@ export const DevicesList = () => {
         sortDirection: ListSortDirection.DESC,
       },
       { key: 1, text: labels.location() },
-      { key: 2, text: labels.assignedIp() },
+      { key: 2, text: labels.assignedIps() },
       { key: 3, text: labels.description() },
       { key: 4, text: labels.addedBy() },
       { key: 5, text: labels.addedAt() },
