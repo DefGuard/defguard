@@ -172,9 +172,9 @@ pub enum WireguardNetworkError {
 }
 
 #[derive(Debug, Error)]
-pub(crate) enum NetworkIpAssignmentError {
+pub enum NetworkIpAssignmentError {
     #[error(
-        "Location {0} has no network that could contain IP address {2}, available networks: {1:?}"
+        "Location {0} has no network that could contain IP address {1}, available networks: {2:?}"
     )]
     NoContainingNetwork(String, IpAddr, Vec<IpNetwork>),
     #[error("IP address {1} is reserved for gateway in location {0}")]
@@ -1166,7 +1166,7 @@ impl WireguardNetwork<Id> {
 
     /// Checks if the IP addresses fall into the range of the network
     /// and if they are not already assigned to another device.
-    pub async fn can_assign_ips(
+    pub(crate) async fn can_assign_ips(
         &self,
         ip_addrs: &[IpAddr],
         transaction: &mut PgConnection,
@@ -1177,10 +1177,6 @@ impl WireguardNetwork<Id> {
             .map(|ip| self.get_containing_network(*ip).ok_or(*ip))
             .collect::<Result<Vec<IpNetwork>, IpAddr>>()
             .map_err(|ip| {
-                // WebError::BadRequest(format!(
-                //     "Provided IP addresses {ip_addrs:?} are not in the network ({}) range {:?}",
-                //     network.name, network.address,
-                // ))
                 NetworkIpAssignmentError::NoContainingNetwork(
                     self.name.clone(),
                     ip,
@@ -1188,40 +1184,20 @@ impl WireguardNetwork<Id> {
                 )
             })?;
         for (ip, network_address) in zip(ip_addrs, networks) {
-            // validate ip address within network
             let net_ip = network_address.ip();
             let net_network = network_address.network();
             let net_broadcast = network_address.broadcast();
-            // if *ip == net_network || *ip == net_broadcast {
-            //     return Err(WebError::BadRequest(format!(
-            //         "Provided IP address {ip} is a network or broadcast address of network {}",
-            //         network.name
-            //     )));
-            // }
             if *ip == net_network {
-                // return Err(WebError::BadRequest(format!(
-                //     "Provided IP address {ip} is a network address of network {}",
-                //     network.name
-                // )));
                 return Err(NetworkIpAssignmentError::IsNetworkAddress(
                     self.name.clone(),
                     *ip,
                 ));
             } else if *ip == net_broadcast {
-                // return Err(WebError::BadRequest(format!(
-                //     "Provided IP address {ip} is a network address of network {}",
-                //     "Provided IP address {ip} is a network broadcast address of network {}",
-                //     network.name
-                // )));
                 return Err(NetworkIpAssignmentError::IsBroadcastAddress(
                     self.name.clone(),
                     *ip,
                 ));
             } else if *ip == net_ip {
-                // return Err(WebError::BadRequest(format!(
-                //     "Provided IP address {ip} may overlap with the network's gateway IP {net_ip} in network {}",
-                //     network.name
-                // )));
                 return Err(NetworkIpAssignmentError::ReservedForGateway(
                     self.name.clone(),
                     *ip,
@@ -1230,11 +1206,7 @@ impl WireguardNetwork<Id> {
 
             // make sure the ip is unassigned
             let device = Device::find_by_ip(&mut *transaction, *ip, self.id).await?;
-            if let Some(device) = device {
-                // return Err(WebError::BadRequest(format!(
-                //     "Provided IP address {ip} is already assigned to device {} in network {}",
-                //     device.name, network.name
-                // )));
+            if device.is_some() {
                 return Err(NetworkIpAssignmentError::AddressAlreadyAssigned(
                     self.name.clone(),
                     *ip,
@@ -1342,7 +1314,6 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1407,7 +1378,6 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1470,7 +1440,6 @@ mod test {
     #[sqlx::test]
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1563,7 +1532,6 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1646,7 +1614,6 @@ mod test {
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1759,7 +1726,6 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();

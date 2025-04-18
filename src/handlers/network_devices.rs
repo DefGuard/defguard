@@ -258,41 +258,30 @@ pub(crate) async fn check_ip_availability(
             status: StatusCode::OK,
         })
     };
-    return match network.can_assign_ips(&ips, &mut *transaction).await {
+    return match network.can_assign_ips(&ips, &mut transaction).await {
         Ok(_) => mkresponse(true, true),
-        Err(NetworkIpAssignmentError::NoContainingNetwork(ip)) => {
+        Err(NetworkIpAssignmentError::NoContainingNetwork(name, ip, networks)) => {
             warn!(
-                "Provided device IP address {ip} is not in the network {} range: {:?}",
-                network.name, network.address
+                "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
             );
             mkresponse(false, false)
         }
-        Err(NetworkIpAssignmentError::ReservedForGateway(ip)) => {
+        Err(NetworkIpAssignmentError::ReservedForGateway(name, ip)) => {
             warn!(
-                "Provided device IP {ip} address may overlap with the gateway's IP address on network {}",
-                network.name
+                "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
             );
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::IsBroadcastAddress(ip)) => {
-            warn!(
-                "Provided device IP address {ip} is broadcast address of network {}",
-                network.name
-            );
+        Err(NetworkIpAssignmentError::IsBroadcastAddress(name, ip)) => {
+            warn!("Provided device IP address {ip} is broadcast address of network {name}");
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::IsNetworkAddress(ip)) => {
-            warn!(
-                "Provided device IP address {ip} is network address of network {}",
-                network.name
-            );
+        Err(NetworkIpAssignmentError::IsNetworkAddress(name, ip)) => {
+            warn!("Provided device IP address {ip} is network address of network {name}");
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::AddressAlreadyAssigned(ip)) => {
-            warn!(
-                "Provided device IP {ip} is already assigned in network {}",
-                network.name
-            );
+        Err(NetworkIpAssignmentError::AddressAlreadyAssigned(name, ip)) => {
+            warn!("Provided device IP {ip} is already assigned in network {name}");
             mkresponse(false, true)
         }
         Err(NetworkIpAssignmentError::DbError(err)) => Err(err)?,
@@ -366,6 +355,12 @@ pub struct StartNetworkDeviceSetup {
     assigned_ips: Vec<String>,
 }
 
+impl From<NetworkIpAssignmentError> for WebError {
+    fn from(error: NetworkIpAssignmentError) -> Self {
+        WebError::BadRequest(error.to_string())
+    }
+}
+
 // Setup a network device to be later configured by a CLI client
 pub(crate) async fn start_network_device_setup(
     _admin_role: AdminRole,
@@ -424,7 +419,7 @@ pub(crate) async fn start_network_device_setup(
             WebError::BadRequest(msg)
         })?;
 
-    check_ips(&ips, &network, &mut transaction).await?;
+    network.can_assign_ips(&ips, &mut transaction).await?;
 
     let (_, config) = device
         .add_to_network(&network, &ips, &mut transaction)
@@ -594,7 +589,7 @@ pub(crate) async fn add_network_device(
             error!(msg);
             WebError::BadRequest(msg)
         })?;
-    check_ips(&ips, &network, &mut transaction).await?;
+    network.can_assign_ips(&ips, &mut transaction).await?;
 
     let (network_info, config) = device
         .add_to_network(&network, &ips, &mut transaction)
@@ -703,14 +698,9 @@ pub async fn modify_network_device(
     // IP address has changed, so remove device from network and add it again with new IP address.
     // TODO(jck) order-insensitive comparison
     if new_ips != *wireguard_network_device.wireguard_ip {
-        // check_ips(&new_ips, &device_network, &mut transaction).await?;
-        match device_network
-            .can_assign_ips(&new_ips, &mut *transaction)
-            .await
-        {
-            Ok(_) => (),
-            Err(_) => todo!(),
-        };
+        device_network
+            .can_assign_ips(&new_ips, &mut transaction)
+            .await?;
         // TODO(jck)
         wireguard_network_device.wireguard_ip = new_ips.clone();
         wireguard_network_device.update(&mut *transaction).await?;

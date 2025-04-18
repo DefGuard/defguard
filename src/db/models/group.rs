@@ -293,8 +293,6 @@ impl WireguardNetwork<Id> {
         );
         Ok(())
     }
-
-
 }
 
 #[cfg(test)]

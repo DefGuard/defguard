@@ -1,4 +1,4 @@
-use std::{fmt, iter::zip, net::IpAddr};
+use std::{fmt, net::IpAddr};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 #[cfg(test)]
@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{NetworkIpAssignmentError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
 };
 use crate::{
     db::{Id, NoId, User},
@@ -515,8 +515,8 @@ pub enum DeviceError {
     PubkeyConflict(Device<Id>, String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
-    #[error("Model error")]
-    ModelError(#[from] ModelError),
+    #[error(transparent)]
+    NetworkIpAssignmentError(#[from] NetworkIpAssignmentError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
 }
@@ -849,39 +849,22 @@ impl Device<Id> {
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         ips: &[IpAddr],
-    ) -> Result<WireguardNetworkDevice, ModelError> {
-        // make sure the network contains all provided ips
-        let networks = ips
-            .iter()
-            .map(|ip| {
-                network
-                    .get_containing_network(*ip)
-                    .ok_or(ModelError::CannotCreate)
-            })
-            .collect::<Result<Vec<IpNetwork>, ModelError>>()?;
-        for (ip, network_address) in zip(ips, networks) {
-            // validate ip address
-            let net_ip = network_address.ip();
-            let net_network = network_address.network();
-            let net_broadcast = network_address.broadcast();
-            if *ip == net_ip || *ip == net_network || *ip == net_broadcast {
-                // TODO(jck) more relevant error
-                return Err(ModelError::CannotCreate);
-            }
-
-            // make sure the ip is unassigned
-            if Self::find_by_ip(&mut *transaction, *ip, network.id)
-                .await?
-                .is_some()
-            {
-                // TODO(jck) more relevant error
-                return Err(ModelError::CannotCreate);
-            }
+    ) -> Result<WireguardNetworkDevice, NetworkIpAssignmentError> {
+        debug!(
+            "Assigning IPs: {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
+        // ensure assignment is valid
+        if let Err(err) = network.can_assign_ips(ips, &mut *transaction).await {
+            error!("Invalid network IP assignment: {err}");
+            return Err(err);
         }
-        // if all checks passed, assign the ips
         let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
         wireguard_network_device.insert(&mut *transaction).await?;
-        info!("Assigned IPs: {ips:?} for device: {}", self.name);
+        info!(
+            "Assigned IPs: {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
         Ok(wireguard_network_device)
     }
 
