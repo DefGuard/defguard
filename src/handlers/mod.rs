@@ -131,6 +131,14 @@ impl From<WebError> for ApiResponse {
                     json!({"msg": format!("Port out of range: {port}")}),
                     StatusCode::UNPROCESSABLE_ENTITY,
                 ),
+                AclError::CannotModifyDeletedRuleError(id) => ApiResponse::new(
+                    json!({"msg": format!("Cannot modify deleted ACL rule {id}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::CannotUseModifiedAliasInRuleError(alias_ids) => ApiResponse::new(
+                    json!({"msg": format!("Cannot use modified alias in ACL rule {alias_ids:?}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
             },
             WebError::Http(status) => {
                 error!("{status}");

@@ -9,8 +9,8 @@ use chrono::NaiveDateTime;
 use ipnetwork::{IpNetwork, IpNetworkError};
 use model_derive::Model;
 use sqlx::{
-    error::ErrorKind, postgres::types::PgRange, query, query_as, Error as SqlxError, FromRow,
-    PgConnection, PgExecutor, PgPool, Type,
+    error::ErrorKind, postgres::types::PgRange, query, query_as, query_scalar, Error as SqlxError,
+    FromRow, PgConnection, PgExecutor, PgPool, Type,
 };
 use thiserror::Error;
 
@@ -54,6 +54,10 @@ pub enum AclError {
     InvalidIpRangeError(String),
     #[error("PortOutOfRangeError: {0}")]
     PortOutOfRangeError(i32),
+    #[error("CannotModifyDeletedRuleError: {0}")]
+    CannotModifyDeletedRuleError(Id),
+    #[error("CannotUseModifiedAliasInRuleError: {0:?}")]
+    CannotUseModifiedAliasInRuleError(Vec<Id>),
 }
 
 /// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/in.h
@@ -123,6 +127,7 @@ impl From<PortRange> for PgRange<i32> {
 /// - Modified: the rule has been modified and not yet applied
 /// - Deleted: the rule has been marked for deletion but not yed removed
 /// - Applied: the rule was applied
+/// - Expired: the rule is past it's expiration date
 ///
 /// Applied state does NOT guarantee that all locations have received the rule
 /// and performed appropriate operations, only that the next time configuration
@@ -135,6 +140,7 @@ pub enum RuleState {
     Modified,
     Deleted,
     Applied,
+    Expired,
 }
 
 /// Helper struct combining all DB objects related to given [`AclRule`].
@@ -274,7 +280,8 @@ impl AclRule {
     /// - For rules in `RuleState::Applied` state (rules that are currently active):
     ///   1. Any existing modifications of this rule are deleted
     ///   2. A copy of the rule is created with `RuleState::Modified` state and the original rule as parent
-    /// - For rules in other states (`New`, `Modified` or `Deleted`), we directly update the existing rule
+    /// - For rules in `RuleState::Deleted` we return an error since those should not be modified
+    /// - For rules in other states (`New`, `Modified` ), we directly update the existing rule
     ///   since they haven't been applied.
     ///
     /// This approach allows us to track changes to applied rules while maintaining their history.
@@ -303,9 +310,12 @@ impl AclRule {
 
         // perform appropriate updates depending on existing rule's state
         let rule = match existing_rule.state {
-            RuleState::Applied => {
+            RuleState::Applied | RuleState::Expired => {
                 // create new `RuleState::Modified` rule
-                debug!("Rule {id} state is `Applied` - creating new `Modified` rule object",);
+                debug!(
+                    "Rule {id} state is {:?} - creating new `Modified` rule object",
+                    existing_rule.state
+                );
                 // remove old modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
                     .execute(&mut *transaction)
@@ -326,7 +336,11 @@ impl AclRule {
 
                 rule
             }
-            _ => {
+            RuleState::Deleted => {
+                error!("Cannot update a deleted ACL rule {id}");
+                return Err(AclError::CannotModifyDeletedRuleError(id));
+            }
+            RuleState::New | RuleState::Modified => {
                 debug!(
                     "Rule {id} is a modification to rule {:?} - updating the modification",
                     existing_rule.parent_id,
@@ -334,6 +348,7 @@ impl AclRule {
                 // update the not-yet applied modification itself
                 let mut rule = rule.with_id(id);
                 rule.parent_id = existing_rule.parent_id;
+                rule.state = existing_rule.state;
                 rule.save(&mut *transaction).await?;
 
                 // recreate related objects
@@ -382,11 +397,11 @@ impl AclRule {
 
         // perform appropriate modifications depending on existing rule's state
         match existing_rule.state {
-            RuleState::Applied => {
-                // create new `RuleState::Modified` rule
+            RuleState::Applied | RuleState::Expired => {
+                // create new `RuleState::Deleted` rule
                 debug!(
-                    "Rule {} state is `Applied` - creating new `Deleted` rule object",
-                    id,
+                    "Rule {id} state is {:?} - creating new `Deleted` rule object",
+                    existing_rule.state,
                 );
                 // delete all modifications of this rule
                 let result = query!("DELETE FROM aclrule WHERE parent_id = $1", id)
@@ -397,11 +412,18 @@ impl AclRule {
                     result.rows_affected(),
                 );
 
+                // prefetch related objects for use later
+                let rule_info = existing_rule.to_info(&mut transaction).await?;
+
                 // save as a new rule with appropriate parent_id and state
                 let mut rule = existing_rule.as_noid();
                 rule.state = RuleState::Deleted;
                 rule.parent_id = Some(id);
-                rule.save(&mut *transaction).await?;
+                let rule = rule.save(&mut *transaction).await?;
+
+                // inherit related objects from parent rule
+                rule.create_related_objects(&mut transaction, &rule_info.into())
+                    .await?;
             }
             _ => {
                 // delete the not-yet applied modification itself
@@ -636,6 +658,21 @@ impl AclRule<Id> {
 
         // save related aliases
         debug!("Creating related aliases for ACL rule {rule_id}");
+        // verify if all aliases have a correct state
+        // aliases used for tracking modifications (`AliasState::Modified`) cannot be used by ACL
+        // rules
+        let invalid_alias_ids: Vec<Id> = query_scalar!(
+            "SELECT id FROM aclalias WHERE id = ANY($1) AND state != 'applied'::aclalias_state",
+            &api_rule.aliases
+        )
+        .fetch_all(&mut *transaction)
+        .await?;
+        if !invalid_alias_ids.is_empty() {
+            error!("Cannot use aliases which have not been applied in an ACL rule. Invalid aliases: {invalid_alias_ids:?}");
+            return Err(AclError::CannotUseModifiedAliasInRuleError(
+                invalid_alias_ids,
+            ));
+        };
         for alias_id in &api_rule.aliases {
             let obj = AclRuleAlias {
                 id: NoId,
@@ -843,7 +880,7 @@ impl AclRule<Id> {
 
                 info!("ACL rule {acl_id} was deleted");
             }
-            RuleState::Applied => {
+            RuleState::Applied | RuleState::Expired => {
                 warn!("ACL rule {acl_id} already applied");
                 return Err(AclError::RuleAlreadyAppliedError(self.id));
             }
@@ -928,7 +965,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM aclruleuser r \
                 JOIN \"user\" u \
                 ON u.id = r.user_id \
@@ -954,7 +991,7 @@ impl AclRule<Id> {
             "SELECT u.id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM aclruleuser r \
                 JOIN \"user\" u \
                 ON u.id = r.user_id \
@@ -1133,7 +1170,7 @@ impl AclRuleInfo<Id> {
                 "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1156,7 +1193,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized \
+                from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM \"user\" u \
                 JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1194,7 +1231,7 @@ impl AclRuleInfo<Id> {
                 "SELECT id, username, password_hash, last_name, first_name, email, \
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
-                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized \
+                mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM \"user\" \
                 WHERE is_active = true"
             )
@@ -1217,7 +1254,7 @@ impl AclRuleInfo<Id> {
                 phone, mfa_enabled, totp_enabled, totp_secret, \
                 email_mfa_enabled, email_mfa_secret, \
                 mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-                from_ldap, ldap_pass_randomized \
+                from_ldap, ldap_pass_randomized, ldap_rdn \
                 FROM \"user\" u \
             JOIN group_user gu ON u.id=gu.user_id \
                 WHERE u.is_active=true AND gu.group_id=ANY($1)",
@@ -1239,6 +1276,7 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_allowed_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all allowed network devices for ACL rule {}",
@@ -1248,10 +1286,13 @@ impl AclRuleInfo<Id> {
         if self.allow_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;
@@ -1266,19 +1307,23 @@ impl AclRuleInfo<Id> {
     pub(crate) async fn get_all_denied_devices<'e, E: sqlx::PgExecutor<'e>>(
         &self,
         executor: E,
+        location_id: Id,
     ) -> Result<Vec<Device<Id>>, SqlxError> {
         debug!(
             "Preparing list of all denied network devices for ACL rule {}",
             self.id
         );
         // return all active devices if `allow_all_network_devices` flag is enabled
-        if self.allow_all_network_devices {
+        if self.deny_all_network_devices {
             return query_as!(
                 Device,
-                "SELECT id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
+                "SELECT d.id, name, wireguard_pubkey, user_id, created, description, device_type \"device_type: DeviceType\", \
                     configured \
-                    FROM device \
-                    WHERE device_type = 'network'::device_type AND configured = true",
+                    FROM device d \
+                    JOIN wireguard_network_device wnd \
+                    ON d.id = wnd.device_id \
+                    WHERE device_type = 'network'::device_type AND configured = true AND wireguard_network_id = $1",
+                location_id
             )
                 .fetch_all(executor)
             .await;
@@ -1902,12 +1947,15 @@ mod test {
     use std::ops::Bound;
 
     use rand::{thread_rng, Rng};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::handlers::wireguard::parse_address_list;
+    use crate::{db::setup_pool, handlers::wireguard::parse_address_list};
 
     #[sqlx::test]
-    async fn test_alias(pool: PgPool) {
+    async fn test_alias(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let destination = parse_address_list("10.0.0.1, 10.1.0.0/16");
         let ports = vec![
             PgRange {
@@ -1940,7 +1988,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_allow_conflicting_sources(pool: PgPool) {
+    async fn test_allow_conflicting_sources(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // create the rule
         let rule = AclRule {
             id: NoId,
@@ -2040,7 +2090,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_rule_relations(pool: PgPool) {
+    async fn test_rule_relations(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         // create the rule
         let mut rule = AclRule {
             id: NoId,
@@ -2357,7 +2409,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_allowed_users(pool: PgPool) {
+    async fn test_all_allowed_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test users
@@ -2470,7 +2524,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_denied_users(pool: PgPool) {
+    async fn test_all_denied_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test users

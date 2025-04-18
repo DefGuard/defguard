@@ -27,8 +27,8 @@
     svg {
       path {
         @include animate-field;
-        transition-property: stroke;
-        stroke: var(--surface-icon-primary);
+        transition-property: fill;
+        fill: var(--surface-icon-primary);
       }
     }
 
@@ -42,7 +42,7 @@
 
         svg {
           path {
-            stroke: var(--surface-icon-secondary);
+            fill: var(--surface-icon-secondary);
           }
         }
       }
@@ -65,6 +65,22 @@
 
     @include animate-field;
     transition-property: border-color, opacity;
+
+    &.overflows {
+      &::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 65px;
+        height: 100%;
+        content: ' ';
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0) 0%,
+          var(--surface-default-modal) 100%
+        );
+      }
+    }
 
     .options {
       display: flex;
@@ -90,6 +106,7 @@
         p {
           @include typography(app-input);
           user-select: none;
+          text-wrap: nowrap;
         }
       }
     }
@@ -137,6 +154,27 @@
 
     & > label {
       padding-bottom: var(--spacing-xs);
+    }
+  }
+}
+
+.dialog-select-track-floating-menu {
+  min-width: 200px;
+  max-width: 100dvh;
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+
+    li {
+      @include typography(app-modal-2);
+      display: flex;
+      flex-flow: row wrap;
+      gap: var(--spacing-xs);
+      align-items: center;
+      justify-content: flex-start;
     }
   }
 }

@@ -1,0 +1,26 @@
+#acl-aliases-apply-confirm-modal {
+  .title {
+    color: var(--text-button-primary);
+    text-align: center;
+  }
+
+  .content {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+    max-width: 100%;
+    overflow: hidden;
+
+    p {
+      @include typography(app-body-2);
+      color: var(--text-button-primary);
+      text-align: left;
+      overflow-wrap: break-word;
+      width: 100%;
+
+      &.rules {
+        font-weight: 700;
+      }
+    }
+  }
+}

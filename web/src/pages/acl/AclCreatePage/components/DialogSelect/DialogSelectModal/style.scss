@@ -12,6 +12,10 @@
     box-sizing: border-box;
     overflow: hidden;
 
+    & > .spacer {
+      padding-bottom: var(--spacing-xs);
+    }
+
     hr {
       border: 0.5px solid var(--border-primary);
       margin: var(--spacing-xs) 0;

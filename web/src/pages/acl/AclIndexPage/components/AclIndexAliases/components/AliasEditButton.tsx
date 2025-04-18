@@ -79,7 +79,10 @@ export const AliasEditButton = ({ alias }: EditProps) => {
           if (alias.rules.length === 0) {
             deleteAliasMutation(alias.id);
           } else {
-            openDeleteBlockModal(alias);
+            openDeleteBlockModal(
+              alias,
+              alias.display.rules.map((tag) => tag.label).sort(),
+            );
           }
         }}
       />

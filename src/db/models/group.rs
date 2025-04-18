@@ -84,7 +84,7 @@ impl Group<Id> {
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
             mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
-            from_ldap, ldap_pass_randomized \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" \
             JOIN group_user ON \"user\".id = group_user.user_id \
             WHERE group_user.group_id = $1",
@@ -297,11 +297,15 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
-    use crate::db::{PgPool, User};
+    use crate::db::{setup_pool, User};
 
     #[sqlx::test]
-    async fn test_group(pool: PgPool) {
+    async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("worker").save(&pool).await.unwrap();
 
         let fetched_group = Group::find_by_name(&pool, "worker").await.unwrap();
@@ -318,7 +322,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_group_members(pool: PgPool) {
+    async fn test_group_members(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("worker").save(&pool).await.unwrap();
         let user = User::new(
             "hpotter",
@@ -344,7 +350,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_group_permissions(pool: PgPool) {
+    async fn test_group_permissions(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("admin2").save(&pool).await.unwrap();
         let user = User::new(
             "hpotter",

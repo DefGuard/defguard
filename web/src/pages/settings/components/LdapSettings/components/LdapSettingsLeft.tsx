@@ -77,6 +77,12 @@ export const LdapSettingsLeft = ({ control }: { control: Control<FormFields> }) 
           disabled={!enterpriseEnabled}
         />
         <FormInput
+          controller={{ control, name: 'ldap_user_rdn_attr' }}
+          label={localLL.form.labels.ldap_user_rdn_attr()}
+          disabled={!enterpriseEnabled}
+          labelExtras={<Helper>{localLL.form.helpers.ldap_user_rdn_attr()}</Helper>}
+        />
+        <FormInput
           controller={{ control, name: 'ldap_user_search_base' }}
           label={localLL.form.labels.ldap_user_search_base()}
           disabled={!enterpriseEnabled}

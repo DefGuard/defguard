@@ -27,7 +27,10 @@ import {
   aclProtocolsToListTagDisplay,
   aclRuleToListTagDisplay,
 } from '../../../utils';
+import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
+import { DeployChangesIcon } from '../DeployChangesIcon';
 import { AliasesList } from './components/AliasesList';
+import { AclAliasApplyConfirmModal } from './modals/AclAliasApplyConfirmModal/AclAliasApplyConfirmModal';
 import { AclAliasDeleteBlockModal } from './modals/AclAliasDeleteBlockModal/AclAliasDeleteBlockModal';
 import { AlcAliasCEModal } from './modals/AlcAliasCEModal/AlcAliasCEModal';
 import { useAclAliasCEModal } from './modals/AlcAliasCEModal/store';
@@ -42,6 +45,18 @@ type ListTagDisplay = {
 type AliasesFilters = {
   rules: number[];
   status: number[];
+};
+
+type ApplyConfirmState = {
+  rules: string[];
+  open: boolean;
+  aliasesToApply: number[];
+};
+
+const defaultApplyConfirmState: ApplyConfirmState = {
+  rules: [],
+  aliasesToApply: [],
+  open: false,
 };
 
 export type ListData = {
@@ -66,7 +81,7 @@ export const AclIndexAliases = () => {
     },
   } = useApi();
 
-  const { data: aclRules } = useQuery({
+  const { data: aclRules, isLoading: aliasesLoading } = useQuery({
     queryFn: getRules,
     queryKey: [QueryKeys.FETCH_ACL_RULES],
     refetchOnMount: true,
@@ -74,6 +89,9 @@ export const AclIndexAliases = () => {
 
   const queryClient = useQueryClient();
   const openCEModal = useAclAliasCEModal((s) => s.open, shallow);
+  const [applyConfirmModalState, setApplyConfirmModalState] = useState<ApplyConfirmState>(
+    defaultApplyConfirmState,
+  );
   const aclContext = useAclLoadedContext();
   const { aliases } = aclContext;
   const [appliedFilters, setAppliedFilters] = useState<AliasesFilters>(defaultFilters);
@@ -252,6 +270,42 @@ export const AclIndexAliases = () => {
     localLL.modals.filterGroupsModal.groupLabels,
   ]);
 
+  const handleApply = () => {
+    if (aliases && aclRules) {
+      let toApply: AclAlias[];
+      if (!pendingSelectionCount) {
+        toApply = pending;
+      } else {
+        const ids: number[] = Object.keys(selectedPending)
+          .filter((key: string) => selectedPending[Number(key)])
+          .map((key) => Number(key));
+        toApply = pending.filter((alias) => ids.includes(alias.id));
+      }
+      const aliasesIds = toApply.map((alias) => alias.id);
+      const rulesWithin = new Set<number>();
+      toApply.forEach((alias) => {
+        alias.rules.forEach((rule) => {
+          rulesWithin.add(rule);
+        });
+      });
+      // check if need to confirm
+      if (rulesWithin.size) {
+        //prepare and open modal
+        const ruleNames: string[] = aclRules
+          .filter((rule) => rulesWithin.has(rule.id))
+          .map((rule) => rule.name)
+          .sort();
+        setApplyConfirmModalState({
+          aliasesToApply: aliasesIds,
+          open: true,
+          rules: ruleNames,
+        });
+      } else {
+        void applyMutation(aliasesIds);
+      }
+    }
+  };
+
   // update or build selection state for list when rules are done loading
   useEffect(() => {
     if (aliases) {
@@ -270,6 +324,17 @@ export const AclIndexAliases = () => {
   return (
     <>
       <AclAliasDeleteBlockModal />
+      <AclAliasApplyConfirmModal
+        isOpen={applyConfirmModalState.open}
+        rules={applyConfirmModalState.rules}
+        setOpen={(val) => {
+          setApplyConfirmModalState((s) => ({ ...s, open: val }));
+        }}
+        onSubmit={() => {
+          void applyMutation(applyConfirmModalState.aliasesToApply);
+          setApplyConfirmModalState(defaultApplyConfirmState);
+        }}
+      />
       <div id="acl-aliases">
         <header>
           <h2>Aliases</h2>
@@ -318,24 +383,8 @@ export const AclIndexAliases = () => {
               text={applyText}
               disabled={pendingDisplay.length === 0}
               loading={applyPending}
-              onClick={() => {
-                if (aliases) {
-                  if (!pendingSelectionCount) {
-                    const toApply = aliases
-                      .filter((alias) => alias.state === AclAliasStatus.MODIFIED)
-                      .map((alias) => alias.id);
-                    applyMutation(toApply);
-                  } else {
-                    const aliasesToApply: number[] = [];
-                    for (const key in selectedPending) {
-                      if (selectedPending[key]) {
-                        aliasesToApply.push(Number(key));
-                      }
-                    }
-                    applyMutation(aliasesToApply);
-                  }
-                }
-              }}
+              onClick={handleApply}
+              icon={<DeployChangesIcon />}
             />
             <Button
               text={localLL.listControls.addNew()}
@@ -369,33 +418,38 @@ export const AclIndexAliases = () => {
             />
           </div>
         </header>
-        <AliasesList
-          header={{
-            text: localLL.list.pendingList.title(),
-          }}
-          data={pendingDisplay}
-          noDataMessage={
-            filtersPresent
-              ? localLL.list.pendingList.noDataSearch()
-              : localLL.list.pendingList.noData()
-          }
-          selected={selectedPending}
-          allSelected={pendingSelectionCount === pendingAliasesCount}
-          onSelect={handlePendingSelect}
-          onSelectAll={handlePendingSelectAll}
-        />
-        <AliasesList
-          isAppliedList
-          header={{
-            text: localLL.list.deployedList.title(),
-          }}
-          data={deployedDisplay}
-          noDataMessage={
-            filtersPresent
-              ? localLL.list.deployedList.noDataSearch()
-              : localLL.list.deployedList.noData()
-          }
-        />
+        {aliasesLoading && <AclListSkeleton />}
+        {!aliasesLoading && (
+          <>
+            <AliasesList
+              header={{
+                text: localLL.list.pendingList.title(),
+              }}
+              data={pendingDisplay}
+              noDataMessage={
+                filtersPresent
+                  ? localLL.list.pendingList.noDataSearch()
+                  : localLL.list.pendingList.noData()
+              }
+              selected={selectedPending}
+              allSelected={pendingSelectionCount === pendingAliasesCount}
+              onSelect={handlePendingSelect}
+              onSelectAll={handlePendingSelectAll}
+            />
+            <AliasesList
+              isAppliedList
+              header={{
+                text: localLL.list.deployedList.title(),
+              }}
+              data={deployedDisplay}
+              noDataMessage={
+                filtersPresent
+                  ? localLL.list.deployedList.noDataSearch()
+                  : localLL.list.deployedList.noData()
+              }
+            />
+          </>
+        )}
         <AlcAliasCEModal />
         <FilterGroupsModal
           isOpen={filtersModalOpen}
