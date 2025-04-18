@@ -1109,7 +1109,7 @@ export interface NetworkDeviceStats {
   id: number;
   name: string;
   public_ip: string;
-  wireguard_ip: string;
+  wireguard_ips: string[];
   stats: NetworkSpeedStats[];
 }
 
@@ -1123,7 +1123,7 @@ export type StandaloneDeviceStats = {
   stats: NetworkSpeedStats[];
   user_id: number;
   name: string;
-  wireguard_ip?: string;
+  wireguard_ips: string[];
   public_ip?: string;
   connected_at?: string;
 };
