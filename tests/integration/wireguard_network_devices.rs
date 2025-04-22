@@ -90,21 +90,19 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     // ip suggestions
     let response = client.get("/api/v1/device/network/ip/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<Value>().await;
-    let ips = res["ip"].as_str().unwrap();
-    let ips: Vec<IpAddr> = ips.split(",").map(|ip| ip.parse().unwrap()).collect();
-    let net_ip = IpAddr::from_str("10.1.1.1").unwrap();
-    let network_range = IpNetwork::new(net_ip, 24).unwrap();
-    for ip in &ips {
-        assert!(network_range.contains(*ip));
+    #[derive(Deserialize)]
+    struct SplitIp {
+        ip: IpAddr,
     }
+    let ips: Vec<SplitIp> = response.json().await;
+    assert_eq!(ips.len(), 1);
+    let network_range = IpNetwork::from_str("10.1.1.1/24").unwrap();
+    assert!(network_range.contains(ips[0].ip));
 
     // checking whether ip is valid/available
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.2".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.2".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -115,11 +113,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.0".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.0".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -130,11 +126,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(!res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.1".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.1".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -145,11 +139,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(!res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.abc".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.abc".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -164,7 +156,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let network_device = AddNetworkDevice {
         name: "device-1".into(),
         wireguard_pubkey: "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=".into(),
-        assigned_ips: ips.iter().map(IpAddr::to_string).collect(),
+        assigned_ips: ips.iter().map(|ip| ip.ip.to_string()).collect(),
         location_id: 1,
         description: None,
     };
