@@ -218,11 +218,13 @@ export const NetworkEditForm = () => {
     return defaultValues;
   }, [defaultValues, networkToForm, networks, selectedNetworkId]);
 
-  const { control, handleSubmit, reset } = useForm<FormFields>({
+  const { control, handleSubmit, reset, watch } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: zodResolver(zodSchema),
     mode: 'all',
   });
+
+  const fieldAclEnabled = watch('acl_enabled');
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     values = trimObjectStrings(values);
@@ -326,7 +328,10 @@ export const NetworkEditForm = () => {
           labelPlacement="right"
           disabled={!enterpriseEnabled}
         />
-        <FormAclDefaultPolicy controller={{ control, name: 'acl_default_allow' }} />
+        <FormAclDefaultPolicy
+          disabled={!fieldAclEnabled}
+          controller={{ control, name: 'acl_default_allow' }}
+        />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}
           label={LL.networkConfiguration.form.fields.keepalive_interval.label()}
