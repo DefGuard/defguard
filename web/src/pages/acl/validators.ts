@@ -2,6 +2,7 @@ import * as ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 
 import { TranslationFunctions } from '../../i18n/i18n-types';
+import { patternStrictIpV4 } from '../../shared/patterns';
 
 export const aclPortsValidator = (LL: TranslationFunctions) =>
   z
@@ -53,13 +54,62 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
       return true;
     }, LL.form.error.invalid());
 
+function dottedMaskToPrefix(mask: string): number | null {
+  if (!mask.includes('.')) return Number(mask);
+  const maskTest =
+    /^(?:255\.255\.255\.(?:0|128|192|224|240|248|252|254|255)|255\.255\.(?:0|128|192|224|240|248|252|254|255)\.0|255\.(?:0|128|192|224|240|248|252|254|255)\.0\.0|(?:0|128|192|224|240|248|252|254|255)\.0\.0\.0)$/;
+  if (!maskTest.test(mask)) return null;
+  if (mask.split('.').length !== 4) return null;
+  const parts = mask.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255)) return null;
+
+  const binary = parts.map((part) => part.toString(2).padStart(8, '0')).join('');
+  if (!/^1*0*$/.test(binary)) return null;
+
+  return binary.indexOf('0') === -1 ? 32 : binary.indexOf('0');
+}
+
+const validateIpPart = (input: string): ipaddr.IPv4 | ipaddr.IPv6 | null => {
+  if (!ipaddr.isValid(input)) return null;
+  const ip = ipaddr.parse(input);
+  if (ip.kind() === 'ipv6') {
+    return ip;
+  }
+  if (!patternStrictIpV4.test(input)) return null;
+  return ip;
+};
+
+function parseSubnet(input: string): [ipaddr.IPv4 | ipaddr.IPv6, number] | null {
+  const [ipPart, maskPart] = input.split('/');
+  if (!ipaddr.isValid(ipPart) || !maskPart) return null;
+  const ip = ipaddr.parse(ipPart);
+  const kind = ip.kind();
+
+  if (kind === 'ipv6') {
+    const prefix = parseInt(maskPart);
+    if (typeof prefix !== 'number' || isNaN(prefix)) {
+      return null;
+    }
+    return [ip, prefix];
+  }
+  if (!patternStrictIpV4.test(ipPart)) return null;
+
+  const prefix = dottedMaskToPrefix(maskPart);
+  if (prefix === null) return null;
+
+  return [ip, prefix];
+}
+
 function isValidIpOrCidr(input: string): boolean {
   try {
     if (input.includes('/')) {
-      const [ip, mask] = ipaddr.parseCIDR(input);
-      return ip !== undefined && typeof mask === 'number';
+      const parsed = parseSubnet(input);
+      if (!parsed) return false;
+      const [ip, mask] = parsed;
+      const cidr = ipaddr.parseCIDR(`${ip.toString()}/${mask}`);
+      return cidr[0] !== undefined && typeof cidr[1] === 'number';
     } else {
-      return ipaddr.isValid(input);
+      return validateIpPart(input) !== null;
     }
   } catch {
     return false;

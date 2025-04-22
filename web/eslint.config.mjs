@@ -59,6 +59,7 @@ export default tseslint.config(
     // @ts-ignore
     rules: {
       ...reactHooks.configs.recommended.rules,
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-misused-promises': [
         'error',
