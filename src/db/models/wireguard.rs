@@ -1164,13 +1164,40 @@ impl WireguardNetwork<Id> {
         .await
     }
 
-    /// Checks if the IP addresses fall into the range of the network
-    /// and if they are not already assigned to another device.
+    /// Determine if a set of IP addresses can be safely assigned on this network.
+    ///
+    /// This method runs three categories of checks in sequence:
+    /// 1. **Range validation**
+    ///    Every address in `ip_addrs` must lie within one of the network's CIDR.
+    ///    Fails with `NoContainingNetwork` if any IP falls outside.
+    ///
+    /// 2. **Reserved‐address checks**
+    ///    - Rejects the network address itself (`IsNetworkAddress`).
+    ///    - Rejects the broadcast address (`IsBroadcastAddress`).
+    ///    - Rejects the gateway/reserved host address (`ReservedForGateway`).
+    ///
+    /// 3. **Conflict detection**
+    ///    Queries the database to see if an IP is already claimed.
+    ///    - If `device_id` is `Some(id)`, any IP already bound to that same device is exempt.
+    ///    - Otherwise, or if bound to a different device, fails with `AddressAlreadyAssigned`.
+    ///
+    /// # Parameters
+    ///
+    /// - `transaction`: Open PostgreSQL transaction to check existing assignments.
+    /// - `ip_addrs`: Candidate `IpAddr`s to validate.
+    /// - `device_id`: If `Some(id)`, IPs already assigned to this device are treated as free;
+    ///                if `None`, all existing assignments count as conflicts.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: All addresses passed every check.
+    /// - `Err(NetworkIpAssignmentError)`: The first failing check
     pub(crate) async fn can_assign_ips(
         &self,
-        ip_addrs: &[IpAddr],
         transaction: &mut PgConnection,
-    ) -> Result<bool, NetworkIpAssignmentError> {
+        ip_addrs: &[IpAddr],
+        device_id: Option<Id>,
+    ) -> Result<(), NetworkIpAssignmentError> {
         // make sure the network contains all provided ips
         let networks = ip_addrs
             .iter()
@@ -1206,7 +1233,7 @@ impl WireguardNetwork<Id> {
 
             // make sure the ip is unassigned
             let device = Device::find_by_ip(&mut *transaction, *ip, self.id).await?;
-            if device.is_some() {
+            if device.is_some_and(|device| device_id != Some(device.id)) {
                 return Err(NetworkIpAssignmentError::AddressAlreadyAssigned(
                     self.name.clone(),
                     *ip,
@@ -1214,7 +1241,7 @@ impl WireguardNetwork<Id> {
             }
         }
 
-        Ok(true)
+        Ok(())
     }
 }
 

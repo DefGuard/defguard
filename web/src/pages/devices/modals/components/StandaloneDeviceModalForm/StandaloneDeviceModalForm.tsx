@@ -156,6 +156,12 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
+  function newIps(formIps: string[]): string[] {
+    const initialIpsSet =
+      new Set<string>(initialIpRecommendation.map((ip) => ip.network_part + ip.modifiable_part));
+    const formIpsSet = new Set<string>(formIps);
+    return Array.from(formIpsSet.difference(initialIpsSet))
+  }
   const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (
     formValues,
   ) => {
@@ -176,7 +182,7 @@ export const StandaloneDeviceModalForm = ({
     }
     try {
       const response = await validateLocationIp({
-        ips: values.modifiableIpParts,
+        ips: newIps(values.modifiableIpParts),
         location: values.location_id,
       });
       const { available, valid } = response;

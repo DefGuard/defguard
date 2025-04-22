@@ -262,7 +262,7 @@ pub(crate) async fn check_ip_availability(
             status: StatusCode::OK,
         })
     };
-    return match network.can_assign_ips(&ips, &mut transaction).await {
+    return match network.can_assign_ips(&mut transaction, &ips, None).await {
         Ok(_) => mkresponse(true, true),
         Err(NetworkIpAssignmentError::NoContainingNetwork(name, ip, networks)) => {
             warn!(
@@ -423,7 +423,7 @@ pub(crate) async fn start_network_device_setup(
             WebError::BadRequest(msg)
         })?;
 
-    network.can_assign_ips(&ips, &mut transaction).await?;
+    network.can_assign_ips(&mut transaction, &ips, None).await?;
 
     let (_, config) = device
         .add_to_network(&network, &ips, &mut transaction)
@@ -593,7 +593,7 @@ pub(crate) async fn add_network_device(
             error!(msg);
             WebError::BadRequest(msg)
         })?;
-    network.can_assign_ips(&ips, &mut transaction).await?;
+    network.can_assign_ips(&mut transaction, &ips, None).await?;
 
     let (network_info, config) = device
         .add_to_network(&network, &ips, &mut transaction)
@@ -703,7 +703,7 @@ pub async fn modify_network_device(
     // TODO(jck) order-insensitive comparison
     if new_ips != *wireguard_network_device.wireguard_ip {
         device_network
-            .can_assign_ips(&new_ips, &mut transaction)
+            .can_assign_ips(&mut transaction, &new_ips, Some(device.id))
             .await?;
         // TODO(jck)
         wireguard_network_device.wireguard_ip = new_ips.clone();

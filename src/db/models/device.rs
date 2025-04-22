@@ -855,7 +855,10 @@ impl Device<Id> {
             self.name, network.name
         );
         // ensure assignment is valid
-        if let Err(err) = network.can_assign_ips(ips, &mut *transaction).await {
+        if let Err(err) = network
+            .can_assign_ips(&mut *transaction, ips, Some(self.id))
+            .await
+        {
             error!("Invalid network IP assignment: {err}");
             return Err(err);
         }
