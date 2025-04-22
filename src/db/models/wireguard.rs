@@ -1332,7 +1332,10 @@ pub struct WireguardNetworkStats {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use chrono::{SubsecRound, TimeDelta};
+    use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
@@ -1889,5 +1892,271 @@ mod test {
         }
 
         transaction.commit().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "network".to_string(),
+            vec![IpNetwork::from_str("10.1.1.1/24").unwrap()],
+            50051,
+            String::new(),
+            None,
+            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
+            300,
+            300,
+            false,
+            false,
+        )
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign free address
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // assign multiple free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("10.1.1.3").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // try to assign address from another network
+        let addrs = vec![IpAddr::from_str("10.2.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::NoContainingNetwork(..))
+        );
+
+        // try to assign already assigned address
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".to_string(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let _wnd = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::AddressAlreadyAssigned(..))
+        );
+
+        // assign with exception for the device
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
+                .await,
+            Ok(())
+        );
+
+        // try to assign gateway address
+        let addrs = vec![IpAddr::from_str("10.1.1.1").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::ReservedForGateway(..))
+        );
+
+        // try to assign network address
+        let addrs = vec![IpAddr::from_str("10.1.1.0").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::IsNetworkAddress(..))
+        );
+
+        // try to assign broadcast address
+        let addrs = vec![IpAddr::from_str("10.1.1.255").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::IsBroadcastAddress(..))
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "network".to_string(),
+            vec![
+                IpNetwork::from_str("10.1.1.1/24").unwrap(),
+                IpNetwork::from_str("fc00::1/112").unwrap(),
+            ],
+            50051,
+            String::new(),
+            None,
+            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
+            300,
+            300,
+            false,
+            false,
+        )
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("fc00::2").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // assign multiple free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("10.1.1.3").unwrap(),
+            IpAddr::from_str("fc00::2").unwrap(),
+            IpAddr::from_str("fc00::3").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // try to assign address from another network
+        let addrs = vec![IpAddr::from_str("fa::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::NoContainingNetwork(..))
+        );
+
+        // try to assign already assigned address
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".to_string(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        let _wnd = WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.1.1.2").unwrap(), IpAddr::from_str("fc00::2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::AddressAlreadyAssigned(..))
+        );
+
+        // assign with exception for the device
+        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
+                .await,
+            Ok(())
+        );
+
+        // try to assign gateway address
+        let addrs = vec![IpAddr::from_str("fc00::1").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::ReservedForGateway(..))
+        );
+
+        // try to assign network address
+        let addrs = vec![IpAddr::from_str("fc00::0").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::IsNetworkAddress(..))
+        );
+
+        // try to assign broadcast address
+        let addrs = vec![IpAddr::from_str("fc00::ffff").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkIpAssignmentError::IsBroadcastAddress(..))
+        );
     }
 }
