@@ -49,7 +49,7 @@ pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: Vec<IpAddr>,
+    pub wireguard_ips: Vec<IpAddr>,
 }
 
 pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
@@ -512,7 +512,7 @@ impl WireguardNetwork<Id> {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
                 // network address changed and IP needs to be updated
-                if !self.contains_all(&device_network_config.wireguard_ip) {
+                if !self.contains_all(&device_network_config.wireguard_ips) {
                     // TODO(jck) ensure we don't leak IP addresses here
                     let wireguard_network_device = device
                         .assign_next_network_ip(&mut *transaction, self, reserved_ips)
@@ -521,7 +521,7 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ips: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         }],
@@ -541,7 +541,7 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ips: device_network_config.wireguard_ip,
+                            device_wireguard_ips: device_network_config.wireguard_ips,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,
                         }],
@@ -563,7 +563,7 @@ impl WireguardNetwork<Id> {
                 device,
                 network_info: vec![DeviceNetworkInfo {
                     network_id: self.id,
-                    device_wireguard_ips: wireguard_network_device.wireguard_ip,
+                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
                     preshared_key: wireguard_network_device.preshared_key,
                     is_authorized: wireguard_network_device.is_authorized,
                 }],
@@ -705,7 +705,7 @@ impl WireguardNetwork<Id> {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id: self.id,
-                                    device_wireguard_ips: wireguard_network_device.wireguard_ip,
+                                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
                                     preshared_key: wireguard_network_device.preshared_key,
                                     is_authorized: wireguard_network_device.is_authorized,
                                 }],
@@ -780,12 +780,12 @@ impl WireguardNetwork<Id> {
                     let wireguard_network_device = WireguardNetworkDevice::new(
                         self.id,
                         device.id,
-                        mapped_device.wireguard_ip.clone(),
+                        mapped_device.wireguard_ips.clone(),
                     );
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
                         network_id: self.id,
-                        device_wireguard_ips: wireguard_network_device.wireguard_ip,
+                        device_wireguard_ips: wireguard_network_device.wireguard_ips,
                         preshared_key: wireguard_network_device.preshared_key,
                         is_authorized: wireguard_network_device.is_authorized,
                     });
@@ -797,12 +797,12 @@ impl WireguardNetwork<Id> {
                         let wireguard_network_device = WireguardNetworkDevice::new(
                             self.id,
                             device.id,
-                            mapped_device.wireguard_ip.clone(),
+                            mapped_device.wireguard_ips.clone(),
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ips: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         });
@@ -1186,12 +1186,12 @@ impl WireguardNetwork<Id> {
     /// - `transaction`: Open PostgreSQL transaction to check existing assignments.
     /// - `ip_addrs`: Candidate `IpAddr`s to validate.
     /// - `device_id`: If `Some(id)`, IPs already assigned to this device are treated as free;
-    ///                if `None`, all existing assignments count as conflicts.
+    ///   if `None`, all existing assignments count as conflicts.
     ///
     /// # Returns
     ///
     /// - `Ok(())`: All addresses passed every check.
-    /// - `Err(NetworkIpAssignmentError)`: The first failing check
+    /// - `Err(NetworkIpAssignmentError)`: The first failing check.
     pub(crate) async fn can_assign_ips(
         &self,
         transaction: &mut PgConnection,

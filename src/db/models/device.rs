@@ -160,7 +160,7 @@ impl DeviceInfo {
         let network_info = query_as!(
             DeviceNetworkInfo,
             "SELECT wireguard_network_id network_id, \
-                wireguard_ip \"device_wireguard_ips: Vec<IpAddr>\", \
+                wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
@@ -208,7 +208,7 @@ impl UserDevice {
                 ORDER BY network, collected_at DESC \
             ) \
             SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-            wnd.wireguard_ip \"device_wireguard_ip: Vec<IpAddr>\", stats.endpoint device_endpoint, \
+            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", stats.endpoint device_endpoint, \
             stats.latest_handshake \"latest_handshake?\", \
             COALESCE((NOW() - stats.latest_handshake) < $1, FALSE) \"is_active!\" \
             FROM wireguard_network_device wnd \
@@ -239,7 +239,7 @@ impl UserDevice {
                     network_name: r.network_name,
                     network_gateway_ip: r.gateway_endpoint,
                     device_wireguard_ips: r
-                        .device_wireguard_ip
+                        .device_wireguard_ips
                         .iter()
                         .map(IpAddr::to_string)
                         .collect(),
@@ -261,7 +261,7 @@ impl UserDevice {
 #[derive(Clone, Debug, Deserialize, FromRow, Serialize)]
 pub struct WireguardNetworkDevice {
     pub wireguard_network_id: Id,
-    pub wireguard_ip: Vec<IpAddr>,
+    pub wireguard_ips: Vec<IpAddr>,
     pub device_id: Id,
     pub preshared_key: Option<String>,
     pub is_authorized: bool,
@@ -283,13 +283,13 @@ pub struct ModifyDevice {
 
 impl WireguardNetworkDevice {
     #[must_use]
-    pub(crate) fn new<I>(network_id: Id, device_id: Id, wireguard_ip: I) -> Self
+    pub(crate) fn new<I>(network_id: Id, device_id: Id, wireguard_ips: I) -> Self
     where
         I: Into<Vec<IpAddr>>,
     {
         Self {
             wireguard_network_id: network_id,
-            wireguard_ip: wireguard_ip.into(),
+            wireguard_ips: wireguard_ips.into(),
             device_id,
             preshared_key: None,
             is_authorized: false,
@@ -299,7 +299,7 @@ impl WireguardNetworkDevice {
 
     #[must_use]
     pub(crate) fn ips_as_network(&self) -> Vec<IpNetwork> {
-        self.wireguard_ip
+        self.wireguard_ips
             .iter()
             .map(|ip| IpNetwork::from(*ip))
             .collect()
@@ -311,11 +311,11 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-            (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, \
+            (device_id, wireguard_network_id, wireguard_ips, is_authorized, authorized_at, \
             preshared_key) \
             VALUES ($1, $2, $3, $4, $5, $6) \
             ON CONFLICT ON CONSTRAINT device_network \
-            DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
+            DO UPDATE SET wireguard_ips = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
             &self.ips_as_network(),
@@ -335,7 +335,7 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
+            SET wireguard_ips = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
@@ -377,7 +377,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
@@ -402,7 +402,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 ORDER BY id LIMIT 1",
@@ -424,7 +424,7 @@ impl WireguardNetworkDevice {
         let result = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
@@ -449,7 +449,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
@@ -475,7 +475,7 @@ impl WireguardNetworkDevice {
         let res = query_as!(
             Self,
             "SELECT device_id, wireguard_network_id, \
-                wireguard_ip \"wireguard_ip: Vec<IpAddr>\", \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
                 preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1 AND device_id IN \
@@ -585,7 +585,7 @@ impl Device<Id> {
             {allowed_ips}\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.wireguard_ip.comma_separated(),
+            wireguard_network_device.wireguard_ips.comma_separated(),
             network.pubkey,
             network.endpoint,
             network.port,
@@ -606,7 +606,7 @@ impl Device<Id> {
             d.device_type  \"device_type: DeviceType\", configured \
             FROM device d \
             JOIN wireguard_network_device wnd ON d.id = wnd.device_id \
-            WHERE $1 = ANY(wnd.wireguard_ip) AND wnd.wireguard_network_id = $2",
+            WHERE $1 = ANY(wnd.wireguard_ips) AND wnd.wireguard_network_id = $2",
             IpNetwork::from(ip),
             network_id
         )
@@ -677,7 +677,7 @@ impl Device<Id> {
                 .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
+            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -688,7 +688,7 @@ impl Device<Id> {
             network_name: network.name.clone(),
             config,
             endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ip,
+            address: wireguard_network_device.wireguard_ips,
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
@@ -710,7 +710,7 @@ impl Device<Id> {
             .await?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
+            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -721,7 +721,7 @@ impl Device<Id> {
             network_name: network.name.clone(),
             config,
             endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ip,
+            address: wireguard_network_device.wireguard_ips,
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
@@ -765,13 +765,13 @@ impl Device<Id> {
             {
                 debug!(
                     "Assigned IPs {} for device {} (user {}) in network {network}",
-                    wireguard_network_device.wireguard_ip.comma_separated(),
+                    wireguard_network_device.wireguard_ips.comma_separated(),
                     self.name,
                     self.user_id
                 );
                 let device_network_info = DeviceNetworkInfo {
                     network_id: network.id,
-                    device_wireguard_ips: wireguard_network_device.wireguard_ip.clone(),
+                    device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
                     preshared_key: wireguard_network_device.preshared_key.clone(),
                     is_authorized: wireguard_network_device.is_authorized,
                 };
@@ -783,7 +783,7 @@ impl Device<Id> {
                     network_name: network.name,
                     config,
                     endpoint: format!("{}:{}", network.endpoint, network.port),
-                    address: wireguard_network_device.wireguard_ip,
+                    address: wireguard_network_device.wireguard_ips,
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
@@ -1035,7 +1035,7 @@ mod test {
                 .await
                 .unwrap();
         assert_eq!(
-            wireguard_network_device.wireguard_ip.comma_separated(),
+            wireguard_network_device.wireguard_ips.comma_separated(),
             "10.1.1.2"
         );
 

@@ -72,7 +72,7 @@ impl NetworkDeviceInfo {
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
         let split_ips: Vec<SplitIp> = wireguard_device
-            .wireguard_ip
+            .wireguard_ips
             .iter()
             .copied()
             .map(|ip| {
@@ -90,7 +90,7 @@ impl NetworkDeviceInfo {
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
-            assigned_ips: wireguard_device.wireguard_ip,
+            assigned_ips: wireguard_device.wireguard_ips,
             description: device.description,
             added_by: added_by.username,
             added_date: device.created,
@@ -701,12 +701,12 @@ pub async fn modify_network_device(
 
     // IP address has changed, so remove device from network and add it again with new IP address.
     // TODO(jck) order-insensitive comparison
-    if new_ips != *wireguard_network_device.wireguard_ip {
+    if new_ips != *wireguard_network_device.wireguard_ips {
         device_network
             .can_assign_ips(&mut transaction, &new_ips, Some(device.id))
             .await?;
         // TODO(jck)
-        wireguard_network_device.wireguard_ip = new_ips.clone();
+        wireguard_network_device.wireguard_ips = new_ips.clone();
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
@@ -729,7 +729,7 @@ pub async fn modify_network_device(
             session.user.username,
             device.name,
             // TODO(jck)
-            wireguard_network_device.wireguard_ip.comma_separated(),
+            wireguard_network_device.wireguard_ips.comma_separated(),
             device_network.name
         );
     }

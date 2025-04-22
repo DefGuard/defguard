@@ -313,7 +313,7 @@ async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
 
     // fetch network IPs
     query_scalar!(
-            "SELECT wireguard_ip \"wireguard_ip: Vec<IpAddr>\" \
+            "SELECT wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON d.id = wnd.device_id \
             WHERE wnd.wireguard_network_id = $1 AND d.device_type = 'user'::device_type AND d.user_id = ANY($2)",
@@ -352,7 +352,7 @@ async fn get_network_device_ips(
 
     // fetch network IPs
     query_scalar!(
-        "SELECT wireguard_ip \"wireguard_ip: Vec<IpAddr>\" \
+        "SELECT wireguard_ips \"wireguard_ips: Vec<IpAddr>\" \
             FROM wireguard_network_device wnd \
             WHERE wnd.wireguard_network_id = $1 AND wnd.device_id = ANY($2)",
         location_id,
@@ -1672,7 +1672,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location.id,
-                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                    wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
                         10,
                         0,
                         user.id as u8,
@@ -1778,7 +1778,7 @@ mod test {
             let network_device = WireguardNetworkDevice {
                 device_id,
                 wireguard_network_id: location.id,
-                wireguard_ip: vec![ip],
+                wireguard_ips: vec![ip],
                 preshared_key: None,
                 is_authorized: true,
                 authorized_at: None,
@@ -2087,7 +2087,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location.id,
-                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                    wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
                         0xff00,
                         0,
                         0,
@@ -2197,7 +2197,7 @@ mod test {
             let network_device = WireguardNetworkDevice {
                 device_id,
                 wireguard_network_id: location.id,
-                wireguard_ip: vec![ip],
+                wireguard_ips: vec![ip],
                 preshared_key: None,
                 is_authorized: true,
                 authorized_at: None,
@@ -2508,7 +2508,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location.id,
-                    wireguard_ip: vec![
+                    wireguard_ips: vec![
                         IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
                         IpAddr::V6(Ipv6Addr::new(
                             0xff00,
@@ -2630,7 +2630,7 @@ mod test {
             let network_device = WireguardNetworkDevice {
                 device_id,
                 wireguard_network_id: location.id,
-                wireguard_ip: ips,
+                wireguard_ips: ips,
                 preshared_key: None,
                 is_authorized: true,
                 authorized_at: None,
@@ -3741,7 +3741,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                    wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
                         10,
                         0,
                         user.id as u8,
@@ -3755,7 +3755,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: vec![IpAddr::V4(Ipv4Addr::new(
+                    wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
                         10,
                         10,
                         user.id as u8,
@@ -3893,7 +3893,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                    wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
                         0xff00,
                         0,
                         0,
@@ -3911,7 +3911,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: vec![IpAddr::V6(Ipv6Addr::new(
+                    wireguard_ips: vec![IpAddr::V6(Ipv6Addr::new(
                         0xff00,
                         0,
                         0,
@@ -4059,7 +4059,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_1.id,
-                    wireguard_ip: vec![
+                    wireguard_ips: vec![
                         IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
                         IpAddr::V6(Ipv6Addr::new(
                             0xff00,
@@ -4080,7 +4080,7 @@ mod test {
                 let network_device = WireguardNetworkDevice {
                     device_id: device.id,
                     wireguard_network_id: location_2.id,
-                    wireguard_ip: vec![
+                    wireguard_ips: vec![
                         IpAddr::V4(Ipv4Addr::new(10, 10, user.id as u8, device_num as u8)),
                         IpAddr::V6(Ipv6Addr::new(
                             0xff00,

@@ -73,7 +73,7 @@ impl WireguardNetwork<Id> {
                 -- TODO possible to not use ARRAY-unnest here?
                 ARRAY(
                     SELECT host(ip)
-                    FROM unnest(wnd.wireguard_ip) AS ip
+                    FROM unnest(wnd.wireguard_ips) AS ip
                 ) \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \

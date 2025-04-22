@@ -264,7 +264,7 @@ impl ClientMfaServer {
             device: device.clone(),
             network_info: vec![DeviceNetworkInfo {
                 network_id: location.id,
-                device_wireguard_ips: network_device.wireguard_ip,
+                device_wireguard_ips: network_device.wireguard_ips,
                 preshared_key: network_device.preshared_key,
                 is_authorized: network_device.is_authorized,
             }],
