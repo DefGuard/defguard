@@ -56,6 +56,9 @@ export const aclPortsValidator = (LL: TranslationFunctions) =>
 
 function dottedMaskToPrefix(mask: string): number | null {
   if (!mask.includes('.')) return Number(mask);
+  const maskTest =
+    /^(?:255\.255\.255\.(?:0|128|192|224|240|248|252|254|255)|255\.255\.(?:0|128|192|224|240|248|252|254|255)\.0|255\.(?:0|128|192|224|240|248|252|254|255)\.0\.0|(?:0|128|192|224|240|248|252|254|255)\.0\.0\.0)$/;
+  if (!maskTest.test(mask)) return null;
   if (mask.split('.').length !== 4) return null;
   const parts = mask.split('.').map(Number);
   if (parts.length !== 4 || parts.some((part) => part < 0 || part > 255)) return null;
