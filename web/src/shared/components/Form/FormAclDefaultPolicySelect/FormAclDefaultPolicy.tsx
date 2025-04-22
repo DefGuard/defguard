@@ -8,9 +8,13 @@ import { useAppStore } from '../../../hooks/store/useAppStore';
 
 type Props<T extends FieldValues> = {
   controller: UseControllerProps<T>;
+  disabled?: boolean;
 };
 
-export const FormAclDefaultPolicy = <T extends FieldValues>({ controller }: Props<T>) => {
+export const FormAclDefaultPolicy = <T extends FieldValues>({
+  controller,
+  disabled = false,
+}: Props<T>) => {
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const { LL } = useI18nContext();
 
@@ -23,7 +27,7 @@ export const FormAclDefaultPolicy = <T extends FieldValues>({ controller }: Prop
       },
       {
         key: 'deny',
-        value: true,
+        value: false,
         label: LL.components.aclDefaultPolicySelect.options.deny(),
       },
     ],
@@ -33,8 +37,8 @@ export const FormAclDefaultPolicy = <T extends FieldValues>({ controller }: Prop
     <FormSelect
       controller={controller}
       options={options}
-      placeholder={LL.components.aclDefaultPolicySelect.label()}
-      disabled={!enterpriseEnabled}
+      label={LL.components.aclDefaultPolicySelect.label()}
+      disabled={!enterpriseEnabled || disabled}
     />
   );
 };
