@@ -71,18 +71,22 @@ impl NetworkDeviceInfo {
                     device.name, network.name
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
-        let net_addr = network
-            .address
-            .first()
-            .ok_or(WebError::ObjectNotFound(format!(
-                "Failed to find the network address for network {}",
-                network.name
-            )))?;
-        let split_ips = wireguard_device
+        let split_ips: Vec<SplitIp> = wireguard_device
             .wireguard_ip
             .iter()
-            .map(|ip| split_ip(ip, net_addr))
-            .collect::<Vec<SplitIp>>();
+            .copied()
+            .map(|ip| {
+                network
+                    .get_containing_network(ip)
+                    .map(|net_addr| split_ip(&ip, &net_addr))
+                    .ok_or_else(|| {
+                        WebError::ObjectNotFound(format!(
+                            "Failed to find the network address for network {}",
+                            network.name
+                        ))
+                    })
+            })
+            .collect::<Result<_, _>>()?;
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
