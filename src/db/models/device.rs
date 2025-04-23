@@ -834,9 +834,9 @@ impl Device<Id> {
             );
             return Err(ModelError::CannotCreate);
         }
-        info!("Assigned IP addresses {ips:?} for device: {}", self.name);
-        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
+        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips.clone());
         wireguard_network_device.insert(&mut *transaction).await?;
+        info!("Assigned IP addresses {ips:?} for device: {}", self.name);
 
         Ok(wireguard_network_device)
     }
