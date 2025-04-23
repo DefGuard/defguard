@@ -795,7 +795,27 @@ impl Device<Id> {
         Ok((network_info, configs))
     }
 
-    // Assign IPs to the device in a given network.
+    /// Assign the next available IP address in each subnet of the network to this device.
+    ///
+    /// For every CIDR block in `network.address`, this function:
+    /// 1. Iterates through the block’s IPs in order.
+    /// 2. Skips any IP that:
+    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or  
+    ///    - Appears in the optional `reserved_ips`.
+    /// 3. Selects the first remaining IP and records it.
+    ///
+    /// If any subnet has no valid, unassigned IP, the method returns `ModelError::CannotCreate`.
+    ///
+    /// # Parameters
+    ///
+    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.  
+    /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.  
+    /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.  
+    /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
     pub(crate) async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
@@ -803,41 +823,42 @@ impl Device<Id> {
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
         let mut ips = Vec::new();
-        // Iterate over all network addresses and assign new IP for the device in each of them.
+        let reserved = reserved_ips.unwrap_or(&[]);
+
+        // iterate over all network addresses and assign new IP for the device in each of them
         for address in &network.address {
-            let net_ip = address.ip();
-            let net_network = address.network();
-            let net_broadcast = address.broadcast();
+            let mut picked = None;
             for ip in address {
-                if ip == net_ip || ip == net_network || ip == net_broadcast {
-                    continue;
-                }
-                if let Some(reserved_ips) = reserved_ips {
-                    if reserved_ips.contains(&ip) {
-                        continue;
-                    }
-                }
-                // Break the loop if IP is unassigned and push the IP into result vector
-                if Self::find_by_ip(&mut *transaction, ip, network.id)
-                    .await?
-                    .is_none()
+                if network
+                    .can_assign_ips(transaction, &[ip], None)
+                    .await
+                    .is_ok()
+                    && !reserved.contains(&ip)
                 {
-                    ips.push(ip);
+                    picked = Some(ip);
                     break;
                 }
             }
-        }
-        if ips.len() != network.address.len() {
-            error!(
-                "Failed to assign address for device {} in one of the networks: {:?}",
-                self.name, network.address
-            );
-            return Err(ModelError::CannotCreate);
-        }
-        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips.clone());
-        wireguard_network_device.insert(&mut *transaction).await?;
-        info!("Assigned IP addresses {ips:?} for device: {}", self.name);
 
+            // return error if no address can be assigned
+            let ip = picked.ok_or_else(|| {
+                error!(
+                    "Failed to assign address for device {} in network {:?}",
+                    self.name, address
+                );
+                ModelError::CannotCreate
+            })?;
+
+            // store the ip otherwise
+            ips.push(ip);
+        }
+
+        // create relation record
+        let wireguard_network_device =
+            WireguardNetworkDevice::new(network.id, self.id, ips.clone());
+        wireguard_network_device.insert(&mut *transaction).await?;
+
+        info!("Assigned IP addresses {ips:?} for device: {}", self.name);
         Ok(wireguard_network_device)
     }
 

@@ -2110,7 +2110,10 @@ mod test {
         let _wnd = WireguardNetworkDevice::new(
             network.id,
             device.id,
-            vec![IpAddr::from_str("10.1.1.2").unwrap(), IpAddr::from_str("fc00::2").unwrap()],
+            vec![
+                IpAddr::from_str("10.1.1.2").unwrap(),
+                IpAddr::from_str("fc00::2").unwrap(),
+            ],
         )
         .insert(&pool)
         .await
