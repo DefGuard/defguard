@@ -511,9 +511,10 @@ impl WireguardNetwork<Id> {
         for device_network_config in currently_configured_devices {
             // device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
-                // network address changed and IP needs to be updated
-                if !self.contains_all(&device_network_config.wireguard_ips) {
-                    // TODO(jck) ensure we don't leak IP addresses here
+                // network address changed and IPs need to be updated
+                if !self.contains_all(&device_network_config.wireguard_ips)
+                    || self.address.len() != device_network_config.wireguard_ips.len()
+                {
                     let wireguard_network_device = device
                         .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
