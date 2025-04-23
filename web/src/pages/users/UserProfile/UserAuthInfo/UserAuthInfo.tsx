@@ -20,6 +20,8 @@ export const UserAuthInfo = () => {
   const { LL } = useI18nContext();
   const userProfile = useUserProfileStore((state) => state.userProfile);
   const ldapInfo = useAppStore((state) => state.appInfo?.ldap_info);
+  const isMe = useUserProfileStore((store) => store.isMe);
+
   return (
     <section id="user-auth-info">
       <header>
@@ -27,7 +29,7 @@ export const UserAuthInfo = () => {
       </header>
       {userProfile && (
         <Card>
-          {userProfile.user.ldap_pass_requires_change && ldapInfo?.enabled && (
+          {userProfile.user.ldap_pass_requires_change && ldapInfo?.enabled && isMe && (
             <MessageBox
               type={MessageBoxType.WARNING}
               message={
