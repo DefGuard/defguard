@@ -830,7 +830,7 @@ impl Device<Id> {
             let mut picked = None;
             for ip in address {
                 if network
-                    .can_assign_ips(transaction, &[ip], None)
+                    .can_assign_ips(transaction, &[ip], Some(self.id))
                     .await
                     .is_ok()
                     && !reserved.contains(&ip)
