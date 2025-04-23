@@ -651,7 +651,7 @@ pub(crate) async fn add_network_device(
 pub struct ModifyNetworkDevice {
     name: String,
     description: Option<String>,
-    assigned_ips: Vec<String>,
+    assigned_ips: Vec<IpAddr>,
 }
 
 pub async fn modify_network_device(
@@ -684,29 +684,17 @@ pub async fn modify_network_device(
                 error!("Failed to update device {device_id}, device not found in any network");
                 WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
             })?;
-    let new_ips = data
-        .assigned_ips
-        .iter()
-        .map(|ip| IpAddr::from_str(ip))
-        .collect::<Result<Vec<IpAddr>, AddrParseError>>()
-        .map_err(|e| {
-            let msg = format!("Failed to update device {device_id}, invalid IP address: {e}");
-            error!(msg);
-            WebError::BadRequest(msg)
-        })?;
-
     device.name = data.name;
     device.description = data.description;
     device.save(&mut *transaction).await?;
 
     // IP address has changed, so remove device from network and add it again with new IP address.
-    // TODO(jck) order-insensitive comparison
-    if new_ips != *wireguard_network_device.wireguard_ips {
+    if data.assigned_ips != *wireguard_network_device.wireguard_ips {
         device_network
-            .can_assign_ips(&mut transaction, &new_ips, Some(device.id))
+            .can_assign_ips(&mut transaction, &data.assigned_ips, Some(device.id))
             .await?;
-        // TODO(jck)
-        wireguard_network_device.wireguard_ips = new_ips.clone();
+        let old_ips = wireguard_network_device.wireguard_ips.clone();
+        wireguard_network_device.wireguard_ips = data.assigned_ips;
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
@@ -725,11 +713,11 @@ pub async fn modify_network_device(
         }
 
         info!(
-            "User {} changed IP addresses of network device {} from {} to {new_ips:?} in network {}",
+            "User {} changed IP addresses of network device {} from {:?} to {:?} in network {}",
             session.user.username,
             device.name,
-            // TODO(jck)
-            wireguard_network_device.wireguard_ips.comma_separated(),
+            old_ips,
+            wireguard_network_device.wireguard_ips,
             device_network.name
         );
     }
