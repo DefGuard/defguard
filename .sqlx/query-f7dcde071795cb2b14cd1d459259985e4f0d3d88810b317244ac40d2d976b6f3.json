@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: Vec<IpAddr>\", preshared_key, is_authorized, authorized_at FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1",
+  "query": "SELECT device_id, wireguard_network_id, wireguard_ips \"wireguard_ips: Vec<IpAddr>\", preshared_key, is_authorized, authorized_at FROM wireguard_network_device WHERE device_id = $1 AND wireguard_network_id = $2",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "wireguard_ip: Vec<IpAddr>",
+        "name": "wireguard_ips: Vec<IpAddr>",
         "type_info": "InetArray"
       },
       {
@@ -36,6 +36,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -48,5 +49,5 @@
       true
     ]
   },
-  "hash": "4051cc65ecbe6df7adb35ad864f60c7e14736e5d5e0943df2e20c7ab07c95744"
+  "hash": "f7dcde071795cb2b14cd1d459259985e4f0d3d88810b317244ac40d2d976b6f3"
 }
