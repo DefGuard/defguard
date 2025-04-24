@@ -21,8 +21,12 @@ import { LdapConnectionTest } from './LdapConnectionTest';
 import { LdapSettingsLeft } from './LdapSettingsLeft';
 import { LdapSettingsRight } from './LdapSettingsRight';
 
-type FormFields = Omit<SettingsLDAP, 'ldap_user_auxiliary_obj_classes'> & {
+type FormFields = Omit<
+  SettingsLDAP,
+  'ldap_user_auxiliary_obj_classes' | 'ldap_sync_groups'
+> & {
   ldap_user_auxiliary_obj_classes: string;
+  ldap_sync_groups: string;
 };
 
 export const LdapSettingsForm = () => {
@@ -75,6 +79,7 @@ export const LdapSettingsForm = () => {
         ldap_sync_interval: z.number().default(300),
         ldap_uses_ad: z.boolean(),
         ldap_user_rdn_attr: z.string().optional(),
+        ldap_sync_groups: z.string(),
       }),
     [LL.form.error],
   );
@@ -102,6 +107,7 @@ export const LdapSettingsForm = () => {
       ldap_sync_interval: settings?.ldap_sync_interval ?? 300,
       ldap_uses_ad: settings?.ldap_uses_ad ?? false,
       ldap_user_rdn_attr: settings?.ldap_user_rdn_attr ?? '',
+      ldap_sync_groups: settings?.ldap_sync_groups.join(', ') ?? '',
     }),
     [settings],
   );
@@ -128,6 +134,7 @@ export const LdapSettingsForm = () => {
       ldap_sync_interval: 300,
       ldap_uses_ad: false,
       ldap_user_rdn_attr: '',
+      ldap_sync_groups: '',
     }),
     [],
   );
@@ -145,6 +152,10 @@ export const LdapSettingsForm = () => {
         .split(',')
         .map((obj_class) => obj_class.trim())
         .filter((obj_class) => obj_class.length > 0),
+      ldap_sync_groups: data.ldap_sync_groups
+        .split(',')
+        .map((group) => group.trim())
+        .filter((group) => group.length > 0),
     };
     mutate(formattedData);
   };
@@ -153,6 +164,7 @@ export const LdapSettingsForm = () => {
     mutate({
       ...emptyValues,
       ldap_user_auxiliary_obj_classes: [],
+      ldap_sync_groups: [],
     });
     reset(emptyValues);
   }, [mutate, emptyValues, reset]);

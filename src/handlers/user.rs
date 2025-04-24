@@ -23,8 +23,9 @@ use crate::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         ldap::utils::{
-            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
-            ldap_modify_user, ldap_remove_user_from_groups,
+            ldap_add_user_if_not_exists, ldap_add_user_to_groups, ldap_change_password,
+            ldap_delete_user, ldap_handle_user_modify, ldap_remove_user_from_groups,
+            ldap_update_user_state,
         },
         limits::update_counts,
     },
@@ -355,7 +356,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
+        ldap_add_user_if_not_exists(&mut user, Some(&password), &appstate.pool).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -712,31 +713,9 @@ pub async fn modify_user(
     transaction.commit().await?;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
 
-    if !user_info.is_active && status_changing {
-        debug!(
-            "User {} has been disabled, removing them from LDAP",
-            user_info.username
-        );
-        ldap_delete_user(&user, &appstate.pool).await;
-    } else if user_info.is_active && status_changing {
-        debug!(
-            "User {} has been enabled, adding them to LDAP",
-            user_info.username
-        );
-        ldap_add_user(&mut user, None, &appstate.pool).await;
-        let groups = user.member_of_names(&appstate.pool).await?;
-        let groups_set = groups.iter().map(|g| g.as_str()).collect::<HashSet<&str>>();
-        ldap_add_user_to_groups(&user, groups_set, &appstate.pool).await;
-    } else {
-        debug!(
-            "User {} state (enabled/disabled) has not changed, updating their records in LDAP",
-            user_info.username
-        );
+    ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
 
-        ldap_modify_user(&old_username, &mut user, &appstate.pool).await;
-    }
-
-    if group_diff.changed() {
+    if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {
             ldap_add_user_to_groups(
                 &user,
@@ -763,6 +742,8 @@ pub async fn modify_user(
             .await;
         };
     }
+
+    ldap_update_user_state(&mut user, &appstate.pool).await;
 
     appstate.trigger_action(AppEvent::UserModified(user_info));
 

@@ -432,12 +432,33 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
+        let mut sync_groups = Vec::new();
+        for groupname in &self.config.ldap_sync_groups {
+            if let Some(group) = Group::find_by_name(pool, groupname).await? {
+                sync_groups.push(group);
+            } else {
+                debug!("Group {groupname} not found in Defguard, skipping");
+            }
+        }
+
+        debug!("The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced", sync_groups);
+        let mut sync_group_members = HashSet::new();
+        for sync_group in sync_groups.iter() {
+            let members = sync_group.members(pool).await?;
+            sync_group_members.extend(members.into_iter());
+        }
+
         let mut all_ldap_users = self.get_all_users().await?;
         let mut all_defguard_users = User::all(pool).await?;
-        all_defguard_users.retain(|u| u.is_active && u.is_enrolled());
 
-        // To perform LDAP operations, we need access to the user's RDN value, on the other hand, Defguard operations are
-        // performed using the username, so here is a helper mapping to translate between the two.
+        // We need to filter out users that should be ignored from sync
+        let mut filtered_users = Vec::new();
+        for user in all_defguard_users {
+            if user.ldap_sync_allowed(pool).await? {
+                filtered_users.push(user);
+            }
+        }
+        all_defguard_users = filtered_users;
 
         let ldap_usernames = all_ldap_users
             .iter()
@@ -457,12 +478,13 @@ impl super::LDAPConnection {
             .await?;
         let mut defguard_memberships = HashMap::new();
         let defguard_groups = Group::all(pool).await?;
+
         for group in defguard_groups {
             let members = group
                 .members(pool)
                 .await?
                 .into_iter()
-                .filter(|u| u.is_active && u.is_enrolled())
+                .filter(|u| u.is_active && u.is_enrolled() && sync_group_members.contains(u))
                 .collect::<HashSet<_>>();
             defguard_memberships.insert(group.name, members);
         }
@@ -650,7 +672,7 @@ impl super::LDAPConnection {
 
             match User::from_searchentry(&entry, username, None) {
                 Ok(user) => all_users.push(user),
-                Err(err) => debug!(
+                Err(err) => warn!(
                     "Failed to create user {} from LDAP entry: {:?}, error: {}. The user will be skipped during sync",
                     username, entry, err
                 ),
@@ -665,9 +687,8 @@ impl super::LDAPConnection {
 mod tests {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use crate::db::setup_pool;
-
     use super::*;
+    use crate::db::setup_pool;
 
     fn make_test_user(username: &str) -> User {
         User::new(

@@ -15,7 +15,8 @@ use crate::{
     db::{models::group::Permission, Group, Id, User, WireguardNetwork},
     enterprise::ldap::utils::{
         ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
-        ldap_remove_user_from_groups, ldap_remove_users_from_groups,
+        ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,
+        ldap_update_users_state,
     },
     error::WebError,
     hashset,
@@ -68,7 +69,7 @@ pub(crate) async fn bulk_assign_to_groups(
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Assigning groups to users.");
-    let users = query_as!(
+    let mut users: Vec<User<Id>> = query_as!(
         User,
         "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
@@ -113,6 +114,10 @@ pub(crate) async fn bulk_assign_to_groups(
     }
     transaction.commit().await?;
     ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
+
+    let users_to_maybe_update = users.iter_mut().collect::<Vec<_>>();
+    ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+
     WireguardNetwork::sync_all_networks(&appstate).await?;
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
 
@@ -335,6 +340,8 @@ pub(crate) async fn create_group(
 
     if !ldap_user_groups.is_empty() {
         ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
+        let users_to_maybe_update = members.iter_mut().collect::<Vec<_>>();
+        ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
     }
 
     WireguardNetwork::sync_all_networks(&appstate).await?;
@@ -457,6 +464,12 @@ pub(crate) async fn modify_group(
         ldap_modify_group(&name, &group, &appstate.pool).await;
     }
 
+    let affected_users = members
+        .iter_mut()
+        .chain(current_members.iter_mut())
+        .collect::<Vec<_>>();
+    ldap_update_users_state(affected_users, &appstate.pool).await;
+
     WireguardNetwork::sync_all_networks(&appstate).await?;
 
     info!("Modified group {}", group.name);
@@ -554,10 +567,11 @@ pub(crate) async fn add_group_member(
     Json(data): Json<Username>,
 ) -> Result<ApiResponse, WebError> {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
-        if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
+        if let Some(mut user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
             ldap_add_user_to_groups(&user, hashset![group.name.as_str()], &appstate.pool).await;
+            ldap_update_user_state(&mut user, &appstate.pool).await;
             WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
             Ok(ApiResponse::default())

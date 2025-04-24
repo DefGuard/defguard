@@ -9,14 +9,17 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
-use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
 #[cfg(not(test))]
 use super::is_enterprise_enabled;
+use super::{
+    db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
+    ldap::utils::ldap_update_users_state,
+};
 use crate::{
     db::{GatewayEvent, Group, Id, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
-        ldap::utils::{ldap_add_users_to_groups, ldap_remove_users_from_groups},
+        ldap::utils::{ldap_add_users_to_groups, ldap_delete_user, ldap_remove_users_from_groups},
     },
 };
 
@@ -456,6 +459,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
         }
     }
 
+    let mut affected_users = Vec::new();
+
     let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
@@ -513,8 +518,12 @@ async fn sync_all_users_groups<T: DirectorySync>(
                 user.email
             ))
         })?;
+
+        affected_users.push(user);
     }
     transaction.commit().await?;
+
+    ldap_update_users_state(affected_users.iter_mut().collect::<Vec<_>>(), pool).await;
     info!("Syncing all users' groups done.");
     Ok(())
 }
@@ -581,6 +590,9 @@ async fn sync_all_users_state<T: DirectorySync>(
         users_to_disable.len()
     );
 
+    let mut modified_users = Vec::new();
+    let mut deleted_users = Vec::new();
+
     for mut user in users_to_disable {
         if user.is_active {
             debug!(
@@ -593,6 +605,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                     user.email
                 ))
             })?;
+            modified_users.push(user);
         } else {
             debug!("User {} is already disabled, skipping", user.email);
         }
@@ -638,6 +651,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                             ))
                         })?;
                         admin_count -= 1;
+                        modified_users.push(user);
                     } else {
                         debug!(
                             "Admin {} is already disabled in Defguard, skipping",
@@ -657,6 +671,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting admin {} because they are not present in the directory",
                         user.email
                     );
+                    deleted_users.push(user.clone().as_noid());
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
@@ -687,6 +702,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                                 user.email
                             ))
                         })?;
+                        modified_users.push(user);
                     } else {
                         debug!(
                             "User {} is already disabled in Defguard, skipping",
@@ -699,6 +715,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting user {} because they are not present in the directory",
                         user.email
                     );
+                    deleted_users.push(user.clone().as_noid());
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
@@ -727,10 +744,18 @@ async fn sync_all_users_state<T: DirectorySync>(
         );
         user.is_active = true;
         user.save(&mut *transaction).await?;
+        modified_users.push(user);
     }
     debug!("Done processing enabled users");
     transaction.commit().await?;
+
+    for user in deleted_users {
+        ldap_delete_user(&user, pool).await;
+    }
+    ldap_update_users_state(modified_users.iter_mut().collect::<Vec<_>>(), pool).await;
+
     info!("Syncing all users' state with the directory done");
+
     Ok(())
 }
 

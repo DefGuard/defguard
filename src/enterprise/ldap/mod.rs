@@ -117,6 +117,32 @@ where
     }
 }
 
+/// Checks if the user belongs to one of the defined sync groups in Defguard.
+async fn user_in_defguard_sync_groups(user: &User<Id>, pool: &PgPool) -> Result<bool, LdapError> {
+    debug!("Checking if user {} is in sync groups", user.username);
+    let settings = Settings::get_current_settings();
+
+    // Sync groups empty, we should sync all users
+    if settings.ldap_sync_groups.is_empty() {
+        debug!("Sync groups were not defined, user {user} will be synced");
+        return Ok(true);
+    }
+
+    let user_groups = user.member_of_names(pool).await?;
+    debug!("User {user} is a member of groups: {:?}", user_groups);
+
+    if user_groups
+        .iter()
+        .any(|group| settings.ldap_sync_groups.contains(group))
+    {
+        debug!("User {user} is in sync groups, syncing user");
+        Ok(true)
+    } else {
+        debug!("User {user} is not in sync groups, not syncing user");
+        Ok(false)
+    }
+}
+
 #[macro_export]
 macro_rules! hashset {
     ( $( $element:expr ),* ) => {
@@ -144,6 +170,7 @@ pub struct LDAPConfig {
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     pub ldap_uses_ad: bool,
     pub ldap_user_rdn_attr: Option<String>,
+    pub ldap_sync_groups: Vec<String>,
 }
 
 #[cfg(test)]
@@ -162,6 +189,7 @@ impl Default for LDAPConfig {
             ldap_user_auxiliary_obj_classes: vec!["simpleSecurityObject".to_string()],
             ldap_uses_ad: false,
             ldap_user_rdn_attr: None,
+            ldap_sync_groups: Vec::new(),
         }
     }
 }
@@ -277,6 +305,7 @@ impl TryFrom<Settings> for LDAPConfig {
             ldap_user_auxiliary_obj_classes: settings.ldap_user_auxiliary_obj_classes,
             ldap_uses_ad: settings.ldap_uses_ad,
             ldap_user_rdn_attr: settings.ldap_user_rdn_attr,
+            ldap_sync_groups: settings.ldap_sync_groups,
         })
     }
 }
@@ -291,12 +320,95 @@ pub struct LDAPConnection {
 #[cfg(test)]
 pub struct LDAPConnection {
     pub config: LDAPConfig,
-    pub test_users: Vec<User>,
-    pub test_memberships: HashMap<String, Vec<User>>,
     pub url: String,
 }
 
 impl LDAPConnection {
+    /// Updates user state in LDAP based on the following rules:
+    /// - If the user is disabled in Defguard, he will be removed from LDAP
+    /// - If there are no sync groups defined or the user is in them but doesn't exist yet in LDAP, he will be added to LDAP and assigned to his groups
+    /// - If the user is not in sync groups but is present in LDAP, he will be removed from LDAP
+    ///
+    /// Make sure to call this every time one of the above conditions changes (e.g. group addition, user disabling)
+    pub(crate) async fn update_users_state(
+        &mut self,
+        users: Vec<&mut User<Id>>,
+        pool: &PgPool,
+    ) -> Result<(), LdapError> {
+        debug!("Updating users state in LDAP");
+        let sync_groups = self.config.ldap_sync_groups.clone();
+        let transaction = pool.begin().await?;
+
+        for user in users {
+            let user_exists_in_ldap = self.user_exists(user).await?;
+            let user_groups = user.member_of_names(pool).await?;
+            let user_sync_allowed = user.ldap_sync_allowed(pool).await?;
+
+            // User is disabled in Defguard or he is not in the defined sync groups
+            // If they exist in LDAP, remove them
+            if (!user.is_active || !user_sync_allowed) && user_exists_in_ldap {
+                debug!("User {user} is disabled in Defguard, removing from LDAP");
+                self.delete_user(user).await?;
+                continue;
+            }
+
+            // No sync groups defined or user already belongs to them,
+            // Add the user if they don't exist in LDAP already but are active in Defguard
+            if (sync_groups.is_empty() || user_sync_allowed) && !user_exists_in_ldap {
+                debug!("User {user} is not in LDAP, adding to LDAP");
+                self.add_user(user, None, pool).await?;
+                for group in user_groups {
+                    self.add_user_to_group(user, &group).await?;
+                }
+                continue;
+            }
+        }
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
+    /// Checks if user belongs to one of the defined sync groups in the LDAP server.
+    async fn user_in_ldap_sync_groups<I>(&mut self, user: &User<I>) -> Result<bool, LdapError> {
+        debug!("Checking if user {} is in LDAP sync groups", user.username);
+
+        // Sync groups empty, we should sync all users
+        if self.config.ldap_sync_groups.is_empty() {
+            debug!("Sync groups were not defined, user {user} will be synced");
+            return Ok(true);
+        }
+
+        let dn = self.config.user_dn(user.ldap_rdn_value());
+
+        if !self.user_exists(user).await? {
+            debug!("User {user} does not exist, not syncing user");
+            return Ok(false);
+        }
+
+        let user_groups_entries = self.get_user_groups(&dn).await?;
+        let user_groups_names = user_groups_entries
+            .iter()
+            .filter_map(|entry| {
+                entry
+                    .attrs
+                    .get(&self.config.ldap_groupname_attr)
+                    .and_then(|v| v.first())
+            })
+            .collect::<Vec<_>>();
+
+        if user_groups_names
+            .into_iter()
+            .any(|group| self.config.ldap_sync_groups.contains(group))
+        {
+            debug!("User {user} is in sync groups, syncing user");
+            Ok(true)
+        } else {
+            debug!("User {user} is not in sync groups, not syncing user");
+            Ok(false)
+        }
+    }
+
     async fn group_exists(&mut self, groupname: &str) -> Result<bool, LdapError> {
         let groupname_attr = self.config.ldap_groupname_attr.clone();
         let res = self
@@ -452,7 +564,7 @@ impl LDAPConnection {
         Ok(())
     }
 
-    /// Modifies LDAP user.
+    /// Modifies existing LDAP user.
     pub async fn modify_user(
         &mut self,
         old_username: &str,
@@ -467,6 +579,11 @@ impl LDAPConnection {
         } else {
             user.ldap_rdn_value()
         };
+        if !self.user_exists_by_rdn(old_rdn).await? {
+            return Err(LdapError::ObjectNotFound(format!(
+                "User {old_username} not found in LDAP, cannot modify",
+            )));
+        }
         let old_dn = self.config.user_dn(old_rdn);
         let new_dn = self.config.user_dn(user.ldap_rdn_value());
         let config = self.config.clone();
@@ -666,13 +783,17 @@ impl LDAPConnection {
         debug!(
             "Adding user {user} to group {groupname} in LDAP, checking if that group exists first..."
         );
+        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        if self.is_member_of(&user_dn, groupname).await? {
+            debug!("User {user} is already a member of group {groupname}, skipping");
+            return Ok(());
+        }
         if !self.group_exists(groupname).await? {
             debug!("Group {groupname} doesn't exist in LDAP, creating it");
             self.add_group_with_members(groupname, vec![user]).await?;
             debug!("Group {groupname} created and member added in LDAP");
         } else {
             debug!("Group {groupname} exists in LDAP, adding user {user} to it");
-            let user_dn = self.config.user_dn(user.ldap_rdn_value());
             let group_dn = self.config.group_dn(groupname);
             self.modify(
                 &group_dn,
@@ -696,9 +817,13 @@ impl LDAPConnection {
         groupname: &str,
     ) -> Result<(), LdapError> {
         debug!("Removing user {user} from group {groupname} in LDAP");
+        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        if !self.is_member_of(&user_dn, groupname).await? {
+            debug!("User {user} is not a member of group {groupname}, skipping");
+            return Ok(());
+        }
         let members = self.get_group_members(groupname).await?;
         if members.len() > 1 {
-            let user_dn = self.config.user_dn(user.ldap_rdn_value());
             let group_dn = self.config.group_dn(groupname);
             self.modify(
                 &group_dn,
