@@ -31,7 +31,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
 
   const ipController = useController({
     control,
-    name: `devices.${index}.wireguard_ip`,
+    name: `devices.${index}.wireguard_ips`,
   });
 
   const hasErrors = useMemo(() => {
@@ -63,7 +63,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
   return (
     <RowBox className="device" customAnimate={getAnimate}>
       <input className="name" type="text" {...nameController.field} />
-      <span className="ip">{ipController.field.value}</span>
+      <span className="ip limited">{ipController.field.value.join(" ")}</span>
       <Select
         data-testid={`user-select-${index}`}
         searchable
