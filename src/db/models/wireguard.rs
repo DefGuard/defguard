@@ -468,22 +468,6 @@ impl WireguardNetwork<Id> {
         }
     }
 
-    pub async fn add_network_device_to_network(
-        &self,
-        transaction: &mut PgConnection,
-        device: &WireguardNetworkDevice,
-        // TODO(jck) allow assignment of multiple ips for a network device
-        ip: IpAddr,
-    ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
-        info!(
-            "Adding network device {} with IP {ip} to network {self}",
-            device.device_id
-        );
-        let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, [ip]);
-        wireguard_network_device.insert(&mut *transaction).await?;
-        Ok(wireguard_network_device)
-    }
-
     /// Checks if all device addresses are contained in at least one of the network addresses
     pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
         addresses
