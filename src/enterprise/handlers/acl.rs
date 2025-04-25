@@ -12,7 +12,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::Id,
     enterprise::db::models::acl::{
-        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasState, Protocol, RuleState,
+        AclAlias, AclAliasInfo, AclRule, AclRuleInfo, AliasKind, AliasState, Protocol, RuleState,
     },
     error::WebError,
     handlers::{ApiResponse, ApiResult},
@@ -155,6 +155,7 @@ pub struct ApiAclAlias {
     pub id: Id,
     pub parent_id: Option<Id>,
     pub name: String,
+    pub kind: AliasKind,
     pub state: AliasState,
     pub destination: String,
     pub ports: String,
@@ -170,6 +171,7 @@ impl From<AclAliasInfo<Id>> for ApiAclAlias {
             id: info.id,
             parent_id: info.parent_id,
             name: info.name,
+            kind: info.kind,
             state: info.state,
             protocols: info.protocols,
             rules: info.rules.iter().map(|v| v.id).collect(),
@@ -181,6 +183,7 @@ impl From<AclAliasInfo<Id>> for ApiAclAlias {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct EditAclAlias {
     pub name: String,
+    pub kind: AliasKind,
     pub destination: String,
     pub ports: String,
     pub protocols: Vec<Protocol>,

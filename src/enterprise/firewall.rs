@@ -11,7 +11,7 @@ use super::db::models::acl::{
 };
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
-    enterprise::is_enterprise_enabled,
+    enterprise::{db::models::acl::AliasKind, is_enterprise_enabled},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
@@ -78,13 +78,38 @@ pub async fn generate_firewall_rules_from_acls(
         // extract destination parameters from ACL rule
         let AclRuleInfo {
             id,
-            destination,
+            mut destination,
             destination_ranges,
-            ports,
+            mut ports,
             mut protocols,
             aliases,
             ..
         } = acl;
+
+        // split aliases into types
+        let (destination_aliases, component_aliases): (Vec<_>, Vec<_>) = aliases
+            .into_iter()
+            .partition(|alias| alias.kind == AliasKind::Destination);
+
+        // store alias ranges separately since they use a different struct
+        let mut alias_destination_ranges = Vec::new();
+
+        // process component aliases by appending destination parameters from each of them to existing lists
+        for alias in component_aliases {
+            // fetch destination ranges for a fiven alias
+            alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
+
+            // extend existing parameter lists
+            destination.extend(alias.destination);
+            ports.extend(
+                alias
+                    .ports
+                    .into_iter()
+                    .map(|port_range| port_range.into())
+                    .collect::<Vec<PortRange>>(),
+            );
+            protocols.extend(alias.protocols);
+        }
 
         // prepare destination addresses
         let destination_addrs =
@@ -130,14 +155,14 @@ pub async fn generate_firewall_rules_from_acls(
         debug!("DENY rule generated from ACL: {deny_rule:?}");
         deny_rules.push(deny_rule);
 
-        // process aliases by creating a dedicated set of rules for each alias
-        if !aliases.is_empty() {
+        // process destination aliases by creating a dedicated set of rules for each of them
+        if !destination_aliases.is_empty() {
             debug!(
                 "Generating firewall rules for {} aliases used in ACL rule {id:?}",
-                aliases.len()
+                destination_aliases.len()
             );
         }
-        for alias in aliases {
+        for alias in destination_aliases {
             debug!("Processing ACL alias: {alias:?}");
 
             // fetch destination ranges for a given alias
