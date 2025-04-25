@@ -1,0 +1,107 @@
+#activity-page {
+  h1 {
+    @include typography(app-title);
+  }
+
+  h2 {
+    @include typography(app-body-1);
+  }
+
+  .page-header {
+    display: flex;
+    flex-flow: row;
+    gap: var(--spacing-m);
+    align-items: center;
+    justify-content: flex-start;
+    padding-bottom: var(--spacing-l);
+
+    .search {
+      height: 40px;
+      width: 100%;
+      max-width: 350px;
+    }
+  }
+}
+
+@mixin list-sizing() {
+  grid-template-columns: 30px 200px 150px 150px 300px 100px 200px minmax(150px, 1fr);
+  justify-content: space-between;
+  column-gap: var(--spacing-xs);
+
+  .cell {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    &.select-cell {
+      .interaction-box {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+#activity-list {
+  & > .top {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: flex-start;
+    row-gap: var(--spacing-xs);
+    padding-bottom: var(--spacing-m);
+
+    h2 {
+      padding-right: 10px;
+    }
+  }
+}
+
+#activity-list-card {
+  padding: var(--spacing-s) 15px;
+  width: 100%;
+  max-width: 100%;
+
+  .list-headers {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    background-color: var(--surface-default-modal);
+    height: 40px;
+    width: unset;
+    min-width: 100%;
+
+    @include list-sizing();
+  }
+
+  .virtual-list {
+    overflow: auto;
+    contain: strict;
+    width: 100%;
+    max-width: 100%;
+    max-height: 610px;
+    height: 600px;
+    padding-right: 15px;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
+
+    .list-row {
+      display: grid;
+      max-width: 100%;
+      @include list-sizing();
+      height: 40px;
+
+      .cell {
+        max-width: 100%;
+        overflow: hidden;
+
+        p {
+          color: var(--text-button-primary);
+          @include typography(app-code);
+        }
+      }
+    }
+  }
+}

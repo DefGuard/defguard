@@ -1,0 +1,20 @@
+.page-limiter {
+  width: 100%;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: var(--spacing-l) var(--spacing-s);
+
+  & > .page-limited-content {
+    width: 100%;
+    max-width: calc(var(--page-content-limit) + 142px);
+  }
+
+  &.nav-open {
+    & > .page-limited-content {
+      max-width: var(--page-content-limit);
+    }
+  }
+}
