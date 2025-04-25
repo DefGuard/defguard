@@ -480,12 +480,12 @@ impl super::LDAPConnection {
         let defguard_groups = Group::all(pool).await?;
 
         for group in defguard_groups {
-            let members = group
-                .members(pool)
-                .await?
-                .into_iter()
-                .filter(|u| u.is_active && u.is_enrolled() && sync_group_members.contains(u))
-                .collect::<HashSet<_>>();
+            let mut members = HashSet::new();
+            for member in group.members(pool).await? {
+                if member.ldap_sync_allowed(pool).await? {
+                    members.insert(member);
+                }
+            }
             defguard_memberships.insert(group.name, members);
         }
 

@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 
 use sqlx::PgPool;
 
-use super::{error::LdapError, user_in_defguard_sync_groups, LDAPConnection};
+use super::{error::LdapError, LDAPConnection};
 use crate::{
     db::{Group, Id, User},
     enterprise::ldap::with_ldap_status,
@@ -29,7 +29,7 @@ pub(crate) async fn login_through_ldap(
     debug!("User {ldap_user} logged in through LDAP");
     let user =
         if let Some(defguard_user) = User::find_by_username(pool, &ldap_user.username).await? {
-            if !user_in_defguard_sync_groups(&defguard_user, pool).await? {
+            if !defguard_user.ldap_sync_allowed(pool).await? {
                 return Err(LdapError::UserNotInLDAPSyncGroups(
                     ldap_user.to_string(),
                     "Defguard",

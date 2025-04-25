@@ -117,32 +117,6 @@ where
     }
 }
 
-/// Checks if the user belongs to one of the defined sync groups in Defguard.
-async fn user_in_defguard_sync_groups(user: &User<Id>, pool: &PgPool) -> Result<bool, LdapError> {
-    debug!("Checking if user {} is in sync groups", user.username);
-    let settings = Settings::get_current_settings();
-
-    // Sync groups empty, we should sync all users
-    if settings.ldap_sync_groups.is_empty() {
-        debug!("Sync groups were not defined, user {user} will be synced");
-        return Ok(true);
-    }
-
-    let user_groups = user.member_of_names(pool).await?;
-    debug!("User {user} is a member of groups: {:?}", user_groups);
-
-    if user_groups
-        .iter()
-        .any(|group| settings.ldap_sync_groups.contains(group))
-    {
-        debug!("User {user} is in sync groups, syncing user");
-        Ok(true)
-    } else {
-        debug!("User {user} is not in sync groups, not syncing user");
-        Ok(false)
-    }
-}
-
 #[macro_export]
 macro_rules! hashset {
     ( $( $element:expr ),* ) => {
