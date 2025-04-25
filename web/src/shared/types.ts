@@ -500,7 +500,7 @@ export type AclRuleInfo = {
 
 export interface ApiHook {
   getAppInfo: () => Promise<AppInfo>;
-  getNewVersion: () => Promise<UpdateInfo>;
+  getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   acl: {
