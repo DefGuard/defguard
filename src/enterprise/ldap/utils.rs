@@ -84,13 +84,9 @@ pub(crate) async fn ldap_update_users_state(users: Vec<&mut User<Id>>, pool: &Pg
 
 /// Adds user to LDAP, if no password was specified, a temporary random password will be used.
 /// This will set the `ldap_pass_randomized` field to `true` in the user.
-/// 
+///
 /// If the user already exists, the creation will be skipped.
-pub(crate) async fn ldap_add_user(
-    user: &mut User<Id>,
-    password: Option<&str>,
-    pool: &PgPool,
-) {
+pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Creating user {user} in LDAP");
         if !user.ldap_sync_allowed(pool).await? {
@@ -125,7 +121,6 @@ pub(crate) async fn ldap_add_user(
     .await;
 }
 
-
 /// Applies user modifications to LDAP. May update the user object if
 /// his RDN in Defguard needs updating. Fails and sets the sync status to desynced
 /// if the user does not exist in LDAP despite updating his state.
@@ -150,13 +145,9 @@ pub(crate) async fn ldap_handle_user_modify(
         } else {
             debug!("User {current_user} exists in LDAP, modifying it");
         }
-        
         ldap_connection
             .modify_user(old_username, current_user, pool)
-            .await?;
-
-
-        Ok(())
+            .await
     })
     .await;
 }
