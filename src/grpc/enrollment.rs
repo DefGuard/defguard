@@ -21,7 +21,7 @@ use crate::{
         Device, GatewayEvent, Id, Settings, User,
     },
     enterprise::{
-        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user_if_not_exists,
+        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
         limits::update_counts,
     },
     grpc::utils::{build_device_config_response, new_polling_token},
@@ -336,7 +336,7 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
-        ldap_add_user_if_not_exists(&mut user, Some(&request.password), &self.pool).await;
+        ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
 
         info!("User {} activated", user.username);
         Ok(())

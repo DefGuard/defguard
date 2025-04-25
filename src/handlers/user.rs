@@ -23,9 +23,8 @@ use crate::{
     enterprise::{
         db::models::enterprise_settings::EnterpriseSettings,
         ldap::utils::{
-            ldap_add_user_if_not_exists, ldap_add_user_to_groups, ldap_change_password,
-            ldap_delete_user, ldap_handle_user_modify, ldap_remove_user_from_groups,
-            ldap_update_user_state,
+            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+            ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
         },
         limits::update_counts,
     },
@@ -356,7 +355,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        ldap_add_user_if_not_exists(&mut user, Some(&password), &appstate.pool).await;
+        ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
