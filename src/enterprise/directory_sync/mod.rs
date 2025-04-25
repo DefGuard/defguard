@@ -19,7 +19,7 @@ use crate::{
     db::{GatewayEvent, Group, Id, User},
     enterprise::{
         db::models::openid_provider::DirectorySyncUserBehavior,
-        ldap::utils::{ldap_add_users_to_groups, ldap_delete_user, ldap_remove_users_from_groups},
+        ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
     },
 };
 
@@ -749,9 +749,7 @@ async fn sync_all_users_state<T: DirectorySync>(
     debug!("Done processing enabled users");
     transaction.commit().await?;
 
-    for user in deleted_users {
-        ldap_delete_user(&user, pool).await;
-    }
+    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
     ldap_update_users_state(modified_users.iter_mut().collect::<Vec<_>>(), pool).await;
 
     info!("Syncing all users' state with the directory done");

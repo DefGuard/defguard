@@ -57,7 +57,10 @@ use std::collections::{HashMap, HashSet};
 use sqlx::{PgConnection, PgPool, Type};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::db::{models::settings::update_current_settings, Group, Id, Settings, User};
+use crate::{
+    db::{models::settings::update_current_settings, Group, Id, Settings, User},
+    hashset,
+};
 
 async fn get_or_create_group(
     transaction: &mut PgConnection,
@@ -410,6 +413,67 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+
+        Ok(())
+    }
+
+    /// Allows to synchronize user data (e.g. email, groups) between Defguard and LDAP based on the authority for a single user
+    ///
+    /// Does nothing if the two way sync is disabled
+    pub(crate) async fn sync_user_data(
+        &mut self,
+        user: &User<Id>,
+        pool: &PgPool,
+    ) -> Result<(), LdapError> {
+        debug!("Syncing user data for {user}");
+        let settings = Settings::get_current_settings();
+
+        if !settings.ldap_sync_enabled {
+            debug!("LDAP sync is disabled, skipping user data sync");
+            return Ok(());
+        }
+
+        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        let ldap_user = self.get_user(&user).await?;
+        let defguard_groups = user.member_of_names(pool).await?;
+        let mut ldap_groups = Vec::new();
+        for group_entry in self.get_user_groups(&user_dn).await? {
+            match self.group_entry_to_name(group_entry) {
+                Ok(group_name) => ldap_groups.push(group_name),
+                Err(err) => {
+                    warn!("Failed to convert group entry to name during user synchronization: {err}. This group will be skipped");
+                    continue;
+                }
+            };
+        }
+
+        debug!("User {user} is a member of the following groups in Defguard: {defguard_groups:?}");
+        debug!("User {user} is a member of the following groups in LDAP: {ldap_groups:?}");
+
+        let intersecting_users = vec![(ldap_user.clone(), user.clone())];
+
+        // create a hashmap for the calculate group membership changes function
+        let defguard_memberships = defguard_groups
+            .iter()
+            .map(|g| (g.clone(), hashset![user.clone()]))
+            .collect::<HashMap<_, _>>();
+
+        let ldap_memberships = ldap_groups
+            .iter()
+            .map(|g| (g.clone(), hashset![&ldap_user]))
+            .collect::<HashMap<_, _>>();
+
+        let authority = if settings.ldap_is_authoritative {
+            Authority::LDAP
+        } else {
+            Authority::Defguard
+        };
+
+        self.apply_user_modifications(intersecting_users, authority, pool)
+            .await?;
+
+        let changes = compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);
+        self.apply_user_group_sync_changes(pool, changes).await?;
 
         Ok(())
     }

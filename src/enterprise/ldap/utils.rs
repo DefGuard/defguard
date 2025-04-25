@@ -19,7 +19,9 @@ pub(crate) async fn login_through_ldap(
 ) -> Result<User<Id>, LdapError> {
     debug!("Logging in user {username} through LDAP");
     let mut ldap_connection = LDAPConnection::create().await?;
-    let ldap_user = ldap_connection.get_user(username, password).await?;
+    let ldap_user = ldap_connection
+        .fetch_user_by_credentials(username, password)
+        .await?;
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         return Err(LdapError::UserNotInLDAPSyncGroups(
             username.to_string(),
@@ -51,7 +53,9 @@ pub(crate) async fn user_from_ldap(
     debug!("Getting user {username} from LDAP");
     let mut ldap_connection = LDAPConnection::create().await?;
 
-    let ldap_user = ldap_connection.get_user(username, password).await?;
+    let ldap_user = ldap_connection
+        .fetch_user_by_credentials(username, password)
+        .await?;
     if !ldap_connection.user_in_ldap_sync_groups(&ldap_user).await? {
         return Err(LdapError::UserNotInLDAPSyncGroups(
             username.to_string(),
@@ -153,10 +157,20 @@ pub(crate) async fn ldap_handle_user_modify(
 }
 
 pub(crate) async fn ldap_delete_user<I>(user: &User<I>, pool: &PgPool) {
+    ldap_delete_users(vec![user], pool).await;
+}
+
+pub(crate) async fn ldap_delete_users<I>(users: Vec<&User<I>>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Deleting user {user} from LDAP");
+        debug!("Deleting {:?} users from LDAP", users.len());
         let mut ldap_connection = LDAPConnection::create().await?;
-        ldap_connection.delete_user(user).await
+        for user in users {
+            debug!("Deleting user {user} from LDAP");
+            ldap_connection.delete_user(user).await?;
+            debug!("User {user} deleted from LDAP");
+        }
+
+        Ok(())
     })
     .await;
 }
@@ -167,24 +181,8 @@ pub(crate) async fn ldap_remove_user_from_groups(
     groups: HashSet<&str>,
     pool: &PgPool,
 ) {
-    let _: Result<(), LdapError> = with_ldap_status(pool, async {
-        debug!("Removing user {user} from groups {groups:?}");
-        if !user.ldap_sync_allowed(pool).await? {
-            debug!("User {user} is not allowed to be synced to LDAP as he is not in the specified sync groups, skipping");
-            return Ok(());
-        }
-        let mut ldap_connection = LDAPConnection::create().await?;
-        for group in groups {
-            if ldap_connection.group_exists(group).await? {
-                ldap_connection.remove_user_from_group(user, group).await?;
-            } else {
-                debug!("Group {group} doesn't exist in LDAP, skipping removal of member {user}");
-            }
-        }
-
-        Ok(())
-    })
-    .await;
+    let map = HashMap::from([(user, groups)]);
+    ldap_remove_users_from_groups(map, pool).await;
 }
 
 /// Add singular user to multiple groups in ldap. Convenience wrapper around [`ldap_add_users_to_groups`].
@@ -229,9 +227,14 @@ pub(crate) async fn ldap_remove_users_from_groups(
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         let mut ldap_connection = LDAPConnection::create().await?;
+        let sync_groups = ldap_connection.config.ldap_sync_groups.clone();
+        let sync_groups_lookup = sync_groups.iter().map(|s| s.as_str()).collect::<HashSet<_>>();
 
         for (user, groups) in user_groups {
-            if !user.ldap_sync_allowed(pool).await? {
+            let removing_from_sync_groups = groups
+                .iter()
+                .any(|group| sync_groups_lookup.contains(*group));
+            if !user.ldap_sync_allowed(pool).await? && !removing_from_sync_groups {
                 debug!("User {user} is not allowed to be synced to LDAP as he is not in the specified sync groups, skipping");
                 continue;
             }

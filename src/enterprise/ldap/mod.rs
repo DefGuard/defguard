@@ -4,7 +4,7 @@ use std::{collections::HashSet, future::Future};
 
 #[cfg(not(test))]
 use ldap3::Ldap;
-use ldap3::{ldap_escape, Mod};
+use ldap3::{ldap_escape, Mod, SearchEntry};
 use model::UserObjectClass;
 use rand::Rng;
 use sqlx::PgPool;
@@ -310,7 +310,6 @@ impl LDAPConnection {
         pool: &PgPool,
     ) -> Result<(), LdapError> {
         debug!("Updating users state in LDAP");
-        let sync_groups = self.config.ldap_sync_groups.clone();
         let transaction = pool.begin().await?;
 
         for user in users {
@@ -320,7 +319,7 @@ impl LDAPConnection {
 
             // User is disabled in Defguard or he is not in the defined sync groups
             // If they exist in LDAP, remove them
-            if (!user.is_active || !user_sync_allowed) && user_exists_in_ldap {
+            if !user.is_active && user_exists_in_ldap {
                 debug!("User {user} is disabled in Defguard, removing from LDAP");
                 self.delete_user(user).await?;
                 continue;
@@ -328,12 +327,23 @@ impl LDAPConnection {
 
             // No sync groups defined or user already belongs to them,
             // Add the user if they don't exist in LDAP already but are active in Defguard
-            if (sync_groups.is_empty() || user_sync_allowed) && !user_exists_in_ldap {
+            if user_sync_allowed && !user_exists_in_ldap {
                 debug!("User {user} is not in LDAP, adding to LDAP");
                 self.add_user(user, None, pool).await?;
                 for group in user_groups {
                     self.add_user_to_group(user, &group).await?;
                 }
+                continue;
+            }
+
+            // We may bring user into the synchronization scope, sync his data (email, groups, etc.) based on
+            // the authority
+            if user_sync_allowed && user_exists_in_ldap {
+                debug!(
+                    "User {user} is in LDAP and is allowed to be synced, synchronizing his data"
+                );
+                self.sync_user_data(user, pool).await?;
+                debug!("User {user} data synchronized");
                 continue;
             }
         }
@@ -448,7 +458,11 @@ impl LDAPConnection {
     }
 
     /// Retrieves user with given username from LDAP.
-    pub async fn get_user(&mut self, username: &str, password: &str) -> Result<User, LdapError> {
+    pub async fn fetch_user_by_credentials(
+        &mut self,
+        username: &str,
+        password: &str,
+    ) -> Result<User, LdapError> {
         debug!("Performing LDAP user search: {username}");
         let username_escape = ldap_escape(username);
         let mut entries = self
@@ -468,6 +482,30 @@ impl LDAPConnection {
             Err(LdapError::ObjectNotFound(format!(
                 "User {username} not found",
             )))
+        }
+    }
+
+    pub async fn get_user(&mut self, user: &User<Id>) -> Result<User, LdapError> {
+        let rdn = user.ldap_rdn_value();
+        debug!(
+            "Trying to retrieve LDAP user with the following RDN: {}",
+            rdn
+        );
+        let mut entries = self
+            .search_users(&format!(
+                "(&({}={rdn})(objectClass={}))",
+                self.config.get_rdn_attr(),
+                self.config.ldap_user_obj_class
+            ))
+            .await?;
+        if entries.len() > 1 {
+            return Err(LdapError::TooManyObjects);
+        }
+        if let Some(entry) = entries.pop() {
+            info!("Performed LDAP user search: {rdn}");
+            User::from_searchentry(&entry, &user.username, None)
+        } else {
+            Err(LdapError::ObjectNotFound(format!("User {rdn} not found",)))
         }
     }
 
@@ -570,6 +608,20 @@ impl LDAPConnection {
         Ok(())
     }
 
+    fn group_entry_to_name(&self, entry: SearchEntry) -> Result<String, LdapError> {
+        entry
+            .attrs
+            .get(&self.config.ldap_groupname_attr)
+            .and_then(|v| v.first())
+            .map(|name| name.to_string())
+            .ok_or_else(|| {
+                LdapError::ObjectNotFound(format!(
+                    "Couldn't extract a group name from searchentry {:?}.",
+                    entry
+                ))
+            })
+    }
+
     /// Deletes user from LDAP.
     pub async fn delete_user<I>(&mut self, user: &User<I>) -> Result<(), LdapError> {
         let user_rdn_value = user.ldap_rdn_value();
@@ -580,15 +632,14 @@ impl LDAPConnection {
         debug!("Removing user from groups: {user_groups:?}");
         for group in user_groups {
             debug!("Removing user from group {group:?}");
-            if let Some(groupname) = group
-                .attrs
-                .get(&self.config.ldap_groupname_attr)
-                .and_then(|v| v.first())
-            {
-                self.remove_user_from_group(user, groupname).await?;
-                debug!("Removed user from group {groupname}");
-            } else {
-                warn!("Group without name found for user {user}, full group entry: {group:?}");
+            match self.group_entry_to_name(group) {
+                Ok(groupname) => {
+                    self.remove_user_from_group(user, &groupname).await?;
+                    debug!("Removed user from group {groupname}");
+                }
+                Err(e) => {
+                    warn!("Failed to remove user from group: {e}");
+                }
             }
         }
         self.delete(&dn).await?;
