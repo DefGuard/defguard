@@ -451,7 +451,7 @@ impl super::LDAPConnection {
         let mut all_ldap_users = self.get_all_users().await?;
         let mut all_defguard_users = User::all(pool).await?;
 
-        // We need to filter out users that should be ignored from sync
+        // Filter out users that should be ignored from sync
         let mut filtered_users = Vec::new();
         for user in all_defguard_users {
             if user.ldap_sync_allowed(pool).await? {
