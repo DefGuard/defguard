@@ -168,7 +168,9 @@ const ModalContent = () => {
         controller={{ control, name: 'destination' }}
         label={localLL.labels.ip()}
       />
-      <FormInput controller={{ control, name: 'ports' }} label={localLL.labels.ports()} />
+      <FormInput controller={{ control, name: 'ports' }} label={localLL.labels.ports()}
+        placeholder={localLL.placeholders.ports()}
+      />
       <FormSelect
         controller={{ control, name: 'protocols' }}
         label={localLL.labels.protocols()}
