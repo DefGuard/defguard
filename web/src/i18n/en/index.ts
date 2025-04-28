@@ -2329,6 +2329,31 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
               status: 'Status',
             },
           },
+          create: {
+            labels: {
+              name: 'Alias name',
+              kind: 'Alias kind',
+              ip: 'IPv4/6 CIDR range address',
+              ports: 'Ports or Port Ranges',
+              protocols: 'Protocols',
+            },
+            placeholders: {
+              protocols: 'All Protocols',
+            },
+            kindOptions: {
+              destination: 'Destination',
+              component: 'Component',
+            },
+            controls: {
+              cancel: 'Cancel',
+              edit: 'Edit Alias',
+              create: 'Create Alias',
+            },
+            messages: {
+              modified: 'Alias modified',
+              created: 'Alias created',
+            },
+          },
         },
         listControls: {
           searchPlaceholder: 'Find name',

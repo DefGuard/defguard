@@ -5529,6 +5529,70 @@ type RootTranslation = {
 							status: string
 						}
 					}
+					create: {
+						labels: {
+							/**
+							 * A​l​i​a​s​ ​n​a​m​e
+							 */
+							name: string
+							/**
+							 * A​l​i​a​s​ ​k​i​n​d
+							 */
+							kind: string
+							/**
+							 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+							 */
+							ip: string
+							/**
+							 * P​o​r​t​s​ ​o​r​ ​P​o​r​t​ ​R​a​n​g​e​s
+							 */
+							ports: string
+							/**
+							 * P​r​o​t​o​c​o​l​s
+							 */
+							protocols: string
+						}
+						placeholders: {
+							/**
+							 * A​l​l​ ​P​r​o​t​o​c​o​l​s
+							 */
+							protocols: string
+						}
+						kindOptions: {
+							/**
+							 * D​e​s​t​i​n​a​t​i​o​n
+							 */
+							destination: string
+							/**
+							 * C​o​m​p​o​n​e​n​t
+							 */
+							component: string
+						}
+						controls: {
+							/**
+							 * C​a​n​c​e​l
+							 */
+							cancel: string
+							/**
+							 * E​d​i​t​ ​A​l​i​a​s
+							 */
+							edit: string
+							/**
+							 * C​r​e​a​t​e​ ​A​l​i​a​s
+							 */
+							create: string
+						}
+						messages: {
+							/**
+							 * A​l​i​a​s​ ​m​o​d​i​f​i​e​d
+							 */
+							modified: string
+							/**
+							 * A​l​i​a​s​ ​c​r​e​a​t​e​d
+							 */
+							created: string
+						}
+					}
 				}
 				listControls: {
 					/**
@@ -11279,6 +11343,70 @@ export type TranslationFunctions = {
 							 * Status
 							 */
 							status: () => LocalizedString
+						}
+					}
+					create: {
+						labels: {
+							/**
+							 * Alias name
+							 */
+							name: () => LocalizedString
+							/**
+							 * Alias kind
+							 */
+							kind: () => LocalizedString
+							/**
+							 * IPv4/6 CIDR range address
+							 */
+							ip: () => LocalizedString
+							/**
+							 * Ports or Port Ranges
+							 */
+							ports: () => LocalizedString
+							/**
+							 * Protocols
+							 */
+							protocols: () => LocalizedString
+						}
+						placeholders: {
+							/**
+							 * All Protocols
+							 */
+							protocols: () => LocalizedString
+						}
+						kindOptions: {
+							/**
+							 * Destination
+							 */
+							destination: () => LocalizedString
+							/**
+							 * Component
+							 */
+							component: () => LocalizedString
+						}
+						controls: {
+							/**
+							 * Cancel
+							 */
+							cancel: () => LocalizedString
+							/**
+							 * Edit Alias
+							 */
+							edit: () => LocalizedString
+							/**
+							 * Create Alias
+							 */
+							create: () => LocalizedString
+						}
+						messages: {
+							/**
+							 * Alias modified
+							 */
+							modified: () => LocalizedString
+							/**
+							 * Alias created
+							 */
+							created: () => LocalizedString
 						}
 					}
 				}
