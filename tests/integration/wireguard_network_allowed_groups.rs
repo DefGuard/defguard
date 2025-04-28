@@ -405,9 +405,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0]
-            .device_wireguard_ips
-            .as_csv(),
+        device_info.network_info[0].device_wireguard_ips.as_csv(),
         peers[1].allowed_ips[0]
     );
 
@@ -418,9 +416,7 @@ async fn test_import_network_existing_devices(_: PgPoolOptions, options: PgConne
     assert_eq!(device_info.network_info.len(), 1);
     assert_eq!(device_info.network_info[0].network_id, 1);
     assert_eq!(
-        device_info.network_info[0]
-            .device_wireguard_ips
-            .as_csv(),
+        device_info.network_info[0].device_wireguard_ips.as_csv(),
         peers[0].allowed_ips[0]
     );
 

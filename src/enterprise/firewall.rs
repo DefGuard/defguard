@@ -256,7 +256,7 @@ fn create_rules(
         None
     } else {
         // prepare ALLOW rule
-        let rule = Some(FirewallRule {
+        let rule = FirewallRule {
             id,
             source_addrs: source_addrs.to_vec(),
             destination_addrs: destination_addrs.to_vec(),
@@ -265,9 +265,9 @@ fn create_rules(
             verdict: i32::from(FirewallPolicy::Allow),
             comment: Some(format!("{comment} ALLOW")),
             ip_version,
-        });
+        };
         debug!("ALLOW rule generated from ACL: {rule:?}");
-        rule
+        Some(rule)
     };
     // prepare DENY rule
     // it should specify only the destination addrs to block all remaining traffic
@@ -407,27 +407,6 @@ fn process_destination_addrs(
     destination_ips: Vec<IpNetwork>,
     destination_ranges: Vec<AclRuleDestinationRange<Id>>,
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
-    // filter out destinations with incompatible IP version and convert to intermediate
-    // range representation for merging
-    // let destination_iterator = destination_ips.iter().filter_map(|dst| match ip_version {
-    //     IpVersion::Ipv4 => {
-    //         if dst.is_ipv4() {
-    //             Some(ip_to_range(dst.network(), dst.broadcast()))
-    //         } else {
-    //             None
-    //         }
-    //     }
-    //     IpVersion::Ipv6 => {
-    //         if let IpNetwork::V6(subnet) = dst {
-    //             let range_start = subnet.network().into();
-    //             let range_end = get_last_ip_in_v6_subnet(subnet);
-    //             Some(ip_to_range(range_start, range_end))
-    //         } else {
-    //             None
-    //         }
-    //     }
-    // });
-
     // separate ipv4 and ipv6 addresses and convert to intermediate range
     // representation for merging
     let ipv4_destination_iterator = destination_ips
@@ -447,26 +426,7 @@ fn process_destination_addrs(
             }
         });
 
-    // filter out destination ranges with incompatible IP version and convert to intermediate
-    // range representation for merging
-    // let destination_range_iterator = destination_ranges
-    //     .iter()
-    //     .filter_map(|dst| match ip_version {
-    //         IpVersion::Ipv4 => {
-    //             if dst.start.is_ipv4() && dst.end.is_ipv4() {
-    //                 Some(ip_to_range(dst.start, dst.end))
-    //             } else {
-    //                 None
-    //             }
-    //         }
-    //         IpVersion::Ipv6 => {
-    //             if dst.start.is_ipv6() && dst.end.is_ipv6() {
-    //                 Some(ip_to_range(dst.start, dst.end))
-    //             } else {
-    //                 None
-    //             }
-    //         }
-    //     });
+    // the same for ranges
     let ipv4_destination_range_iterator = destination_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
@@ -476,7 +436,7 @@ fn process_destination_addrs(
         .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
         .map(|dst| (ip_to_range(dst.start, dst.end)));
 
-    // combine iterators to return a single list
+    // combine iterators
     let ipv4_destination_addrs = ipv4_destination_iterator
         .chain(ipv4_destination_range_iterator)
         .collect();
@@ -504,28 +464,8 @@ fn process_alias_destination_addrs(
     alias_destination_ips: Vec<IpNetwork>,
     alias_destination_ranges: Vec<AclAliasDestinationRange<Id>>,
 ) -> (Vec<IpAddress>, Vec<IpAddress>) {
-    // filter out destinations with incompatible IP version and convert to intermediate
-    // range representation for merging
-    // let destination_iterator = alias_destination_ips
-    //     .iter()
-    //     .filter_map(|dst| match ip_version {
-    //         IpVersion::Ipv4 => {
-    //             if dst.is_ipv4() {
-    //                 Some(ip_to_range(dst.network(), dst.broadcast()))
-    //             } else {
-    //                 None
-    //             }
-    //         }
-    //         IpVersion::Ipv6 => {
-    //             if let IpNetwork::V6(subnet) = dst {
-    //                 let range_start = subnet.network().into();
-    //                 let range_end = get_last_ip_in_v6_subnet(subnet);
-    //                 Some(ip_to_range(range_start, range_end))
-    //             } else {
-    //                 None
-    //             }
-    //         }
-    //     });
+    // separate ipv4 and ipv6 addresses and convert to intermediate range
+    // representation for merging
     let ipv4_destination_iterator = alias_destination_ips
         .iter()
         .filter(|dst| dst.is_ipv4())
@@ -543,27 +483,7 @@ fn process_alias_destination_addrs(
             }
         });
 
-    // filter out destination ranges with incompatible IP version and convert to intermediate
-    // range representation for merging
-    // let destination_range_iterator =
-    //     alias_destination_ranges
-    //         .iter()
-    //         .filter_map(|dst| match ip_version {
-    //             IpVersion::Ipv4 => {
-    //                 if dst.start.is_ipv4() && dst.end.is_ipv4() {
-    //                     Some(ip_to_range(dst.start, dst.end))
-    //                 } else {
-    //                     None
-    //                 }
-    //             }
-    //             IpVersion::Ipv6 => {
-    //                 if dst.start.is_ipv6() && dst.end.is_ipv6() {
-    //                     Some(ip_to_range(dst.start, dst.end))
-    //                 } else {
-    //                     None
-    //                 }
-    //             }
-    //         });
+    // the same for ranges
     let ipv4_destination_range_iterator = alias_destination_ranges
         .iter()
         .filter(|dst| dst.start.is_ipv4() && dst.end.is_ipv4())
@@ -573,7 +493,7 @@ fn process_alias_destination_addrs(
         .filter(|dst| dst.start.is_ipv6() && dst.end.is_ipv6())
         .map(|dst| ip_to_range(dst.start, dst.end));
 
-    // combine iterators to return a single list
+    // combine iterators
     let ipv4_destination_addrs = ipv4_destination_iterator
         .chain(ipv4_destination_range_iterator)
         .collect();

@@ -138,7 +138,6 @@ pub(crate) fn parse_wireguard_config(
                             return Err(WireguardConfigParseError::InvalidPeerIp(ip));
                         }
                     }
-                    // TODO(jck) ensure at least one of the networks contains the allowed_ip
                     peer_addresses.push(ip);
                 }
                 Err(err) => return Err(WireguardConfigParseError::InvalidIp(err)),

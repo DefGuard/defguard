@@ -798,7 +798,7 @@ impl Device<Id> {
     /// Assign the next available IP address in each subnet of the network to this device.
     ///
     /// For every CIDR block in `network.address`, this function:
-    /// 1. Iterates through the block’s IPs in order.
+    /// 1. Iterates through the block's IPs in order.
     /// 2. Skips any IP that:
     ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or  
     ///    - Appears in the optional `reserved_ips`.
@@ -822,11 +822,19 @@ impl Device<Id> {
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
+        debug!(
+            "Assiging IP addresses for device: {} in network {}",
+            self.name, network.name
+        );
         let mut ips = Vec::new();
         let reserved = reserved_ips.unwrap_or(&[]);
 
         // iterate over all network addresses and assign new IP for the device in each of them
         for address in &network.address {
+            debug!(
+                "Assigning address to device {} in network {} {address}",
+                self.name, network.name,
+            );
             let mut picked = None;
             for ip in address {
                 if network
@@ -850,6 +858,10 @@ impl Device<Id> {
             })?;
 
             // store the ip otherwise
+            debug!(
+                "Found assignable address {ip} for device {} in network {} {address}",
+                self.name, network.name,
+            );
             ips.push(ip);
         }
 
@@ -858,7 +870,10 @@ impl Device<Id> {
             WireguardNetworkDevice::new(network.id, self.id, ips.clone());
         wireguard_network_device.insert(&mut *transaction).await?;
 
-        info!("Assigned IP addresses {ips:?} for device: {}", self.name);
+        info!(
+            "Assigned IP addresses {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
         Ok(wireguard_network_device)
     }
 
@@ -876,13 +891,15 @@ impl Device<Id> {
             self.name, network.name
         );
         // ensure assignment is valid
-        if let Err(err) = network
+        network
             .can_assign_ips(&mut *transaction, ips, Some(self.id))
             .await
-        {
-            error!("Invalid network IP assignment: {err}");
-            return Err(err);
-        }
+            .map_err(|err| {
+                error!("Invalid network IP assignment: {err}");
+                err
+            })?;
+
+        // insert relation record
         let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
         wireguard_network_device.insert(&mut *transaction).await?;
         info!(
@@ -1054,10 +1071,7 @@ mod test {
             Device::new_with_ip(&pool, user.id, "dev1".into(), "key1".into(), &network)
                 .await
                 .unwrap();
-        assert_eq!(
-            wireguard_network_device.wireguard_ips.as_csv(),
-            "10.1.1.2"
-        );
+        assert_eq!(wireguard_network_device.wireguard_ips.as_csv(), "10.1.1.2");
 
         let device = Device::new_with_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());
