@@ -736,10 +736,13 @@ impl super::LDAPConnection {
 
             match User::from_searchentry(&entry, username, None) {
                 Ok(user) => all_users.push(user),
-                Err(err) => warn!(
-                    "Failed to create user {} from LDAP entry: {:?}, error: {}. The user will be skipped during sync",
-                    username, entry, err
-                ),
+                Err(err) => {
+                    warn!(
+                        "Failed to create user {} from LDAP entry, error: {}. The user will be skipped during sync",
+                        username, err
+                    );
+                    debug!("Skipping user {} due to error: {}", username, err);
+                }
             }
         }
 

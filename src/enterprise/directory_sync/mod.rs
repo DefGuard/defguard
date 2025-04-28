@@ -671,7 +671,9 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting admin {} because they are not present in the directory",
                         user.email
                     );
-                    deleted_users.push(user.clone().as_noid());
+                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                        deleted_users.push(user.clone().as_noid());
+                    }
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
@@ -715,7 +717,9 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting user {} because they are not present in the directory",
                         user.email
                     );
-                    deleted_users.push(user.clone().as_noid());
+                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                        deleted_users.push(user.clone().as_noid());
+                    }
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {

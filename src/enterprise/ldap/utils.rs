@@ -156,10 +156,22 @@ pub(crate) async fn ldap_handle_user_modify(
     .await;
 }
 
+/// Deletes single user from LDAP. Convenience wrapper around [`ldap_delete_users`].
+///
+/// WARNING: You must check whether the user should be deleted from LDAP or not before calling this function.
+/// For example, by calling the [`User::ldap_sync_allowed`] method on the user.
+//
+// The mentioned method can't be called here since the user is already dropped from the database
 pub(crate) async fn ldap_delete_user<I>(user: &User<I>, pool: &PgPool) {
     ldap_delete_users(vec![user], pool).await;
 }
 
+/// Deletes multiple users from LDAP.
+///
+/// WARNING: You must check whether the users should be deleted from LDAP or not before calling this function.
+/// For example, by calling the [`User::ldap_sync_allowed`] method on each user.
+//
+// The mentioned method can't be called here since the user is already dropped from the database
 pub(crate) async fn ldap_delete_users<I>(users: Vec<&User<I>>, pool: &PgPool) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Deleting {:?} users from LDAP", users.len());

@@ -795,14 +795,20 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
-        let user_for_ldap = user.clone().as_noid();
+        let user_for_ldap = if user.ldap_sync_allowed(&mut *transaction).await? {
+            Some(user.clone().as_noid())
+        } else {
+            None
+        };
         user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
-        ldap_delete_user(&user_for_ldap, &appstate.pool).await;
+        if let Some(user_for_ldap) = user_for_ldap {
+            ldap_delete_user(&user_for_ldap, &appstate.pool).await;
+        }
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())

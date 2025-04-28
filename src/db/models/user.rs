@@ -1005,8 +1005,8 @@ impl User<Id> {
             // create admin user
             let password_hash = hash_password(default_admin_pass)?;
             let result = query_scalar!(
-                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email, ldap_rdn) \
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard', 'admin') \
                 ON CONFLICT DO NOTHING \
                 RETURNING id",
                 password_hash
