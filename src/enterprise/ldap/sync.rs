@@ -57,7 +57,10 @@ use std::collections::{HashMap, HashSet};
 use sqlx::{PgConnection, PgPool, Type};
 
 use super::{error::LdapError, LDAPConfig};
-use crate::db::{models::settings::update_current_settings, Group, Id, Settings, User};
+use crate::{
+    db::{models::settings::update_current_settings, Group, Id, Settings, User},
+    hashset,
+};
 
 async fn get_or_create_group(
     transaction: &mut PgConnection,
@@ -330,11 +333,52 @@ fn compute_group_sync_changes(
 }
 
 fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConfig) -> bool {
-    defguard_user.last_name != ldap_user.last_name
-        || defguard_user.first_name != ldap_user.first_name
-        || defguard_user.email != ldap_user.email
-        || defguard_user.phone != ldap_user.phone
-        || (!config.using_username_as_rdn() && defguard_user.username != ldap_user.username)
+    let mut different = false;
+
+    if defguard_user.last_name != ldap_user.last_name {
+        debug!(
+            "Attribute difference detected: last_name (Defguard: {}, LDAP: {})",
+            defguard_user.last_name, ldap_user.last_name
+        );
+        different = true;
+    }
+
+    if defguard_user.first_name != ldap_user.first_name {
+        debug!(
+            "Attribute difference detected: first_name (Defguard: {}, LDAP: {})",
+            defguard_user.first_name, ldap_user.first_name
+        );
+        different = true;
+    }
+
+    if defguard_user.email != ldap_user.email {
+        debug!(
+            "Attribute difference detected: email (Defguard: {}, LDAP: {})",
+            defguard_user.email, ldap_user.email
+        );
+        different = true;
+    }
+
+    if defguard_user.phone != ldap_user.phone
+        && !(defguard_user.phone.as_deref() == Some("") && ldap_user.phone.is_none())
+        && !(ldap_user.phone.as_deref() == Some("") && defguard_user.phone.is_none())
+    {
+        debug!(
+            "Attribute difference detected: phone (Defguard: {:?}, LDAP: {:?})",
+            defguard_user.phone, ldap_user.phone
+        );
+        different = true;
+    }
+
+    if !config.using_username_as_rdn() && defguard_user.username != ldap_user.username {
+        debug!(
+            "Attribute difference detected: username (Defguard: {}, LDAP: {})",
+            defguard_user.username, ldap_user.username
+        );
+        different = true;
+    }
+
+    different
 }
 
 /// Extracts users that are in both sources for later comparison and attritubte modification (emails, phone numbers)
@@ -391,8 +435,7 @@ impl super::LDAPConnection {
         for (ldap_user, defguard_user) in intersecting_users.iter_mut() {
             if attrs_different(defguard_user, ldap_user, &self.config) {
                 debug!(
-                    "User {} attributes differ between LDAP and Defguard, merging...",
-                    defguard_user.username
+                    "User {defguard_user} attributes differ between LDAP and Defguard, merging..."
                 );
                 match authority {
                     Authority::LDAP => {
@@ -410,6 +453,63 @@ impl super::LDAPConnection {
         }
 
         transaction.commit().await?;
+
+        Ok(())
+    }
+
+    /// Allows to synchronize user data (e.g. email, groups) between Defguard and LDAP based on the authority for a single user
+    ///
+    /// Does nothing if the two way sync is disabled
+    pub(crate) async fn sync_user_data(
+        &mut self,
+        user: &User<Id>,
+        pool: &PgPool,
+    ) -> Result<(), LdapError> {
+        debug!("Syncing user data for {user}");
+        let settings = Settings::get_current_settings();
+
+        // Force update user data in LDAP if the two-way sync is disabled, otherwise respect the authority
+        let authority = if !settings.ldap_sync_enabled || !settings.ldap_is_authoritative {
+            Authority::Defguard
+        } else {
+            Authority::LDAP
+        };
+
+        let user_dn = self.config.user_dn(user.ldap_rdn_value());
+        let ldap_user = self.get_user(user).await?;
+        let defguard_groups = user.member_of_names(pool).await?;
+        let mut ldap_groups = Vec::new();
+        for group_entry in self.get_user_groups(&user_dn).await? {
+            match self.group_entry_to_name(group_entry) {
+                Ok(group_name) => ldap_groups.push(group_name),
+                Err(err) => {
+                    warn!("Failed to convert group entry to name during user synchronization: {err}. This group will be skipped");
+                    continue;
+                }
+            };
+        }
+
+        debug!("User {user} is a member of the following groups in Defguard: {defguard_groups:?}");
+        debug!("User {user} is a member of the following groups in LDAP: {ldap_groups:?}");
+
+        let intersecting_users = vec![(ldap_user.clone(), user.clone())];
+
+        // create a hashmap for the calculate group membership changes function
+        let defguard_memberships = defguard_groups
+            .iter()
+            .map(|g| (g.clone(), hashset![user.clone()]))
+            .collect::<HashMap<_, _>>();
+
+        let ldap_memberships = ldap_groups
+            .iter()
+            .map(|g| (g.clone(), hashset![&ldap_user]))
+            .collect::<HashMap<_, _>>();
+
+        self.apply_user_modifications(intersecting_users, authority, pool)
+            .await?;
+
+        let changes = compute_group_sync_changes(defguard_memberships, ldap_memberships, authority);
+        self.apply_user_group_sync_changes(pool, changes).await?;
 
         Ok(())
     }
@@ -432,12 +532,33 @@ impl super::LDAPConnection {
             Authority::LDAP
         };
 
+        let mut sync_groups = Vec::new();
+        for groupname in &self.config.ldap_sync_groups {
+            if let Some(group) = Group::find_by_name(pool, groupname).await? {
+                sync_groups.push(group);
+            } else {
+                debug!("Group {groupname} not found in Defguard, skipping");
+            }
+        }
+
+        debug!("The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced", sync_groups);
+        let mut sync_group_members = HashSet::new();
+        for sync_group in sync_groups.iter() {
+            let members = sync_group.members(pool).await?;
+            sync_group_members.extend(members.into_iter());
+        }
+
         let mut all_ldap_users = self.get_all_users().await?;
         let mut all_defguard_users = User::all(pool).await?;
-        all_defguard_users.retain(|u| u.is_active && u.is_enrolled());
 
-        // To perform LDAP operations, we need access to the user's RDN value, on the other hand, Defguard operations are
-        // performed using the username, so here is a helper mapping to translate between the two.
+        // Filter out users that should be ignored from sync
+        let mut filtered_users = Vec::new();
+        for user in all_defguard_users {
+            if user.ldap_sync_allowed(pool).await? {
+                filtered_users.push(user);
+            }
+        }
+        all_defguard_users = filtered_users;
 
         let ldap_usernames = all_ldap_users
             .iter()
@@ -457,13 +578,14 @@ impl super::LDAPConnection {
             .await?;
         let mut defguard_memberships = HashMap::new();
         let defguard_groups = Group::all(pool).await?;
+
         for group in defguard_groups {
-            let members = group
-                .members(pool)
-                .await?
-                .into_iter()
-                .filter(|u| u.is_active && u.is_enrolled())
-                .collect::<HashSet<_>>();
+            let mut members = HashSet::new();
+            for member in group.members(pool).await? {
+                if member.ldap_sync_allowed(pool).await? {
+                    members.insert(member);
+                }
+            }
             defguard_memberships.insert(group.name, members);
         }
 
@@ -650,10 +772,13 @@ impl super::LDAPConnection {
 
             match User::from_searchentry(&entry, username, None) {
                 Ok(user) => all_users.push(user),
-                Err(err) => debug!(
-                    "Failed to create user {} from LDAP entry: {:?}, error: {}. The user will be skipped during sync",
-                    username, entry, err
-                ),
+                Err(err) => {
+                    warn!(
+                        "Failed to create user {} from LDAP entry, error: {}. The user will be skipped during sync",
+                        username, err
+                    );
+                    debug!("Skipping user {} due to error: {}", username, err);
+                }
             }
         }
 
@@ -665,9 +790,8 @@ impl super::LDAPConnection {
 mod tests {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use crate::db::setup_pool;
-
     use super::*;
+    use crate::db::setup_pool;
 
     fn make_test_user(username: &str) -> User {
         User::new(

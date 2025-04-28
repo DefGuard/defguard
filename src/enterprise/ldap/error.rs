@@ -28,4 +28,6 @@ pub enum LdapError {
     InvalidUsername(String),
     #[error("LDAP object already exists: {0}")]
     ObjectAlreadyExists(String),
+    #[error("User {0} does not belong to the defined synchronization groups in {1}")]
+    UserNotInLDAPSyncGroups(String, &'static str),
 }
