@@ -5561,6 +5561,10 @@ type RootTranslation = {
 							 * A​l​l​ ​P​o​r​t​s
 							 */
 							ports: string
+							/**
+							 * A​l​l​ ​I​P​s
+							 */
+							ip: string
 						}
 						kindOptions: {
 							/**
@@ -5877,6 +5881,10 @@ type RootTranslation = {
 				 * A​l​l​ ​p​r​o​t​o​c​o​l​s
 				 */
 				allProtocols: string
+				/**
+				 * A​l​l​ ​I​P​s
+				 */
+				allIps: string
 			}
 		}
 	}
@@ -11381,6 +11389,10 @@ export type TranslationFunctions = {
 							 * All Ports
 							 */
 							ports: () => LocalizedString
+							/**
+							 * All IPs
+							 */
+							ip: () => LocalizedString
 						}
 						kindOptions: {
 							/**
@@ -11694,6 +11706,10 @@ export type TranslationFunctions = {
 				 * All protocols
 				 */
 				allProtocols: () => LocalizedString
+				/**
+				 * All IPs
+				 */
+				allIps: () => LocalizedString
 			}
 		}
 	}

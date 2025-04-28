@@ -2340,6 +2340,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             placeholders: {
               protocols: 'All Protocols',
               ports: 'All Ports',
+              ip: 'All IPs',
             },
             kindOptions: {
               destination: 'Destination',
@@ -2463,6 +2464,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       },
       placeholders: {
         allProtocols: 'All protocols',
+        allIps: 'All IPs',
       },
     },
   },

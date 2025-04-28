@@ -424,6 +424,7 @@ export const AlcCreatePage = () => {
             <FormTextarea
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
+              placeholder={localLL.placeholders.allIps()}
             />
             <FormInput
               controller={{ control, name: 'ports' }}
