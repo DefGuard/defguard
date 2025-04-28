@@ -333,11 +333,52 @@ fn compute_group_sync_changes(
 }
 
 fn attrs_different(defguard_user: &User<Id>, ldap_user: &User, config: &LDAPConfig) -> bool {
-    defguard_user.last_name != ldap_user.last_name
-        || defguard_user.first_name != ldap_user.first_name
-        || defguard_user.email != ldap_user.email
-        || defguard_user.phone != ldap_user.phone
-        || (!config.using_username_as_rdn() && defguard_user.username != ldap_user.username)
+    let mut different = false;
+
+    if defguard_user.last_name != ldap_user.last_name {
+        debug!(
+            "Attribute difference detected: last_name (Defguard: {}, LDAP: {})",
+            defguard_user.last_name, ldap_user.last_name
+        );
+        different = true;
+    }
+
+    if defguard_user.first_name != ldap_user.first_name {
+        debug!(
+            "Attribute difference detected: first_name (Defguard: {}, LDAP: {})",
+            defguard_user.first_name, ldap_user.first_name
+        );
+        different = true;
+    }
+
+    if defguard_user.email != ldap_user.email {
+        debug!(
+            "Attribute difference detected: email (Defguard: {}, LDAP: {})",
+            defguard_user.email, ldap_user.email
+        );
+        different = true;
+    }
+
+    if defguard_user.phone != ldap_user.phone
+        && !(defguard_user.phone.as_deref() == Some("") && ldap_user.phone.is_none())
+        && !(ldap_user.phone.as_deref() == Some("") && defguard_user.phone.is_none())
+    {
+        debug!(
+            "Attribute difference detected: phone (Defguard: {:?}, LDAP: {:?})",
+            defguard_user.phone, ldap_user.phone
+        );
+        different = true;
+    }
+
+    if !config.using_username_as_rdn() && defguard_user.username != ldap_user.username {
+        debug!(
+            "Attribute difference detected: username (Defguard: {}, LDAP: {})",
+            defguard_user.username, ldap_user.username
+        );
+        different = true;
+    }
+
+    different
 }
 
 /// Extracts users that are in both sources for later comparison and attritubte modification (emails, phone numbers)
@@ -394,8 +435,7 @@ impl super::LDAPConnection {
         for (ldap_user, defguard_user) in intersecting_users.iter_mut() {
             if attrs_different(defguard_user, ldap_user, &self.config) {
                 debug!(
-                    "User {} attributes differ between LDAP and Defguard, merging...",
-                    defguard_user.username
+                    "User {defguard_user} attributes differ between LDAP and Defguard, merging..."
                 );
                 match authority {
                     Authority::LDAP => {
@@ -428,10 +468,12 @@ impl super::LDAPConnection {
         debug!("Syncing user data for {user}");
         let settings = Settings::get_current_settings();
 
-        if !settings.ldap_sync_enabled {
-            debug!("LDAP sync is disabled, skipping user data sync");
-            return Ok(());
-        }
+        // Force update user data in LDAP if the two-way sync is disabled, otherwise respect the authority
+        let authority = if !settings.ldap_sync_enabled || !settings.ldap_is_authoritative {
+            Authority::Defguard
+        } else {
+            Authority::LDAP
+        };
 
         let user_dn = self.config.user_dn(user.ldap_rdn_value());
         let ldap_user = self.get_user(user).await?;
@@ -462,12 +504,6 @@ impl super::LDAPConnection {
             .iter()
             .map(|g| (g.clone(), hashset![&ldap_user]))
             .collect::<HashMap<_, _>>();
-
-        let authority = if settings.ldap_is_authoritative {
-            Authority::LDAP
-        } else {
-            Authority::Defguard
-        };
 
         self.apply_user_modifications(intersecting_users, authority, pool)
             .await?;

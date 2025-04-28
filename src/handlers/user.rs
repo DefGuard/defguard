@@ -659,6 +659,7 @@ pub async fn modify_user(
     let status_changing = user_info.is_active != user.is_active;
 
     let mut transaction = appstate.pool.begin().await?;
+    let ldap_sync_allowed = user.ldap_sync_allowed(&mut *transaction).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
@@ -708,9 +709,12 @@ pub async fn modify_user(
         user_info.into_user_safe_fields(&mut user)?;
     }
     user.save(&mut *transaction).await?;
-
     transaction.commit().await?;
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+
+    if ldap_sync_allowed {
+        ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
+    }
 
     if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {
@@ -740,7 +744,6 @@ pub async fn modify_user(
         };
     }
 
-    ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     ldap_update_user_state(&mut user, &appstate.pool).await;
 
     appstate.trigger_action(AppEvent::UserModified(user_info));

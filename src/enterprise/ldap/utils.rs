@@ -128,6 +128,9 @@ pub(crate) async fn ldap_add_user(user: &mut User<Id>, password: Option<&str>, p
 /// Applies user modifications to LDAP. May update the user object if
 /// his RDN in Defguard needs updating. Fails and sets the sync status to desynced
 /// if the user does not exist in LDAP despite updating his state.
+///
+/// Warning: This function does not check if the user is allowed to be synced to LDAP. You must
+/// do that manually before calling this function. For example, by calling the [`User::ldap_sync_allowed`] method on the user.
 pub(crate) async fn ldap_handle_user_modify(
     old_username: &str,
     current_user: &mut User<Id>,
@@ -135,12 +138,6 @@ pub(crate) async fn ldap_handle_user_modify(
 ) {
     let _: Result<(), LdapError> = with_ldap_status(pool, async {
         debug!("Handling user modify for {old_username} in LDAP");
-
-        // Check if the user is allowed to be synced at all
-        if !current_user.ldap_sync_allowed(pool).await? {
-            debug!("User {current_user} is not allowed to be synced to LDAP as he is not in the specified sync groups, skipping");
-            return Ok(());
-        }
 
         let mut ldap_connection = LDAPConnection::create().await?;
         if !ldap_connection.user_exists(current_user).await? {
