@@ -39,7 +39,7 @@ use crate::{
     server_config,
     templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
-    CommaSeparated,
+    AsCsv,
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -664,7 +664,7 @@ pub(crate) async fn add_device(
         .iter()
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
-            assigned_ips: c.address.comma_separated(),
+            assigned_ips: c.address.as_csv(),
         })
         .collect();
 

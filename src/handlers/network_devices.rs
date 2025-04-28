@@ -27,7 +27,7 @@ use crate::{
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
-    CommaSeparated,
+    AsCsv,
 };
 
 #[derive(Serialize)]
@@ -616,7 +616,7 @@ pub(crate) async fn add_network_device(
 
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
-        assigned_ips: config.address.comma_separated(),
+        assigned_ips: config.address.as_csv(),
     }];
 
     send_new_device_added_email(

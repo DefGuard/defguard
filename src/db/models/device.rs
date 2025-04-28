@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     db::{Id, NoId, User},
-    CommaSeparated, KEY_LENGTH,
+    AsCsv, KEY_LENGTH,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -571,7 +571,7 @@ impl Device<Id> {
         let allowed_ips = if network.allowed_ips.is_empty() {
             String::new()
         } else {
-            format!("AllowedIPs = {}\n", network.allowed_ips.comma_separated())
+            format!("AllowedIPs = {}\n", network.allowed_ips.as_csv())
         };
 
         format!(
@@ -585,7 +585,7 @@ impl Device<Id> {
             {allowed_ips}\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.wireguard_ips.comma_separated(),
+            wireguard_network_device.wireguard_ips.as_csv(),
             network.pubkey,
             network.endpoint,
             network.port,
@@ -765,7 +765,7 @@ impl Device<Id> {
             {
                 debug!(
                     "Assigned IPs {} for device {} (user {}) in network {network}",
-                    wireguard_network_device.wireguard_ips.comma_separated(),
+                    wireguard_network_device.wireguard_ips.as_csv(),
                     self.name,
                     self.user_id
                 );
@@ -1055,7 +1055,7 @@ mod test {
                 .await
                 .unwrap();
         assert_eq!(
-            wireguard_network_device.wireguard_ips.comma_separated(),
+            wireguard_network_device.wireguard_ips.as_csv(),
             "10.1.1.2"
         );
 
