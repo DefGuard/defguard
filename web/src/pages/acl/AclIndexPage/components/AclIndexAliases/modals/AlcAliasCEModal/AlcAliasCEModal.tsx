@@ -67,6 +67,7 @@ const ModalContent = () => {
 
   const { LL } = useI18nContext();
   const localLL = LL.acl.listPage.aliases.modals.create;
+  const formErrors = LL.form.error;
   const {
     acl: {
       aliases: { createAlias, editAlias },
@@ -76,13 +77,17 @@ const ModalContent = () => {
   const schema = useMemo(
     () =>
       z.object({
-        name: z.string(),
+        name: z
+          .string({
+            required_error: formErrors.required(),
+          })
+          .min(1, formErrors.required()),
         kind: z.string(),
         ports: aclPortsValidator(LL),
         destination: aclDestinationValidator(LL),
         protocols: z.number().array(),
       }),
-    [LL],
+    [LL, formErrors],
   );
 
   type FormFields = z.infer<typeof schema>;
@@ -95,7 +100,7 @@ const ModalContent = () => {
       defaultValues = {
         destination: '',
         name: '',
-        kind: '',
+        kind: AclAliasKind.DESTINATION,
         ports: '',
         protocols: [],
       };
@@ -169,7 +174,9 @@ const ModalContent = () => {
         label={localLL.labels.ip()}
         placeholder={localLL.placeholders.ip()}
       />
-      <FormInput controller={{ control, name: 'ports' }} label={localLL.labels.ports()}
+      <FormInput
+        controller={{ control, name: 'ports' }}
+        label={localLL.labels.ports()}
         placeholder={localLL.placeholders.ports()}
       />
       <FormSelect
