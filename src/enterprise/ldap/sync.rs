@@ -434,7 +434,7 @@ impl super::LDAPConnection {
         }
 
         let user_dn = self.config.user_dn(user.ldap_rdn_value());
-        let ldap_user = self.get_user(&user).await?;
+        let ldap_user = self.get_user(user).await?;
         let defguard_groups = user.member_of_names(pool).await?;
         let mut ldap_groups = Vec::new();
         for group_entry in self.get_user_groups(&user_dn).await? {
