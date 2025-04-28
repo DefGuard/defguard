@@ -5606,6 +5606,10 @@ type RootTranslation = {
 						 */
 						name: string
 						/**
+						 * A​l​i​a​s​ ​k​i​n​d
+						 */
+						kind: string
+						/**
 						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
 						 */
 						ip: string
@@ -11350,6 +11354,10 @@ export type TranslationFunctions = {
 						 * Alias name
 						 */
 						name: () => LocalizedString
+						/**
+						 * Alias kind
+						 */
+						kind: () => LocalizedString
 						/**
 						 * Ipv4/6 CIDR range address
 						 */

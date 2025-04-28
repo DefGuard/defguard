@@ -2357,6 +2357,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
           headers: {
             id: 'ID',
             name: 'Alias name',
+            kind: 'Alias kind',
             ip: 'Ipv4/6 CIDR range address',
             ports: 'Ports',
             protocols: 'Protocols',
