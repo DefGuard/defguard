@@ -498,7 +498,7 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export interface ApiHook {
+export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
@@ -703,7 +703,7 @@ export interface ApiHook {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
     sendSupportMail: () => EmptyApiResponse;
   };
-}
+};
 
 export interface NavigationStore {
   isNavigationOpen: boolean;

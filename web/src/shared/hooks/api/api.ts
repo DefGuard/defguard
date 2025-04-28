@@ -4,7 +4,7 @@ import {
   AddDeviceResponse,
   AddOpenidClientRequest,
   AddUserRequest,
-  ApiHook,
+  Api,
   AuthorizedClient,
   ChangeOpenidClientStateRequest,
   ChangePasswordRequest,
@@ -42,14 +42,14 @@ import { UpdateInfo } from '../store/useUpdatesStore';
 
 const unpackRequest = <T>(res: AxiosResponse<T>): T => res.data;
 
-export const buildApi = (client: Axios): ApiHook => {
+export const buildApi = (client: Axios): Api => {
   const addUser = async (data: AddUserRequest) => {
     return client.post<User>(`/user`, data).then(unpackRequest);
   };
 
   const getMe = () => client.get<User>(`/me`).then(unpackRequest);
 
-  const getUser: ApiHook['user']['getUser'] = async (username) =>
+  const getUser: Api['user']['getUser'] = async (username) =>
     client.get<UserProfile>(`/user/${username}`).then(unpackRequest);
 
   const editUser = async ({ username, data }: UserEditRequest) =>
@@ -65,7 +65,7 @@ export const buildApi = (client: Axios): ApiHook => {
 
   const getUsers = () => client.get('/user').then(unpackRequest);
 
-  const downloadDeviceConfig: ApiHook['device']['downloadDeviceConfig'] = async (data) =>
+  const downloadDeviceConfig: Api['device']['downloadDeviceConfig'] = async (data) =>
     client
       .get<string>(`/network/${data.network_id}/device/${data.device_id}/config`)
       .then(unpackRequest);
@@ -76,7 +76,7 @@ export const buildApi = (client: Axios): ApiHook => {
   const deleteDevice = async (device: Device) =>
     client.delete<EmptyApiResponse>(`/device/${device.id}`);
 
-  const addDevice: ApiHook['device']['addDevice'] = async ({ username, ...rest }) =>
+  const addDevice: Api['device']['addDevice'] = async ({ username, ...rest }) =>
     client.post<AddDeviceResponse>(`/device/${username}`, rest).then(unpackRequest);
 
   const fetchUserDevices = async (username: string) =>
@@ -88,24 +88,24 @@ export const buildApi = (client: Axios): ApiHook => {
     client.get<Network>(`/network/${id}`).then(unpackRequest);
 
   // For now there is only one network
-  const modifyNetwork: ApiHook['network']['editNetwork'] = async (data) =>
+  const modifyNetwork: Api['network']['editNetwork'] = async (data) =>
     client.put<Network>(`/network/${data.id}`, data.network).then(unpackRequest);
 
-  const deleteNetwork: ApiHook['network']['deleteNetwork'] = async (id) =>
+  const deleteNetwork: Api['network']['deleteNetwork'] = async (id) =>
     client.delete<EmptyApiResponse>(`/network/${id}`);
 
-  const addNetwork: ApiHook['network']['addNetwork'] = (network) =>
+  const addNetwork: Api['network']['addNetwork'] = (network) =>
     client.post(`/network`, network).then(unpackRequest);
 
-  const importNetwork: ApiHook['network']['importNetwork'] = (network) =>
+  const importNetwork: Api['network']['importNetwork'] = (network) =>
     client.post(`/network/import`, network).then(unpackRequest);
 
-  const mapUserDevices: ApiHook['network']['mapUserDevices'] = (data) =>
+  const mapUserDevices: Api['network']['mapUserDevices'] = (data) =>
     client
       .post(`/network/${data.networkId}/devices`, { devices: data.devices })
       .then(unpackRequest);
 
-  const login: ApiHook['auth']['login'] = (data: LoginData) =>
+  const login: Api['auth']['login'] = (data: LoginData) =>
     client.post('/auth', data).then((response) => {
       if (response.status === 200) {
         return response.data as LoginResponse;
@@ -120,13 +120,13 @@ export const buildApi = (client: Axios): ApiHook => {
 
   const logout = () => client.post<EmptyApiResponse>('/auth/logout').then(unpackRequest);
 
-  const getOpenidInfo: ApiHook['auth']['openid']['getOpenIdInfo'] = () =>
+  const getOpenidInfo: Api['auth']['openid']['getOpenIdInfo'] = () =>
     client.get(`/openid/auth_info`).then(unpackRequest);
 
   const usernameAvailable = (username: string) =>
     client.post('/user/available', { username });
 
-  const getWorkers: ApiHook['provisioning']['getWorkers'] = () =>
+  const getWorkers: Api['provisioning']['getWorkers'] = () =>
     client.get<Provisioner[]>('/worker').then(unpackRequest);
 
   const provisionYubiKey = (data: WorkerJobRequest) =>
@@ -154,10 +154,10 @@ export const buildApi = (client: Axios): ApiHook => {
   const removeFromGroup = ({ group, username }: UserGroupRequest) =>
     client.delete(`/group/${group}/user/${username}`);
 
-  const createGroup: ApiHook['groups']['createGroup'] = (data) =>
+  const createGroup: Api['groups']['createGroup'] = (data) =>
     client.post(`/group`, data).then(unpackRequest);
 
-  const editGroup: ApiHook['groups']['editGroup'] = ({ originalName, ...rest }) =>
+  const editGroup: Api['groups']['editGroup'] = ({ originalName, ...rest }) =>
     client.put(`/group/${originalName}`, rest).then(unpackRequest);
 
   const deleteWorker = (id: string) =>
@@ -171,10 +171,10 @@ export const buildApi = (client: Axios): ApiHook => {
   const changeWebhookState = ({ id, ...rest }: changeWebhookStateRequest) =>
     client.post<EmptyApiResponse>(`/webhook/${id}`, rest);
 
-  const addWebhook: ApiHook['webhook']['addWebhook'] = async (data) => {
+  const addWebhook: Api['webhook']['addWebhook'] = async (data) => {
     return client.post<EmptyApiResponse>('/webhook', data);
   };
-  const editWebhook: ApiHook['webhook']['editWebhook'] = async ({ id, ...rest }) => {
+  const editWebhook: Api['webhook']['editWebhook'] = async ({ id, ...rest }) => {
     return client.put<EmptyApiResponse>(`/webhook/${id}`, rest);
   };
   const getOpenidClients = () => client.get('/oauth').then(unpackRequest);
@@ -215,7 +215,7 @@ export const buildApi = (client: Axios): ApiHook => {
       })
       .then(unpackRequest);
 
-  const getOverviewStats: ApiHook['network']['getOverviewStats'] = (
+  const getOverviewStats: Api['network']['getOverviewStats'] = (
     data: GetNetworkStatsRequest,
   ) =>
     client
@@ -226,10 +226,10 @@ export const buildApi = (client: Axios): ApiHook => {
       })
       .then(unpackRequest);
 
-  const getNetworkToken: ApiHook['network']['getNetworkToken'] = (networkId) =>
+  const getNetworkToken: Api['network']['getNetworkToken'] = (networkId) =>
     client.get<NetworkToken>(`/network/${networkId}/token`).then(unpackRequest);
 
-  const getNetworkStats: ApiHook['network']['getNetworkStats'] = (data) =>
+  const getNetworkStats: Api['network']['getNetworkStats'] = (data) =>
     client
       .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {
@@ -243,43 +243,42 @@ export const buildApi = (client: Axios): ApiHook => {
 
   const mfaDisable = () => client.delete('/auth/mfa').then(unpackRequest);
 
-  const mfaWebauthnRegisterStart: ApiHook['auth']['mfa']['webauthn']['register']['start'] =
+  const mfaWebauthnRegisterStart: Api['auth']['mfa']['webauthn']['register']['start'] =
     () => client.post('/auth/webauthn/init').then(unpackRequest);
 
-  const mfaWebauthnRegisterFinish: ApiHook['auth']['mfa']['webauthn']['register']['finish'] =
+  const mfaWebauthnRegisterFinish: Api['auth']['mfa']['webauthn']['register']['finish'] =
     (data) => client.post('/auth/webauthn/finish', data).then(unpackRequest);
 
   const mfaWebauthnStart = () => client.post('/auth/webauthn/start').then(unpackRequest);
 
-  const mfaWebautnFinish: ApiHook['auth']['mfa']['webauthn']['finish'] = (data) =>
+  const mfaWebautnFinish: Api['auth']['mfa']['webauthn']['finish'] = (data) =>
     client.post('/auth/webauthn', data).then(unpackRequest);
 
   const mfaTOTPInit = () => client.post('/auth/totp/init').then(unpackRequest);
 
-  const mfaTOTPEnable: ApiHook['auth']['mfa']['totp']['enable'] = (data) =>
+  const mfaTOTPEnable: Api['auth']['mfa']['totp']['enable'] = (data) =>
     client.post('/auth/totp', data).then(unpackRequest);
 
   const mfaTOTPDisable = () => client.delete('/auth/totp').then(unpackRequest);
 
-  const mfaTOTPVerify: ApiHook['auth']['mfa']['totp']['verify'] = (data) =>
+  const mfaTOTPVerify: Api['auth']['mfa']['totp']['verify'] = (data) =>
     client.post('/auth/totp/verify', data).then(unpackRequest);
 
-  const mfaEmailMFAInit: ApiHook['auth']['mfa']['email']['register']['start'] = () =>
+  const mfaEmailMFAInit: Api['auth']['mfa']['email']['register']['start'] = () =>
     client.post('/auth/email/init').then(unpackRequest);
 
-  const mfaEmailMFAEnable: ApiHook['auth']['mfa']['email']['register']['finish'] = (
-    data,
-  ) => client.post('/auth/email', data).then(unpackRequest);
+  const mfaEmailMFAEnable: Api['auth']['mfa']['email']['register']['finish'] = (data) =>
+    client.post('/auth/email', data).then(unpackRequest);
 
   const mfaEmailMFADisable = () => client.delete('/auth/email').then(unpackRequest);
 
-  const mfaEmailMFASendCode: ApiHook['auth']['mfa']['email']['sendCode'] = () =>
+  const mfaEmailMFASendCode: Api['auth']['mfa']['email']['sendCode'] = () =>
     client.get('/auth/email').then(unpackRequest);
 
-  const mfaEmailMFAVerify: ApiHook['auth']['mfa']['email']['verify'] = (data) =>
+  const mfaEmailMFAVerify: Api['auth']['mfa']['email']['verify'] = (data) =>
     client.post('/auth/email/verify', data).then(unpackRequest);
 
-  const mfaWebauthnDeleteKey: ApiHook['auth']['mfa']['webauthn']['deleteKey'] = ({
+  const mfaWebauthnDeleteKey: Api['auth']['mfa']['webauthn']['deleteKey'] = ({
     keyId,
     username,
   }) => client.delete(`/user/${username}/security_key/${keyId}`);
@@ -293,119 +292,117 @@ export const buildApi = (client: Axios): ApiHook => {
 
   const mfaEnable = () => client.put('/auth/mfa').then(unpackRequest);
 
-  const recovery: ApiHook['auth']['mfa']['recovery'] = (data) =>
+  const recovery: Api['auth']['mfa']['recovery'] = (data) =>
     client.post('/auth/recovery', data).then(unpackRequest);
 
-  const getAppInfo: ApiHook['getAppInfo'] = () => client.get('/info').then(unpackRequest);
+  const getAppInfo: Api['getAppInfo'] = () => client.get('/info').then(unpackRequest);
 
-  const setDefaultBranding: ApiHook['settings']['setDefaultBranding'] = (id: string) =>
+  const setDefaultBranding: Api['settings']['setDefaultBranding'] = (id: string) =>
     client.put(`/settings/${id}`).then(unpackRequest);
 
-  const downloadSupportData: ApiHook['support']['downloadSupportData'] = async () =>
+  const downloadSupportData: Api['support']['downloadSupportData'] = async () =>
     client.get<unknown>(`/support/configuration`).then(unpackRequest);
 
-  const downloadLogs: ApiHook['support']['downloadLogs'] = async () =>
+  const downloadLogs: Api['support']['downloadLogs'] = async () =>
     client.get<string>(`/support/logs`).then(unpackRequest);
 
-  const getGatewaysStatus: ApiHook['network']['getGatewaysStatus'] = (networkId) =>
+  const getGatewaysStatus: Api['network']['getGatewaysStatus'] = (networkId) =>
     client.get(`/network/${networkId}/gateways`).then(unpackRequest);
 
-  const deleteGateway: ApiHook['network']['deleteGateway'] = (data) =>
+  const deleteGateway: Api['network']['deleteGateway'] = (data) =>
     client.delete(`/network/${data.networkId}/gateways/${data.gatewayId}`);
 
-  const changePasswordSelf: ApiHook['changePasswordSelf'] = (data) =>
+  const changePasswordSelf: Api['changePasswordSelf'] = (data) =>
     client.put('/user/change_password', data).then(unpackRequest);
 
-  const sendTestMail: ApiHook['mail']['sendTestMail'] = (data) =>
+  const sendTestMail: Api['mail']['sendTestMail'] = (data) =>
     client.post('/mail/test', data).then(unpackRequest);
 
-  const sendSupportMail: ApiHook['mail']['sendSupportMail'] = () =>
+  const sendSupportMail: Api['mail']['sendSupportMail'] = () =>
     client.post('/mail/support', {}).then(unpackRequest);
 
-  const startDesktopActivation: ApiHook['user']['startDesktopActivation'] = (data) =>
+  const startDesktopActivation: Api['user']['startDesktopActivation'] = (data) =>
     client.post(`/user/${data.username}/start_desktop`, data).then(unpackRequest);
 
-  const getAuthenticationKeysInfo: ApiHook['user']['getAuthenticationKeysInfo'] = (
-    data,
-  ) => client.get(`/user/${data.username}/auth_key`).then(unpackRequest);
+  const getAuthenticationKeysInfo: Api['user']['getAuthenticationKeysInfo'] = (data) =>
+    client.get(`/user/${data.username}/auth_key`).then(unpackRequest);
 
-  const addAuthenticationKey: ApiHook['user']['addAuthenticationKey'] = (data) =>
+  const addAuthenticationKey: Api['user']['addAuthenticationKey'] = (data) =>
     client.post(`/user/${data.username}/auth_key`, data).then(unpackRequest);
 
-  const renameAuthenticationKey: ApiHook['user']['renameAuthenticationKey'] = (data) =>
+  const renameAuthenticationKey: Api['user']['renameAuthenticationKey'] = (data) =>
     client
       .post(`/user/${data.username}/auth_key/${data.id}/rename`, {
         name: data.name,
       })
       .then(unpackRequest);
 
-  const deleteAuthenticationKey: ApiHook['user']['deleteAuthenticationKey'] = (data) =>
+  const deleteAuthenticationKey: Api['user']['deleteAuthenticationKey'] = (data) =>
     client.delete(`/user/${data.username}/auth_key/${data.id}`).then(unpackRequest);
 
-  const renameYubikey: ApiHook['user']['renameYubikey'] = (data) =>
+  const renameYubikey: Api['user']['renameYubikey'] = (data) =>
     client
       .post(`/user/${data.username}/yubikey/${data.id}/rename`, {
         name: data.name,
       })
       .then(unpackRequest);
 
-  const deleteYubiKey: ApiHook['user']['deleteYubiKey'] = (data) =>
+  const deleteYubiKey: Api['user']['deleteYubiKey'] = (data) =>
     client.delete(`/user/${data.username}/yubikey/${data.id}`).then(unpackRequest);
 
-  const getApiTokensInfo: ApiHook['user']['getApiTokensInfo'] = (data) =>
+  const getApiTokensInfo: Api['user']['getApiTokensInfo'] = (data) =>
     client.get(`/user/${data.username}/api_token`).then(unpackRequest);
 
-  const addApiToken: ApiHook['user']['addApiToken'] = (data) =>
+  const addApiToken: Api['user']['addApiToken'] = (data) =>
     client.post(`/user/${data.username}/api_token`, data).then(unpackRequest);
 
-  const renameApiToken: ApiHook['user']['renameApiToken'] = (data) =>
+  const renameApiToken: Api['user']['renameApiToken'] = (data) =>
     client
       .post(`/user/${data.username}/api_token/${data.id}/rename`, {
         name: data.name,
       })
       .then(unpackRequest);
 
-  const deleteApiToken: ApiHook['user']['deleteApiToken'] = (data) =>
+  const deleteApiToken: Api['user']['deleteApiToken'] = (data) =>
     client.delete(`/user/${data.username}/api_token/${data.id}`).then(unpackRequest);
 
-  const patchSettings: ApiHook['settings']['patchSettings'] = (data) =>
+  const patchSettings: Api['settings']['patchSettings'] = (data) =>
     client.patch('/settings', data).then(unpackRequest);
 
-  const getEssentialSettings: ApiHook['settings']['getEssentialSettings'] = () =>
+  const getEssentialSettings: Api['settings']['getEssentialSettings'] = () =>
     client.get('/settings_essentials').then(unpackRequest);
 
-  const getEnterpriseSettings: ApiHook['settings']['getEnterpriseSettings'] = () =>
+  const getEnterpriseSettings: Api['settings']['getEnterpriseSettings'] = () =>
     client.get('/settings_enterprise').then(unpackRequest);
 
-  const patchEnterpriseSettings: ApiHook['settings']['patchEnterpriseSettings'] = (
-    data,
-  ) => client.patch('/settings_enterprise', data).then(unpackRequest);
+  const patchEnterpriseSettings: Api['settings']['patchEnterpriseSettings'] = (data) =>
+    client.patch('/settings_enterprise', data).then(unpackRequest);
 
-  const testLdapSettings: ApiHook['settings']['testLdapSettings'] = () =>
+  const testLdapSettings: Api['settings']['testLdapSettings'] = () =>
     client.get('/ldap/test').then(unpackRequest);
 
-  const getGroupsInfo: ApiHook['groups']['getGroupsInfo'] = () =>
+  const getGroupsInfo: Api['groups']['getGroupsInfo'] = () =>
     client.get('/group-info').then(unpackRequest);
 
-  const deleteGroup: ApiHook['groups']['deleteGroup'] = (group) =>
+  const deleteGroup: Api['groups']['deleteGroup'] = (group) =>
     client.delete(`/group/${group}`);
 
-  const addUsersToGroups: ApiHook['groups']['addUsersToGroups'] = (data) =>
+  const addUsersToGroups: Api['groups']['addUsersToGroups'] = (data) =>
     client.post('/groups-assign', data).then(unpackRequest);
 
-  const fetchOpenIdProvider: ApiHook['settings']['fetchOpenIdProviders'] = () =>
+  const fetchOpenIdProvider: Api['settings']['fetchOpenIdProviders'] = () =>
     client.get<OpenIdInfo>(`/openid/provider`).then(unpackRequest);
 
-  const addOpenIdProvider: ApiHook['settings']['addOpenIdProvider'] = (data) =>
+  const addOpenIdProvider: Api['settings']['addOpenIdProvider'] = (data) =>
     client.post(`/openid/provider`, data).then(unpackRequest);
 
-  const deleteOpenIdProvider: ApiHook['settings']['deleteOpenIdProvider'] = (name) =>
+  const deleteOpenIdProvider: Api['settings']['deleteOpenIdProvider'] = (name) =>
     client.delete(`/openid/provider/${name}`).then(unpackRequest);
 
-  const editOpenIdProvider: ApiHook['settings']['editOpenIdProvider'] = (data) =>
+  const editOpenIdProvider: Api['settings']['editOpenIdProvider'] = (data) =>
     client.put(`/openid/provider/${data.name}`, data).then(unpackRequest);
 
-  const openIdCallback: ApiHook['auth']['openid']['callback'] = (data) =>
+  const openIdCallback: Api['auth']['openid']['callback'] = (data) =>
     client.post('/openid/callback', data).then((response) => {
       if (response.status === 200) {
         return response.data as LoginResponse;
@@ -419,7 +416,7 @@ export const buildApi = (client: Axios): ApiHook => {
       return {};
     });
 
-  const getNewVersion: ApiHook['getNewVersion'] = () =>
+  const getNewVersion: Api['getNewVersion'] = () =>
     client.get('/updates').then((res) => {
       if (res.status === 204) {
         return null;
@@ -427,84 +424,78 @@ export const buildApi = (client: Axios): ApiHook => {
       return res.data as UpdateInfo;
     });
 
-  const testDirsync: ApiHook['settings']['testDirsync'] = () =>
+  const testDirsync: Api['settings']['testDirsync'] = () =>
     client.get('/test_directory_sync').then(unpackRequest);
 
-  const createStandaloneDevice: ApiHook['standaloneDevice']['createManualDevice'] = (
-    data,
-  ) => client.post('/device/network', data).then(unpackRequest);
+  const createStandaloneDevice: Api['standaloneDevice']['createManualDevice'] = (data) =>
+    client.post('/device/network', data).then(unpackRequest);
 
-  const deleteStandaloneDevice: ApiHook['standaloneDevice']['deleteDevice'] = (
-    deviceId,
-  ) => client.delete(`/device/network/${deviceId}`);
-  const editStandaloneDevice: ApiHook['standaloneDevice']['editDevice'] = ({
-    id,
-    ...data
-  }) => client.put(`/device/network/${id}`, data).then(unpackRequest);
+  const deleteStandaloneDevice: Api['standaloneDevice']['deleteDevice'] = (deviceId) =>
+    client.delete(`/device/network/${deviceId}`);
+  const editStandaloneDevice: Api['standaloneDevice']['editDevice'] = ({ id, ...data }) =>
+    client.put(`/device/network/${id}`, data).then(unpackRequest);
 
-  const getStandaloneDevice: ApiHook['standaloneDevice']['getDevice'] = (deviceId) =>
+  const getStandaloneDevice: Api['standaloneDevice']['getDevice'] = (deviceId) =>
     client.get(`/device/network/${deviceId}`).then(unpackRequest);
 
-  const getAvailableLocationIp: ApiHook['standaloneDevice']['getAvailableIp'] = (data) =>
+  const getAvailableLocationIp: Api['standaloneDevice']['getAvailableIp'] = (data) =>
     client.get(`/device/network/ip/${data.locationId}`).then(unpackRequest);
 
-  const validateLocationIp: ApiHook['standaloneDevice']['validateLocationIp'] = ({
+  const validateLocationIp: Api['standaloneDevice']['validateLocationIp'] = ({
     location,
     ...rest
   }) => client.post(`/device/network/ip/${location}`, rest).then(unpackRequest);
 
-  const getStandaloneDevicesList: ApiHook['standaloneDevice']['getDevicesList'] = () =>
+  const getStandaloneDevicesList: Api['standaloneDevice']['getDevicesList'] = () =>
     client.get('/device/network').then(unpackRequest);
 
-  const createStandaloneCliDevice: ApiHook['standaloneDevice']['createCliDevice'] = (
-    data,
-  ) => client.post('/device/network/start_cli', data).then(unpackRequest);
+  const createStandaloneCliDevice: Api['standaloneDevice']['createCliDevice'] = (data) =>
+    client.post('/device/network/start_cli', data).then(unpackRequest);
 
-  const getStandaloneDeviceConfig: ApiHook['standaloneDevice']['getDeviceConfig'] = (
-    id,
-  ) => client.get(`/device/network/${id}/config`).then(unpackRequest);
+  const getStandaloneDeviceConfig: Api['standaloneDevice']['getDeviceConfig'] = (id) =>
+    client.get(`/device/network/${id}/config`).then(unpackRequest);
 
-  const generateStandaloneDeviceAuthToken: ApiHook['standaloneDevice']['generateAuthToken'] =
+  const generateStandaloneDeviceAuthToken: Api['standaloneDevice']['generateAuthToken'] =
     (id) => client.post(`/device/network/start_cli/${id}`).then(unpackRequest);
 
-  const createAclRule: ApiHook['acl']['rules']['createRule'] = (data) =>
+  const createAclRule: Api['acl']['rules']['createRule'] = (data) =>
     client.post('/acl/rule', data).then(unpackRequest);
 
-  const editAclRule: ApiHook['acl']['rules']['editRule'] = ({ id, ...rest }) =>
+  const editAclRule: Api['acl']['rules']['editRule'] = ({ id, ...rest }) =>
     client.put(`/acl/rule/${id}`, rest).then(unpackRequest);
 
-  const getAclRules: ApiHook['acl']['rules']['getRules'] = () =>
+  const getAclRules: Api['acl']['rules']['getRules'] = () =>
     client.get('/acl/rule').then(unpackRequest);
 
-  const getAclRule: ApiHook['acl']['rules']['getRule'] = (id: number) =>
+  const getAclRule: Api['acl']['rules']['getRule'] = (id: number) =>
     client.get(`/acl/rule/${id}`).then(unpackRequest);
 
-  const deleteAclRule: ApiHook['acl']['rules']['deleteRule'] = (id) =>
+  const deleteAclRule: Api['acl']['rules']['deleteRule'] = (id) =>
     client.delete(`/acl/rule/${id}`).then(unpackRequest);
 
-  const getAliases: ApiHook['acl']['aliases']['getAliases'] = () =>
+  const getAliases: Api['acl']['aliases']['getAliases'] = () =>
     client.get(`/acl/alias`).then(unpackRequest);
 
-  const getAlias: ApiHook['acl']['aliases']['getAlias'] = (id) =>
+  const getAlias: Api['acl']['aliases']['getAlias'] = (id) =>
     client.get(`/acl/alias/${id}`).then(unpackRequest);
 
-  const createAlias: ApiHook['acl']['aliases']['createAlias'] = (data) =>
+  const createAlias: Api['acl']['aliases']['createAlias'] = (data) =>
     client.post(`/acl/alias`, data).then(unpackRequest);
 
-  const editAlias: ApiHook['acl']['aliases']['editAlias'] = (data) =>
+  const editAlias: Api['acl']['aliases']['editAlias'] = (data) =>
     client.put(`/acl/alias/${data.id}`, data).then(unpackRequest);
 
-  const deleteAlias: ApiHook['acl']['aliases']['deleteAlias'] = (id) =>
+  const deleteAlias: Api['acl']['aliases']['deleteAlias'] = (id) =>
     client.delete(`/acl/alias/${id}`).then(unpackRequest);
 
-  const applyAclRules: ApiHook['acl']['rules']['applyRules'] = (rules) =>
+  const applyAclRules: Api['acl']['rules']['applyRules'] = (rules) =>
     client
       .put('/acl/rule/apply', {
         rules: rules,
       })
       .then(unpackRequest);
 
-  const applyAclAliases: ApiHook['acl']['aliases']['applyAliases'] = (aliases) =>
+  const applyAclAliases: Api['acl']['aliases']['applyAliases'] = (aliases) =>
     client
       .put(`/acl/alias/apply`, {
         aliases: aliases,

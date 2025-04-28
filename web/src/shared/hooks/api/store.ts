@@ -1,12 +1,14 @@
 import { Axios } from 'axios';
 import { createWithEqualityFn } from 'zustand/traditional';
 
-import { ApiHook } from '../../types';
+import { Api } from '../../types';
 import { buildApi } from './api';
+import apiEndpoints from './api-client';
+import axiosClient from './axios-client';
 
 const defaults: StoreValues = {
-  client: undefined,
-  endpoints: undefined,
+  client: axiosClient,
+  endpoints: apiEndpoints,
 };
 
 export const useApiStore = createWithEqualityFn<Store>(
@@ -27,7 +29,7 @@ type Store = StoreMethods & StoreValues;
 
 type StoreValues = {
   client?: Axios;
-  endpoints?: ApiHook;
+  endpoints?: Api;
 };
 
 type StoreMethods = {
