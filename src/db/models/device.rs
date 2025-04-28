@@ -994,7 +994,6 @@ mod test {
             pubkey: String,
             network: &WireguardNetwork<Id>,
         ) -> Result<(Self, WireguardNetworkDevice), ModelError> {
-            // TODO(jck)
             if let Some(address) = network.address.first() {
                 let net_ip = address.ip();
                 let net_network = address.network();

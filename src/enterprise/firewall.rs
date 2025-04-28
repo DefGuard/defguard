@@ -121,7 +121,6 @@ pub async fn generate_firewall_rules_from_acls(
         let destination_addrs = process_destination_addrs(destination, destination_ranges);
 
         // prepare destination ports
-        // TODO(jck) what should happen to ports when we have separate rules for ipv4 and ipv6?
         let destination_ports = merge_port_ranges(ports);
 
         // remove duplicate protocol entries
@@ -302,7 +301,6 @@ fn get_source_users(allowed_users: Vec<User<Id>>, denied_users: Vec<User<Id>>) -
 
 /// Fetches all IPs of devices belonging to specified users within a given location's VPN subnet.
 /// We specifically only fetch user devices since network devices are handled separately.
-// TODO(jck) return 2-tupes (IpV4, IpV6)
 async fn get_user_device_ips<'e, E: sqlx::PgExecutor<'e>>(
     users: &[User<Id>],
     location_id: Id,
@@ -341,7 +339,6 @@ fn get_source_network_devices(
 }
 
 /// Fetches all IPs of specified network devices within a given location's VPN subnet.
-// TODO(jck) return 2-tuple (IPv4, IPv6)
 async fn get_network_device_ips(
     network_devices: &[Device<Id>],
     location_id: Id,
@@ -788,7 +785,6 @@ impl WireguardNetwork<Id> {
     pub(crate) async fn get_active_acl_rules(
         &self,
         conn: &mut PgConnection,
-        // TODO(jck) maybe flatten here already?
     ) -> Result<Vec<AclRuleInfo<Id>>, SqlxError> {
         debug!("Fetching active ACL rules for location {self}");
         let rules: Vec<AclRule<Id>> = query_as(

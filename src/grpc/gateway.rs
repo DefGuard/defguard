@@ -28,7 +28,6 @@ use crate::{
         Device, GatewayEvent, Id, NoId,
     },
     mail::Mail,
-    CommaSeparated,
 };
 
 /// Sends given `GatewayEvent` to be handled by gateway GRPC server
@@ -321,10 +320,11 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    // TODO(jck)
-                                    allowed_ips: vec![network_info
+                                    allowed_ips: network_info
                                         .device_wireguard_ips
-                                        .comma_separated()],
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,

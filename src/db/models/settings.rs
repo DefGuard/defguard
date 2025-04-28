@@ -352,7 +352,7 @@ impl From<Settings> for SettingsEssentials {
 mod defaults {
     pub static WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
 
-By completing the enrollment process, you now have now access to all company systems.
+By completing the enrollment process, you now have access to all company systems.
 
 Your login to all systems is: {{ username }}
 
