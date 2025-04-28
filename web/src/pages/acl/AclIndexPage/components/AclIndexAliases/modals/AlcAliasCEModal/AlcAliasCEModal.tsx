@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
+import { RenderMarkdown } from '../../../../../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -16,6 +17,8 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
+import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { ModalWithTitle } from '../../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { SelectOption } from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -160,6 +163,10 @@ const ModalContent = () => {
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput controller={{ control, name: 'name' }} label={localLL.labels.name()} />
+      <MessageBox type={MessageBoxType.INFO}>
+        <RenderMarkdown content={localLL.kindHelp.destination()} />
+        <RenderMarkdown content={localLL.kindHelp.component()} />
+      </MessageBox>
       <FormSelect
         controller={{ control, name: 'kind' }}
         label={localLL.labels.kind()}

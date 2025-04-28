@@ -12,11 +12,7 @@ export const AclCreateNetworkSelectMessage = () => {
   const localLL = LL.acl.createPage.infoBox.networkSelectionIndicatorsHelper;
 
   return (
-    <MessageBox
-      className="acl-network-selection-help"
-      type={MessageBoxType.INFO}
-      dismissId="acl-create-network-selection-help-message"
-    >
+    <MessageBox className="acl-network-selection-help" type={MessageBoxType.INFO}>
       <div className="indicators-help">
         <div>
           <div className="icon-wrapper">

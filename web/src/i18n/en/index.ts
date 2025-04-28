@@ -2355,6 +2355,12 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
               modified: 'Alias modified',
               created: 'Alias created',
             },
+            kindHelp: {
+              destination:
+                'Destination - will be translated into a separate set of firewall rules',
+              component:
+                'Component - will be combined with manually configured destination fields in ACL',
+            },
           },
         },
         listControls: {

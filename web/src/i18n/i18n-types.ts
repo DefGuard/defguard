@@ -5600,6 +5600,16 @@ type RootTranslation = {
 							 */
 							created: string
 						}
+						kindHelp: {
+							/**
+							 * D​e​s​t​i​n​a​t​i​o​n​ ​-​ ​w​i​l​l​ ​b​e​ ​t​r​a​n​s​l​a​t​e​d​ ​i​n​t​o​ ​a​ ​s​e​p​a​r​a​t​e​ ​s​e​t​ ​o​f​ ​f​i​r​e​w​a​l​l​ ​r​u​l​e​s
+							 */
+							destination: string
+							/**
+							 * C​o​m​p​o​n​e​n​t​ ​-​ ​w​i​l​l​ ​b​e​ ​c​o​m​b​i​n​e​d​ ​w​i​t​h​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​ ​d​e​s​t​i​n​a​t​i​o​n​ ​f​i​e​l​d​s​ ​i​n​ ​A​C​L
+							 */
+							component: string
+						}
 					}
 				}
 				listControls: {
@@ -11427,6 +11437,16 @@ export type TranslationFunctions = {
 							 * Alias created
 							 */
 							created: () => LocalizedString
+						}
+						kindHelp: {
+							/**
+							 * Destination - will be translated into a separate set of firewall rules
+							 */
+							destination: () => LocalizedString
+							/**
+							 * Component - will be combined with manually configured destination fields in ACL
+							 */
+							component: () => LocalizedString
 						}
 					}
 				}
