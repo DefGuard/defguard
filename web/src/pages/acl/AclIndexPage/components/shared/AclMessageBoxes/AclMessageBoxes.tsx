@@ -10,9 +10,10 @@ import { NetworkAccessTypeIcon } from '../NetworkAccessTypeIcon';
 
 type Props = {
   message: 'acl-alias-kind' | 'acl-network-access';
+  dismissable?: boolean;
 };
 
-export const AclMessageBoxes = ({ message }: Props) => {
+export const AclMessageBoxes = ({ message, dismissable = false }: Props) => {
   const { LL } = useI18nContext();
   const aliasKindLL = LL.acl.messageBoxes.aclAliasKind;
   const networkAccessLL = LL.acl.messageBoxes.networkSelectionIndicatorsHelper;
@@ -23,7 +24,7 @@ export const AclMessageBoxes = ({ message }: Props) => {
         <MessageBox
           className="acl-explain-message-box"
           type={MessageBoxType.INFO}
-          dismissId="acl-alias-kind-help"
+          dismissId={dismissable ? 'acl-alias-kind-help' : undefined}
         >
           <ul>
             <li>
@@ -42,7 +43,7 @@ export const AclMessageBoxes = ({ message }: Props) => {
         <MessageBox
           className="acl-explain-message-box"
           type={MessageBoxType.INFO}
-          dismissId="acl-create-network-selection-help"
+          dismissId={dismissable ? 'acl-create-network-selection-help' : undefined}
         >
           <ul>
             <li>
