@@ -2216,12 +2216,11 @@ Any other requests you can reach us at: support@defguard.net
       aclAliasKind: {
         component: {
           name: 'Component',
-          description: 'An alias representing a specific system module or service.',
+          description: 'combined with manually configured destination fields in ACL',
         },
         destination: {
           name: 'Destination',
-          description:
-            'An alias representing a target address or group for network traffic.',
+          description: 'translated into a separate set of firewall rules',
         },
       },
       networkSelectionIndicatorsHelper: {

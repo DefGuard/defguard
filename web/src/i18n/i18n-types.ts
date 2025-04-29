@@ -5220,7 +5220,7 @@ type RootTranslation = {
 					 */
 					name: string
 					/**
-					 * A​n​ ​a​l​i​a​s​ ​r​e​p​r​e​s​e​n​t​i​n​g​ ​a​ ​s​p​e​c​i​f​i​c​ ​s​y​s​t​e​m​ ​m​o​d​u​l​e​ ​o​r​ ​s​e​r​v​i​c​e​.
+					 * c​o​m​b​i​n​e​d​ ​w​i​t​h​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​ ​d​e​s​t​i​n​a​t​i​o​n​ ​f​i​e​l​d​s​ ​i​n​ ​A​C​L
 					 */
 					description: string
 				}
@@ -5230,7 +5230,7 @@ type RootTranslation = {
 					 */
 					name: string
 					/**
-					 * A​n​ ​a​l​i​a​s​ ​r​e​p​r​e​s​e​n​t​i​n​g​ ​a​ ​t​a​r​g​e​t​ ​a​d​d​r​e​s​s​ ​o​r​ ​g​r​o​u​p​ ​f​o​r​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​.
+					 * t​r​a​n​s​l​a​t​e​d​ ​i​n​t​o​ ​a​ ​s​e​p​a​r​a​t​e​ ​s​e​t​ ​o​f​ ​f​i​r​e​w​a​l​l​ ​r​u​l​e​s
 					 */
 					description: string
 				}
@@ -11067,7 +11067,7 @@ export type TranslationFunctions = {
 					 */
 					name: () => LocalizedString
 					/**
-					 * An alias representing a specific system module or service.
+					 * combined with manually configured destination fields in ACL
 					 */
 					description: () => LocalizedString
 				}
@@ -11077,7 +11077,7 @@ export type TranslationFunctions = {
 					 */
 					name: () => LocalizedString
 					/**
-					 * An alias representing a target address or group for network traffic.
+					 * translated into a separate set of firewall rules
 					 */
 					description: () => LocalizedString
 				}
