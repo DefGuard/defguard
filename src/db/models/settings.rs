@@ -104,6 +104,7 @@ pub struct Settings {
     pub ldap_user_auxiliary_obj_classes: Vec<String>,
     // The attribute which is used to map LDAP usernames to Defguard usernames
     pub ldap_user_rdn_attr: Option<String>,
+    pub ldap_sync_groups: Vec<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
     pub license: Option<String>,
@@ -137,7 +138,7 @@ impl Settings {
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr \
+            ldap_user_rdn_attr, ldap_sync_groups \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -207,7 +208,8 @@ impl Settings {
             ldap_sync_interval = $43, \
             ldap_user_auxiliary_obj_classes = $44, \
             ldap_uses_ad = $45, \
-            ldap_user_rdn_attr = $46 \
+            ldap_user_rdn_attr = $46, \
+            ldap_sync_groups = $47 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -255,6 +257,7 @@ impl Settings {
             &self.ldap_user_auxiliary_obj_classes as &Vec<String>,
             self.ldap_uses_ad,
             self.ldap_user_rdn_attr,
+            &self.ldap_sync_groups as &Vec<String>,
         )
         .execute(executor)
         .await?;

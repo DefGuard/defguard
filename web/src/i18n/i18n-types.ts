@@ -2758,6 +2758,10 @@ type RootTranslation = {
 					 * T​h​e​ ​i​n​t​e​r​v​a​l​ ​w​i​t​h​ ​w​h​i​c​h​ ​t​h​e​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​t​t​e​m​p​t​e​d​.
 					 */
 					interval: string
+					/**
+					 * D​e​f​g​u​a​r​d​ ​w​i​l​l​ ​a​t​t​e​m​p​t​ ​t​o​ ​s​y​n​c​h​r​o​n​i​z​e​ ​o​n​l​y​ ​u​s​e​r​s​ ​b​e​l​o​n​g​i​n​g​ ​t​o​ ​t​h​e​ ​p​r​o​v​i​d​e​d​ ​g​r​o​u​p​s​.​ ​P​r​o​v​i​d​e​ ​a​ ​c​o​m​m​a​-​s​e​p​a​r​a​t​e​d​ ​l​i​s​t​ ​o​f​ ​g​r​o​u​p​s​.​ ​I​f​ ​e​m​p​t​y​,​ ​a​l​l​ ​u​s​e​r​s​ ​w​i​l​l​ ​b​e​ ​s​y​n​c​h​r​o​n​i​z​e​d​.
+					 */
+					groups: string
 				}
 			}
 			form: {
@@ -2842,6 +2846,10 @@ type RootTranslation = {
 					 * U​s​e​r​ ​R​D​N​ ​A​t​t​r​i​b​u​t​e
 					 */
 					ldap_user_rdn_attr: string
+					/**
+					 * L​i​m​i​t​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​t​o​ ​t​h​e​s​e​ ​g​r​o​u​p​s
+					 */
+					ldap_sync_groups: string
 				}
 				helpers: {
 					/**
@@ -8616,6 +8624,10 @@ export type TranslationFunctions = {
 					 * The interval with which the synchronization will be attempted.
 					 */
 					interval: () => LocalizedString
+					/**
+					 * Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.
+					 */
+					groups: () => LocalizedString
 				}
 			}
 			form: {
@@ -8700,6 +8712,10 @@ export type TranslationFunctions = {
 					 * User RDN Attribute
 					 */
 					ldap_user_rdn_attr: () => LocalizedString
+					/**
+					 * Limit synchronization to these groups
+					 */
+					ldap_sync_groups: () => LocalizedString
 				}
 				helpers: {
 					/**

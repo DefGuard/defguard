@@ -58,6 +58,7 @@ use crate::{
         grpc::polling::PollingServer,
         handlers::openid_login::{make_oidc_client, user_from_claims},
         is_enterprise_enabled,
+        ldap::utils::ldap_update_user_state,
     },
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
@@ -695,7 +696,7 @@ pub async fn run_grpc_bidi_stream(
                                     )
                                     .await
                                     {
-                                        Ok(user) => {
+                                        Ok(mut user) => {
                                             user.clear_unused_enrollment_tokens(&pool).await?;
                                             if let Err(err) = sync_user_groups_if_configured(
                                                 &user,
@@ -708,6 +709,8 @@ pub async fn run_grpc_bidi_stream(
                                                     "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
                                                    user.username,
                                                 );
+                                            } else {
+                                                ldap_update_user_state(&mut user, &pool).await;
                                             }
                                             debug!("Cleared unused tokens for {}.", user.username);
                                             debug!(

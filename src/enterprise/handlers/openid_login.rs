@@ -28,7 +28,8 @@ use crate::{
     db::{Id, Settings, User},
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured, limits::update_counts,
+        directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
+        limits::update_counts,
     },
     error::WebError,
     handlers::{
@@ -512,9 +513,11 @@ pub(crate) async fn auth_callback(
         sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
     {
         error!(
-    "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
-    user.username
-);
+            "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
+            user.username
+        );
+    } else {
+        ldap_update_user_state(&mut user, &appstate.pool).await;
     }
 
     if let Some(mfa_info) = mfa_info {
