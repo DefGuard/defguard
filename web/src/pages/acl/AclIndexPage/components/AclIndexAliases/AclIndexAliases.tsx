@@ -250,7 +250,7 @@ export const AclIndexAliases = () => {
         items: [
           {
             label: localLL.list.status.changed(),
-            searchValues: [LL.acl.listPage.rules.list.status.change()],
+            searchValues: [LL.acl.ruleStatus.modified()],
             value: aclAliasStatusToInt(AclAliasStatus.MODIFIED),
           },
           {
@@ -264,7 +264,7 @@ export const AclIndexAliases = () => {
     };
     return res;
   }, [
-    LL.acl.listPage.rules.list.status,
+    LL.acl.ruleStatus,
     aclRules,
     localLL.list.status,
     localLL.modals.filterGroupsModal.groupLabels,

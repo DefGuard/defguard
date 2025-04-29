@@ -82,7 +82,7 @@ export const AclIndexRules = () => {
   const { LL } = useI18nContext();
   const localLL = LL.acl.listPage.rules;
   const messagesLL = LL.acl.listPage.message;
-  const ruleStatusLL = localLL.list.status;
+  const ruleStatusLL = LL.acl.ruleStatus;
   const aclContext = useAclLoadedContext();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
@@ -250,19 +250,24 @@ export const AclIndexRules = () => {
           searchValues: [ruleStatusLL.new()],
         },
         {
-          label: ruleStatusLL.change(),
+          label: ruleStatusLL.modified(),
           value: aclStatusToInt(AclStatus.MODIFIED),
-          searchValues: [ruleStatusLL.change()],
+          searchValues: [ruleStatusLL.modified()],
         },
         {
-          label: ruleStatusLL.deployed(),
+          label: ruleStatusLL.applied(),
           value: aclStatusToInt(AclStatus.APPLIED),
-          searchValues: [ruleStatusLL.deployed()],
+          searchValues: [ruleStatusLL.applied()],
         },
         {
-          label: ruleStatusLL.delete(),
+          label: ruleStatusLL.deleted(),
           value: aclStatusToInt(AclStatus.DELETED),
-          searchValues: [ruleStatusLL.delete()],
+          searchValues: [ruleStatusLL.deleted()],
+        },
+        {
+          label: ruleStatusLL.expired(),
+          value: aclStatusToInt(AclStatus.EXPIRED),
+          searchValues: [ruleStatusLL.expired()],
         },
       ],
     };

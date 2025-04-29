@@ -5,7 +5,7 @@ use defguard::{
         Device, Group, Id, User, WireguardNetwork,
     },
     enterprise::{
-        db::models::acl::{AclAlias, AclRule, AliasState, RuleState},
+        db::models::acl::{AclAlias, AclRule, AliasKind, AliasState, RuleState},
         handlers::acl::{ApiAclAlias, ApiAclRule, EditAclAlias, EditAclRule},
         license::{get_cached_license, set_cached_license},
     },
@@ -76,6 +76,7 @@ async fn set_rule_state(pool: &PgPool, id: Id, state: RuleState, parent_id: Opti
 fn make_alias() -> EditAclAlias {
     EditAclAlias {
         name: "alias".to_string(),
+        kind: AliasKind::Destination,
         destination: "10.2.2.2, 10.0.0.1/24, 10.0.10.1-10.0.20.1".to_string(),
         protocols: vec![6, 17],
         ports: "1, 2, 3, 10-20, 30-40".to_string(),
@@ -126,6 +127,7 @@ fn edit_alias_data_into_api_response(
         parent_id,
         state,
         name: data.name.clone(),
+        kind: data.kind.clone(),
         destination: data.destination.clone(),
         ports: data.ports.clone(),
         protocols: data.protocols.clone(),
@@ -476,6 +478,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     AclAlias::new(
         "alias1",
         AliasState::Applied,
+        AliasKind::Destination,
         Vec::new(),
         Vec::new(),
         Vec::new(),
@@ -486,6 +489,7 @@ async fn test_related_objects(_: PgPoolOptions, options: PgConnectOptions) {
     AclAlias::new(
         "alias2",
         AliasState::Applied,
+        AliasKind::Destination,
         Vec::new(),
         Vec::new(),
         Vec::new(),
@@ -623,6 +627,7 @@ async fn test_invalid_related_objects(_: PgPoolOptions, options: PgConnectOption
     AclAlias::new(
         "alias1",
         AliasState::Modified,
+        AliasKind::Destination,
         Vec::new(),
         Vec::new(),
         Vec::new(),

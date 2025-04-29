@@ -20,4 +20,14 @@
       }
     }
   }
+
+  .spacer {
+    padding-bottom: var(--spacing-m);
+  }
+}
+
+.acl-alias-ce-modal-spacing {
+  @include media-breakpoint-up(lg) {
+    padding-top: var(--spacing-m) !important;
+  }
 }
