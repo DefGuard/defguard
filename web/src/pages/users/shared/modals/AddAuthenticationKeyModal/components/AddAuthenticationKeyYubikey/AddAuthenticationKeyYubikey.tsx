@@ -28,14 +28,8 @@ import { ProvisionerRow } from './components/ProvisionerRow';
 export const AddAuthenticationKeyYubikey = () => {
   const { LL } = useI18nContext();
   const {
-    provisioning: { getWorkers, provisionYubiKey },
-  } = useApi({
-    notifyError: true,
-  });
-
-  const {
-    provisioning: { getJobStatus },
-  } = useApi({ notifyError: false });
+    provisioning: { getWorkers, provisionYubiKey, getJobStatus },
+  } = useApi();
 
   const { data, isLoading: workersListLoading } = useQuery({
     queryKey: [QueryKeys.FETCH_WORKERS],
