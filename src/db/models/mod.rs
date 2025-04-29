@@ -1,3 +1,4 @@
+pub mod audit_log;
 #[cfg(feature = "openid")]
 pub mod auth_code;
 pub mod authentication_key;
