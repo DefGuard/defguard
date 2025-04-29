@@ -52,11 +52,7 @@ export const NetworkAccessTypeIcon = ({ type }: Props) => {
           viewBox="0 0 16 16"
           fill="none"
         >
-          <path
-            d="M10 6L6 10"
-            style={{ stroke: 'var(--surface-icon-primary)' }}
-            strokeLinecap="round"
-          />
+          <circle cx="8" cy="8" r="2" style={{ stroke: 'var(--surface-icon-primary)' }} />
         </svg>
       );
   }
