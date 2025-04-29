@@ -2212,6 +2212,33 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   acl: {
+    messageBoxes: {
+      aclAliasKind: {
+        component: {
+          name: 'Component',
+          description: 'An alias representing a specific system module or service.',
+        },
+        destination: {
+          name: 'Destination',
+          description:
+            'An alias representing a target address or group for network traffic.',
+        },
+      },
+      networkSelectionIndicatorsHelper: {
+        //md
+        denied: `
+          Location access **denied** by default - must be explicitly allowed
+          `,
+        //md
+        allowed: `
+          Location access **allowed** by default - can be explicitly denied
+          `,
+        //md
+        unmanaged: `
+          Location access unmanaged (ACL disabled)
+          `,
+      },
+    },
     sharedTitle: 'Access Control List',
     fieldsSelectionLabels: {
       ports: 'All ports',
@@ -2285,14 +2312,6 @@ Any other requests you can reach us at: support@defguard.net
             status: 'Status',
             edit: 'Edit',
           },
-          status: {
-            new: 'New',
-            change: 'Pending Change',
-            delete: 'Pending Deletion',
-            enabled: 'Enabled',
-            disabled: 'Disabled',
-            deployed: 'Deployed',
-          },
           tags: {
             all: 'All',
             allDenied: 'All denied',
@@ -2356,12 +2375,6 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             messages: {
               modified: 'Alias modified',
               created: 'Alias created',
-            },
-            kindHelp: {
-              destination:
-                'Destination - will be translated into a separate set of firewall rules',
-              component:
-                'Component - will be combined with manually configured destination fields in ACL',
             },
           },
         },
@@ -2427,20 +2440,6 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         // md
         destinationInstructions: `
         Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
-        networkSelectionIndicatorsHelper: {
-          //md
-          denied: `
-          Location access **denied** by default - must be explicitly allowed
-          `,
-          //md
-          allowed: `
-          Location access **allowed** by default - can be explicitly denied
-          `,
-          //md
-          unmanaged: `
-          Location access unmanaged (ACL disabled)
-          `,
-        },
       },
       message: {
         create: 'Rule created and added to pending changes',
@@ -2469,6 +2468,8 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         protocols: 'Protocols',
         manualIp: 'IPv4/6 CIDR range or address',
         ports: 'Ports',
+        aliases: 'Aliases',
+        expires: 'Expiration Date',
       },
       placeholders: {
         allProtocols: 'All protocols',

@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../../../../i18n/i18n-react';
-import { RenderMarkdown } from '../../../../../../../shared/components/Layout/RenderMarkdown/RenderMarkdown';
 import { FormInput } from '../../../../../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Button } from '../../../../../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -17,8 +16,6 @@ import {
   ButtonSize,
   ButtonStyleVariant,
 } from '../../../../../../../shared/defguard-ui/components/Layout/Button/types';
-import { MessageBox } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
-import { MessageBoxType } from '../../../../../../../shared/defguard-ui/components/Layout/MessageBox/types';
 import { ModalWithTitle } from '../../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { SelectOption } from '../../../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { isPresent } from '../../../../../../../shared/defguard-ui/utils/isPresent';
@@ -28,6 +25,7 @@ import { QueryKeys } from '../../../../../../../shared/queries';
 import { AclAliasKind } from '../../../../../types';
 import { protocolOptions, protocolToString } from '../../../../../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../../../../../validators';
+import { AclMessageBoxes } from '../../../shared/AclMessageBoxes/AclMessageBoxes';
 import { useAclAliasCEModal } from './store';
 
 export const AlcAliasCEModal = () => {
@@ -46,6 +44,7 @@ export const AlcAliasCEModal = () => {
 
   return (
     <ModalWithTitle
+      className="acl-alias-ce-modal-spacing"
       id="acl-alias-ce-modal"
       title={isEdit ? 'Edit Alias' : 'Create Alias'}
       isOpen={isOpen}
@@ -85,7 +84,7 @@ const ModalContent = () => {
             required_error: formErrors.required(),
           })
           .min(1, formErrors.required()),
-        kind: z.string(),
+        kind: z.nativeEnum(AclAliasKind),
         ports: aclPortsValidator(LL),
         destination: aclDestinationValidator(LL),
         protocols: z.number().array(),
@@ -141,7 +140,6 @@ const ModalContent = () => {
       toaster.error(LL.messages.error());
       console.error(e);
     }
-    closeModal();
   };
 
   const aliasKindOptions = useMemo(
@@ -163,10 +161,7 @@ const ModalContent = () => {
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
       <FormInput controller={{ control, name: 'name' }} label={localLL.labels.name()} />
-      <MessageBox type={MessageBoxType.INFO}>
-        <RenderMarkdown content={localLL.kindHelp.destination()} />
-        <RenderMarkdown content={localLL.kindHelp.component()} />
-      </MessageBox>
+      <AclMessageBoxes message="acl-alias-kind" />
       <FormSelect
         controller={{ control, name: 'kind' }}
         label={localLL.labels.kind()}

@@ -60,7 +60,14 @@ export enum AclKind {
   DESTINATION = 'Destination',
   COMPONENT = 'Component',
 }
+
 export enum AclAliasKind {
   DESTINATION = AclKind.DESTINATION,
   COMPONENT = AclKind.COMPONENT,
+}
+
+export enum NetworkAccessType {
+  ALLOWED,
+  DENIED,
+  UNMANAGED,
 }

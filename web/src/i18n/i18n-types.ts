@@ -5212,6 +5212,50 @@ type RootTranslation = {
 		}
 	}
 	acl: {
+		messageBoxes: {
+			aclAliasKind: {
+				component: {
+					/**
+					 * C​o​m​p​o​n​e​n​t
+					 */
+					name: string
+					/**
+					 * A​n​ ​a​l​i​a​s​ ​r​e​p​r​e​s​e​n​t​i​n​g​ ​a​ ​s​p​e​c​i​f​i​c​ ​s​y​s​t​e​m​ ​m​o​d​u​l​e​ ​o​r​ ​s​e​r​v​i​c​e​.
+					 */
+					description: string
+				}
+				destination: {
+					/**
+					 * D​e​s​t​i​n​a​t​i​o​n
+					 */
+					name: string
+					/**
+					 * A​n​ ​a​l​i​a​s​ ​r​e​p​r​e​s​e​n​t​i​n​g​ ​a​ ​t​a​r​g​e​t​ ​a​d​d​r​e​s​s​ ​o​r​ ​g​r​o​u​p​ ​f​o​r​ ​n​e​t​w​o​r​k​ ​t​r​a​f​f​i​c​.
+					 */
+					description: string
+				}
+			}
+			networkSelectionIndicatorsHelper: {
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				denied: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				allowed: string
+				/**
+				 * 
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
+				 */
+				unmanaged: string
+			}
+		}
 		/**
 		 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l​ ​L​i​s​t
 		 */
@@ -5421,32 +5465,6 @@ type RootTranslation = {
 						 */
 						edit: string
 					}
-					status: {
-						/**
-						 * N​e​w
-						 */
-						'new': string
-						/**
-						 * P​e​n​d​i​n​g​ ​C​h​a​n​g​e
-						 */
-						change: string
-						/**
-						 * P​e​n​d​i​n​g​ ​D​e​l​e​t​i​o​n
-						 */
-						'delete': string
-						/**
-						 * E​n​a​b​l​e​d
-						 */
-						enabled: string
-						/**
-						 * D​i​s​a​b​l​e​d
-						 */
-						disabled: string
-						/**
-						 * D​e​p​l​o​y​e​d
-						 */
-						deployed: string
-					}
 					tags: {
 						/**
 						 * A​l​l
@@ -5607,16 +5625,6 @@ type RootTranslation = {
 							 * A​l​i​a​s​ ​c​r​e​a​t​e​d
 							 */
 							created: string
-						}
-						kindHelp: {
-							/**
-							 * D​e​s​t​i​n​a​t​i​o​n​ ​-​ ​w​i​l​l​ ​b​e​ ​t​r​a​n​s​l​a​t​e​d​ ​i​n​t​o​ ​a​ ​s​e​p​a​r​a​t​e​ ​s​e​t​ ​o​f​ ​f​i​r​e​w​a​l​l​ ​r​u​l​e​s
-							 */
-							destination: string
-							/**
-							 * C​o​m​p​o​n​e​n​t​ ​-​ ​w​i​l​l​ ​b​e​ ​c​o​m​b​i​n​e​d​ ​w​i​t​h​ ​m​a​n​u​a​l​l​y​ ​c​o​n​f​i​g​u​r​e​d​ ​d​e​s​t​i​n​a​t​i​o​n​ ​f​i​e​l​d​s​ ​i​n​ ​A​C​L
-							 */
-							component: string
 						}
 					}
 				}
@@ -5779,26 +5787,6 @@ type RootTranslation = {
 			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
-				networkSelectionIndicatorsHelper: {
-					/**
-					 * 
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
-					 */
-					denied: string
-					/**
-					 * 
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
-					 */
-					allowed: string
-					/**
-					 * 
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​u​n​m​a​n​a​g​e​d​ ​(​A​C​L​ ​d​i​s​a​b​l​e​d​)​
-				​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
-					 */
-					unmanaged: string
-				}
 			}
 			message: {
 				/**
@@ -5893,6 +5881,14 @@ type RootTranslation = {
 				 * P​o​r​t​s
 				 */
 				ports: string
+				/**
+				 * A​l​i​a​s​e​s
+				 */
+				aliases: string
+				/**
+				 * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
+				 */
+				expires: string
 			}
 			placeholders: {
 				/**
@@ -11063,6 +11059,50 @@ export type TranslationFunctions = {
 		}
 	}
 	acl: {
+		messageBoxes: {
+			aclAliasKind: {
+				component: {
+					/**
+					 * Component
+					 */
+					name: () => LocalizedString
+					/**
+					 * An alias representing a specific system module or service.
+					 */
+					description: () => LocalizedString
+				}
+				destination: {
+					/**
+					 * Destination
+					 */
+					name: () => LocalizedString
+					/**
+					 * An alias representing a target address or group for network traffic.
+					 */
+					description: () => LocalizedString
+				}
+			}
+			networkSelectionIndicatorsHelper: {
+				/**
+				 * 
+			          Location access **denied** by default - must be explicitly allowed
+			          
+				 */
+				denied: () => LocalizedString
+				/**
+				 * 
+			          Location access **allowed** by default - can be explicitly denied
+			          
+				 */
+				allowed: () => LocalizedString
+				/**
+				 * 
+			          Location access unmanaged (ACL disabled)
+			          
+				 */
+				unmanaged: () => LocalizedString
+			}
+		}
 		/**
 		 * Access Control List
 		 */
@@ -11268,32 +11308,6 @@ export type TranslationFunctions = {
 						 */
 						edit: () => LocalizedString
 					}
-					status: {
-						/**
-						 * New
-						 */
-						'new': () => LocalizedString
-						/**
-						 * Pending Change
-						 */
-						change: () => LocalizedString
-						/**
-						 * Pending Deletion
-						 */
-						'delete': () => LocalizedString
-						/**
-						 * Enabled
-						 */
-						enabled: () => LocalizedString
-						/**
-						 * Disabled
-						 */
-						disabled: () => LocalizedString
-						/**
-						 * Deployed
-						 */
-						deployed: () => LocalizedString
-					}
 					tags: {
 						/**
 						 * All
@@ -11454,16 +11468,6 @@ export type TranslationFunctions = {
 							 */
 							created: () => LocalizedString
 						}
-						kindHelp: {
-							/**
-							 * Destination - will be translated into a separate set of firewall rules
-							 */
-							destination: () => LocalizedString
-							/**
-							 * Component - will be combined with manually configured destination fields in ACL
-							 */
-							component: () => LocalizedString
-						}
 					}
 				}
 				listControls: {
@@ -11622,26 +11626,6 @@ export type TranslationFunctions = {
 			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
-				networkSelectionIndicatorsHelper: {
-					/**
-					 * 
-				          Location access **denied** by default - must be explicitly allowed
-				          
-					 */
-					denied: () => LocalizedString
-					/**
-					 * 
-				          Location access **allowed** by default - can be explicitly denied
-				          
-					 */
-					allowed: () => LocalizedString
-					/**
-					 * 
-				          Location access unmanaged (ACL disabled)
-				          
-					 */
-					unmanaged: () => LocalizedString
-				}
 			}
 			message: {
 				/**
@@ -11736,6 +11720,14 @@ export type TranslationFunctions = {
 				 * Ports
 				 */
 				ports: () => LocalizedString
+				/**
+				 * Aliases
+				 */
+				aliases: () => LocalizedString
+				/**
+				 * Expiration Date
+				 */
+				expires: () => LocalizedString
 			}
 			placeholders: {
 				/**
