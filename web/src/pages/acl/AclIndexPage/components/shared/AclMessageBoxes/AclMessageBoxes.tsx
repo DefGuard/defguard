@@ -13,7 +13,7 @@ type Props = {
   dismissable?: boolean;
 };
 
-export const AclMessageBoxes = ({ message, dismissable = false }: Props) => {
+export const AclMessageBoxes = ({ message, dismissable = true }: Props) => {
   const { LL } = useI18nContext();
   const aliasKindLL = LL.acl.messageBoxes.aclAliasKind;
   const networkAccessLL = LL.acl.messageBoxes.networkSelectionIndicatorsHelper;
