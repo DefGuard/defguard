@@ -96,7 +96,7 @@ pub async fn generate_firewall_rules_from_acls(
 
         // process component aliases by appending destination parameters from each of them to existing lists
         for alias in component_aliases {
-            // fetch destination ranges for a fiven alias
+            // fetch destination ranges for a given alias
             alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
 
             // extend existing parameter lists
