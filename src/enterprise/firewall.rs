@@ -2390,7 +2390,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_generate_firewall_rules_ipv4_and_ipv6(pool: PgPool) {
+    async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut rng = thread_rng();
 
         // Create test location
@@ -3124,7 +3126,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_expired_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+    async fn test_expired_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3338,7 +3341,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_disabled_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+    async fn test_disabled_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3552,7 +3556,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_unapplied_acl_rules_ipv4_and_ipv6(pool: PgPool) {
+    async fn test_unapplied_acl_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         // Create test location
         let location = WireguardNetwork {
             id: NoId,
@@ -3776,7 +3781,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_acl_rules_all_locations_ipv6(pool: PgPool) {
+    async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut rng = thread_rng();
 
         // Create test location
@@ -3937,7 +3943,8 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_acl_rules_all_locations_ipv4_and_ipv6(pool: PgPool) {
+    async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut rng = thread_rng();
 
         // Create test location
