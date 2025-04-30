@@ -29,6 +29,7 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
+use tracing::Instrument;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -452,6 +453,7 @@ impl From<Status> for CoreError {
 }
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
+#[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
@@ -777,6 +779,7 @@ pub async fn run_grpc_bidi_stream(
 }
 
 /// Runs gRPC server with core services.
+#[instrument(skip_all)]
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,

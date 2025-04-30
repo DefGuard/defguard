@@ -59,6 +59,7 @@ pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(
     Ok(())
 }
 
+#[instrument(skip_all)]
 pub async fn do_count_update(pool: &PgPool) -> Result<(), SqlxError> {
     update_counts(pool).await?;
     Ok(())

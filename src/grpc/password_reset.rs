@@ -68,6 +68,7 @@ impl PasswordResetServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
@@ -148,6 +149,7 @@ impl PasswordResetServer {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn start_password_reset(
         &self,
         request: PasswordResetStartRequest,
@@ -205,6 +207,7 @@ impl PasswordResetServer {
         Ok(response)
     }
 
+    #[instrument(skip_all)]
     pub async fn reset_password(
         &self,
         request: PasswordResetRequest,

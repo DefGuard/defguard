@@ -25,6 +25,7 @@ const UPDATES_CHECK_INTERVAL: u64 = 60 * 60 * 6;
 const EXPIRED_ACL_RULES_CHECK_INTERVAL: u64 = 60 * 5;
 const ENTERPRISE_STATUS_CHECK_INTERVAL: u64 = 60 * 5;
 
+#[instrument(skip_all)]
 pub async fn run_utility_thread(
     pool: &PgPool,
     wireguard_tx: Sender<GatewayEvent>,
