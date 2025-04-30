@@ -29,7 +29,6 @@ use tonic::{
     transport::{Certificate, ClientTlsConfig, Endpoint, Identity, Server, ServerTlsConfig},
     Code, Status,
 };
-use tracing::Instrument;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
