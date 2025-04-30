@@ -5,6 +5,7 @@ use tokio::{
     sync::broadcast::Sender,
     time::{sleep, Instant},
 };
+use tracing::Instrument;
 
 use crate::{
     db::{GatewayEvent, Id, WireguardNetwork},
@@ -41,33 +42,55 @@ pub async fn run_utility_thread(
     let mut enterprise_enabled = is_enterprise_enabled();
 
     let directory_sync_task = || async {
-        if let Err(e) = do_directory_sync(pool, &wireguard_tx).await {
+        if let Err(e) = do_directory_sync(pool, &wireguard_tx)
+            .instrument(info_span!("directory_sync_task"))
+            .await
+        {
             error!("There was an error while performing directory sync job: {e:?}",);
         }
     };
 
     let count_update_task = || async {
-        if let Err(e) = do_count_update(pool).await {
+        if let Err(e) = do_count_update(pool)
+            .instrument(info_span!("count_update_task"))
+            .await
+        {
             error!("There was an error while performing count update job: {e:?}");
         }
     };
 
     let updates_check_task = || async {
-        if let Err(e) = do_new_version_check().await {
+        if let Err(e) = do_new_version_check()
+            .instrument(info_span!("updates_check_task"))
+            .await
+        {
             error!("There was an error while checking for new Defguard version: {e:?}");
         }
     };
 
     let ldap_sync_task = || async {
-        if let Err(e) = do_ldap_sync(pool).await {
+        if let Err(e) = do_ldap_sync(pool)
+            .instrument(info_span!("ldap_sync_task"))
+            .await
+        {
             error!("There was an error while performing LDAP sync job: {e}");
         }
+    };
+
+    let expired_acl_rules_task = || async {
+        if let Err(err) = expired_acl_rules_check(pool, wireguard_tx.clone())
+            .instrument(info_span!("expired_acl_rules_task"))
+            .await
+        {
+            error!("Failed to check expired ACL rules: {err}");
+        };
     };
 
     directory_sync_task().await;
     count_update_task().await;
     updates_check_task().await;
     ldap_sync_task().await;
+    expired_acl_rules_task().await;
 
     loop {
         sleep(Duration::from_secs(UTILITY_THREAD_MAIN_SLEEP_TIME)).await;
@@ -98,9 +121,7 @@ pub async fn run_utility_thread(
 
         // Mark expired ACL rules
         if last_expired_acl_rules_check.elapsed().as_secs() >= EXPIRED_ACL_RULES_CHECK_INTERVAL {
-            if let Err(err) = expired_acl_rules_check(pool, wireguard_tx.clone()).await {
-                error!("Failed to check expired ACL rules: {err}");
-            };
+            expired_acl_rules_task().await;
             last_expired_acl_rules_check = Instant::now();
         }
 
@@ -113,6 +134,7 @@ pub async fn run_utility_thread(
                 enterprise_enabled,
                 new_enterprise_enabled,
             )
+            .instrument(info_span!("enterprise_status_check"))
             .await
             {
                 error!("Failed to check enterprise status: {err}");

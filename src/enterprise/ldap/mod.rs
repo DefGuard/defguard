@@ -24,7 +24,6 @@ pub mod sync;
 pub mod test_client;
 pub mod utils;
 
-#[instrument(skip_all)]
 pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();

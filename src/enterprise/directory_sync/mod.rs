@@ -777,7 +777,6 @@ pub(crate) async fn get_directory_sync_interval(pool: &PgPool) -> u64 {
 }
 
 // Performs the directory sync job. This function is called by the utility thread.
-#[instrument(skip_all)]
 pub(crate) async fn do_directory_sync(
     pool: &PgPool,
     wireguard_tx: &Sender<GatewayEvent>,
