@@ -20,8 +20,6 @@ import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCh
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { FormTextarea } from '../../../shared/defguard-ui/components/Form/FormTextarea/FormTextarea';
-import { ActivityIcon } from '../../../shared/defguard-ui/components/icons/ActivityIcon/ActivityIcon';
-import { ActivityIconVariant } from '../../../shared/defguard-ui/components/icons/ActivityIcon/types';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
 import {
   ButtonSize,
@@ -48,16 +46,13 @@ import {
 } from '../../../shared/types';
 import { trimObjectStrings } from '../../../shared/utils/trimObjectStrings';
 import { useAclLoadedContext } from '../acl-context';
-import { AclAliasStatus } from '../types';
-import { protocolOptions, protocolToString } from '../utils';
+import { AclAliasKindIcon } from '../AclIndexPage/components/shared/AclAliasKindIcon';
+import { AclMessageBoxes } from '../AclIndexPage/components/shared/AclMessageBoxes/AclMessageBoxes';
+import { NetworkAccessTypeIcon } from '../AclIndexPage/components/shared/NetworkAccessTypeIcon';
+import { AclAlias, AclAliasStatus } from '../types';
+import { networkToNetworkAccessType, protocolOptions, protocolToString } from '../utils';
 import { aclDestinationValidator, aclPortsValidator } from '../validators';
-import { AclCreateNetworkSelectMessage } from './components/DialogSelect/AclCreateNetwrokSelectMessage/AclCreateNetwrokSelectMessage';
 import { FormDialogSelect } from './components/DialogSelect/FormDialogSelect';
-
-type Alias = {
-  id: number;
-  name: string;
-};
 
 type AclForm = Omit<AclRuleInfo, 'parent_id' | 'state'>;
 
@@ -382,7 +377,7 @@ export const AlcCreatePage = () => {
               label={labelsLL.locations()}
               searchKeys={['name']}
               disabled={allowAllLocations}
-              modalExtrasTop={<AclCreateNetworkSelectMessage />}
+              modalExtrasTop={<AclMessageBoxes message="acl-network-access" />}
               forceShowErrorMessage
             />
             <CardHeader title="Expiration Date" />
@@ -400,8 +395,8 @@ export const AlcCreatePage = () => {
               }}
             />
             <FormDateInput
+              label={localLL.labels.expires()}
               controller={{ control, name: 'expires' }}
-              label="Expiration Date"
               disabled={neverExpires}
             />
           </SectionWithCard>
@@ -413,9 +408,10 @@ export const AlcCreatePage = () => {
               <RenderMarkdown content={localLL.infoBox.destinationInstructions()} />
             </MessageBox>
             <FormDialogSelect
+              modalExtrasTop={<AclMessageBoxes message="acl-alias-kind" />}
               controller={{ control, name: 'aliases' }}
               options={aliasesOptions}
-              label="Aliases"
+              label={localLL.labels.aliases()}
               identKey="id"
               renderTagContent={renderAlias}
               searchKeys={['name']}
@@ -424,6 +420,7 @@ export const AlcCreatePage = () => {
             <FormTextarea
               controller={{ control, name: 'destination' }}
               label={labelsLL.manualIp()}
+              placeholder={localLL.placeholders.allIps()}
             />
             <FormInput
               controller={{ control, name: 'ports' }}
@@ -635,15 +632,7 @@ const CardHeader = ({ title }: { title: string }) => {
 const renderNetworkSelectTag = (network: Network) => (
   <>
     <p>{network.name}</p>
-    <ActivityIcon
-      status={
-        !network.acl_enabled
-          ? ActivityIconVariant.BLANK
-          : network.acl_default_allow
-            ? ActivityIconVariant.CONNECTED
-            : ActivityIconVariant.ERROR_FILLED
-      }
-    />
+    <NetworkAccessTypeIcon type={networkToNetworkAccessType(network)} />
   </>
 );
 
@@ -657,6 +646,11 @@ const renderUserListItem = (user: User) => (
 
 const renderNetworkDevice = (device: StandaloneDevice) => <p>{device.name}</p>;
 
-const renderAlias = (alias: Alias) => <p>{alias.name}</p>;
+const renderAlias = (alias: AclAlias) => (
+  <>
+    <p>{alias.name}</p>
+    <AclAliasKindIcon kind={alias.kind} />
+  </>
+);
 
 const renderGroup = (group: GroupInfo) => <p>{group.name}</p>;

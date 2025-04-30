@@ -1,7 +1,7 @@
 import { SelectOption } from '../../shared/defguard-ui/components/Layout/Select/types';
-import { AclRuleInfo } from '../../shared/types';
+import { AclRuleInfo, Network } from '../../shared/types';
 import { ListCellTag } from './AclIndexPage/components/shared/types';
-import { AclAliasStatus, AclProtocol, AclStatus } from './types';
+import { AclAliasStatus, AclProtocol, AclStatus, NetworkAccessType } from './types';
 
 export const aclStatusToInt = (status: AclStatus): number => {
   switch (status) {
@@ -13,6 +13,8 @@ export const aclStatusToInt = (status: AclStatus): number => {
       return 2;
     case AclStatus.DELETED:
       return 3;
+    case AclStatus.EXPIRED:
+      return 4;
   }
 };
 
@@ -114,3 +116,14 @@ export const aclRuleToListTagDisplay = (rules: AclRuleInfo[]): ListCellTag[] =>
     label: rule.name,
     displayAsTag: true,
   }));
+
+export const networkToNetworkAccessType = (network: Network): NetworkAccessType => {
+  if (!network.acl_enabled) {
+    return NetworkAccessType.UNMANAGED;
+  }
+  if (network.acl_default_allow) {
+    return NetworkAccessType.ALLOWED;
+  } else {
+    return NetworkAccessType.DENIED;
+  }
+};

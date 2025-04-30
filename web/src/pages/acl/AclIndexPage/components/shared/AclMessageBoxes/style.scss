@@ -1,0 +1,18 @@
+.acl-explain-message-box {
+  ul {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+
+    li {
+      display: inline-flex;
+      flex-flow: row nowrap;
+      align-items: center;
+
+      svg {
+        display: inline-block;
+      }
+    }
+  }
+}

@@ -926,7 +926,7 @@ impl AclRule<Id> {
     {
         query_as!(
             AclAlias,
-            "SELECT a.id, parent_id, name, state AS \"state: AliasState\", destination, ports, protocols \
+            "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", destination, ports, protocols \
             FROM aclrulealias r \
             JOIN aclalias a \
             ON a.id = r.alias_id \
@@ -1341,6 +1341,7 @@ pub struct AclAliasInfo<I = NoId> {
     pub id: I,
     pub parent_id: Option<Id>,
     pub name: String,
+    pub kind: AliasKind,
     pub state: AliasState,
     pub destination: Vec<IpNetwork>,
     pub destination_ranges: Vec<AclAliasDestinationRange<Id>>,
@@ -1404,6 +1405,7 @@ impl TryFrom<EditAclAlias> for AclAlias<NoId> {
             id: NoId,
             parent_id: None,
             name: alias.name,
+            kind: alias.kind,
             state: AliasState::Applied,
             protocols: alias.protocols,
         })
@@ -1426,17 +1428,30 @@ pub enum AliasState {
     Modified,
 }
 
+/// ACL alias can be of one of the following types:
+/// - Destination: the alias defines a complete destination that an ACL rule applies to
+/// - Component: the alias defines parts of a destination and will be combined with other parts manually defined in an ACL rule
+#[derive(Clone, Debug, Default, Deserialize, Serialize, Type, PartialEq, Eq)]
+#[sqlx(type_name = "aclalias_kind", rename_all = "lowercase")]
+pub enum AliasKind {
+    #[default]
+    Destination,
+    Component,
+}
+
 /// Database representation of an ACL alias. Aliases can be used to define
 /// the destination part of an ACL rule so that it's easier to create new
 /// rules with common restrictions. In addition to the [`AclAlias`] we provide
 /// [`AclAliasInfo`] and [`ApiAclAlias`] that combine all related objects for
 /// easier downstream processing.
-#[derive(Clone, Debug, Model, PartialEq)]
+#[derive(Clone, Debug, Default, Model, PartialEq)]
 pub struct AclAlias<I = NoId> {
     pub id: I,
     // if present points to the original alias before modification
     pub parent_id: Option<Id>,
     pub name: String,
+    #[model(enum)]
+    pub kind: AliasKind,
     #[model(enum)]
     pub state: AliasState,
     #[model(ref)]
@@ -1452,6 +1467,7 @@ impl AclAlias {
     pub fn new<S: Into<String>>(
         name: S,
         state: AliasState,
+        kind: AliasKind,
         destination: Vec<IpNetwork>,
         ports: Vec<PgRange<i32>>,
         protocols: Vec<Protocol>,
@@ -1460,6 +1476,7 @@ impl AclAlias {
             id: NoId,
             parent_id: None,
             name: name.into(),
+            kind,
             state,
             destination,
             ports,
@@ -1765,6 +1782,7 @@ impl AclAlias<Id> {
             id: self.id,
             parent_id: self.parent_id,
             name: self.name.clone(),
+            kind: self.kind.clone(),
             state: self.state.clone(),
             destination: self.destination.clone(),
             ports: self.ports.clone().into_iter().map(Into::into).collect(),
@@ -1970,6 +1988,7 @@ mod test {
         let alias = AclAlias::new(
             "alias",
             AliasState::Applied,
+            AliasKind::Destination,
             destination.clone(),
             ports.clone(),
             vec![20, 30],
@@ -2268,6 +2287,7 @@ mod test {
         let alias1 = AclAlias::new(
             "alias1",
             AliasState::Applied,
+            AliasKind::Destination,
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -2278,6 +2298,7 @@ mod test {
         let _alias2 = AclAlias::new(
             "alias2",
             AliasState::Applied,
+            AliasKind::Destination,
             Vec::new(),
             Vec::new(),
             Vec::new(),
