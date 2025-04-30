@@ -19,6 +19,7 @@ use crate::{
 };
 
 pub(crate) mod app_info;
+pub(crate) mod audit_log;
 pub(crate) mod auth;
 pub(crate) mod forward_auth;
 pub(crate) mod group;
@@ -28,6 +29,7 @@ pub mod network_devices;
 pub(crate) mod openid_clients;
 #[cfg(feature = "openid")]
 pub mod openid_flow;
+pub(crate) mod pagination;
 pub(crate) mod settings;
 pub(crate) mod ssh_authorized_keys;
 pub(crate) mod support;
@@ -42,6 +44,7 @@ pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
+pub(crate) const API_PAGE_SIZE: u32 = 50;
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
