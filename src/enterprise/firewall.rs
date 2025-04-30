@@ -64,17 +64,10 @@ pub async fn generate_firewall_rules_from_acls(
         // get network IPs for devices belonging to those users
         let user_device_ips = get_user_device_ips(&users, location_id, &mut *conn).await?;
         // separate IPv4 and IPv6 user-device addresses
-        let user_device_ips =
-            user_device_ips
-                .iter()
-                .flatten()
-                .fold((Vec::new(), Vec::new()), |mut acc, ip| {
-                    match ip {
-                        IpAddr::V4(_) => acc.0.push(*ip),
-                        IpAddr::V6(_) => acc.1.push(*ip),
-                    };
-                    acc
-                });
+        let user_device_ips = user_device_ips
+            .iter()
+            .flatten()
+            .partition(|ip| ip.is_ipv4());
 
         // fetch allowed network devices
         let allowed_network_devices = acl.get_all_allowed_devices(&mut *conn, location_id).await?;
@@ -88,17 +81,10 @@ pub async fn generate_firewall_rules_from_acls(
         let network_device_ips =
             get_network_device_ips(&network_devices, location_id, &mut *conn).await?;
         // separate IPv4 and IPv6 network-device addresses
-        let network_device_ips =
-            network_device_ips
-                .iter()
-                .flatten()
-                .fold((Vec::new(), Vec::new()), |mut acc, ip| {
-                    match ip {
-                        IpAddr::V4(_) => acc.0.push(*ip),
-                        IpAddr::V6(_) => acc.1.push(*ip),
-                    };
-                    acc
-                });
+        let network_device_ips = network_device_ips
+            .iter()
+            .flatten()
+            .partition(|ip| ip.is_ipv4());
 
         // convert device IPs into source addresses for a firewall rule
         let ipv4_source_addrs =
