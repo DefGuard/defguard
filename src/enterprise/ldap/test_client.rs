@@ -12,8 +12,6 @@ impl super::LDAPConnection {
     pub(crate) async fn create() -> Result<super::LDAPConnection, LdapError> {
         Ok(Self {
             config: super::LDAPConfig::default(),
-            test_memberships: HashMap::new(),
-            test_users: Vec::new(),
             url: String::new(),
         })
     }
@@ -83,5 +81,13 @@ impl super::LDAPConnection {
 
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
         Ok(vec![])
+    }
+
+    pub(super) async fn is_member_of(
+        &mut self,
+        _user_dn: &str,
+        _groupname: &str,
+    ) -> Result<bool, LdapError> {
+        Ok(true)
     }
 }

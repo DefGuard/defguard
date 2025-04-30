@@ -5,39 +5,33 @@
     & > .message-box-spacer {
       box-sizing: border-box;
       padding-bottom: 20px;
-
-      @include media-breakpoint-up(lg) {
-        padding: 0 30px 34px;
-      }
     }
 
     & > .current-keys {
       display: flex;
       flex-flow: column;
-      box-sizing: border-box;
+      padding-bottom: 20px;
+      row-gap: 20px;
 
       @include media-breakpoint-down(lg) {
-        padding: 0 15px;
         row-gap: 10px;
-        margin-bottom: 30px;
+        padding-bottom: 30px;
       }
 
       @include media-breakpoint-up(lg) {
-        padding: 0 30px;
         row-gap: 20px;
-        margin-bottom: 34px;
       }
 
       & > .row-box {
         width: 100%;
         display: inline-grid;
         grid-template-rows: 1fr;
-        grid-template-columns: 74px 1fr 74px;
+        grid-template-columns: 22px 1fr 40px;
         align-items: center;
         align-content: start;
         justify-content: start;
-        padding: 0 20px;
         box-sizing: border-box;
+        column-gap: 10px;
 
         & > :nth-child(1) {
           width: 22px;
@@ -53,9 +47,10 @@
 
         .btn {
           padding: 0;
-          width: 40px;
-          height: 40px;
+          min-height: unset;
           justify-self: flex-end;
+          width: 35px;
+          height: 35px;
         }
       }
     }

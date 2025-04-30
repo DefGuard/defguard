@@ -1,12 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined } from 'lodash-es';
 import { lazy, Suspense, useEffect } from 'react';
-import { navigatorDetector } from 'typesafe-i18n/detectors';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../i18n/i18n-react';
-import { baseLocale, detectLocale, locales } from '../i18n/i18n-util';
-import { loadLocaleAsync } from '../i18n/i18n-util.async';
 import { LoaderPage } from '../pages/loader/LoaderPage';
 import { useAppStore } from '../shared/hooks/store/useAppStore';
 import { useAuthStore } from '../shared/hooks/store/useAuthStore';
@@ -31,8 +28,6 @@ export const AppLoader = () => {
     user: { getMe },
     settings: { getEssentialSettings, getEnterpriseSettings },
   } = useApi();
-  const { setLocale } = useI18nContext();
-  const activeLanguage = useAppStore((state) => state.language);
   const setAppStore = useAppStore((state) => state.setState);
   const { LL } = useI18nContext();
   const setUpdateStore = useUpdatesStore((s) => s.setUpdate);
@@ -109,30 +104,6 @@ export const AppLoader = () => {
     queryKey: [QueryKeys.FETCH_ESSENTIAL_SETTINGS],
     refetchOnMount: true,
   });
-
-  useEffect(() => {
-    if (!activeLanguage) {
-      let lang = detectLocale(navigatorDetector);
-      if (!locales.includes(lang)) {
-        lang = baseLocale;
-      }
-      setAppStore({ language: lang });
-    } else {
-      if (locales.includes(activeLanguage)) {
-        loadLocaleAsync(activeLanguage)
-          .then(() => {
-            setLocale(activeLanguage);
-            document.documentElement.setAttribute('lang', activeLanguage);
-          })
-          .catch((e) => {
-            console.error(e);
-          });
-      } else {
-        setAppStore({ language: baseLocale });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLanguage]);
 
   // setAppSettings
   useEffect(() => {

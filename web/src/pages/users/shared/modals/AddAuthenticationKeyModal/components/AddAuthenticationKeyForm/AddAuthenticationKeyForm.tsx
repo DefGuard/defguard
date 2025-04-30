@@ -39,9 +39,7 @@ export const AddAuthenticationKeyForm = ({ keyType }: Props) => {
   const { LL } = useI18nContext();
   const {
     user: { addAuthenticationKey },
-  } = useApi({
-    notifyError: true,
-  });
+  } = useApi();
   const toaster = useToaster();
   const localLL = LL.userPage.authenticationKeys.addModal.keyForm;
   const closeModal = useAddAuthorizationKeyModal((s) => s.close);

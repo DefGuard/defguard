@@ -10,8 +10,7 @@
 /// The macro will also automatically generate boilerplate code for unit tests to work correctly.
 macro_rules! global_value {
     ($name:ident, $type:ty, $init:expr, $set_fn:ident, $get_fn:ident) => {
-        use std::sync::RwLock;
-        use std::sync::RwLockReadGuard;
+        use std::sync::{RwLock, RwLockReadGuard};
 
         static $name: RwLock<$type> = RwLock::new($init);
 

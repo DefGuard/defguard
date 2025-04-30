@@ -1128,6 +1128,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           Make sure to check the documentation to understand the implications of this
           setting.`,
           interval: 'The interval with which the synchronization will be attempted.',
+          groups: `Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.`,
         },
       },
       form: {
@@ -1152,6 +1153,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_tls_verify_cert: 'Verify TLS certificate',
           ldap_uses_ad: 'LDAP server is Active Directory',
           ldap_user_rdn_attr: 'User RDN Attribute',
+          ldap_sync_groups: 'Limit synchronization to these groups',
         },
         helpers: {
           ldap_user_obj_class:
@@ -2210,6 +2212,32 @@ Any other requests you can reach us at: support@defguard.net
     },
   },
   acl: {
+    messageBoxes: {
+      aclAliasKind: {
+        component: {
+          name: 'Component',
+          description: 'combined with manually configured destination fields in ACL',
+        },
+        destination: {
+          name: 'Destination',
+          description: 'translated into a separate set of firewall rules',
+        },
+      },
+      networkSelectionIndicatorsHelper: {
+        //md
+        denied: `
+          Location access **denied** by default - must be explicitly allowed
+          `,
+        //md
+        allowed: `
+          Location access **allowed** by default - can be explicitly denied
+          `,
+        //md
+        unmanaged: `
+          Location access unmanaged (ACL disabled)
+          `,
+      },
+    },
     sharedTitle: 'Access Control List',
     fieldsSelectionLabels: {
       ports: 'All ports',
@@ -2283,14 +2311,6 @@ Any other requests you can reach us at: support@defguard.net
             status: 'Status',
             edit: 'Edit',
           },
-          status: {
-            new: 'New',
-            change: 'Pending Change',
-            delete: 'Pending Deletion',
-            enabled: 'Enabled',
-            disabled: 'Disabled',
-            deployed: 'Deployed',
-          },
           tags: {
             all: 'All',
             allDenied: 'All denied',
@@ -2329,6 +2349,33 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
               status: 'Status',
             },
           },
+          create: {
+            labels: {
+              name: 'Alias name',
+              kind: 'Alias kind',
+              ip: 'IPv4/6 CIDR range address',
+              ports: 'Ports or Port Ranges',
+              protocols: 'Protocols',
+            },
+            placeholders: {
+              protocols: 'All Protocols',
+              ports: 'All Ports',
+              ip: 'All IPs',
+            },
+            kindOptions: {
+              destination: 'Destination',
+              component: 'Component',
+            },
+            controls: {
+              cancel: 'Cancel',
+              edit: 'Edit Alias',
+              create: 'Create Alias',
+            },
+            messages: {
+              modified: 'Alias modified',
+              created: 'Alias created',
+            },
+          },
         },
         listControls: {
           searchPlaceholder: 'Find name',
@@ -2357,6 +2404,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
           headers: {
             id: 'ID',
             name: 'Alias name',
+            kind: 'Alias kind',
             ip: 'Ipv4/6 CIDR range address',
             ports: 'Ports',
             protocols: 'Protocols',
@@ -2391,20 +2439,6 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         // md
         destinationInstructions: `
         Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
-        networkSelectionIndicatorsHelper: {
-          //md
-          denied: `
-          Location access **denied** by default - must be explicitly allowed
-          `,
-          //md
-          allowed: `
-          Location access **allowed** by default - can be explicitly denied
-          `,
-          //md
-          unmanaged: `
-          Location access unmanaged (ACL disabled)
-          `,
-        },
       },
       message: {
         create: 'Rule created and added to pending changes',
@@ -2433,9 +2467,12 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         protocols: 'Protocols',
         manualIp: 'IPv4/6 CIDR range or address',
         ports: 'Ports',
+        aliases: 'Aliases',
+        expires: 'Expiration Date',
       },
       placeholders: {
         allProtocols: 'All protocols',
+        allIps: 'All IPs',
       },
     },
   },

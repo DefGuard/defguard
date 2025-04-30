@@ -14,7 +14,7 @@ export const LdapConnectionTest = () => {
   const localLL = LL.settingsPage.ldapSettings.test;
   const {
     settings: { testLdapSettings },
-  } = useApi({ notifyError: false });
+  } = useApi();
 
   const toaster = useToaster();
 

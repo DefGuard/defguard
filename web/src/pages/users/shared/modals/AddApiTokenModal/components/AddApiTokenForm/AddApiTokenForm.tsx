@@ -38,9 +38,7 @@ export const AddApiTokenForm = () => {
   const { LL } = useI18nContext();
   const {
     user: { addApiToken },
-  } = useApi({
-    notifyError: true,
-  });
+  } = useApi();
   const toaster = useToaster();
   const localLL = LL.userPage.apiTokens.addModal;
   const closeModal = useAddApiTokenModal((s) => s.close);

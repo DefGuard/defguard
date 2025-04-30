@@ -9,7 +9,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { AppLoader } from './components/AppLoader';
-import { TranslationProvider } from './shared/components/providers/TranslationProvider';
+import { I18nProvider } from './components/I18nProvider';
+import { ApiProvider } from './shared/hooks/api/provider';
 
 dayjs.extend(utc);
 dayjs.extend(LocalizedFormat);
@@ -18,10 +19,12 @@ const queryClient = new QueryClient();
 const root = createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <TranslationProvider>
-        <AppLoader />
-      </TranslationProvider>
-    </QueryClientProvider>
+    <I18nProvider>
+      <ApiProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppLoader />
+        </QueryClientProvider>
+      </ApiProvider>
+    </I18nProvider>
   </StrictMode>,
 );

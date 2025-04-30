@@ -139,6 +139,12 @@ pub async fn patch_settings(
         }
     }
 
+    if let Some(ldap_sync_groups) = &data.ldap_sync_groups {
+        if &settings.ldap_sync_groups != ldap_sync_groups {
+            settings.ldap_sync_status = SyncStatus::OutOfSync;
+        }
+    }
+
     settings.apply(data);
     settings.validate()?;
     update_current_settings(&appstate.pool, settings).await?;

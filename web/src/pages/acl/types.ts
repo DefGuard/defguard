@@ -27,6 +27,7 @@ export type AclCreateContextLoaded = {
 export type AclAlias = {
   id: number;
   name: string;
+  kind: AclAliasKind;
   state: AclAliasStatus;
   destination: string;
   ports: string;
@@ -53,4 +54,20 @@ export enum AclStatus {
 export enum AclAliasStatus {
   APPLIED = AclStatus.APPLIED,
   MODIFIED = AclStatus.MODIFIED,
+}
+
+export enum AclKind {
+  DESTINATION = 'Destination',
+  COMPONENT = 'Component',
+}
+
+export enum AclAliasKind {
+  DESTINATION = AclKind.DESTINATION,
+  COMPONENT = AclKind.COMPONENT,
+}
+
+export enum NetworkAccessType {
+  ALLOWED,
+  DENIED,
+  UNMANAGED,
 }
