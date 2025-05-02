@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"audit_event\" (\"timestamp\",\"user_id\",\"ip\",\"event\",\"module\",\"device\",\"details\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Int8",
+        "Inet",
+        "Text",
+        {
+          "Custom": {
+            "name": "audit_module",
+            "kind": {
+              "Enum": [
+                "defguard",
+                "client",
+                "vpn",
+                "enrollment"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3bd77e32667792fe2d18e9d05e1797db844a12325dd7d51a6b5a0e8dee0fcea2"
+}
