@@ -3,7 +3,6 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import dayjs from 'dayjs';
 import { intersection } from 'lodash-es';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
@@ -295,25 +294,17 @@ export const AlcCreatePage = () => {
 
   const handleValidSubmit: SubmitHandler<FormFields> = (values) => {
     const cleaned = trimObjectStrings(values);
-    let expires = cleaned.expires;
-    // todo: remove this when DateInput will have time implemented, for now expires date means 00:00 of the day selected
-    if (expires) {
-      expires = dayjs(expires).utc().startOf('day').format('YYYY-MM-DDTHH:mm:ss'); // remove time zone info
-    }
-
     if (editMode) {
       const requestData: EditAclRuleRequest = {
         ...cleaned,
         all_networks: allowAllLocations,
         id: initialValue.id,
-        expires,
       };
       mutatePut(requestData);
     } else {
       const requestData: CreateAclRuleRequest = {
         ...cleaned,
         all_networks: allowAllLocations,
-        expires,
       };
       mutatePost(requestData);
     }
@@ -398,6 +389,7 @@ export const AlcCreatePage = () => {
               label={localLL.labels.expires()}
               controller={{ control, name: 'expires' }}
               disabled={neverExpires}
+              showTimeSelection
             />
           </SectionWithCard>
           <SectionWithCard title={localLL.headers.destination()} id="destination-card">

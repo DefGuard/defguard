@@ -7,7 +7,6 @@ import DatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
 
 import { FieldError } from '../../../defguard-ui/components/Layout/FieldError/FieldError';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
-import { useAppStore } from '../../../hooks/store/useAppStore';
 import { DateInputProps } from './types';
 
 const pickerToOutput = (value: Date | null): string | null => {
@@ -28,8 +27,8 @@ export const DateInput = ({
   label,
   errorMessage,
   disabled = false,
+  showTimeSelection = false,
 }: DateInputProps) => {
-  const locale = useAppStore((s) => s.language);
   const showError = !disabled ? isPresent(errorMessage) : false;
 
   return (
@@ -38,31 +37,57 @@ export const DateInput = ({
         className={clsx('inner', {
           disabled,
           error: showError,
+          'with-time': showTimeSelection,
         })}
       >
         {label !== undefined && <p className="label">{label}:</p>}
-        <DatePicker
-          disabled={disabled}
-          selected={inputToPicker(selected)}
-          onChange={(val) => {
-            onChange(pickerToOutput(val));
-          }}
-          customInput={
-            <DisplayField
-              selected={selected}
-              className={clsx({
-                disabled,
-                error: showError,
-              })}
+        <div className="fields-track">
+          <DatePicker
+            disabled={disabled}
+            selected={inputToPicker(selected)}
+            onChange={(val) => {
+              onChange(pickerToOutput(val));
+            }}
+            customInput={
+              <DisplayField
+                selected={selected}
+                className={clsx({
+                  disabled,
+                  error: showError,
+                })}
+              />
+            }
+            renderCustomHeader={CustomHeader}
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            renderDayContents={(day, _) => <CustomDay day={day} />}
+            closeOnScroll
+          />
+          {showTimeSelection && (
+            <DatePicker
+              disabled={disabled}
+              selected={inputToPicker(selected)}
+              onChange={(val) => {
+                onChange(pickerToOutput(val));
+              }}
+              customInput={
+                <DisplayField
+                  displayFormat="HH:mm"
+                  selected={selected}
+                  className={clsx({
+                    disabled,
+                    error: showError,
+                  })}
+                />
+              }
+              showTimeSelect
+              showTimeSelectOnly
+              dateFormat="HH:mm"
+              timeFormat="HH:mm"
+              timeIntervals={15}
+              closeOnScroll
             />
-          }
-          renderCustomHeader={CustomHeader}
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          renderDayContents={(day, _) => <CustomDay day={day} />}
-          locale={locale}
-          showTimeSelect={false}
-          closeOnScroll
-        />
+          )}
+        </div>
         <FieldError errorMessage={errorMessage} disabled={!showError} />
       </div>
     </div>
@@ -134,14 +159,17 @@ const CustomHeader = ({
 
 type DisplayProps = {
   selected?: string | null;
+  displayFormat?: string;
 } & HTMLAttributes<HTMLButtonElement>;
 
 const DisplayField = forwardRef<HTMLButtonElement, DisplayProps>(
-  ({ selected, className, ...rest }, ref) => {
+  ({ selected, className, displayFormat, ...rest }, ref) => {
     return (
       <div className={clsx('date-input-container', className)}>
         <button {...rest} className="date-input" ref={ref} type="button">
-          {selected !== null && <span>{dayjs(selected).format('L')}</span>}
+          {selected !== null && (
+            <span>{dayjs(selected).format(displayFormat ?? 'L')}</span>
+          )}
         </button>
       </div>
     );
