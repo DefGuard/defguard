@@ -44,7 +44,7 @@ pub(crate) mod yubikey;
 
 pub(crate) static SESSION_COOKIE_NAME: &str = "defguard_session";
 pub(crate) static SIGN_IN_COOKIE_NAME: &str = "defguard_sign_in";
-pub(crate) const API_PAGE_SIZE: u32 = 50;
+pub(crate) const DEFAULT_API_PAGE_SIZE: u32 = 50;
 
 #[derive(Default, ToSchema)]
 pub struct ApiResponse {
