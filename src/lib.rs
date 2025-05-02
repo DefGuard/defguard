@@ -137,6 +137,8 @@ pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
+pub mod event_logger;
+pub mod event_router;
 pub mod globals;
 pub mod grpc;
 pub mod handlers;
