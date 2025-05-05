@@ -41,7 +41,7 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
         key: 2,
       },
     ],
-    [],
+    [localLL.general.usernameHandling.options],
   );
 
   return (
