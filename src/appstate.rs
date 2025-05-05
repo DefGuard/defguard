@@ -18,6 +18,7 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, WebHook},
+    event_router::events::MainEvent,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
@@ -32,6 +33,7 @@ pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
+    pub event_tx: UnboundedSender<MainEvent>,
 }
 
 impl AppState {
@@ -100,6 +102,7 @@ impl AppState {
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
+        event_tx: UnboundedSender<MainEvent>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -128,6 +131,7 @@ impl AppState {
             webauthn,
             failed_logins,
             key,
+            event_tx,
         }
     }
 }

@@ -34,6 +34,7 @@ use crate::{
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
     error::WebError,
+    event_router::events::{AuditLogContext, MainEvent},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
@@ -274,6 +275,10 @@ pub(crate) async fn authenticate(
             debug!("No OpenID session found, proceeding with login to Defguard.");
             None
         };
+
+        appstate.event_tx.send(MainEvent::UserLogin {
+            context: AuditLogContext::new(user_info.id, insecure_ip.into(), user_agent.to_string()),
+        });
 
         Ok((
             cookies,

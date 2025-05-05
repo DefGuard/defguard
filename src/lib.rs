@@ -27,6 +27,7 @@ use enterprise::handlers::{
         test_dirsync_connection,
     },
 };
+use event_router::events::MainEvent;
 use handlers::{
     audit_log::get_audit_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
@@ -318,6 +319,7 @@ pub fn build_webapp(
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    event_tx: UnboundedSender<MainEvent>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -583,6 +585,7 @@ pub fn build_webapp(
             wireguard_tx,
             mail_tx,
             failed_logins,
+            event_tx,
         ))
         .layer(
             TraceLayer::new_for_http()
@@ -609,6 +612,7 @@ pub async fn run_web_server(
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    event_tx: UnboundedSender<MainEvent>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,
@@ -619,6 +623,7 @@ pub async fn run_web_server(
         gateway_state,
         pool,
         failed_logins,
+        event_tx,
     );
     info!("Started web services");
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
