@@ -27,22 +27,23 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
     () => [
       {
         value: 'RemoveForbidden',
-        label: 'Remove forbidden characters',
+        label: localLL.general.usernameHandling.options.remove(),
         key: 0,
       },
       {
         value: 'ReplaceForbidden',
-        label: 'Replace forbidden characters',
+        label: localLL.general.usernameHandling.options.replace(),
         key: 1,
       },
       {
         value: 'PruneEmailDomain',
-        label: 'Prune email domain',
+        label: localLL.general.usernameHandling.options.prune_email(),
         key: 2,
       },
     ],
-    [localLL.form],
+    [],
   );
+
   return (
     <div id="general-settings">
       <div className="subsection-header helper-row">

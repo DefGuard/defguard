@@ -1111,6 +1111,11 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           label: 'Obsługa nazw użytkowników',
           helper:
             'Skonfiguruj metodę obsługi nieprawidłowych znaków w nazwach użytkowników twojego dostawcy tożsamości.',
+          options: {
+            remove: 'Usuń niedozwolone znaki',
+            replace: 'Zamień niedozwolone znaki',
+            prune_email: 'Przytnij adres e-mail',
+          },
         },
       },
       form: {
