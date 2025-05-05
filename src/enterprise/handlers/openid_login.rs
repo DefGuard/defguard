@@ -64,7 +64,7 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
 
     match handling {
         OpenidUsernameHandling::RemoveForbidden => {
-            result.retain(|c| is_char_valid(c));
+            result.retain(&is_char_valid);
         }
         OpenidUsernameHandling::ReplaceForbidden => {
             result = result

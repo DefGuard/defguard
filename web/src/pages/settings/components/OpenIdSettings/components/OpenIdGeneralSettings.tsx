@@ -1,18 +1,18 @@
 import './style.scss';
 
 import parse from 'html-react-parser';
+import { useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
-import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import {
   SelectOption,
   SelectSizeVariant,
 } from '../../../../../shared/defguard-ui/components/Layout/Select/types';
 import { UsernameHandling } from './OpenIdSettingsForm';
-import { useMemo } from 'react';
 
 export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
