@@ -11,7 +11,7 @@ use super::db::models::acl::{
 };
 use crate::{
     db::{models::error::ModelError, Device, Id, User, WireguardNetwork},
-    enterprise::is_enterprise_enabled,
+    enterprise::{db::models::acl::AliasKind, is_enterprise_enabled},
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallConfig, FirewallPolicy, FirewallRule,
         IpAddress, IpRange, IpVersion, Port, PortRange as PortRangeProto,
@@ -78,13 +78,38 @@ pub async fn generate_firewall_rules_from_acls(
         // extract destination parameters from ACL rule
         let AclRuleInfo {
             id,
-            destination,
+            mut destination,
             destination_ranges,
-            ports,
+            mut ports,
             mut protocols,
             aliases,
             ..
         } = acl;
+
+        // split aliases into types
+        let (destination_aliases, component_aliases): (Vec<_>, Vec<_>) = aliases
+            .into_iter()
+            .partition(|alias| alias.kind == AliasKind::Destination);
+
+        // store alias ranges separately since they use a different struct
+        let mut alias_destination_ranges = Vec::new();
+
+        // process component aliases by appending destination parameters from each of them to existing lists
+        for alias in component_aliases {
+            // fetch destination ranges for a given alias
+            alias_destination_ranges.extend(alias.get_destination_ranges(&mut *conn).await?);
+
+            // extend existing parameter lists
+            destination.extend(alias.destination);
+            ports.extend(
+                alias
+                    .ports
+                    .into_iter()
+                    .map(|port_range| port_range.into())
+                    .collect::<Vec<PortRange>>(),
+            );
+            protocols.extend(alias.protocols);
+        }
 
         // prepare destination addresses
         let destination_addrs =
@@ -130,14 +155,14 @@ pub async fn generate_firewall_rules_from_acls(
         debug!("DENY rule generated from ACL: {deny_rule:?}");
         deny_rules.push(deny_rule);
 
-        // process aliases by creating a dedicated set of rules for each alias
-        if !aliases.is_empty() {
+        // process destination aliases by creating a dedicated set of rules for each of them
+        if !destination_aliases.is_empty() {
             debug!(
                 "Generating firewall rules for {} aliases used in ACL rule {id:?}",
-                aliases.len()
+                destination_aliases.len()
             );
         }
-        for alias in aliases {
+        for alias in destination_aliases {
             debug!("Processing ACL alias: {alias:?}");
 
             // fetch destination ranges for a given alias
@@ -757,8 +782,9 @@ mod test {
         },
         enterprise::{
             db::models::acl::{
-                AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
-                AclRuleInfo, AclRuleNetwork, AclRuleUser, PortRange, RuleState,
+                AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice,
+                AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange,
+                RuleState,
             },
             firewall::{
                 get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
@@ -2286,5 +2312,196 @@ mod test {
 
         // rule with `all_networks` enabled was used for this location
         assert_eq!(generated_firewall_rules.len(), 3);
+    }
+
+    #[sqlx::test]
+    async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Setup some test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ip: IpAddr::V4(Ipv4Addr::new(10, 0, user.id as u8, device_num as u8)),
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // create ACL rule
+        let acl_rule = AclRule {
+            id: NoId,
+            name: "test rule".to_string(),
+            expires: None,
+            enabled: true,
+            state: RuleState::Applied,
+            destination: vec!["192.168.1.0/24".parse().unwrap()],
+            allow_all_users: true,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // create different kinds of aliases and add them to the rule
+        let destination_alias = AclAlias {
+            id: NoId,
+            name: "destination alias".to_string(),
+            kind: AliasKind::Destination,
+            ports: vec![PortRange::new(100, 200).into()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let component_alias = AclAlias {
+            id: NoId,
+            kind: AliasKind::Component,
+            destination: vec!["10.0.2.3".parse().unwrap()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        for alias in [&destination_alias, &component_alias] {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id: acl_rule.id,
+                alias_id: alias.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        // assign rule to location
+        let obj = AclRuleNetwork {
+            id: NoId,
+            rule_id: acl_rule.id,
+            network_id: location.id,
+        };
+        obj.save(&pool).await.unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // check generated rules
+        assert_eq!(generated_firewall_rules.len(), 4);
+        let expected_source_addrs = vec![
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.1.1".to_string(),
+                    end: "10.0.1.2".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.2.1".to_string(),
+                    end: "10.0.2.2".to_string(),
+                })),
+            },
+        ];
+        let expected_destination_addrs = vec![
+            IpAddress {
+                address: Some(Address::Ip("10.0.2.3".to_string())),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.0".to_string(),
+                    end: "192.168.1.255".to_string(),
+                })),
+            },
+        ];
+
+        let allow_rule = &generated_firewall_rules[0];
+        assert_eq!(allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(allow_rule.source_addrs, expected_source_addrs);
+        assert_eq!(allow_rule.destination_addrs, expected_destination_addrs);
+        assert!(allow_rule.destination_ports.is_empty());
+        assert!(allow_rule.protocols.is_empty());
+        assert_eq!(
+            allow_rule.comment,
+            Some("ACL 1 - test rule ALLOW".to_string())
+        );
+
+        let alias_allow_rule = &generated_firewall_rules[1];
+        assert_eq!(alias_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(alias_allow_rule.source_addrs, expected_source_addrs);
+        assert!(alias_allow_rule.destination_addrs.is_empty());
+        assert_eq!(
+            alias_allow_rule.destination_ports,
+            vec![Port {
+                port: Some(PortInner::PortRange(PortRangeProto {
+                    start: 100,
+                    end: 200,
+                }))
+            }]
+        );
+        assert!(alias_allow_rule.protocols.is_empty());
+        assert_eq!(
+            alias_allow_rule.comment,
+            Some("ACL 1 - test rule, ALIAS 1 - destination alias ALLOW".to_string())
+        );
+
+        let deny_rule = &generated_firewall_rules[2];
+        assert_eq!(deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(deny_rule.source_addrs.is_empty());
+        assert_eq!(deny_rule.destination_addrs, expected_destination_addrs);
+        assert!(deny_rule.destination_ports.is_empty());
+        assert!(deny_rule.protocols.is_empty());
+        assert_eq!(
+            deny_rule.comment,
+            Some("ACL 1 - test rule DENY".to_string())
+        );
+
+        let alias_deny_rule = &generated_firewall_rules[3];
+        assert_eq!(alias_deny_rule.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(alias_deny_rule.source_addrs.is_empty());
+        assert!(alias_deny_rule.destination_addrs.is_empty());
+        assert!(alias_deny_rule.destination_ports.is_empty());
+        assert!(alias_deny_rule.protocols.is_empty());
+        assert_eq!(
+            alias_deny_rule.comment,
+            Some("ACL 1 - test rule, ALIAS 1 - destination alias DENY".to_string())
+        );
     }
 }

@@ -73,6 +73,7 @@ impl ClientMfaServer {
         Ok(claims.client_id)
     }
 
+    #[instrument(skip_all)]
     pub async fn start_client_mfa_login(
         &mut self,
         request: ClientMfaStartRequest,
@@ -191,6 +192,7 @@ impl ClientMfaServer {
         Ok(ClientMfaStartResponse { token })
     }
 
+    #[instrument(skip_all)]
     pub async fn finish_client_mfa_login(
         &mut self,
         request: ClientMfaFinishRequest,

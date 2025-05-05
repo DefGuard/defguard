@@ -166,7 +166,7 @@ impl super::LDAPConnection {
         Ok(())
     }
 
-    /// Returns a map of group names to a set of member usernames
+    /// Returns a map of group names to a set of members
     pub(super) async fn get_ldap_group_memberships<'a>(
         &mut self,
         all_ldap_users: &'a [User],
@@ -196,7 +196,7 @@ impl super::LDAPConnection {
                                     Some(*user)
                                 } else {
                                     debug!(
-                                        "LDAP group {groupname} contains member {v} that is not a known LDAP user, skipping"
+                                        "LDAP group {groupname} contains member {v} that does not belong to the filtered LDAP users list, skipping"
                                     );
                                     None
                                 }
@@ -214,6 +214,38 @@ impl super::LDAPConnection {
         }
 
         Ok(memberships)
+    }
+
+    pub(super) async fn is_member_of(
+        &mut self,
+        user_dn: &str,
+        groupname: &str,
+    ) -> Result<bool, LdapError> {
+        debug!("Checking if user {user_dn} is member of group {groupname}");
+        let filter = format!(
+            "(&(objectClass={})({}={})({}={}))",
+            self.config.ldap_group_obj_class,
+            self.config.ldap_groupname_attr,
+            groupname,
+            self.config.ldap_group_member_attr,
+            user_dn
+        );
+        debug!(
+            "Using the following filter for group search: {filter} and base: {}",
+            self.config.ldap_group_search_base
+        );
+        let (rs, res) = self
+            .ldap
+            .search(
+                &self.config.ldap_group_search_base,
+                Scope::Subtree,
+                filter.as_str(),
+                vec!["*"],
+            )
+            .await?
+            .success()?;
+        debug!("LDAP group membership search result: {res:?}");
+        Ok(!rs.is_empty())
     }
 
     pub(super) async fn get_group_members(
@@ -265,13 +297,42 @@ impl super::LDAPConnection {
     }
 
     pub(super) async fn list_users(&mut self) -> Result<Vec<SearchEntry>, LdapError> {
+        let filter = if !self.config.ldap_sync_groups.is_empty() {
+            debug!(
+                "LDAP sync groups are defined, filtering users by those groups: {:?}",
+                self.config.ldap_sync_groups
+            );
+            let mut group_filters = vec![];
+            for group in self.config.ldap_sync_groups.iter() {
+                let group_dn = self.config.group_dn(group);
+                group_filters.push(format!("({}={})", self.config.ldap_member_attr, group_dn));
+            }
+            debug!(
+                "Using the following group filters for user search: {:?}",
+                group_filters
+            );
+            format!(
+                "(&(objectClass={})(|{}))",
+                self.config.ldap_user_obj_class,
+                group_filters.join("")
+            )
+        } else {
+            debug!("No LDAP sync groups defined, searching for all users in the base DN");
+            format!("(objectClass={})", self.config.ldap_user_obj_class)
+        };
+
+        debug!(
+            "Using the following filter for user search: {filter} and base: {}",
+            self.config.ldap_user_search_base
+        );
+
         let mut search_stream = self
             .ldap
             .streaming_search_with(
                 PagedResults::new(500),
                 &self.config.ldap_user_search_base,
                 Scope::Subtree,
-                format!("(objectClass={})", self.config.ldap_user_obj_class).as_str(),
+                &filter,
                 vec!["*", &self.config.ldap_member_attr],
             )
             .await?;

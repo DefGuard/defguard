@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"state\",\"destination\",\"ports\",\"protocols\") VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
+  "query": "INSERT INTO \"aclalias\" (\"parent_id\",\"name\",\"kind\",\"state\",\"destination\",\"ports\",\"protocols\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -13,6 +13,17 @@
       "Left": [
         "Int8",
         "Text",
+        {
+          "Custom": {
+            "name": "aclalias_kind",
+            "kind": {
+              "Enum": [
+                "destination",
+                "component"
+              ]
+            }
+          }
+        },
         {
           "Custom": {
             "name": "aclalias_state",
@@ -33,5 +44,5 @@
       false
     ]
   },
-  "hash": "360ed3ff9ae976e47d7f747447591a290a7702b02aadbd506fec02372da0b711"
+  "hash": "bb990f96142f0eb1608dda8625de14cf4965b4bc16f094c18afc10dfd4690ea0"
 }

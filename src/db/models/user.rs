@@ -31,7 +31,7 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
+    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork},
     enterprise::limits::update_counts,
     error::WebError,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
@@ -707,8 +707,8 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit current time
-                    frame, checking the previous one.
+                    "Email MFA verification TOTP code for user {} doesn't fit current time \
+                    frame, checking the previous one. \
                     Expected: {expected_code}, got: {code}",
                     self.username
                 );
@@ -724,7 +724,7 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame, \
                     expected: {previous_code}, got: {code}",
                     self.username
                 );
@@ -1005,8 +1005,8 @@ impl User<Id> {
             // create admin user
             let password_hash = hash_password(default_admin_pass)?;
             let result = query_scalar!(
-                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email, ldap_rdn) \
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard', 'admin') \
                 ON CONFLICT DO NOTHING \
                 RETURNING id",
                 password_hash
@@ -1122,6 +1122,23 @@ impl User<Id> {
         )
         .fetch_all(executor)
         .await
+    }
+
+    /// User is syncable with LDAP if:
+    /// - he is in a group that is allowed to be synced or no such groups are configured
+    /// - he is active (not disabled)
+    /// - he is enrolled
+    pub(crate) async fn ldap_sync_allowed<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let sync_groups = Settings::get_current_settings().ldap_sync_groups;
+        let my_groups = self.member_of(executor).await?;
+        Ok(
+            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
+                && self.is_active
+                && self.is_enrolled(),
+        )
     }
 }
 

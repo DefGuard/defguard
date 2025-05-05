@@ -37,6 +37,7 @@ pub enum PeerDisconnectError {
 /// Run periodic disconnect task
 ///
 /// Run with a specified frequency and disconnect all inactive peers in MFA-protected locations.
+#[instrument(skip_all)]
 pub async fn run_periodic_peer_disconnect(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,

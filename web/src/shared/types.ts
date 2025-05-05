@@ -498,9 +498,9 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export interface ApiHook {
+export type Api = {
   getAppInfo: () => Promise<AppInfo>;
-  getNewVersion: () => Promise<UpdateInfo>;
+  getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   acl: {
@@ -703,7 +703,7 @@ export interface ApiHook {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
     sendSupportMail: () => EmptyApiResponse;
   };
-}
+};
 
 export interface NavigationStore {
   isNavigationOpen: boolean;
@@ -952,6 +952,7 @@ export type SettingsLDAP = {
   ldap_sync_interval: number;
   ldap_uses_ad: boolean;
   ldap_user_rdn_attr?: string;
+  ldap_sync_groups: string[];
 };
 
 export type SettingsOpenID = {

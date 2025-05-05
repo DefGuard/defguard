@@ -3,19 +3,21 @@ import { useMemo } from 'react';
 import { FieldValues, useController, UseControllerProps } from 'react-hook-form';
 
 import { DateInput } from './DateInput';
+import { DateInputProps } from './types';
 
 type Props<T extends FieldValues> = {
   onChange?: (value: string | null) => void;
   controller: UseControllerProps<T>;
   label?: string;
   disabled?: boolean;
-};
+} & Pick<DateInputProps, 'showTimeSelection'>;
 
 export const FormDateInput = <T extends FieldValues>({
   onChange,
   controller,
   label,
   disabled = false,
+  ...dateInputProps
 }: Props<T>) => {
   const {
     field: { value, onChange: fieldChange },
@@ -43,6 +45,7 @@ export const FormDateInput = <T extends FieldValues>({
       label={label}
       errorMessage={errorMessage}
       disabled={disabled}
+      {...dateInputProps}
     />
   );
 };

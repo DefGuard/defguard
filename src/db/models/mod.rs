@@ -272,9 +272,8 @@ impl MFAInfo {
 mod test {
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
-    use crate::db::setup_pool;
-
     use super::*;
+    use crate::db::setup_pool;
 
     #[sqlx::test]
     async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {

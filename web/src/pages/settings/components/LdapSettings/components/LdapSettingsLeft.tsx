@@ -65,6 +65,11 @@ export const LdapSettingsLeft = ({ control }: { control: Control<FormFields> }) 
           type="password"
           disabled={!enterpriseEnabled}
         />
+        <FormInput
+          controller={{ control, name: 'ldap_sync_groups' }}
+          label={localLL.form.labels.ldap_sync_groups()}
+          labelExtras={<Helper>{localLL.sync.helpers.groups()}</Helper>}
+        />
       </div>
       <div>
         <div className="subsection-header helper-row">

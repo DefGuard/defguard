@@ -94,6 +94,11 @@ export const AliasesList = ({
         enabled: false,
       },
       {
+        label: headersLL.kind(),
+        sortKey: 'kind',
+        enabled: true,
+      },
+      {
         label: headersLL.edit(),
         key: 'edit',
         enabled: false,
@@ -175,6 +180,9 @@ export const AliasesList = ({
                   </div>
                   <div className="cell status">
                     <AclAliasStatusDisplay status={alias.state} />
+                  </div>
+                  <div className="cell kind">
+                    <ListCellText text={upperCaseFirst(alias.kind)} />
                   </div>
                   <div className="cell edit">
                     <AliasEditButton alias={alias} />

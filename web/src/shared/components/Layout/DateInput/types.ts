@@ -3,5 +3,6 @@ export type DateInputProps = {
   label?: string;
   errorMessage?: string;
   disabled?: boolean;
+  showTimeSelection?: boolean;
   onChange: (value: string | null) => void;
 };
