@@ -43,7 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| config.log_level.clone().into()),
+                .unwrap_or_else(|_| format!("{},h2=info", config.log_level).into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
