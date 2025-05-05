@@ -1009,7 +1009,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_ldap_authority_delete_group_from_defguard(pool: PgPool) {
+    fn test_ldap_authority_delete_group_from_defguard(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut defguard_memberships = HashMap::new();
         let test_user = make_test_user("user1").save(&pool).await.unwrap();
         defguard_memberships.insert(
@@ -1031,7 +1032,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_defguard_authority_add_group_to_ldap(pool: PgPool) {
+    fn test_defguard_authority_add_group_to_ldap(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut defguard_memberships = HashMap::new();
         let test_user = make_test_user("user1").save(&pool).await.unwrap();
         defguard_memberships.insert(
@@ -1075,7 +1077,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_matching_groups_no_changes(pool: PgPool) {
+    fn test_matching_groups_no_changes(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut defguard_memberships = HashMap::new();
         let test_user = make_test_user("user1");
         let test_user_id = test_user.clone().save(&pool).await.unwrap();
@@ -1133,7 +1136,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_ldap_authority_add_users_to_group(pool: PgPool) {
+    fn test_ldap_authority_add_users_to_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let test_user = make_test_user("user1");
         let test_user_id = test_user.clone().save(&pool).await.unwrap();
         let test_user2 = make_test_user("user2");
@@ -1157,7 +1161,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_ldap_authority_remove_users_from_group(pool: PgPool) {
+    fn test_ldap_authority_remove_users_from_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let mut defguard_memberships = HashMap::new();
         let user1 = make_test_user("user1").save(&pool).await.unwrap();
         let user2 = make_test_user("user2").save(&pool).await.unwrap();
@@ -1181,7 +1186,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_multiple_groups_ldap_authority(pool: PgPool) {
+    fn test_multiple_groups_ldap_authority(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let user1 = make_test_user("user1").save(&pool).await.unwrap();
         let user2 = make_test_user("user2").save(&pool).await.unwrap();
         let user3 = make_test_user("user3").save(&pool).await.unwrap();
@@ -1237,7 +1243,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_multiple_groups_defguard_authority(pool: PgPool) {
+    fn test_multiple_groups_defguard_authority(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let user1 = make_test_user("user1").save(&pool).await.unwrap();
         let user2 = make_test_user("user2").save(&pool).await.unwrap();
         let user5 = make_test_user("user5").save(&pool).await.unwrap();
@@ -1311,7 +1318,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    fn test_complex_group_memberships(pool: PgPool) {
+    fn test_complex_group_memberships(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
         let user1 = make_test_user("user1").save(&pool).await.unwrap();
         let user2 = make_test_user("user2").save(&pool).await.unwrap();
         let user3 = make_test_user("user3").save(&pool).await.unwrap();

@@ -10,6 +10,7 @@ use crate::db::models::wireguard_peer_stats::WireguardPeerStats;
 // How long to sleep between loop iterations
 const PURGE_LOOP_SLEEP: Duration = Duration::from_secs(300); // 5 minutes
 
+#[instrument(skip_all)]
 pub async fn run_periodic_stats_purge(
     pool: PgPool,
     stats_purge_frequency: Duration,
