@@ -410,6 +410,7 @@ impl User<Id> {
         debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
         let devices = self.devices(&mut *conn).await?;
         let mut events = Vec::new();
+
         // get all locations affected by devices being deleted
         let mut affected_location_ids = HashSet::new();
 
