@@ -25,7 +25,7 @@ static NONCE_COOKIE_NAME: &str = "nonce";
 use super::LicenseInfo;
 use crate::{
     appstate::AppState,
-    db::{Id, Settings, User},
+    db::{models::settings::OpenidUsernameHandling, Id, Settings, User},
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
         directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
@@ -33,12 +33,58 @@ use crate::{
     },
     error::WebError,
     handlers::{
-        auth::create_session,
-        user::{check_username, prune_username},
-        ApiResponse, AuthResponse, SESSION_COOKIE_NAME, SIGN_IN_COOKIE_NAME,
+        auth::create_session, user::check_username, ApiResponse, AuthResponse, SESSION_COOKIE_NAME,
+        SIGN_IN_COOKIE_NAME,
     },
     server_config,
 };
+
+/// Prune the given username from illegal characters in accordance with the following rules:
+///
+/// To enable LDAP sync usernames need to avoid reserved characters.
+/// Username requirements:
+/// - 64 characters long
+/// - only lowercase or uppercase latin alphabet letters (A-Z, a-z) and digits (0-9)
+/// - starts with non-special character
+/// - only special characters allowed: . - _
+/// - no whitespaces
+pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> String {
+    let mut result = username.to_string();
+
+    if result.len() > 64 {
+        result.truncate(64);
+    }
+
+    // Go through the string and remove any non-alphanumeric characters at the beginning
+    result = result
+        .trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_string();
+
+    let is_char_valid = |c: char| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_';
+
+    match handling {
+        OpenidUsernameHandling::RemoveForbidden => {
+            result.retain(|c| is_char_valid(c));
+        }
+        OpenidUsernameHandling::ReplaceForbidden => {
+            result = result
+                .chars()
+                .map(|c| if is_char_valid(c) { c } else { '_' })
+                .collect();
+        }
+        OpenidUsernameHandling::PruneEmailDomain => {
+            if let Some(at_index) = result.find('@') {
+                result.truncate(at_index);
+            }
+            result = result
+                .chars()
+                .map(|c| if is_char_valid(c) { c } else { '_' })
+                .collect();
+        }
+    }
+
+    result
+}
 
 /// Create HTTP client and prevent following redirects
 async fn get_async_http_client() -> Result<reqwest::Client, WebError> {
@@ -207,7 +253,9 @@ pub(crate) async fn user_from_claims(
         debug!("Username extracted from email ({email:?}): {username})");
         username
     };
-    let username = prune_username(username);
+    let settings = Settings::get_current_settings();
+
+    let username = prune_username(username, settings.openid_username_handling);
     // Check if the username is valid just in case, not everything can be handled by the pruning.
     check_username(&username)?;
 
@@ -215,7 +263,6 @@ pub(crate) async fn user_from_claims(
     let sub = token_claims.subject().to_string();
 
     // Handle logging in or creating user.
-    let settings = Settings::get_current_settings();
     let user = match User::find_by_sub(pool, &sub)
         .await
         .map_err(|err| WebError::Authorization(err.to_string()))?
@@ -555,5 +602,77 @@ pub(crate) async fn auth_callback(
         ))
     } else {
         unimplemented!("Impossible to get here");
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_prune_username() {
+        // Test RemoveForbidden handling
+        let handling_remove = OpenidUsernameHandling::RemoveForbidden;
+        assert_eq!(prune_username("zenek", handling_remove), "zenek");
+        assert_eq!(prune_username("zenek34", handling_remove), "zenek34");
+        assert_eq!(prune_username("zenek@34", handling_remove), "zenek34");
+        assert_eq!(prune_username("first.last", handling_remove), "first.last");
+        assert_eq!(prune_username("__zenek__", handling_remove), "zenek__");
+        assert_eq!(prune_username("zenek?", handling_remove), "zenek");
+        assert_eq!(prune_username("zenek!", handling_remove), "zenek");
+        assert_eq!(
+            prune_username(
+                "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                handling_remove
+            ),
+            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        );
+        assert_eq!(prune_username("", handling_remove), "");
+        assert_eq!(prune_username("!@#$%^&*()", handling_remove), "");
+        assert_eq!(prune_username("!zenek", handling_remove), "zenek");
+        assert_eq!(prune_username("...zenek", handling_remove), "zenek");
+
+        // Test ReplaceForbidden handling
+        let handling_replace = OpenidUsernameHandling::ReplaceForbidden;
+        assert_eq!(prune_username("zenek", handling_replace), "zenek");
+        assert_eq!(prune_username("zenek34", handling_replace), "zenek34");
+        assert_eq!(prune_username("zenek@34", handling_replace), "zenek_34");
+        assert_eq!(prune_username("first.last", handling_replace), "first.last");
+        assert_eq!(prune_username("__zenek__", handling_replace), "zenek__");
+        assert_eq!(prune_username("zenek?", handling_replace), "zenek_");
+        assert_eq!(prune_username("zenek!", handling_replace), "zenek_");
+        assert_eq!(
+            prune_username(
+                "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                handling_replace
+            ),
+            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        );
+
+        // Test PruneEmailDomain handling
+        let handling_prune_email = OpenidUsernameHandling::PruneEmailDomain;
+        assert_eq!(
+            prune_username("zenek@example.com", handling_prune_email),
+            "zenek"
+        );
+        assert_eq!(
+            prune_username("user.name@domain.org", handling_prune_email),
+            "user.name"
+        );
+        assert_eq!(
+            prune_username("invalid!chars!@domain.com", handling_prune_email),
+            "invalid_chars_"
+        );
+        assert_eq!(
+            prune_username("multiple@at@domain.com", handling_prune_email),
+            "multiple"
+        );
+        assert_eq!(
+            prune_username(
+                "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee@domain.com",
+                handling_prune_email
+            ),
+            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        );
     }
 }
