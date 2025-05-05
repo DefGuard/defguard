@@ -87,6 +87,15 @@
     box-sizing: border-box;
     scrollbar-gutter: stable;
 
+    .end-row {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      width: 100%;
+    }
+
     .list-row {
       display: grid;
       max-width: 100%;

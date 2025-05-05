@@ -1,15 +1,16 @@
 import './style.scss';
 
-import { useState } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
 import { PageLimiter } from '../../shared/components/Layout/PageLimiter/PageLimiter';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { ListItemCount } from '../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
-import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
+import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
+import useApi from '../../shared/hooks/useApi';
 import { ActivityList } from './components/ActivityList';
-import { useActivityMock } from './useActivityMock';
 
 export const ActivityPage = () => {
   return (
@@ -22,29 +23,73 @@ export const ActivityPage = () => {
 };
 
 const PageContent = () => {
-  const [search, setSearch] = useState('');
   const { LL } = useI18nContext();
-  const data = useActivityMock();
+  const {
+    auditLog: { getAuditLog },
+  } = useApi();
+
+  const {
+    data,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    // hasPreviousPage,
+    // fetchPreviousPage,
+  } = useInfiniteQuery({
+    queryKey: ['audit_log'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      getAuditLog({
+        page: pageParam,
+      }),
+    getNextPageParam: (lastPage) => lastPage?.pagination?.next_page,
+    getPreviousPageParam: (page) => {
+      if (page.pagination.current_page !== 1) {
+        return page.pagination.current_page - 1;
+      }
+      return undefined;
+    },
+  });
+
+  const activityData = useMemo(() => {
+    if (data) {
+      return data.pages.map((page) => page.data).flat(1);
+    }
+    return undefined;
+  }, [data]);
+
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
 
   return (
     <>
       <header className="page-header">
         <h1>Activity</h1>
-        <Search
+        {/* <Search
           placeholder={LL.common.search()}
           onDebounce={(val) => {
             setSearch(val);
           }}
-        />
+        /> */}
       </header>
       <div id="activity-list">
         <div className="top">
           <h2>All activity</h2>
-          <ListItemCount count={10} />
+          <ListItemCount count={data?.pages[0].pagination.total_items ?? 0} />
           <div className="controls"></div>
         </div>
         <Card id="activity-list-card">
-          <ActivityList data={data} />
+          {isPresent(activityData) && (
+            <ActivityList
+              data={activityData}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onNextPage={() => {
+                void fetchNextPage();
+              }}
+            />
+          )}
         </Card>
       </div>
     </>

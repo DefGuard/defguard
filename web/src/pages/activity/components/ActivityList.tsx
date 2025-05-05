@@ -1,18 +1,38 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useMemo, useRef } from 'react';
+import { useInView } from 'react-intersection-observer';
 
 import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
 import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { InteractionBox } from '../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
-import { ActivityMock } from '../useActivityMock';
+import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
+import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
+import { AuditEvent } from '../../../shared/types';
 
 type Props = {
-  data: ActivityMock[];
+  data: AuditEvent[];
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onNextPage: () => void;
 };
 
-export const ActivityList = ({ data }: Props) => {
+export const ActivityList = ({
+  data,
+  isFetchingNextPage,
+  hasNextPage,
+  onNextPage,
+}: Props) => {
+  const { ref: chuj } = useInView({
+    threshold: 0,
+    trackVisibility: false,
+    onChange: (inView) => {
+      if (inView) {
+        onNextPage();
+      }
+    },
+  });
   const parentRef = useRef<HTMLDivElement>(null);
   const count = data.length;
   const virtualizer = useVirtualizer({
@@ -25,12 +45,12 @@ export const ActivityList = ({ data }: Props) => {
   });
   const items = virtualizer.getVirtualItems();
   const listHeaders = useMemo(
-    (): ListHeaderColumnConfig<ActivityMock>[] => [
+    (): ListHeaderColumnConfig<AuditEvent>[] => [
       {
         label: 'Date',
         enabled: true,
         key: 'date',
-        sortKey: 'date',
+        sortKey: 'timestamp',
       },
       {
         label: 'User',
@@ -69,7 +89,7 @@ export const ActivityList = ({ data }: Props) => {
         }}
       >
         <ListHeader
-          activeKey="date"
+          activeKey="timestamp"
           headers={listHeaders}
           selectAll={false}
           onSelectAll={(val) => {
@@ -100,10 +120,10 @@ export const ActivityList = ({ data }: Props) => {
                   </InteractionBox>
                 </div>
                 <div className="cell date">
-                  <ListCellText text={activity.date} />
+                  <ListCellText text={activity.timestamp} />
                 </div>
                 <div className="cell user">
-                  <ListCellText text={activity.user} />
+                  <ListCellText text={String(activity.user_id)} />
                 </div>
                 <div className="cell ip">
                   <ListCellText text={activity.ip} />
@@ -118,11 +138,18 @@ export const ActivityList = ({ data }: Props) => {
                   <ListCellText text={activity.device} />
                 </div>
                 <div className="cell details">
-                  <ListCellText text={activity.details} withCopy />
+                  {isPresent(activity.details) && (
+                    <ListCellText text={activity.details} withCopy />
+                  )}
                 </div>
               </div>
             );
           })}
+          {hasNextPage && (
+            <div className="end-row" ref={chuj}>
+              {isFetchingNextPage && <LoaderSpinner size={24} />}
+            </div>
+          )}
         </div>
       </div>
     </div>
