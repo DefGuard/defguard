@@ -1,9 +1,17 @@
 use std::{fmt, net::IpAddr};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
+#[cfg(test)]
+use chrono::NaiveDate;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use model_derive::Model;
+#[cfg(test)]
+use rand::{
+    distributions::{Alphanumeric, DistString, Standard},
+    prelude::Distribution,
+    Rng,
+};
 use sqlx::{
     postgres::types::PgInterval, query, query_as, Error as SqlxError, FromRow, PgConnection,
     PgExecutor, PgPool, Type,
@@ -61,7 +69,7 @@ impl From<DeviceType> for String {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, FromRow, Model, Serialize, ToSchema, PartialEq)]
 pub struct Device<I = NoId> {
     pub id: I,
     pub name: String,
@@ -88,6 +96,38 @@ impl fmt::Display for Device<NoId> {
 impl fmt::Display for Device<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[ID {}] {}", self.id, self.name)
+    }
+}
+
+#[cfg(test)]
+impl Distribution<Device<Id>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Device<Id> {
+        Device {
+            id: rng.gen(),
+            name: Alphanumeric.sample_string(rng, 8),
+            wireguard_pubkey: Alphanumeric.sample_string(rng, 32),
+            user_id: rng.gen(),
+            created: NaiveDate::from_ymd_opt(
+                rng.gen_range(2000..2026),
+                rng.gen_range(1..13),
+                rng.gen_range(1..29),
+            )
+            .unwrap()
+            .and_hms_opt(
+                rng.gen_range(1..24),
+                rng.gen_range(1..60),
+                rng.gen_range(1..60),
+            )
+            .unwrap(),
+            device_type: match rng.gen_range(0..2) {
+                0 => DeviceType::Network,
+                _ => DeviceType::User,
+            },
+            description: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 20)),
+            configured: rng.gen(),
+        }
     }
 }
 
@@ -438,7 +478,8 @@ impl WireguardNetworkDevice {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE id = $1",
             self.wireguard_network_id
         )
@@ -575,8 +616,8 @@ impl Device<Id> {
         .await
     }
 
-    pub(crate) async fn find_by_id_and_username(
-        pool: &PgPool,
+    pub(crate) async fn find_by_id_and_username<'e, E: sqlx::PgExecutor<'e>>(
+        executor: E,
         id: Id,
         username: &str,
     ) -> Result<Option<Self>, SqlxError> {
@@ -589,7 +630,7 @@ impl Device<Id> {
             id,
             username
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
     }
 
@@ -812,7 +853,8 @@ impl Device<Id> {
         query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE id IN \
             (SELECT wireguard_network_id FROM wireguard_network_device WHERE device_id = $1 ORDER BY id LIMIT 1)",
             self.id
@@ -873,7 +915,8 @@ impl Device<Id> {
             User,
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE id = $1",
             self.user_id
         ).fetch_one(executor).await
@@ -885,9 +928,10 @@ mod test {
     use std::str::FromStr;
 
     use claims::{assert_err, assert_ok};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::User;
+    use crate::db::{setup_pool, User};
 
     impl Device<Id> {
         /// Create new device and assign IP in a given network
@@ -937,7 +981,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_assign_device_ip(pool: PgPool) {
+    async fn test_assign_device_ip(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/30").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -976,7 +1022,9 @@ mod test {
     }
 
     #[sqlx::test]
-    fn test_all_for_network_and_user(pool: PgPool) {
+    fn test_all_for_network_and_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user = User::new(
             "testuser",
             Some("hunter2"),

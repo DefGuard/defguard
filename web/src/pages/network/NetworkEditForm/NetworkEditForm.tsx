@@ -3,17 +3,20 @@ import './style.scss';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
+import { FormAclDefaultPolicy } from '../../../shared/components/Form/FormAclDefaultPolicySelect/FormAclDefaultPolicy.tsx';
 import { FormCheckBox } from '../../../shared/defguard-ui/components/Form/FormCheckBox/FormCheckBox.tsx';
 import { FormInput } from '../../../shared/defguard-ui/components/Form/FormInput/FormInput';
 import { FormSelect } from '../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { MessageBox } from '../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
+import { MessageBoxType } from '../../../shared/defguard-ui/components/Layout/MessageBox/types.ts';
 import { SelectOption } from '../../../shared/defguard-ui/components/Layout/Select/types';
+import { useAppStore } from '../../../shared/hooks/store/useAppStore.ts';
 import useApi from '../../../shared/hooks/useApi';
 import { useToaster } from '../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../shared/queries';
@@ -26,58 +29,6 @@ import {
   validateIpOrDomainList,
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-
-type FormFields = {
-  address: string;
-  endpoint: string;
-  port: number;
-  allowed_ips: string;
-  allowed_groups: string[];
-  name: string;
-  dns: string;
-  mfa_enabled: boolean;
-  keepalive_interval: number;
-  peer_disconnect_threshold: number;
-};
-
-const defaultValues: FormFields = {
-  address: '',
-  endpoint: '',
-  name: '',
-  port: 50051,
-  allowed_ips: '',
-  allowed_groups: [],
-  dns: '',
-  mfa_enabled: false,
-  keepalive_interval: 25,
-  peer_disconnect_threshold: 180,
-};
-
-const networkToForm = (data?: Network): FormFields => {
-  if (!data) return defaultValues;
-  let omited = omitBy<Network>(data, isNull);
-  omited = omit(omited, [
-    'id',
-    'connected_at',
-    'connected',
-    'allowed_ips',
-    'gateways',
-    'address',
-  ]);
-
-  let allowed_ips = '';
-  let address = '';
-
-  if (Array.isArray(data.allowed_ips)) {
-    allowed_ips = data.allowed_ips.join(',');
-  }
-
-  if (Array.isArray(data.address)) {
-    address = data.address.join(',');
-  }
-
-  return { ...defaultValues, ...omited, allowed_ips, address };
-};
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();
@@ -96,6 +47,7 @@ export const NetworkEditForm = () => {
   );
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
+  const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
 
   const { mutate } = useMutation({
     mutationFn: editNetwork,
@@ -153,19 +105,6 @@ export const NetworkEditForm = () => {
     }
   }, [groupsData]);
 
-  const defaultFormValues = useMemo(() => {
-    if (selectedNetworkId && networks) {
-      const network = networks.find((n) => n.id === selectedNetworkId);
-      if (network) {
-        const res = networkToForm(network);
-        if (res) {
-          return res;
-        }
-      }
-    }
-    return defaultValues;
-  }, [networks, selectedNetworkId]);
-
   const zodSchema = useMemo(
     () =>
       z.object({
@@ -211,15 +150,81 @@ export const NetworkEditForm = () => {
             invalid_type_error: LL.form.error.required(),
           })
           .min(120, LL.form.error.invalid()),
+        acl_enabled: z.boolean(),
+        acl_default_allow: z.boolean(),
       }),
     [LL.form.error],
   );
 
-  const { control, handleSubmit, reset } = useForm<FormFields>({
+  type FormFields = z.infer<typeof zodSchema>;
+
+  const defaultValues = useMemo(
+    (): FormFields => ({
+      address: '',
+      endpoint: '',
+      name: '',
+      port: 50051,
+      allowed_ips: '',
+      allowed_groups: [],
+      dns: '',
+      mfa_enabled: false,
+      keepalive_interval: 25,
+      peer_disconnect_threshold: 180,
+      acl_enabled: false,
+      acl_default_allow: false,
+    }),
+    [],
+  );
+
+  const networkToForm = useCallback(
+    (data?: Network): FormFields => {
+      if (!data) return defaultValues;
+      let omited = omitBy<Network>(data, isNull);
+      omited = omit(omited, [
+        'id',
+        'connected_at',
+        'connected',
+        'allowed_ips',
+        'gateways',
+        'address',
+      ]);
+
+      let allowed_ips = '';
+      let address = '';
+
+      if (Array.isArray(data.allowed_ips)) {
+        allowed_ips = data.allowed_ips.join(',');
+      }
+
+      if (Array.isArray(data.address)) {
+        address = data.address.join(',');
+      }
+
+      return { ...defaultValues, ...omited, allowed_ips, address };
+    },
+    [defaultValues],
+  );
+
+  const defaultFormValues = useMemo(() => {
+    if (selectedNetworkId && networks) {
+      const network = networks.find((n) => n.id === selectedNetworkId);
+      if (network) {
+        const res = networkToForm(network);
+        if (res) {
+          return res;
+        }
+      }
+    }
+    return defaultValues;
+  }, [defaultValues, networkToForm, networks, selectedNetworkId]);
+
+  const { control, handleSubmit, reset, watch } = useForm<FormFields>({
     defaultValues: defaultFormValues,
     resolver: zodResolver(zodSchema),
     mode: 'all',
   });
+
+  const fieldAclEnabled = watch('acl_enabled');
 
   const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     values = trimObjectStrings(values);
@@ -311,6 +316,21 @@ export const NetworkEditForm = () => {
           controller={{ control, name: 'mfa_enabled' }}
           label={LL.networkConfiguration.form.fields.mfa_enabled.label()}
           labelPlacement="right"
+        />
+        {!enterpriseEnabled && (
+          <MessageBox type={MessageBoxType.WARNING}>
+            <p>{LL.networkConfiguration.form.helpers.aclFeatureDisabled()}</p>
+          </MessageBox>
+        )}
+        <FormCheckBox
+          controller={{ control, name: 'acl_enabled' }}
+          label={LL.networkConfiguration.form.fields.acl_enabled.label()}
+          labelPlacement="right"
+          disabled={!enterpriseEnabled}
+        />
+        <FormAclDefaultPolicy
+          disabled={!fieldAclEnabled}
+          controller={{ control, name: 'acl_default_allow' }}
         />
         <FormInput
           controller={{ control, name: 'keepalive_interval' }}

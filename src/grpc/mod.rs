@@ -39,12 +39,12 @@ use self::{
     desktop_client_mfa::ClientMfaServer,
     enrollment::EnrollmentServer,
     password_reset::PasswordResetServer,
-    proto::core_response,
+    proto::proxy::core_response,
 };
 #[cfg(feature = "worker")]
 use self::{
-    interceptor::JwtInterceptor,
-    worker::{worker_service_server::WorkerServiceServer, WorkerServer},
+    interceptor::JwtInterceptor, proto::worker::worker_service_server::WorkerServiceServer,
+    worker::WorkerServer,
 };
 use crate::{
     auth::failed_login::FailedLoginMap,
@@ -58,6 +58,7 @@ use crate::{
         grpc::polling::PollingServer,
         handlers::openid_login::{make_oidc_client, user_from_claims},
         is_enterprise_enabled,
+        ldap::utils::ldap_update_user_state,
     },
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
@@ -79,10 +80,29 @@ pub(crate) mod utils;
 pub mod worker;
 
 pub(crate) mod proto {
-    tonic::include_proto!("defguard.proxy");
+    pub(crate) mod proxy {
+        tonic::include_proto!("defguard.proxy");
+    }
+    pub(crate) mod gateway {
+        tonic::include_proto!("gateway");
+    }
+    pub(crate) mod auth {
+        tonic::include_proto!("auth");
+    }
+    pub(crate) mod worker {
+        tonic::include_proto!("worker");
+    }
+    pub(crate) mod enterprise {
+        pub(crate) mod license {
+            tonic::include_proto!("enterprise.license");
+        }
+        pub(crate) mod firewall {
+            tonic::include_proto!("enterprise.firewall");
+        }
+    }
 }
 
-use proto::{
+use proto::proxy::{
     core_request, proxy_client::ProxyClient, AuthCallbackResponse, AuthInfoResponse, CoreError,
     CoreResponse,
 };
@@ -432,6 +452,7 @@ impl From<Status> for CoreError {
 }
 
 /// Bi-directional gRPC stream for comminication with Defguard proxy.
+#[instrument(skip_all)]
 pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
@@ -676,7 +697,7 @@ pub async fn run_grpc_bidi_stream(
                                     )
                                     .await
                                     {
-                                        Ok(user) => {
+                                        Ok(mut user) => {
                                             user.clear_unused_enrollment_tokens(&pool).await?;
                                             if let Err(err) = sync_user_groups_if_configured(
                                                 &user,
@@ -689,6 +710,8 @@ pub async fn run_grpc_bidi_stream(
                                                     "Failed to sync user groups for user {} with the directory while the user was logging in through an external provider: {err:?}",
                                                    user.username,
                                                 );
+                                            } else {
+                                                ldap_update_user_state(&mut user, &pool).await;
                                             }
                                             debug!("Cleared unused tokens for {}.", user.username);
                                             debug!(
@@ -755,6 +778,7 @@ pub async fn run_grpc_bidi_stream(
 }
 
 /// Runs gRPC server with core services.
+#[instrument(skip_all)]
 pub async fn run_grpc_server(
     worker_state: Arc<Mutex<WorkerState>>,
     pool: PgPool,
@@ -878,7 +902,7 @@ impl InstanceInfo {
     }
 }
 
-impl From<InstanceInfo> for proto::InstanceInfo {
+impl From<InstanceInfo> for proto::proxy::InstanceInfo {
     fn from(instance: InstanceInfo) -> Self {
         Self {
             name: instance.name,

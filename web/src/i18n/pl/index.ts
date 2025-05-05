@@ -717,6 +717,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       password: {
         header: 'Ustawienia hasła',
         changePassword: 'Zmiana hasła',
+        ldap_change_heading: 'Wymagana aktualizacja hasła {ldapName:string}',
+        ldap_change_message:
+          'Defguard nie ma możliwości odczytania twojego hasła, więc nie możemy go pobrać do automatycznej synchronizacji z danymi logowania {ldapName:string}. Aby umożliwić logowanie do innych usług za pomocą {ldapName:string}, zaktualizuj swoje hasło Defguard, aby jednocześnie ustawić hasło {ldapName:string} — możesz ponownie wpisać swoje obecne hasło, jeśli chcesz. Ten krok jest konieczny, aby zapewnić spójną i bezpieczną autoryzację w obu systemach.',
       },
       recovery: {
         header: 'Opcje odzyskiwania danych',
@@ -1055,8 +1058,13 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     ldapSettings: {
       title: 'Ustawienia LDAP',
+      sync: {
+        header: 'Obustronna synchronizacja LDAP',
+        info: 'Przed włączeniem synchronizacji, zapoznaj się z [dokumentacją](https://docs.defguard.net/enterprise/all-enteprise-features).',
+      },
       form: {
         labels: {
+          ldap_enable: 'Włącz integrację z LDAP',
           ldap_url: 'URL',
           ldap_bind_username: 'Bind Username',
           ldap_bind_password: 'Bind Password',
@@ -1064,12 +1072,17 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           ldap_username_attr: 'Username Attribute',
           ldap_user_obj_class: 'User Object Class',
           ldap_user_search_base: 'User Search Base',
+          ldap_user_auxiliary_obj_classes: 'Additional User Object Classes',
           ldap_groupname_attr: 'Groupname Attribute',
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
+          ldap_sync_enabled: 'Włącz synchronizację w dwie strony',
+          ldap_authoritative_source: 'Użyj autorytatywne źródło danych',
+          ldap_sync_interval: 'Interwał synchronizacji',
           ldap_use_starttls: 'Użyj StartTLS',
           ldap_tls_verify_cert: 'Sprawdzaj certyfikat TLS',
+          ldap_uses_ad: 'Serwer LDAP jest serwerem Active Directory',
         },
         delete: 'Usuń konfigurację',
       },
@@ -1083,8 +1096,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
     },
     openIdSettings: {
+      heading: 'Ustawienia zewnętrznego OpenID',
       general: {
-        title: 'Ogólne ustawienia zewnętrznego OpenID',
+        title: 'Ogólne ustawienia',
         helper:
           'Możesz tu zmienić ogólną mechanikę działania zewnętrznego OpenID w twojej instancji Defguarda.',
         createAccount: {
@@ -1095,12 +1109,13 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
       },
       form: {
-        title: 'Ustawienia klienta zewnętrznego OpenID',
+        title: 'Ustawienia klienta',
         helper:
           'Tutaj możesz skonfigurować ustawienia klienta OpenID z wartościami dostarczonymi przez zewnętrznego dostawcę OpenID.',
         custom: 'Niestandardowy',
         none: 'Brak',
-        documentation: 'Dokumentacja',
+        documentation:
+          'Przeczytaj więcej o tej funkcji w naszej [dokumentacji](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers).',
         delete: 'Usuń dostawcę',
         directory_sync_settings: {
           title: 'Ustawienia synchronizacji katalogu',
@@ -1249,12 +1264,12 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           },
           mainLogoUrl: {
             label: 'URL logo na stronie logowania',
-            helper: '<p>Maksymalna wielkość zdjęcia to 250x100 px.</p>',
+            helper: 'Maksymalna wielkość zdjęcia to 250x100 px.',
             placeholder: 'Domyślny obrazek',
           },
           navLogoUrl: {
             label: 'Menu i nawigacja - małe logo',
-            helper: '<p>Maksymalna wielkość zdjęcia to 100x100 px.</p>',
+            helper: 'Maksymalna wielkość zdjęcia to 100x100 px.',
             placeholder: 'Domyślny obrazek',
           },
         },
@@ -1329,6 +1344,9 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     smtp: {
       form: {
         title: 'Ustawienia',
+        sections: {
+          server: 'Ustawienia serwera',
+        },
         fields: {
           server: {
             label: 'Adres serwera',
@@ -1366,23 +1384,23 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       delete: 'Usuń konfigurację',
       testForm: {
         title: 'Wyślij testowy e-mail',
+        subtitle: 'Wprowadź adres e-mail odbiorcy',
         fields: {
           to: {
-            label: 'Adres',
+            label: 'Adres odbiorcy',
             placeholder: 'Adres',
           },
         },
         controls: {
           submit: 'Wyślij',
+          resend: 'Wyślij ponownie',
+          retry: 'Spróbuj ponownie',
           success: 'E-mail wysłany pomyślnie',
           error: 'Błąd wysyłania e-maila',
         },
       },
-      helper: `
-        <p>
-          Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.
-        </p>
-			`,
+      helper:
+        'Skonfiguruj serwer SMTP do wysyłania wiadomości systemowych do użytkowników.',
     },
     enrollment: {
       helper:
@@ -1438,7 +1456,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
     },
     enterprise: {
       header: 'Funkcjonalności Enterprise',
-      helper: '<p>Tutaj możesz zmienić ustawienia enterprise.</p>',
+      helper: 'Tutaj możesz zmienić ustawienia enterprise.',
       fields: {
         deviceManagement: {
           label: 'Zablokuj możliwość zarządzania urządzeniami przez użytkowników',
@@ -1458,10 +1476,12 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       },
     },
     gatewayNotifications: {
-      smtpWarning:
-        'Aby włączyć powiadomienia o rozłączeniu należy najpierw skonfigurować serwer SMTP',
-      header: 'Powiadomienia Gateway',
-      helper: "<p>Tutaj możesz włączyć powiadomienia o rozłączeniu się Gateway'a.</p>",
+      smtpWarning: 'Aby włączyć powiadomienia należy najpierw skonfigurować serwer SMTP',
+      header: 'Powiadomienia',
+      helper: 'Tutaj możesz włączyć powiadomienia e-mail.',
+      sections: {
+        gateway: 'Powiadomienia o rozłączeniu Gatewaya',
+      },
       form: {
         submit: 'Zapisz zmiany',
         fields: {
@@ -1785,6 +1805,12 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
         },
         peer_disconnect_threshold: {
           label: 'Próg rozłączania [sekundy]',
+        },
+        acl_enabled: {
+          label: 'Włącz ACL dla tej lokacji',
+        },
+        acl_default_allow: {
+          label: 'Domyślna polityka ACL',
         },
       },
       controls: {

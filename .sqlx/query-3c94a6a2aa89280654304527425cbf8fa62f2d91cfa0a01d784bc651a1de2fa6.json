@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, rule_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" FROM aclruledestinationrange WHERE rule_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "start: IpAddr",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 3,
+        "name": "end: IpAddr",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3c94a6a2aa89280654304527425cbf8fa62f2d91cfa0a01d784bc651a1de2fa6"
+}

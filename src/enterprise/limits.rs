@@ -22,7 +22,7 @@ global_value!(COUNTS, Counts, Counts::default(), set_counts, get_counts);
 
 /// Update the counts of users, devices, and wireguard networks stored in the memory.
 // TODO: Use it with database triggers when they are implemented
-pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
+pub async fn update_counts<'e, E: sqlx::PgExecutor<'e>>(executor: E) -> Result<(), SqlxError> {
     debug!("Updating device, user, and wireguard network counts.");
     let result = query!(
         "SELECT \
@@ -31,7 +31,7 @@ pub async fn update_counts(pool: &PgPool) -> Result<(), SqlxError> {
         (SELECT count(*) FROM wireguard_network) \"wireguard_networks!\"
         "
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await?;
 
     // do type conversion since Postgres does not support unsigned integers
@@ -90,7 +90,7 @@ impl Counts {
         let maybe_license = get_cached_license();
 
         // validate limits against license if available, use defaults otherwise
-        if let Some(license) = &maybe_license {
+        if let Some(license) = maybe_license.as_ref() {
             debug!("Cached license found. Validating license limits...");
             self.is_over_license_limits(license)
         }
@@ -169,7 +169,10 @@ mod test {
     use chrono::{TimeDelta, Utc};
 
     use super::*;
-    use crate::enterprise::license::{set_cached_license, License, LicenseLimits};
+    use crate::{
+        enterprise::license::{set_cached_license, License},
+        grpc::proto::enterprise::license::LicenseLimits,
+    };
 
     #[test]
     fn test_counts() {

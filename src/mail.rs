@@ -241,6 +241,7 @@ impl MailHandler {
 }
 
 /// Builds MailHandler and runs it.
+#[instrument(skip_all)]
 pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>, db: PgPool) {
     MailHandler::new(rx, db).run().await;
 }

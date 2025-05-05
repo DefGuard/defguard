@@ -6,6 +6,7 @@ import {
 } from '@github/webauthn-json';
 import { AxiosError, AxiosPromise } from 'axios';
 
+import { AclAlias, AclStatus } from '../pages/acl/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -49,6 +50,7 @@ export type User = {
   is_active: boolean;
   enrolled: boolean;
   is_admin: boolean;
+  ldap_pass_requires_change: boolean;
 };
 
 export type UserProfile = {
@@ -126,6 +128,8 @@ export interface Network {
   mfa_enabled: boolean;
   keepalive_interval: number;
   peer_disconnect_threshold: number;
+  acl_enabled: boolean;
+  acl_default_allow: boolean;
 }
 
 export type ModifyNetworkRequest = {
@@ -334,11 +338,17 @@ export interface MappedDevice extends ImportedDevice {
   user_id: number;
 }
 
+export interface LdapInfo {
+  enabled: boolean;
+  ad: boolean;
+}
+
 export interface AppInfo {
   version: string;
   network_present: boolean;
   smtp_enabled: boolean;
   license_info: LicenseInfo;
+  ldap_info: LdapInfo;
 }
 
 export type GetDeviceConfigRequest = {
@@ -445,11 +455,72 @@ export type EnterpriseInfoResponse = {
   license_info?: EnterpriseInfo;
 };
 
-export interface ApiHook {
+export type CreateAclRuleRequest = Omit<
+  AclRuleInfo,
+  'id' | 'expires' | 'state' | 'parent_id'
+> & {
+  expires: string | null;
+};
+
+export type EditAclRuleRequest = Omit<AclRuleInfo, 'expires' | 'state' | 'parent_id'> & {
+  expires: string | null;
+};
+
+export type CreateAclAliasRequest = Omit<
+  AclAlias,
+  'id' | 'state' | 'parent_id' | 'rules'
+>;
+
+export type EditAclAliasRequest = Omit<AclAlias, 'state' | 'parent_id' | 'rules'>;
+
+export type AclRuleInfo = {
+  id: number;
+  parent_id?: number;
+  state: AclStatus;
+  name: string;
+  all_networks: boolean;
+  allow_all_users: boolean;
+  deny_all_users: boolean;
+  allow_all_network_devices: boolean;
+  deny_all_network_devices: boolean;
+  networks: number[];
+  expires?: string;
+  enabled: boolean;
+  allowed_users: number[];
+  denied_users: number[];
+  allowed_groups: number[];
+  denied_groups: number[];
+  allowed_devices: number[];
+  denied_devices: number[];
+  destination: string;
+  aliases: number[];
+  ports: string;
+  protocols: number[];
+};
+
+export type Api = {
   getAppInfo: () => Promise<AppInfo>;
-  getNewVersion: () => Promise<UpdateInfo>;
+  getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
+  acl: {
+    aliases: {
+      getAliases: () => Promise<AclAlias[]>;
+      getAlias: (id: number) => Promise<AclAlias>;
+      createAlias: (data: CreateAclAliasRequest) => Promise<EmptyApiResponse>;
+      editAlias: (data: EditAclAliasRequest) => Promise<EmptyApiResponse>;
+      deleteAlias: (id: number) => Promise<EmptyApiResponse>;
+      applyAliases: (aliases: number[]) => Promise<EmptyApiResponse>;
+    };
+    rules: {
+      getRule: (id: number) => Promise<AclRuleInfo>;
+      getRules: () => Promise<AclRuleInfo[]>;
+      createRule: (data: CreateAclRuleRequest) => Promise<EmptyApiResponse>;
+      editRule: (data: EditAclRuleRequest) => Promise<EmptyApiResponse>;
+      deleteRule: (id: number) => Promise<AclRuleInfo>;
+      applyRules: (data: number[]) => Promise<EmptyApiResponse>;
+    };
+  };
   oAuth: {
     consent: (params: unknown) => Promise<EmptyApiResponse>;
   };
@@ -632,7 +703,7 @@ export interface ApiHook {
     sendTestMail: (data: TestMail) => EmptyApiResponse;
     sendSupportMail: () => EmptyApiResponse;
   };
-}
+};
 
 export interface NavigationStore {
   isNavigationOpen: boolean;
@@ -870,10 +941,18 @@ export type SettingsLDAP = {
   ldap_groupname_attr: string;
   ldap_member_attr: string;
   ldap_user_obj_class: string;
+  ldap_user_auxiliary_obj_classes: string[];
   ldap_user_search_base: string;
   ldap_username_attr: string;
+  ldap_enabled: boolean;
+  ldap_sync_enabled: boolean;
+  ldap_is_authoritative: boolean;
   ldap_use_starttls: boolean;
   ldap_tls_verify_cert: boolean;
+  ldap_sync_interval: number;
+  ldap_uses_ad: boolean;
+  ldap_user_rdn_attr?: string;
+  ldap_sync_groups: string[];
 };
 
 export type SettingsOpenID = {
@@ -1089,6 +1168,7 @@ export type SMTPError = AxiosError<{ error: string }>;
 export type Group = string;
 
 export type GroupInfo = {
+  id: number;
   name: string;
   members: string[];
   vpn_locations: string[];

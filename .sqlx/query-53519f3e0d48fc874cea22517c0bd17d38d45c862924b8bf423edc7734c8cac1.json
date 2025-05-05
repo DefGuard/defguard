@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"aclrule\" (\"parent_id\",\"state\",\"name\",\"allow_all_users\",\"deny_all_users\",\"allow_all_network_devices\",\"deny_all_network_devices\",\"all_networks\",\"destination\",\"ports\",\"protocols\",\"enabled\",\"expires\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "aclrule_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "new",
+                "modified",
+                "deleted",
+                "expired"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array",
+        "Bool",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "53519f3e0d48fc874cea22517c0bd17d38d45c862924b8bf423edc7734c8cac1"
+}

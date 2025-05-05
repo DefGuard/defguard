@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     net::IpAddr,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -61,6 +62,8 @@ pub struct WireguardNetworkData {
     pub mfa_enabled: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
+    pub acl_enabled: bool,
+    pub acl_default_allow: bool,
 }
 
 impl WireguardNetworkData {
@@ -128,6 +131,8 @@ pub(crate) async fn create_network(
         data.mfa_enabled,
         data.keepalive_interval,
         data.peer_disconnect_threshold,
+        data.acl_enabled,
+        data.acl_default_allow,
     )
     .map_err(|_| WebError::Serialization("Invalid network address".into()))?;
 
@@ -204,6 +209,8 @@ pub(crate) async fn modify_network(
     network.mfa_enabled = data.mfa_enabled;
     network.keepalive_interval = data.keepalive_interval;
     network.peer_disconnect_threshold = data.peer_disconnect_threshold;
+    network.acl_enabled = data.acl_enabled;
+    network.acl_default_allow = data.acl_default_allow;
 
     network.save(&mut *transaction).await?;
     network
@@ -212,10 +219,12 @@ pub(crate) async fn modify_network(
     let _events = network.sync_allowed_devices(&mut transaction, None).await?;
 
     let peers = network.get_peers(&mut *transaction).await?;
+    let maybe_firewall_config = network.try_get_firewall_config(&mut transaction).await?;
     appstate.send_wireguard_event(GatewayEvent::NetworkModified(
         network.id,
         network.clone(),
         peers,
+        maybe_firewall_config,
     ));
 
     // commit DB transaction
@@ -644,15 +653,39 @@ pub(crate) async fn add_device(
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
-    let mut network_ips: Vec<String> = Vec::new();
+    // prepare a list of gateway events to be sent
+    let mut events = Vec::new();
+
+    // get all locations affected by device being added
+    let mut affected_location_ids = HashSet::new();
     for network_info_item in network_info.clone() {
-        network_ips.push(network_info_item.device_wireguard_ip.to_string());
+        affected_location_ids.insert(network_info_item.network_id);
     }
 
-    appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+    // send firewall config updates to affected locations
+    // if they have ACL enabled & enterprise features are active
+    for location_id in affected_location_ids {
+        if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
+        {
+            if let Some(firewall_config) =
+                location.try_get_firewall_config(&mut transaction).await?
+            {
+                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
+                events.push(GatewayEvent::FirewallConfigChanged(
+                    location_id,
+                    firewall_config,
+                ));
+            }
+        }
+    }
+
+    // add peer on relevant gateways
+    events.push(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: network_info.clone(),
     }));
+
+    appstate.send_multiple_wireguard_events(events);
 
     transaction.commit().await?;
 
@@ -867,14 +900,49 @@ pub(crate) async fn delete_device(
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
-    debug!("User {} deleting device {device_id}", session.user.username);
-    let device = device_for_admin_or_self(&appstate.pool, &session, device_id).await?;
-    appstate.send_wireguard_event(GatewayEvent::DeviceDeleted(
-        DeviceInfo::from_device(&appstate.pool, device.clone()).await?,
-    ));
-    device.delete(&appstate.pool).await?;
-    info!("User {} deleted device {device_id}", session.user.username);
-    update_counts(&appstate.pool).await?;
+    // bind username to a variable for easier reference
+    let username = &session.user.username;
+
+    debug!("User {username} deleting device {device_id}");
+    let mut transaction = appstate.pool.begin().await?;
+
+    let device = device_for_admin_or_self(&mut *transaction, &session, device_id).await?;
+
+    let mut events = Vec::new();
+
+    // prepare device info
+    let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
+
+    // delete device before firewall config is generated
+    device.delete(&mut *transaction).await?;
+
+    update_counts(&mut *transaction).await?;
+
+    // prepare firewall update for affected networks if ACL & enterprise features are enabled
+    for info in &device_info.network_info {
+        if let Some(location) =
+            WireguardNetwork::find_by_id(&mut *transaction, info.network_id).await?
+        {
+            if let Some(firewall_config) =
+                location.try_get_firewall_config(&mut transaction).await?
+            {
+                debug!("Sending firewall config update for location {location} affected by deleting user {username} device");
+                events.push(GatewayEvent::FirewallConfigChanged(
+                    location.id,
+                    firewall_config,
+                ));
+            }
+        }
+    }
+
+    events.push(GatewayEvent::DeviceDeleted(device_info));
+
+    // send generated gateway events
+    appstate.send_multiple_wireguard_events(events);
+
+    transaction.commit().await?;
+    info!("User {username} deleted device {device_id}");
+
     Ok(ApiResponse::default())
 }
 

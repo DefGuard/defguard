@@ -1479,6 +1479,12 @@ const translation: Translation = {
         peer_disconnect_threshold: {
           label: '피어 연결 끊김 임계값 [초]',
         },
+        acl_enabled: {
+          label: '이 위치에 대한 ACL 활성화',
+        },
+        acl_default_allow: {
+          label: '기본 ACL 정책',
+        },
       },
       controls: {
         submit: '변경 사항 저장',

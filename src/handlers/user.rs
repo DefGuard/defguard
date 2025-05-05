@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -12,12 +14,21 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+        models::{
+            enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
+            GroupDiff,
+        },
         AppEvent, OAuth2AuthorizedApp, User, UserDetails, UserInfo, WebAuthn,
     },
-    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings,
+        ldap::utils::{
+            ldap_add_user, ldap_add_user_to_groups, ldap_change_password, ldap_delete_user,
+            ldap_handle_user_modify, ldap_remove_user_from_groups, ldap_update_user_state,
+        },
+        limits::update_counts,
+    },
     error::WebError,
-    ldap::utils::{ldap_add_user, ldap_change_password, ldap_modify_user},
     mail::Mail,
     server_config, templates,
 };
@@ -151,7 +162,7 @@ pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -230,7 +241,7 @@ pub async fn list_users(_role: AdminRole, State(appstate): State<AppState>) -> A
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn get_user(
@@ -284,7 +295,7 @@ pub async fn get_user(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn add_user(
@@ -331,7 +342,7 @@ pub async fn add_user(
     };
 
     // create new user
-    let user = User::new(
+    let mut user = User::new(
         user_data.username,
         password,
         user_data.last_name,
@@ -344,7 +355,7 @@ pub async fn add_user(
     update_counts(&appstate.pool).await?;
 
     if let Some(password) = user_data.password {
-        let _result = ldap_add_user(&user, &password).await;
+        ldap_add_user(&mut user, Some(&password), &appstate.pool).await;
     }
 
     let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
@@ -384,7 +395,7 @@ pub async fn add_user(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn start_enrollment(
@@ -481,7 +492,7 @@ pub async fn start_enrollment(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn start_remote_desktop_configuration(
@@ -575,7 +586,7 @@ pub async fn start_remote_desktop_configuration(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn username_available(
@@ -625,7 +636,7 @@ pub async fn username_available(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn modify_user(
@@ -636,6 +647,7 @@ pub async fn modify_user(
 ) -> ApiResult {
     debug!("User {} updating user {username}", session.user.username);
     let mut user = user_for_admin_or_self(&appstate.pool, &session, &username).await?;
+    let old_username = user.username.clone();
     if let Err(err) = check_username(&user_info.username) {
         debug!("Username {} rejected: {err}", user_info.username);
         return Ok(ApiResponse {
@@ -644,7 +656,10 @@ pub async fn modify_user(
         });
     }
 
+    let status_changing = user_info.is_active != user.is_active;
+
     let mut transaction = appstate.pool.begin().await?;
+    let ldap_sync_allowed = user.ldap_sync_allowed(&mut *transaction).await?;
 
     // remove authorized apps if needed
     let request_app_ids: Vec<i64> = user_info
@@ -662,6 +677,7 @@ pub async fn modify_user(
         user.remove_oauth2_authorized_apps(&mut *transaction, &removed_apps)
             .await?;
     }
+    let mut group_diff = GroupDiff::default();
     if session.is_admin {
         // prevent admin from disabling himself
         if session.user.username == username && !user_info.is_active {
@@ -673,9 +689,10 @@ pub async fn modify_user(
         }
 
         // update VPN gateway config if user status or groups have changed
-        if user_info
+        group_diff = user_info
             .handle_user_groups(&mut transaction, &mut user)
-            .await?
+            .await?;
+        if group_diff.changed()
             || user_info
                 .handle_status_change(&mut transaction, &mut user)
                 .await?
@@ -692,13 +709,44 @@ pub async fn modify_user(
         user_info.into_user_safe_fields(&mut user)?;
     }
     user.save(&mut *transaction).await?;
-
-    // TODO: Reflect user status (active/disabled) modification in ldap
-    let _result = ldap_modify_user(&username, &user).await;
-    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
-    appstate.trigger_action(AppEvent::UserModified(user_info));
-
     transaction.commit().await?;
+    let user_info = UserInfo::from_user(&appstate.pool, &user).await?;
+
+    if ldap_sync_allowed {
+        ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
+    }
+
+    if group_diff.changed() || status_changing {
+        if !group_diff.added.is_empty() {
+            ldap_add_user_to_groups(
+                &user,
+                group_diff
+                    .added
+                    .iter()
+                    .map(|g| g.as_str())
+                    .collect::<HashSet<&str>>(),
+                &appstate.pool,
+            )
+            .await;
+        };
+
+        if !group_diff.removed.is_empty() {
+            ldap_remove_user_from_groups(
+                &user,
+                group_diff
+                    .removed
+                    .iter()
+                    .map(|g| g.as_str())
+                    .collect::<HashSet<&str>>(),
+                &appstate.pool,
+            )
+            .await;
+        };
+    }
+
+    ldap_update_user_state(&mut user, &appstate.pool).await;
+
+    appstate.trigger_action(AppEvent::UserModified(user_info));
 
     info!("User {} updated user {username}", session.user.username);
     Ok(ApiResponse::default())
@@ -726,7 +774,7 @@ pub async fn modify_user(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn delete_user(
@@ -750,12 +798,20 @@ pub async fn delete_user(
             session.user.username
         );
         let mut transaction = appstate.pool.begin().await?;
+        let user_for_ldap = if user.ldap_sync_allowed(&mut *transaction).await? {
+            Some(user.clone().as_noid())
+        } else {
+            None
+        };
         user.delete_and_cleanup(&mut transaction, &appstate.wireguard_tx)
             .await?;
 
         appstate.trigger_action(AppEvent::UserDeleted(username.clone()));
         transaction.commit().await?;
         update_counts(&appstate.pool).await?;
+        if let Some(user_for_ldap) = user_for_ldap {
+            ldap_delete_user(&user_for_ldap, &appstate.pool).await;
+        }
 
         info!("User {} deleted user {}", session.user.username, &username);
         Ok(ApiResponse::default())
@@ -785,7 +841,7 @@ pub async fn delete_user(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn change_self_password(
@@ -813,7 +869,7 @@ pub async fn change_self_password(
     user.set_password(&data.new_password);
     user.save(&appstate.pool).await?;
 
-    let _ = ldap_change_password(&user.username, &data.new_password).await;
+    ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
 
     info!("User {} changed his password.", &user.username);
 
@@ -848,7 +904,7 @@ pub async fn change_self_password(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn change_password(
@@ -891,7 +947,7 @@ pub async fn change_password(
     if let Some(mut user) = user {
         user.set_password(&data.new_password);
         user.save(&appstate.pool).await?;
-        let _ = ldap_change_password(&username, &data.new_password).await;
+        ldap_change_password(&mut user, &data.new_password, &appstate.pool).await;
         info!(
             "Admin {} changed password for user {username}",
             session.user.username
@@ -930,7 +986,7 @@ pub async fn change_password(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn reset_password(
@@ -1037,7 +1093,7 @@ pub async fn reset_password(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn delete_security_key(
@@ -1110,7 +1166,7 @@ pub async fn delete_security_key(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
@@ -1143,7 +1199,7 @@ pub async fn me(session: SessionInfo, State(appstate): State<AppState>) -> ApiRe
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub async fn delete_authorized_app(

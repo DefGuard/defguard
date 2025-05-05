@@ -1,4 +1,4 @@
-use std::{fmt, time::SystemTime};
+use std::{collections::HashSet, fmt, time::SystemTime};
 
 use argon2::{
     password_hash::{
@@ -9,6 +9,12 @@ use argon2::{
 };
 use axum::http::StatusCode;
 use model_derive::Model;
+#[cfg(test)]
+use rand::{
+    distributions::{Alphanumeric, DistString, Standard},
+    prelude::Distribution,
+    Rng,
+};
 use sqlx::{
     query, query_as, query_scalar, Error as SqlxError, FromRow, PgConnection, PgExecutor, PgPool,
     Type,
@@ -25,17 +31,17 @@ use super::{
 };
 use crate::{
     auth::{EMAIL_CODE_DIGITS, TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
-    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, WireguardNetwork},
+    db::{models::group::Permission, GatewayEvent, Id, NoId, Session, Settings, WireguardNetwork},
+    enterprise::limits::update_counts,
     error::WebError,
-    grpc::gateway::send_multiple_wireguard_events,
-    ldap::utils::ldap_delete_user,
+    grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     random::{gen_alphanumeric, gen_totp_secret},
     server_config,
 };
 
 const RECOVERY_CODES_COUNT: usize = 8;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, ToSchema, Type)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, ToSchema, Type)]
 #[sqlx(type_name = "mfa_method", rename_all = "snake_case")]
 pub enum MFAMethod {
     None,
@@ -71,7 +77,7 @@ pub struct UserDiagnostic {
     pub enrolled: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Serialize, FromRow)]
+#[derive(Clone, Debug, Model, PartialEq, Eq, Hash, Serialize, FromRow)]
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,
@@ -82,6 +88,20 @@ pub struct User<I = NoId> {
     pub phone: Option<String>,
     pub mfa_enabled: bool,
     pub is_active: bool,
+    /// Indicates whether the user has been created via the LDAP integration.
+    pub from_ldap: bool,
+    /// Indicates whether a user has a random password set in LDAP, if so, the user
+    /// will be prompted to change it on their profile page.
+    ///
+    /// The random password is set if we are creating a new user in LDAP from a Defguard user
+    /// and we don't have access to the plain text password, e.g. during Defguard -> LDAP user import.
+    pub ldap_pass_randomized: bool,
+    /// The user's LDAP RDN value. This is the first part of the DN.
+    /// For example, if the DN is `cn=John Doe,ou=users,dc=example,dc=com`,
+    /// the RDN is `cn=John Doe`.
+    /// This is used to identify the user in LDAP as we sometimes can't use the Defguard's username
+    /// since the RDN may contain spaces or other special characters and the username may not.
+    pub ldap_rdn: Option<String>,
     /// The user's sub claim returned by the OpenID provider. Also indicates whether the user has
     /// used OpenID to log in.
     // FIXME: must be unique
@@ -115,9 +135,10 @@ impl User {
         phone: Option<String>,
     ) -> Self {
         let password_hash = password.and_then(|password_hash| hash_password(password_hash).ok());
+        let username: String = username.into();
         Self {
             id: NoId,
-            username: username.into(),
+            username: username.clone(),
             password_hash,
             last_name: last_name.into(),
             first_name: first_name.into(),
@@ -132,7 +153,16 @@ impl User {
             recovery_codes: Vec::new(),
             is_active: true,
             openid_sub: None,
+            from_ldap: false,
+            ldap_pass_randomized: false,
+            ldap_rdn: Some(username.clone()),
         }
+    }
+}
+
+impl<I> fmt::Display for User<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.username)
     }
 }
 
@@ -166,7 +196,20 @@ impl<I> User<I> {
     /// or they have logged in using an external OIDC.
     #[must_use]
     pub(crate) fn is_enrolled(&self) -> bool {
-        self.password_hash.is_some() || self.openid_sub.is_some()
+        self.password_hash.is_some() || self.openid_sub.is_some() || self.from_ldap
+    }
+
+    #[must_use]
+    pub(crate) fn ldap_rdn_value(&self) -> &str {
+        if let Some(ldap_rdn) = &self.ldap_rdn {
+            ldap_rdn
+        } else {
+            warn!(
+                "LDAP RDN is not set for user {}. Using username as a fallback.",
+                self.username
+            );
+            &self.username
+        }
     }
 }
 
@@ -317,55 +360,86 @@ impl User<Id> {
     /// Disable user, log out all his sessions and update gateways state.
     pub async fn disable(
         &mut self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         self.is_active = false;
-        self.save(&mut *transaction).await?;
-        self.logout_all_sessions(&mut *transaction).await?;
-        self.sync_allowed_devices(transaction, wg_tx).await?;
+        self.save(&mut *conn).await?;
+        self.logout_all_sessions(&mut *conn).await?;
+        self.sync_allowed_devices(conn, wg_tx).await?;
         Ok(())
     }
 
     /// Update gateway state based on this user device access rights
     pub async fn sync_allowed_devices(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
-        debug!("Syncing allowed devices of {}", self.username);
-        let networks = WireguardNetwork::all(&mut *transaction).await?;
+        debug!("Syncing allowed devices of user {}", self.username);
+        let networks = WireguardNetwork::all(&mut *conn).await?;
         for network in networks {
             let gateway_events = network
-                .sync_allowed_devices_for_user(transaction, self, None)
+                .sync_allowed_devices_for_user(&mut *conn, self, None)
                 .await?;
-            send_multiple_wireguard_events(gateway_events, wg_tx);
+            // check if any peers were updated
+            if !gateway_events.is_empty() {
+                // send peer update events
+                send_multiple_wireguard_events(gateway_events, wg_tx);
+
+                // send firewall config update if ACLs & enterprise features are enabled
+                if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+                    send_wireguard_event(
+                        GatewayEvent::FirewallConfigChanged(network.id, firewall_config),
+                        wg_tx,
+                    );
+                }
+            }
         }
-        info!("Allowed devices of {} synced", self.username);
+        info!("Allowed devices of user {} synced", self.username);
         Ok(())
     }
 
     /// Deletes the user and cleans up his devices from gateways
     pub async fn delete_and_cleanup(
         self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         wg_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WebError> {
         let username = self.username.clone();
-        debug!(
-            "Deleting user {}, removing his devices from gateways and updating ldap...",
-            &username
-        );
-        let devices = self.devices(&mut *transaction).await?;
+        debug!("Deleting user {username}, removing his devices from gateways and updating ldap...",);
+        let devices = self.devices(&mut *conn).await?;
         let mut events = Vec::new();
+
+        // get all locations affected by devices being deleted
+        let mut affected_location_ids = HashSet::new();
+
         for device in devices {
-            events.push(GatewayEvent::DeviceDeleted(
-                DeviceInfo::from_device(&mut *transaction, device).await?,
-            ));
+            let device_info = DeviceInfo::from_device(&mut *conn, device).await?;
+            for network_info in &device_info.network_info {
+                affected_location_ids.insert(network_info.network_id);
+            }
+            events.push(GatewayEvent::DeviceDeleted(device_info));
         }
-        self.delete(&mut *transaction).await?;
+
+        self.delete(&mut *conn).await?;
+        update_counts(&mut *conn).await?;
+
+        // send firewall config updates to affected locations
+        // if they have ACL enabled & enterprise features are active
+        for location_id in affected_location_ids {
+            if let Some(location) = WireguardNetwork::find_by_id(&mut *conn, location_id).await? {
+                if let Some(firewall_config) = location.try_get_firewall_config(&mut *conn).await? {
+                    debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
+                    events.push(GatewayEvent::FirewallConfigChanged(
+                        location_id,
+                        firewall_config,
+                    ));
+                }
+            }
+        }
+
         send_multiple_wireguard_events(events, wg_tx);
-        let _result = ldap_delete_user(&username).await;
         info!(
             "The user {} has been deleted and his devices removed from gateways.",
             &username
@@ -519,7 +593,8 @@ impl User<Id> {
     ) -> Result<Vec<UserDiagnostic>, SqlxError> {
         let users = query!(
             "SELECT id, mfa_enabled, totp_enabled, email_mfa_enabled, \
-                mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub \
+                mfa_method \"mfa_method: MFAMethod\", password_hash, is_active, openid_sub, \
+                from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\""
         )
         .fetch_all(pool)
@@ -533,7 +608,7 @@ impl User<Id> {
                 mfa_enabled: u.mfa_enabled,
                 id: u.id,
                 is_active: u.is_active,
-                enrolled: u.password_hash.is_some() || u.openid_sub.is_some(),
+                enrolled: u.password_hash.is_some() || u.openid_sub.is_some() || u.from_ldap,
             })
             .collect();
 
@@ -550,7 +625,8 @@ impl User<Id> {
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, \
             email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" \
             INNER JOIN \"group_user\" ON \"user\".id = \"group_user\".user_id \
             INNER JOIN \"group\" ON \"group_user\".group_id = \"group\".id \
@@ -632,8 +708,8 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit current time
-                    frame, checking the previous one.
+                    "Email MFA verification TOTP code for user {} doesn't fit current time \
+                    frame, checking the previous one. \
                     Expected: {expected_code}, got: {code}",
                     self.username
                 );
@@ -649,7 +725,7 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame, \
                     expected: {previous_code}, got: {code}",
                     self.username
                 );
@@ -700,7 +776,8 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE username = $1",
             username
         )
@@ -719,7 +796,7 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email ILIKE $1",
             email
         )
@@ -737,7 +814,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email = ANY($1)",
         )
         .bind(emails)
@@ -757,7 +834,8 @@ impl User<Id> {
             Self,
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE openid_sub = $1 LIMIT 1",
             sub
         )
@@ -867,7 +945,6 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-
         Ok(())
     }
 
@@ -886,7 +963,6 @@ impl User<Id> {
         )
         .execute(executor)
         .await?;
-
         Ok(())
     }
 
@@ -930,8 +1006,8 @@ impl User<Id> {
             // create admin user
             let password_hash = hash_password(default_admin_pass)?;
             let result = query_scalar!(
-                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email) \
-                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard') \
+                "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email, ldap_rdn) \
+                VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard', 'admin') \
                 ON CONFLICT DO NOTHING \
                 RETURNING id",
                 password_hash
@@ -988,7 +1064,8 @@ impl User<Id> {
             Self,
             "SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" u \
             JOIN \"device\" d ON u.id = d.user_id \
             WHERE d.id = $1",
@@ -1010,7 +1087,7 @@ impl User<Id> {
         query_as(
             "SELECT id, username, password_hash, last_name, first_name, email, phone, \
             mfa_enabled, totp_enabled, email_mfa_enabled, totp_secret, email_mfa_secret, \
-            mfa_method, recovery_codes, is_active, openid_sub \
+            mfa_method, recovery_codes, is_active, openid_sub, from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE email NOT IN (SELECT * FROM UNNEST($1::TEXT[]))",
         )
         .bind(user_emails)
@@ -1038,7 +1115,8 @@ impl User<Id> {
             "
             SELECT u.id, u.username, u.password_hash, u.last_name, u.first_name, u.email, \
             u.phone, u.mfa_enabled, u.totp_enabled, u.email_mfa_enabled, \
-            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub \
+            u.totp_secret, u.email_mfa_secret, u.mfa_method \"mfa_method: _\", u.recovery_codes, u.is_active, u.openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" u \
             WHERE EXISTS (SELECT 1 FROM group_user gu LEFT JOIN \"group\" g ON gu.group_id = g.id \
             WHERE is_admin = true AND user_id = u.id) AND u.is_active = true"
@@ -1046,17 +1124,118 @@ impl User<Id> {
         .fetch_all(executor)
         .await
     }
+
+    /// User is syncable with LDAP if:
+    /// - he is in a group that is allowed to be synced or no such groups are configured
+    /// - he is active (not disabled)
+    /// - he is enrolled
+    pub(crate) async fn ldap_sync_allowed<'e, E>(&self, executor: E) -> Result<bool, SqlxError>
+    where
+        E: PgExecutor<'e>,
+    {
+        let sync_groups = Settings::get_current_settings().ldap_sync_groups;
+        let my_groups = self.member_of(executor).await?;
+        Ok(
+            (sync_groups.is_empty() || my_groups.iter().any(|g| sync_groups.contains(&g.name)))
+                && self.is_active
+                && self.is_enrolled(),
+        )
+    }
+}
+
+#[cfg(test)]
+impl Distribution<User<Id>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> User<Id> {
+        User {
+            id: rng.gen(),
+            username: Alphanumeric.sample_string(rng, 8),
+            password_hash: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            last_name: Alphanumeric.sample_string(rng, 8),
+            first_name: Alphanumeric.sample_string(rng, 8),
+            email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
+            // FIXME: generate an actual phone number
+            phone: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 9)),
+            mfa_enabled: rng.gen(),
+            is_active: true,
+            openid_sub: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            totp_enabled: rng.gen(),
+            email_mfa_enabled: rng.gen(),
+            totp_secret: (0..20).map(|_| rng.gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
+            mfa_method: match rng.gen_range(0..4) {
+                0 => MFAMethod::None,
+                1 => MFAMethod::Webauthn,
+                2 => MFAMethod::OneTimePassword,
+                _ => MFAMethod::Email,
+            },
+            recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+            from_ldap: false,
+            ldap_pass_randomized: false,
+            ldap_rdn: None,
+        }
+    }
+}
+
+#[cfg(test)]
+impl Distribution<User<NoId>> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> User<NoId> {
+        User {
+            id: NoId,
+            username: Alphanumeric.sample_string(rng, 8),
+            password_hash: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            last_name: Alphanumeric.sample_string(rng, 8),
+            first_name: Alphanumeric.sample_string(rng, 8),
+            email: format!("{}@defguard.net", Alphanumeric.sample_string(rng, 6)),
+            // FIXME: generate an actual phone number
+            phone: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 9)),
+            mfa_enabled: rng.gen(),
+            is_active: true,
+            openid_sub: rng
+                .gen::<bool>()
+                .then_some(Alphanumeric.sample_string(rng, 8)),
+            totp_enabled: rng.gen(),
+            email_mfa_enabled: rng.gen(),
+            totp_secret: (0..20).map(|_| rng.gen()).collect(),
+            email_mfa_secret: (0..20).map(|_| rng.gen()).collect(),
+            mfa_method: match rng.gen_range(0..4) {
+                0 => MFAMethod::None,
+                1 => MFAMethod::Webauthn,
+                2 => MFAMethod::OneTimePassword,
+                _ => MFAMethod::Email,
+            },
+            recovery_codes: (0..3).map(|_| Alphanumeric.sample_string(rng, 6)).collect(),
+            from_ldap: false,
+            ldap_pass_randomized: false,
+            ldap_rdn: None,
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
     use crate::{
-        config::DefGuardConfig, db::models::settings::initialize_current_settings, SERVER_CONFIG,
+        config::DefGuardConfig,
+        db::{models::settings::initialize_current_settings, setup_pool},
+        SERVER_CONFIG,
     };
 
     #[sqlx::test]
-    async fn test_mfa_code(pool: PgPool) {
+    async fn test_mfa_code(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         initialize_current_settings(&pool).await.unwrap();
@@ -1083,7 +1262,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_user(pool: PgPool) {
+    async fn test_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut user = User::new(
             "hpotter",
             Some("pass123"),
@@ -1114,7 +1295,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_all_users(pool: PgPool) {
+    async fn test_all_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         User::new(
             "hpotter",
             Some("pass123"),
@@ -1149,7 +1332,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_recovery_codes(pool: PgPool) {
+    async fn test_recovery_codes(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1181,7 +1366,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_email_case_insensitivity(pool: PgPool) {
+    async fn test_email_case_insensitivity(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let harry = User::new(
             "hpotter",
             Some("pass123"),
@@ -1204,7 +1391,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_is_admin(pool: PgPool) {
+    async fn test_is_admin(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1238,7 +1427,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_admins(pool: PgPool) {
+    async fn test_find_admins(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
 
@@ -1294,7 +1485,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_missing(pool: PgPool) {
+    async fn test_get_missing(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),
@@ -1336,7 +1529,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_find_many_by_emails(pool: PgPool) {
+    async fn test_find_many_by_emails(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user1 = User::new(
             "hpotter",
             Some("pass123"),

@@ -19,11 +19,22 @@ impl fmt::Display for Permission {
     }
 }
 
-#[derive(Debug, Model, ToSchema, FromRow)]
+#[derive(Clone, Debug, Model, ToSchema, FromRow, PartialEq)]
 pub struct Group<I = NoId> {
     pub(crate) id: I,
     pub name: String,
     pub is_admin: bool,
+}
+
+#[cfg(test)]
+impl Default for Group {
+    fn default() -> Self {
+        Self {
+            id: NoId,
+            name: Default::default(),
+            is_admin: Default::default(),
+        }
+    }
 }
 
 impl Group {
@@ -72,7 +83,8 @@ impl Group<Id> {
             User,
             "SELECT \"user\".id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, totp_secret, email_mfa_enabled, email_mfa_secret, \
-            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" \
             JOIN group_user ON \"user\".id = group_user.user_id \
             WHERE group_user.group_id = $1",
@@ -201,7 +213,7 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         allowed_groups: Vec<String>,
     ) -> Result<(), ModelError> {
-        info!("Setting allowed groups for network {self} to : {allowed_groups:?}");
+        info!("Setting allowed groups for network {self} to: {allowed_groups:?}");
         if allowed_groups.is_empty() {
             return self.clear_allowed_groups(transaction).await;
         }
@@ -285,11 +297,15 @@ impl WireguardNetwork<Id> {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
-    use crate::db::{PgPool, User};
+    use crate::db::{setup_pool, User};
 
     #[sqlx::test]
-    async fn test_group(pool: PgPool) {
+    async fn test_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("worker").save(&pool).await.unwrap();
 
         let fetched_group = Group::find_by_name(&pool, "worker").await.unwrap();
@@ -306,7 +322,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_group_members(pool: PgPool) {
+    async fn test_group_members(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("worker").save(&pool).await.unwrap();
         let user = User::new(
             "hpotter",
@@ -332,7 +350,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_group_permissions(pool: PgPool) {
+    async fn test_group_permissions(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let group = Group::new("admin2").save(&pool).await.unwrap();
         let user = User::new(
             "hpotter",

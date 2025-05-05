@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, alias_id, \"start\" \"start: IpAddr\", \"end\" \"end: IpAddr\" FROM aclaliasdestinationrange WHERE alias_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "alias_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "start: IpAddr",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 3,
+        "name": "end: IpAddr",
+        "type_info": "Inet"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d3d5d8c68467701e97a94573a36c9a31a4c526ef195202931df0f0a43e4497d7"
+}

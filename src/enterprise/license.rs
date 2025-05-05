@@ -13,7 +13,9 @@ use tokio::time::sleep;
 use super::limits::Counts;
 use crate::{
     db::{models::settings::update_current_settings, Settings},
-    global_value, server_config, VERSION,
+    global_value,
+    grpc::proto::enterprise::license::{LicenseKey, LicenseLimits, LicenseMetadata},
+    server_config, VERSION,
 };
 
 const LICENSE_SERVER_URL: &str = "https://pkgs.defguard.net/api/license/renew";
@@ -25,8 +27,6 @@ global_value!(
     set_cached_license,
     get_cached_license
 );
-
-tonic::include_proto!("license");
 
 #[cfg(not(test))]
 pub(crate) const PUBLIC_KEY: &str = "-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -543,6 +543,7 @@ pub fn update_cached_license(key: Option<&str>) -> Result<(), LicenseError> {
 const RENEWAL_TIME: TimeDelta = TimeDelta::hours(24);
 const MAX_OVERDUE_TIME: TimeDelta = TimeDelta::days(14);
 
+#[instrument(skip_all)]
 pub async fn run_periodic_license_check(pool: &PgPool) -> Result<(), LicenseError> {
     let config = server_config();
     let mut check_period: Duration = *config.check_period;

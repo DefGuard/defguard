@@ -9,12 +9,18 @@ use sqlx::{error::Error as SqlxError, PgPool};
 use thiserror::Error;
 use tokio::sync::broadcast::Sender;
 
-use super::db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider};
 #[cfg(not(test))]
 use super::is_enterprise_enabled;
+use super::{
+    db::models::openid_provider::{DirectorySyncTarget, OpenIdProvider},
+    ldap::utils::ldap_update_users_state,
+};
 use crate::{
     db::{GatewayEvent, Group, Id, User},
-    enterprise::db::models::openid_provider::DirectorySyncUserBehavior,
+    enterprise::{
+        db::models::openid_provider::DirectorySyncUserBehavior,
+        ldap::utils::{ldap_add_users_to_groups, ldap_delete_users, ldap_remove_users_from_groups},
+    },
 };
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
@@ -277,6 +283,8 @@ async fn sync_user_groups<T: DirectorySync>(
 
     let current_groups = user.member_of(&mut *transaction).await?;
     let current_group_names: Vec<&str> = current_groups.iter().map(|g| g.name.as_str()).collect();
+    let mut add_to_ldap_groups = HashSet::new();
+    let mut remove_from_ldap_groups = HashSet::new();
 
     debug!(
         "User {} is a member of {} groups in Defguard: {:?}",
@@ -288,6 +296,7 @@ async fn sync_user_groups<T: DirectorySync>(
     for group in &directory_group_names {
         if !current_group_names.contains(group) {
             create_and_add_to_group(user, group, pool).await?;
+            add_to_ldap_groups.insert(*group);
         }
     }
 
@@ -299,6 +308,7 @@ async fn sync_user_groups<T: DirectorySync>(
             );
             user.remove_from_group(&mut *transaction, current_group)
                 .await?;
+            remove_from_ldap_groups.insert(current_group.name.as_str());
         }
     }
 
@@ -311,6 +321,14 @@ async fn sync_user_groups<T: DirectorySync>(
         ))
         })?;
     transaction.commit().await?;
+
+    let mut user_groups = HashMap::new();
+    user_groups.insert(user, add_to_ldap_groups);
+    ldap_add_users_to_groups(user_groups, pool).await;
+
+    let mut user_groups = HashMap::new();
+    user_groups.insert(user, remove_from_ldap_groups);
+    ldap_remove_users_from_groups(user_groups, pool).await;
 
     Ok(())
 }
@@ -441,6 +459,8 @@ async fn sync_all_users_groups<T: DirectorySync>(
         }
     }
 
+    let mut affected_users = Vec::new();
+
     let mut transaction = pool.begin().await?;
     debug!("User-group mapping construction done, starting to apply the changes to the database");
     let mut admin_count = User::find_admins(&mut *transaction).await?.len();
@@ -498,8 +518,12 @@ async fn sync_all_users_groups<T: DirectorySync>(
                 user.email
             ))
         })?;
+
+        affected_users.push(user);
     }
     transaction.commit().await?;
+
+    ldap_update_users_state(affected_users.iter_mut().collect::<Vec<_>>(), pool).await;
     info!("Syncing all users' groups done.");
     Ok(())
 }
@@ -566,6 +590,9 @@ async fn sync_all_users_state<T: DirectorySync>(
         users_to_disable.len()
     );
 
+    let mut modified_users = Vec::new();
+    let mut deleted_users = Vec::new();
+
     for mut user in users_to_disable {
         if user.is_active {
             debug!(
@@ -578,6 +605,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                     user.email
                 ))
             })?;
+            modified_users.push(user);
         } else {
             debug!("User {} is already disabled, skipping", user.email);
         }
@@ -623,6 +651,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                             ))
                         })?;
                         admin_count -= 1;
+                        modified_users.push(user);
                     } else {
                         debug!(
                             "Admin {} is already disabled in Defguard, skipping",
@@ -642,6 +671,9 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting admin {} because they are not present in the directory",
                         user.email
                     );
+                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                        deleted_users.push(user.clone().as_noid());
+                    }
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
@@ -672,6 +704,7 @@ async fn sync_all_users_state<T: DirectorySync>(
                                 user.email
                             ))
                         })?;
+                        modified_users.push(user);
                     } else {
                         debug!(
                             "User {} is already disabled in Defguard, skipping",
@@ -684,6 +717,9 @@ async fn sync_all_users_state<T: DirectorySync>(
                         "Deleting user {} because they are not present in the directory",
                         user.email
                     );
+                    if user.ldap_sync_allowed(&mut *transaction).await? {
+                        deleted_users.push(user.clone().as_noid());
+                    }
                     user.delete_and_cleanup(&mut transaction, wg_tx)
                         .await
                         .map_err(|err| {
@@ -712,10 +748,16 @@ async fn sync_all_users_state<T: DirectorySync>(
         );
         user.is_active = true;
         user.save(&mut *transaction).await?;
+        modified_users.push(user);
     }
     debug!("Done processing enabled users");
     transaction.commit().await?;
+
+    ldap_delete_users(deleted_users.iter().collect::<Vec<_>>(), pool).await;
+    ldap_update_users_state(modified_users.iter_mut().collect::<Vec<_>>(), pool).await;
+
     info!("Syncing all users' state with the directory done");
+
     Ok(())
 }
 
@@ -835,6 +877,7 @@ mod test {
 
     use ipnetwork::IpNetwork;
     use secrecy::ExposeSecret;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use tokio::sync::broadcast;
 
     use super::*;
@@ -842,7 +885,7 @@ mod test {
         config::DefGuardConfig,
         db::{
             models::{device::DeviceType, settings::initialize_current_settings},
-            Device, Session, SessionState, Settings, WireguardNetwork,
+            setup_pool, Device, Session, SessionState, Settings, WireguardNetwork,
         },
         enterprise::db::models::openid_provider::DirectorySyncTarget,
         SERVER_CONFIG,
@@ -882,6 +925,8 @@ mod test {
             false,
             32,
             32,
+            false,
+            false,
         )
         .unwrap()
         .save(pool)
@@ -954,7 +999,9 @@ mod test {
 
     // Keep both users and admins
     #[sqlx::test]
-    async fn test_users_state_keep_both(pool: PgPool) {
+    async fn test_users_state_keep_both(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -988,7 +1035,9 @@ mod test {
 
     // Delete users, keep admins
     #[sqlx::test]
-    async fn test_users_state_delete_users(pool: PgPool) {
+    async fn test_users_state_delete_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -1025,7 +1074,9 @@ mod test {
         }
     }
     #[sqlx::test]
-    async fn test_users_state_delete_admins(pool: PgPool) {
+    async fn test_users_state_delete_admins(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -1076,7 +1127,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_users_state_delete_both(pool: PgPool) {
+    async fn test_users_state_delete_both(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -1141,7 +1194,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_users_state_disable_users(pool: PgPool) {
+    async fn test_users_state_disable_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -1214,7 +1269,9 @@ mod test {
         assert!(!testuserdisabled.is_active);
     }
     #[sqlx::test]
-    async fn test_users_state_disable_admins(pool: PgPool) {
+    async fn test_users_state_disable_admins(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16); // Added mut wg_rx
@@ -1286,7 +1343,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_users_groups(pool: PgPool) {
+    async fn test_users_groups(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
@@ -1337,7 +1396,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_user_groups(pool: PgPool) {
+    async fn test_sync_user_groups(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
@@ -1363,7 +1424,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_target_users(pool: PgPool) {
+    async fn test_sync_target_users(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
@@ -1385,7 +1448,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_target_all(pool: PgPool) {
+    async fn test_sync_target_all(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, mut wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -1438,7 +1503,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_target_groups(pool: PgPool) {
+    async fn test_sync_target_groups(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
@@ -1463,7 +1530,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_unassign_last_admin_group(pool: PgPool) {
+    async fn test_sync_unassign_last_admin_group(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);
@@ -1507,7 +1576,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_delete_last_admin_user(pool: PgPool) {
+    async fn test_sync_delete_last_admin_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let config = DefGuardConfig::new_test_config();
         let _ = SERVER_CONFIG.set(config.clone());
         let (wg_tx, _) = broadcast::channel::<GatewayEvent>(16);

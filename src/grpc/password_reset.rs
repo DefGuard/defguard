@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedSender;
 use tonic::Status;
 
-use super::proto::{
+use super::proto::proxy::{
     DeviceInfo, PasswordResetInitializeRequest, PasswordResetRequest, PasswordResetStartRequest,
     PasswordResetStartResponse,
 };
@@ -11,11 +11,11 @@ use crate::{
         models::enrollment::{Token, PASSWORD_RESET_TOKEN_TYPE},
         User,
     },
+    enterprise::ldap::utils::ldap_change_password,
     handlers::{
         mail::{send_password_reset_email, send_password_reset_success_email},
         user::check_password_strength,
     },
-    ldap::utils::ldap_change_password,
     mail::Mail,
     server_config,
 };
@@ -68,6 +68,7 @@ impl PasswordResetServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn request_password_reset(
         &self,
         request: PasswordResetInitializeRequest,
@@ -148,6 +149,7 @@ impl PasswordResetServer {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn start_password_reset(
         &self,
         request: PasswordResetStartRequest,
@@ -205,6 +207,7 @@ impl PasswordResetServer {
         Ok(response)
     }
 
+    #[instrument(skip_all)]
     pub async fn reset_password(
         &self,
         request: PasswordResetRequest,
@@ -250,14 +253,12 @@ impl PasswordResetServer {
             Status::internal("unexpected error")
         })?;
 
-        // if self.ldap_feature_active {
-        let _ = ldap_change_password(&user.username, &request.password).await;
-        // };
-
         transaction.commit().await.map_err(|_| {
             error!("Failed to commit transaction");
             Status::internal("unexpected error")
         })?;
+
+        ldap_change_password(&mut user, &request.password, &self.pool).await;
 
         send_password_reset_success_email(
             &user,

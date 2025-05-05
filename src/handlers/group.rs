@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -10,8 +12,14 @@ use super::{ApiResponse, EditGroupInfo, GroupInfo, Username};
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::group::Permission, Group, User, WireguardNetwork},
+    db::{models::group::Permission, Group, Id, User, WireguardNetwork},
+    enterprise::ldap::utils::{
+        ldap_add_user_to_groups, ldap_add_users_to_groups, ldap_delete_group, ldap_modify_group,
+        ldap_remove_user_from_groups, ldap_remove_users_from_groups, ldap_update_user_state,
+        ldap_update_users_state,
+    },
     error::WebError,
+    hashset,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -52,7 +60,7 @@ pub(crate) struct BulkAssignToGroupsRequest {
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn bulk_assign_to_groups(
@@ -61,11 +69,12 @@ pub(crate) async fn bulk_assign_to_groups(
     Json(data): Json<BulkAssignToGroupsRequest>,
 ) -> Result<ApiResponse, WebError> {
     debug!("Assigning groups to users.");
-    let users = query_as!(
+    let mut users: Vec<User<Id>> = query_as!(
         User,
         "SELECT id, username, password_hash, last_name, first_name, email, \
             phone, mfa_enabled, totp_enabled, email_mfa_enabled, \
-            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub \
+            totp_secret, email_mfa_secret, mfa_method \"mfa_method: _\", recovery_codes, is_active, openid_sub, \
+            from_ldap, ldap_pass_randomized, ldap_rdn \
             FROM \"user\" WHERE id = ANY($1)",
         &data.users
     )
@@ -92,13 +101,23 @@ pub(crate) async fn bulk_assign_to_groups(
         ));
     }
 
+    let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
     for group in &groups {
         for user in &users {
             user.add_to_group(&mut *transaction, group).await?;
+            ldap_user_groups
+                .entry(user)
+                .or_default()
+                .insert(&group.name);
         }
     }
     transaction.commit().await?;
+    ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
+
+    let users_to_maybe_update = users.iter_mut().collect::<Vec<_>>();
+    ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+
     WireguardNetwork::sync_all_networks(&appstate).await?;
     info!("Assigned {} groups to {} users.", groups.len(), users.len());
 
@@ -134,7 +153,7 @@ pub(crate) async fn bulk_assign_to_groups(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn list_groups_info(
@@ -144,7 +163,7 @@ pub(crate) async fn list_groups_info(
     debug!("Listing groups info");
     let q_result = query_as!(
         GroupInfo,
-        "SELECT g.name, \
+        "SELECT g.id, g.name, \
         COALESCE(ARRAY_AGG(DISTINCT u.username) FILTER (WHERE u.username IS NOT NULL), '{}') \"members!\", \
         COALESCE(ARRAY_AGG(DISTINCT wn.name) FILTER (WHERE wn.name IS NOT NULL), '{}') \"vpn_locations!\", \
         is_admin \
@@ -177,7 +196,7 @@ pub(crate) async fn list_groups_info(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn list_groups(
@@ -222,7 +241,7 @@ pub(crate) async fn list_groups(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn get_group(
@@ -239,7 +258,13 @@ pub(crate) async fn get_group(
             .await?;
         info!("Retrieved group {name}");
         Ok(ApiResponse {
-            json: json!(GroupInfo::new(name, members, vpn_locations, is_admin)),
+            json: json!(GroupInfo::new(
+                group.id,
+                name,
+                members,
+                vpn_locations,
+                is_admin
+            )),
             status: StatusCode::OK,
         })
     } else {
@@ -273,7 +298,7 @@ pub(crate) async fn get_group(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn create_group(
@@ -283,26 +308,41 @@ pub(crate) async fn create_group(
 ) -> Result<ApiResponse, WebError> {
     debug!("Creating group {}", group_info.name);
 
-    // FIXME: LDAP operations are not reverted.
+    let mut ldap_user_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
     // FIXME: conflicts must not return internal server error (500).
     let group = Group::new(&group_info.name).save(&appstate.pool).await?;
-    // TODO: create group in LDAP
     group
         .set_permission(&mut *transaction, Permission::IsAdmin, group_info.is_admin)
         .await?;
-    for username in &group_info.members {
-        let Some(user) = User::find_by_username(&mut *transaction, username).await? else {
-            let msg = format!("Failed to find user {username}");
+
+    let mut members = Vec::new();
+    for member_username in &group_info.members {
+        if let Some(user) = User::find_by_username(&mut *transaction, member_username).await? {
+            members.push(user);
+        } else {
+            let msg = format!("Failed to find user {member_username}");
             error!(msg);
             return Err(WebError::ObjectNotFound(msg));
-        };
+        }
+    }
+
+    for user in members.iter() {
         user.add_to_group(&mut *transaction, &group).await?;
-        // TODO: update LDAP
+        ldap_user_groups
+            .entry(user)
+            .or_default()
+            .insert(&group_info.name);
     }
 
     transaction.commit().await?;
+
+    if !ldap_user_groups.is_empty() {
+        ldap_add_users_to_groups(ldap_user_groups, &appstate.pool).await;
+        let users_to_maybe_update = members.iter_mut().collect::<Vec<_>>();
+        ldap_update_users_state(users_to_maybe_update, &appstate.pool).await;
+    }
 
     WireguardNetwork::sync_all_networks(&appstate).await?;
 
@@ -333,7 +373,7 @@ pub(crate) async fn create_group(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn modify_group(
@@ -349,14 +389,15 @@ pub(crate) async fn modify_group(
         return Err(WebError::ObjectNotFound(msg));
     };
 
-    // FIXME: LDAP operations are not reverted.
+    let mut add_to_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
+    let mut remove_from_ldap_groups: HashMap<&User<Id>, HashSet<&str>> = HashMap::new();
     let mut transaction = appstate.pool.begin().await?;
 
     // Rename only when needed.
+    //
     if group.name != group_info.name {
-        group.name = group_info.name;
+        group.name = group_info.name.clone();
         group.save(&mut *transaction).await?;
-        // TODO: update LDAP
     }
 
     if group.is_admin != group_info.is_admin && !group_info.is_admin {
@@ -382,6 +423,7 @@ pub(crate) async fn modify_group(
 
     // Modify group members.
     let mut current_members = group.members(&mut *transaction).await?;
+    let mut members = Vec::new();
     for username in &group_info.members {
         if let Some(index) = current_members
             .iter()
@@ -394,18 +436,39 @@ pub(crate) async fn modify_group(
 
         // Add new members to the group.
         if let Some(user) = User::find_by_username(&mut *transaction, username).await? {
-            user.add_to_group(&mut *transaction, &group).await?;
-            // TODO: update LDAP
+            members.push(user);
         }
     }
 
+    for user in members.iter() {
+        user.add_to_group(&mut *transaction, &group).await?;
+        add_to_ldap_groups
+            .entry(user)
+            .or_default()
+            .insert(group.name.as_str());
+    }
+
     // Remove outstanding members.
-    for user in current_members {
+    for user in current_members.iter() {
         user.remove_from_group(&mut *transaction, &group).await?;
-        // TODO: update LDAP
+        remove_from_ldap_groups
+            .entry(user)
+            .or_default()
+            .insert(group.name.as_str());
     }
 
     transaction.commit().await?;
+    ldap_add_users_to_groups(add_to_ldap_groups, &appstate.pool).await;
+    ldap_remove_users_from_groups(remove_from_ldap_groups, &appstate.pool).await;
+    if name != group_info.name {
+        ldap_modify_group(&name, &group, &appstate.pool).await;
+    }
+
+    let affected_users = members
+        .iter_mut()
+        .chain(current_members.iter_mut())
+        .collect::<Vec<_>>();
+    ldap_update_users_state(affected_users, &appstate.pool).await;
 
     WireguardNetwork::sync_all_networks(&appstate).await?;
 
@@ -434,7 +497,7 @@ pub(crate) async fn modify_group(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn delete_group(
@@ -458,7 +521,7 @@ pub(crate) async fn delete_group(
             }
         }
         group.delete(&appstate.pool).await?;
-        // TODO: delete group from LDAP
+        ldap_delete_group(&name, &appstate.pool).await;
 
         // sync allowed devices for all locations
         WireguardNetwork::sync_all_networks(&appstate).await?;
@@ -494,7 +557,7 @@ pub(crate) async fn delete_group(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn add_group_member(
@@ -504,10 +567,11 @@ pub(crate) async fn add_group_member(
     Json(data): Json<Username>,
 ) -> Result<ApiResponse, WebError> {
     if let Some(group) = Group::find_by_name(&appstate.pool, &name).await? {
-        if let Some(user) = User::find_by_username(&appstate.pool, &data.username).await? {
+        if let Some(mut user) = User::find_by_username(&appstate.pool, &data.username).await? {
             debug!("Adding user: {} to group: {}", user.username, group.name);
             user.add_to_group(&appstate.pool, &group).await?;
-            // let _result = ldap_add_user_to_group(&appstate.pool, &user.username, &group.name).await;
+            ldap_add_user_to_groups(&user, hashset![group.name.as_str()], &appstate.pool).await;
+            ldap_update_user_state(&mut user, &appstate.pool).await;
             WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Added user: {} to group: {}", user.username, group.name);
             Ok(ApiResponse::default())
@@ -547,7 +611,7 @@ pub(crate) async fn add_group_member(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn remove_group_member(
@@ -562,7 +626,8 @@ pub(crate) async fn remove_group_member(
                 user.username, group.name
             );
             user.remove_from_group(&appstate.pool, &group).await?;
-            // TODO: update LDAP
+            ldap_remove_user_from_groups(&user, hashset![group.name.as_str()], &appstate.pool)
+                .await;
 
             WireguardNetwork::sync_all_networks(&appstate).await?;
             info!("Removed user: {} from group: {}", user.username, group.name);

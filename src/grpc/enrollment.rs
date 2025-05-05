@@ -4,7 +4,7 @@ use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
 
 use super::{
-    proto::{
+    proto::proxy::{
         ActivateUserRequest, AdminInfo, Device as ProtoDevice, DeviceConfig as ProtoDeviceConfig,
         DeviceConfigResponse, EnrollmentStartRequest, EnrollmentStartResponse, ExistingDevice,
         InitialUserInfo, NewDevice,
@@ -20,11 +20,13 @@ use crate::{
         },
         Device, GatewayEvent, Id, Settings, User,
     },
-    enterprise::{db::models::enterprise_settings::EnterpriseSettings, limits::update_counts},
+    enterprise::{
+        db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
+        limits::update_counts,
+    },
     grpc::utils::{build_device_config_response, new_polling_token},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
-    ldap::utils::ldap_add_user,
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
@@ -34,7 +36,6 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
-    ldap_feature_active: bool,
 }
 
 impl EnrollmentServer {
@@ -44,13 +45,10 @@ impl EnrollmentServer {
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
     ) -> Self {
-        // FIXME: check if LDAP feature is enabled
-        let ldap_feature_active = true;
         Self {
             pool,
             wireguard_tx,
             mail_tx,
-            ldap_feature_active,
         }
     }
 
@@ -90,6 +88,7 @@ impl EnrollmentServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
@@ -205,11 +204,11 @@ impl EnrollmentServer {
                         error!("Failed to get enterprise settings: {err}");
                         Status::internal("unexpected error")
                     })?;
-            let enrollment_settings = super::proto::Settings {
+            let enrollment_settings = super::proto::proxy::Settings {
                 vpn_setup_optional,
                 only_client_activation: enterprise_settings.only_client_activation,
             };
-            let response = super::proto::EnrollmentStartResponse {
+            let response = super::proto::proxy::EnrollmentStartResponse {
                 admin: admin_info,
                 user: Some(user_info),
                 deadline_timestamp: session_deadline.and_utc().timestamp(),
@@ -233,10 +232,11 @@ impl EnrollmentServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<(), Status> {
         debug!("Activating user account: {request:?}");
         let enrollment = self.validate_session(request.token.as_ref()).await?;
@@ -299,13 +299,6 @@ impl EnrollmentServer {
         debug!("Updating user details ended with success.");
         let _ = update_counts(&self.pool).await;
 
-        // sync with LDAP
-        debug!("Add user to ldap: {}.", self.ldap_feature_active);
-        if self.ldap_feature_active {
-            debug!("Syncing with LDAP.");
-            let _result = ldap_add_user(&user, &request.password).await;
-        };
-
         debug!("Retriving settings to send welcome email...");
         let settings = Settings::get_current_settings();
         debug!("Successfully retrived settings.");
@@ -345,14 +338,17 @@ impl EnrollmentServer {
             Status::internal("unexpected error")
         })?;
 
+        ldap_add_user(&mut user, Some(&request.password), &self.pool).await;
+
         info!("User {} activated", user.username);
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn create_device(
         &self,
         request: NewDevice,
-        req_device_info: Option<super::proto::DeviceInfo>,
+        req_device_info: Option<super::proto::proxy::DeviceInfo>,
     ) -> Result<DeviceConfigResponse, Status> {
         debug!("Adding new user device: {request:?}");
         let enrollment_token = self.validate_session(request.token.as_ref()).await?;
@@ -673,6 +669,7 @@ impl EnrollmentServer {
     }
 
     /// Get all information needed to update instance information for desktop client
+    #[instrument(skip_all)]
     pub async fn get_network_info(
         &self,
         request: ExistingDevice,

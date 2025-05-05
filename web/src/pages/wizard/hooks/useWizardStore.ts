@@ -28,6 +28,8 @@ const defaultValues: StoreFields = {
     mfa_enabled: false,
     keepalive_interval: 25,
     peer_disconnect_threshold: 180,
+    acl_enabled: false,
+    acl_default_allow: false,
   },
 };
 
@@ -82,6 +84,8 @@ type StoreFields = {
     mfa_enabled: boolean;
     keepalive_interval: number;
     peer_disconnect_threshold: number;
+    acl_enabled: boolean;
+    acl_default_allow: boolean;
   };
 };
 

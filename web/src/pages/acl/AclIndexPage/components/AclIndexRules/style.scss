@@ -1,0 +1,111 @@
+@mixin grid-config {
+  box-sizing: border-box;
+  display: inline-grid;
+  grid-template-rows: 1fr;
+  justify-content: space-between;
+  padding: 0 var(--spacing-s) 0 0;
+  column-gap: var(--spacing-xs);
+
+  grid-template-columns: 40px 250px 350px repeat(3, 250px) 100px 40px;
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 40px 1fr 1.25fr repeat(3, 1fr) 100px 45px;
+  }
+
+  & > .cell {
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+
+    &:last-child {
+      justify-content: center;
+    }
+  }
+
+  .select-cell {
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+
+    & > .interaction-box {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+#acl-rules {
+  width: 100%;
+
+  .rules-list {
+    width: 100%;
+
+    &:not(:last-child) {
+      padding-bottom: var(--spacing-s);
+    }
+
+    .list-headers {
+      @include grid-config;
+    }
+
+    .header-track {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: var(--spacing-xs);
+      padding-bottom: var(--spacing-xs);
+
+      .select-cell {
+        width: 40px;
+        height: 22px;
+        display: inline-flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+
+        .interaction-box {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+
+    .list-container {
+      overflow: auto;
+      position: relative;
+      max-height: 600px;
+      scrollbar-gutter: stable;
+
+      & > .header-track {
+        position: sticky;
+        top: 0;
+        background-color: var(--surface-default-modal);
+        z-index: 2;
+      }
+    }
+
+    ul {
+      list-style: none;
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-m);
+
+      li {
+        @include grid-config();
+
+        .btn {
+          width: 100%;
+        }
+
+        .cell {
+          &.name {
+            @include typography(app-modal-1);
+          }
+        }
+      }
+    }
+  }
+}

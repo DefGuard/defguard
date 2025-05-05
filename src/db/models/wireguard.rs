@@ -29,8 +29,10 @@ use super::{
 use crate::{
     appstate::AppState,
     db::{Id, NoId},
+    enterprise::firewall::FirewallError,
     grpc::{
         gateway::{send_multiple_wireguard_events, Peer},
+        proto::enterprise::firewall::FirewallConfig,
         GatewayState,
     },
     wg_config::ImportedDevice,
@@ -70,15 +72,17 @@ impl DateTimeAggregation {
 #[derive(Clone, Debug)]
 pub enum GatewayEvent {
     NetworkCreated(Id, WireguardNetwork<Id>),
-    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>),
+    NetworkModified(Id, WireguardNetwork<Id>, Vec<Peer>, Option<FirewallConfig>),
     NetworkDeleted(Id, String),
     DeviceCreated(DeviceInfo),
     DeviceModified(DeviceInfo),
     DeviceDeleted(DeviceInfo),
+    FirewallConfigChanged(Id, FirewallConfig),
+    FirewallDisabled(Id),
 }
 
 /// Stores configuration required to setup a WireGuard network
-#[derive(Clone, Debug, Deserialize, Model, PartialEq, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Model, PartialEq, Serialize, ToSchema)]
 #[table(wireguard_network)]
 pub struct WireguardNetwork<I = NoId> {
     pub id: I,
@@ -97,6 +101,8 @@ pub struct WireguardNetwork<I = NoId> {
     pub allowed_ips: Vec<IpNetwork>,
     pub connected_at: Option<NaiveDateTime>,
     pub mfa_enabled: bool,
+    pub acl_enabled: bool,
+    pub acl_default_allow: bool,
     pub keepalive_interval: i32,
     pub peer_disconnect_threshold: i32,
 }
@@ -118,6 +124,29 @@ impl fmt::Display for WireguardNetwork<Id> {
     }
 }
 
+#[cfg(test)]
+impl Default for WireguardNetwork<Id> {
+    fn default() -> Self {
+        Self {
+            id: Id::default(),
+            name: String::default(),
+            address: vec![IpNetwork::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0).unwrap()],
+            port: i32::default(),
+            pubkey: String::default(),
+            prvkey: String::default(),
+            endpoint: String::default(),
+            dns: Option::default(),
+            allowed_ips: Vec::default(),
+            connected_at: Option::default(),
+            mfa_enabled: false,
+            keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+            acl_default_allow: false,
+            acl_enabled: false,
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum WireguardNetworkError {
     #[error("Network address space cannot fit all devices")]
@@ -136,6 +165,8 @@ pub enum WireguardNetworkError {
     DeviceNotAllowed(String),
     #[error("Device error")]
     DeviceError(#[from] DeviceError),
+    #[error("Firewall config error: {0}")]
+    FirewallError(#[from] FirewallError),
 }
 
 impl WireguardNetwork {
@@ -149,6 +180,8 @@ impl WireguardNetwork {
         mfa_enabled: bool,
         keepalive_interval: i32,
         peer_disconnect_threshold: i32,
+        acl_enabled: bool,
+        acl_default_allow: bool,
     ) -> Result<Self, WireguardNetworkError> {
         let prvkey = StaticSecret::random_from_rng(OsRng);
         let pubkey = PublicKey::from(&prvkey);
@@ -166,6 +199,8 @@ impl WireguardNetwork {
             mfa_enabled,
             keepalive_interval,
             peer_disconnect_threshold,
+            acl_enabled,
+            acl_default_allow,
         })
     }
 
@@ -195,7 +230,8 @@ impl WireguardNetwork<Id> {
         let networks = query_as!(
             WireguardNetwork,
             "SELECT id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips, \
-            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold \
+            connected_at, mfa_enabled, keepalive_interval, peer_disconnect_threshold, \
+            acl_enabled, acl_default_allow \
             FROM wireguard_network WHERE name = $1",
             name
         )
@@ -210,13 +246,31 @@ impl WireguardNetwork<Id> {
     }
 
     // run sync_allowed_devices on all wireguard networks
-    pub(crate) async fn sync_all_networks(app: &AppState) -> Result<(), WireguardNetworkError> {
+    pub(crate) async fn sync_all_networks(
+        appstate: &AppState,
+    ) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
-        let mut transaction = app.pool.begin().await?;
+        let mut transaction = appstate.pool.begin().await?;
         let networks = Self::all(&mut *transaction).await?;
         for network in networks {
             let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            send_multiple_wireguard_events(gateway_events, &app.wireguard_tx);
+            // chceck if any peers were updated
+            if !gateway_events.is_empty() {
+                // send peer update events
+                send_multiple_wireguard_events(gateway_events, &appstate.wireguard_tx);
+
+                // send firewall config update if ACLs are enabled
+                if network.acl_enabled {
+                    if let Some(firewall_config) =
+                        network.try_get_firewall_config(&mut transaction).await?
+                    {
+                        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
+                            network.id,
+                            firewall_config,
+                        ));
+                    }
+                }
+            }
         }
         transaction.commit().await?;
         Ok(())
@@ -259,7 +313,7 @@ impl WireguardNetwork<Id> {
     /// Get a list of all devices belonging to users in allowed groups.
     /// Admin users should always be allowed to access a network.
     /// Note: Doesn't check if the devices are really in the network.
-    async fn get_allowed_devices(
+    pub(crate) async fn get_allowed_devices(
         &self,
         transaction: &mut PgConnection,
     ) -> Result<Vec<Device<Id>>, ModelError> {
@@ -312,7 +366,7 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         user_id: Id,
     ) -> Result<Vec<Device<Id>>, ModelError> {
-        debug!("Fetching all allowed devices for network {}", self);
+        debug!("Fetching all allowed devices for network {self}, user ID {user_id}");
         let devices = match self.get_allowed_groups(&mut *transaction).await? {
             // devices need to be filtered by allowed group
             Some(allowed_groups) => {
@@ -1089,6 +1143,8 @@ impl Default for WireguardNetwork {
             mfa_enabled: false,
             keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
             peer_disconnect_threshold: DEFAULT_DISCONNECT_THRESHOLD,
+            acl_enabled: false,
+            acl_default_allow: false,
         }
     }
 }
@@ -1158,12 +1214,15 @@ pub struct WireguardNetworkStats {
 #[cfg(test)]
 mod test {
     use chrono::{SubsecRound, TimeDelta};
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
-    use crate::db::Group;
+    use crate::db::{setup_pool, Group};
 
     #[sqlx::test]
-    async fn test_connected_at_reconnection(pool: PgPool) {
+    async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1226,7 +1285,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_connected_at_always_connected(pool: PgPool) {
+    async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1287,7 +1348,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_allowed_devices_for_user(pool: PgPool) {
+    async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1375,7 +1438,12 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_get_allowed_devices_for_user_with_groups(pool: PgPool) {
+    async fn test_get_allowed_devices_for_user_with_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1456,7 +1524,9 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user(pool: PgPool) {
+    async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1564,7 +1634,12 @@ mod test {
     }
 
     #[sqlx::test]
-    async fn test_sync_allowed_devices_for_user_with_groups(pool: PgPool) {
+    async fn test_sync_allowed_devices_for_user_with_groups(
+        _: PgPoolOptions,
+        options: PgConnectOptions,
+    ) {
+        let pool = setup_pool(options).await;
+
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();

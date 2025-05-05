@@ -8,6 +8,7 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      accept: 'Accept',
       next: 'Next',
       back: 'Back',
       cancel: 'Cancel',
@@ -25,12 +26,20 @@ const en: BaseTranslation = {
       edit: 'Edit',
       dismiss: 'Dismiss',
       show: 'Show',
+      enable: 'Enable',
+      enabled: 'Enabled',
+      disable: 'Disable',
+      disabled: 'Disabled',
+      selectAll: 'Select all',
+      clear: 'Clear',
+      clearAll: 'Clear all',
     },
     key: 'Key',
     name: 'Name',
     noData: 'No data',
     unavailable: 'Unavailable',
     notSet: 'Not set',
+    search: 'Search',
   },
   messages: {
     error: 'Error has occurred.',
@@ -186,7 +195,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       title: `You've reached the enterprise functionality limit.`,
       message: `You've exceeded the limit of your current Defguard plan and the enterprise
           features will be disabled. Purchase an enterprise license or upgrade your
-          exsiting one to continue using these features.`,
+          existing one to continue using these features.`,
       link: 'See all enterprise plans',
     },
     updatesNotification: {
@@ -734,6 +743,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       password: {
         header: 'Password settings',
         changePassword: 'Change password',
+        ldap_change_heading: '{ldapName:string} password update required',
+        ldap_change_message:
+          "Defguard doesn't store your password in plain text, so we can’t retrieve it for automatic synchronization with your {ldapName:string} credentials. To enable {ldapName:string} login to other services, please update your Defguard password for your {ldapName:string} password to be set — you can re-enter your current password if you wish. This step is necessary to ensure consistent and secure authentication across both systems.",
       },
       recovery: {
         header: 'Recovery options',
@@ -962,6 +974,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       support: 'Support',
       groups: 'Groups',
       devices: 'Network Devices',
+      acl: 'Access Control',
     },
     mobileTitles: {
       groups: 'Groups',
@@ -995,6 +1008,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     placeholders: {
       password: 'Password',
       username: 'Username',
+      username_or_email: 'Username or email',
     },
     error: {
       reservedName: 'Name is already taken.',
@@ -1034,6 +1048,13 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   components: {
+    aclDefaultPolicySelect: {
+      label: 'Default ACL Policy',
+      options: {
+        allow: 'Allow',
+        deny: 'Deny',
+      },
+    },
     standaloneDeviceTokenModalContent: {
       headerMessage:
         'First download defguard command line client binaries and install them on your server.',
@@ -1091,8 +1112,28 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     ldapSettings: {
       title: 'LDAP Settings',
+      sync: {
+        header: 'LDAP two-way synchronization',
+        info: 'Before enabling synchronization, please read more about it in our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/ldap-and-active-directory-integration/two-way-ldap-and-active-directory-synchronization).',
+        info_enterprise: 'This feature is available only in Defguard Enterprise.',
+        helpers: {
+          heading:
+            'Configure LDAP synchronization settings here. If configured, Defguard will pull user information from LDAP and synchronize it with local users.',
+          sync_enabled:
+            'If enabled, Defguard will attempt to pull LDAP user data at the specified interval.',
+          authority: `Defguard will use the selected server as the authoritative source of
+          user data, meaning that if LDAP is selected, Defguard data will be overwritten with the LDAP
+          data in case of a desynchronization. If Defguard was selected as the authority, it's data will
+          overwrite LDAP data if necessary.
+          Make sure to check the documentation to understand the implications of this
+          setting.`,
+          interval: 'The interval with which the synchronization will be attempted.',
+          groups: `Defguard will attempt to synchronize only users belonging to the provided groups. Provide a comma-separated list of groups. If empty, all users will be synchronized.`,
+        },
+      },
       form: {
         labels: {
+          ldap_enable: 'Enable LDAP integration',
           ldap_url: 'URL',
           ldap_bind_username: 'Bind Username',
           ldap_bind_password: 'Bind Password',
@@ -1100,12 +1141,40 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           ldap_username_attr: 'Username Attribute',
           ldap_user_obj_class: 'User Object Class',
           ldap_user_search_base: 'User Search Base',
+          ldap_user_auxiliary_obj_classes: 'Additional User Object Classes',
           ldap_groupname_attr: 'Groupname Attribute',
           ldap_group_search_base: 'Group Search Base',
           ldap_group_member_attr: 'Group Member Attribute',
           ldap_group_obj_class: 'Group Object Class',
+          ldap_sync_enabled: 'Enable LDAP two-way synchronization',
+          ldap_authoritative_source: 'Consider the following source as the authority',
+          ldap_sync_interval: 'Synchronization interval',
           ldap_use_starttls: 'Use StartTLS',
           ldap_tls_verify_cert: 'Verify TLS certificate',
+          ldap_uses_ad: 'LDAP server is Active Directory',
+          ldap_user_rdn_attr: 'User RDN Attribute',
+          ldap_sync_groups: 'Limit synchronization to these groups',
+        },
+        helpers: {
+          ldap_user_obj_class:
+            'The object class that will be added to the user object during its creation. This is used to determine if an LDAP object is a user.',
+          ldap_user_auxiliary_obj_classes:
+            "The additional object classes that will be added to the user object during its creation. They may also influence the added user's attributes (e.g. simpleSecurityObject class will add userPassword attribute).",
+          user_settings:
+            'Configure LDAP user settings here. These settings determine how Defguard maps and synchronizes LDAP user information with local users.',
+          connection_settings:
+            'Configure LDAP connection settings here. These settings determine how Defguard connects to your LDAP server. Encrypted connections are also supported (StartTLS, LDAPS).',
+          group_settings:
+            'Configure LDAP group settings here. These settings determine how Defguard maps and synchronizes LDAP group information with local groups.',
+          ldap_group_obj_class:
+            'The object class that represents a group in LDAP. This is used to determine if an LDAP object is a group.',
+          ldap_user_rdn_attr:
+            "If your user's RDN attribute is different than your username attribute, please provide it here, otherwise leave it empty to use the username attribute as the user's RDN.",
+        },
+        headings: {
+          user_settings: 'User settings',
+          connection_settings: 'Connection settings',
+          group_settings: 'Group settings',
         },
         delete: 'Delete configuration',
       },
@@ -1119,8 +1188,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
     },
     openIdSettings: {
+      heading: 'External OpenID settings',
       general: {
-        title: 'External OpenID general settings',
+        title: 'General settings',
         helper: 'Here you can change general OpenID behavior in your Defguard instance.',
         createAccount: {
           label:
@@ -1130,15 +1200,16 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
       },
       form: {
-        title: 'External OpenID Client Settings',
+        title: 'Client settings',
         helper:
           'Here you can configure the OpenID client settings with values provided by your external OpenID provider.',
         custom: 'Custom',
         none: 'None',
-        documentation: 'Documentation',
+        documentation:
+          'Make sure to check our [documentation](https://docs.defguard.net/enterprise/all-enteprise-features/external-openid-providers) for more information and examples.',
         delete: 'Delete provider',
         directory_sync_settings: {
-          title: 'Directory Sync Settings',
+          title: 'Directory synchronization settings',
           helper:
             "Directory synchronization allows you to automatically synchronize users' status and groups from an external provider.",
           notSupported: 'Directory sync is not supported for this provider.',
@@ -1184,7 +1255,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
               "Name of the OpenID provider to display on the login's page button. If not provided, the button will display generic 'Login with OIDC' text.",
           },
           enable_directory_sync: {
-            label: 'Enable directory sync',
+            label: 'Enable directory synchronization',
           },
           sync_target: {
             label: 'Synchronize',
@@ -1284,12 +1355,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           },
           mainLogoUrl: {
             label: 'Login logo url',
-            helper: '<p>Maximum picture size is 250x100  px</p>',
+            helper: 'Maximum picture size is 250x100  px',
             placeholder: 'Default image',
           },
           navLogoUrl: {
             label: 'Menu & navigation small logo',
-            helper: '<p>Maximum picture size is 100x100 px</p>',
+            helper: 'Maximum picture size is 100x100 px',
             placeholder: 'Default image',
           },
         },
@@ -1370,6 +1441,9 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     smtp: {
       form: {
         title: 'SMTP configuration',
+        sections: {
+          server: 'Server settings',
+        },
         fields: {
           encryption: {
             label: 'Encryption',
@@ -1408,23 +1482,30 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       delete: 'Delete configuration',
       testForm: {
         title: 'Send test email',
+        subtitle: 'Enter recipent email address',
         fields: {
           to: {
-            label: 'Address',
+            label: 'Send test email to',
             placeholder: 'Address',
           },
         },
         controls: {
           submit: 'Send',
+          resend: 'Resend',
+          retry: 'Retry',
           success: 'Test email sent',
           error: 'Error sending email',
         },
+        success: {
+          message: 'Test email has been sent successully.',
+        },
+        error: {
+          message:
+            'There was an error sending the test email. Please check your SMTP configuration and try again.',
+          fullError: 'Error: {error: string}',
+        },
       },
-      helper: `
-        <p>
-          Here you can configure SMTP server used to send system messages to the users.
-        </p>
-			`,
+      helper: `Here you can configure SMTP server used to send system messages to the users.`,
     },
     enrollment: {
       helper:
@@ -1480,7 +1561,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
     enterprise: {
       header: 'Enterprise Features',
-      helper: '<p>Here you can change enterprise settings.</p>',
+      helper: 'Here you can change enterprise settings.',
       fields: {
         deviceManagement: {
           label: "Disable users' ability to manage their devices",
@@ -1500,10 +1581,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       },
     },
     gatewayNotifications: {
-      smtpWarning:
-        'To enable gateway disconnect notifications you must first configure an SMTP server',
-      header: 'Gateway disconnect notifications',
-      helper: '<p>Here you can enable gateway disconnect notifications.</p>',
+      smtpWarning: 'To enable notifications you must first configure an SMTP server',
+      header: 'Notifications',
+      sections: {
+        gateway: 'Gateway disconnect notifications',
+      },
+      helper: 'Here you can manage email notifications.',
       form: {
         submit: 'Save changes',
         fields: {
@@ -1778,7 +1861,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
   networkConfiguration: {
     messages: {
       delete: {
-        success: 'Network delted',
+        success: 'Network deleted',
         error: 'Failed to delete network',
       },
     },
@@ -1794,6 +1877,8 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           'List of addresses/masks that should be routed through the VPN network.',
         allowedGroups:
           'By default, all users will be allowed to connect to this location. If you want to restrict access to this location to a specific group, please select it below.',
+        aclFeatureDisabled:
+          "ACL functionality is an enterprise feature and you've exceeded the user, device or network limits to use it. In order to use this feature, purchase an enterprise license or upgrade your existing one.",
       },
       messages: {
         networkModified: 'Location modified.',
@@ -1830,6 +1915,12 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
         },
         peer_disconnect_threshold: {
           label: 'Peer disconnect threshold [seconds]',
+        },
+        acl_enabled: {
+          label: 'Enable ACL for this location',
+        },
+        acl_default_allow: {
+          label: 'Default ACL policy',
         },
       },
       controls: {
@@ -2117,6 +2208,271 @@ Any other requests you can reach us at: support@defguard.net
           config: 'View config',
           generateToken: 'Generate auth token',
         },
+      },
+    },
+  },
+  acl: {
+    messageBoxes: {
+      aclAliasKind: {
+        component: {
+          name: 'Component',
+          description: 'combined with manually configured destination fields in ACL',
+        },
+        destination: {
+          name: 'Destination',
+          description: 'translated into a separate set of firewall rules',
+        },
+      },
+      networkSelectionIndicatorsHelper: {
+        //md
+        denied: `
+          Location access **denied** by default - must be explicitly allowed
+          `,
+        //md
+        allowed: `
+          Location access **allowed** by default - can be explicitly denied
+          `,
+        //md
+        unmanaged: `
+          Location access unmanaged (ACL disabled)
+          `,
+      },
+    },
+    sharedTitle: 'Access Control List',
+    fieldsSelectionLabels: {
+      ports: 'All ports',
+      protocols: 'All protocols',
+    },
+    ruleStatus: {
+      new: 'New',
+      applied: 'Applied',
+      modified: 'Pending Change',
+      deleted: 'Pending Deletion',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      expired: 'Expired',
+    },
+    listPage: {
+      message: {
+        changeDiscarded: 'Change discarded',
+        changeAdded: 'Pending change added',
+        changeFail: 'Failed to make change',
+        applyChanges: 'Pending changes applied',
+        applyFail: 'Failed to apply changes',
+      },
+      rules: {
+        modals: {
+          applyConfirm: {
+            title: 'Deploy pending changes',
+            subtitle: '{count: number} changes will be deployed',
+            submit: 'Deploy changes',
+          },
+          filterGroupsModal: {
+            groupHeaders: {
+              alias: 'Aliases',
+              location: 'Locations',
+              groups: 'Groups',
+              status: 'Status',
+            },
+            submit: 'Save Filter',
+          },
+        },
+        listControls: {
+          searchPlaceholder: 'Find name',
+          addNew: 'Add new',
+          filter: {
+            nothingApplied: 'Filter',
+            applied: 'Filters ({count: number})',
+          },
+          apply: {
+            noChanges: 'Deploy pending changes',
+            all: 'Deploy pending changes ({count: number})',
+            selective: 'Deploy selected changes ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Pending Changes',
+            noData: 'No pending changes',
+            noDataSearch: 'No pending changes found',
+          },
+          deployedList: {
+            title: 'Deployed Rules',
+            noData: 'No deployed rules',
+            noDataSearch: 'No deployed rules found',
+          },
+          headers: {
+            name: 'Rule name',
+            id: 'ID',
+            destination: 'Destination',
+            allowed: 'Allowed',
+            denied: 'Denied',
+            locations: 'Locations',
+            status: 'Status',
+            edit: 'Edit',
+          },
+          tags: {
+            all: 'All',
+            allDenied: 'All denied',
+            allAllowed: 'All allowed',
+          },
+          editMenu: {
+            discard: 'Discard Changes',
+            delete: 'Mark for Deletion',
+          },
+        },
+      },
+      aliases: {
+        message: {
+          rulesApply: 'Pending changes applied',
+          rulesApplyFail: 'Failed to apply changes',
+          aliasDeleted: 'Alias deleted',
+          aliasDeleteFail: 'Alias deletion failed',
+        },
+        modals: {
+          applyConfirm: {
+            title: 'Confirm Alias Deployment',
+            message: `The updated aliases will modify the following rule(s) currently deployed on the gateway.\nPlease ensure these changes are intended before proceeding.`,
+            listLabel: 'Affected Rules',
+            submit: 'Deploy Changes',
+          },
+          deleteBlock: {
+            title: 'Deletion blocked',
+            //md
+            content: `
+This alias is currently in use by the following rule(s) and cannot be deleted. To proceed with deletion, you must first remove it from these rules({rulesCount: number}):
+`,
+          },
+          filterGroupsModal: {
+            groupLabels: {
+              rules: 'Rules',
+              status: 'Status',
+            },
+          },
+          create: {
+            labels: {
+              name: 'Alias name',
+              kind: 'Alias kind',
+              ip: 'IPv4/6 CIDR range address',
+              ports: 'Ports or Port Ranges',
+              protocols: 'Protocols',
+            },
+            placeholders: {
+              protocols: 'All Protocols',
+              ports: 'All Ports',
+              ip: 'All IPs',
+            },
+            kindOptions: {
+              destination: 'Destination',
+              component: 'Component',
+            },
+            controls: {
+              cancel: 'Cancel',
+              edit: 'Edit Alias',
+              create: 'Create Alias',
+            },
+            messages: {
+              modified: 'Alias modified',
+              created: 'Alias created',
+            },
+          },
+        },
+        listControls: {
+          searchPlaceholder: 'Find name',
+          addNew: 'Add new',
+          filter: {
+            nothingApplied: 'Filter',
+            applied: 'Filters ({count: number})',
+          },
+          apply: {
+            noChanges: 'Deploy pending changes',
+            all: 'Deploy pending changes ({count: number})',
+            selective: 'Deploy selected changes ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Pending Changes',
+            noData: 'No pending changes',
+            noDataSearch: 'No pending changes found',
+          },
+          deployedList: {
+            title: 'Deployed Aliases',
+            noData: 'No deployed aliases',
+            noDataSearch: 'No deployed aliases found',
+          },
+          headers: {
+            id: 'ID',
+            name: 'Alias name',
+            kind: 'Alias kind',
+            ip: 'Ipv4/6 CIDR range address',
+            ports: 'Ports',
+            protocols: 'Protocols',
+            status: 'Status',
+            edit: 'Edit',
+            rules: 'Rules',
+          },
+          status: {
+            applied: 'Applied',
+            changed: 'Modified',
+          },
+          tags: {
+            allDenied: 'All denied',
+            allAllowed: 'All allowed',
+          },
+          editMenu: {
+            discardChanges: 'Discard changes',
+            delete: 'Delete alias',
+          },
+        },
+      },
+    },
+    createPage: {
+      formError: {
+        allowDenyConflict: 'Conflicting members',
+        allowNotConfigured: 'Must configure some allowed users, groups or devices',
+      },
+      infoBox: {
+        // md
+        allowInstructions: `
+        Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        // md
+        destinationInstructions: `
+        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+      },
+      message: {
+        create: 'Rule created and added to pending changes',
+        createFail: 'Rule creation failed',
+      },
+      headers: {
+        rule: 'Rule',
+        createRule: 'Create Rule',
+        allowed: 'Allowed Users/Groups/Devices',
+        denied: 'Denied Users/Groups/Devices',
+        destination: 'Destination',
+      },
+      labels: {
+        name: 'Rule name',
+        priority: 'Priority',
+        status: 'Status',
+        locations: 'Locations',
+        allowAllUsers: 'Allow all users',
+        allowAllNetworks: 'Include all locations',
+        allowAllNetworkDevices: 'Allow all network devices',
+        denyAllUsers: 'Deny all users',
+        denyAllNetworkDevices: 'Deny all network devices',
+        users: 'Users',
+        groups: 'Groups',
+        devices: 'Network devices',
+        protocols: 'Protocols',
+        manualIp: 'IPv4/6 CIDR range or address',
+        ports: 'Ports',
+        aliases: 'Aliases',
+        expires: 'Expiration Date',
+      },
+      placeholders: {
+        allProtocols: 'All protocols',
+        allIps: 'All IPs',
       },
     },
   },

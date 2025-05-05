@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"user\" (username, password_hash, last_name, first_name, email, ldap_rdn) VALUES ('admin', $1, 'Administrator', 'DefGuard', 'admin@defguard', 'admin') ON CONFLICT DO NOTHING RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "04a278626ee7ab7a575b7a730ecea21d98217f5d617150766eb0b4ef64a62f17"
+}

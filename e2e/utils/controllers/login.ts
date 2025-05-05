@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { Page } from 'playwright';
-import totp from 'totp-generator';
+import { TOTP } from 'totp-generator';
 
 import { routes, testsConfig } from '../../config';
 import { User } from '../../types';
@@ -30,7 +30,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
   const codeField = page.getByTestId('field-code');
   await codeField.clear();
   const responsePromise = page.waitForResponse('**/verify');
-  const token = totp(totpSecret);
+  const { otp: token } = TOTP.generate(totpSecret);
   await codeField.type(token);
   await page.locator('button[type="submit"]').click();
   const response = await responsePromise;
@@ -40,7 +40,7 @@ export const loginTOTP = async (page: Page, userInfo: AuthInfo, totpSecret: stri
 export const loginRecoveryCodes = async (
   page: Page,
   userInfo: AuthInfo,
-  code: string
+  code: string,
 ): Promise<void> => {
   await loginBasic(page, userInfo);
   await page.goto(routes.base + routes.auth.recovery, {

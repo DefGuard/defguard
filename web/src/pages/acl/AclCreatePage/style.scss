@@ -1,0 +1,115 @@
+#acl-create-page {
+  .labeled-checkbox,
+  .form-checkbox {
+    label {
+      @include typography(app-modal-1);
+      color: var(--text-body-primary);
+    }
+  }
+
+  & > .page-content {
+    box-sizing: border-box;
+    padding: var(--spacing-s);
+
+    @include media-breakpoint-up(lg) {
+      padding: var(--spacing-xl);
+    }
+
+    & > .header {
+      display: flex;
+      flex-flow: column;
+      row-gap: var(--spacing-s);
+      padding-bottom: var(--spacing-m);
+
+      @include media-breakpoint-up(lg) {
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--spacing-s);
+      }
+
+      h1 {
+        @include typography(app-title);
+      }
+
+      .controls {
+        margin-left: auto;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-end;
+        column-gap: var(--spacing-s);
+      }
+    }
+  }
+}
+
+#acl-sections {
+  width: 100%;
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-s);
+
+  @include media-breakpoint-up(xl) {
+    flex-flow: row;
+    column-gap: var(--spacing-m);
+  }
+
+  #rule-card {
+    grid-area: rule;
+  }
+
+  #allowed-card {
+    grid-area: allowed;
+  }
+
+  #destination-card {
+    grid-area: destination;
+  }
+
+  #denied-card {
+    grid-area: denied;
+  }
+
+  & > .column {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+  }
+
+  h3 {
+    text-wrap: nowrap;
+    @include typography(app-side-bar);
+  }
+
+  .card {
+    .input,
+    .dialog-select-spacer,
+    .labeled-checkbox,
+    .form-checkbox,
+    .spacer,
+    & > .header {
+      &:not(:last-child) {
+        padding-bottom: var(--spacing-s);
+      }
+    }
+
+    .header {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      column-gap: 8px;
+      width: 100%;
+      min-height: 23px;
+
+      hr {
+        width: 100%;
+        align-self: flex-end;
+        border: 0.5px solid var(--border-primary);
+        margin: 0;
+        padding: 0;
+      }
+    }
+  }
+}

@@ -10,9 +10,8 @@ use axum_extra::{
 };
 use openidconnect::{
     core::{CoreAuthenticationFlow, CoreClient, CoreProviderMetadata, CoreUserInfoClaims},
-    reqwest::async_http_client,
-    AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce, OAuth2TokenResponse,
-    RedirectUrl, Scope,
+    AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointMaybeSet, EndpointNotSet,
+    EndpointSet, IssuerUrl, Nonce, OAuth2TokenResponse, RedirectUrl, Scope,
 };
 use reqwest::Url;
 use serde_json::json;
@@ -29,7 +28,8 @@ use crate::{
     db::{Id, Settings, User},
     enterprise::{
         db::models::openid_provider::OpenIdProvider,
-        directory_sync::sync_user_groups_if_configured, limits::update_counts,
+        directory_sync::sync_user_groups_if_configured, ldap::utils::ldap_update_user_state,
+        limits::update_counts,
     },
     error::WebError,
     handlers::{
@@ -40,16 +40,28 @@ use crate::{
     server_config,
 };
 
+/// Create HTTP client and prevent following redirects
+async fn get_async_http_client() -> Result<reqwest::Client, WebError> {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|err| {
+            error!("Failed to create HTTP client: {err:?}");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })
+}
+
 async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebError> {
     let issuer_url = IssuerUrl::new(url.to_string()).map_err(|err| {
         WebError::BadRequest(format!(
             "Failed to create issuer URL from the provided URL: {url}. Error details: {err:?}",
         ))
     })?;
+    let async_http_client = get_async_http_client().await?;
     // Discover the provider metadata based on a known base issuer URL
     // The url should be in the form of e.g. https://accounts.google.com
     // The url shouldn't contain a .well-known part, it will be added automatically
-    match CoreProviderMetadata::discover_async(issuer_url, async_http_client).await {
+    match CoreProviderMetadata::discover_async(issuer_url, &async_http_client).await {
         Ok(provider_metadata) => Ok(provider_metadata),
         Err(err) => {
             Err(WebError::Authorization(format!(
@@ -64,7 +76,20 @@ async fn get_provider_metadata(url: &str) -> Result<CoreProviderMetadata, WebErr
 pub(crate) async fn make_oidc_client(
     url: Url,
     provider: &OpenIdProvider<Id>,
-) -> Result<(ClientId, CoreClient), WebError> {
+) -> Result<
+    (
+        ClientId,
+        CoreClient<
+            EndpointSet,
+            EndpointNotSet,
+            EndpointNotSet,
+            EndpointNotSet,
+            EndpointMaybeSet,
+            EndpointMaybeSet,
+        >,
+    ),
+    WebError,
+> {
     let provider_metadata = get_provider_metadata(&provider.base_url).await?;
     let client_id = ClientId::new(provider.client_id.to_string());
     let client_secret = ClientSecret::new(provider.client_secret.to_string());
@@ -91,10 +116,15 @@ pub(crate) async fn user_from_claims(
         ));
     };
     let (client_id, core_client) = make_oidc_client(callback_url, &provider).await?;
+    let async_http_client = get_async_http_client().await?;
     // Exchange code for ID token.
     let token_response = match core_client
         .exchange_code(code)
-        .request_async(async_http_client)
+        .map_err(|err| {
+            error!("Failed to exchange code for ID token: {err:?}");
+            WebError::Http(StatusCode::INTERNAL_SERVER_ERROR)
+        })?
+        .request_async(&async_http_client)
         .await
     {
         Ok(token) => token,
@@ -270,6 +300,8 @@ pub(crate) async fn user_from_claims(
                         from the user info endpoint. Current values: given_name: {given_name:?}, family_name: {family_name:?}, phone: {phone:?}"
                     );
 
+                    let async_http_client = get_async_http_client().await?;
+
                     let retrieval_error = "Failed to retrieve given name and family name from provider's userinfo endpoint. \
                         Make sure you have configured your provider correctly and that you have granted the \
                         necessary permissions to retrieve such information from the token or the userinfo endpoint.";
@@ -286,7 +318,7 @@ pub(crate) async fn user_from_claims(
                                 )
                             }
                         )?
-                        .request_async(async_http_client)
+                        .request_async(&async_http_client)
                         .await
                         .map_err(
                             |err| {
@@ -481,9 +513,11 @@ pub(crate) async fn auth_callback(
         sync_user_groups_if_configured(&user, &appstate.pool, &appstate.wireguard_tx).await
     {
         error!(
-    "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
-    user.username
-);
+            "Failed to sync user groups for user {} with the directory while the user was trying to login in through an external provider: {err:?}",
+            user.username
+        );
+    } else {
+        ldap_update_user_state(&mut user, &appstate.pool).await;
     }
 
     if let Some(mfa_info) = mfa_info {

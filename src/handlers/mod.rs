@@ -13,7 +13,7 @@ use crate::db::Device;
 use crate::{
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
-    enterprise::license::LicenseError,
+    enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
     VERSION,
 };
@@ -79,13 +79,67 @@ impl From<WebError> for ApiResponse {
             | WebError::ModelError(_)
             | WebError::ServerConfigMissing
             | WebError::EmailMfa(_)
-            | WebError::ClientIpError => {
+            | WebError::ClientIpError
+            | WebError::FirewallError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )
             }
+            WebError::AclError(err) => match err {
+                AclError::ParseIntError(_)
+                | AclError::IpNetworkError(_)
+                | AclError::AddrParseError(_)
+                | AclError::InvalidRelationError(_)
+                | AclError::InvalidPortsFormat(_) => ApiResponse::new(
+                    json!({"msg": "Unprocessable entity"}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
+                AclError::InvalidIpRangeError(err) => ApiResponse::new(
+                    json!({"msg": format!("Invalid IP range: {err}")}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
+                AclError::RuleNotFoundError(id) => ApiResponse::new(
+                    json!({"msg": format!("Rule {id} not found")}),
+                    StatusCode::NOT_FOUND,
+                ),
+                AclError::RuleAlreadyAppliedError(id) => ApiResponse::new(
+                    json!({"msg": format!("Rule {id} already applied")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::AliasNotFoundError(id) => ApiResponse::new(
+                    json!({"msg": format!("Alias {id} not found")}),
+                    StatusCode::NOT_FOUND,
+                ),
+                AclError::AliasAlreadyAppliedError(id) => ApiResponse::new(
+                    json!({"msg": format!("Alias {id} already applied")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::AliasUsedByRulesError(id) => ApiResponse::new(
+                    json!({"msg": format!("Alias {id} is used by some existing ACL rules")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::DbError(_) | AclError::FirewallError(_) => {
+                    error!("{err}");
+                    ApiResponse::new(
+                        json!({"msg": "Internal server error"}),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )
+                }
+                AclError::PortOutOfRangeError(port) => ApiResponse::new(
+                    json!({"msg": format!("Port out of range: {port}")}),
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
+                AclError::CannotModifyDeletedRuleError(id) => ApiResponse::new(
+                    json!({"msg": format!("Cannot modify deleted ACL rule {id}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+                AclError::CannotUseModifiedAliasInRuleError(alias_ids) => ApiResponse::new(
+                    json!({"msg": format!("Cannot use modified alias in ACL rule {alias_ids:?}")}),
+                    StatusCode::BAD_REQUEST,
+                ),
+            },
             WebError::Http(status) => {
                 error!("{status}");
                 ApiResponse::new(
@@ -208,6 +262,7 @@ impl AuthCode {
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct GroupInfo {
+    pub id: Id,
     pub name: String,
     pub members: Vec<String>,
     pub vpn_locations: Vec<String>,
@@ -217,12 +272,14 @@ pub struct GroupInfo {
 impl GroupInfo {
     #[must_use]
     pub fn new<S: Into<String>>(
+        id: Id,
         name: S,
         members: Vec<String>,
         vpn_locations: Vec<String>,
         is_admin: bool,
     ) -> Self {
         Self {
+            id,
             name: name.into(),
             members,
             vpn_locations,
@@ -237,6 +294,17 @@ pub struct EditGroupInfo {
     pub name: String,
     pub members: Vec<String>,
     pub is_admin: bool,
+}
+
+impl EditGroupInfo {
+    #[must_use]
+    pub fn new<S: Into<String>>(name: S, members: Vec<String>, is_admin: bool) -> Self {
+        Self {
+            name: name.into(),
+            members,
+            is_admin,
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -364,15 +432,15 @@ pub async fn user_for_admin_or_self(
 /// Try to fetch [`Device'] if the device.id is of the currently logged in user, or
 /// the logged in user is an admin.
 #[cfg(feature = "wireguard")]
-pub async fn device_for_admin_or_self(
-    pool: &PgPool,
+pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
     session: &SessionInfo,
     id: Id,
 ) -> Result<Device<Id>, WebError> {
     let fetch = if session.is_admin {
-        Device::find_by_id(pool, id).await
+        Device::find_by_id(executor, id).await
     } else {
-        Device::find_by_id_and_username(pool, id, &session.user.username).await
+        Device::find_by_id_and_username(executor, id, &session.user.username).await
     }?;
 
     match fetch {

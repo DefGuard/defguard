@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclalias\" SET \"parent_id\" = $2,\"name\" = $3,\"kind\" = $4,\"state\" = $5,\"destination\" = $6,\"ports\" = $7,\"protocols\" = $8 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "aclalias_kind",
+            "kind": {
+              "Enum": [
+                "destination",
+                "component"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "aclalias_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "modified"
+              ]
+            }
+          }
+        },
+        "InetArray",
+        "Int4RangeArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d1d66eb92a1db9e88b0090d02e4d7ad03502b6966d4c4edcb6e37518d4873233"
+}

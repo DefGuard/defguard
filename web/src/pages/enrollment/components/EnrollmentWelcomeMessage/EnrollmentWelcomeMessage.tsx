@@ -14,7 +14,7 @@ import {
 import { Card } from '../../../../shared/defguard-ui/components/Layout/Card/Card';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { Textarea } from '../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
+import { TextareaAutoResizable } from '../../../../shared/defguard-ui/components/Layout/TextareaAutoResizable/TextareaAutoResizable';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -25,7 +25,7 @@ export const EnrollmentWelcomeMessage = () => {
     settings: { editSettings },
   } = useApi();
   const settings = useEnrollmentStore((state) => state.settings);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(settings?.enrollment_welcome_message ?? '');
   const { LL } = useI18nContext();
   const componentLL = LL.enrollmentPage.settings.welcomeMessage;
   const queryClient = useQueryClient();
@@ -49,8 +49,7 @@ export const EnrollmentWelcomeMessage = () => {
     if (settings) {
       setMessage(settings?.enrollment_welcome_message);
     }
-    //eslint-disable-next-line
-  }, []);
+  }, [settings]);
 
   return (
     <div id="enrollment-welcome-message">
@@ -74,7 +73,7 @@ export const EnrollmentWelcomeMessage = () => {
           />
         </div>
         <div className="text-wrapper">
-          <Textarea
+          <TextareaAutoResizable
             value={message}
             onChange={(ev: ChangeEvent<HTMLTextAreaElement>) =>
               setMessage(ev.target.value)

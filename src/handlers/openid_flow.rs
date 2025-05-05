@@ -18,9 +18,9 @@ use chrono::Utc;
 use openidconnect::{
     core::{
         CoreAuthErrorResponseType, CoreClaimName, CoreErrorResponseType, CoreGenderClaim,
-        CoreGrantType, CoreHmacKey, CoreJsonWebKeySet, CoreJsonWebKeyType,
-        CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm, CoreProviderMetadata,
-        CoreResponseType, CoreRsaPrivateSigningKey, CoreSubjectIdentifierType, CoreTokenType,
+        CoreGrantType, CoreHmacKey, CoreJsonWebKeySet, CoreJweContentEncryptionAlgorithm,
+        CoreJwsSigningAlgorithm, CoreProviderMetadata, CoreResponseType, CoreRsaPrivateSigningKey,
+        CoreSubjectIdentifierType, CoreTokenType,
     },
     url::Url,
     AccessToken, AdditionalClaims, Audience, AuthUrl, AuthorizationCode,
@@ -93,7 +93,6 @@ pub type DefguardIdTokenFields = IdTokenFields<
     CoreGenderClaim,
     CoreJweContentEncryptionAlgorithm,
     CoreJwsSigningAlgorithm,
-    CoreJsonWebKeyType,
 >;
 
 pub type DefguardTokenResponse = StandardTokenResponse<DefguardIdTokenFields, CoreTokenType>;

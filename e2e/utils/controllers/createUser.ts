@@ -10,7 +10,7 @@ import { loginBasic } from './login';
 export const createUser = async (
   browser: Browser,
   user: User,
-  groups?: string[]
+  groups?: string[],
 ): Promise<void> => {
   const context = await browser.newContext();
   const page = await context.newPage();

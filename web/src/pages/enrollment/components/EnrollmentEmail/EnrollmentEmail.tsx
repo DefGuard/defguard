@@ -16,7 +16,7 @@ import { CheckBox } from '../../../../shared/defguard-ui/components/Layout/Check
 import { Input } from '../../../../shared/defguard-ui/components/Layout/Input/Input';
 import { MessageBox } from '../../../../shared/defguard-ui/components/Layout/MessageBox/MessageBox';
 import { MessageBoxType } from '../../../../shared/defguard-ui/components/Layout/MessageBox/types';
-import { Textarea } from '../../../../shared/defguard-ui/components/Layout/Textarea/Textarea';
+import { TextareaAutoResizable } from '../../../../shared/defguard-ui/components/Layout/TextareaAutoResizable/TextareaAutoResizable';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { QueryKeys } from '../../../../shared/queries';
@@ -29,10 +29,12 @@ export const EnrollmentEmail = () => {
   const queryClient = useQueryClient();
   const { LL } = useI18nContext();
   const [duplicateMessage, setDuplicateMessage] = useState(false);
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const componentLL = LL.enrollmentPage.settings.welcomeEmail;
   const settings = useEnrollmentStore((state) => state.settings);
+  const [email, setEmail] = useState(settings?.enrollment_welcome_email ?? '');
+  const [subject, setSubject] = useState(
+    settings?.enrollment_welcome_email_subject ?? '',
+  );
+  const componentLL = LL.enrollmentPage.settings.welcomeEmail;
   const toaster = useToaster();
 
   const { isPending: isLoading, mutate } = useMutation({
@@ -66,8 +68,7 @@ export const EnrollmentEmail = () => {
       setEmail(settings.enrollment_welcome_email);
       setSubject(settings.enrollment_welcome_email_subject);
     }
-    //eslint-disable-next-line
-  }, []);
+  }, [settings]);
 
   return (
     <div id="enrollment-email">
@@ -104,7 +105,7 @@ export const EnrollmentEmail = () => {
           disabled={isLoading || isUndefined(settings)}
         />
         <div className="text-wrapper">
-          <Textarea
+          <TextareaAutoResizable
             value={email}
             onChange={(ev: ChangeEvent<HTMLTextAreaElement>) => setEmail(ev.target.value)}
             disabled={isLoading || isUndefined(settings)}

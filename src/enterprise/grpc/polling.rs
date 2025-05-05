@@ -5,7 +5,7 @@ use crate::{
     db::{models::polling_token::PollingToken, Device, Id, User},
     enterprise::is_enterprise_enabled,
     grpc::{
-        proto::{InstanceInfoRequest, InstanceInfoResponse},
+        proto::proxy::{InstanceInfoRequest, InstanceInfoResponse},
         utils::build_device_config_response,
     },
 };
@@ -47,6 +47,7 @@ impl PollingServer {
     }
 
     /// Prepares instance info for polling requests. Enterprise only.
+    #[instrument(skip_all)]
     pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
         trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;

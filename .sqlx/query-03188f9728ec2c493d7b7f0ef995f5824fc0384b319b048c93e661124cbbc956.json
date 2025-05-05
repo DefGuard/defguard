@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, parent_id, name, kind \"kind: AliasKind\",state \"state: AliasState\", destination, ports, protocols FROM aclrulealias r JOIN aclalias a ON a.id = r.alias_id WHERE r.rule_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "kind: AliasKind",
+        "type_info": {
+          "Custom": {
+            "name": "aclalias_kind",
+            "kind": {
+              "Enum": [
+                "destination",
+                "component"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "state: AliasState",
+        "type_info": {
+          "Custom": {
+            "name": "aclalias_state",
+            "kind": {
+              "Enum": [
+                "applied",
+                "modified"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "destination",
+        "type_info": "InetArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "ports",
+        "type_info": "Int4RangeArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "protocols",
+        "type_info": "Int4Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "03188f9728ec2c493d7b7f0ef995f5824fc0384b319b048c93e661124cbbc956"
+}

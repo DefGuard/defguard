@@ -22,6 +22,8 @@ pub mod wireguard;
 pub mod wireguard_peer_stats;
 pub mod yubikey;
 
+use std::collections::HashSet;
+
 use sqlx::{query_as, Error as SqlxError, PgConnection, PgPool};
 use utoipa::ToSchema;
 
@@ -72,6 +74,19 @@ pub struct UserInfo {
     pub is_active: bool,
     pub enrolled: bool,
     pub is_admin: bool,
+    pub ldap_pass_requires_change: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct GroupDiff {
+    pub added: HashSet<String>,
+    pub removed: HashSet<String>,
+}
+
+impl GroupDiff {
+    pub fn changed(&self) -> bool {
+        !self.added.is_empty() || !self.removed.is_empty()
+    }
 }
 
 impl UserInfo {
@@ -95,6 +110,7 @@ impl UserInfo {
             is_active: user.is_active,
             enrolled: user.is_enrolled(),
             is_admin: user.is_admin(pool).await?,
+            ldap_pass_requires_change: user.ldap_pass_randomized,
         })
     }
 
@@ -126,9 +142,9 @@ impl UserInfo {
         &mut self,
         transaction: &mut PgConnection,
         user: &mut User<Id>,
-    ) -> Result<bool, SqlxError> {
+    ) -> Result<GroupDiff, SqlxError> {
         // initialize return value
-        let mut groups_changed = false;
+        let mut group_diff = GroupDiff::default();
 
         // handle groups
         let mut present_groups = user.member_of(&mut *transaction).await?;
@@ -145,7 +161,7 @@ impl UserInfo {
                 None => {
                     if let Some(group) = Group::find_by_name(&mut *transaction, groupname).await? {
                         user.add_to_group(&mut *transaction, &group).await?;
-                        groups_changed = true;
+                        group_diff.added.insert(group.name);
                     }
                 }
             }
@@ -154,10 +170,10 @@ impl UserInfo {
         // remove from remaining groups
         for group in present_groups {
             user.remove_from_group(&mut *transaction, &group).await?;
-            groups_changed = true;
+            group_diff.removed.insert(group.name);
         }
 
-        Ok(groups_changed)
+        Ok(group_diff)
     }
 
     /// Copy fields to [`User`]. This function is safe to call by a non-admin user.
@@ -254,10 +270,15 @@ impl MFAInfo {
 
 #[cfg(test)]
 mod test {
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+
     use super::*;
+    use crate::db::setup_pool;
 
     #[sqlx::test]
-    async fn test_user_info(pool: PgPool) {
+    async fn test_user_info(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
         let user = User::new(
             "hpotter",
             Some("pass123"),

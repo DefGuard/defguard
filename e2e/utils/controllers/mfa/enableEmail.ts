@@ -1,5 +1,5 @@
 import { Browser } from 'playwright';
-import totp from 'totp-generator';
+import { TOTP } from 'totp-generator';
 
 import { defaultUserAdmin, routes } from '../../../config';
 import { User } from '../../../types';
@@ -38,7 +38,7 @@ export const setupSMTP = async (browser: Browser) => {
 
 export const enableEmailMFA = async (
   browser: Browser,
-  user: User
+  user: User,
 ): Promise<EnableEmailResult> => {
   await setupSMTP(browser);
   const context = await browser.newContext();
@@ -49,6 +49,7 @@ export const enableEmailMFA = async (
   await loginBasic(page, user);
   await page.goto(routes.base + routes.me);
   await page.getByTestId('edit-user').click();
+  await page.getByTestId('edit-email-mfa').scrollIntoViewIfNeeded();
   await page.getByTestId('edit-email-mfa').click();
   const requestPromise = page.waitForRequest('**/init');
   await page.getByTestId('enable-email-mfa-option').click();
@@ -56,7 +57,7 @@ export const enableEmailMFA = async (
   await requestPromise;
   await waitForPromise(2000);
   const secret = await extractEmailSecret(user.username);
-  const code = totp(secret, {
+  const { otp: code } = TOTP.generate(secret, {
     digits: 6,
     period: 60,
   });

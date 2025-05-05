@@ -13,6 +13,11 @@ use axum::{
 };
 use db::models::device::DeviceType;
 use enterprise::handlers::{
+    acl::{
+        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
+        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
+        update_acl_alias, update_acl_rule,
+    },
     api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
     check_enterprise_info,
     enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
@@ -136,7 +141,6 @@ pub mod grpc;
 pub mod handlers;
 pub mod headers;
 pub mod hex;
-pub mod ldap;
 pub mod mail;
 pub(crate) mod random;
 pub mod secret;
@@ -478,6 +482,23 @@ pub fn build_webapp(
             get(openid_configuration),
         );
 
+    let webapp = webapp.nest(
+        "/api/v1/acl",
+        Router::new()
+            .route("/rule", get(list_acl_rules))
+            .route("/rule", post(create_acl_rule))
+            .route("/rule/apply", put(apply_acl_rules))
+            .route("/rule/{id}", get(get_acl_rule))
+            .route("/rule/{id}", put(update_acl_rule))
+            .route("/rule/{id}", delete(delete_acl_rule))
+            .route("/alias", get(list_acl_aliases))
+            .route("/alias", post(create_acl_alias))
+            .route("/alias/{id}", get(get_acl_alias))
+            .route("/alias/{id}", put(update_acl_alias))
+            .route("/alias/{id}", delete(delete_acl_alias))
+            .route("/alias/apply", put(apply_acl_aliases)),
+    );
+
     #[cfg(feature = "wireguard")]
     let webapp = webapp.nest(
         "/api/v1",
@@ -573,6 +594,7 @@ pub fn build_webapp(
 }
 
 /// Runs core web server exposing REST API.
+#[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,
@@ -651,6 +673,8 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
             false,
             DEFAULT_KEEPALIVE_INTERVAL,
             DEFAULT_DISCONNECT_THRESHOLD,
+            false,
+            false,
         )
         .expect("Could not create network");
         network.pubkey = "zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=".to_string();
@@ -734,6 +758,8 @@ pub async fn init_vpn_location(
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
+        false,
+        false,
     )?
     .save(pool)
     .await?;

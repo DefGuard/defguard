@@ -117,6 +117,7 @@ QW+7CejaY/Essu7DN6HwqwXbipny63b8ct1UXjG02S+Q
     // check if it can be deleted
     const deletePromise = page.waitForResponse('**/auth_key');
     const card = page.locator('.authentication-key-item');
+    await waitForPromise(100);
     await card.locator('.edit-button').click();
     await page.getByRole('button', { name: 'Delete Key', exact: true }).click();
     await page

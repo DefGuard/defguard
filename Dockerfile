@@ -1,4 +1,4 @@
-FROM node:22-alpine AS web
+FROM node:23-alpine AS web
 
 WORKDIR /app
 COPY web/package.json web/pnpm-lock.yaml web/.npmrc .
@@ -8,7 +8,7 @@ COPY web/ .
 RUN pnpm run generate-translation-types
 RUN pnpm build
 
-FROM rust:1.82 AS chef
+FROM rust:1.85.1 AS chef
 
 WORKDIR /build
 
@@ -48,8 +48,8 @@ RUN cargo install --locked --path . --root /build
 # run
 FROM debian:bookworm-slim
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
+  apt-get install --no-install-recommends -y ca-certificates libssl-dev && \
+  rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/defguard .
 ENTRYPOINT ["./defguard"]

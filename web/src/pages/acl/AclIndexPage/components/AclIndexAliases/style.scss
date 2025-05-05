@@ -1,0 +1,65 @@
+@mixin list-row {
+  display: inline-grid;
+  grid-template-rows: 1fr;
+  column-gap: var(--spacing-s);
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+
+  grid-template-columns: 40px 200px repeat(2, 250px) 160px 250px 100px 100px 60px;
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 40px 0.5fr repeat(2, 0.75fr) 160px 0.75fr 100px 100px 60px;
+  }
+
+  .cell {
+    display: inline-flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+
+    &:last-child {
+      justify-content: center;
+    }
+  }
+
+  .select-cell {
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+
+    & > .interaction-box {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.aliases-list {
+  .list-headers {
+    @include list-row;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+
+    & > li {
+      @include list-row;
+      box-sizing: border-box;
+      padding: 9px 0px;
+
+      @include typography(app-modal-2);
+
+      .cell {
+        &.name {
+          @include typography(app-modal-1);
+        }
+      }
+    }
+  }
+}

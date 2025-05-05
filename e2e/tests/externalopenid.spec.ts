@@ -38,7 +38,7 @@ test.describe('External OIDC.', () => {
     await CreateOpenIdClient(browser, client);
     [client.clientID, client.clientSecret] = await copyOpenIdClientIdAndSecret(
       browser,
-      client.name
+      client.name,
     );
     const context = await browser.newContext();
     const page = await context.newPage();

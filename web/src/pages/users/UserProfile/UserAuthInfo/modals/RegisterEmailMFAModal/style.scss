@@ -3,12 +3,15 @@
 #register-mfa-email-modal {
   .content {
     padding: 30px 20px;
+
     @include media-breakpoint-up(lg) {
       padding: 0 30px 30px;
     }
-    .message-box {
-      margin-bottom: 25px;
+
+    .message-box-spacer {
+      padding-bottom: 25px;
     }
+
     form {
       padding: 0;
     }

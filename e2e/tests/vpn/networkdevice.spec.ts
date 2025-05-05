@@ -154,7 +154,7 @@ test.describe('Network devices', () => {
           pubkey: 'DwcCqbwTEvI4erU8RrTUg3fRILhBVzy3rrTqEPGYKIA=',
           token: null,
         },
-      }
+      },
     );
     expect(createDeviceRes.status()).toBe(200);
     const createDeviceResPayload = await createDeviceRes.json();

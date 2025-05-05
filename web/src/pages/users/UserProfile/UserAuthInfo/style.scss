@@ -15,6 +15,14 @@
       padding: 3.5rem 5.3rem 3rem 3rem;
     }
 
+    & > .message-box-spacer {
+      padding-bottom: var(--spacing-s);
+
+      .message > p > p {
+        margin-bottom: var(--spacing-xs);
+      }
+    }
+
     h3 {
       @include small-header;
     }

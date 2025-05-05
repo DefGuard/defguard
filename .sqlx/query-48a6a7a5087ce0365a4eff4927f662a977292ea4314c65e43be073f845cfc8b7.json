@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"aclruleuser\" SET \"rule_id\" = $2,\"user_id\" = $3,\"allow\" = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "48a6a7a5087ce0365a4eff4927f662a977292ea4314c65e43be073f845cfc8b7"
+}

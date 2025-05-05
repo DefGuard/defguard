@@ -8,9 +8,11 @@ use crate::{
         device::DeviceError, enrollment::TokenError, error::ModelError,
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
-    enterprise::license::LicenseError,
+    enterprise::{
+        db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
+        license::LicenseError,
+    },
     grpc::GatewayMapError,
-    ldap::error::LdapError,
     templates::TemplateError,
 };
 
@@ -57,6 +59,10 @@ pub enum WebError {
     LicenseError(#[from] LicenseError),
     #[error("Failed to get client IP address")]
     ClientIpError,
+    #[error("ACL error: {0}")]
+    AclError(#[from] AclError),
+    #[error("Firewall config error: {0}")]
+    FirewallError(#[from] FirewallError),
 }
 
 impl From<tonic::Status> for WebError {
@@ -73,13 +79,7 @@ impl From<StatusCode> for WebError {
 
 impl From<LdapError> for WebError {
     fn from(error: LdapError) -> Self {
-        match error {
-            LdapError::ObjectNotFound(msg) => Self::ObjectNotFound(msg),
-            LdapError::Ldap(msg) => Self::Ldap(msg),
-            LdapError::MissingSettings => Self::Ldap("LDAP settings are missing".into()),
-            LdapError::Database => Self::Ldap("Database problem".into()),
-            LdapError::TooManyObjects => Self::Ldap(LdapError::TooManyObjects.to_string()),
-        }
+        Self::Ldap(error.to_string())
     }
 }
 
@@ -129,7 +129,8 @@ impl From<WireguardNetworkError> for WebError {
             | WireguardNetworkError::ModelError(_)
             | WireguardNetworkError::Unexpected(_)
             | WireguardNetworkError::DeviceError(_)
-            | WireguardNetworkError::DeviceNotAllowed(_) => {
+            | WireguardNetworkError::DeviceNotAllowed(_)
+            | WireguardNetworkError::FirewallError(_) => {
                 Self::Http(StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
