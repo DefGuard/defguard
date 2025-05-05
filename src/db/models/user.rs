@@ -707,8 +707,8 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit current time
-                    frame, checking the previous one.
+                    "Email MFA verification TOTP code for user {} doesn't fit current time \
+                    frame, checking the previous one. \
                     Expected: {expected_code}, got: {code}",
                     self.username
                 );
@@ -724,7 +724,7 @@ impl User<Id> {
                     return true;
                 }
                 debug!(
-                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame,
+                    "Email MFA verification TOTP code for user {} doesn't fit previous time frame, \
                     expected: {previous_code}, got: {code}",
                     self.username
                 );
