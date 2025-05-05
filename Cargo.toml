@@ -6,6 +6,7 @@ license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.85.1"
+default-run = "defguard"
 
 [workspace]
 

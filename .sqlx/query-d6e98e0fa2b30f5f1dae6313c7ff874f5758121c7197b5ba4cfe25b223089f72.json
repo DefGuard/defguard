@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE \"audit_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"ip\" = $4,\"event\" = $5,\"module\" = $6,\"device\" = $7,\"details\" = $8,\"metadata\" = $9 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamp",
+        "Int8",
+        "Inet",
+        "Text",
+        {
+          "Custom": {
+            "name": "audit_module",
+            "kind": {
+              "Enum": [
+                "defguard",
+                "client",
+                "vpn",
+                "enrollment"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d6e98e0fa2b30f5f1dae6313c7ff874f5758121c7197b5ba4cfe25b223089f72"
+}

@@ -28,6 +28,7 @@ use enterprise::handlers::{
     },
 };
 use handlers::{
+    audit_log::get_audit_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
@@ -440,7 +441,9 @@ pub fn build_webapp(
             .route("/webhook/{id}", delete(delete_webhook))
             .route("/webhook/{id}", post(change_enabled))
             // ldap
-            .route("/ldap/test", get(test_ldap_settings)),
+            .route("/ldap/test", get(test_ldap_settings))
+            // audit log
+            .route("/audit_log", get(get_audit_log_events)),
     );
 
     // Enterprise features
