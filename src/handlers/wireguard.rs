@@ -670,7 +670,7 @@ pub(crate) async fn add_device(
             if let Some(firewall_config) =
                 location.try_get_firewall_config(&mut transaction).await?
             {
-                debug!("Sending firewall config update for location {location} affected by deleting user {username} devices");
+                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
                 events.push(GatewayEvent::FirewallConfigChanged(
                     location_id,
                     firewall_config,
