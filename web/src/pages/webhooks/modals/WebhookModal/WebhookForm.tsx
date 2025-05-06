@@ -18,19 +18,6 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { MutationKeys } from '../../../../shared/mutations';
 import { QueryKeys } from '../../../../shared/queries';
-import { Webhook } from '../../../../shared/types';
-
-type FormInputs = Omit<Webhook, 'id' | 'enabled'>;
-
-const defaultValues: FormInputs = {
-  url: '',
-  description: '',
-  token: '',
-  on_hwkey_provision: false,
-  on_user_created: false,
-  on_user_deleted: false,
-  on_user_modified: false,
-};
 
 export const WebhookForm = () => {
   const { LL } = useI18nContext();
@@ -41,12 +28,6 @@ export const WebhookForm = () => {
   const modalState = useModalStore((state) => state.webhookModal);
   const setModalState = useModalStore((state) => state.setWebhookModal);
   const editMode = useMemo(() => !isUndefined(modalState.webhook), [modalState.webhook]);
-  const defaultFormState: FormInputs = useMemo(() => {
-    if (!isUndefined(modalState.webhook)) {
-      return modalState.webhook;
-    }
-    return defaultValues;
-  }, [modalState.webhook]);
 
   const queryClient = useQueryClient();
 
@@ -89,7 +70,26 @@ export const WebhookForm = () => {
     [LL.form.error, LL.modals.webhookModal.form.error],
   );
 
-  const { control, handleSubmit } = useForm<FormInputs>({
+  type FormFields = z.infer<typeof zodSchema>;
+
+  const defaultFormState = useMemo((): FormFields => {
+    if (!isUndefined(modalState.webhook)) {
+      return modalState.webhook;
+    }
+    const defaultValues: FormFields = {
+      url: '',
+      description: '',
+      token: '',
+      enabled: true,
+      on_hwkey_provision: false,
+      on_user_created: false,
+      on_user_deleted: false,
+      on_user_modified: false,
+    };
+    return defaultValues;
+  }, [modalState.webhook]);
+
+  const { control, handleSubmit } = useForm<FormFields>({
     defaultValues: defaultFormState,
     mode: 'all',
     resolver: zodResolver(zodSchema),
@@ -135,7 +135,7 @@ export const WebhookForm = () => {
     },
   });
 
-  const onValidSubmit: SubmitHandler<FormInputs> = (values) => {
+  const onValidSubmit: SubmitHandler<FormFields> = (values) => {
     if (editMode) {
       if (modalState.webhook) {
         editWebhookMutation({ ...modalState.webhook, ...values });
@@ -147,6 +147,11 @@ export const WebhookForm = () => {
 
   return (
     <form onSubmit={handleSubmit(onValidSubmit)}>
+      <FormCheckBox
+        label={LL.common.controls.enabled()}
+        labelPlacement="right"
+        controller={{ control, name: 'enabled' }}
+      />
       <FormInput
         label={LL.modals.webhookModal.form.fields.url.label()}
         controller={{ control, name: 'url' }}
