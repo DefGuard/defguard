@@ -74,32 +74,6 @@ pub fn check_username(username: &str) -> Result<(), WebError> {
     Ok(())
 }
 
-/// Prune the given username from illegal characters in accordance with the following rules:
-///
-/// To enable LDAP sync usernames need to avoid reserved characters.
-/// Username requirements:
-/// - 64 characters long
-/// - only lowercase or uppercase latin alphabet letters (A-Z, a-z) and digits (0-9)
-/// - starts with non-special character
-/// - only special characters allowed: . - _
-/// - no whitespaces
-pub fn prune_username(username: &str) -> String {
-    let mut result = username.to_string();
-
-    if result.len() > 64 {
-        result.truncate(64);
-    }
-
-    // Go through the string and remove any non-alphanumeric characters at the beginning
-    result = result
-        .trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_string();
-
-    result.retain(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
-
-    result
-}
-
 pub(crate) fn check_password_strength(password: &str) -> Result<(), WebError> {
     if !(8..=128).contains(&password.len()) {
         return Err(WebError::Serialization("Incorrect password length".into()));
@@ -1247,23 +1221,6 @@ mod test {
     use claims::{assert_err, assert_ok};
 
     use super::*;
-
-    #[test]
-    fn test_username_prune() {
-        assert_eq!(prune_username("zenek"), "zenek");
-        assert_eq!(prune_username("zenek34"), "zenek34");
-        assert_eq!(prune_username("zenek@34"), "zenek34");
-        assert_eq!(prune_username("first.last"), "first.last");
-        assert_eq!(prune_username("__zenek__"), "zenek__");
-        assert_eq!(prune_username("zenek?"), "zenek");
-        assert_eq!(prune_username("zenek!"), "zenek");
-        assert_eq!(
-            prune_username(
-                "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-            ),
-            "averylongnameeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-        );
-    }
 
     #[test]
     fn test_username_validation() {

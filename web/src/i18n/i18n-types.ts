@@ -2945,6 +2945,30 @@ type RootTranslation = {
 					 */
 					helper: string
 				}
+				usernameHandling: {
+					/**
+					 * U​s​e​r​n​a​m​e​ ​h​a​n​d​l​i​n​g
+					 */
+					label: string
+					/**
+					 * C​o​n​f​i​g​u​r​e​ ​t​h​e​ ​m​e​t​h​o​d​ ​f​o​r​ ​h​a​n​d​l​i​n​g​ ​i​n​v​a​l​i​d​ ​c​h​a​r​a​c​t​e​r​s​ ​i​n​ ​u​s​e​r​n​a​m​e​s​ ​p​r​o​v​i​d​e​d​ ​b​y​ ​y​o​u​r​ ​i​d​e​n​t​i​t​y​ ​p​r​o​v​i​d​e​r​.
+					 */
+					helper: string
+					options: {
+						/**
+						 * R​e​m​o​v​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
+						 */
+						remove: string
+						/**
+						 * R​e​p​l​a​c​e​ ​f​o​r​b​i​d​d​e​n​ ​c​h​a​r​a​c​t​e​r​s
+						 */
+						replace: string
+						/**
+						 * P​r​u​n​e​ ​e​m​a​i​l​ ​d​o​m​a​i​n
+						 */
+						prune_email: string
+					}
+				}
 			}
 			form: {
 				/**
@@ -8806,6 +8830,30 @@ export type TranslationFunctions = {
 					 * If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.
 					 */
 					helper: () => LocalizedString
+				}
+				usernameHandling: {
+					/**
+					 * Username handling
+					 */
+					label: () => LocalizedString
+					/**
+					 * Configure the method for handling invalid characters in usernames provided by your identity provider.
+					 */
+					helper: () => LocalizedString
+					options: {
+						/**
+						 * Remove forbidden characters
+						 */
+						remove: () => LocalizedString
+						/**
+						 * Replace forbidden characters
+						 */
+						replace: () => LocalizedString
+						/**
+						 * Prune email domain
+						 */
+						prune_email: () => LocalizedString
+					}
 				}
 			}
 			form: {

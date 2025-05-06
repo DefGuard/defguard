@@ -1,11 +1,18 @@
 import './style.scss';
 
 import parse from 'html-react-parser';
+import { useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { FormSelect } from '../../../../../shared/defguard-ui/components/Form/FormSelect/FormSelect';
 import { Helper } from '../../../../../shared/defguard-ui/components/Layout/Helper/Helper';
 import { LabeledCheckbox } from '../../../../../shared/defguard-ui/components/Layout/LabeledCheckbox/LabeledCheckbox';
+import {
+  SelectOption,
+  SelectSizeVariant,
+} from '../../../../../shared/defguard-ui/components/Layout/Select/types';
+import { UsernameHandling } from './OpenIdSettingsForm';
 
 export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => {
   const { LL } = useI18nContext();
@@ -16,32 +23,60 @@ export const OpenIdGeneralSettings = ({ isLoading }: { isLoading: boolean }) => 
     name: 'create_account',
   }) as boolean;
 
+  const options: SelectOption<UsernameHandling>[] = useMemo(
+    () => [
+      {
+        value: 'RemoveForbidden',
+        label: localLL.general.usernameHandling.options.remove(),
+        key: 0,
+      },
+      {
+        value: 'ReplaceForbidden',
+        label: localLL.general.usernameHandling.options.replace(),
+        key: 1,
+      },
+      {
+        value: 'PruneEmailDomain',
+        label: localLL.general.usernameHandling.options.prune_email(),
+        key: 2,
+      },
+    ],
+    [localLL.general.usernameHandling.options],
+  );
+
   return (
     <div id="general-settings">
       <div className="subsection-header helper-row">
         <h3>{localLL.general.title()}</h3>
         <Helper>{parse(localLL.general.helper())}</Helper>
       </div>
-      <div>
-        <div>
-          <div className="helper-row">
-            {/* FIXME: Really buggy when using the controller, investigate why */}
-            <LabeledCheckbox
-              label={localLL.general.createAccount.label()}
-              // controller={{
-              //   control,
-              //   name: 'create_account',
-              // }}
-              value={create_account}
-              onChange={(e) => {
-                setValue('create_account', e);
-              }}
-              disabled={isLoading}
-            />
-            <Helper>{localLL.general.createAccount.helper()}</Helper>
-          </div>
-        </div>
+      <div className="helper-row">
+        {/* FIXME: Really buggy when using the controller, investigate why */}
+        <LabeledCheckbox
+          label={localLL.general.createAccount.label()}
+          // controller={{
+          //   control,
+          //   name: 'create_account',
+          // }}
+          value={create_account}
+          onChange={(e) => {
+            setValue('create_account', e);
+          }}
+          disabled={isLoading}
+        />
+        <Helper>{localLL.general.createAccount.helper()}</Helper>
       </div>
+      <FormSelect
+        controller={{
+          control,
+          name: 'username_handling',
+        }}
+        sizeVariant={SelectSizeVariant.STANDARD}
+        options={options}
+        label={localLL.general.usernameHandling.label()}
+        labelExtras={<Helper>{localLL.general.usernameHandling.helper()}</Helper>}
+        disabled={isLoading}
+      />
     </div>
   );
 };
