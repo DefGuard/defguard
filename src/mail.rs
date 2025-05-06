@@ -10,7 +10,10 @@ use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db::{models::settings::SmtpEncryption, Settings};
+use crate::db::{
+    models::settings::{get_settings, SmtpEncryption},
+    Settings,
+};
 
 const SMTP_TIMEOUT_SECONDS: u64 = 15;
 
@@ -49,11 +52,6 @@ struct SmtpSettings {
 }
 
 impl SmtpSettings {
-    /// Retrieves `Settings` from database and builds `SmtpSettings`.
-    pub async fn get(db: &PgPool) -> Result<Self, MailError> {
-        Self::from_settings(Self::get_settings(db).await?)
-    }
-
     /// Constructs `SmtpSettings` from `Settings`. Returns error if `SmtpSettings` are incomplete.
     pub fn from_settings(settings: Settings) -> Result<SmtpSettings, MailError> {
         if let (Some(server), Some(port), encryption, Some(user), Some(password), Some(sender)) = (
@@ -76,11 +74,6 @@ impl SmtpSettings {
         } else {
             Err(MailError::SmtpNotConfigured)
         }
-    }
-
-    /// Retrieves Settings object from database
-    async fn get_settings(db: &PgPool) -> Result<Settings, MailError> {
-        Settings::get(db).await?.ok_or(MailError::EmptySettings)
     }
 }
 
@@ -141,12 +134,11 @@ impl Mail {
 
 struct MailHandler {
     rx: UnboundedReceiver<Mail>,
-    db: PgPool,
 }
 
 impl MailHandler {
-    pub fn new(rx: UnboundedReceiver<Mail>, db: PgPool) -> Self {
-        Self { rx, db }
+    pub fn new(rx: UnboundedReceiver<Mail>) -> Self {
+        Self { rx }
     }
 
     pub fn send_result(
@@ -167,7 +159,10 @@ impl MailHandler {
         while let Some(mail) = self.rx.recv().await {
             let (to, subject) = (mail.to.clone(), mail.subject.clone());
             debug!("Sending mail to: {to}, subject: {subject}");
-            let settings = match SmtpSettings::get(&self.db).await {
+
+            // fetch SMTP settings
+            let settings = Settings::get_current_settings();
+            let settings = match SmtpSettings::from_settings(settings) {
                 Ok(settings) => settings,
                 Err(MailError::SmtpNotConfigured) => {
                     warn!("SMTP not configured, email sending skipped");
@@ -242,6 +237,7 @@ impl MailHandler {
 
 /// Builds MailHandler and runs it.
 #[instrument(skip_all)]
-pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>, db: PgPool) {
-    MailHandler::new(rx, db).run().await;
+pub async fn run_mail_handler(rx: UnboundedReceiver<Mail>) {
+    info!("Starting mail sending service");
+    MailHandler::new(rx).run().await;
 }
