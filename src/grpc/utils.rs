@@ -1,4 +1,3 @@
-use ipnetwork::IpNetwork;
 use sqlx::PgPool;
 use tonic::Status;
 
@@ -16,6 +15,7 @@ use crate::{
         Device, Id, Settings, User,
     },
     enterprise::db::models::enterprise_settings::EnterpriseSettings,
+    AsCsv,
 };
 
 // Create a new token for configuration polling.
@@ -109,20 +109,14 @@ pub(crate) async fn build_device_config_response(
                     );
                     Status::internal(format!("unexpected error: {err}"))
                 })?;
-            let allowed_ips = network
-                .allowed_ips
-                .iter()
-                .map(IpNetwork::to_string)
-                .collect::<Vec<String>>()
-                .join(",");
             let config = ProtoDeviceConfig {
                 config: Device::create_config(&network, &wireguard_network_device),
                 network_id: network.id,
                 network_name: network.name,
-                assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
                 endpoint: format!("{}:{}", network.endpoint, network.port),
                 pubkey: network.pubkey,
-                allowed_ips,
+                allowed_ips: network.allowed_ips.as_csv(),
                 dns: network.dns,
                 mfa_enabled: network.mfa_enabled,
                 keepalive_interval: network.keepalive_interval,
@@ -142,20 +136,14 @@ pub(crate) async fn build_device_config_response(
                         Status::internal(format!("unexpected error: {err}"))
                     })?;
             if let Some(wireguard_network_device) = wireguard_network_device {
-                let allowed_ips = network
-                    .allowed_ips
-                    .iter()
-                    .map(IpNetwork::to_string)
-                    .collect::<Vec<String>>()
-                    .join(",");
                 let config = ProtoDeviceConfig {
                     config: Device::create_config(&network, &wireguard_network_device),
                     network_id: network.id,
                     network_name: network.name,
-                    assigned_ip: wireguard_network_device.wireguard_ip.to_string(),
+                    assigned_ip: wireguard_network_device.wireguard_ips.as_csv(),
                     endpoint: format!("{}:{}", network.endpoint, network.port),
                     pubkey: network.pubkey,
-                    allowed_ips,
+                    allowed_ips: network.allowed_ips.as_csv(),
                     dns: network.dns,
                     mfa_enabled: network.mfa_enabled,
                     keepalive_interval: network.keepalive_interval,

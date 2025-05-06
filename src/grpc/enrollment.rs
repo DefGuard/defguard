@@ -1,4 +1,3 @@
-use ipnetwork::IpNetwork;
 use sqlx::{PgPool, Transaction};
 use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
 use tonic::Status;
@@ -30,6 +29,7 @@ use crate::{
     mail::Mail,
     server_config,
     templates::{self, TemplateLocation},
+    AsCsv,
 };
 
 pub(super) struct EnrollmentServer {
@@ -634,7 +634,7 @@ impl EnrollmentServer {
             .iter()
             .map(|c| TemplateLocation {
                 name: c.network_name.clone(),
-                assigned_ip: c.address.to_string(),
+                assigned_ips: c.address.as_csv(),
             })
             .collect();
 
@@ -722,20 +722,14 @@ impl InitialUserInfo {
 
 impl From<DeviceConfig> for ProtoDeviceConfig {
     fn from(config: DeviceConfig) -> Self {
-        let allowed_ips = config
-            .allowed_ips
-            .iter()
-            .map(IpNetwork::to_string)
-            .collect::<Vec<String>>()
-            .join(",");
         Self {
             network_id: config.network_id,
             network_name: config.network_name,
             config: config.config,
             endpoint: config.endpoint,
-            assigned_ip: config.address.to_string(),
+            assigned_ip: config.address.as_csv(),
             pubkey: config.pubkey,
-            allowed_ips,
+            allowed_ips: config.allowed_ips.as_csv(),
             dns: config.dns,
             mfa_enabled: config.mfa_enabled,
             keepalive_interval: config.keepalive_interval,

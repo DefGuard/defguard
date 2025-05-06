@@ -83,7 +83,7 @@ const UserRow = ({ data }: UserRowProps) => {
       <ActiveDevices data={data.devices} />
       <ConnectionTime connectedAt={getOldestDevice.connected_at} />
       <DeviceIps
-        wireguardIp={getOldestDevice.wireguard_ip}
+        wireguardIps={getOldestDevice.wireguard_ips}
         publicIp={getOldestDevice.public_ip}
       />
       <div className="network-usage">
@@ -138,7 +138,7 @@ const DeviceRow = ({ data }: DeviceRowProps) => {
       </div>
       <div className="col-fill"></div>
       <ConnectionTime connectedAt={data.connected_at} />
-      <DeviceIps publicIp={data.public_ip} wireguardIp={data.wireguard_ip} />
+      <DeviceIps publicIp={data.public_ip} wireguardIps={data.wireguard_ips} />
       <div className="network-usage">
         <div className="network-usage-summary">
           <span className="transfer">
@@ -194,14 +194,16 @@ const ActiveDevices = ({ data }: ActiveDevicesProps) => {
 
 interface DeviceIpsProps {
   publicIp: string;
-  wireguardIp: string;
+  wireguardIps: string[];
 }
 
-const DeviceIps = ({ publicIp, wireguardIp }: DeviceIpsProps) => {
+const DeviceIps = ({ publicIp, wireguardIps }: DeviceIpsProps) => {
   return (
     <div className="device-ips">
       <Badge type={BadgeStyleVariant.STANDARD} text={publicIp} />
-      <Badge type={BadgeStyleVariant.STANDARD} text={wireguardIp} />
+      {wireguardIps.map((ip) => (
+        <Badge type={BadgeStyleVariant.STANDARD} text={ip} key={ip} />
+      ))}
     </div>
   );
 };

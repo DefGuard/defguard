@@ -31,7 +31,7 @@ use handlers::{
     group::{bulk_assign_to_groups, list_groups_info},
     network_devices::{
         add_network_device, check_ip_availability, download_network_device_config,
-        find_available_ip, get_network_device, list_network_devices, modify_network_device,
+        find_available_ips, get_network_device, list_network_devices, modify_network_device,
         start_network_device_setup, start_network_device_setup_for_device,
     },
     ssh_authorized_keys::{
@@ -513,7 +513,7 @@ pub fn build_webapp(
             // Network devices, as opposed to user devices
             .route("/device/network", post(add_network_device))
             .route("/device/network", get(list_network_devices))
-            .route("/device/network/ip/{network_id}", get(find_available_ip))
+            .route("/device/network/ip/{network_id}", get(find_available_ips))
             .route(
                 "/device/network/ip/{network_id}",
                 post(check_ip_availability),
@@ -774,4 +774,22 @@ pub async fn init_vpn_location(
     .to_jwt()?;
 
     Ok(token)
+}
+
+pub trait AsCsv {
+    fn as_csv(&self) -> String;
+}
+
+impl<T, I> AsCsv for I
+where
+    I: ?Sized + std::iter::IntoIterator<Item = T>,
+    for<'a> &'a I: IntoIterator<Item = &'a T>,
+    T: ToString,
+{
+    fn as_csv(&self) -> String {
+        self.into_iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

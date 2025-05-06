@@ -295,7 +295,7 @@ async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_2",
-        "wireguard_ip": "10.0.0.3",
+        "wireguard_ips": ["10.0.0.3"],
         "wireguard_pubkey": "TJgN9JzUF5zdZAPYD96G/Wys2M3TvaT5TIrErUl20nI=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
@@ -319,7 +319,7 @@ async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_4",
-        "wireguard_ip": "10.0.0.5",
+        "wireguard_ips": ["10.0.0.5"],
         "wireguard_pubkey": "gTMFF29nNLkJR1UhoiO3ZJLF60h2hW+WxmIu5DGJ0B4=",
         "user_id": 2,
         "created": "2023-05-05T23:56:04"
@@ -348,7 +348,7 @@ async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let device = json!({"devices": [{
         "name": "device_6",
-        "wireguard_ip": "10.0.0.7",
+        "wireguard_ips": ["10.0.0.7"],
         "wireguard_pubkey": "xGLqgxVAnmk9+tsj5X/wzwouwx3bF1b3W+VWAb4NLjM=",
         "user_id": 2,
         "created": "2023-05-05T23:56:04"
@@ -372,7 +372,7 @@ async fn test_device_permissions(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
     let device = json!({"devices": [{
         "name": "device_8",
-        "wireguard_ip": "10.0.0.9",
+        "wireguard_ips": ["10.0.0.9"],
         "wireguard_pubkey": "A2cg4qMe+s0MSFlV6xyhz7XY6PrET6mli9GVSUshXAk=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
@@ -491,14 +491,14 @@ async fn test_device_pubkey(_: PgPoolOptions, options: PgConnectOptions) {
     // try to create multiple devices
     let devices = json!({"devices": [{
         "name": "device_2",
-        "wireguard_ip": "10.0.0.9",
+        "wireguard_ips": ["10.0.0.9"],
         "wireguard_pubkey": "o/8q3kmv5nnbrcb/7aceQWGE44a0yI707wObXRyyWGU=",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"
     },
     {
         "name": "device_3",
-        "wireguard_ip": "10.0.0.10",
+        "wireguard_ips": ["10.0.0.10"],
         "wireguard_pubkey": "invalid_key",
         "user_id": 1,
         "created": "2023-05-05T23:56:04"

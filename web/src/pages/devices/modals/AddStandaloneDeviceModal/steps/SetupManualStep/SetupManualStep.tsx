@@ -82,7 +82,7 @@ export const SetupManualStep = () => {
         });
       }
       const response = await mutateAsync({
-        assigned_ip: values.modifiableIpPart,
+        assigned_ips: values.modifiableIpParts,
         location_id: values.location_id,
         name: values.name,
         description: values.description,
@@ -100,7 +100,7 @@ export const SetupManualStep = () => {
   const defaultFormValues = useMemo(() => {
     if (locationOptions && initialIpResponse) {
       const res: AddStandaloneDeviceFormFields = {
-        modifiableIpPart: initialIpResponse.modifiable_part,
+        modifiableIpParts: initialIpResponse.map((ip) => ip.modifiable_part),
         generationChoice: WGConfigGenChoice.AUTO,
         location_id: locationOptions[0].value,
         name: '',

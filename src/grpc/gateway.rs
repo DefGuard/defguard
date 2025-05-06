@@ -1,4 +1,5 @@
 use std::{
+    net::IpAddr,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
@@ -68,7 +69,11 @@ impl WireguardNetwork<Id> {
         debug!("Fetching all peers for network {}", self.id);
         let rows = query!(
             "SELECT d.wireguard_pubkey pubkey, preshared_key, \
-                array[host(wnd.wireguard_ip)] \"allowed_ips!: Vec<String>\" \
+                -- TODO possible to not use ARRAY-unnest here?
+                ARRAY(
+                    SELECT host(ip)
+                    FROM unnest(wnd.wireguard_ips) AS ip
+                ) \"allowed_ips!: Vec<String>\" \
             FROM wireguard_network_device wnd \
             JOIN device d ON wnd.device_id = d.id \
             JOIN \"user\" u ON d.user_id = u.id \
@@ -281,7 +286,11 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    allowed_ips: network_info
+                                        .device_wireguard_ips
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,
@@ -311,7 +320,11 @@ impl GatewayUpdatesHandler {
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
-                                    allowed_ips: vec![network_info.device_wireguard_ip.to_string()],
+                                    allowed_ips: network_info
+                                        .device_wireguard_ips
+                                        .iter()
+                                        .map(IpAddr::to_string)
+                                        .collect(),
                                     preshared_key: network_info.preshared_key.clone(),
                                     keepalive_interval: Some(
                                         self.network.keepalive_interval as u32,

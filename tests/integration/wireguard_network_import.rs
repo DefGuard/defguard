@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use defguard::{
     db::{
         models::{
@@ -140,7 +142,10 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
         .unwrap()
         .unwrap();
     assert_eq!(user_device_1.networks.len(), 2);
-    assert_eq!(user_device_1.networks[1].device_wireguard_ip, "10.0.0.12");
+    assert_eq!(
+        user_device_1.networks[1].device_wireguard_ips,
+        vec!["10.0.0.12"]
+    );
     // generated IP for other existing device
     assert_matches!(wg_rx.try_recv().unwrap(), GatewayEvent::DeviceCreated(..));
     let user_device_2 = UserDevice::from_device(&pool, device_2)
@@ -154,7 +159,10 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(devices.len(), 2);
 
     let mut device1 = devices[0].clone();
-    assert_eq!(device1.wireguard_ip.to_string(), "10.0.0.10");
+    assert_eq!(
+        device1.wireguard_ips,
+        ["10.0.0.10".parse::<IpAddr>().unwrap()]
+    );
     assert_eq!(
         device1.wireguard_pubkey,
         "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
@@ -163,7 +171,10 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(device1.user_id, None);
 
     let mut device2 = devices[1].clone();
-    assert_eq!(device2.wireguard_ip.to_string(), "10.0.0.11");
+    assert_eq!(
+        device2.wireguard_ips,
+        ["10.0.0.11".parse::<IpAddr>().unwrap()]
+    );
     assert_eq!(
         device2.wireguard_pubkey,
         "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
@@ -210,23 +221,23 @@ async fn test_config_import(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(user_info.devices.len(), 4);
     assert_eq!(user_info.devices[0].device.name, "test device");
     assert_eq!(
-        user_info.devices[0].networks[1].device_wireguard_ip,
-        "10.0.0.12"
+        user_info.devices[0].networks[1].device_wireguard_ips,
+        vec!["10.0.0.12"]
     );
     assert_eq!(user_info.devices[1].device.name, "another test device");
     assert_eq!(
-        user_info.devices[1].networks[1].device_wireguard_ip,
-        "10.0.0.2"
+        user_info.devices[1].networks[1].device_wireguard_ips,
+        vec!["10.0.0.2"]
     );
     assert_eq!(user_info.devices[2].device.name, "device_1");
     assert_eq!(
-        user_info.devices[2].networks[1].device_wireguard_ip,
-        "10.0.0.10"
+        user_info.devices[2].networks[1].device_wireguard_ips,
+        vec!["10.0.0.10"]
     );
     assert_eq!(user_info.devices[3].device.name, "device_2");
     assert_eq!(
-        user_info.devices[3].networks[1].device_wireguard_ip,
-        "10.0.0.11"
+        user_info.devices[3].networks[1].device_wireguard_ips,
+        vec!["10.0.0.11"]
     );
 }
 

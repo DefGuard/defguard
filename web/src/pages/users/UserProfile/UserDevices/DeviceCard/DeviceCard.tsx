@@ -7,6 +7,7 @@ import { isUndefined, orderBy } from 'lodash-es';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../../../../i18n/i18n-react';
+import { ListCellTags } from '../../../../../shared/components/Layout/ListCellTags/ListCellTags';
 import IconClip from '../../../../../shared/components/svg/IconClip';
 import SvgIconCollapse from '../../../../../shared/components/svg/IconCollapse';
 import SvgIconCopy from '../../../../../shared/components/svg/IconCopy';
@@ -26,6 +27,7 @@ import { useUserProfileStore } from '../../../../../shared/hooks/store/useUserPr
 import { useClipboard } from '../../../../../shared/hooks/useClipboard';
 import { Device, DeviceNetworkInfo } from '../../../../../shared/types';
 import { sortByDate } from '../../../../../shared/utils/sortByDate';
+import { ListCellTag } from '../../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteDeviceModal } from '../hooks/useDeleteDeviceModal';
 import { useDeviceConfigModal } from '../hooks/useDeviceConfigModal';
 import { useEditDeviceModal } from '../hooks/useEditDeviceModal';
@@ -234,11 +236,20 @@ const DeviceLocation = ({
     network_gateway_ip,
     last_connected_ip,
     last_connected_at,
-    device_wireguard_ip,
+    device_wireguard_ips,
   },
 }: DeviceLocationProps) => {
   const { LL } = useI18nContext();
   const { writeToClipboard } = useClipboard();
+  const ipsTags = useMemo(
+    (): ListCellTag[] =>
+      device_wireguard_ips.map((ip) => ({
+        key: ip,
+        label: ip,
+        displayAsTag: false,
+      })),
+    [device_wireguard_ips],
+  );
   return (
     <div className="location" data-testid={`device-location-id-${network_id}`}>
       <header>
@@ -282,20 +293,7 @@ const DeviceLocation = ({
         </div>
         <div className="limited">
           <Label>{LL.userPage.devices.card.labels.assignedIp()}</Label>
-          <LimitedText
-            text={device_wireguard_ip}
-            testId="device-assigned-ip"
-            otherContent={
-              <button
-                className="copy"
-                onClick={() => {
-                  void writeToClipboard(device_wireguard_ip);
-                }}
-              >
-                <SvgIconCopy />
-              </button>
-            }
-          />
+          <ListCellTags data={ipsTags} />
         </div>
       </div>
     </div>
