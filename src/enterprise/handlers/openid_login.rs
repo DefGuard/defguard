@@ -51,10 +51,6 @@ use crate::{
 pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> String {
     let mut result = username.to_string();
 
-    if result.len() > 64 {
-        result.truncate(64);
-    }
-
     // Go through the string and remove any non-alphanumeric characters at the beginning
     result = result
         .trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
@@ -81,6 +77,10 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
                 .map(|c| if is_char_valid(c) { c } else { '_' })
                 .collect();
         }
+    }
+
+    if result.len() > 64 {
+        result.truncate(64);
     }
 
     result
