@@ -19,7 +19,7 @@ use crate::{
     db::{
         models::{
             device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
-            wireguard::NetworkIpAssignmentError,
+            wireguard::NetworkAddressError,
         },
         Device, GatewayEvent, Id, User, WireguardNetwork,
     },
@@ -264,31 +264,31 @@ pub(crate) async fn check_ip_availability(
     };
     return match network.can_assign_ips(&mut transaction, &ips, None).await {
         Ok(_) => mkresponse(true, true),
-        Err(NetworkIpAssignmentError::NoContainingNetwork(name, ip, networks)) => {
+        Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
             warn!(
                 "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
             );
             mkresponse(false, false)
         }
-        Err(NetworkIpAssignmentError::ReservedForGateway(name, ip)) => {
+        Err(NetworkAddressError::ReservedForGateway(name, ip)) => {
             warn!(
                 "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
             );
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::IsBroadcastAddress(name, ip)) => {
+        Err(NetworkAddressError::IsBroadcastAddress(name, ip)) => {
             warn!("Provided device IP address {ip} is broadcast address of network {name}");
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::IsNetworkAddress(name, ip)) => {
+        Err(NetworkAddressError::IsNetworkAddress(name, ip)) => {
             warn!("Provided device IP address {ip} is network address of network {name}");
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::AddressAlreadyAssigned(name, ip)) => {
+        Err(NetworkAddressError::AddressAlreadyAssigned(name, ip)) => {
             warn!("Provided device IP {ip} is already assigned in network {name}");
             mkresponse(false, true)
         }
-        Err(NetworkIpAssignmentError::DbError(err)) => Err(err)?,
+        Err(NetworkAddressError::DbError(err)) => Err(err)?,
     };
 }
 
@@ -359,8 +359,8 @@ pub struct StartNetworkDeviceSetup {
     assigned_ips: Vec<String>,
 }
 
-impl From<NetworkIpAssignmentError> for WebError {
-    fn from(error: NetworkIpAssignmentError) -> Self {
+impl From<NetworkAddressError> for WebError {
+    fn from(error: NetworkAddressError) -> Self {
         WebError::BadRequest(error.to_string())
     }
 }

@@ -789,7 +789,7 @@ where
     fn as_csv(&self) -> String {
         self.into_iter()
             .map(ToString::to_string)
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join(",")
     }
 }

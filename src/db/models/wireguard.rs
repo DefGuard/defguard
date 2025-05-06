@@ -172,7 +172,7 @@ pub enum WireguardNetworkError {
 }
 
 #[derive(Debug, Error)]
-pub enum NetworkIpAssignmentError {
+pub enum NetworkAddressError {
     #[error(
         "Location {0} has no network that could contain IP address {1}, available networks: {2:?}"
     )]
@@ -489,13 +489,13 @@ impl WireguardNetwork<Id> {
         currently_configured_devices: Vec<WireguardNetworkDevice>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        // loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
+        // Loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
         // initial list should now contain only devices to be added
         let mut events: Vec<GatewayEvent> = Vec::new();
         for device_network_config in currently_configured_devices {
-            // device is allowed and an IP was already assigned
+            // Device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
-                // network address changed and IPs need to be updated
+                // Network address changed and IP addresses need to be updated
                 if !self.contains_all(&device_network_config.wireguard_ips)
                     || self.address.len() != device_network_config.wireguard_ips.len()
                 {
@@ -512,7 +512,7 @@ impl WireguardNetwork<Id> {
                         }],
                     }));
                 }
-            // device is no longer allowed
+            // Device is no longer allowed
             } else {
                 debug!(
                     "Device {} no longer allowed, removing network config for {self}",
@@ -539,7 +539,7 @@ impl WireguardNetwork<Id> {
             }
         }
 
-        // add configs for new allowed devices
+        // Add configs for new allowed devices
         for device in allowed_devices.into_values() {
             let wireguard_network_device = device
                 .assign_next_network_ip(&mut *transaction, self, reserved_ips)
@@ -1182,44 +1182,41 @@ impl WireguardNetwork<Id> {
         transaction: &mut PgConnection,
         ip_addrs: &[IpAddr],
         device_id: Option<Id>,
-    ) -> Result<(), NetworkIpAssignmentError> {
-        // make sure the network contains all provided ips
+    ) -> Result<(), NetworkAddressError> {
+        // Ensure the network contains all provided IP addresses
         let networks = ip_addrs
             .iter()
             .map(|ip| self.get_containing_network(*ip).ok_or(*ip))
             .collect::<Result<Vec<IpNetwork>, IpAddr>>()
             .map_err(|ip| {
-                NetworkIpAssignmentError::NoContainingNetwork(
+                NetworkAddressError::NoContainingNetwork(
                     self.name.clone(),
                     ip,
                     self.address.clone(),
                 )
             })?;
         for (ip, network_address) in zip(ip_addrs, networks) {
-            let net_ip = network_address.ip();
-            let net_network = network_address.network();
-            let net_broadcast = network_address.broadcast();
-            if *ip == net_network {
-                return Err(NetworkIpAssignmentError::IsNetworkAddress(
+            if *ip == network_address.network() {
+                return Err(NetworkAddressError::IsNetworkAddress(
                     self.name.clone(),
                     *ip,
                 ));
-            } else if *ip == net_broadcast {
-                return Err(NetworkIpAssignmentError::IsBroadcastAddress(
+            } else if *ip == network_address.broadcast() {
+                return Err(NetworkAddressError::IsBroadcastAddress(
                     self.name.clone(),
                     *ip,
                 ));
-            } else if *ip == net_ip {
-                return Err(NetworkIpAssignmentError::ReservedForGateway(
+            } else if *ip == network_address.ip() {
+                return Err(NetworkAddressError::ReservedForGateway(
                     self.name.clone(),
                     *ip,
                 ));
             }
 
-            // make sure the ip is unassigned
+            // Make sure the IP address is not assigned
             let device = Device::find_by_ip(&mut *transaction, *ip, self.id).await?;
             if device.is_some_and(|device| device_id != Some(device.id)) {
-                return Err(NetworkIpAssignmentError::AddressAlreadyAssigned(
+                return Err(NetworkAddressError::AddressAlreadyAssigned(
                     self.name.clone(),
                     *ip,
                 ));
@@ -1928,7 +1925,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::NoContainingNetwork(..))
+            Err(NetworkAddressError::NoContainingNetwork(..))
         );
 
         // try to assign already assigned address
@@ -1968,7 +1965,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::AddressAlreadyAssigned(..))
+            Err(NetworkAddressError::AddressAlreadyAssigned(..))
         );
 
         // assign with exception for the device
@@ -1986,7 +1983,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::ReservedForGateway(..))
+            Err(NetworkAddressError::ReservedForGateway(..))
         );
 
         // try to assign network address
@@ -1995,7 +1992,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::IsNetworkAddress(..))
+            Err(NetworkAddressError::IsNetworkAddress(..))
         );
 
         // try to assign broadcast address
@@ -2004,7 +2001,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::IsBroadcastAddress(..))
+            Err(NetworkAddressError::IsBroadcastAddress(..))
         );
     }
 
@@ -2065,7 +2062,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::NoContainingNetwork(..))
+            Err(NetworkAddressError::NoContainingNetwork(..))
         );
 
         // try to assign already assigned address
@@ -2108,7 +2105,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::AddressAlreadyAssigned(..))
+            Err(NetworkAddressError::AddressAlreadyAssigned(..))
         );
 
         // assign with exception for the device
@@ -2126,7 +2123,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::ReservedForGateway(..))
+            Err(NetworkAddressError::ReservedForGateway(..))
         );
 
         // try to assign network address
@@ -2135,7 +2132,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::IsNetworkAddress(..))
+            Err(NetworkAddressError::IsNetworkAddress(..))
         );
 
         // try to assign broadcast address
@@ -2144,7 +2141,7 @@ mod test {
             network
                 .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
                 .await,
-            Err(NetworkIpAssignmentError::IsBroadcastAddress(..))
+            Err(NetworkAddressError::IsBroadcastAddress(..))
         );
     }
 }

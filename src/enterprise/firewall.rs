@@ -1027,7 +1027,7 @@ mod test {
         );
 
         // Test with empty input
-        let empty_addrs = process_destination_addrs(vec![], vec![]);
+        let empty_addrs = process_destination_addrs(Vec::new(), Vec::new());
         assert!(empty_addrs.0.is_empty());
 
         // Test with only IPv6 addresses - should return empty result for IPv4

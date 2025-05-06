@@ -21,7 +21,7 @@ use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{NetworkIpAssignmentError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{NetworkAddressError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
 };
 use crate::{
     db::{Id, NoId, User},
@@ -516,7 +516,7 @@ pub enum DeviceError {
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
     #[error(transparent)]
-    NetworkIpAssignmentError(#[from] NetworkIpAssignmentError),
+    NetworkIpAssignmentError(#[from] NetworkAddressError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
 }
@@ -827,9 +827,9 @@ impl Device<Id> {
             self.name, network.name
         );
         let mut ips = Vec::new();
-        let reserved = reserved_ips.unwrap_or(&[]);
+        let reserved = reserved_ips.unwrap_or_default();
 
-        // iterate over all network addresses and assign new IP for the device in each of them
+        // Iterate over all network addresses and assign new IP for the device in each of them
         for address in &network.address {
             debug!(
                 "Assigning address to device {} in network {} {address}",
@@ -848,16 +848,16 @@ impl Device<Id> {
                 }
             }
 
-            // return error if no address can be assigned
+            // Return error if no address can be assigned
             let ip = picked.ok_or_else(|| {
                 error!(
-                    "Failed to assign address for device {} in network {:?}",
-                    self.name, address
+                    "Failed to assign address for device {} in network {address:?}",
+                    self.name,
                 );
                 ModelError::CannotCreate
             })?;
 
-            // store the ip otherwise
+            // Otherwise, store the IP address
             debug!(
                 "Found assignable address {ip} for device {} in network {} {address}",
                 self.name, network.name,
@@ -865,7 +865,7 @@ impl Device<Id> {
             ips.push(ip);
         }
 
-        // create relation record
+        // Create relation record
         let wireguard_network_device =
             WireguardNetworkDevice::new(network.id, self.id, ips.clone());
         wireguard_network_device.insert(&mut *transaction).await?;
@@ -885,7 +885,7 @@ impl Device<Id> {
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         ips: &[IpAddr],
-    ) -> Result<WireguardNetworkDevice, NetworkIpAssignmentError> {
+    ) -> Result<WireguardNetworkDevice, NetworkAddressError> {
         debug!(
             "Assigning IPs: {ips:?} for device: {} in network {}",
             self.name, network.name
