@@ -62,7 +62,7 @@ export const DialogSelect = <T extends object, I extends number | string>({
             })}
           >
             <FloatingMenuProvider placement="top">
-              <FloatingMenuTrigger asChild>
+              <FloatingMenuTrigger asChild disabled={!selectedOptions.length}>
                 <div
                   className={clsx('track', {
                     overflows,
