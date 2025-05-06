@@ -79,9 +79,7 @@ pub fn prune_username(username: &str, handling: OpenidUsernameHandling) -> Strin
         }
     }
 
-    if result.len() > 64 {
-        result.truncate(64);
-    }
+    result.truncate(64);
 
     result
 }
