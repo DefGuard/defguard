@@ -110,6 +110,9 @@ importers:
       merge-refs:
         specifier: ^1.3.0
         version: 1.3.0(@types/react@18.2.48)
+      millify:
+        specifier: ^6.1.0
+        version: 6.1.0
       numbro:
         specifier: ^2.5.0
         version: 2.5.0
@@ -2927,6 +2930,10 @@ packages:
   micromatch@4.0.5:
     resolution: {integrity: sha512-DMy+ERcEW2q8Z2Po+WNXuw3c5YaUSFjAO5GsJqfEl7UjvtIuFKO6ZrKvcItdy98dwFI2N1tg3zNIdKaQT+aNdA==}
     engines: {node: '>=8.6'}
+
+  millify@6.1.0:
+    resolution: {integrity: sha512-H/E3J6t+DQs/F2YgfDhxUVZz/dF8JXPPKTLHL/yHCcLZLtCXJDUaqvhJXQwqOVBvbyNn4T0WjLpIHd7PAw7fBA==}
+    hasBin: true
 
   mime-db@1.52.0:
     resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
@@ -7270,6 +7277,10 @@ snapshots:
     dependencies:
       braces: 3.0.3
       picomatch: 2.3.1
+
+  millify@6.1.0:
+    dependencies:
+      yargs: 17.7.2
 
   mime-db@1.52.0: {}
 

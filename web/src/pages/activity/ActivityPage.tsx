@@ -76,7 +76,7 @@ const PageContent = () => {
       <div id="activity-list">
         <div className="top">
           <h2>All activity</h2>
-          <ListItemCount count={data?.pages[0].pagination.total_items ?? 0} />
+          <ListItemCount shorten count={data?.pages[0].pagination.total_items ?? 0} />
           <div className="controls"></div>
         </div>
         <Card id="activity-list-card">
