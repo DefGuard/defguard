@@ -63,7 +63,7 @@ export const MapDeviceRow = ({ options, control, index }: Props) => {
   return (
     <RowBox className="device" customAnimate={getAnimate}>
       <input className="name" type="text" {...nameController.field} />
-      <span className="ip limited">{ipController.field.value.join(" ")}</span>
+      <span className="ip limited">{ipController.field.value.join(' ')}</span>
       <Select
         data-testid={`user-select-${index}`}
         searchable
