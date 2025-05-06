@@ -1,7 +1,8 @@
 @use '@scssutils' as *;
 
 #openid-settings,
-#dirsync-settings {
+#dirsync-settings,
+#general-settings {
   .select {
     padding-bottom: var(--spacing-s);
   }
@@ -71,8 +72,8 @@
     justify-content: flex-end;
   }
 
-  #enable-dir-sync {
-    margin-bottom: 25px;
+  .labeled-checkbox {
+    padding-bottom: var(--spacing-s);
   }
 }
 

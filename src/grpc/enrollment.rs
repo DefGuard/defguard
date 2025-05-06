@@ -88,6 +88,7 @@ impl EnrollmentServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn start_enrollment(
         &self,
         request: EnrollmentStartRequest,
@@ -231,6 +232,7 @@ impl EnrollmentServer {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn activate_user(
         &self,
         request: ActivateUserRequest,
@@ -342,6 +344,7 @@ impl EnrollmentServer {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn create_device(
         &self,
         request: NewDevice,
@@ -666,6 +669,7 @@ impl EnrollmentServer {
     }
 
     /// Get all information needed to update instance information for desktop client
+    #[instrument(skip_all)]
     pub async fn get_network_info(
         &self,
         request: ExistingDevice,

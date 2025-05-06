@@ -1107,6 +1107,16 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
           helper:
             'Jeśli ta opcja jest włączona, Defguard automatycznie tworzy nowe konta dla użytkowników, którzy logują się po raz pierwszy za pomocą zewnętrznego dostawcy OpenID. W innym przypadku konto użytkownika musi zostać najpierw utworzone przez administratora.',
         },
+        usernameHandling: {
+          label: 'Obsługa nazw użytkowników',
+          helper:
+            'Skonfiguruj metodę obsługi nieprawidłowych znaków w nazwach użytkowników twojego dostawcy tożsamości.',
+          options: {
+            remove: 'Usuń niedozwolone znaki',
+            replace: 'Zamień niedozwolone znaki',
+            prune_email: 'Przytnij adres e-mail',
+          },
+        },
       },
       form: {
         title: 'Ustawienia klienta',

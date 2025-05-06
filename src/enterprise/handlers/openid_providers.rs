@@ -10,7 +10,10 @@ use super::LicenseInfo;
 use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
-    db::{models::settings::update_current_settings, Settings},
+    db::{
+        models::settings::{update_current_settings, OpenidUsernameHandling},
+        Settings,
+    },
     enterprise::{
         db::models::openid_provider::OpenIdProvider, directory_sync::test_directory_sync_connection,
     },
@@ -36,6 +39,7 @@ pub struct AddProviderData {
     pub okta_private_jwk: Option<String>,
     pub okta_dirsync_client_id: Option<String>,
     pub directory_sync_group_match: Option<String>,
+    pub username_handling: OpenidUsernameHandling,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -107,6 +111,7 @@ pub async fn add_openid_provider(
 
     let mut settings = Settings::get_current_settings();
     settings.openid_create_account = provider_data.create_account;
+    settings.openid_username_handling = provider_data.username_handling;
     update_current_settings(&appstate.pool, settings).await?;
 
     let group_match = if let Some(group_match) = provider_data.directory_sync_group_match {
@@ -173,7 +178,7 @@ pub async fn get_current_openid_provider(
             Ok(ApiResponse {
                 json: json!({
                     "provider": json!(provider),
-                    "settings": json!({ "create_account": create_account }),
+                    "settings": json!({ "create_account": create_account, "username_handling": settings.openid_username_handling}),
                 }),
                 status: StatusCode::OK,
             })

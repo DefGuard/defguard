@@ -594,6 +594,7 @@ pub fn build_webapp(
 }
 
 /// Runs core web server exposing REST API.
+#[instrument(skip_all)]
 pub async fn run_web_server(
     worker_state: Arc<Mutex<WorkerState>>,
     gateway_state: Arc<Mutex<GatewayMap>>,

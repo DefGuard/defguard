@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     net::IpAddr,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -653,10 +654,39 @@ pub(crate) async fn add_device(
 
     let (network_info, configs) = device.add_to_all_networks(&mut transaction).await?;
 
-    appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
+    // prepare a list of gateway events to be sent
+    let mut events = Vec::new();
+
+    // get all locations affected by device being added
+    let mut affected_location_ids = HashSet::new();
+    for network_info_item in network_info.clone() {
+        affected_location_ids.insert(network_info_item.network_id);
+    }
+
+    // send firewall config updates to affected locations
+    // if they have ACL enabled & enterprise features are active
+    for location_id in affected_location_ids {
+        if let Some(location) = WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
+        {
+            if let Some(firewall_config) =
+                location.try_get_firewall_config(&mut transaction).await?
+            {
+                debug!("Sending firewall config update for location {location} affected by adding new user {username} devices");
+                events.push(GatewayEvent::FirewallConfigChanged(
+                    location_id,
+                    firewall_config,
+                ));
+            }
+        }
+    }
+
+    // add peer on relevant gateways
+    events.push(GatewayEvent::DeviceCreated(DeviceInfo {
         device: device.clone(),
         network_info: network_info.clone(),
     }));
+
+    appstate.send_multiple_wireguard_events(events);
 
     transaction.commit().await?;
 

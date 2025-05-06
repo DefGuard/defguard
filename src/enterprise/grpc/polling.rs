@@ -47,6 +47,7 @@ impl PollingServer {
     }
 
     /// Prepares instance info for polling requests. Enterprise only.
+    #[instrument(skip_all)]
     pub async fn info(&self, request: InstanceInfoRequest) -> Result<InstanceInfoResponse, Status> {
         trace!("Polling info start");
         let token = self.validate_session(&request.token).await?;

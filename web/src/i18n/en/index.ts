@@ -1198,6 +1198,16 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
           helper:
             'If this option is enabled, Defguard automatically creates new accounts for users who log in for the first time using an external OpenID provider. Otherwise, the user account must first be created by an administrator.',
         },
+        usernameHandling: {
+          label: 'Username handling',
+          helper:
+            'Configure the method for handling invalid characters in usernames provided by your identity provider.',
+          options: {
+            remove: 'Remove forbidden characters',
+            replace: 'Replace forbidden characters',
+            prune_email: 'Prune email domain',
+          },
+        },
       },
       form: {
         title: 'Client settings',

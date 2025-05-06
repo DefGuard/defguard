@@ -48,6 +48,18 @@ pub enum SmtpEncryption {
     ImplicitTls,
 }
 
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Type, Debug, Default, Copy)]
+#[sqlx(type_name = "openid_username_handling", rename_all = "snake_case")]
+pub enum OpenidUsernameHandling {
+    #[default]
+    /// Removes all forbidden characters
+    RemoveForbidden,
+    /// Replaces all forbidden characters with `_`
+    ReplaceForbidden,
+    /// Removes the email domain, replaces all other forbidden characters with `_`
+    PruneEmailDomain,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Patch, Serialize, Default)]
 #[patch(attribute(derive(Deserialize, Serialize, Debug)))]
 pub struct Settings {
@@ -107,6 +119,7 @@ pub struct Settings {
     pub ldap_sync_groups: Vec<String>,
     // Whether to create a new account when users try to log in with external OpenID
     pub openid_create_account: bool,
+    pub openid_username_handling: OpenidUsernameHandling,
     pub license: Option<String>,
     // Gateway disconnect notifications
     pub gateway_disconnect_notifications_enabled: bool,
@@ -138,7 +151,8 @@ impl Settings {
             ldap_sync_status \"ldap_sync_status: SyncStatus\", \
             ldap_enabled, ldap_sync_enabled, ldap_is_authoritative, \
             ldap_sync_interval, ldap_user_auxiliary_obj_classes, ldap_uses_ad, \
-            ldap_user_rdn_attr, ldap_sync_groups \
+            ldap_user_rdn_attr, ldap_sync_groups, \
+            openid_username_handling \"openid_username_handling: OpenidUsernameHandling\" \
             FROM \"settings\" WHERE id = 1",
         )
         .fetch_optional(executor)
@@ -209,7 +223,8 @@ impl Settings {
             ldap_user_auxiliary_obj_classes = $44, \
             ldap_uses_ad = $45, \
             ldap_user_rdn_attr = $46, \
-            ldap_sync_groups = $47 \
+            ldap_sync_groups = $47, \
+            openid_username_handling = $48 \
             WHERE id = 1",
             self.openid_enabled,
             self.wireguard_enabled,
@@ -258,6 +273,7 @@ impl Settings {
             self.ldap_uses_ad,
             self.ldap_user_rdn_attr,
             &self.ldap_sync_groups as &Vec<String>,
+            &self.openid_username_handling as &OpenidUsernameHandling,
         )
         .execute(executor)
         .await?;
