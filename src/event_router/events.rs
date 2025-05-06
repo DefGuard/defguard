@@ -38,7 +38,20 @@ impl From<AuditLogContext> for EventContext {
 }
 
 /// Main events that can be routed through the system
+///
+/// System components can send events to the event router through the `event_tx` channel.
+/// The enum itself is organized based on event source to make splitting logic into smaller chunks easier.
 #[derive(Debug)]
 pub enum MainEvent {
+    Api(ApiEvent),
+    Grpc(GrpcEvent),
+}
+
+/// Events from Web API
+#[derive(Debug)]
+pub enum ApiEvent {
     UserLogin { context: AuditLogContext },
 }
+/// Events from gRPC server
+#[derive(Debug)]
+pub enum GrpcEvent {}

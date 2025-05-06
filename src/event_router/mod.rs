@@ -29,7 +29,7 @@
 //! ```
 
 use error::EventRouterError;
-use events::{AuditLogContext, MainEvent};
+use events::{ApiEvent, AuditLogContext, GrpcEvent, MainEvent};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
@@ -99,14 +99,31 @@ impl EventRouter {
 
             debug!("Received event: {event:?}");
 
-            // Route the event to the appropriate service
+            // Route the event to the appropriate handler
             match event {
-                MainEvent::UserLogin { context } => {
-                    // send event to audit log
-                    self.log_event(context, EventType::Defguard(DefguardEvent::UserLogin))?;
-                }
+                MainEvent::Api(api_event) => self.handle_api_event(api_event)?,
+                MainEvent::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
+            };
+        }
+    }
+
+    fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
+        debug!("Processing API event: {event:?}");
+
+        match event {
+            ApiEvent::UserLogin { context } => {
+                // send event to audit log
+                self.log_event(context, EventType::Defguard(DefguardEvent::UserLogin))?;
             }
         }
+
+        Ok(())
+    }
+
+    fn handle_grpc_event(&self, event: GrpcEvent) -> Result<(), EventRouterError> {
+        debug!("Processing gRPC server event: {event:?}");
+
+        match event {}
     }
 }
 

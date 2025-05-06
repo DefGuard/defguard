@@ -19,7 +19,7 @@ use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, WebHook},
     error::WebError,
-    event_router::events::MainEvent,
+    event_router::events::{ApiEvent, MainEvent},
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
@@ -98,8 +98,8 @@ impl AppState {
     /// Sends event to the main event router
     ///
     /// This method is fallible since events are used for communication between services
-    pub fn send_event(&self, event: MainEvent) -> Result<(), WebError> {
-        Ok(self.event_tx.send(event)?)
+    pub fn send_event(&self, event: ApiEvent) -> Result<(), WebError> {
+        Ok(self.event_tx.send(MainEvent::Api(event))?)
     }
 
     /// Create application state
