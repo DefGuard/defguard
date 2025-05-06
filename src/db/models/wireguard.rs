@@ -1955,7 +1955,7 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let _wnd = WireguardNetworkDevice::new(
+        WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![IpAddr::from_str("10.1.1.2").unwrap()],
@@ -2092,7 +2092,7 @@ mod test {
         .save(&pool)
         .await
         .unwrap();
-        let _wnd = WireguardNetworkDevice::new(
+        WireguardNetworkDevice::new(
             network.id,
             device.id,
             vec![
