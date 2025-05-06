@@ -83,7 +83,8 @@ impl From<WebError> for ApiResponse {
             | WebError::ServerConfigMissing
             | WebError::EmailMfa(_)
             | WebError::ClientIpError
-            | WebError::FirewallError(_) => {
+            | WebError::FirewallError(_)
+            | WebError::EventChannelError(_) => {
                 error!("{web_error}");
                 ApiResponse::new(
                     json!({"msg": "Internal server error"}),

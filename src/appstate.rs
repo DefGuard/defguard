@@ -18,6 +18,7 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, WebHook},
+    error::WebError,
     event_router::events::MainEvent,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
@@ -92,6 +93,13 @@ impl AppState {
     /// Convenience wrapper around [`send_multiple_wireguard_events`]
     pub fn send_multiple_wireguard_events(&self, events: Vec<GatewayEvent>) {
         send_multiple_wireguard_events(events, &self.wireguard_tx);
+    }
+
+    /// Sends event to the main event router
+    ///
+    /// This method is fallible since events are used for communication between services
+    pub fn send_event(&self, event: MainEvent) -> Result<(), WebError> {
+        Ok(self.event_tx.send(event)?)
     }
 
     /// Create application state

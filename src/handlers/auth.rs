@@ -276,9 +276,9 @@ pub(crate) async fn authenticate(
             None
         };
 
-        appstate.event_tx.send(MainEvent::UserLogin {
+        appstate.send_event(MainEvent::UserLogin {
             context: AuditLogContext::new(user_info.id, insecure_ip.into(), user_agent.to_string()),
-        });
+        })?;
 
         Ok((
             cookies,

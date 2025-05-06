@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sqlx::error::Error as SqlxError;
 use thiserror::Error;
+use tokio::sync::mpsc::error::SendError;
 
 use crate::{
     auth::failed_login::FailedLoginError,
@@ -12,6 +13,7 @@ use crate::{
         db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
         license::LicenseError,
     },
+    event_router::events::MainEvent,
     grpc::GatewayMapError,
     templates::TemplateError,
 };
@@ -63,6 +65,8 @@ pub enum WebError {
     AclError(#[from] AclError),
     #[error("Firewall config error: {0}")]
     FirewallError(#[from] FirewallError),
+    #[error("Event channel error: {0}")]
+    EventChannelError(#[from] SendError<MainEvent>),
 }
 
 impl From<tonic::Status> for WebError {
