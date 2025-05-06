@@ -1,26 +1,26 @@
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 
-use crate::db::{Id, User};
+use crate::db::Id;
 
 /// Messages that can be sent to the event logger
-pub enum EventLoggerMessage {
-    Defguard {
-        context: EventContext,
-        event: DefguardEvent,
-    },
-    Client {
-        context: EventContext,
-        event: ClientEvent,
-    },
-    Vpn {
-        context: EventContext,
-        event: VpnEvent,
-    },
-    Enrollment {
-        context: EventContext,
-        event: EnrollmentEvent,
-    },
+pub struct EventLoggerMessage {
+    pub context: EventContext,
+    pub event: EventType,
+}
+
+impl EventLoggerMessage {
+    pub fn new(context: EventContext, event: EventType) -> Self {
+        Self { context, event }
+    }
+}
+
+/// Possible audit event types split by module
+pub enum EventType {
+    Defguard(DefguardEvent),
+    Client(ClientEvent),
+    Vpn(VpnEvent),
+    Enrollment(EnrollmentEvent),
 }
 
 /// Shared context that's included in all events

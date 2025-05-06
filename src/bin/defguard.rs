@@ -139,7 +139,7 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, wireguard_tx.clone()) => error!("Utility thread returned early: {res:?}"),
-        res = run_event_router(pool.clone(), event_rx, event_logger_tx, wireguard_tx, mail_tx) => error!("Event router returned early: {res:?}"),
+        res = run_event_router( event_rx, event_logger_tx, wireguard_tx, mail_tx) => error!("Event router returned early: {res:?}"),
         res = run_event_logger(pool.clone(), event_logger_rx) => error!("Audit event logger returned early: {res:?}"),
     }
 
