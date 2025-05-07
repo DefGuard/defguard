@@ -1,0 +1,57 @@
+.expandable-section {
+  &>.track {
+    width: 100%;
+    user-select: none;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--spacing-xs);
+    align-items: center;
+    justify-items: start;
+
+    p {
+      width: 100%;
+      user-select: none;
+    }
+
+    .arrow-single {
+      align-self: end;
+      width: 22px;
+      height: 22px;
+
+      svg {
+        transition-property: transform;
+
+        @include animate-standard;
+      }
+    }
+  }
+
+  &>.expandable {
+    display: grid;
+    width: 100%;
+    transition-property: grid-template-rows;
+
+    @include animate-standard();
+
+    &:not(.open) {
+      grid-template-rows: 0fr;
+    }
+
+    &.open {
+      grid-template-rows: 1fr;
+    }
+
+    &>div {
+      overflow: hidden
+    }
+  }
+}
+
+.expandable-section .track p {
+  @include typography(app-side-bar);
+}
+
+.expandable-section .track h2 {
+  @include typography(app-body-1);
+}

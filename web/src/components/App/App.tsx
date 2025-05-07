@@ -28,6 +28,7 @@ import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedR
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { Navigation } from '../Navigation/Navigation';
+import { OverviewIndexPage } from '../../pages/overview-index/OverviewIndexPage';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);
@@ -59,7 +60,7 @@ const App = () => {
               <Route
                 path="acl/*"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminRequired>
                     <AclRoutes />
                   </ProtectedRoute>
                 }
@@ -93,6 +94,14 @@ const App = () => {
                 element={
                   <ProtectedRoute adminRequired>
                     <WizardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="overview-index/*"
+                element={
+                  <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
+                    <OverviewIndexPage />
                   </ProtectedRoute>
                 }
               />
