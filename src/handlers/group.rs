@@ -113,7 +113,7 @@ pub(crate) async fn bulk_assign_to_groups(
         }
     }
 
-    WireguardNetwork::sync_all_networks(&mut *transaction, &appstate.wireguard_tx).await?;
+    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
 
     transaction.commit().await?;
 
@@ -339,7 +339,7 @@ pub(crate) async fn create_group(
             .insert(&group_info.name);
     }
 
-    WireguardNetwork::sync_all_networks(&mut *transaction, &appstate.wireguard_tx).await?;
+    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
 
     transaction.commit().await?;
 
@@ -460,7 +460,7 @@ pub(crate) async fn modify_group(
             .insert(group.name.as_str());
     }
 
-    WireguardNetwork::sync_all_networks(&mut *transaction, &appstate.wireguard_tx).await?;
+    WireguardNetwork::sync_all_networks(&mut transaction, &appstate.wireguard_tx).await?;
 
     transaction.commit().await?;
 
