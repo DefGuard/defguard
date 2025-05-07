@@ -1,5 +1,6 @@
 use chrono::{Duration, Utc};
 use defguard::{
+    db::models::settings::OpenidUsernameHandling,
     enterprise::{
         db::models::openid_provider::{DirectorySyncTarget, DirectorySyncUserBehavior},
         handlers::openid_providers::AddProviderData,
@@ -54,6 +55,7 @@ async fn test_openid_providers(_: PgPoolOptions, options: PgConnectOptions) {
         okta_dirsync_client_id: None,
         okta_private_jwk: None,
         directory_sync_group_match: None,
+        username_handling: OpenidUsernameHandling::PruneEmailDomain,
     };
 
     let response = client
