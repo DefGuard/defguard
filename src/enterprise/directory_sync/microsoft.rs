@@ -4,9 +4,9 @@ use tokio::time::sleep;
 
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser,
+    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN,
 };
-use crate::{enterprise::directory_sync::REQUEST_TIMEOUT, server_config};
+use crate::enterprise::directory_sync::REQUEST_TIMEOUT;
 
 #[allow(dead_code)]
 pub(crate) struct MicrosoftDirectorySync {
@@ -260,8 +260,9 @@ impl MicrosoftDirectorySync {
             );
             let params = vec![("$top", MAX_RESULTS.to_string())];
 
-            // Microsoft has a limit of ~15 OR conditions per request, so batch it first.
+            // Microsoft has a limit of about 15 OR conditions per request, so batch it first.
             let batches = self.group_filter.chunks(10);
+
             for batch in batches {
                 let group_filter =
                     GROUP_FILTER.replace("{group_names}", batch.join("','").as_str());
@@ -279,7 +280,7 @@ impl MicrosoftDirectorySync {
                     parse_response(response, "Failed to query Microsoft groups.").await?;
                 combined_response.value.extend(response.value);
 
-                sleep(*server_config().dirsync_request_pagination_interval).await;
+                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
             }
         } else {
             debug!("No group filter defined, all groups will be synced.");
@@ -294,7 +295,7 @@ impl MicrosoftDirectorySync {
 
                 if let Some(next_page) = response.next_page {
                     url = next_page;
-                    // Query none as the next page URL already contains the query parameters
+                    // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                     query = None;
                     debug!("Found next page of results, querying it: {url}");
                 } else {
@@ -302,7 +303,7 @@ impl MicrosoftDirectorySync {
                     break;
                 }
 
-                sleep(*server_config().dirsync_request_pagination_interval).await;
+                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
             }
         }
 
@@ -367,7 +368,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -375,7 +376,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         // Simplest way to filter groups by display name, as $filter doesn't work on memberOf endpoint.
@@ -432,7 +433,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -440,7 +441,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -467,7 +468,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -475,7 +476,7 @@ impl MicrosoftDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)

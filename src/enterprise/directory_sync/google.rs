@@ -6,9 +6,8 @@ use tokio::time::sleep;
 
 use super::{
     make_get_request, parse_response, DirectoryGroup, DirectorySync, DirectorySyncError,
-    DirectoryUser, REQUEST_TIMEOUT,
+    DirectoryUser, REQUEST_PAGINATION_SLOWDOWN, REQUEST_TIMEOUT,
 };
-use crate::server_config;
 
 const SCOPES: &str = "openid email profile https://www.googleapis.com/auth/admin.directory.customer.readonly https://www.googleapis.com/auth/admin.directory.group.readonly https://www.googleapis.com/auth/admin.directory.user.readonly";
 const ACCESS_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
@@ -222,7 +221,7 @@ impl GoogleDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -272,7 +271,7 @@ impl GoogleDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -332,7 +331,7 @@ impl GoogleDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -402,7 +401,7 @@ impl GoogleDirectorySync {
                 break;
             }
 
-            sleep(*server_config().dirsync_request_pagination_interval).await;
+            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
