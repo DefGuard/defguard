@@ -160,6 +160,14 @@ pub struct DefGuardConfig {
     #[arg(long, env = "DEFGUARD_CHECK_RENEWAL_WINDOW", default_value = "1h")]
     #[serde(skip_serializing)]
     pub check_period_renewal_window: Duration,
+
+    #[arg(
+        long,
+        env = "DEFGUARD_DIRSYNC_REQUEST_PAGINATION_INTERVAL",
+        default_value = "100ms"
+    )]
+    #[serde(skip_serializing)]
+    pub dirsync_request_pagination_interval: Duration,
 }
 
 #[derive(Clone, Debug, Subcommand)]
