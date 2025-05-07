@@ -23,12 +23,12 @@ pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Erro
 }
 
 /// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
-pub async fn update_current_settings(
-    pool: &PgPool,
+pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
     new_settings: Settings,
 ) -> Result<(), sqlx::Error> {
     debug!("Updating current settings to: {new_settings:?}");
-    new_settings.save(pool).await?;
+    new_settings.save(executor).await?;
     set_settings(Some(new_settings));
     Ok(())
 }
