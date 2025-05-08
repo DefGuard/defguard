@@ -89,6 +89,13 @@ export const Navigation = () => {
     ];
     let middle: NavigationItem[] = [
       {
+        title: 'Overview Index wip',
+        linkPath: '/admin/overview-index',
+        enabled: true,
+        adminOnly: true,
+        icon: <SvgIconNavVpn />,
+      },
+      {
         title: LL.navigation.bar.overview(),
         linkPath: overviewLink,
         icon: <SvgIconNavVpn />,

@@ -10,18 +10,22 @@ type Props = {
   text: string;
   initOpen?: boolean;
   textAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p';
+  className?: string;
+  id?: string;
 } & PropsWithChildren;
 
 export const ExpandableSection = ({
   children,
   text,
+  className,
+  id,
   textAs: Tag = 'p',
   initOpen = true,
 }: Props) => {
   const [expanded, setExpanded] = useState(initOpen);
 
   return (
-    <div className="expandable-section spacer">
+    <div className={clsx('expandable-section spacer', className)} id={id}>
       <div
         className="track"
         onClick={() => {

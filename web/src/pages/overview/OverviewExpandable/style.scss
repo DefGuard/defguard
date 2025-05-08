@@ -1,7 +1,7 @@
 .overview-expandable {
   width: 100%;
 
-  &>.header {
+  & > .header {
     display: flex;
     flex-flow: row;
     align-items: center;
@@ -42,7 +42,7 @@
     transition-duration: 100ms;
     transition-timing-function: ease-in-out;
 
-    &>div {
+    & > div {
       box-sizing: border-box;
       padding-top: 20px;
       overflow: hidden;

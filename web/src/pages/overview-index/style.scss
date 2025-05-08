@@ -1,5 +1,5 @@
 #overview-index {
-  &>.page-content {
+  & > .page-content {
     --nav-width: 88px;
     --page-spacing: var(--spacing-s);
     --page-content-spacing: var(--spacing-s);
@@ -9,7 +9,6 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    width: 100%;
 
     @include media-breakpoint-up(lg) {
       --page-spacing: var(--spacing-xl);
@@ -17,20 +16,30 @@
 
     padding: var(--page-spacing) var(--page-spacing) var(--spacing-l);
 
-
     &.nav-open {
       --nav-width: 230px;
     }
 
-    &>div {
+    & > div {
       width: 100%;
       max-width: calc(1920px - 2 * var(--page-spacing) - var(--nav-width));
     }
   }
 }
 
-#overview-index>.page-content>div {
-  &>header {
-    padding-bottom: var(--page-content-spacing);
+#overview-index > .page-content > div {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--page-content-spacing);
+}
+
+#overview-index {
+  .network-section {
+    .top-track {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      padding-bottom: var(--spacing-s);
+    }
   }
 }

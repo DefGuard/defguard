@@ -13,6 +13,7 @@ import { GroupsPage } from '../../pages/groups/GroupsPage';
 import { NetworkPage } from '../../pages/network/NetworkPage';
 import { OpenidClientsListPage } from '../../pages/openid/OpenidClientsListPage/OpenidClientsListPage';
 import { OverviewPage } from '../../pages/overview/OverviewPage';
+import { OverviewIndexPage } from '../../pages/overview-index/OverviewIndexPage';
 import { ProvisionersPage } from '../../pages/provisioners/ProvisionersPage';
 import { SettingsPage } from '../../pages/settings/SettingsPage';
 import { SupportPage } from '../../pages/support/SupportPage';
@@ -28,7 +29,6 @@ import { ProtectedRoute } from '../../shared/components/Router/Guards/ProtectedR
 import { ToastManager } from '../../shared/defguard-ui/components/Layout/ToastManager/ToastManager';
 import { useAuthStore } from '../../shared/hooks/store/useAuthStore';
 import { Navigation } from '../Navigation/Navigation';
-import { OverviewIndexPage } from '../../pages/overview-index/OverviewIndexPage';
 
 const App = () => {
   const currentUser = useAuthStore((state) => state.user);

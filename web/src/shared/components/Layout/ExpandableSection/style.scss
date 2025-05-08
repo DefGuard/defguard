@@ -1,5 +1,5 @@
 .expandable-section {
-  &>.track {
+  & > .track {
     width: 100%;
     user-select: none;
     cursor: pointer;
@@ -8,6 +8,7 @@
     column-gap: var(--spacing-xs);
     align-items: center;
     justify-items: start;
+    border-bottom: 1px solid var(--border-primary);
 
     p {
       width: 100%;
@@ -27,7 +28,7 @@
     }
   }
 
-  &>.expandable {
+  & > .expandable {
     display: grid;
     width: 100%;
     transition-property: grid-template-rows;
@@ -42,8 +43,9 @@
       grid-template-rows: 1fr;
     }
 
-    &>div {
-      overflow: hidden
+    & > div {
+      overflow: hidden;
+      padding-top: var(--spacing-s);
     }
   }
 }
