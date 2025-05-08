@@ -213,7 +213,7 @@ impl LDAPConfig {
         // RDN set = username is used as RDN if they are the same
         self.ldap_user_rdn_attr
             .as_deref()
-            .is_none_or(|rdn| rdn == self.ldap_username_attr)
+            .is_none_or(|rdn| rdn == self.ldap_username_attr || rdn.is_empty())
     }
 }
 
@@ -578,14 +578,17 @@ impl LDAPConnection {
     pub async fn modify_user(
         &mut self,
         old_username: &str,
-        user: &mut User<Id>,
-        pool: &PgPool,
+        user: &User<Id>,
     ) -> Result<(), LdapError> {
         debug!("Modifying user {old_username} in LDAP");
         // If we're using the username as the RDN, also update the RDN value on user if his username has been changed
         let old_rdn = if self.config.using_username_as_rdn() {
-            user.ldap_rdn = Some(user.username.clone());
             old_username
+        } else {
+            user.ldap_rdn_value()
+        };
+        let new_rdn = if self.config.using_username_as_rdn() {
+            user.username.as_str()
         } else {
             user.ldap_rdn_value()
         };
@@ -595,12 +598,10 @@ impl LDAPConnection {
             )));
         }
         let old_dn = self.config.user_dn(old_rdn);
-        let new_dn = self.config.user_dn(user.ldap_rdn_value());
+        let new_dn = self.config.user_dn(new_rdn);
         let config = self.config.clone();
         let mods = user.as_ldap_mod(&config);
         self.modify(&old_dn, &new_dn, mods).await?;
-        // Commit only now, after we actually sent the changes to LDAP
-        user.save(pool).await?;
         info!("Modified user {old_username} in LDAP");
 
         Ok(())
