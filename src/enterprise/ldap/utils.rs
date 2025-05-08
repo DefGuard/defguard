@@ -147,7 +147,7 @@ pub(crate) async fn ldap_handle_user_modify(
             debug!("User {current_user} exists in LDAP, modifying it");
         }
         ldap_connection
-            .modify_user(old_username, current_user, pool)
+            .modify_user(old_username, current_user)
             .await
     })
     .await;

@@ -325,6 +325,12 @@ impl Settings {
             && self.smtp_server != Some(String::new())
             && self.smtp_sender != Some(String::new())
     }
+
+    pub fn ldap_using_username_as_rdn(&self) -> bool {
+        self.ldap_user_rdn_attr
+            .as_deref()
+            .is_none_or(|rdn| rdn.is_empty() || Some(rdn) == self.ldap_username_attr.as_deref())
+    }
 }
 
 #[derive(Serialize)]
