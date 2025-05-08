@@ -8,6 +8,7 @@ use defguard::{
     },
     handlers::{wireguard::WireguardNetworkData, Auth, GroupInfo},
 };
+use ipnetwork::IpNetwork;
 use matches::assert_matches;
 use reqwest::StatusCode;
 use serde_json::json;
@@ -50,7 +51,7 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         address: "10.1.1.0/24".into(),
         endpoint: "10.1.1.1".parse().unwrap(),
         port: 55555,
-        allowed_ips: Some("10.1.1.0/24".into()),
+        allowed_ips: Some("10.1.1.0/24, 10.2.0.1/16".into()),
         dns: None,
         allowed_groups: vec!["admin".into()],
         mfa_enabled: false,
@@ -65,6 +66,15 @@ async fn test_network(_: PgPoolOptions, options: PgConnectOptions) {
         .send()
         .await;
     assert_eq!(response.status(), StatusCode::OK);
+    let network: WireguardNetwork<Id> = response.json().await;
+    assert_eq!(
+        network.allowed_ips,
+        vec![
+            IpNetwork::V4("10.1.1.0/24".parse().unwrap()),
+            IpNetwork::V4("10.2.0.0/16".parse().unwrap())
+        ]
+    );
+
     let event = wg_rx.try_recv().unwrap();
     assert_matches!(event, GatewayEvent::NetworkModified(..));
 
