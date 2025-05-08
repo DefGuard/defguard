@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, \"timestamp\",\"user_id\",\"ip\",\"event\",\"module\" \"module: _\",\"device\",\"details\",\"metadata\" FROM \"audit_event\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "timestamp",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "ip",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 4,
+        "name": "event",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "module: _",
+        "type_info": {
+          "Custom": {
+            "name": "audit_module",
+            "kind": {
+              "Enum": [
+                "defguard",
+                "client",
+                "vpn",
+                "enrollment"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "device",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "details",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "8d59d34ed273acf0f67bc7dc9713f57dc7ccf9c52e5bbb77a79eaba81a31b818"
+}
