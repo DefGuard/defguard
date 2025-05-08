@@ -3,6 +3,19 @@ import { AclRuleInfo, Network } from '../../shared/types';
 import { ListCellTag } from './AclIndexPage/components/shared/types';
 import { AclAliasStatus, AclProtocol, AclStatus, NetworkAccessType } from './types';
 
+// used by acl rules index page, bcs we don't show Applied in UI but instead enabled / disabled when state is "applied"
+export const aclRuleToStatusInt = (rule: AclRuleInfo): number => {
+  const status = rule.state;
+  if (status === AclStatus.APPLIED) {
+    if (rule.enabled) {
+      return 1000;
+    } else {
+      return 999;
+    }
+  }
+  return aclStatusToInt(rule.state);
+};
+
 export const aclStatusToInt = (status: AclStatus): number => {
   switch (status) {
     case AclStatus.NEW:
@@ -38,11 +51,10 @@ export const aclStatusFromInt = (statusInt: number): AclStatus => {
     case 3:
       return AclStatus.DELETED;
     default:
-      throw Error(
-        `AclStatus conversion from ${statusInt} not possible, returned 'New' instead.`,
-      );
+      throw Error(`Mapping ACL Rule from int failed ! Unrecognized int of ${statusInt}`);
   }
 };
+
 export const aclAliasStatusFromInt = (statusInt: number): AclAliasStatus => {
   switch (statusInt) {
     case 1:
