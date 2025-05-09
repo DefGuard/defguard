@@ -27,8 +27,13 @@ import { OpenIdGeneralSettings } from './OpenIdGeneralSettings';
 import { OpenIdProviderSettings } from './OpenIdProviderSettings';
 import { SUPPORTED_SYNC_PROVIDERS } from './SupportedProviders';
 
+export type UsernameHandling =
+  | 'RemoveForbidden'
+  | 'ReplaceForbidden'
+  | 'PruneEmailDomain';
 type FormFields = OpenIdProvider & {
   create_account: boolean;
+  username_handling: UsernameHandling;
 };
 
 export const OpenIdSettingsForm = () => {
@@ -104,6 +109,7 @@ export const OpenIdSettingsForm = () => {
           directory_sync_admin_behavior: z.string(),
           directory_sync_target: z.string(),
           create_account: z.boolean(),
+          username_handling: z.string(),
           okta_private_jwk: z.string(),
           okta_dirsync_client_id: z.string(),
           directory_sync_group_match: z.string(),
@@ -168,6 +174,7 @@ export const OpenIdSettingsForm = () => {
       okta_private_jwk: '',
       okta_dirsync_client_id: '',
       directory_sync_group_match: '',
+      username_handling: 'RemoveForbidden',
     };
 
     if (openidData) {
