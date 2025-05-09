@@ -259,9 +259,14 @@ impl MicrosoftDirectorySync {
                 self.group_filter
             );
             let params = vec![("$top", MAX_RESULTS.to_string())];
+            let groups = self
+                .group_filter
+                .iter()
+                .map(|group| group.replace("'", "''"))
+                .collect::<Vec<_>>();
 
             // Microsoft has a limit of about 15 OR conditions per request, so batch it first.
-            let batches = self.group_filter.chunks(10);
+            let batches = groups.chunks(10);
 
             for batch in batches {
                 let group_filter =
