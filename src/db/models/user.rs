@@ -1141,6 +1141,20 @@ impl User<Id> {
                 && self.is_enrolled(),
         )
     }
+
+    /// Updates the LDAP RDN value of the user in Defguard, if Defguard uses the usernames as RDN.
+    pub(crate) async fn maybe_update_rdn(&mut self) -> Result<(), SqlxError> {
+        debug!("Updating RDN for user {} in Defguard", self.username);
+        let settings = Settings::get_current_settings();
+        if settings.ldap_using_username_as_rdn() {
+            debug!("The user's username is being used as the RDN, setting it to username");
+            self.ldap_rdn = Some(self.username.clone());
+        } else {
+            debug!("The user's username is NOT being used as the RDN, skipping update");
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

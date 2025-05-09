@@ -445,8 +445,7 @@ impl super::LDAPConnection {
                     }
                     Authority::Defguard => {
                         debug!("Applying Defguard user attributes to LDAP user");
-                        self.modify_user(&ldap_user.username, defguard_user, pool)
-                            .await?;
+                        self.modify_user(&ldap_user.username, defguard_user).await?;
                     }
                 }
             }
