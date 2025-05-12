@@ -1,6 +1,6 @@
 import './style.scss';
 
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { useMatch } from 'react-router';
 import { Link } from 'react-router-dom';
 import { shallow } from 'zustand/shallow';
@@ -8,6 +8,7 @@ import { shallow } from 'zustand/shallow';
 import { useUpgradeLicenseModal } from '../../../../shared/components/Layout/UpgradeLicenseModal/store';
 import { UpgradeLicenseModalVariant } from '../../../../shared/components/Layout/UpgradeLicenseModal/types';
 import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
+import { useNavigationStore } from '../../hooks/useNavigationStore';
 import { NavigationItem } from '../../types';
 
 interface NavigationLinkProps {
@@ -16,23 +17,23 @@ interface NavigationLinkProps {
 }
 
 export const NavigationLink = ({ item, callback }: NavigationLinkProps) => {
+  const isOpen = useNavigationStore((s) => s.isOpen);
   const openUpgradeLicenseModal = useUpgradeLicenseModal((s) => s.open, shallow);
   const enterpriseEnabled = useAppStore((s) => s.appInfo?.license_info.enterprise);
   const match = useMatch(item.linkPath);
-
-  const cn = classNames(
-    'navigation-link',
-    {
-      active: match,
-    },
-    item.className,
-  );
 
   return (
     <Link
       replace
       to={item.linkPath}
-      className={cn}
+      className={clsx(
+        'navigation-link',
+        {
+          active: match,
+          compact: !isOpen,
+        },
+        item.className,
+      )}
       onClick={(event) => {
         if (item.enterpriseOnly && !enterpriseEnabled) {
           event.preventDefault();
@@ -49,7 +50,7 @@ export const NavigationLink = ({ item, callback }: NavigationLinkProps) => {
       }}
     >
       {item.icon}
-      <span>{item.title}</span>
+      {isOpen && <span>{item.title}</span>}
       {match ? <div className="active-line" /> : null}
     </Link>
   );

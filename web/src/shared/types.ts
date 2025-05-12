@@ -498,11 +498,55 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
+export enum AuditModule {
+  DEFGUARD = 'defguard',
+  CLIENT = 'client',
+  VPN = 'vpn',
+  ENROLLMENT = 'enrollment',
+}
+
+export type AuditEvent = {
+  id: number;
+  timestamp: string;
+  user_id: number;
+  ip: string;
+  event: string;
+  module: AuditModule;
+  device: string;
+  details?: string;
+  metadata?: unknown;
+};
+
+export type AuditLogRequest = {
+  from?: string;
+  util?: string;
+} & PaginationParams;
+
+export type PaginationParams = {
+  page?: number;
+};
+
+export type PaginationMeta = {
+  current_page: number;
+  page_size: number;
+  total_items: number;
+  total_pagers: number;
+  next_page?: number;
+};
+
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: PaginationMeta;
+};
+
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
+  auditLog: {
+    getAuditLog: (data: AuditLogRequest) => Promise<PaginatedResponse<AuditEvent>>;
+  };
   acl: {
     aliases: {
       getAliases: () => Promise<AclAlias[]>;

@@ -502,11 +502,21 @@ export const buildApi = (client: Axios): Api => {
       })
       .then(unpackRequest);
 
+  const getAuditLog: Api['auditLog']['getAuditLog'] = (params) =>
+    client
+      .get(`/audit_log`, {
+        params,
+      })
+      .then(unpackRequest);
+
   return {
     getAppInfo,
     getNewVersion,
     changePasswordSelf,
     getEnterpriseInfo,
+    auditLog: {
+      getAuditLog,
+    },
     acl: {
       aliases: {
         createAlias,

@@ -2311,8 +2311,16 @@ type RootTranslation = {
 			 * A​c​c​e​s​s​ ​C​o​n​t​r​o​l
 			 */
 			acl: string
+			/**
+			 * A​c​t​i​v​i​t​y
+			 */
+			activity: string
 		}
 		mobileTitles: {
+			/**
+			 * A​c​t​i​v​i​t​y
+			 */
+			activity: string
 			/**
 			 * G​r​o​u​p​s
 			 */
@@ -8203,8 +8211,16 @@ export type TranslationFunctions = {
 			 * Access Control
 			 */
 			acl: () => LocalizedString
+			/**
+			 * Activity
+			 */
+			activity: () => LocalizedString
 		}
 		mobileTitles: {
+			/**
+			 * Activity
+			 */
+			activity: () => LocalizedString
 			/**
 			 * Groups
 			 */
