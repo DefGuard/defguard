@@ -1,0 +1,56 @@
+.gateways-status-info {
+  width: 100%;
+  display: flex;
+  flex-flow: row;
+  align-items: center;
+  justify-content: flex-start;
+  column-gap: var(--spacing-xs);
+  min-height: 18px;
+
+  & > label {
+    user-select: none;
+
+    @include typography(app-modal-3);
+  }
+
+  .info-track {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+
+    & > .info {
+      display: flex;
+      flex-flow: row;
+      align-items: center;
+      justify-content: flex-start;
+      user-select: none;
+      cursor: pointer;
+
+      &.connected {
+        color: var(--text-positive);
+      }
+
+      &.disconnected {
+        cursor: default;
+        color: var(--text-alert);
+      }
+
+      &.partial {
+        color: var(--text-important);
+      }
+
+      p {
+        color: inherit;
+        padding-right: 5px;
+        text-wrap: nowrap;
+        @include typography(app-modal-3);
+      }
+
+      svg {
+        width: 8px;
+        height: 8px;
+      }
+    }
+  }
+}

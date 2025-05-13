@@ -502,6 +502,16 @@ export const buildApi = (client: Axios): Api => {
       })
       .then(unpackRequest);
 
+  const getAllNetworksStats: Api['network']['getAllNetworksStats'] = (params) =>
+    client
+      .get('/network/stats', {
+        params,
+      })
+      .then(unpackRequest);
+
+  const getAllGatewaysStatus: Api['network']['getAllGatewaysStatus'] = () =>
+    client.get('/network/gateways').then(unpackRequest);
+
   return {
     getAppInfo,
     getNewVersion,
@@ -583,6 +593,8 @@ export const buildApi = (client: Axios): Api => {
       downloadDeviceConfig,
     },
     network: {
+      getAllNetworksStats,
+      getAllGatewaysStatus,
       addNetwork,
       importNetwork,
       mapUserDevices: mapUserDevices,

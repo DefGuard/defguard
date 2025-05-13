@@ -31,6 +31,21 @@
   display: flex;
   flex-flow: column;
   row-gap: var(--page-content-spacing);
+
+  & > header {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: flex-start;
+    column-gap: var(--spacing-m);
+
+    & > .controls {
+      .select {
+        width: 120px;
+        max-width: 100%;
+      }
+    }
+  }
 }
 
 #overview-index {
@@ -41,5 +56,33 @@
       align-items: center;
       padding-bottom: var(--spacing-s);
     }
+  }
+}
+
+#overview-index {
+  .network-section-skeleton {
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-s);
+  }
+
+  .network-stats-skeleton {
+    width: 100%;
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--spacing-xs);
+
+    .react-loading-skeleton {
+      border-radius: 10px;
+      height: 142px;
+    }
+  }
+}
+
+#all-networks-summary {
+  .gateways-status-info {
+    padding-bottom: var(--spacing-s);
+    min-height: 32px;
   }
 }

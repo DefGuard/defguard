@@ -28,14 +28,14 @@ use crate::{
                 WireguardNetworkDevice,
             },
             wireguard::{
-                DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow, WireguardNetworkInfo,
-                WireguardUserStatsRow,
+                networks_stats, DateTimeAggregation, MappedDevice, WireguardDeviceStatsRow,
+                WireguardNetworkInfo, WireguardNetworkStats, WireguardUserStatsRow,
             },
         },
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    grpc::GatewayMap,
+    grpc::{GatewayMap, GatewayState},
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
@@ -409,6 +409,24 @@ pub(crate) async fn gateway_status(
 
     Ok(ApiResponse {
         json: json!(gateway_state.get_network_gateway_status(network_id)),
+        status: StatusCode::OK,
+    })
+}
+
+pub(crate) async fn all_gateways_status(
+    _role: AdminRole,
+    Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,
+) -> ApiResult {
+    debug!("Displaying gateways status for all networks.");
+    let gateway_state = {
+        let lock = gateway_state
+            .lock()
+            .expect("Failed to acquire gateway state lock");
+        lock.clone()
+    };
+    let flattened = gateway_state.into_flattened();
+    Ok(ApiResponse {
+        json: json!(flattened),
         status: StatusCode::OK,
     })
 }
@@ -1183,13 +1201,29 @@ pub(crate) async fn network_stats(
     };
     let from = query_from.parse_timestamp()?.naive_utc();
     let aggregation = get_aggregation(from)?;
-    let stats = network
+    let stats: WireguardNetworkStats = network
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
     debug!("Displayed WireGuard network stats for network {network_id}");
 
     Ok(ApiResponse {
         json: json!(stats),
+        status: StatusCode::OK,
+    })
+}
+
+pub(crate) async fn networks_overview_stats(
+    _role: AdminRole,
+    State(appstate): State<AppState>,
+    Query(query_from): Query<QueryFrom>,
+) -> ApiResult {
+    debug!("Preparing networks overview stats");
+    let from = query_from.parse_timestamp()?.naive_utc();
+    let aggregation = get_aggregation(from)?;
+    let all_networks_stats = networks_stats(&appstate.pool, &from, &aggregation).await?;
+    debug!("Finished processing networks overview stats");
+    Ok(ApiResponse {
+        json: json!(all_networks_stats),
         status: StatusCode::OK,
     })
 }

@@ -1,174 +1,112 @@
 .overview-network-stats {
   display: grid;
-  column-gap: 3rem;
-  row-gap: 2rem;
+
   grid-template-columns: 1fr;
-  justify-items: start;
-  box-sizing: border-box;
+  grid-template-rows: 1fr 1fr;
+  gap: var(--spacing-s);
+  padding: 0 var(--spacing-xs) var(--spacing-xs);
+  align-items: stretch;
 
-  @include media-breakpoint-down(md) {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-
-  @include media-breakpoint-up(md) {
-    justify-items: center;
-  }
-
-  @include media-breakpoint-down(xl) {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-
-  @include media-breakpoint-up(xl) {
-    padding-left: 6rem;
-    padding-right: 6rem;
-  }
-
-  @include media-breakpoint-up(xxl) {
-    grid-template-columns: 1fr 1fr;
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr;
   }
 
   & > .summary {
     position: relative;
-    grid-row: 1;
-    grid-column: 1;
     width: 100%;
-
-    @include media-breakpoint-down(lg) {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
-      width: 100%;
-      row-gap: 1.5rem;
-      column-gap: 1.5rem;
-    }
 
     @include media-breakpoint-up(lg) {
       box-shadow: 5px 5px 15px #00000005;
       background-color: var(--white);
       border-radius: 15px;
       display: flex;
-      align-items: center;
+      align-items: stretch;
       align-content: center;
       justify-content: flex-start;
       flex-flow: row nowrap;
-      height: 120px;
-      width: 820px;
+      min-height: 120px;
     }
 
     & > .info {
       display: flex;
-      flex-direction: column;
+      flex-flow: column;
+      align-items: center;
       justify-content: flex-start;
+      row-gap: var(--spacing-xs);
+      padding: var(--spacing-s);
+      width: 100%;
+      max-width: 148px;
 
-      @include media-breakpoint-down(lg) {
-        padding: 2rem;
-        box-sizing: border-box;
-        box-shadow: 5px 5px 15px #00000005;
-        background-color: var(--white);
-        border-radius: 15px;
-        width: 100%;
-        row-gap: 1rem;
-
-        &:nth-of-type(1) {
-          grid-row: 1;
-          grid-column: 1;
-        }
-
-        &:nth-of-type(2) {
-          grid-column: 2;
-          grid-row: 1;
-        }
-
-        &:nth-of-type(3) {
-          grid-column: 1;
-          grid-row: 2;
-        }
-
-        &:nth-of-type(4) {
-          grid-column: 2;
-          grid-row: 2;
-        }
-      }
-
-      @include media-breakpoint-up(lg) {
-        box-sizing: border-box;
-        padding-top: 2rem;
-        grid-row: 1;
-        height: 100%;
-      }
-
-      @include media-breakpoint-down(xl) {
-        width: 100%;
-      }
-
-      @include media-breakpoint-up(xl) {
-        padding-right: 1.5rem;
-      }
-
-      @include media-breakpoint-up(lg) {
-        &:first-of-type {
-          @include media-breakpoint-down(md) {
-            padding-left: 1.5rem;
-          }
-
-          @include media-breakpoint-up(md) {
-            padding-left: 2rem;
-          }
-        }
-
-        &:not(:first-of-type) {
-          @include media-breakpoint-down(md) {
-            padding-left: 1rem;
-          }
-
-          @include media-breakpoint-up(md) {
-            padding-left: 1.95rem;
-          }
-
-          border-left: 1px solid var(--gray-border);
-        }
-      }
-
-      & > .info-title {
-        @include typography-legacy(12px, 17px, medium, var(--gray-light), 'Poppins');
-      }
-
-      & > .content {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        align-content: center;
-        justify-content: flex-start;
-        column-gap: 1.15rem;
-
-        & > .info-value {
-          @include typography-legacy(41px, 41px, semiBold, var(--text-main), 'Poppins');
-
-          @include media-breakpoint-up(md) {
-            @include typography-legacy(41px, 57px, semiBold, var(--text-main), 'Poppins');
-          }
-        }
+      &:not(:first-child) {
+        border-left: 1px solid var(--border-primary);
       }
 
       &.network-usage {
-        flex-grow: 1;
-        row-gap: 0.8rem;
+        row-gap: var(--spacing-m);
+      }
 
-        & > .content {
-          column-gap: 2.7rem;
+      &:not(.network-usage) {
+        .info-title {
+          min-height: 29px;
+        }
+      }
 
-          & > .network-usage {
-            & > span {
-              display: flex;
-              flex-direction: row;
-              align-items: center;
-              align-content: center;
-              justify-content: flex-start;
-              column-gap: 0.4rem;
-              @include typography-legacy(12px, 17px, medium, var(--text-main), 'Poppins');
+      .info-title {
+        color: var(--text-body-tertiary);
+        text-align: center;
+        @include typography(app-modal-1);
+      }
+
+      .info-track {
+        width: 100%;
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+        column-gap: var(--spacing-xs);
+        max-height: 42px;
+
+        .info-count {
+          @include typography(app-title);
+        }
+      }
+
+      .info-sub-title {
+        color: var(--text-body-tertiary);
+        @include typography(app-modal-3);
+      }
+
+      .network-usage-track {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: center;
+        column-gap: var(--spacing-xs);
+
+        & > :nth-child(1) {
+          svg {
+            transform: rotate(-90deg);
+          }
+        }
+
+        & > :nth-child(2) {
+          svg {
+            transform: rotate(-90deg);
+          }
+        }
+
+        .network-speed {
+          &.download {
+            svg {
+              transform: rotate(90deg);
             }
+          }
+        }
+
+        .network-usage {
+          & > span {
+            @include typography(app-modal-1);
           }
         }
       }
@@ -181,7 +119,7 @@
     border-radius: 15px;
     background-color: var(--white);
     box-shadow: 5px 5px 15px #00000005;
-    height: 120px;
+    min-height: 120px;
     display: grid;
     grid-template-rows: 21px 1fr;
     grid-template-columns: 1fr;

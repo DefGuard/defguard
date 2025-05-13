@@ -8,7 +8,7 @@ import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
-import { GatewaysStatus } from '../../shared/components/network/GatewaysStatus/GatewaysStatus';
+import { NetworkGatewaysStatus } from '../../shared/components/network/GatewaysStatus/NetworkGatewaysStatus/NetworkGatewaysStatus';
 import { deviceBreakpoints } from '../../shared/constants';
 import { LoaderSpinner } from '../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
@@ -120,14 +120,9 @@ export const OverviewPage = () => {
       <PageContainer id="network-overview-page">
         <OverviewHeader loading={networksLoading} />
         {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
-          <GatewaysStatus networkId={selectedNetworkId} />
+          <NetworkGatewaysStatus networkId={selectedNetworkId} />
         )}
-        {networkStats && overviewStats && (
-          <OverviewStats
-            usersStats={overviewStats.user_devices}
-            networkStats={networkStats}
-          />
-        )}
+        {networkStats && <OverviewStats networkStats={networkStats} />}
         <div className="bottom-row">
           {userStatsLoading && (
             <div className="stats-loader">
