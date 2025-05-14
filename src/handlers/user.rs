@@ -690,6 +690,11 @@ pub async fn modify_user(
         ldap_handle_user_modify(&old_username, &mut user, &appstate.pool).await;
     }
 
+    user.maybe_update_rdn().await?;
+    user.save(&appstate.pool).await?;
+
+    ldap_update_user_state(&mut user, &appstate.pool).await;
+
     if group_diff.changed() || status_changing {
         if !group_diff.added.is_empty() {
             ldap_add_user_to_groups(
@@ -717,8 +722,6 @@ pub async fn modify_user(
             .await;
         };
     }
-
-    ldap_update_user_state(&mut user, &appstate.pool).await;
 
     appstate.trigger_action(AppEvent::UserModified(user_info));
 

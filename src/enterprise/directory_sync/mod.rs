@@ -867,8 +867,23 @@ async fn make_get_request(
         .header(AUTHORIZATION, format!("Bearer {token}"))
         .timeout(REQUEST_TIMEOUT)
         .send()
-        .await?;
-    Ok(response)
+        .await;
+    match response {
+        Ok(response) => {
+            if response.status().is_success() {
+                Ok(response)
+            } else {
+                Err(DirectorySyncError::RequestError(format!(
+                    "Failed to make GET request to {url}. Status code: {}. Details: {}",
+                    response.status(),
+                    response.text().await?
+                )))
+            }
+        }
+        Err(err) => Err(DirectorySyncError::RequestError(format!(
+            "Failed to make GET request to {url}: {err}"
+        ))),
+    }
 }
 
 #[cfg(test)]
