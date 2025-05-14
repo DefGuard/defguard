@@ -15,6 +15,7 @@ use sqlx::{
     PgExecutor, PgPool,
 };
 use thiserror::Error;
+use tokio::sync::broadcast::Sender;
 use utoipa::ToSchema;
 use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -28,7 +29,6 @@ use super::{
     UserInfo,
 };
 use crate::{
-    appstate::AppState,
     db::{Id, NoId},
     enterprise::firewall::FirewallError,
     grpc::{
@@ -267,32 +267,27 @@ impl WireguardNetwork<Id> {
 
     // run sync_allowed_devices on all wireguard networks
     pub(crate) async fn sync_all_networks(
-        appstate: &AppState,
+        conn: &mut PgConnection,
+        wireguard_tx: &Sender<GatewayEvent>,
     ) -> Result<(), WireguardNetworkError> {
         info!("Syncing allowed devices for all WireGuard locations");
-        let mut transaction = appstate.pool.begin().await?;
-        let networks = Self::all(&mut *transaction).await?;
+        let networks = Self::all(&mut *conn).await?;
         for network in networks {
-            let gateway_events = network.sync_allowed_devices(&mut transaction, None).await?;
-            // chceck if any peers were updated
-            if !gateway_events.is_empty() {
-                // send peer update events
-                send_multiple_wireguard_events(gateway_events, &appstate.wireguard_tx);
+            // sync allowed devices for location
+            let mut gateway_events = network.sync_allowed_devices(&mut *conn, None).await?;
 
-                // send firewall config update if ACLs are enabled
-                if network.acl_enabled {
-                    if let Some(firewall_config) =
-                        network.try_get_firewall_config(&mut transaction).await?
-                    {
-                        appstate.send_wireguard_event(GatewayEvent::FirewallConfigChanged(
-                            network.id,
-                            firewall_config,
-                        ));
-                    }
-                }
+            // send firewall config update if ACLs are enabled for a given location
+            if let Some(firewall_config) = network.try_get_firewall_config(&mut *conn).await? {
+                gateway_events.push(GatewayEvent::FirewallConfigChanged(
+                    network.id,
+                    firewall_config,
+                ));
+            }
+            // check if any gateway events need to be sent
+            if !gateway_events.is_empty() {
+                send_multiple_wireguard_events(gateway_events, wireguard_tx);
             }
         }
-        transaction.commit().await?;
         Ok(())
     }
 
@@ -606,16 +601,16 @@ impl WireguardNetwork<Id> {
     /// If the network address has changed readdress existing devices
     pub(crate) async fn sync_allowed_devices(
         &self,
-        transaction: &mut PgConnection,
+        conn: &mut PgConnection,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
         info!("Synchronizing IPs in network {self} for all allowed devices ");
         // list all allowed devices
-        let mut allowed_devices = self.get_allowed_devices(&mut *transaction).await?;
+        let mut allowed_devices = self.get_allowed_devices(&mut *conn).await?;
+
         // network devices are always allowed, make sure to take only network devices already assigned to that network
         let network_devices =
-            Device::find_by_type_and_network(&mut *transaction, DeviceType::Network, self.id)
-                .await?;
+            Device::find_by_type_and_network(&mut *conn, DeviceType::Network, self.id).await?;
         allowed_devices.extend(network_devices);
 
         // convert to a map for easier processing
@@ -630,16 +625,10 @@ impl WireguardNetwork<Id> {
         self.validate_network_size(count)?;
 
         // list all assigned IPs
-        let assigned_ips =
-            WireguardNetworkDevice::all_for_network(&mut *transaction, self.id).await?;
+        let assigned_ips = WireguardNetworkDevice::all_for_network(&mut *conn, self.id).await?;
 
         let events = self
-            .process_device_access_changes(
-                &mut *transaction,
-                allowed_devices,
-                assigned_ips,
-                reserved_ips,
-            )
+            .process_device_access_changes(&mut *conn, allowed_devices, assigned_ips, reserved_ips)
             .await?;
 
         Ok(events)

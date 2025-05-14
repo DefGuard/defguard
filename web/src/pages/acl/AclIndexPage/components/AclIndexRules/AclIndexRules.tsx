@@ -41,7 +41,7 @@ import {
   AclCreateContextLoaded,
   AclStatus,
 } from '../../../types';
-import { aclStatusFromInt, aclStatusToInt } from '../../../utils';
+import { aclRuleToStatusInt, aclStatusToInt } from '../../../utils';
 import { AclListSkeleton } from '../AclListSkeleton/AclListSkeleton';
 import { DeployChangesIcon } from '../DeployChangesIcon';
 import { DividerHeader } from '../shared/DividerHeader';
@@ -253,11 +253,6 @@ export const AclIndexRules = () => {
           label: ruleStatusLL.modified(),
           value: aclStatusToInt(AclStatus.MODIFIED),
           searchValues: [ruleStatusLL.modified()],
-        },
-        {
-          label: ruleStatusLL.applied(),
-          value: aclStatusToInt(AclStatus.APPLIED),
-          searchValues: [ruleStatusLL.applied()],
         },
         {
           label: ruleStatusLL.deleted(),
@@ -752,36 +747,21 @@ const prepareDisplay = (
   aclContext: Omit<AclCreateContextLoaded, 'ruleToEdit'>,
 ): ListData[] => {
   let rules: AclRuleInfo[];
-  let statusFilters: number[];
-  let disabledStateFilter = false;
-  let enabledStateFilter = false;
 
   if (pending) {
     rules = aclRules.filter(
       (rule) => rule.state !== AclStatus.APPLIED && rule.state !== AclStatus.EXPIRED,
     );
-    statusFilters = appliedFilters.status.filter((s) => ![999, 1000].includes(s));
   } else {
     rules = aclRules.filter(
       (rule) => rule.state === AclStatus.APPLIED || rule.state === AclStatus.EXPIRED,
     );
-    statusFilters = appliedFilters.status;
-    disabledStateFilter = statusFilters.includes(999);
-    enabledStateFilter = statusFilters.includes(1000);
   }
-
-  const aclStateFilter = statusFilters.map((f) => aclStatusFromInt(f));
 
   rules = rules.filter((rule) => {
     const filterChecks: boolean[] = [];
-    if (statusFilters.length) {
-      if (pending) {
-        filterChecks.push(aclStateFilter.includes(rule.state));
-      } else {
-        filterChecks.push(
-          (disabledStateFilter && !rule.enabled) || (enabledStateFilter && rule.enabled),
-        );
-      }
+    if (appliedFilters.status.length) {
+      filterChecks.push(appliedFilters.status.includes(aclRuleToStatusInt(rule)));
     }
     if (appliedFilters.networks.length && !rule.all_networks) {
       filterChecks.push(intersection(rule.networks, appliedFilters.networks).length > 0);

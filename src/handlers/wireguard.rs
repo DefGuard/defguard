@@ -51,6 +51,20 @@ pub(crate) fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
         .collect()
 }
 
+/// Parse a string with comma-separated IP network addresses.
+/// Host bits will be stripped.
+/// Invalid addresses will be silently ignored.
+pub(crate) fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
+    ips.split(',')
+        .filter_map(|ip| ip.trim().parse().ok())
+        .filter_map(|ip: IpNetwork| {
+            let network_address = ip.network();
+            let network_mask = ip.mask();
+            IpNetwork::with_netmask(network_address, network_mask).ok()
+        })
+        .collect()
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct WireguardNetworkData {
     pub name: String,
@@ -71,7 +85,7 @@ impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
         self.allowed_ips
             .as_ref()
-            .map_or(Vec::new(), |ips| parse_address_list(ips))
+            .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
 }
 
