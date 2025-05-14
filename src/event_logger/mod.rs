@@ -60,7 +60,6 @@ pub async fn run_event_logger(
                             event: "User logged in".to_string(),
                             module,
                             device,
-                            details: None,
                             metadata: None,
                         },
                         message::DefguardEvent::UserLogout => todo!(),

@@ -3,7 +3,8 @@ use std::fmt::{self, Display, Formatter};
 use axum::extract::State;
 use axum_extra::extract::Query;
 use chrono::NaiveDateTime;
-use sqlx::{Postgres, QueryBuilder, Type};
+use ipnetwork::IpNetwork;
+use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 use tracing::Instrument;
 
 use crate::{
@@ -82,6 +83,20 @@ impl Display for SortOrder {
     }
 }
 
+/// Audit log event with additional info as returned by the API
+#[derive(Serialize, FromRow)]
+pub struct ApiAuditEvent {
+    pub id: Id,
+    pub timestamp: NaiveDateTime,
+    pub user_id: Id,
+    pub username: String,
+    pub ip: IpNetwork,
+    pub event: String,
+    pub module: AuditModule,
+    pub device: String,
+    pub metadata: Option<serde_json::Value>,
+}
+
 // TODO: add utoipa API schema
 /// Filtered list of audit log events
 ///
@@ -95,19 +110,19 @@ impl Display for SortOrder {
 /// - search
 ///
 /// # Returns
-/// Returns a paginated list of `AuditEvent` objects or `WebError` if error occurs.
+/// Returns a paginated list of `ApiAuditEvent` objects or `WebError` if error occurs.
 pub async fn get_audit_log_events(
     _role: AdminRole,
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
     sorting: Query<SortParams>,
-) -> PaginatedApiResult<AuditEvent<Id>> {
+) -> PaginatedApiResult<ApiAuditEvent> {
     debug!("Fetching audit log with filters {filters:?} and pagination {pagination:?}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT id, timestamp, user_id, ip, event, module, device, details, metadata FROM audit_event WHERE 1=1 ",
+        "SELECT ae.id, timestamp, user_id, username, ip, event, module, device, metadata FROM audit_event ae JOIN \"user\" u ON ae.user_id = u.id WHERE 1=1 ",
     );
 
     // add optional filters
@@ -124,7 +139,7 @@ pub async fn get_audit_log_events(
 
     // fetch filtered events
     let events = query_builder
-        .build_query_as::<AuditEvent<Id>>()
+        .build_query_as::<ApiAuditEvent>()
         .fetch_all(&appstate.pool)
         .instrument(info_span!("audit_log"))
         .await?;

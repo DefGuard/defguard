@@ -26,6 +26,5 @@ pub struct AuditEvent<I = NoId> {
     #[model(enum)]
     pub module: AuditModule,
     pub device: String,
-    pub details: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }
