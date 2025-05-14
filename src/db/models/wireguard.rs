@@ -1207,6 +1207,69 @@ pub struct WireguardNetworkStats {
     pub transfer_series: Vec<WireguardStatsRow>,
 }
 
+pub(crate) async fn networks_stats(
+    conn: &PgPool,
+    from: &NaiveDateTime,
+    aggregation: &DateTimeAggregation,
+) -> Result<WireguardNetworkStats, SqlxError> {
+    let total_activity = query_as!(
+        WireguardNetworkActivityStats,
+        "SELECT \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM wireguard_peer_stats s \
+            JOIN device d ON d.id = s.device_id \
+            LEFT JOIN \"user\" u ON u.id = d.user_id \
+            WHERE latest_handshake >= $1",
+        from
+    )
+    .fetch_one(conn)
+    .await?;
+    let current_activity_from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
+    let current_activity = query_as!(
+        WireguardNetworkActivityStats,
+        "SELECT \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
+                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
+            FROM wireguard_peer_stats s \
+            JOIN device d ON d.id = s.device_id \
+            LEFT JOIN \"user\" u ON u.id = d.user_id \
+            WHERE latest_handshake >= $1",
+        current_activity_from
+    )
+    .fetch_one(conn)
+    .await?;
+    let transfer_series = query_as!(
+        WireguardStatsRow,
+        "SELECT \
+                date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
+                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
+            FROM wireguard_peer_stats_view \
+            WHERE collected_at >= $2 \
+            GROUP BY 1 \
+            ORDER BY 1 \
+            LIMIT $3",
+        aggregation.fstring(),
+        from,
+        PEER_STATS_LIMIT,
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok(WireguardNetworkStats {
+        current_active_users: current_activity.active_users,
+        current_active_network_devices: current_activity.active_network_devices,
+        current_active_user_devices: current_activity.active_user_devices,
+        active_users: total_activity.active_users,
+        active_network_devices: total_activity.active_network_devices,
+        active_user_devices: total_activity.active_user_devices,
+        download: transfer_series.iter().filter_map(|t| t.download).sum(),
+        upload: transfer_series.iter().filter_map(|t| t.upload).sum(),
+        transfer_series,
+    })
+}
+
 #[cfg(test)]
 mod test {
     use chrono::{SubsecRound, TimeDelta};
@@ -1773,67 +1836,4 @@ mod test {
 
         transaction.commit().await.unwrap();
     }
-}
-
-pub(crate) async fn networks_stats(
-    conn: &PgPool,
-    from: &NaiveDateTime,
-    aggregation: &DateTimeAggregation,
-) -> Result<WireguardNetworkStats, SqlxError> {
-    let total_activity = query_as!(
-        WireguardNetworkActivityStats,
-        "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
-        from
-    )
-    .fetch_one(conn)
-    .await?;
-    let current_activity_from = (Utc::now() - WIREGUARD_MAX_HANDSHAKE).naive_utc();
-    let current_activity = query_as!(
-        WireguardNetworkActivityStats,
-        "SELECT \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN u.id END), 0) \"active_users!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'user' THEN d.id END), 0) \"active_user_devices!\", \
-                COALESCE(COUNT(DISTINCT CASE WHEN d.device_type = 'network' THEN d.id END), 0) \"active_network_devices!\" \
-            FROM wireguard_peer_stats s \
-            JOIN device d ON d.id = s.device_id \
-            LEFT JOIN \"user\" u ON u.id = d.user_id \
-            WHERE latest_handshake >= $1",
-        current_activity_from
-    )
-    .fetch_one(conn)
-    .await?;
-    let transfer_series = query_as!(
-        WireguardStatsRow,
-        "SELECT \
-                date_trunc($1, collected_at) \"collected_at: NaiveDateTime\", \
-                cast(sum(upload) AS bigint) upload, cast(sum(download) AS bigint) download \
-            FROM wireguard_peer_stats_view \
-            WHERE collected_at >= $2 \
-            GROUP BY 1 \
-            ORDER BY 1 \
-            LIMIT $3",
-        aggregation.fstring(),
-        from,
-        PEER_STATS_LIMIT,
-    )
-    .fetch_all(conn)
-    .await?;
-    Ok(WireguardNetworkStats {
-        current_active_users: current_activity.active_users,
-        current_active_network_devices: current_activity.active_network_devices,
-        current_active_user_devices: current_activity.active_user_devices,
-        active_users: total_activity.active_users,
-        active_network_devices: total_activity.active_network_devices,
-        active_user_devices: total_activity.active_user_devices,
-        download: transfer_series.iter().filter_map(|t| t.download).sum(),
-        upload: transfer_series.iter().filter_map(|t| t.upload).sum(),
-        transfer_series,
-    })
 }
