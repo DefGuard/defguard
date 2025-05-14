@@ -15,7 +15,7 @@ anyhow = "1.0"
 argon2 = { version = "0.5", features = ["std"] }
 axum = "0.8"
 axum-client-ip = "0.7"
-axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
+axum-extra = { version = "0.10", features = ["cookie-private", "typed-header", "query"] }
 base32 = "0.5"
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }

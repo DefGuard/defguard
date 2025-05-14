@@ -1,6 +1,7 @@
-use axum::extract::{Query, State};
+use axum::extract::State;
+use axum_extra::extract::Query;
 use chrono::NaiveDateTime;
-use sqlx::{Postgres, QueryBuilder};
+use sqlx::{Execute, FromRow, Postgres, QueryBuilder, Type};
 
 use crate::{
     appstate::AppState,
@@ -22,6 +23,8 @@ pub struct FilterParams {
     pub until: Option<NaiveDateTime>,
     // pub search: Option<String>,
     // TODO: figure out a way to filter by multiple modules: https://github.com/tokio-rs/axum/issues/434#issuecomment-954898159
+    #[serde(default)]
+    pub module: Vec<AuditModule>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -49,6 +52,7 @@ pub async fn get_audit_log_events(
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
 ) -> PaginatedApiResult<AuditEvent<Id>> {
+    debug!("Fetching audit log with filters {filters:?} and pagination {pagination:?}");
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -68,6 +72,7 @@ pub async fn get_audit_log_events(
     let offset = (pagination.page - 1) * DEFAULT_API_PAGE_SIZE;
     query_builder.push(" OFFSET ").push_bind(offset as i64);
 
+    // fetch filtered events
     let events = query_builder
         .build_query_as::<AuditEvent<Id>>()
         .fetch_all(&appstate.pool)
@@ -104,12 +109,12 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     }
 
     // module filter
-    // if !filters.module.is_empty() {
-    //     query_builder
-    //         .push(" AND module = ANY(")
-    //         .push_bind(filters.module.clone())
-    //         .push(") ");
-    // }
+    if !filters.module.is_empty() {
+        query_builder
+            .push(" AND module = ANY(")
+            .push_bind(filters.module.clone())
+            .push(") ");
+    }
 }
 
 /// Prepares pagination metadata that's part of the response
