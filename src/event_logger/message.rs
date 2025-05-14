@@ -6,17 +6,17 @@ use crate::db::Id;
 /// Messages that can be sent to the event logger
 pub struct EventLoggerMessage {
     pub context: EventContext,
-    pub event: EventType,
+    pub event: LoggerEvent,
 }
 
 impl EventLoggerMessage {
-    pub fn new(context: EventContext, event: EventType) -> Self {
+    pub fn new(context: EventContext, event: LoggerEvent) -> Self {
         Self { context, event }
     }
 }
 
 /// Possible audit event types split by module
-pub enum EventType {
+pub enum LoggerEvent {
     Defguard(DefguardEvent),
     Client(ClientEvent),
     Vpn(VpnEvent),

@@ -38,7 +38,7 @@ use tracing::{debug, error, info};
 
 use crate::{
     db::GatewayEvent,
-    event_logger::message::{DefguardEvent, EventLoggerMessage, EventType},
+    event_logger::message::{DefguardEvent, EventLoggerMessage, LoggerEvent},
     mail::Mail,
 };
 
@@ -58,7 +58,7 @@ impl EventRouter {
     fn log_event(
         &self,
         context: AuditLogContext,
-        audit_log_event: EventType,
+        audit_log_event: LoggerEvent,
     ) -> Result<(), EventRouterError> {
         // prepare message
         let message = EventLoggerMessage::new(context.into(), audit_log_event);
@@ -114,7 +114,7 @@ impl EventRouter {
         match event {
             ApiEvent::UserLogin { context } => {
                 // send event to audit log
-                self.log_event(context, EventType::Defguard(DefguardEvent::UserLogin))?;
+                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
             }
         }
 

@@ -1,11 +1,11 @@
 use error::EventLoggerError;
-use message::{EventContext, EventLoggerMessage, EventType};
+use message::{EventContext, EventLoggerMessage, LoggerEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, info};
 
 use crate::db::{
-    models::audit_log::{AuditEvent, AuditModule},
+    models::audit_log::{AuditEvent, AuditModule, EventType},
     NoId,
 };
 
@@ -48,7 +48,7 @@ pub async fn run_event_logger(
 
             // Convert each message to an audit event
             let audit_event = match message.event {
-                EventType::Defguard(event) => {
+                LoggerEvent::Defguard(event) => {
                     let module = AuditModule::Defguard;
 
                     match event {
@@ -57,7 +57,7 @@ pub async fn run_event_logger(
                             timestamp,
                             user_id,
                             ip,
-                            event: "User logged in".to_string(),
+                            event: EventType::UserLogin,
                             module,
                             device,
                             metadata: None,
@@ -67,15 +67,15 @@ pub async fn run_event_logger(
                         message::DefguardEvent::DeviceRemoved { device_name: _ } => todo!(),
                     }
                 }
-                EventType::Client(_event) => {
+                LoggerEvent::Client(_event) => {
                     let _module = AuditModule::Client;
                     unimplemented!()
                 }
-                EventType::Vpn(_event) => {
+                LoggerEvent::Vpn(_event) => {
                     let _module = AuditModule::Vpn;
                     unimplemented!()
                 }
-                EventType::Enrollment(_event) => {
+                LoggerEvent::Enrollment(_event) => {
                     let _module = AuditModule::Enrollment;
                     unimplemented!()
                 }
