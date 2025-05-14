@@ -1,7 +1,10 @@
+use std::fmt::{self, Display, Formatter};
+
 use axum::extract::State;
 use axum_extra::extract::Query;
 use chrono::NaiveDateTime;
-use sqlx::{Execute, FromRow, Postgres, QueryBuilder, Type};
+use sqlx::{Postgres, QueryBuilder, Type};
+use tracing::Instrument;
 
 use crate::{
     appstate::AppState,
@@ -22,14 +25,61 @@ pub struct FilterParams {
     pub from: Option<NaiveDateTime>,
     pub until: Option<NaiveDateTime>,
     // pub search: Option<String>,
-    // TODO: figure out a way to filter by multiple modules: https://github.com/tokio-rs/axum/issues/434#issuecomment-954898159
-    #[serde(default)]
+    #[serde(default = "default_module")]
     pub module: Vec<AuditModule>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+fn default_module() -> Vec<AuditModule> {
+    Vec::new()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub struct SortParams {
-    pub sort_by: Option<String>,
+    #[serde(default)]
+    pub sort_by: SortKey,
+    #[serde(default)]
+    pub sort_order: SortOrder,
+}
+
+#[derive(Debug, Deserialize, Type, Serialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SortKey {
+    #[default]
+    Timestamp,
+    Username,
+    Event,
+    Module,
+    Device,
+}
+
+impl Display for SortKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Timestamp => write!(f, "timestamp"),
+            Self::Username => write!(f, "username"),
+            Self::Event => write!(f, "event"),
+            Self::Module => write!(f, "module"),
+            Self::Device => write!(f, "device"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum SortOrder {
+    #[default]
+    Asc,
+    Desc,
+}
+
+impl Display for SortOrder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Asc => write!(f, "ASC"),
+            Self::Desc => write!(f, "DESC"),
+        }
+    }
 }
 
 // TODO: add utoipa API schema
@@ -51,6 +101,7 @@ pub async fn get_audit_log_events(
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
+    sorting: Query<SortParams>,
 ) -> PaginatedApiResult<AuditEvent<Id>> {
     debug!("Fetching audit log with filters {filters:?} and pagination {pagination:?}");
     // start with base SELECT query
@@ -63,8 +114,7 @@ pub async fn get_audit_log_events(
     apply_filters(&mut query_builder, &filters);
 
     // apply ordering
-    // TODO: add custom ordering controlled by query params
-    query_builder.push(" ORDER BY timestamp ");
+    apply_sorting(&mut query_builder, &sorting);
 
     // add limit and offset to fetch a specific page
     let limit = DEFAULT_API_PAGE_SIZE;
@@ -76,6 +126,7 @@ pub async fn get_audit_log_events(
     let events = query_builder
         .build_query_as::<AuditEvent<Id>>()
         .fetch_all(&appstate.pool)
+        .instrument(info_span!("audit_log"))
         .await?;
 
     // execute count query
@@ -115,6 +166,17 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
             .push_bind(filters.module.clone())
             .push(") ");
     }
+}
+
+/// Adds ORDER BY clause to SQL query based on request query params
+fn apply_sorting(query_builder: &mut QueryBuilder<Postgres>, sorting: &SortParams) {
+    debug!("Applying query sorting: {sorting:?}");
+
+    query_builder
+        .push(" ORDER BY ")
+        .push(sorting.sort_by.to_string())
+        .push(" ")
+        .push(sorting.sort_order.to_string());
 }
 
 /// Prepares pagination metadata that's part of the response
