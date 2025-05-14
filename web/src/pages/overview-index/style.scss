@@ -38,12 +38,24 @@
     align-items: center;
     justify-content: flex-start;
     column-gap: var(--spacing-m);
+    width: 100%;
 
     & > .controls {
-      .select {
-        width: 120px;
-        max-width: 100%;
+      display: flex;
+      flex-flow: row;
+      column-gap: var(--spacing-s);
+
+      & > :nth-child(1) {
+        min-width: 180px;
       }
+
+      & > :nth-child(2) {
+        min-width: 120px;
+      }
+    }
+
+    .btn {
+      margin-left: auto;
     }
   }
 }

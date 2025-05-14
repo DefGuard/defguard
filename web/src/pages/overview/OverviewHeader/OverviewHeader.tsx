@@ -1,83 +1,41 @@
-import { isUndefined } from 'lodash-es';
-import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
-import IconEditNetwork from '../../../shared/components/svg/IconEditNetwork';
+import { NetworkGatewaysStatus } from '../../../shared/components/network/GatewaysStatus/NetworkGatewaysStatus/NetworkGatewaysStatus';
 import { deviceBreakpoints } from '../../../shared/constants';
-import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
-import {
-  ButtonSize,
-  ButtonStyleVariant,
-} from '../../../shared/defguard-ui/components/Layout/Button/types';
-import { useNetworkPageStore } from '../../network/hooks/useNetworkPageStore';
+import { EditLocationsSettingsButton } from '../../overview-index/components/EditLocationsSettingsButton/EditLocationsSettingsButton';
+import { OverviewNetworkSelection } from '../../overview-index/components/OverviewNetworkSelection/OverviewNetworkSelection';
+import { OverviewTimeSelection } from '../../overview-index/components/OverviewTimeSelection/OverviewTimeSelection';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
-import { OverviewStatsFilterSelect } from '../OverviewStatsFilterSelect/OverviewStatsFilterSelect';
-import { OverViewNetworkSelect } from './OverviewNetworkSelect/OverviewNetworkSelect';
 
-type Props = {
-  loading?: boolean;
-};
-
-export const OverviewHeader = ({ loading = false }: Props) => {
+export const OverviewHeader = () => {
   const { LL } = useI18nContext();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
-  const setNetworkPageStore = useNetworkPageStore((state) => state.setState);
-  const [selectedNetworkId, networks] = useOverviewStore(
+  const [selectedNetworkId] = useOverviewStore(
     (state) => [state.selectedNetworkId, state.networks],
     shallow,
   );
-  const navigate = useNavigate();
-
-  const selectedNetwork = useMemo(
-    () => networks?.find((n) => n.id === selectedNetworkId),
-    [networks, selectedNetworkId],
-  );
-
-  const handleNetworkAction = useCallback(() => {
-    if (selectedNetwork) {
-      setNetworkPageStore({ selectedNetworkId: selectedNetworkId });
-      navigate('../network');
-    }
-  }, [navigate, selectedNetwork, selectedNetworkId, setNetworkPageStore]);
-
-  const renderEditNetworks = useMemo(() => {
-    return (
-      <>
-        <Button
-          styleVariant={ButtonStyleVariant.STANDARD}
-          text={LL.networkOverview.controls.editNetworks()}
-          icon={<IconEditNetwork />}
-          loading={loading || isUndefined(selectedNetwork)}
-          onClick={handleNetworkAction}
-          size={ButtonSize.SMALL}
-        />
-      </>
-    );
-  }, [LL.networkOverview.controls, handleNetworkAction, loading, selectedNetwork]);
 
   return (
     <>
       {breakpoint !== 'desktop' && (
         <div className="mobile-options">
           <div className="top-row">
-            {selectedNetworkId && <GatewaysStatus networkId={selectedNetworkId} />}
-            {renderEditNetworks}
+            {selectedNetworkId && <NetworkGatewaysStatus networkId={selectedNetworkId} />}
+            <EditLocationsSettingsButton />
           </div>
-          <OverViewNetworkSelect />
-          <OverviewStatsFilterSelect />
+          <OverviewNetworkSelection />
+          <OverviewTimeSelection />
         </div>
       )}
       {breakpoint === 'desktop' && (
         <header>
           <h1>{LL.networkOverview.pageTitle()}</h1>
           <div className="controls">
-            <OverViewNetworkSelect />
-            <OverviewStatsFilterSelect />
-            {renderEditNetworks}
+            <OverviewNetworkSelection />
+            <OverviewTimeSelection />
+            <EditLocationsSettingsButton />
           </div>
         </header>
       )}

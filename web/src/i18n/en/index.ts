@@ -1816,6 +1816,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   networkOverview: {
+    networkSelection: {
+      all: 'All locations summary',
+      placeholder: 'Select location',
+    },
+    timeRangeSelectionLabel: '{value: number}h period',
     pageTitle: 'Location overview',
     controls: {
       editNetworks: 'Edit Locations settings',

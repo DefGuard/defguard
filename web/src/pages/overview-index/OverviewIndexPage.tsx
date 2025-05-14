@@ -2,7 +2,6 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { range } from 'lodash-es';
-import { useMemo } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
 import { ExpandableSection } from '../../shared/components/Layout/ExpandableSection/ExpandableSection';
@@ -19,10 +18,11 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
 import { useToaster } from '../../shared/hooks/useToaster';
 import { Network } from '../../shared/types';
-import { getNetworkStatsFilterValue } from '../overview/helpers/stats';
-import { useOverviewStore } from '../overview/hooks/store/useOverviewStore';
 import { OverviewStats } from '../overview/OverviewStats/OverviewStats';
-import { OverviewStatsFilterSelect } from '../overview/OverviewStatsFilterSelect/OverviewStatsFilterSelect';
+import { EditLocationsSettingsButton } from './components/EditLocationsSettingsButton/EditLocationsSettingsButton';
+import { useOverviewTimeSelection } from './components/hooks/useOverviewTimeSelection';
+import { OverviewNetworkSelection } from './components/OverviewNetworkSelection/OverviewNetworkSelection';
+import { OverviewTimeSelection } from './components/OverviewTimeSelection/OverviewTimeSelection';
 
 export const OverviewIndexPage = () => {
   const {
@@ -40,8 +40,10 @@ export const OverviewIndexPage = () => {
         <header>
           <h1>All locations overview</h1>
           <div className="controls">
-            <OverviewStatsFilterSelect />
+            <OverviewNetworkSelection />
+            <OverviewTimeSelection />
           </div>
+          <EditLocationsSettingsButton />
         </header>
         <ExpandableSection
           id="all-networks-summary"
@@ -82,9 +84,8 @@ type NetworkSectionProps = {
 
 const NetworkSection = ({ network }: NetworkSectionProps) => {
   const toaster = useToaster();
-  const statsFilter = useOverviewStore((s) => s.statsFilter);
 
-  const from = useMemo(() => getNetworkStatsFilterValue(statsFilter), [statsFilter]);
+  const { from } = useOverviewTimeSelection();
 
   const {
     network: { getNetworkStats },
@@ -122,9 +123,7 @@ const NetworkSection = ({ network }: NetworkSectionProps) => {
 };
 
 const SummaryStats = () => {
-  const statsFilter = useOverviewStore((s) => s.statsFilter);
-
-  const from = useMemo(() => getNetworkStatsFilterValue(statsFilter), [statsFilter]);
+  const { from } = useOverviewTimeSelection();
   const {
     network: { getAllNetworksStats },
   } = useApi();

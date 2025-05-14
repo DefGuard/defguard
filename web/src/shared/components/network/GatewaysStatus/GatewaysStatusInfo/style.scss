@@ -19,6 +19,12 @@
     align-items: center;
     justify-content: flex-start;
 
+    .react-loading-skeleton {
+      height: 18px;
+      width: 120px;
+      border-radius: 2px;
+    }
+
     & > .info {
       display: flex;
       flex-flow: row;

@@ -3,7 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { isUndefined, orderBy } from 'lodash-es';
 import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -16,8 +16,8 @@ import useApi from '../../shared/hooks/useApi';
 import { QueryKeys } from '../../shared/queries';
 import { OverviewLayoutType } from '../../shared/types';
 import { sortByDate } from '../../shared/utils/sortByDate';
+import { useOverviewTimeSelection } from '../overview-index/components/hooks/useOverviewTimeSelection';
 import { useWizardStore } from '../wizard/hooks/useWizardStore';
-import { getNetworkStatsFilterValue } from './helpers/stats';
 import { useOverviewStore } from './hooks/store/useOverviewStore';
 import { OverviewConnectedUsers } from './OverviewConnectedUsers/OverviewConnectedUsers';
 import { StandaloneDeviceConnectionCard } from './OverviewConnectedUsers/UserConnectionCard/UserConnectionCard';
@@ -25,67 +25,53 @@ import { OverviewExpandable } from './OverviewExpandable/OverviewExpandable';
 import { OverviewHeader } from './OverviewHeader/OverviewHeader';
 import { OverviewStats } from './OverviewStats/OverviewStats';
 
-const STATUS_REFETCH_TIMEOUT = 15 * 1000;
+const STATUS_REFETCH_TIMEOUT = 30 * 1000;
 
 export const OverviewPage = () => {
   const navigate = useNavigate();
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
   const setOverViewStore = useOverviewStore((state) => state.setState);
-  const statsFilter = useOverviewStore((state) => state.statsFilter);
-  const selectedNetworkId = useOverviewStore((state) => state.selectedNetworkId);
   const resetWizard = useWizardStore((state) => state.resetState);
   const viewMode = useOverviewStore((state) => state.viewMode);
   const { LL } = useI18nContext();
+  const { from: statsFilter } = useOverviewTimeSelection();
+  const { networkId } = useParams();
+  const selectedNetworkId = parseInt(networkId ?? '');
+  const location = useLocation();
 
   const {
     network: { getNetworks, getOverviewStats, getNetworkStats },
   } = useApi();
 
-  const { isLoading: networksLoading, data: fetchNetworksData } = useQuery({
-    queryKey: [QueryKeys.FETCH_NETWORKS],
+  const { data: fetchNetworksData } = useQuery({
+    queryKey: ['networks'],
     queryFn: getNetworks,
+    placeholderData: (perv) => perv,
   });
-
-  useEffect(() => {
-    if (fetchNetworksData) {
-      if (!fetchNetworksData.length) {
-        resetWizard();
-        navigate('/admin/wizard', { replace: true });
-      } else {
-        setOverViewStore({ networks: fetchNetworksData });
-        const ids = fetchNetworksData.map((n) => n.id);
-        if (
-          isUndefined(selectedNetworkId) ||
-          (!isUndefined(selectedNetworkId) && !ids.includes(selectedNetworkId))
-        ) {
-          const oldestNetwork = orderBy(fetchNetworksData, ['id'], ['asc'])[0];
-          setOverViewStore({ selectedNetworkId: oldestNetwork.id });
-        }
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchNetworksData]);
 
   const { data: networkStats } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORK_STATS, statsFilter, selectedNetworkId],
     queryFn: () =>
       getNetworkStats({
-        from: getNetworkStatsFilterValue(statsFilter),
-        id: selectedNetworkId as number,
+        from: statsFilter,
+        id: selectedNetworkId,
       }),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
-    enabled: !isUndefined(selectedNetworkId),
+    enabled: !isUndefined(selectedNetworkId) && !isNaN(selectedNetworkId),
   });
 
   const { data: overviewStats, isLoading: userStatsLoading } = useQuery({
     queryKey: [QueryKeys.FETCH_NETWORK_USERS_STATS, statsFilter, selectedNetworkId],
     queryFn: () =>
       getOverviewStats({
-        from: getNetworkStatsFilterValue(statsFilter),
-        id: selectedNetworkId as number,
+        from: statsFilter,
+        id: selectedNetworkId,
       }),
-    enabled: !isUndefined(statsFilter) && !isUndefined(selectedNetworkId),
+    enabled:
+      !isUndefined(statsFilter) &&
+      !isUndefined(selectedNetworkId) &&
+      !isNaN(selectedNetworkId),
     refetchOnWindowFocus: false,
     refetchInterval: STATUS_REFETCH_TIMEOUT,
   });
@@ -115,10 +101,35 @@ export const OverviewPage = () => {
     }
   }, [setOverViewStore, viewMode]);
 
+  useEffect(() => {
+    if (isNaN(selectedNetworkId)) {
+      navigate(`/admin/overview/${location.search}`, {
+        replace: true,
+      });
+    }
+    if (fetchNetworksData) {
+      if (!fetchNetworksData.length) {
+        resetWizard();
+        navigate('/admin/wizard', { replace: true });
+      } else {
+        setOverViewStore({ networks: fetchNetworksData });
+        const ids = fetchNetworksData.map((n) => n.id);
+        if (
+          isUndefined(selectedNetworkId) ||
+          (!isUndefined(selectedNetworkId) && !ids.includes(selectedNetworkId))
+        ) {
+          const oldestNetwork = orderBy(fetchNetworksData, ['id'], ['asc'])[0];
+          setOverViewStore({ selectedNetworkId: oldestNetwork.id });
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchNetworksData, selectedNetworkId]);
+
   return (
     <>
       <PageContainer id="network-overview-page">
-        <OverviewHeader loading={networksLoading} />
+        <OverviewHeader />
         {breakpoint === 'desktop' && !isUndefined(selectedNetworkId) && (
           <NetworkGatewaysStatus networkId={selectedNetworkId} />
         )}

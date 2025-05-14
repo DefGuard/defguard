@@ -271,8 +271,7 @@ export interface ChangeUserPasswordRequest {
 }
 
 export interface GetNetworkStatsRequest {
-  /**UTC date parsed to ISO string. This sets how far back stats will be returned. */
-  from?: string;
+  from?: number;
   id: Network['id'];
 }
 
@@ -618,7 +617,7 @@ export type Api = {
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
     deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
-    getAllNetworksStats: (data: { from?: string }) => Promise<WireguardNetworkStats>;
+    getAllNetworksStats: (data: { from?: number }) => Promise<WireguardNetworkStats>;
     getAllGatewaysStatus: () => Promise<AllGateWaysResponse>;
   };
   auth: {

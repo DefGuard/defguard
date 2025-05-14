@@ -6,27 +6,34 @@
   gap: var(--spacing-s);
   padding: 0 var(--spacing-xs) var(--spacing-xs);
   align-items: stretch;
+  overflow-x: auto;
 
   @include media-breakpoint-up(lg) {
-    grid-template-columns: auto 1fr;
+    overflow-x: unset;
+  }
+
+  @include media-breakpoint-up(xl) {
+    grid-template-columns: 850px 1fr;
     grid-template-rows: 1fr;
+  }
+
+  @include media-breakpoint-up(xxl) {
+    grid-template-columns: auto 1fr;
   }
 
   & > .summary {
     position: relative;
     width: 100%;
-
-    @include media-breakpoint-up(lg) {
-      box-shadow: 5px 5px 15px #00000005;
-      background-color: var(--white);
-      border-radius: 15px;
-      display: flex;
-      align-items: stretch;
-      align-content: center;
-      justify-content: flex-start;
-      flex-flow: row nowrap;
-      min-height: 120px;
-    }
+    box-shadow: 5px 5px 15px #00000005;
+    background-color: var(--white);
+    border-radius: 15px;
+    display: flex;
+    align-items: stretch;
+    align-content: center;
+    justify-content: flex-start;
+    flex-flow: row nowrap;
+    min-height: 120px;
+    min-width: 800px;
 
     & > .info {
       display: flex;
@@ -34,9 +41,8 @@
       align-items: center;
       justify-content: flex-start;
       row-gap: var(--spacing-xs);
-      padding: var(--spacing-s);
-      width: 100%;
-      max-width: 148px;
+      padding: var(--spacing-s) 5px;
+      min-width: 155px;
 
       &:not(:first-child) {
         border-left: 1px solid var(--border-primary);
@@ -56,6 +62,7 @@
         color: var(--text-body-tertiary);
         text-align: center;
         @include typography(app-modal-1);
+        max-width: 120px;
       }
 
       .info-track {

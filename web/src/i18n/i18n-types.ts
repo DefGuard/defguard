@@ -4318,6 +4318,21 @@ type RootTranslation = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * A​l​l​ ​l​o​c​a​t​i​o​n​s​ ​s​u​m​m​a​r​y
+			 */
+			all: string
+			/**
+			 * S​e​l​e​c​t​ ​l​o​c​a​t​i​o​n
+			 */
+			placeholder: string
+		}
+		/**
+		 * {​v​a​l​u​e​}​h​ ​p​e​r​i​o​d
+		 * @param {number} value
+		 */
+		timeRangeSelectionLabel: RequiredParams<'value'>
 		/**
 		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
@@ -10222,6 +10237,20 @@ export type TranslationFunctions = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * All locations summary
+			 */
+			all: () => LocalizedString
+			/**
+			 * Select location
+			 */
+			placeholder: () => LocalizedString
+		}
+		/**
+		 * {value}h period
+		 */
+		timeRangeSelectionLabel: (arg: { value: number }) => LocalizedString
 		/**
 		 * Location overview
 		 */

@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { useI18nContext } from '../../../i18n/i18n-react';
-import { GatewaysStatus } from '../../../shared/components/network/GatewaysStatus/GatewaysStatus';
+import { NetworkGatewaysStatus } from '../../../shared/components/network/GatewaysStatus/NetworkGatewaysStatus/NetworkGatewaysStatus';
 import { ActionButton } from '../../../shared/defguard-ui/components/Layout/ActionButton/ActionButton';
 import { ActionButtonVariant } from '../../../shared/defguard-ui/components/Layout/ActionButton/types';
 import { Button } from '../../../shared/defguard-ui/components/Layout/Button/Button';
@@ -151,7 +151,7 @@ export const NetworkGatewaySetup = () => {
       <MessageBox>
         <ReactMarkdown>{LL.gatewaySetup.messages.oneLineInstall()}</ReactMarkdown>
       </MessageBox>
-      <GatewaysStatus networkId={selectedNetworkId} />
+      <NetworkGatewaysStatus networkId={selectedNetworkId} />
     </section>
   );
 };

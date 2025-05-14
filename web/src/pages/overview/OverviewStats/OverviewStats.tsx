@@ -1,5 +1,6 @@
 import './style.scss';
 
+import clsx from 'clsx';
 import { orderBy } from 'lodash-es';
 import millify from 'millify';
 import { forwardRef, ReactNode, useId, useMemo } from 'react';
@@ -176,7 +177,7 @@ type InfoProps = {
 
 const InfoContainer = ({ count, icon, subTitle, title }: InfoProps) => {
   return (
-    <div className="info">
+    <div className={clsx('info')}>
       <p className="info-title">{title}</p>
       <div className="info-track">
         {icon}

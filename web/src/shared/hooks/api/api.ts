@@ -1,5 +1,6 @@
 import { Axios, AxiosResponse } from 'axios';
 
+import { getNetworkStatsFilterValue } from '../../../pages/overview/helpers/stats';
 import {
   AddDeviceResponse,
   AddOpenidClientRequest,
@@ -217,26 +218,30 @@ export const buildApi = (client: Axios): Api => {
 
   const getOverviewStats: Api['network']['getOverviewStats'] = (
     data: GetNetworkStatsRequest,
-  ) =>
-    client
+  ) => {
+    const from = getNetworkStatsFilterValue(data.from ?? 1);
+    return client
       .get(`/network/${data.id}/stats/users`, {
         params: {
-          ...data,
+          from,
         },
       })
       .then(unpackRequest);
+  };
 
   const getNetworkToken: Api['network']['getNetworkToken'] = (networkId) =>
     client.get<NetworkToken>(`/network/${networkId}/token`).then(unpackRequest);
 
-  const getNetworkStats: Api['network']['getNetworkStats'] = (data) =>
-    client
+  const getNetworkStats: Api['network']['getNetworkStats'] = (data) => {
+    const fromParam = getNetworkStatsFilterValue(data.from ?? 1);
+    return client
       .get<WireguardNetworkStats>(`/network/${data.id}/stats`, {
         params: {
-          ...data,
+          from: fromParam,
         },
       })
       .then(unpackRequest);
+  };
 
   const getWorkerToken = () =>
     client.get<WorkerToken>('/worker/token').then(unpackRequest);
@@ -502,12 +507,16 @@ export const buildApi = (client: Axios): Api => {
       })
       .then(unpackRequest);
 
-  const getAllNetworksStats: Api['network']['getAllNetworksStats'] = (params) =>
-    client
+  const getAllNetworksStats: Api['network']['getAllNetworksStats'] = (params) => {
+    const fromParam = getNetworkStatsFilterValue(params.from ?? 1);
+    return client
       .get('/network/stats', {
-        params,
+        params: {
+          from: fromParam,
+        },
       })
       .then(unpackRequest);
+  };
 
   const getAllGatewaysStatus: Api['network']['getAllGatewaysStatus'] = () =>
     client.get('/network/gateways').then(unpackRequest);

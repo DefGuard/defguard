@@ -98,7 +98,7 @@ const App = () => {
                 }
               />
               <Route
-                path="overview-index/*"
+                path="overview/"
                 element={
                   <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <OverviewIndexPage />
@@ -106,7 +106,7 @@ const App = () => {
                 }
               />
               <Route
-                path="overview/*"
+                path="overview/:networkId"
                 element={
                   <ProtectedRoute adminRequired moduleRequired="wireguard_enabled">
                     <OverviewPage />
