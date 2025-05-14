@@ -106,7 +106,7 @@ pub async fn run_periodic_peer_disconnect(
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: location.id,
-                            device_wireguard_ip: device_network_config.wireguard_ip,
+                            device_wireguard_ips: device_network_config.wireguard_ips,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,
                         }],

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use humantime::format_duration;
+use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{query, query_as, query_scalar, PgExecutor, PgPool};
 
@@ -144,10 +145,69 @@ impl WireguardPeerStats<Id> {
         })
     }
 
-    /// Trim `allowed_ips` returning the first one without CIDR.
-    pub(crate) fn trim_allowed_ips(&self) -> Option<String> {
-        self.allowed_ips
-            .as_ref()
-            .and_then(|ips| Some(ips.split_once('/')?.0.to_owned()))
+    /// Returns a `Vec` of `allowed_ips` without a CIDR mask.
+    /// Non-parsable addresses are omitted.
+    pub(crate) fn trim_allowed_ips(&self) -> Vec<String> {
+        let Some(allowed_ips) = &self.allowed_ips else {
+            return Vec::new();
+        };
+        allowed_ips
+            .split(',')
+            .filter_map(|addr| Some(addr.trim().parse::<IpNetwork>().ok()?.ip().to_string()))
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_trim_allowed_ips() {
+        let mut stats = WireguardPeerStats {
+            id: 1,
+            device_id: 1,
+            collected_at: Utc::now().naive_utc(),
+            network: 1,
+            endpoint: None,
+            upload: 100,
+            download: 100,
+            latest_handshake: Utc::now().naive_utc(),
+            allowed_ips: None,
+        };
+        assert!(stats.trim_allowed_ips().is_empty());
+
+        stats.allowed_ips = Some("10.1.1.1".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1"]);
+
+        stats.allowed_ips = Some("10.1.1.1/24".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1"]);
+
+        stats.allowed_ips = Some("10.1.1.1/24, 10.1.1.2".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "10.1.1.2"]);
+
+        stats.allowed_ips = Some("10.1.1.1/24, 10.1.1.2/24".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "10.1.1.2"]);
+
+        stats.allowed_ips = Some("fc00::1".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
+
+        stats.allowed_ips = Some("fc00::1/112".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
+
+        stats.allowed_ips = Some("fc00::1/112,fc00::2".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1", "fc00::2"]);
+
+        stats.allowed_ips = Some("fc00::1/112,fc00::2/112".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1", "fc00::2"]);
+
+        stats.allowed_ips = Some("10.1.1.1, fc00::1".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "fc00::1"]);
+
+        stats.allowed_ips = Some("10.1.1.1/24, fc00::1/112".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["10.1.1.1", "fc00::1"]);
+
+        stats.allowed_ips = Some("nonparsable, fc00::1/112".to_string());
+        assert_eq!(stats.trim_allowed_ips(), vec!["fc00::1"]);
     }
 }

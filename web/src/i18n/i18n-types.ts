@@ -5200,9 +5200,9 @@ type RootTranslation = {
 					 */
 					location: string
 					/**
-					 * I​P​ ​A​d​d​r​e​s​s
+					 * I​P​ ​A​d​d​r​e​s​s​e​s
 					 */
-					assignedIp: string
+					assignedIps: string
 					/**
 					 * D​e​s​c​r​i​p​t​i​o​n
 					 */
@@ -11071,9 +11071,9 @@ export type TranslationFunctions = {
 					 */
 					location: () => LocalizedString
 					/**
-					 * IP Address
+					 * IP Addresses
 					 */
-					assignedIp: () => LocalizedString
+					assignedIps: () => LocalizedString
 					/**
 					 * Description
 					 */

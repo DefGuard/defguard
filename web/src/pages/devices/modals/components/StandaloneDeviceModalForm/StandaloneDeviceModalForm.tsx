@@ -47,7 +47,7 @@ export const StandaloneDeviceModalForm = ({
   reservedNames,
   initialIpRecommendation,
 }: Props) => {
-  const [internalRecommendedIp, setInternalRecommendedIp] = useState<
+  const [internalRecommendedIps, setInternalRecommendedIps] = useState<
     GetAvailableLocationIpResponse | undefined
   >();
   const { LL } = useI18nContext();
@@ -112,8 +112,8 @@ export const StandaloneDeviceModalForm = ({
               return !reservedNames.includes(value.trim());
             }, LL.form.error.reservedName()),
           location_id: z.number(),
-          description: z.string(),
-          modifiableIpPart: z.string().min(1, LL.form.error.required()),
+          description: z.string().optional(),
+          modifiableIpParts: z.array(z.string().min(1, LL.form.error.required())),
           generationChoice: z.nativeEnum(WGConfigGenChoice),
           wireguard_pubkey: z.string().optional(),
         })
@@ -156,26 +156,34 @@ export const StandaloneDeviceModalForm = ({
 
   const generationChoiceValue = watch('generationChoice');
 
+  function newIps(formIps: string[]): string[] {
+    const initialIpsSet = new Set<string>(
+      initialIpRecommendation.map((ip) => ip.network_part + ip.modifiable_part),
+    );
+    const formIpsSet = new Set<string>(formIps);
+    return Array.from(formIpsSet.difference(initialIpsSet));
+  }
   const submitHandler: SubmitHandler<AddStandaloneDeviceFormFields> = async (
     formValues,
   ) => {
     const values = formValues;
-    const { modifiableIpPart } = values;
+    const { modifiableIpParts: modifiableIpPart } = values;
     values.description = values.description?.trim();
     values.name = values.name.trim();
-    const currentIpResp = internalRecommendedIp ?? initialIpRecommendation;
-    values.modifiableIpPart =
-      currentIpResp.network_part + formValues.modifiableIpPart.trim();
+    const currentIpResp = internalRecommendedIps ?? initialIpRecommendation;
+    values.modifiableIpParts = currentIpResp.map(
+      (resp, i) => resp.network_part + formValues.modifiableIpParts[i].trim(),
+    );
     if (
       mode === StandaloneDeviceModalFormMode.EDIT &&
-      modifiableIpPart === defaults.modifiableIpPart
+      modifiableIpPart === defaults.modifiableIpParts
     ) {
       await onSubmit(values);
       return;
     }
     try {
       const response = await validateLocationIp({
-        ip: values.modifiableIpPart,
+        ips: newIps(values.modifiableIpParts),
         location: values.location_id,
       });
       const { available, valid } = response;
@@ -183,12 +191,12 @@ export const StandaloneDeviceModalForm = ({
         await onSubmit(values);
       } else {
         if (!available) {
-          setError('modifiableIpPart', {
+          setError('modifiableIpParts', {
             message: LL.form.error.reservedIp(),
           });
         }
         if (!valid) {
-          setError('modifiableIpPart', {
+          setError('modifiableIpParts', {
             message: LL.form.error.invalidIp(),
           });
         }
@@ -207,9 +215,9 @@ export const StandaloneDeviceModalForm = ({
           locationId,
         })
           .then((resp) => {
-            setInternalRecommendedIp(resp);
-            resetField('modifiableIpPart', {
-              defaultValue: resp.modifiable_part,
+            setInternalRecommendedIps(resp);
+            resetField('modifiableIpParts', {
+              defaultValue: resp.map((r) => r.modifiable_part),
             });
           })
           .finally(() => {
@@ -236,36 +244,35 @@ export const StandaloneDeviceModalForm = ({
     return () => sub.unsubscribe();
   }, [submitSubject]);
 
+  const recommendedIps = internalRecommendedIps || initialIpRecommendation;
   return (
     <form onSubmit={handleSubmit(submitHandler)} className="standalone-device-modal-form">
       <FormInput controller={{ control, name: 'name' }} label={labels.deviceName()} />
-      <div className="row">
-        <FormSelect
-          controller={{ control, name: 'location_id' }}
-          options={locationOptions}
-          renderSelected={renderSelectedOption}
-          label={labels.location()}
-          onChangeSingle={autoAssignRecommendedIp}
-          disabled={mode === StandaloneDeviceModalFormMode.EDIT}
-          disableOpen={mode === StandaloneDeviceModalFormMode.EDIT}
-        />
-        <FormLocationIp
-          controller={{ control, name: 'modifiableIpPart' }}
-          data={{
-            networkPart:
-              internalRecommendedIp?.network_part ?? initialIpRecommendation.network_part,
-            networkPrefix:
-              internalRecommendedIp?.network_prefix ??
-              initialIpRecommendation.network_prefix,
-          }}
-          label={labels.assignedAddress()}
-          disabled={ipIsLoading}
-        />
-      </div>
+      <FormSelect
+        controller={{ control, name: 'location_id' }}
+        options={locationOptions}
+        renderSelected={renderSelectedOption}
+        label={labels.location()}
+        onChangeSingle={autoAssignRecommendedIp}
+        disabled={mode === StandaloneDeviceModalFormMode.EDIT}
+        disableOpen={mode === StandaloneDeviceModalFormMode.EDIT}
+      />
       <FormInput
         controller={{ control, name: 'description' }}
         label={labels.description()}
       />
+      {recommendedIps.map((ip, i) => (
+        <FormLocationIp
+          key={i}
+          controller={{ control, name: `modifiableIpParts.${i}` }}
+          data={{
+            networkPart: ip?.network_part,
+            networkPrefix: ip?.network_prefix,
+          }}
+          label={labels.assignedAddress()}
+          disabled={ipIsLoading}
+        />
+      ))}
       {mode === StandaloneDeviceModalFormMode.CREATE_MANUAL && (
         <>
           <FormToggle

@@ -6,6 +6,7 @@ import { useCallback, useMemo } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
+import { ListCellTags } from '../../../../shared/components/Layout/ListCellTags/ListCellTags';
 import SvgIconCopy from '../../../../shared/components/svg/IconCopy';
 import { DeviceAvatar } from '../../../../shared/defguard-ui/components/Layout/DeviceAvatar/DeviceAvatar';
 import { EditButton } from '../../../../shared/defguard-ui/components/Layout/EditButton/EditButton';
@@ -21,6 +22,7 @@ import useApi from '../../../../shared/hooks/useApi';
 import { useClipboard } from '../../../../shared/hooks/useClipboard';
 import { useToaster } from '../../../../shared/hooks/useToaster';
 import { StandaloneDevice } from '../../../../shared/types';
+import { ListCellTag } from '../../../acl/AclIndexPage/components/shared/types';
 import { useDeleteStandaloneDeviceModal } from '../../hooks/useDeleteStandaloneDeviceModal';
 import { useDevicesPage } from '../../hooks/useDevicesPage';
 import { useEditStandaloneDeviceModal } from '../../hooks/useEditStandaloneDeviceModal';
@@ -48,7 +50,7 @@ export const DevicesList = () => {
         sortDirection: ListSortDirection.DESC,
       },
       { key: 1, text: labels.location() },
-      { key: 2, text: labels.assignedIp() },
+      { key: 2, text: labels.assignedIps() },
       { key: 3, text: labels.description() },
       { key: 4, text: labels.addedBy() },
       { key: 5, text: labels.addedAt() },
@@ -83,7 +85,16 @@ export const DevicesList = () => {
 };
 
 const DeviceRow = (props: StandaloneDevice) => {
-  const { description, id, location, name, added_by, added_date, assigned_ip } = props;
+  const { description, id, location, name, added_by, added_date, assigned_ips } = props;
+  const ipsTags = useMemo(
+    (): ListCellTag[] =>
+      assigned_ips.map((ip) => ({
+        key: ip,
+        label: ip,
+        displayAsTag: false,
+      })),
+    [assigned_ips],
+  );
   const formatDate = useMemo(() => {
     const day = dayjs(added_date);
     return day.format('DD.MM.YYYY | HH:mm');
@@ -112,20 +123,7 @@ const DeviceRow = (props: StandaloneDevice) => {
         />
       </div>
       <div className="cell-3">
-        <LimitedText
-          floatingClassName="device-item-floating"
-          text={assigned_ip}
-          otherContent={
-            <button
-              className="copy"
-              onClick={() => {
-                void writeToClipboard(assigned_ip);
-              }}
-            >
-              <SvgIconCopy />
-            </button>
-          }
-        />
+        <ListCellTags data={ipsTags} />
       </div>
       <div className="cell-4">
         <LimitedText floatingClassName="device-item-floating" text={description ?? ''} />

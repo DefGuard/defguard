@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fmt,
+    iter::zip,
     net::{IpAddr, Ipv4Addr},
 };
 
@@ -36,6 +37,7 @@ use crate::{
         GatewayState,
     },
     wg_config::ImportedDevice,
+    AsCsv,
 };
 
 pub const DEFAULT_KEEPALIVE_INTERVAL: i32 = 25;
@@ -47,7 +49,7 @@ pub struct MappedDevice {
     pub user_id: Id,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: IpAddr,
+    pub wireguard_ips: Vec<IpAddr>,
 }
 
 pub const WIREGUARD_MAX_HANDSHAKE: TimeDelta = TimeDelta::minutes(8);
@@ -167,6 +169,24 @@ pub enum WireguardNetworkError {
     DeviceError(#[from] DeviceError),
     #[error("Firewall config error: {0}")]
     FirewallError(#[from] FirewallError),
+}
+
+#[derive(Debug, Error)]
+pub enum NetworkAddressError {
+    #[error(
+        "Location {0} has no network that could contain IP address {1}, available networks: {2:?}"
+    )]
+    NoContainingNetwork(String, IpAddr, Vec<IpNetwork>),
+    #[error("IP address {1} is reserved for gateway in location {0}")]
+    ReservedForGateway(String, IpAddr),
+    #[error("IP address {1} is network broadcast address in location {0}")]
+    IsBroadcastAddress(String, IpAddr),
+    #[error("IP address {1} is network address in location {0}")]
+    IsNetworkAddress(String, IpAddr),
+    #[error("IP address {1} is already assigned in location {0}")]
+    AddressAlreadyAssigned(String, IpAddr),
+    #[error(transparent)]
+    DbError(#[from] sqlx::Error),
 }
 
 impl WireguardNetwork {
@@ -349,7 +369,6 @@ impl WireguardNetwork<Id> {
                 .await?
             }
         };
-
         Ok(devices)
     }
 
@@ -444,19 +463,16 @@ impl WireguardNetwork<Id> {
         }
     }
 
-    pub async fn add_network_device_to_network(
-        &self,
-        transaction: &mut PgConnection,
-        device: &WireguardNetworkDevice,
-        ip: IpAddr,
-    ) -> Result<WireguardNetworkDevice, WireguardNetworkError> {
-        info!(
-            "Adding network device {} with IP {ip} to network {self}",
-            device.device_id
-        );
-        let wireguard_network_device = WireguardNetworkDevice::new(self.id, device.device_id, ip);
-        wireguard_network_device.insert(&mut *transaction).await?;
-        Ok(wireguard_network_device)
+    /// Checks if all device addresses are contained in at least one of the network addresses
+    pub fn contains_all(&self, addresses: &[IpAddr]) -> bool {
+        addresses
+            .iter()
+            .all(|addr| self.address.iter().any(|net| net.contains(*addr)))
+    }
+
+    /// Finds [`IpNetwork`] containing given [`IpAddr`]
+    pub fn get_containing_network(&self, addr: IpAddr) -> Option<IpNetwork> {
+        self.address.iter().find(|net| net.contains(addr)).copied()
     }
 
     /// Works out which devices need to be added, removed, or readdressed
@@ -468,14 +484,16 @@ impl WireguardNetwork<Id> {
         currently_configured_devices: Vec<WireguardNetworkDevice>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<Vec<GatewayEvent>, WireguardNetworkError> {
-        // loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
+        // Loop through current device configurations; remove no longer allowed, readdress when necessary; remove processed entry from all devices list
         // initial list should now contain only devices to be added
         let mut events: Vec<GatewayEvent> = Vec::new();
         for device_network_config in currently_configured_devices {
-            // device is allowed and an IP was already assigned
+            // Device is allowed and an IP was already assigned
             if let Some(device) = allowed_devices.remove(&device_network_config.device_id) {
-                // network address changed and IP needs to be updated
-                if !self.address[0].contains(device_network_config.wireguard_ip) {
+                // Network address changed and IP addresses need to be updated
+                if !self.contains_all(&device_network_config.wireguard_ips)
+                    || self.address.len() != device_network_config.wireguard_ips.len()
+                {
                     let wireguard_network_device = device
                         .assign_next_network_ip(&mut *transaction, self, reserved_ips)
                         .await?;
@@ -483,13 +501,13 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         }],
                     }));
                 }
-            // device is no longer allowed
+            // Device is no longer allowed
             } else {
                 debug!(
                     "Device {} no longer allowed, removing network config for {self}",
@@ -503,7 +521,7 @@ impl WireguardNetwork<Id> {
                         device,
                         network_info: vec![DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: device_network_config.wireguard_ip,
+                            device_wireguard_ips: device_network_config.wireguard_ips,
                             preshared_key: device_network_config.preshared_key,
                             is_authorized: device_network_config.is_authorized,
                         }],
@@ -516,7 +534,7 @@ impl WireguardNetwork<Id> {
             }
         }
 
-        // add configs for new allowed devices
+        // Add configs for new allowed devices
         for device in allowed_devices.into_values() {
             let wireguard_network_device = device
                 .assign_next_network_ip(&mut *transaction, self, reserved_ips)
@@ -525,7 +543,7 @@ impl WireguardNetwork<Id> {
                 device,
                 network_info: vec![DeviceNetworkInfo {
                     network_id: self.id,
-                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
                     preshared_key: wireguard_network_device.preshared_key,
                     is_authorized: wireguard_network_device.is_authorized,
                 }],
@@ -645,13 +663,13 @@ impl WireguardNetwork<Id> {
                     match allowed_devices.get(&existing_device.id) {
                         Some(_) => {
                             info!(
-                        "Device with pubkey {} exists already, assigning IP {} for new network: {self}",
-                        existing_device.wireguard_pubkey, imported_device.wireguard_ip
+                        "Device with pubkey {} exists already, assigning IPs {} for new network: {self}",
+                        existing_device.wireguard_pubkey, imported_device.wireguard_ips.as_csv()
                     );
                             let wireguard_network_device = WireguardNetworkDevice::new(
                                 self.id,
                                 existing_device.id,
-                                imported_device.wireguard_ip,
+                                imported_device.wireguard_ips,
                             );
                             wireguard_network_device.insert(&mut *transaction).await?;
                             // store ID of device with already generated config
@@ -661,7 +679,7 @@ impl WireguardNetwork<Id> {
                                 device: existing_device,
                                 network_info: vec![DeviceNetworkInfo {
                                     network_id: self.id,
-                                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                                    device_wireguard_ips: wireguard_network_device.wireguard_ips,
                                     preshared_key: wireguard_network_device.preshared_key,
                                     is_authorized: wireguard_network_device.is_authorized,
                                 }],
@@ -733,12 +751,15 @@ impl WireguardNetwork<Id> {
             let mut network_info = Vec::new();
             match &allowed_groups {
                 None => {
-                    let wireguard_network_device =
-                        WireguardNetworkDevice::new(self.id, device.id, mapped_device.wireguard_ip);
+                    let wireguard_network_device = WireguardNetworkDevice::new(
+                        self.id,
+                        device.id,
+                        mapped_device.wireguard_ips.clone(),
+                    );
                     wireguard_network_device.insert(&mut *transaction).await?;
                     network_info.push(DeviceNetworkInfo {
                         network_id: self.id,
-                        device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                        device_wireguard_ips: wireguard_network_device.wireguard_ips,
                         preshared_key: wireguard_network_device.preshared_key,
                         is_authorized: wireguard_network_device.is_authorized,
                     });
@@ -750,12 +771,12 @@ impl WireguardNetwork<Id> {
                         let wireguard_network_device = WireguardNetworkDevice::new(
                             self.id,
                             device.id,
-                            mapped_device.wireguard_ip,
+                            mapped_device.wireguard_ips.clone(),
                         );
                         wireguard_network_device.insert(&mut *transaction).await?;
                         network_info.push(DeviceNetworkInfo {
                             network_id: self.id,
-                            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                            device_wireguard_ips: wireguard_network_device.wireguard_ips,
                             preshared_key: wireguard_network_device.preshared_key,
                             is_authorized: wireguard_network_device.is_authorized,
                         });
@@ -916,13 +937,16 @@ impl WireguardNetwork<Id> {
         let mut result = Vec::new();
         for device in devices {
             let latest_stats = WireguardPeerStats::fetch_latest(conn, device.id, self.id).await?;
+            let wireguard_ips = if let Some(stats) = &latest_stats {
+                stats.trim_allowed_ips()
+            } else {
+                Vec::new()
+            };
             result.push(WireguardDeviceStatsRow {
                 id: device.id,
                 user_id: device.user_id,
                 name: device.name.clone(),
-                wireguard_ip: latest_stats
-                    .as_ref()
-                    .and_then(WireguardPeerStats::trim_allowed_ips),
+                wireguard_ips,
                 public_ip: latest_stats
                     .as_ref()
                     .and_then(WireguardPeerStats::endpoint_without_port),
@@ -1113,6 +1137,83 @@ impl WireguardNetwork<Id> {
         .fetch_all(executor)
         .await
     }
+
+    /// Determine if a set of IP addresses can be safely assigned on this network.
+    ///
+    /// This method runs three categories of checks in sequence:
+    /// 1. **Range validation**
+    ///    Every address in `ip_addrs` must lie within one of the network's CIDR.
+    ///    Fails with `NoContainingNetwork` if any IP falls outside.
+    ///
+    /// 2. **Reserved‐address checks**
+    ///    - Rejects the network address itself (`IsNetworkAddress`).
+    ///    - Rejects the broadcast address (`IsBroadcastAddress`).
+    ///    - Rejects the gateway/reserved host address (`ReservedForGateway`).
+    ///
+    /// 3. **Conflict detection**
+    ///    Queries the database to see if an IP is already claimed.
+    ///    - If `device_id` is `Some(id)`, any IP already bound to that same device is exempt.
+    ///    - Otherwise, or if bound to a different device, fails with `AddressAlreadyAssigned`.
+    ///
+    /// # Parameters
+    ///
+    /// - `transaction`: Open PostgreSQL transaction to check existing assignments.
+    /// - `ip_addrs`: Candidate `IpAddr`s to validate.
+    /// - `device_id`: If `Some(id)`, IPs already assigned to this device are treated as free;
+    ///   if `None`, all existing assignments count as conflicts.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: All addresses passed every check.
+    /// - `Err(NetworkIpAssignmentError)`: The first failing check.
+    pub(crate) async fn can_assign_ips(
+        &self,
+        transaction: &mut PgConnection,
+        ip_addrs: &[IpAddr],
+        device_id: Option<Id>,
+    ) -> Result<(), NetworkAddressError> {
+        // Ensure the network contains all provided IP addresses
+        let networks = ip_addrs
+            .iter()
+            .map(|ip| self.get_containing_network(*ip).ok_or(*ip))
+            .collect::<Result<Vec<IpNetwork>, IpAddr>>()
+            .map_err(|ip| {
+                NetworkAddressError::NoContainingNetwork(
+                    self.name.clone(),
+                    ip,
+                    self.address.clone(),
+                )
+            })?;
+        for (ip, network_address) in zip(ip_addrs, networks) {
+            if *ip == network_address.network() {
+                return Err(NetworkAddressError::IsNetworkAddress(
+                    self.name.clone(),
+                    *ip,
+                ));
+            } else if *ip == network_address.broadcast() {
+                return Err(NetworkAddressError::IsBroadcastAddress(
+                    self.name.clone(),
+                    *ip,
+                ));
+            } else if *ip == network_address.ip() {
+                return Err(NetworkAddressError::ReservedForGateway(
+                    self.name.clone(),
+                    *ip,
+                ));
+            }
+
+            // Make sure the IP address is not assigned
+            let device = Device::find_by_ip(&mut *transaction, *ip, self.id).await?;
+            if device.is_some_and(|device| device_id != Some(device.id)) {
+                return Err(NetworkAddressError::AddressAlreadyAssigned(
+                    self.name.clone(),
+                    *ip,
+                ));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 // [`IpNetwork`] does not implement [`Default`]
@@ -1168,7 +1269,7 @@ pub struct WireguardDeviceStatsRow {
     pub stats: Vec<WireguardDeviceTransferRow>,
     pub user_id: Id,
     pub name: String,
-    pub wireguard_ip: Option<String>,
+    pub wireguard_ips: Vec<String>,
     pub public_ip: Option<String>,
     pub connected_at: Option<NaiveDateTime>,
 }
@@ -1202,7 +1303,10 @@ pub struct WireguardNetworkStats {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use chrono::{SubsecRound, TimeDelta};
+    use matches::assert_matches;
     use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 
     use super::*;
@@ -1211,7 +1315,6 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_reconnection(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1276,7 +1379,6 @@ mod test {
     #[sqlx::test]
     async fn test_connected_at_always_connected(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1339,7 +1441,6 @@ mod test {
     #[sqlx::test]
     async fn test_get_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1432,7 +1533,6 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1515,7 +1615,6 @@ mod test {
     #[sqlx::test]
     async fn test_sync_allowed_devices_for_user(_: PgPoolOptions, options: PgConnectOptions) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1628,7 +1727,6 @@ mod test {
         options: PgConnectOptions,
     ) {
         let pool = setup_pool(options).await;
-
         let mut network = WireguardNetwork::default();
         network.try_set_address("10.1.1.1/29").unwrap();
         let network = network.save(&pool).await.unwrap();
@@ -1765,5 +1863,274 @@ mod test {
         }
 
         transaction.commit().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_can_assign_ips(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "network".to_string(),
+            vec![IpNetwork::from_str("10.1.1.1/24").unwrap()],
+            50051,
+            String::new(),
+            None,
+            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
+            300,
+            300,
+            false,
+            false,
+        )
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign free address
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // assign multiple free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("10.1.1.3").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // try to assign address from another network
+        let addrs = vec![IpAddr::from_str("10.2.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::NoContainingNetwork(..))
+        );
+
+        // try to assign already assigned address
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".to_string(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![IpAddr::from_str("10.1.1.2").unwrap()],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::AddressAlreadyAssigned(..))
+        );
+
+        // assign with exception for the device
+        let addrs = vec![IpAddr::from_str("10.1.1.2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
+                .await,
+            Ok(())
+        );
+
+        // try to assign gateway address
+        let addrs = vec![IpAddr::from_str("10.1.1.1").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::ReservedForGateway(..))
+        );
+
+        // try to assign network address
+        let addrs = vec![IpAddr::from_str("10.1.1.0").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::IsNetworkAddress(..))
+        );
+
+        // try to assign broadcast address
+        let addrs = vec![IpAddr::from_str("10.1.1.255").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::IsBroadcastAddress(..))
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_can_assign_ips_multiple_addresses(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let network = WireguardNetwork::new(
+            "network".to_string(),
+            vec![
+                IpNetwork::from_str("10.1.1.1/24").unwrap(),
+                IpNetwork::from_str("fc00::1/112").unwrap(),
+            ],
+            50051,
+            String::new(),
+            None,
+            vec![IpNetwork::from_str("10.1.1.0/24").unwrap()],
+            false,
+            300,
+            300,
+            false,
+            false,
+        )
+        .unwrap()
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // assign free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("fc00::2").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // assign multiple free addresses
+        let addrs = vec![
+            IpAddr::from_str("10.1.1.2").unwrap(),
+            IpAddr::from_str("10.1.1.3").unwrap(),
+            IpAddr::from_str("fc00::2").unwrap(),
+            IpAddr::from_str("fc00::3").unwrap(),
+        ];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Ok(())
+        );
+
+        // try to assign address from another network
+        let addrs = vec![IpAddr::from_str("fa::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::NoContainingNetwork(..))
+        );
+
+        // try to assign already assigned address
+        let user = User::new(
+            "hpotter",
+            Some("pass123"),
+            "Potter",
+            "Harry",
+            "h.potter@hogwart.edu.uk",
+            None,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+
+        let device = Device::new(
+            "device".to_string(),
+            String::new(),
+            user.id,
+            DeviceType::User,
+            None,
+            true,
+        )
+        .save(&pool)
+        .await
+        .unwrap();
+        WireguardNetworkDevice::new(
+            network.id,
+            device.id,
+            vec![
+                IpAddr::from_str("10.1.1.2").unwrap(),
+                IpAddr::from_str("fc00::2").unwrap(),
+            ],
+        )
+        .insert(&pool)
+        .await
+        .unwrap();
+        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::AddressAlreadyAssigned(..))
+        );
+
+        // assign with exception for the device
+        let addrs = vec![IpAddr::from_str("fc00::2").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, Some(device.id))
+                .await,
+            Ok(())
+        );
+
+        // try to assign gateway address
+        let addrs = vec![IpAddr::from_str("fc00::1").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::ReservedForGateway(..))
+        );
+
+        // try to assign network address
+        let addrs = vec![IpAddr::from_str("fc00::0").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::IsNetworkAddress(..))
+        );
+
+        // try to assign broadcast address
+        let addrs = vec![IpAddr::from_str("fc00::ffff").unwrap()];
+        assert_matches!(
+            network
+                .can_assign_ips(&mut pool.acquire().await.unwrap(), &addrs, None)
+                .await,
+            Err(NetworkAddressError::IsBroadcastAddress(..))
+        );
     }
 }

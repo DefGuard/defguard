@@ -20,7 +20,7 @@ pub struct ImportedDevice {
     pub user_id: Option<i64>,
     pub name: String,
     pub wireguard_pubkey: String,
-    pub wireguard_ip: IpAddr,
+    pub wireguard_ips: Vec<IpAddr>,
 }
 
 #[derive(Debug, Error)]
@@ -92,18 +92,20 @@ pub(crate) fn parse_wireguard_config(
         }
     }
     // Require at least one IP address.
-    let Some(network_address) = addresses.first() else {
+    if addresses.is_empty() {
         return Err(WireguardConfigParseError::MissingAddress);
-    };
-    let allowed_ips = IpNetwork::new(network_address.network(), network_address.prefix())?;
-    let network_address = *network_address;
+    }
+    let allowed_ips = addresses
+        .iter()
+        .map(|addr| IpNetwork::new(addr.network(), addr.prefix()))
+        .collect::<Result<Vec<IpNetwork>, _>>()?;
     let mut network = WireguardNetwork::new(
         pubkey.clone(),
-        addresses,
+        addresses.clone(),
         port,
         String::new(),
         dns,
-        vec![allowed_ips],
+        allowed_ips,
         false,
         DEFAULT_KEEPALIVE_INTERVAL,
         DEFAULT_DISCONNECT_THRESHOLD,
@@ -118,18 +120,28 @@ pub(crate) fn parse_wireguard_config(
 
     let mut devices = Vec::new();
     for peer in peer_sections {
-        let ip = peer
+        let allowed_ips = peer
             .get("AllowedIPs")
             .ok_or_else(|| WireguardConfigParseError::KeyNotFound("AllowedIPs"))?;
-        let ip_network: IpNetwork = ip.parse()?;
-        let ip = ip_network.ip();
 
-        // check if assigned IP collides with gateway IP
-        let net_ip = network_address.ip();
-        let net_network = network_address.network();
-        let net_broadcast = network_address.broadcast();
-        if ip == net_ip || ip == net_network || ip == net_broadcast {
-            return Err(WireguardConfigParseError::InvalidPeerIp(ip));
+        let mut peer_addresses: Vec<IpAddr> = Vec::new();
+        for allowed_ip in allowed_ips.split(',') {
+            match allowed_ip.trim().parse::<IpNetwork>() {
+                Ok(network) => {
+                    let ip = network.ip();
+                    // check if assigned IP collides with any of gateway IPs
+                    for network_address in &addresses {
+                        let net_ip = network_address.ip();
+                        let net_network = network_address.network();
+                        let net_broadcast = network_address.broadcast();
+                        if ip == net_ip || ip == net_network || ip == net_broadcast {
+                            return Err(WireguardConfigParseError::InvalidPeerIp(ip));
+                        }
+                    }
+                    peer_addresses.push(ip);
+                }
+                Err(err) => return Err(WireguardConfigParseError::InvalidIp(err)),
+            }
         }
 
         let pubkey = peer
@@ -148,7 +160,7 @@ pub(crate) fn parse_wireguard_config(
             user_id: None,
             name: pubkey.to_string(),
             wireguard_pubkey: pubkey.to_string(),
-            wireguard_ip: ip,
+            wireguard_ips: peer_addresses,
         });
     }
 
@@ -165,7 +177,7 @@ mod test {
         let config = "
             [Interface]
             PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
-            Address = 10.0.0.1/24, fc00::defc/64
+            Address = 10.0.0.1/24
             ListenPort = 55055
             DNS = 10.0.0.2
 
@@ -186,13 +198,7 @@ mod test {
         );
         assert_eq!(network.id, NoId);
         assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
-        assert_eq!(
-            network.address,
-            vec![
-                "10.0.0.1/24".parse().unwrap(),
-                "fc00::defc/64".parse().unwrap()
-            ]
-        );
+        assert_eq!(network.address, vec!["10.0.0.1/24".parse().unwrap()]);
         assert_eq!(network.port, 55055);
         assert_eq!(
             network.pubkey,
@@ -214,13 +220,101 @@ mod test {
             device1.wireguard_pubkey,
             "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
         );
-        assert_eq!(device1.wireguard_ip.to_string(), "10.0.0.10");
+        assert_eq!(
+            device1.wireguard_ips,
+            vec!["10.0.0.10".parse::<IpAddr>().unwrap()]
+        );
 
         let device2 = &devices[1];
         assert_eq!(
             device2.wireguard_pubkey,
             "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
         );
-        assert_eq!(device2.wireguard_ip.to_string(), "10.0.0.11");
+        assert_eq!(
+            device2.wireguard_ips,
+            vec!["10.0.0.11".parse::<IpAddr>().unwrap()]
+        );
+    }
+
+    #[test]
+    fn test_parse_config_dualstack() {
+        let config = "
+            [Interface]
+            PrivateKey = GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg=
+            Address = 10.0.0.1/24,fc00::/112
+            ListenPort = 55055
+            DNS = 10.0.0.2
+
+            [Peer]
+            PublicKey = 2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE=
+            AllowedIPs = 10.0.0.10/24,fc00::10
+            PersistentKeepalive = 300
+
+            [Peer]
+            PublicKey = OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0=
+            AllowedIPs = 10.0.0.11/24,fc00::11
+            PersistentKeepalive = 300
+        ";
+        let (network, devices) = parse_wireguard_config(config).unwrap();
+        assert_eq!(
+            network.prvkey,
+            "GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg="
+        );
+        assert_eq!(network.id, NoId);
+        assert_eq!(network.name, "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y=");
+        assert_eq!(
+            network.address,
+            vec![
+                "10.0.0.1/24".parse().unwrap(),
+                "fc00::/112".parse().unwrap()
+            ]
+        );
+        assert_eq!(network.port, 55055);
+        assert_eq!(
+            network.pubkey,
+            "Y5ewP5RXstQd71gkmS/M0xL8wi0yVbbVY/ocLM4cQ1Y="
+        );
+        assert_eq!(
+            network.prvkey,
+            "GAA2X3DW0WakGVx+DsGjhDpTgg50s1MlmrLf24Psrlg="
+        );
+        assert_eq!(network.endpoint, "");
+        assert_eq!(network.dns, Some("10.0.0.2".to_string()));
+        assert_eq!(
+            network.allowed_ips,
+            vec![
+                "10.0.0.0/24".parse().unwrap(),
+                "fc00::/112".parse().unwrap(),
+            ]
+        );
+        assert_eq!(network.connected_at, None);
+
+        assert_eq!(devices.len(), 2);
+
+        let device1 = &devices[0];
+        assert_eq!(
+            device1.wireguard_pubkey,
+            "2LYRr2HgSSpGCdXKDDAlcFe0Uuc6RR8TFgSquNc9VAE="
+        );
+        assert_eq!(
+            device1.wireguard_ips,
+            vec![
+                "10.0.0.10".parse::<IpAddr>().unwrap(),
+                "fc00::10".parse::<IpAddr>().unwrap()
+            ]
+        );
+
+        let device2 = &devices[1];
+        assert_eq!(
+            device2.wireguard_pubkey,
+            "OLQNaEH3FxW0hiodaChEHoETzd+7UzcqIbsLs+X8rD0="
+        );
+        assert_eq!(
+            device2.wireguard_ips,
+            vec![
+                "10.0.0.11".parse::<IpAddr>().unwrap(),
+                "fc00::11".parse::<IpAddr>().unwrap(),
+            ]
+        );
     }
 }
