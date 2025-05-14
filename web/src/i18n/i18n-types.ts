@@ -2615,25 +2615,23 @@ type RootTranslation = {
 			label: string
 			states: {
 				/**
-				 * A​l​l​ ​c​o​n​n​e​c​t​e​d
+				 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
 				 */
-				connected: string
+				all: RequiredParams<'count'>
 				/**
-				 * O​n​e​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​n​o​t​ ​w​o​r​k​i​n​g
+				 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+				 * @param {number} count
 				 */
-				partial: string
+				some: RequiredParams<'count'>
 				/**
-				 * D​i​s​c​o​n​n​e​c​t​e​d
+				 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
 				 */
-				disconnected: string
+				none: string
 				/**
-				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s​ ​f​a​i​l​e​d
+				 * S​t​a​t​u​s​ ​c​h​e​c​k​ ​f​a​i​l​e​d
 				 */
 				error: string
-				/**
-				 * R​e​t​r​i​e​v​i​n​g​ ​c​o​n​n​e​c​t​i​o​n​s
-				 */
-				loading: string
 			}
 			messages: {
 				/**
@@ -4320,6 +4318,21 @@ type RootTranslation = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * A​l​l​ ​l​o​c​a​t​i​o​n​s​ ​s​u​m​m​a​r​y
+			 */
+			all: string
+			/**
+			 * S​e​l​e​c​t​ ​l​o​c​a​t​i​o​n
+			 */
+			placeholder: string
+		}
+		/**
+		 * {​v​a​l​u​e​}​h​ ​p​e​r​i​o​d
+		 * @param {number} value
+		 */
+		timeRangeSelectionLabel: RequiredParams<'value'>
 		/**
 		 * L​o​c​a​t​i​o​n​ ​o​v​e​r​v​i​e​w
 		 */
@@ -4346,34 +4359,64 @@ type RootTranslation = {
 			 */
 			list: string
 		}
+		gatewayStatus: {
+			/**
+			 * A​l​l​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			all: RequiredParams<'count'>
+			/**
+			 * S​o​m​e​ ​(​{​c​o​u​n​t​}​)​ ​C​o​n​n​e​c​t​e​d
+			 * @param {number} count
+			 */
+			some: RequiredParams<'count'>
+			/**
+			 * N​o​n​e​ ​c​o​n​n​e​c​t​e​d
+			 */
+			none: string
+		}
 		stats: {
 			/**
 			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​u​s​e​r​s
 			 */
 			currentlyActiveUsers: string
 			/**
-			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​d​e​v​i​c​e​s
+			 * C​u​r​r​e​n​t​l​y​ ​a​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s
 			 */
-			currentlyActiveDevices: string
+			currentlyActiveNetworkDevices: string
 			/**
-			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * T​o​t​a​l​ ​u​s​e​r​ ​d​e​v​i​c​e​s​:​ ​{​c​o​u​n​t​}
+			 * @param {number} count
+			 */
+			totalUserDevices: RequiredParams<'count'>
+			/**
+			 * A​c​t​i​v​e​ ​n​e​t​w​o​r​k​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
+			 * @param {number} hour
+			 */
+			activeNetworkDevices: RequiredParams<'hour'>
+			/**
+			 * A​c​t​i​v​e​ ​u​s​e​r​s​ ​i​n​ ​{​h​o​u​r​}​h
 			 * @param {number} hour
 			 */
 			activeUsersFilter: RequiredParams<'hour'>
 			/**
-			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​H
+			 * A​c​t​i​v​e​ ​d​e​v​i​c​e​s​ ​i​n​ ​{​h​o​u​r​}​h
 			 * @param {number} hour
 			 */
 			activeDevicesFilter: RequiredParams<'hour'>
-			/**
-			 * T​o​t​a​l​ ​t​r​a​n​s​f​e​r​:
-			 */
-			totalTransfer: string
 			/**
 			 * A​c​t​i​v​i​t​y​ ​i​n​ ​{​h​o​u​r​}​H
 			 * @param {number} hour
 			 */
 			activityIn: RequiredParams<'hour'>
+			/**
+			 * N​e​t​w​o​r​k​ ​u​s​a​g​e
+			 */
+			networkUsage: string
+			/**
+			 * P​e​a​k
+			 */
+			peak: string
 			/**
 			 * I​n​:
 			 */
@@ -8501,25 +8544,21 @@ export type TranslationFunctions = {
 			label: () => LocalizedString
 			states: {
 				/**
-				 * All connected
+				 * All ({count}) Connected
 				 */
-				connected: () => LocalizedString
+				all: (arg: { count: number }) => LocalizedString
 				/**
-				 * One or more are not working
+				 * Some ({count}) Connected
 				 */
-				partial: () => LocalizedString
+				some: (arg: { count: number }) => LocalizedString
 				/**
-				 * Disconnected
+				 * None connected
 				 */
-				disconnected: () => LocalizedString
+				none: () => LocalizedString
 				/**
-				 * Retrieving connections failed
+				 * Status check failed
 				 */
 				error: () => LocalizedString
-				/**
-				 * Retrieving connections
-				 */
-				loading: () => LocalizedString
 			}
 			messages: {
 				/**
@@ -10198,6 +10237,20 @@ export type TranslationFunctions = {
 		}
 	}
 	networkOverview: {
+		networkSelection: {
+			/**
+			 * All locations summary
+			 */
+			all: () => LocalizedString
+			/**
+			 * Select location
+			 */
+			placeholder: () => LocalizedString
+		}
+		/**
+		 * {value}h period
+		 */
+		timeRangeSelectionLabel: (arg: { value: number }) => LocalizedString
 		/**
 		 * Location overview
 		 */
@@ -10224,31 +10277,57 @@ export type TranslationFunctions = {
 			 */
 			list: () => LocalizedString
 		}
+		gatewayStatus: {
+			/**
+			 * All ({count}) Connected
+			 */
+			all: (arg: { count: number }) => LocalizedString
+			/**
+			 * Some ({count}) Connected
+			 */
+			some: (arg: { count: number }) => LocalizedString
+			/**
+			 * None connected
+			 */
+			none: () => LocalizedString
+		}
 		stats: {
 			/**
 			 * Currently active users
 			 */
 			currentlyActiveUsers: () => LocalizedString
 			/**
-			 * Currently active devices
+			 * Currently active network devices
 			 */
-			currentlyActiveDevices: () => LocalizedString
+			currentlyActiveNetworkDevices: () => LocalizedString
 			/**
-			 * Active users in {hour}H
+			 * Total user devices: {count}
+			 */
+			totalUserDevices: (arg: { count: number }) => LocalizedString
+			/**
+			 * Active network devices in {hour}h
+			 */
+			activeNetworkDevices: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Active users in {hour}h
 			 */
 			activeUsersFilter: (arg: { hour: number }) => LocalizedString
 			/**
-			 * Active devices in {hour}H
+			 * Active devices in {hour}h
 			 */
 			activeDevicesFilter: (arg: { hour: number }) => LocalizedString
-			/**
-			 * Total transfer:
-			 */
-			totalTransfer: () => LocalizedString
 			/**
 			 * Activity in {hour}H
 			 */
 			activityIn: (arg: { hour: number }) => LocalizedString
+			/**
+			 * Network usage
+			 */
+			networkUsage: () => LocalizedString
+			/**
+			 * Peak
+			 */
+			peak: () => LocalizedString
 			/**
 			 * In:
 			 */

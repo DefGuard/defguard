@@ -108,6 +108,7 @@ export interface AddDeviceRequest {
 export type GatewayStatus = {
   connected: boolean;
   network_id: number;
+  network_name: string;
   name?: string;
   hostname: string;
   uid: string;
@@ -270,8 +271,7 @@ export interface ChangeUserPasswordRequest {
 }
 
 export interface GetNetworkStatsRequest {
-  /**UTC date parsed to ISO string. This sets how far back stats will be returned. */
-  from?: string;
+  from?: number;
   id: Network['id'];
 }
 
@@ -498,6 +498,8 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
+export type AllGateWaysResponse = Record<string, Array<GatewayStatus>>;
+
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
@@ -615,6 +617,8 @@ export type Api = {
     getNetworkStats: (data: GetNetworkStatsRequest) => Promise<WireguardNetworkStats>;
     getGatewaysStatus: (networkId: number) => Promise<GatewayStatus[]>;
     deleteGateway: (data: DeleteGatewayRequest) => Promise<void>;
+    getAllNetworksStats: (data: { from?: number }) => Promise<WireguardNetworkStats>;
+    getAllGatewaysStatus: () => Promise<AllGateWaysResponse>;
   };
   auth: {
     login: (data: LoginData) => Promise<LoginResponse>;
@@ -1137,9 +1141,11 @@ export interface NetworkUserStats {
 
 export interface WireguardNetworkStats {
   active_users: number;
-  active_devices: number;
+  active_user_devices: number;
+  active_network_devices: number;
   current_active_users: number;
-  current_active_devices: number;
+  current_active_user_devices: number;
+  current_active_network_devices: number;
   upload: number;
   download: number;
   transfer_series: NetworkSpeedStats[];
