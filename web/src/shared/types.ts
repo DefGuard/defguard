@@ -90,7 +90,7 @@ export interface Device {
 }
 
 export type DeviceNetworkInfo = {
-  device_wireguard_ip: string;
+  device_wireguard_ips: string[];
   is_active: boolean;
   network_gateway_ip: string;
   network_id: number;
@@ -329,7 +329,7 @@ export interface ImportNetworkResponse {
 
 export interface ImportedDevice {
   name: string;
-  wireguard_ip: string;
+  wireguard_ips: string[];
   wireguard_pubkey: string;
   user_id?: number;
 }
@@ -631,8 +631,8 @@ export type Api = {
       data: GetAvailableLocationIpRequest,
     ) => Promise<GetAvailableLocationIpResponse>;
     validateLocationIp: (
-      data: ValidateLocationIpRequest,
-    ) => Promise<ValidateLocationIpResponse>;
+      data: ValidateLocationIpsRequest,
+    ) => Promise<ValidateLocationIpsResponse>;
     getDevicesList: () => Promise<StandaloneDevice[]>;
     getDeviceConfig: (deviceId: number | string) => Promise<string>;
     generateAuthToken: (deviceId: number | string) => Promise<StartEnrollmentResponse>;
@@ -1155,7 +1155,7 @@ export interface NetworkDeviceStats {
   id: number;
   name: string;
   public_ip: string;
-  wireguard_ip: string;
+  wireguard_ips: string[];
   stats: NetworkSpeedStats[];
 }
 
@@ -1169,7 +1169,7 @@ export type StandaloneDeviceStats = {
   stats: NetworkSpeedStats[];
   user_id: number;
   name: string;
-  wireguard_ip?: string;
+  wireguard_ips: string[];
   public_ip?: string;
   connected_at?: string;
 };
@@ -1227,17 +1227,17 @@ export type DirsyncTestResponse = {
 export type CreateStandaloneDeviceRequest = {
   name: string;
   location_id: number;
-  assigned_ip: string;
+  assigned_ips: string[];
   wireguard_pubkey?: string;
   description?: string;
 };
 
-export type ValidateLocationIpRequest = {
-  ip: string;
+export type ValidateLocationIpsRequest = {
+  ips: string[];
   location: number | string;
 };
 
-export type ValidateLocationIpResponse = {
+export type ValidateLocationIpsResponse = {
   available: boolean;
   valid: boolean;
 };
@@ -1251,12 +1251,12 @@ export type GetAvailableLocationIpResponse = {
   network_part: string;
   modifiable_part: string;
   network_prefix: string;
-};
+}[];
 
 export type StandaloneDevice = {
   id: number;
   name: string;
-  assigned_ip: string;
+  assigned_ips: string[];
   description?: string;
   added_by: string;
   added_date: string;
@@ -1267,11 +1267,13 @@ export type StandaloneDevice = {
     id: number;
     name: string;
   };
-  split_ip: {
-    network_part: string;
-    modifiable_part: string;
-    network_prefix: string;
-  };
+  split_ips: [
+    {
+      network_part: string;
+      modifiable_part: string;
+      network_prefix: string;
+    },
+  ];
 };
 
 export type DeviceConfigurationResponse = {
@@ -1293,7 +1295,7 @@ export type CreateStandaloneDeviceResponse = {
 
 export type StandaloneDeviceEditRequest = {
   id: number;
-  assigned_ip: string;
+  assigned_ips: string[];
   description?: string;
   name: string;
 };

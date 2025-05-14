@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    net::{AddrParseError, IpAddr, Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
 
@@ -17,13 +17,17 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{
-        models::device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
+        models::{
+            device::{DeviceConfig, DeviceInfo, DeviceType, WireguardNetworkDevice},
+            wireguard::NetworkAddressError,
+        },
         Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
+    AsCsv,
 };
 
 #[derive(Serialize)]
@@ -36,14 +40,14 @@ struct NetworkDeviceLocation {
 struct NetworkDeviceInfo {
     id: Id,
     name: String,
-    assigned_ip: IpAddr,
+    assigned_ips: Vec<IpAddr>,
     description: Option<String>,
     added_by: String,
     added_date: NaiveDateTime,
     location: NetworkDeviceLocation,
     wireguard_pubkey: String,
     configured: bool,
-    split_ip: SplitIP,
+    split_ips: Vec<SplitIp>,
 }
 
 impl NetworkDeviceInfo {
@@ -67,18 +71,26 @@ impl NetworkDeviceInfo {
                     device.name, network.name
                 )))?;
         let added_by = device.get_owner(&mut *transaction).await?;
-        let net_addr = network
-            .address
-            .first()
-            .ok_or(WebError::ObjectNotFound(format!(
-                "Failed to find the network address for network {}",
-                network.name
-            )))?;
-        let split_ip = split_ip(&wireguard_device.wireguard_ip, net_addr);
+        let split_ips: Vec<SplitIp> = wireguard_device
+            .wireguard_ips
+            .iter()
+            .copied()
+            .map(|ip| {
+                network
+                    .get_containing_network(ip)
+                    .map(|net_addr| split_ip(&ip, &net_addr))
+                    .ok_or_else(|| {
+                        WebError::ObjectNotFound(format!(
+                            "Failed to find the network address for network {}",
+                            network.name
+                        ))
+                    })
+            })
+            .collect::<Result<_, _>>()?;
         Ok(NetworkDeviceInfo {
             id: device.id,
             name: device.name,
-            assigned_ip: wireguard_device.wireguard_ip,
+            assigned_ips: wireguard_device.wireguard_ips,
             description: device.description,
             added_by: added_by.username,
             added_date: device.created,
@@ -88,7 +100,7 @@ impl NetworkDeviceInfo {
                 name: network.name,
             },
             configured: device.configured,
-            split_ip,
+            split_ips,
         })
     }
 }
@@ -191,7 +203,7 @@ pub struct AddNetworkDevice {
     pub name: String,
     pub description: Option<String>,
     pub location_id: i64,
-    pub assigned_ip: String,
+    pub assigned_ips: Vec<String>,
     pub wireguard_pubkey: String,
 }
 
@@ -201,55 +213,16 @@ pub struct AddNetworkDeviceResult {
     device: NetworkDeviceInfo,
 }
 
-/// Checks if the IP address falls into the range of the network
-/// and if it is not already assigned to another device.
-async fn check_ip(
-    ip_addr: IpAddr,
-    network: &WireguardNetwork<Id>,
-    transaction: &mut PgConnection,
-) -> Result<(), WebError> {
-    if let Some(network_address) = network.address.first() {
-        if !network_address.contains(ip_addr) {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip_addr} is not in the network ({}) range {network_address}",
-                network.name,
-            )));
-        }
-        if ip_addr == network_address.network() || ip_addr == network_address.broadcast() {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip_addr} is network or broadcast address of network {}",
-                network.name
-            )));
-        }
-        if ip_addr == network_address.ip() {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip_addr} may overlap with the network's gateway IP in network {}",
-                network.name
-            )));
-        }
-
-        let device = Device::find_by_ip(transaction, ip_addr, network.id).await?;
-        if let Some(device) = device {
-            return Err(WebError::BadRequest(format!(
-                "Provided IP address {ip_addr} is already assigned to device {} in network {}",
-                device.name, network.name
-            )));
-        }
-    }
-
-    Ok(())
-}
-
 #[derive(Deserialize)]
 pub struct IpAvailabilityCheck {
-    ip: String,
+    ips: Vec<String>,
 }
 
 pub(crate) async fn check_ip_availability(
     _admin_role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
-    Json(ip): Json<IpAvailabilityCheck>,
+    Json(check): Json<IpAvailabilityCheck>,
 ) -> ApiResult {
     let mut transaction = appstate.pool.begin().await?;
     let network = WireguardNetwork::find_by_id(&appstate.pool, network_id)
@@ -261,10 +234,15 @@ pub(crate) async fn check_ip_availability(
             );
             WebError::BadRequest("Failed to check IP availability, network not found".into())
         })?;
-
-    let Ok(ip) = IpAddr::from_str(&ip.ip) else {
+    let ips = check
+        .ips
+        .iter()
+        .map(|ip| IpAddr::from_str(ip))
+        .collect::<Result<Vec<IpAddr>, AddrParseError>>();
+    let Ok(ips) = ips else {
         warn!(
-            "Failed to check IP availability for network with ID {network_id}, invalid IP address",
+            "Failed to check IP availability for network {}, invalid IP address",
+            network.name
         );
         return Ok(ApiResponse {
             json: json!({
@@ -275,72 +253,46 @@ pub(crate) async fn check_ip_availability(
         });
     };
 
-    if let Some(network_address) = network.address.first() {
-        if !network_address.contains(ip) {
-            warn!(
-                "Provided device IP address is not in the network ({}) range {network_address}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": false,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-        if ip == network_address.network() || ip == network_address.broadcast() {
-            warn!(
-                "Provided device IP address is network or broadcast address of network {}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": true,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-        if ip == network_address.ip() {
-            warn!(
-                "Provided device IP address may overlap with the gateway's IP address on network {}",
-                network.name
-            );
-            return Ok(ApiResponse {
-                json: json!({
-                    "available": false,
-                    "valid": true,
-                }),
-                status: StatusCode::OK,
-            });
-        }
-    }
-
-    if let Some(device) = Device::find_by_ip(&mut *transaction, ip, network.id).await? {
-        warn!(
-            "Provided device IP is already assigned to device {} in network {}",
-            device.name, network.name
-        );
+    let mkresponse = |available: bool, valid: bool| {
         Ok(ApiResponse {
             json: json!({
-                "available": false,
-                "valid": true,
+                "available": available,
+                "valid": valid,
             }),
             status: StatusCode::OK,
         })
-    } else {
-        Ok(ApiResponse {
-            json: json!({
-                "available": true,
-                "valid": true,
-            }),
-            status: StatusCode::OK,
-        })
-    }
+    };
+    return match network.can_assign_ips(&mut transaction, &ips, None).await {
+        Ok(_) => mkresponse(true, true),
+        Err(NetworkAddressError::NoContainingNetwork(name, ip, networks)) => {
+            warn!(
+                "Provided device IP address {ip} is not in the network {name} range: {networks:?}"
+            );
+            mkresponse(false, false)
+        }
+        Err(NetworkAddressError::ReservedForGateway(name, ip)) => {
+            warn!(
+                "Provided device IP address {ip} may overlap with the gateway's IP address on network {name}",
+            );
+            mkresponse(false, true)
+        }
+        Err(NetworkAddressError::IsBroadcastAddress(name, ip)) => {
+            warn!("Provided device IP address {ip} is broadcast address of network {name}");
+            mkresponse(false, true)
+        }
+        Err(NetworkAddressError::IsNetworkAddress(name, ip)) => {
+            warn!("Provided device IP address {ip} is network address of network {name}");
+            mkresponse(false, true)
+        }
+        Err(NetworkAddressError::AddressAlreadyAssigned(name, ip)) => {
+            warn!("Provided device IP {ip} is already assigned in network {name}");
+            mkresponse(false, true)
+        }
+        Err(NetworkAddressError::DbError(err)) => Err(err)?,
+    };
 }
 
-pub(crate) async fn find_available_ip(
+pub(crate) async fn find_available_ips(
     _admin_role: AdminRole,
     Path(network_id): Path<i64>,
     State(appstate): State<AppState>,
@@ -356,7 +308,8 @@ pub(crate) async fn find_available_ip(
         })?;
 
     let mut transaction = appstate.pool.begin().await?;
-    if let Some(network_address) = network.address.first() {
+    let mut split_ips = Vec::new();
+    for network_address in &network.address {
         let net_ip = network_address.ip();
         let net_network = network_address.network();
         let net_broadcast = network_address.broadcast();
@@ -365,25 +318,37 @@ pub(crate) async fn find_available_ip(
                 continue;
             }
 
-            // Break loop if IP is unassigned and return network device
+            // Break the loop if IP is unassigned and return network device
             if Device::find_by_ip(&mut *transaction, ip, network.id)
                 .await?
                 .is_none()
             {
-                let split_ip = split_ip(&ip, network_address);
-                transaction.commit().await?;
-                return Ok(ApiResponse {
-                    json: json!(split_ip),
-                    status: StatusCode::OK,
-                });
+                split_ips.push(split_ip(&ip, network_address));
+                break;
             }
         }
     }
 
-    Ok(ApiResponse {
-        json: json!({}),
-        status: StatusCode::NOT_FOUND,
-    })
+    transaction.commit().await?;
+    if split_ips.len() != network.address.len() {
+        warn!(
+            "Failed to find available IPs for new device in network {} ({:?})",
+            network.name, network.address
+        );
+        Ok(ApiResponse {
+            json: json!({}),
+            status: StatusCode::NOT_FOUND,
+        })
+    } else {
+        debug!(
+            "Found addresses {:?} for new device i network {} ({:?})",
+            split_ips, network.name, network.address
+        );
+        Ok(ApiResponse {
+            json: json!(split_ips),
+            status: StatusCode::OK,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -391,7 +356,13 @@ pub struct StartNetworkDeviceSetup {
     name: String,
     description: Option<String>,
     location_id: i64,
-    assigned_ip: String,
+    assigned_ips: Vec<String>,
+}
+
+impl From<NetworkAddressError> for WebError {
+    fn from(error: NetworkAddressError) -> Self {
+        WebError::BadRequest(error.to_string())
+    }
 }
 
 // Setup a network device to be later configured by a CLI client
@@ -440,18 +411,26 @@ pub(crate) async fn start_network_device_setup(
         device.id
     );
 
-    let ip: IpAddr = setup_start.assigned_ip.parse().map_err(|e| {
-        error!("Failed to add network device {device_name}, invalid IP address: {e}");
-        WebError::BadRequest("Invalid IP address".to_string())
-    })?;
-    check_ip(ip, &network, &mut transaction).await?;
+    let ips = setup_start
+        .assigned_ips
+        .iter()
+        .map(|ip| IpAddr::from_str(ip))
+        .collect::<Result<Vec<IpAddr>, AddrParseError>>()
+        .map_err(|e| {
+            let msg =
+                format!("Failed to add network device {device_name}, invalid IP address: {e}");
+            error!(msg);
+            WebError::BadRequest(msg)
+        })?;
+
+    network.can_assign_ips(&mut transaction, &ips, None).await?;
 
     let (_, config) = device
-        .add_to_network(&network, ip, &mut transaction)
+        .add_to_network(&network, &ips, &mut transaction)
         .await?;
 
     info!(
-        "User {} added a new unconfigured network device {device_name} with IP {ip} to network {}",
+        "User {} added a new unconfigured network device {device_name} with IPs {ips:?} to network {}",
         user.username, network.name
     );
 
@@ -603,14 +582,21 @@ pub(crate) async fn add_network_device(
     .save(&mut *transaction)
     .await?;
 
-    let ip: IpAddr = add_network_device.assigned_ip.parse().map_err(|e| {
-        error!("Failed to add network device {device_name}, invalid IP address: {e}");
-        WebError::BadRequest("Invalid IP address".to_string())
-    })?;
-    check_ip(ip, &network, &mut transaction).await?;
+    let ips = add_network_device
+        .assigned_ips
+        .iter()
+        .map(|ip| IpAddr::from_str(ip))
+        .collect::<Result<Vec<IpAddr>, AddrParseError>>()
+        .map_err(|e| {
+            let msg =
+                format!("Failed to add network device {device_name}, invalid IP address: {e}");
+            error!(msg);
+            WebError::BadRequest(msg)
+        })?;
+    network.can_assign_ips(&mut transaction, &ips, None).await?;
 
     let (network_info, config) = device
-        .add_to_network(&network, ip, &mut transaction)
+        .add_to_network(&network, &ips, &mut transaction)
         .await?;
 
     appstate.send_wireguard_event(GatewayEvent::DeviceCreated(DeviceInfo {
@@ -630,7 +616,7 @@ pub(crate) async fn add_network_device(
 
     let template_locations = vec![TemplateLocation {
         name: config.network_name.clone(),
-        assigned_ip: config.address.to_string(),
+        assigned_ips: config.address.as_csv(),
     }];
 
     send_new_device_added_email(
@@ -665,7 +651,7 @@ pub(crate) async fn add_network_device(
 pub struct ModifyNetworkDevice {
     name: String,
     description: Option<String>,
-    assigned_ip: String,
+    assigned_ips: Vec<IpAddr>,
 }
 
 pub async fn modify_network_device(
@@ -698,20 +684,17 @@ pub async fn modify_network_device(
                 error!("Failed to update device {device_id}, device not found in any network");
                 WebError::ObjectNotFound(format!("Device {device_id} not found in any network"))
             })?;
-    let new_ip = IpAddr::from_str(&data.assigned_ip).map_err(|e| {
-        WebError::BadRequest(format!(
-            "Failed to update device {device_id}, invalid IP address: {e}"
-        ))
-    })?;
-
     device.name = data.name;
     device.description = data.description;
     device.save(&mut *transaction).await?;
 
     // IP address has changed, so remove device from network and add it again with new IP address.
-    if new_ip != wireguard_network_device.wireguard_ip {
-        check_ip(new_ip, &device_network, &mut transaction).await?;
-        wireguard_network_device.wireguard_ip = new_ip;
+    if data.assigned_ips != *wireguard_network_device.wireguard_ips {
+        device_network
+            .can_assign_ips(&mut transaction, &data.assigned_ips, Some(device.id))
+            .await?;
+        let old_ips = wireguard_network_device.wireguard_ips.clone();
+        wireguard_network_device.wireguard_ips = data.assigned_ips;
         wireguard_network_device.update(&mut *transaction).await?;
         let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
         appstate.send_wireguard_event(GatewayEvent::DeviceModified(device_info));
@@ -730,10 +713,11 @@ pub async fn modify_network_device(
         }
 
         info!(
-            "User {} changed IP address of network device {} from {} to {new_ip} in network {}",
+            "User {} changed IP addresses of network device {} from {:?} to {:?} in network {}",
             session.user.username,
             device.name,
-            wireguard_network_device.wireguard_ip,
+            old_ips,
+            wireguard_network_device.wireguard_ips,
             device_network.name
         );
     }
@@ -748,7 +732,7 @@ pub async fn modify_network_device(
 }
 
 #[derive(Debug, Serialize)]
-struct SplitIP {
+struct SplitIp {
     network_part: String,
     modifiable_part: String,
     network_prefix: String,
@@ -758,13 +742,13 @@ struct SplitIP {
 /// Splits the IP address (IPv4 or IPv6) into three parts: network part, modifiable part and prefix
 /// The network part is the part that can't be changed by the user.
 /// This is to display an IP address in the UI like this: 192.168.(1.1)/16, where the part in the parenthesis can be changed by the user.
-// The algorithm works as follows:
-// 1. Get the network address, last address and IP address segments, e.g. 192.1.1.1 would be [192, 1, 1, 1]
-// 2. Iterate over the segments and compare the last address and network segments, as long as the current segments are equal, append the segment to the network part.
-//    If they are not equal, we found the first modifiable segment (one of the segments of an address that may change between hosts in the same network),
-//    append the rest of the segments to the modifiable part.
-// 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
-fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIP {
+/// The algorithm works as follows:
+/// 1. Get the network address, last address and IP address segments, e.g. 192.1.1.1 would be [192, 1, 1, 1]
+/// 2. Iterate over the segments and compare the last address and network segments, as long as the current segments are equal, append the segment to the network part.
+///    If they are not equal, we found the first modifiable segment (one of the segments of an address that may change between hosts in the same network),
+///    append the rest of the segments to the modifiable part.
+/// 3. Join the segments with the delimiter and return the network part, modifiable part and the network prefix
+fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIp {
     let network_addr = network.network();
     let network_prefix = network.prefix();
 
@@ -822,7 +806,7 @@ fn split_ip(ip: &IpAddr, network: &IpNetwork) -> SplitIP {
         network_part.push_str(&format!("{formatted}{delimiter}"));
     }
 
-    SplitIP {
+    SplitIp {
         ip: ip.to_string(),
         network_part,
         modifiable_part,

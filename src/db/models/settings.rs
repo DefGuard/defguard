@@ -23,12 +23,12 @@ pub async fn initialize_current_settings(pool: &PgPool) -> Result<(), sqlx::Erro
 }
 
 /// Helper function which stores updated `Settings` in the DB and also updates the global `SETTINGS` struct
-pub async fn update_current_settings(
-    pool: &PgPool,
+pub async fn update_current_settings<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
     new_settings: Settings,
 ) -> Result<(), sqlx::Error> {
     debug!("Updating current settings to: {new_settings:?}");
-    new_settings.save(pool).await?;
+    new_settings.save(executor).await?;
     set_settings(Some(new_settings));
     Ok(())
 }
@@ -325,6 +325,12 @@ impl Settings {
             && self.smtp_server != Some(String::new())
             && self.smtp_sender != Some(String::new())
     }
+
+    pub fn ldap_using_username_as_rdn(&self) -> bool {
+        self.ldap_user_rdn_attr
+            .as_deref()
+            .is_none_or(|rdn| rdn.is_empty() || Some(rdn) == self.ldap_username_attr.as_deref())
+    }
 }
 
 #[derive(Serialize)]
@@ -371,7 +377,7 @@ impl From<Settings> for SettingsEssentials {
 mod defaults {
     pub static WELCOME_MESSAGE: &str = "Dear {{ first_name }} {{ last_name }},
 
-By completing the enrollment process, you now have now access to all company systems.
+By completing the enrollment process, you now have access to all company systems.
 
 Your login to all systems is: {{ username }}
 

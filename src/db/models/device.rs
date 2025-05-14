@@ -21,11 +21,11 @@ use utoipa::ToSchema;
 
 use super::{
     error::ModelError,
-    wireguard::{WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
+    wireguard::{NetworkAddressError, WireguardNetwork, WIREGUARD_MAX_HANDSHAKE},
 };
 use crate::{
     db::{Id, NoId, User},
-    KEY_LENGTH,
+    AsCsv, KEY_LENGTH,
 };
 
 #[derive(Serialize, ToSchema)]
@@ -34,7 +34,7 @@ pub struct DeviceConfig {
     pub(crate) network_name: String,
     pub(crate) config: String,
     #[schema(value_type = String)]
-    pub(crate) address: IpAddr,
+    pub(crate) address: Vec<IpAddr>,
     pub(crate) endpoint: String,
     #[schema(value_type = String)]
     pub(crate) allowed_ips: Vec<IpNetwork>,
@@ -142,7 +142,7 @@ pub struct DeviceInfo {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DeviceNetworkInfo {
     pub network_id: Id,
-    pub device_wireguard_ip: IpAddr,
+    pub device_wireguard_ips: Vec<IpAddr>,
     #[serde(skip_serializing)]
     pub preshared_key: Option<String>,
     pub is_authorized: bool,
@@ -159,8 +159,9 @@ impl DeviceInfo {
         debug!("Generating device info for {device}");
         let network_info = query_as!(
             DeviceNetworkInfo,
-            "SELECT wireguard_network_id network_id, wireguard_ip \"device_wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized \
+            "SELECT wireguard_network_id network_id, \
+                wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized \
             FROM wireguard_network_device \
             WHERE device_id = $1",
             device.id
@@ -189,7 +190,7 @@ pub struct UserDeviceNetworkInfo {
     pub network_id: Id,
     pub network_name: String,
     pub network_gateway_ip: String,
-    pub device_wireguard_ip: String,
+    pub device_wireguard_ips: Vec<String>,
     pub last_connected_ip: Option<String>,
     pub last_connected_location: Option<String>,
     pub last_connected_at: Option<NaiveDateTime>,
@@ -207,7 +208,7 @@ impl UserDevice {
                 ORDER BY network, collected_at DESC \
             ) \
             SELECT n.id network_id, n.name network_name, n.endpoint gateway_endpoint, \
-            wnd.wireguard_ip \"device_wireguard_ip: IpAddr\", stats.endpoint device_endpoint, \
+            wnd.wireguard_ips \"device_wireguard_ips: Vec<IpAddr>\", stats.endpoint device_endpoint, \
             stats.latest_handshake \"latest_handshake?\", \
             COALESCE((NOW() - stats.latest_handshake) < $1, FALSE) \"is_active!\" \
             FROM wireguard_network_device wnd \
@@ -237,7 +238,11 @@ impl UserDevice {
                     network_id: r.network_id,
                     network_name: r.network_name,
                     network_gateway_ip: r.gateway_endpoint,
-                    device_wireguard_ip: r.device_wireguard_ip.to_string(),
+                    device_wireguard_ips: r
+                        .device_wireguard_ips
+                        .iter()
+                        .map(IpAddr::to_string)
+                        .collect(),
                     last_connected_ip: device_ip,
                     last_connected_location: None,
                     last_connected_at: r.latest_handshake,
@@ -256,7 +261,7 @@ impl UserDevice {
 #[derive(Clone, Debug, Deserialize, FromRow, Serialize)]
 pub struct WireguardNetworkDevice {
     pub wireguard_network_id: Id,
-    pub wireguard_ip: IpAddr,
+    pub wireguard_ips: Vec<IpAddr>,
     pub device_id: Id,
     pub preshared_key: Option<String>,
     pub is_authorized: bool,
@@ -278,15 +283,26 @@ pub struct ModifyDevice {
 
 impl WireguardNetworkDevice {
     #[must_use]
-    pub(crate) fn new(network_id: Id, device_id: Id, wireguard_ip: IpAddr) -> Self {
+    pub(crate) fn new<I>(network_id: Id, device_id: Id, wireguard_ips: I) -> Self
+    where
+        I: Into<Vec<IpAddr>>,
+    {
         Self {
             wireguard_network_id: network_id,
-            wireguard_ip,
+            wireguard_ips: wireguard_ips.into(),
             device_id,
             preshared_key: None,
             is_authorized: false,
             authorized_at: None,
         }
+    }
+
+    #[must_use]
+    pub(crate) fn ips_as_network(&self) -> Vec<IpNetwork> {
+        self.wireguard_ips
+            .iter()
+            .map(|ip| IpNetwork::from(*ip))
+            .collect()
     }
 
     pub(crate) async fn insert<'e, E>(&self, executor: E) -> Result<(), SqlxError>
@@ -295,14 +311,14 @@ impl WireguardNetworkDevice {
     {
         query!(
             "INSERT INTO wireguard_network_device \
-            (device_id, wireguard_network_id, wireguard_ip, is_authorized, authorized_at, \
+            (device_id, wireguard_network_id, wireguard_ips, is_authorized, authorized_at, \
             preshared_key) \
             VALUES ($1, $2, $3, $4, $5, $6) \
             ON CONFLICT ON CONSTRAINT device_network \
-            DO UPDATE SET wireguard_ip = $3, is_authorized = $4",
+            DO UPDATE SET wireguard_ips = $3, is_authorized = $4",
             self.device_id,
             self.wireguard_network_id,
-            IpNetwork::from(self.wireguard_ip.clone()),
+            &self.ips_as_network(),
             self.is_authorized,
             self.authorized_at,
             self.preshared_key
@@ -319,11 +335,11 @@ impl WireguardNetworkDevice {
     {
         query!(
             "UPDATE wireguard_network_device \
-            SET wireguard_ip = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
+            SET wireguard_ips = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             self.device_id,
             self.wireguard_network_id,
-            IpNetwork::from(self.wireguard_ip.clone()),
+            &self.ips_as_network(),
             self.is_authorized,
             self.authorized_at,
             self.preshared_key,
@@ -360,8 +376,9 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 AND wireguard_network_id = $2",
             device_id,
@@ -384,8 +401,9 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE device_id = $1 ORDER BY id LIMIT 1",
             device_id
@@ -405,8 +423,9 @@ impl WireguardNetworkDevice {
     {
         let result = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device WHERE device_id = $1",
             device_id
         )
@@ -429,8 +448,9 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1",
             network_id
@@ -454,8 +474,9 @@ impl WireguardNetworkDevice {
     {
         let res = query_as!(
             Self,
-            "SELECT device_id, wireguard_network_id, wireguard_ip \"wireguard_ip: IpAddr\", \
-            preshared_key, is_authorized, authorized_at \
+            "SELECT device_id, wireguard_network_id, \
+                wireguard_ips \"wireguard_ips: Vec<IpAddr>\", \
+                preshared_key, is_authorized, authorized_at \
             FROM wireguard_network_device \
             WHERE wireguard_network_id = $1 AND device_id IN \
             (SELECT id FROM device WHERE user_id = $2 AND device_type = 'user'::device_type)",
@@ -494,8 +515,8 @@ pub enum DeviceError {
     PubkeyConflict(Device<Id>, String),
     #[error("Database error")]
     DatabaseError(#[from] sqlx::Error),
-    #[error("Model error")]
-    ModelError(#[from] ModelError),
+    #[error(transparent)]
+    NetworkIpAssignmentError(#[from] NetworkAddressError),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
 }
@@ -550,15 +571,7 @@ impl Device<Id> {
         let allowed_ips = if network.allowed_ips.is_empty() {
             String::new()
         } else {
-            format!(
-                "AllowedIPs = {}\n",
-                network
-                    .allowed_ips
-                    .iter()
-                    .map(IpNetwork::to_string)
-                    .collect::<Vec<String>>()
-                    .join(",")
-            )
+            format!("AllowedIPs = {}\n", network.allowed_ips.as_csv())
         };
 
         format!(
@@ -572,7 +585,10 @@ impl Device<Id> {
             {allowed_ips}\
             Endpoint = {}:{}\n\
             PersistentKeepalive = 300",
-            wireguard_network_device.wireguard_ip, network.pubkey, network.endpoint, network.port,
+            wireguard_network_device.wireguard_ips.as_csv(),
+            network.pubkey,
+            network.endpoint,
+            network.port,
         )
     }
 
@@ -590,7 +606,7 @@ impl Device<Id> {
             d.device_type  \"device_type: DeviceType\", configured \
             FROM device d \
             JOIN wireguard_network_device wnd ON d.id = wnd.device_id \
-            WHERE wnd.wireguard_ip = $1 AND wnd.wireguard_network_id = $2",
+            WHERE $1 = ANY(wnd.wireguard_ips) AND wnd.wireguard_network_id = $2",
             IpNetwork::from(ip),
             network_id
         )
@@ -661,7 +677,7 @@ impl Device<Id> {
                 .ok_or_else(|| DeviceError::Unexpected("Device not found in network".into()))?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -672,7 +688,7 @@ impl Device<Id> {
             network_name: network.name.clone(),
             config,
             endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ip,
+            address: wireguard_network_device.wireguard_ips,
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
@@ -686,15 +702,15 @@ impl Device<Id> {
     pub(crate) async fn add_to_network(
         &self,
         network: &WireguardNetwork<Id>,
-        ip: IpAddr,
+        ip: &[IpAddr],
         transaction: &mut PgConnection,
     ) -> Result<(DeviceNetworkInfo, DeviceConfig), DeviceError> {
         let wireguard_network_device = self
-            .assign_network_ip(&mut *transaction, network, ip)
+            .assign_network_ips(&mut *transaction, network, ip)
             .await?;
         let device_network_info = DeviceNetworkInfo {
             network_id: network.id,
-            device_wireguard_ip: wireguard_network_device.wireguard_ip,
+            device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
             preshared_key: wireguard_network_device.preshared_key.clone(),
             is_authorized: wireguard_network_device.is_authorized,
         };
@@ -705,7 +721,7 @@ impl Device<Id> {
             network_name: network.name.clone(),
             config,
             endpoint: format!("{}:{}", network.endpoint, network.port),
-            address: wireguard_network_device.wireguard_ip,
+            address: wireguard_network_device.wireguard_ips,
             allowed_ips: network.allowed_ips.clone(),
             pubkey: network.pubkey.clone(),
             dns: network.dns.clone(),
@@ -748,12 +764,14 @@ impl Device<Id> {
                 .await
             {
                 debug!(
-                    "Assigned IP {} for device {} (user {}) in network {network}",
-                    wireguard_network_device.wireguard_ip, self.name, self.user_id
+                    "Assigned IPs {} for device {} (user {}) in network {network}",
+                    wireguard_network_device.wireguard_ips.as_csv(),
+                    self.name,
+                    self.user_id
                 );
                 let device_network_info = DeviceNetworkInfo {
                     network_id: network.id,
-                    device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                    device_wireguard_ips: wireguard_network_device.wireguard_ips.clone(),
                     preshared_key: wireguard_network_device.preshared_key.clone(),
                     is_authorized: wireguard_network_device.is_authorized,
                 };
@@ -765,7 +783,7 @@ impl Device<Id> {
                     network_name: network.name,
                     config,
                     endpoint: format!("{}:{}", network.endpoint, network.port),
-                    address: wireguard_network_device.wireguard_ip,
+                    address: wireguard_network_device.wireguard_ips,
                     allowed_ips: network.allowed_ips,
                     pubkey: network.pubkey,
                     dns: network.dns,
@@ -777,68 +795,118 @@ impl Device<Id> {
         Ok((network_info, configs))
     }
 
-    // Assign IP to the device in a given network
+    /// Assign the next available IP address in each subnet of the network to this device.
+    ///
+    /// For every CIDR block in `network.address`, this function:
+    /// 1. Iterates through the block's IPs in order.
+    /// 2. Skips any IP that:
+    ///    - Fails the `can_assign_ips` validation (out of range, reserved, or already in use by another device), or  
+    ///    - Appears in the optional `reserved_ips`.
+    /// 3. Selects the first remaining IP and records it.
+    ///
+    /// If any subnet has no valid, unassigned IP, the method returns `ModelError::CannotCreate`.
+    ///
+    /// # Parameters
+    ///
+    /// - `transaction`: Active PostgreSQL connection to check and insert assignments.  
+    /// - `network`: The `WireguardNetwork<Id>` whose subnets will be assigned.  
+    /// - `reserved_ips`: Optional slice of IPs that must not be assigned, even if otherwise free.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(WireguardNetworkDevice)`: A new relation linking this device to its assigned IPs across all subnets.  
+    /// - `Err(ModelError::CannotCreate)`: If any subnet lacks an available IP.
     pub(crate) async fn assign_next_network_ip(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
         reserved_ips: Option<&[IpAddr]>,
     ) -> Result<WireguardNetworkDevice, ModelError> {
-        if let Some(address) = network.address.first() {
-            let net_ip = address.ip();
-            let net_network = address.network();
-            let net_broadcast = address.broadcast();
-            for ip in address {
-                if ip == net_ip || ip == net_network || ip == net_broadcast {
-                    continue;
-                }
-                if let Some(reserved_ips) = reserved_ips {
-                    if reserved_ips.contains(&ip) {
-                        continue;
-                    }
-                }
+        debug!(
+            "Assiging IP addresses for device: {} in network {}",
+            self.name, network.name
+        );
+        let mut ips = Vec::new();
+        let reserved = reserved_ips.unwrap_or_default();
 
-                // Break loop if IP is unassigned and return network device
-                if Self::find_by_ip(&mut *transaction, ip, network.id)
-                    .await?
-                    .is_none()
+        // Iterate over all network addresses and assign new IP for the device in each of them
+        for address in &network.address {
+            debug!(
+                "Assigning address to device {} in network {} {address}",
+                self.name, network.name,
+            );
+            let mut picked = None;
+            for ip in address {
+                if network
+                    .can_assign_ips(transaction, &[ip], Some(self.id))
+                    .await
+                    .is_ok()
+                    && !reserved.contains(&ip)
                 {
-                    info!("Assigned IP address {ip} for device: {}", self.name);
-                    let wireguard_network_device =
-                        WireguardNetworkDevice::new(network.id, self.id, ip);
-                    wireguard_network_device.insert(&mut *transaction).await?;
-                    return Ok(wireguard_network_device);
+                    picked = Some(ip);
+                    break;
                 }
             }
+
+            // Return error if no address can be assigned
+            let ip = picked.ok_or_else(|| {
+                error!(
+                    "Failed to assign address for device {} in network {address:?}",
+                    self.name,
+                );
+                ModelError::CannotCreate
+            })?;
+
+            // Otherwise, store the IP address
+            debug!(
+                "Found assignable address {ip} for device {} in network {} {address}",
+                self.name, network.name,
+            );
+            ips.push(ip);
         }
-        Err(ModelError::CannotCreate)
+
+        // Create relation record
+        let wireguard_network_device =
+            WireguardNetworkDevice::new(network.id, self.id, ips.clone());
+        wireguard_network_device.insert(&mut *transaction).await?;
+
+        info!(
+            "Assigned IP addresses {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
+        Ok(wireguard_network_device)
     }
 
-    pub(crate) async fn assign_network_ip(
+    /// Assigns specific IP address to the device in specified [`WireguardNetwork`].
+    /// This method is currently used only for network devices. For regular user
+    /// devices use [`assign_next_network_ip`] method.
+    pub(crate) async fn assign_network_ips(
         &self,
         transaction: &mut PgConnection,
         network: &WireguardNetwork<Id>,
-        ip: IpAddr,
-    ) -> Result<WireguardNetworkDevice, ModelError> {
-        if let Some(network_address) = network.address.first() {
-            let net_ip = network_address.ip();
-            let net_network = network_address.network();
-            let net_broadcast = network_address.broadcast();
-            if ip == net_ip || ip == net_network || ip == net_broadcast {
-                return Err(ModelError::CannotCreate);
-            }
+        ips: &[IpAddr],
+    ) -> Result<WireguardNetworkDevice, NetworkAddressError> {
+        debug!(
+            "Assigning IPs: {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
+        // ensure assignment is valid
+        network
+            .can_assign_ips(&mut *transaction, ips, Some(self.id))
+            .await
+            .map_err(|err| {
+                error!("Invalid network IP assignment: {err}");
+                err
+            })?;
 
-            if Self::find_by_ip(&mut *transaction, ip, network.id)
-                .await?
-                .is_none()
-            {
-                info!("Assigned IP: {ip} for device: {}", self.name);
-                let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ip);
-                wireguard_network_device.insert(&mut *transaction).await?;
-                return Ok(wireguard_network_device);
-            }
-        }
-        Err(ModelError::CannotCreate)
+        // insert relation record
+        let wireguard_network_device = WireguardNetworkDevice::new(network.id, self.id, ips);
+        wireguard_network_device.insert(&mut *transaction).await?;
+        info!(
+            "Assigned IPs: {ips:?} for device: {} in network {}",
+            self.name, network.name
+        );
+        Ok(wireguard_network_device)
     }
 
     /// Gets the first network of the network device
@@ -966,7 +1034,7 @@ mod test {
                         info!("Created device: {}", device.name);
                         debug!("For user: {}", device.user_id);
                         let wireguard_network_device =
-                            WireguardNetworkDevice::new(network.id, device.id, ip);
+                            WireguardNetworkDevice::new(network.id, device.id, [ip]);
                         wireguard_network_device.insert(pool).await?;
                         info!(
                             "Assigned IP: {ip} for device: {name} in network: {}",
@@ -1003,10 +1071,7 @@ mod test {
             Device::new_with_ip(&pool, user.id, "dev1".into(), "key1".into(), &network)
                 .await
                 .unwrap();
-        assert_eq!(
-            wireguard_network_device.wireguard_ip.to_string(),
-            "10.1.1.2"
-        );
+        assert_eq!(wireguard_network_device.wireguard_ips.as_csv(), "10.1.1.2");
 
         let device = Device::new_with_ip(&pool, 1, "dev4".into(), "key4".into(), &network).await;
         assert!(device.is_err());
@@ -1128,7 +1193,7 @@ mod test {
         WireguardNetworkDevice::new(
             network.id,
             device4.id,
-            IpAddr::from_str("10.1.1.10").unwrap(),
+            [IpAddr::from_str("10.1.1.10").unwrap()],
         )
         .insert(&mut *transaction)
         .await

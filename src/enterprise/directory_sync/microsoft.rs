@@ -253,41 +253,63 @@ impl MicrosoftDirectorySync {
         let mut combined_response = GroupsResponse::default();
         let mut url = GROUPS_URL.to_string();
 
-        let mut params = vec![("$top", MAX_RESULTS.to_string())];
         if !self.group_filter.is_empty() {
             info!(
                 "Applying defined group filter to user group query, only the following groups will be synced: {:?}",
                 self.group_filter
             );
-            let group_filter =
-                GROUP_FILTER.replace("{group_names}", self.group_filter.join("','").as_str());
-            params.push(("$filter", group_filter));
+            let params = vec![("$top", MAX_RESULTS.to_string())];
+            let groups = self
+                .group_filter
+                .iter()
+                .map(|group| group.replace("'", "''"))
+                .collect::<Vec<_>>();
+
+            // Microsoft has a limit of about 15 OR conditions per request, so batch it first.
+            let batches = groups.chunks(10);
+
+            for batch in batches {
+                let group_filter =
+                    GROUP_FILTER.replace("{group_names}", batch.join("','").as_str());
+                let mut new_params = params.clone();
+                new_params.push(("$filter", group_filter));
+
+                let params_slice = new_params
+                    .iter()
+                    .map(|(key, value)| (*key, value.as_str()))
+                    .collect::<Vec<_>>();
+                let query = Some(params_slice.as_slice());
+
+                let response = make_get_request(&url, access_token, query).await?;
+                let response: GroupsResponse =
+                    parse_response(response, "Failed to query Microsoft groups.").await?;
+                combined_response.value.extend(response.value);
+
+                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
+            }
         } else {
             debug!("No group filter defined, all groups will be synced.");
-        }
-        let params_slice = params
-            .iter()
-            .map(|(key, value)| (*key, value.as_str()))
-            .collect::<Vec<_>>();
-        let mut query = Some(params_slice.as_slice());
+            let params = vec![("$top", MAX_RESULTS)];
+            let mut query = Some(params.as_slice());
 
-        for _ in 0..MAX_REQUESTS {
-            let response = make_get_request(&url, access_token, query).await?;
-            let response: GroupsResponse =
-                parse_response(response, "Failed to query Microsoft groups.").await?;
-            combined_response.value.extend(response.value);
+            for _ in 0..MAX_REQUESTS {
+                let response = make_get_request(&url, access_token, query).await?;
+                let response: GroupsResponse =
+                    parse_response(response, "Failed to query Microsoft groups.").await?;
+                combined_response.value.extend(response.value);
 
-            if let Some(next_page) = response.next_page {
-                url = next_page;
-                // Query none as the next page URL already contains the query parameters
-                query = None;
-                debug!("Found next page of results, querying it: {url}");
-            } else {
-                debug!("No more pages of results found, finishing query.");
-                break;
+                if let Some(next_page) = response.next_page {
+                    url = next_page;
+                    // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
+                    query = None;
+                    debug!("Found next page of results, querying it: {url}");
+                } else {
+                    debug!("No more pages of results found, finishing query.");
+                    break;
+                }
+
+                sleep(REQUEST_PAGINATION_SLOWDOWN).await;
             }
-
-            sleep(REQUEST_PAGINATION_SLOWDOWN).await;
         }
 
         Ok(combined_response)
@@ -351,7 +373,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -416,7 +438,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {
@@ -451,7 +473,7 @@ impl MicrosoftDirectorySync {
 
             if let Some(next_page) = response.next_page {
                 url = next_page;
-                // Query none as the next page URL already contains the query parameters
+                // Set `query` to `None` as the next page URL already contains query parameters from the preceding request.
                 query = None;
                 debug!("Found next page of results, querying it: {url}");
             } else {

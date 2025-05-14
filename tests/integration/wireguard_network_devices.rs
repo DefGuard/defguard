@@ -90,19 +90,19 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     // ip suggestions
     let response = client.get("/api/v1/device/network/ip/1").send().await;
     assert_eq!(response.status(), StatusCode::OK);
-    let res = response.json::<Value>().await;
-    let ip = res["ip"].as_str().unwrap();
-    let ip = ip.parse::<IpAddr>().unwrap();
-    let net_ip = IpAddr::from_str("10.1.1.1").unwrap();
-    let network_range = IpNetwork::new(net_ip, 24).unwrap();
-    assert!(network_range.contains(ip));
+    #[derive(Deserialize)]
+    struct SplitIp {
+        ip: IpAddr,
+    }
+    let ips: Vec<SplitIp> = response.json().await;
+    assert_eq!(ips.len(), 1);
+    let network_range = IpNetwork::from_str("10.1.1.1/24").unwrap();
+    assert!(network_range.contains(ips[0].ip));
 
     // checking whether ip is valid/available
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.2".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.2".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -113,11 +113,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.0".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.0".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -128,11 +126,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(!res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.1".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.1".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -143,11 +139,9 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert!(!res.available);
     assert!(res.valid);
 
-    let ip_check = json!(
-        {
-            "ip": "10.1.1.abc".to_string(),
-        }
-    );
+    let ip_check = json!({
+        "ips": ["10.1.1.abc".to_string()],
+    });
     let response = client
         .post("/api/v1/device/network/ip/1")
         .json(&ip_check)
@@ -162,7 +156,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let network_device = AddNetworkDevice {
         name: "device-1".into(),
         wireguard_pubkey: "LQKsT6/3HWKuJmMulH63R8iK+5sI8FyYEL6WDIi6lQU=".into(),
-        assigned_ip: ip.to_string(),
+        assigned_ips: ips.iter().map(|ip| ip.ip.to_string()).collect(),
         location_id: 1,
         description: None,
     };
@@ -190,7 +184,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     let modify_device = json!({
         "name": "device-1",
         "description": "new description",
-        "assigned_ip": "10.1.1.3"
+        "assigned_ips": ["10.1.1.3"]
     });
     let response = client
         .put(format!("/api/v1/device/network/{device_id}"))
@@ -200,11 +194,10 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let json = response.json::<Value>().await;
     let description = json["description"].as_str().unwrap();
-    let assigned_ip = json["assigned_ip"].as_str().unwrap();
     assert_eq!(description, "new description");
     assert_eq!(
-        assigned_ip,
-        IpAddr::from_str("10.1.1.3").unwrap().to_string()
+        json["assigned_ips"],
+        serde_json::from_str::<Value>("[\"10.1.1.3\"]").unwrap()
     );
     let device = Device::find_by_id(&client_state.pool, device_id)
         .await
@@ -240,7 +233,7 @@ async fn test_network_devices(_: PgPoolOptions, options: PgConnectOptions) {
         {
             "name": "device-2",
             "description": "new description",
-            "assigned_ip": "10.1.1.10",
+            "assigned_ips": ["10.1.1.10"],
             "location_id": 1,
         }
     );

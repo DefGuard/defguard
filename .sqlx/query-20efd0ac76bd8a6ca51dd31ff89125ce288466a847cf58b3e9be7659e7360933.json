@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE wireguard_network_device SET wireguard_ips = $3, is_authorized = $4, authorized_at = $5, preshared_key = $6 WHERE device_id = $1 AND wireguard_network_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "InetArray",
+        "Bool",
+        "Timestamp",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20efd0ac76bd8a6ca51dd31ff89125ce288466a847cf58b3e9be7659e7360933"
+}

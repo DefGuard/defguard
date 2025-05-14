@@ -40,6 +40,7 @@ use crate::{
     server_config,
     templates::TemplateLocation,
     wg_config::{parse_wireguard_config, ImportedDevice},
+    AsCsv,
 };
 
 /// Parse a string with comma-separated IP addresses.
@@ -47,6 +48,20 @@ use crate::{
 pub(crate) fn parse_address_list(ips: &str) -> Vec<IpNetwork> {
     ips.split(',')
         .filter_map(|ip| ip.trim().parse().ok())
+        .collect()
+}
+
+/// Parse a string with comma-separated IP network addresses.
+/// Host bits will be stripped.
+/// Invalid addresses will be silently ignored.
+pub(crate) fn parse_network_address_list(ips: &str) -> Vec<IpNetwork> {
+    ips.split(',')
+        .filter_map(|ip| ip.trim().parse().ok())
+        .filter_map(|ip: IpNetwork| {
+            let network_address = ip.network();
+            let network_mask = ip.mask();
+            IpNetwork::with_netmask(network_address, network_mask).ok()
+        })
         .collect()
 }
 
@@ -70,7 +85,7 @@ impl WireguardNetworkData {
     pub(crate) fn parse_allowed_ips(&self) -> Vec<IpNetwork> {
         self.allowed_ips
             .as_ref()
-            .map_or(Vec::new(), |ips| parse_address_list(ips))
+            .map_or(Vec::new(), |ips| parse_network_address_list(ips))
     }
 }
 
@@ -448,7 +463,7 @@ pub(crate) async fn import_network(
 
     let reserved_ips: Vec<IpAddr> = imported_devices
         .iter()
-        .map(|dev| dev.wireguard_ip)
+        .flat_map(|dev| dev.wireguard_ips.clone())
         .collect();
     let (devices, gateway_events) = network
         .handle_imported_devices(&mut transaction, imported_devices)
@@ -638,7 +653,7 @@ pub(crate) async fn add_device(
         )));
     }
 
-    // save device
+    // save the device
     let mut transaction = appstate.pool.begin().await?;
     let device = Device::new(
         add_device.name,
@@ -693,7 +708,7 @@ pub(crate) async fn add_device(
         .iter()
         .map(|c| TemplateLocation {
             name: c.network_name.clone(),
-            assigned_ip: c.address.to_string(),
+            assigned_ips: c.address.as_csv(),
         })
         .collect();
 
@@ -809,7 +824,7 @@ pub(crate) async fn modify_device(
         if let Some(wireguard_network_device) = wireguard_network_device {
             let device_network_info = DeviceNetworkInfo {
                 network_id: network.id,
-                device_wireguard_ip: wireguard_network_device.wireguard_ip,
+                device_wireguard_ips: wireguard_network_device.wireguard_ips,
                 preshared_key: wireguard_network_device.preshared_key,
                 is_authorized: wireguard_network_device.is_authorized,
             };

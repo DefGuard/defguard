@@ -104,7 +104,7 @@ impl From<DeviceError> for WebError {
         match error {
             DeviceError::PubkeyConflict(..) => Self::PubkeyValidation(error.to_string()),
             DeviceError::DatabaseError(_) => Self::DbError(error.to_string()),
-            DeviceError::ModelError(_) => Self::ModelError(error.to_string()),
+            DeviceError::NetworkIpAssignmentError(_) => Self::ModelError(error.to_string()),
             DeviceError::Unexpected(_) => Self::Http(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
