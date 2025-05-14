@@ -13,7 +13,6 @@ CREATE TABLE audit_event (
     event text NOT NULL,
     module audit_module NOT NULL,
     device text NOT NULL,
-    details text NULL,
     metadata jsonb NULL,
     FOREIGN KEY(user_id) REFERENCES "user"(id) ON DELETE CASCADE
 );
