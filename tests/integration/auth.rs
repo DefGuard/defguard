@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use claims::{assert_err, assert_ok};
 use defguard::{
     auth::{TOTP_CODE_DIGITS, TOTP_CODE_VALIDITY_PERIOD},
@@ -835,7 +835,7 @@ async fn test_session_cookie(_: PgPoolOptions, options: PgConnectOptions) {
     // Forcibly expire the session
     query!(
         "UPDATE session SET expires = $1 WHERE id = $2",
-        NaiveDateTime::UNIX_EPOCH,
+        DateTime::UNIX_EPOCH.naive_utc(),
         session_id
     )
     .execute(&pool)

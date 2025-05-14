@@ -788,7 +788,7 @@ impl WireguardNetwork<Id> {
 mod test {
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-    use chrono::NaiveDateTime;
+    use chrono::{DateTime, NaiveDateTime};
     use ipnetwork::{IpNetwork, Ipv6Network};
     use rand::{thread_rng, Rng};
     use sqlx::{
@@ -3001,7 +3001,7 @@ mod test {
         // create expired ACL rules
         let mut acl_rule_1 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
@@ -3011,7 +3011,7 @@ mod test {
         .unwrap();
         let mut acl_rule_2 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
@@ -3072,7 +3072,7 @@ mod test {
         // create expired ACL rules
         let mut acl_rule_1 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
@@ -3082,7 +3082,7 @@ mod test {
         .unwrap();
         let mut acl_rule_2 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
@@ -3146,7 +3146,7 @@ mod test {
         // create expired ACL rules
         let mut acl_rule_1 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
@@ -3156,7 +3156,7 @@ mod test {
         .unwrap();
         let mut acl_rule_2 = AclRule {
             id: NoId,
-            expires: Some(NaiveDateTime::UNIX_EPOCH),
+            expires: Some(DateTime::UNIX_EPOCH.naive_utc()),
             enabled: true,
             state: RuleState::Applied,
             ..Default::default()
