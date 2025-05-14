@@ -3,6 +3,7 @@ import './style.scss';
 import { useQuery } from '@tanstack/react-query';
 import { range } from 'lodash-es';
 import Skeleton from 'react-loading-skeleton';
+import { useLocation, useNavigate } from 'react-router';
 
 import { ExpandableSection } from '../../shared/components/Layout/ExpandableSection/ExpandableSection';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
@@ -16,7 +17,6 @@ import {
 import { NoData } from '../../shared/defguard-ui/components/Layout/NoData/NoData';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
-import { useToaster } from '../../shared/hooks/useToaster';
 import { Network } from '../../shared/types';
 import { OverviewStats } from '../overview/OverviewStats/OverviewStats';
 import { EditLocationsSettingsButton } from './components/EditLocationsSettingsButton/EditLocationsSettingsButton';
@@ -83,7 +83,8 @@ type NetworkSectionProps = {
 };
 
 const NetworkSection = ({ network }: NetworkSectionProps) => {
-  const toaster = useToaster();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const { from } = useOverviewTimeSelection();
 
@@ -112,8 +113,26 @@ const NetworkSection = ({ network }: NetworkSectionProps) => {
           styleVariant={ButtonStyleVariant.LINK}
           text="See Location Details"
           onClick={() => {
-            toaster.warning('TODO: Need to refactor routing for this to work.');
+            navigate(`/admin/overview/${network.id}${location.search}`);
           }}
+          icon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 14 12"
+              fill="none"
+            >
+              <path
+                d="M7 3C5.62066 3 4.35814 3.6065 3.24751 4.80266C2.83022 5.25208 2.50531 5.71042 2.27279 6.08163C2.48464 6.41786 2.77518 6.82672 3.1454 7.23301C4.26222 8.45864 5.55909 9.08008 7 9.08008C8.40806 9.08008 9.67988 8.48573 10.7801 7.31354C11.1858 6.88137 11.5009 6.44061 11.727 6.08138C11.4945 5.71022 11.1697 5.25196 10.7525 4.80266C9.64186 3.6065 8.37934 3 7 3ZM7 1C11.8216 1 14 6.08008 14 6.08008C14 6.08008 11.8878 11.0801 7 11.0801C2.11224 11.0801 0 6.08008 0 6.08008C0 6.08008 2.17844 1 7 1Z"
+                fill="#899CA8"
+              />
+              <path
+                d="M5 6.08008C5 7.18465 5.89543 8.08008 7 8.08008C8.10457 8.08008 9 7.18465 9 6.08008C9 4.97551 8.10457 4.08008 7 4.08008C5.89543 4.08008 5 4.97551 5 6.08008Z"
+                fill="#899CA8"
+              />
+            </svg>
+          }
         />
       </div>
       {!data && <StatsSkeleton />}
