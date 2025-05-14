@@ -35,7 +35,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    grpc::{GatewayMap, GatewayState},
+    grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
@@ -1154,6 +1154,10 @@ pub struct DevicesStatsResponse {
     pub network_devices: Vec<WireguardDeviceStatsRow>,
 }
 
+/// Returns network statistics for users and their devices
+///
+/// # Returns
+/// Returns an `DevicesStatsResponse` for requested network and time period
 pub(crate) async fn devices_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1187,6 +1191,10 @@ pub(crate) async fn devices_stats(
     })
 }
 
+/// Returns statistics for requested network
+///
+/// # Returns
+/// Returns an `WireguardNetworkStats` based on requested network and time period
 pub(crate) async fn network_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,
@@ -1200,7 +1208,7 @@ pub(crate) async fn network_stats(
         )));
     };
     let from = query_from.parse_timestamp()?.naive_utc();
-    let aggregation = get_aggregation(from)?;
+    let aggregation: DateTimeAggregation = get_aggregation(from)?;
     let stats: WireguardNetworkStats = network
         .network_stats(&appstate.pool, &from, &aggregation)
         .await?;
@@ -1212,6 +1220,10 @@ pub(crate) async fn network_stats(
     })
 }
 
+/// Returns statistics for all networks
+///
+/// # Returns
+/// Returns an `WireguardNetworkStats` based on stats from all networks in requested time period
 pub(crate) async fn networks_overview_stats(
     _role: AdminRole,
     State(appstate): State<AppState>,

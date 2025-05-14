@@ -264,7 +264,7 @@ async fn test_stats(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::OK);
     let stats: WireguardNetworkStats = response.json().await;
     assert_eq!(stats.active_users, 1);
-    assert_eq!(stats.active_devices, 2);
+    assert_eq!(stats.active_user_devices, 2);
     assert_eq!(stats.upload, ten_hours_samples * (10 + 20));
     assert_eq!(stats.download, ten_hours_samples * (20 + 40));
     assert_eq!(stats.transfer_series.len(), 11);
