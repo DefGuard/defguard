@@ -396,6 +396,10 @@ pub(crate) async fn network_details(
     Ok(response)
 }
 
+/// Returns state of gateways in a given network
+///
+/// # Returns
+/// Returns `Vec<GatewayState>` for requested network
 pub(crate) async fn gateway_status(
     Path(network_id): Path<i64>,
     _role: AdminRole,
@@ -413,6 +417,9 @@ pub(crate) async fn gateway_status(
     })
 }
 
+/// Returns state of gateways for all networks
+///
+/// Returns current state of gateways as `HashMap<i64, Vec<GatewayState>>` where key is an id of `WireguardNetwork<i64>`
 pub(crate) async fn all_gateways_status(
     _role: AdminRole,
     Extension(gateway_state): Extension<Arc<Mutex<GatewayMap>>>,

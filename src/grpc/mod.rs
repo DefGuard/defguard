@@ -287,6 +287,12 @@ impl GatewayMap {
         }
     }
 
+    /// Flattens the inner hashmap into an `Vec`
+    ///
+    /// Since key information in inner hashmap is within `GatewayState` it's simpler to consume it as Vec on web.
+    ///
+    /// # Returns
+    /// Returns `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
     pub fn into_flattened(self) -> HashMap<Id, Vec<GatewayState>> {
         self.0
             .into_iter()
