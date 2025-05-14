@@ -49,6 +49,7 @@ pub enum SortKey {
     #[default]
     Timestamp,
     Username,
+    Ip,
     Event,
     Module,
     Device,
@@ -59,6 +60,7 @@ impl Display for SortKey {
         match self {
             Self::Timestamp => write!(f, "timestamp"),
             Self::Username => write!(f, "username"),
+            Self::Ip => write!(f, "ip"),
             Self::Event => write!(f, "event"),
             Self::Module => write!(f, "module"),
             Self::Device => write!(f, "device"),
