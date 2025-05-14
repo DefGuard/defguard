@@ -63,22 +63,21 @@ pub async fn run_event_logger(
                             metadata: None,
                         },
                         message::DefguardEvent::UserLogout => todo!(),
-                        message::DefguardEvent::DeviceAdded { device_name } => todo!(),
-                        message::DefguardEvent::DeviceRemoved { device_name } => todo!(),
+                        message::DefguardEvent::DeviceAdded { device_name: _ } => todo!(),
+                        message::DefguardEvent::DeviceRemoved { device_name: _ } => todo!(),
                     }
                 }
-                EventType::Client(event) => {
-                    let module = AuditModule::Client;
-
-                    todo!()
+                EventType::Client(_event) => {
+                    let _module = AuditModule::Client;
+                    unimplemented!()
                 }
-                EventType::Vpn(event) => {
-                    let module = AuditModule::Vpn;
-                    todo!()
+                EventType::Vpn(_event) => {
+                    let _module = AuditModule::Vpn;
+                    unimplemented!()
                 }
-                EventType::Enrollment(event) => {
-                    let module = AuditModule::Enrollment;
-                    todo!()
+                EventType::Enrollment(_event) => {
+                    let _module = AuditModule::Enrollment;
+                    unimplemented!()
                 }
             };
 

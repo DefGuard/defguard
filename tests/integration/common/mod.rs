@@ -144,7 +144,7 @@ pub(crate) async fn make_base_client(
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {
-    let (event_tx, event_rx) = unbounded_channel::<MainEvent>();
+    let (event_tx, _event_rx) = unbounded_channel::<MainEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);

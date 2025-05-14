@@ -6,14 +6,10 @@ use lettre::{
     transport::smtp::{authentication::Credentials, response::Response},
     Address, AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
-use sqlx::PgPool;
 use thiserror::Error;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::db::{
-    models::settings::{get_settings, SmtpEncryption},
-    Settings,
-};
+use crate::db::{models::settings::SmtpEncryption, Settings};
 
 const SMTP_TIMEOUT_SECONDS: u64 = 15;
 

@@ -10,10 +10,7 @@ use tracing::Instrument;
 use crate::{
     appstate::AppState,
     auth::AdminRole,
-    db::{
-        models::audit_log::{AuditEvent, AuditModule},
-        Id,
-    },
+    db::{models::audit_log::AuditModule, Id},
 };
 
 use super::{
@@ -25,9 +22,21 @@ use super::{
 pub struct FilterParams {
     pub from: Option<NaiveDateTime>,
     pub until: Option<NaiveDateTime>,
-    // pub search: Option<String>,
+    #[serde(default = "default_user")]
+    pub user: Vec<Id>,
+    #[serde(default = "default_event")]
+    pub event: Vec<String>,
     #[serde(default = "default_module")]
     pub module: Vec<AuditModule>,
+    // pub search: Option<String>,
+}
+
+fn default_user() -> Vec<Id> {
+    Vec::new()
+}
+
+fn default_event() -> Vec<String> {
+    Vec::new()
 }
 
 fn default_module() -> Vec<AuditModule> {
@@ -174,6 +183,22 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     }
     if let Some(until) = filters.until {
         query_builder.push(" AND timestamp <= ").push_bind(until);
+    }
+
+    // user filter
+    if !filters.user.is_empty() {
+        query_builder
+            .push(" AND user_id = ANY(")
+            .push_bind(filters.user.clone())
+            .push(") ");
+    }
+
+    // event filter
+    if !filters.event.is_empty() {
+        query_builder
+            .push(" AND event = ANY(")
+            .push_bind(filters.event.clone())
+            .push(") ");
     }
 
     // module filter

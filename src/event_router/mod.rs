@@ -45,6 +45,7 @@ use crate::{
 pub mod error;
 pub mod events;
 
+#[allow(dead_code)]
 struct EventRouter {
     event_rx: UnboundedReceiver<MainEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
