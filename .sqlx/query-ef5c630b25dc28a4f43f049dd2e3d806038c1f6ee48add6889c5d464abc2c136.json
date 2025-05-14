@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"timestamp\",\"user_id\",\"ip\",\"event\",\"module\" \"module: _\",\"device\",\"details\",\"metadata\" FROM \"audit_event\"",
+  "query": "SELECT id, \"timestamp\",\"user_id\",\"ip\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"metadata\" FROM \"audit_event\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 4,
-        "name": "event",
+        "name": "event: _",
         "type_info": "Text"
       },
       {
@@ -52,17 +52,14 @@
       },
       {
         "ordinal": 7,
-        "name": "details",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 8,
         "name": "metadata",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -72,9 +69,8 @@
       false,
       false,
       false,
-      true,
       true
     ]
   },
-  "hash": "8d59d34ed273acf0f67bc7dc9713f57dc7ccf9c52e5bbb77a79eaba81a31b818"
+  "hash": "ef5c630b25dc28a4f43f049dd2e3d806038c1f6ee48add6889c5d464abc2c136"
 }

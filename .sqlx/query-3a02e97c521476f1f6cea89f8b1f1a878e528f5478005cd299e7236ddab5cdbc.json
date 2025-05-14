@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE \"audit_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"ip\" = $4,\"event\" = $5,\"module\" = $6,\"device\" = $7,\"details\" = $8,\"metadata\" = $9 WHERE id = $1",
+  "query": "UPDATE \"audit_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"ip\" = $4,\"event\" = $5,\"module\" = $6,\"device\" = $7,\"metadata\" = $8 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -24,11 +24,10 @@
           }
         },
         "Text",
-        "Text",
         "Jsonb"
       ]
     },
     "nullable": []
   },
-  "hash": "d6e98e0fa2b30f5f1dae6313c7ff874f5758121c7197b5ba4cfe25b223089f72"
+  "hash": "3a02e97c521476f1f6cea89f8b1f1a878e528f5478005cd299e7236ddab5cdbc"
 }
