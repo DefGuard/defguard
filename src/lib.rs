@@ -41,6 +41,7 @@ use handlers::{
         rename_authentication_key,
     },
     updates::check_new_version,
+    wireguard::{all_gateways_status, networks_overview_stats},
     yubikey::{delete_yubikey, rename_yubikey},
 };
 use ipnetwork::IpNetwork;
@@ -541,16 +542,18 @@ pub fn build_webapp(
                 post(start_network_device_setup_for_device),
             )
             .route("/network", post(create_network))
+            .route("/network", get(list_networks))
+            .route("/network/import", post(import_network))
+            .route("/network/stats", get(networks_overview_stats))
+            .route("/network/gateways", get(all_gateways_status))
             .route("/network/{network_id}", put(modify_network))
             .route("/network/{network_id}", delete(delete_network))
-            .route("/network", get(list_networks))
             .route("/network/{network_id}", get(network_details))
             .route("/network/{network_id}/gateways", get(gateway_status))
             .route(
                 "/network/{network_id}/gateways/{gateway_id}",
                 delete(remove_gateway),
             )
-            .route("/network/import", post(import_network))
             .route("/network/{network_id}/devices", post(add_user_devices))
             .route(
                 "/network/{network_id}/device/{device_id}/config",

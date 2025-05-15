@@ -1074,11 +1074,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     gatewaysStatus: {
       label: 'Gateways',
       states: {
-        connected: 'All connected',
-        partial: 'One or more are not working',
-        disconnected: 'Disconnected',
-        error: 'Retrieving connections failed',
-        loading: 'Retrieving connections',
+        all: 'All ({count: number}) Connected',
+        some: 'Some ({count: number}) Connected',
+        none: 'None connected',
+        error: 'Status check failed',
       },
       messages: {
         error: 'Failed to get gateways status',
@@ -1819,6 +1818,11 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
     },
   },
   networkOverview: {
+    networkSelection: {
+      all: 'All locations summary',
+      placeholder: 'Select location',
+    },
+    timeRangeSelectionLabel: '{value: number}h period',
     pageTitle: 'Location overview',
     controls: {
       editNetworks: 'Edit Locations settings',
@@ -1830,13 +1834,21 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       grid: 'Grid view',
       list: 'List view',
     },
+    gatewayStatus: {
+      all: 'All ({count: number}) Connected',
+      some: 'Some ({count: number}) Connected',
+      none: 'None connected',
+    },
     stats: {
       currentlyActiveUsers: 'Currently active users',
-      currentlyActiveDevices: 'Currently active devices',
-      activeUsersFilter: 'Active users in {hour: number}H',
-      activeDevicesFilter: 'Active devices in {hour: number}H',
-      totalTransfer: 'Total transfer:',
+      currentlyActiveNetworkDevices: 'Currently active network devices',
+      totalUserDevices: 'Total user devices: {count: number}',
+      activeNetworkDevices: 'Active network devices in {hour: number}h',
+      activeUsersFilter: 'Active users in {hour: number}h',
+      activeDevicesFilter: 'Active devices in {hour: number}h',
       activityIn: 'Activity in {hour: number}H',
+      networkUsage: 'Network usage',
+      peak: 'Peak',
       in: 'In:',
       out: 'Out:',
       gatewayDisconnected: 'Gateway disconnected',
