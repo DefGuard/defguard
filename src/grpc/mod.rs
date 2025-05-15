@@ -110,7 +110,7 @@ use proto::proxy::{
 // Helper struct used to handle gateway state
 // gateways are grouped by network
 type GatewayHostname = String;
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 pub struct GatewayMap(HashMap<Id, HashMap<GatewayHostname, GatewayState>>);
 
 #[derive(Error, Debug)]
@@ -285,6 +285,22 @@ impl GatewayMap {
             }
             None => None,
         }
+    }
+
+    /// Flattens the inner hashmap into an `Vec`
+    ///
+    /// Since key information in inner hashmap is within `GatewayState` it's simpler to consume it as Vec on web.
+    ///
+    /// # Returns
+    /// Returns `HashMap<i64, Vec<GatewayState>>` from `GatewayMap`
+    pub fn into_flattened(self) -> HashMap<Id, Vec<GatewayState>> {
+        self.0
+            .into_iter()
+            .map(|(id, inner_map)| {
+                let states: Vec<GatewayState> = inner_map.into_values().collect();
+                (id, states)
+            })
+            .collect()
     }
 }
 

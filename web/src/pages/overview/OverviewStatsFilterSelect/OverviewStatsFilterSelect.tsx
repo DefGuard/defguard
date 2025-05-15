@@ -4,6 +4,7 @@ import { Select } from '../../../shared/defguard-ui/components/Layout/Select/Sel
 import {
   SelectOption,
   SelectSelectedValue,
+  SelectSizeVariant,
 } from '../../../shared/defguard-ui/components/Layout/Select/types';
 import { useOverviewStore } from '../hooks/store/useOverviewStore';
 
@@ -24,6 +25,7 @@ export const OverviewStatsFilterSelect = () => {
       options={selectOptions}
       selected={filterValue}
       onChangeSingle={(res) => setOverviewStore({ statsFilter: res })}
+      sizeVariant={SelectSizeVariant.SMALL}
     />
   );
 };

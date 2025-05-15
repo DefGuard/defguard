@@ -21,7 +21,7 @@ export const NetworkPage = () => {
     network: { getNetworks },
   } = useApi();
   const { LL } = useI18nContext();
-  const setPageStore = useNetworkPageStore((state) => state.setState);
+  const setNetworks = useNetworkPageStore((state) => state.setNetworks);
   const { breakpoint } = useBreakpoint(deviceBreakpoints);
 
   const { data: networksData } = useQuery({
@@ -32,9 +32,9 @@ export const NetworkPage = () => {
 
   useEffect(() => {
     if (networksData) {
-      setPageStore({ networks: networksData });
+      setNetworks(networksData);
     }
-  }, [networksData, setPageStore]);
+  }, [networksData, setNetworks]);
 
   return (
     <PageContainer id="network-page">

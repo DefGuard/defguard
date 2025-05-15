@@ -8,10 +8,26 @@
     overflow-x: hidden;
     overflow-y: auto;
 
+    --page-padding: var(--spacing-s);
+    --page-row-spacing: var(--spacing-s);
+
     @include media-breakpoint-down(xl) {
-      padding-top: 2rem;
-      padding-bottom: 2rem;
+      padding-top: var(--spacing-s);
+      padding-bottom: var(--spacing-s);
       overflow: auto;
+    }
+
+    @include media-breakpoint-up(lg) {
+      --page-padding: var(--spacing-xl);
+      --page-row-spacing: var(--spacing-m);
+    }
+
+    & > .gateways-status-info {
+      padding: 0 var(--page-padding) var(--spacing-s);
+    }
+
+    & > .overview-network-stats {
+      padding: 0 var(--page-padding) var(--page-row-spacing);
     }
 
     & > .mobile-options {
@@ -48,51 +64,28 @@
 
       & > .select {
         width: 100%;
-
-        .select-container {
-          min-height: 40px;
-        }
-      }
-    }
-
-    & > .network-gateways-connection {
-      box-sizing: border-box;
-      padding: 0 15px;
-      margin-bottom: 20px;
-      width: auto;
-
-      @include media-breakpoint-up(lg) {
-        padding: 0 20px;
-        width: 100%;
-      }
-
-      @include media-breakpoint-up(xxl) {
-        padding: 0 60px;
       }
     }
 
     & > header {
       box-sizing: border-box;
-      margin-bottom: 10px;
+      padding-bottom: var(--page-row-spacing);
 
       @include media-breakpoint-up(md) {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
+        padding-left: var(--page-padding);
+        padding-right: var(--page-padding);
       }
 
       @include media-breakpoint-up(lg) {
-        padding: 2rem 2rem 0;
+        padding-top: var(--page-padding);
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: auto auto;
-        row-gap: 2rem;
+        row-gap: var(--spacing-s);
       }
 
       @include media-breakpoint-up(xxl) {
-        padding-top: 4rem;
-        padding-left: 6rem;
-        padding-right: 6rem;
-        column-gap: 3rem;
+        column-gap: var(--spacing-m);
         grid-template-rows: auto;
         grid-template-columns: auto 1fr;
       }
@@ -123,11 +116,7 @@
         }
 
         & > .select {
-          min-width: 200px;
-
-          .select-container {
-            min-height: 40px;
-          }
+          min-width: 160px;
         }
 
         & > button {
@@ -145,26 +134,16 @@
       }
     }
 
-    & > .overview-network-stats {
-      @include media-breakpoint-down(xl) {
-        margin-bottom: 1.5rem;
-      }
-
-      @include media-breakpoint-up(xl) {
-        margin-bottom: 5rem;
-      }
-    }
-
     .bottom-row {
       display: flex;
       flex-flow: column;
-      row-gap: 20px;
       box-sizing: border-box;
-      padding: 0 50px 40px 60px;
+      padding: 0 calc(var(--page-padding) - 10px) var(--spacing-s) var(--page-padding);
+      row-gap: var(--spacing-s);
 
       & > .no-data {
         width: 100%;
-        padding-top: 20px;
+        padding-top: var(--spacing-m);
         text-align: center;
       }
     }
