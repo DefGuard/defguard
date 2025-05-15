@@ -80,8 +80,8 @@ impl Display for SortKey {
 #[derive(Debug, Deserialize, Serialize, Default, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum SortOrder {
-    #[default]
     Asc,
+    #[default]
     Desc,
 }
 
