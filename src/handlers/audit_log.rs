@@ -9,7 +9,7 @@ use tracing::Instrument;
 
 use crate::{
     appstate::AppState,
-    auth::AdminRole,
+    auth::SessionInfo,
     db::{models::audit_log::AuditModule, Id},
 };
 
@@ -122,7 +122,7 @@ pub struct ApiAuditEvent {
 /// # Returns
 /// Returns a paginated list of `ApiAuditEvent` objects or `WebError` if error occurs.
 pub async fn get_audit_log_events(
-    _role: AdminRole,
+    session_info: SessionInfo,
     State(appstate): State<AppState>,
     pagination: Query<PaginationParams>,
     filters: Query<FilterParams>,
@@ -134,6 +134,14 @@ pub async fn get_audit_log_events(
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
         "SELECT id, timestamp, username, ip, event, module, device, metadata FROM audit_event WHERE 1=1 ",
     );
+
+    // filter events for non-admin users to show only their own events
+    if !session_info.is_admin {
+        query_builder
+            .push(" AND username = ")
+            .push_bind(session_info.user.username)
+            .push(" ");
+    }
 
     // add optional filters
     apply_filters(&mut query_builder, &filters);
