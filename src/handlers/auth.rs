@@ -277,7 +277,11 @@ pub(crate) async fn authenticate(
         };
 
         appstate.send_event(ApiEvent::UserLogin {
-            context: AuditLogContext::new(user_info.id, insecure_ip.into(), user_agent.to_string()),
+            context: AuditLogContext::new(
+                user_info.username.clone(),
+                insecure_ip.into(),
+                user_agent.to_string(),
+            ),
         })?;
 
         Ok((

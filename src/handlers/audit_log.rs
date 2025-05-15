@@ -99,7 +99,6 @@ impl Display for SortOrder {
 pub struct ApiAuditEvent {
     pub id: Id,
     pub timestamp: NaiveDateTime,
-    pub user_id: Id,
     pub username: String,
     pub ip: IpNetwork,
     pub event: String,
@@ -133,7 +132,7 @@ pub async fn get_audit_log_events(
     // start with base SELECT query
     // dummy WHERE filter is use to enable composable filtering
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-        "SELECT ae.id, timestamp, user_id, username, ip, event, module, device, metadata FROM audit_event ae JOIN \"user\" u ON ae.user_id = u.id WHERE 1=1 ",
+        "SELECT id, timestamp, username, ip, event, module, device, metadata FROM audit_event WHERE 1=1 ",
     );
 
     // add optional filters

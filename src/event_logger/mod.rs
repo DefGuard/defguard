@@ -40,7 +40,7 @@ pub async fn run_event_logger(
         for message in message_buffer {
             // Unpack event context
             let EventContext {
-                user_id,
+                username,
                 timestamp,
                 ip,
                 device,
@@ -55,7 +55,7 @@ pub async fn run_event_logger(
                         message::DefguardEvent::UserLogin => AuditEvent {
                             id: NoId,
                             timestamp,
-                            user_id,
+                            username,
                             ip,
                             event: EventType::UserLogin,
                             module,
