@@ -28,7 +28,7 @@ pub struct FilterParams {
     pub event: Vec<String>,
     #[serde(default = "default_module")]
     pub module: Vec<AuditModule>,
-    // pub search: Option<String>,
+    pub search: Option<String>,
 }
 
 fn default_user() -> Vec<Id> {
@@ -207,6 +207,21 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
             .push(" AND module = ANY(")
             .push_bind(filters.module.clone())
             .push(") ");
+    }
+
+    // search by provided term
+    // following columns are supported:
+    // - username
+    // - module
+    // - event
+    // - device
+    // - event location (as metadata `location` field)
+    // - user/network device name (as metadata 'device' field)
+    if let Some(search_term) = &filters.search {
+        query_builder
+            .push(" AND CONCAT(module, ' ', event, ' ', device, ' ', (metadata->'location_names')::text, ' ', (metadata->'device_names')::text) ILIKE ")
+            .push_bind(format!("%{search_term}%"))
+            .push(" ");
     }
 }
 
