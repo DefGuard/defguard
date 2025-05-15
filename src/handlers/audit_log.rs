@@ -22,8 +22,8 @@ use super::{
 pub struct FilterParams {
     pub from: Option<NaiveDateTime>,
     pub until: Option<NaiveDateTime>,
-    #[serde(default = "default_user")]
-    pub user: Vec<Id>,
+    #[serde(default = "default_username")]
+    pub username: Vec<String>,
     #[serde(default = "default_event")]
     pub event: Vec<String>,
     #[serde(default = "default_module")]
@@ -31,7 +31,7 @@ pub struct FilterParams {
     pub search: Option<String>,
 }
 
-fn default_user() -> Vec<Id> {
+fn default_username() -> Vec<String> {
     Vec::new()
 }
 
@@ -193,10 +193,10 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     }
 
     // user filter
-    if !filters.user.is_empty() {
+    if !filters.username.is_empty() {
         query_builder
-            .push(" AND user_id = ANY(")
-            .push_bind(filters.user.clone())
+            .push(" AND username = ANY(")
+            .push_bind(filters.username.clone())
             .push(") ");
     }
 
