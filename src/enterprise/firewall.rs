@@ -122,38 +122,47 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        // check if source addrs list is empty
-        if source_addrs.is_empty() {
-            debug!("Source address list is empty. Skipping generating the ALLOW rule for this ACL");
-        } else {
-            // prepare ALLOW rule for this ACL
-            let allow_rule = FirewallRule {
-                id: acl.id,
-                source_addrs: source_addrs.clone(),
-                destination_addrs: destination_addrs.clone(),
-                destination_ports,
-                protocols,
-                verdict: i32::from(FirewallPolicy::Allow),
-                comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+        // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
+        if !(!destination_aliases.is_empty()
+            && destination_addrs.is_empty()
+            && destination_ports.is_empty()
+            && protocols.is_empty())
+        {
+            // check if source addrs list is empty
+            if source_addrs.is_empty() {
+                debug!(
+                    "Source address list is empty. Skipping generating the ALLOW rule for this ACL"
+                );
+            } else {
+                // prepare ALLOW rule for this ACL
+                let allow_rule = FirewallRule {
+                    id: acl.id,
+                    source_addrs: source_addrs.clone(),
+                    destination_addrs: destination_addrs.clone(),
+                    destination_ports,
+                    protocols,
+                    verdict: i32::from(FirewallPolicy::Allow),
+                    comment: Some(format!("ACL {} - {} ALLOW", acl.id, acl.name)),
+                };
+                debug!("ALLOW rule generated from ACL: {allow_rule:?}");
+                allow_rules.push(allow_rule);
             };
-            debug!("ALLOW rule generated from ACL: {allow_rule:?}");
-            allow_rules.push(allow_rule);
-        };
 
-        // prepare DENY rule for this ACL
-        //
-        // it should specify only the destination addrs to block all remaining traffic
-        let deny_rule = FirewallRule {
-            id: acl.id,
-            source_addrs: Vec::new(),
-            destination_addrs,
-            destination_ports: Vec::new(),
-            protocols: Vec::new(),
-            verdict: i32::from(FirewallPolicy::Deny),
-            comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
-        };
-        debug!("DENY rule generated from ACL: {deny_rule:?}");
-        deny_rules.push(deny_rule);
+            // prepare DENY rule for this ACL
+            //
+            // it should specify only the destination addrs to block all remaining traffic
+            let deny_rule = FirewallRule {
+                id: acl.id,
+                source_addrs: Vec::new(),
+                destination_addrs,
+                destination_ports: Vec::new(),
+                protocols: Vec::new(),
+                verdict: i32::from(FirewallPolicy::Deny),
+                comment: Some(format!("ACL {} - {} DENY", acl.id, acl.name)),
+            };
+            debug!("DENY rule generated from ACL: {deny_rule:?}");
+            deny_rules.push(deny_rule);
+        }
 
         // process destination aliases by creating a dedicated set of rules for each of them
         if !destination_aliases.is_empty() {
