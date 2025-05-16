@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 
+use crate::db::Id;
+
 /// Messages that can be sent to the event logger
 pub struct EventLoggerMessage {
     pub context: EventContext,
@@ -24,6 +26,7 @@ pub enum LoggerEvent {
 /// Shared context that's included in all events
 pub struct EventContext {
     pub timestamp: NaiveDateTime,
+    pub user_id: Id,
     pub username: String,
     pub ip: IpNetwork,
     pub device: String,

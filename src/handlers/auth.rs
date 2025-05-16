@@ -278,6 +278,7 @@ pub(crate) async fn authenticate(
 
         appstate.send_event(ApiEvent::UserLogin {
             context: AuditLogContext::new(
+                user_info.id,
                 user_info.username.clone(),
                 insecure_ip.into(),
                 user_agent.to_string(),

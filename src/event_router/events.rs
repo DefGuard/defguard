@@ -1,4 +1,4 @@
-use crate::event_logger::message::EventContext;
+use crate::{db::Id, event_logger::message::EventContext};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 
@@ -9,16 +9,18 @@ use ipnetwork::IpNetwork;
 #[derive(Debug)]
 pub struct AuditLogContext {
     pub timestamp: NaiveDateTime,
+    pub user_id: Id,
     pub username: String,
     pub ip: IpNetwork,
     pub device: String,
 }
 
 impl AuditLogContext {
-    pub fn new(username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
+            user_id,
             username,
             ip,
             device,
@@ -30,6 +32,7 @@ impl From<AuditLogContext> for EventContext {
     fn from(val: AuditLogContext) -> Self {
         EventContext {
             timestamp: val.timestamp,
+            user_id: val.user_id,
             username: val.username,
             ip: val.ip,
             device: val.device,

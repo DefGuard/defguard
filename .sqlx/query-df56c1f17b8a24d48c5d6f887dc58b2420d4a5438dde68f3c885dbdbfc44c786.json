@@ -1,17 +1,13 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO \"audit_event\" (\"timestamp\",\"username\",\"ip\",\"event\",\"module\",\"device\",\"metadata\") VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id",
+  "query": "UPDATE \"audit_event\" SET \"timestamp\" = $2,\"user_id\" = $3,\"username\" = $4,\"ip\" = $5,\"event\" = $6,\"module\" = $7,\"device\" = $8,\"metadata\" = $9 WHERE id = $1",
   "describe": {
-    "columns": [
-      {
-        "ordinal": 0,
-        "name": "id",
-        "type_info": "Int8"
-      }
-    ],
+    "columns": [],
     "parameters": {
       "Left": [
+        "Int8",
         "Timestamp",
+        "Int8",
         "Text",
         "Inet",
         "Text",
@@ -32,9 +28,7 @@
         "Jsonb"
       ]
     },
-    "nullable": [
-      false
-    ]
+    "nullable": []
   },
-  "hash": "bea32b026f8caa8d9fe3819f1210fede43fe338a3928694adb438c609e4de6e5"
+  "hash": "df56c1f17b8a24d48c5d6f887dc58b2420d4a5438dde68f3c885dbdbfc44c786"
 }

@@ -30,6 +30,7 @@ pub enum EventType {
 pub struct AuditEvent<I = NoId> {
     pub id: I,
     pub timestamp: NaiveDateTime,
+    pub user_id: Id,
     pub username: String,
     pub ip: IpNetwork,
     #[model(enum)]

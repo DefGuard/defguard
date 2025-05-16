@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, \"timestamp\",\"username\",\"ip\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"metadata\" FROM \"audit_event\"",
+  "query": "SELECT id, \"timestamp\",\"user_id\",\"username\",\"ip\",\"event\" \"event: _\",\"module\" \"module: _\",\"device\",\"metadata\" FROM \"audit_event\" WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -15,21 +15,26 @@
       },
       {
         "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
         "name": "username",
         "type_info": "Text"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "ip",
         "type_info": "Inet"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "event: _",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "module: _",
         "type_info": {
           "Custom": {
@@ -46,20 +51,23 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "device",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "metadata",
         "type_info": "Jsonb"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8"
+      ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -70,5 +78,5 @@
       true
     ]
   },
-  "hash": "c050c4602ef957f69118a10c7908582a054af981c4287a6eb91405a9e0ae0aef"
+  "hash": "63a7d3605643f4c853931aa94e0486ad495d55477612106b4f3d1d28d733c5cd"
 }
