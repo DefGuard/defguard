@@ -18,8 +18,20 @@
 }
 
 .list-cell-text-floating {
+  max-width: min(480px, 90dvw);
+
   p {
     @include typography(app-modal-1);
     color: var(--text-body-primary);
+  }
+
+  &.copy {
+    .floating-menu-inner {
+      display: grid;
+      grid-template-rows: 1fr;
+      grid-template-columns: 1fr 40px;
+      column-gap: var(--spacing-xs);
+      align-items: center;
+    }
   }
 }

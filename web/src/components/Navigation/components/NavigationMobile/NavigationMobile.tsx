@@ -51,6 +51,10 @@ export const NavigationMobile = ({ navItems, onLogout }: Props) => {
         title: LL.navigation.mobileTitles.wizard(),
       },
       {
+        path: '/admin/activity',
+        title: LL.navigation.mobileTitles.activity(),
+      },
+      {
         path: '/admin/network',
         title: LL.navigation.mobileTitles.networkSettings(),
       },

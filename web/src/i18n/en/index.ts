@@ -975,8 +975,10 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       groups: 'Groups',
       devices: 'Network Devices',
       acl: 'Access Control',
+      activity: 'Activity',
     },
     mobileTitles: {
+      activity: 'Activity',
       groups: 'Groups',
       wizard: 'Create location',
       users: 'Users',

@@ -1,6 +1,7 @@
 import './style.scss';
 
 import classNames from 'classnames';
+import clsx from 'clsx';
 import { useMemo } from 'react';
 
 import { useI18nContext } from '../../../../i18n/i18n-react';
@@ -35,12 +36,7 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
         {isOpen && <img src={settings?.nav_logo_url} />}
         {!isOpen && <SvgDefguardNavLogoCollapsed />}
       </div>
-      <div
-        className="links"
-        style={{
-          minHeight: (navItems.middle.length + navItems.bottom.length + 1) * 58,
-        }}
-      >
+      <div className="links">
         <div className="middle">
           {navItems.middle.map((item) => (
             <NavigationLink key={item.linkPath} item={item} />
@@ -50,9 +46,15 @@ export const NavigationBar = ({ navItems, onLogout, isOpen }: Props) => {
           {navItems.bottom.map((item) => (
             <NavigationLink key={item.linkPath} item={item} />
           ))}
-          <button data-testid="logout" className="log-out" onClick={onLogout}>
+          <button
+            data-testid="logout"
+            className={clsx('log-out', {
+              compact: !isOpen,
+            })}
+            onClick={onLogout}
+          >
             <SvgIconNavLogout />
-            <span>{LL.navigation.bar.logOut()}</span>
+            {isOpen && <span>{LL.navigation.bar.logOut()}</span>}
           </button>
         </div>
       </div>
