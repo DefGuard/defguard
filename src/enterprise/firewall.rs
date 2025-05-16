@@ -123,11 +123,12 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.dedup();
 
         // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
-        if !(!destination_aliases.is_empty()
-            && destination_addrs.is_empty()
-            && destination_ports.is_empty()
-            && protocols.is_empty())
-        {
+        let has_no_manual_destination =
+            destination_addrs.is_empty() && destination_ports.is_empty() && protocols.is_empty();
+        let has_destination_aliases = !destination_aliases.is_empty();
+        let is_destination_alias_only_rule = has_destination_aliases && has_no_manual_destination;
+
+        if !is_destination_alias_only_rule {
             // check if source addrs list is empty
             if source_addrs.is_empty() {
                 debug!(
