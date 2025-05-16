@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["defguard",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/convert/trait.TryFrom.html\" title=\"trait core::convert::TryFrom\">TryFrom</a>&lt;<a class=\"struct\" href=\"defguard/db/models/settings/struct.Settings.html\" title=\"struct defguard::db::models::settings::Settings\">Settings</a>&gt; for <a class=\"struct\" href=\"defguard/enterprise/ldap/struct.LDAPConfig.html\" title=\"struct defguard::enterprise::ldap::LDAPConfig\">LDAPConfig</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/convert/trait.TryFrom.html\" title=\"trait core::convert::TryFrom\">TryFrom</a>&lt;<a class=\"struct\" href=\"defguard/enterprise/handlers/acl/struct.EditAclAlias.html\" title=\"struct defguard::enterprise::handlers::acl::EditAclAlias\">EditAclAlias</a>&gt; for <a class=\"struct\" href=\"defguard/enterprise/db/models/acl/struct.AclAlias.html\" title=\"struct defguard::enterprise::db::models::acl::AclAlias\">AclAlias</a>&lt;<a class=\"struct\" href=\"defguard/db/struct.NoId.html\" title=\"struct defguard::db::NoId\">NoId</a>&gt;"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/convert/trait.TryFrom.html\" title=\"trait core::convert::TryFrom\">TryFrom</a>&lt;<a class=\"struct\" href=\"defguard/enterprise/handlers/acl/struct.EditAclRule.html\" title=\"struct defguard::enterprise::handlers::acl::EditAclRule\">EditAclRule</a>&gt; for <a class=\"struct\" href=\"defguard/enterprise/db/models/acl/struct.AclRule.html\" title=\"struct defguard::enterprise::db::models::acl::AclRule\">AclRule</a>&lt;<a class=\"struct\" href=\"defguard/db/struct.NoId.html\" title=\"struct defguard::db::NoId\">NoId</a>&gt;"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1683]}

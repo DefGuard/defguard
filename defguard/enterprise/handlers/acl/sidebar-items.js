@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["apply_acl_aliases","apply_acl_rules","create_acl_alias","create_acl_rule","delete_acl_alias","delete_acl_rule","get_acl_alias","get_acl_rule","list_acl_aliases","list_acl_rules","update_acl_alias","update_acl_rule"],"struct":["ApiAclAlias","ApiAclRule","ApplyAclAliasesData","ApplyAclRulesData","EditAclAlias","EditAclRule"]};
