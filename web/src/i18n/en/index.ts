@@ -2500,6 +2500,21 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       },
     },
   },
+  enums: {
+    auditEventType: {
+      user_login: 'User login',
+      user_logout: 'User logout',
+      device_added: 'Device added',
+      device_removed: 'Device removed',
+      device_modified: 'Device modified',
+    },
+    auditModule: {
+      defguard: 'Defguard',
+      client: 'Client',
+      enrollment: 'Enrollment',
+      vpn: 'VPN',
+    },
+  },
 };
 
 export default en;

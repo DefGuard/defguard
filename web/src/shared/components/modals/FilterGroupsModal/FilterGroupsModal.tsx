@@ -17,11 +17,9 @@ import { Search } from '../../../defguard-ui/components/Layout/Search/Search';
 import { isPresent } from '../../../defguard-ui/utils/isPresent';
 import { FilterGroupsModalFilter } from './types';
 
-type FilterGroupDisplay = FilterGroupsModalFilter & { key: string };
+type InternalStore = Record<string, Record<string, boolean>>;
 
-type InternalStore = Record<string, Record<number, boolean>>;
-
-type ExternalStore = Record<string, Array<number>>;
+type ExternalStore = Record<string, Array<number | string>>;
 
 type Props = {
   isOpen: boolean;
@@ -63,12 +61,13 @@ type ContentProps = Pick<Props, 'onCancel' | 'onSubmit'> & {
 const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps) => {
   const initialStoreState = useMemo(() => {
     const res: InternalStore = {};
-    Object.entries(data).forEach(([key, value]) => {
-      const items: Record<number, boolean> = {};
+    Object.values(data).forEach((value) => {
+      const items: Record<string, boolean> = {};
       value.items.forEach((item) => {
-        items[item.value] = externalState[key]?.includes(item.value) ?? false;
+        items[item.value] =
+          externalState[value.identifier]?.includes(item.value) ?? false;
       });
-      res[key] = items;
+      res[value.identifier] = items;
     });
     return res;
   }, [data, externalState]);
@@ -87,13 +86,14 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
   const { LL } = useI18nContext();
 
   const displayFilters = useMemo(() => {
-    const res: FilterGroupDisplay[] = [];
+    const res: FilterGroupsModalFilter[] = [];
     const isSearch = searchValue !== '';
     const clearedSearch = searchValue.trim().toLowerCase();
     const keys = Object.keys(data);
 
     for (const key of keys) {
-      const group = { ...data[key], key };
+      const identifier = data[key].identifier ?? key;
+      const group: FilterGroupsModalFilter = { ...data[key], identifier };
       if (isSearch) {
         group.items = group.items.filter((item) => {
           for (const searchValue of item.searchValues) {
@@ -114,7 +114,7 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
   }, [data, searchValue]);
 
   const toggleCheckbox = useCallback(
-    (groupKey: string, itemKey: number, value: boolean) => {
+    (groupKey: string, itemKey: number | string, value: boolean) => {
       setSelected((s) => ({
         ...s,
         [groupKey]: {
@@ -157,7 +157,7 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
       const selectedFilters = Object.entries(groupFilters)
         .map(([itemId, itemSelected]) => {
           if (itemSelected) {
-            return Number(itemId);
+            return itemId;
           }
         })
         .filter((id) => isPresent(id));
@@ -190,22 +190,22 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
       </div>
       <div className="groups">
         {displayFilters.map((group) => (
-          <div className="group" key={group.key}>
+          <div className="group" key={group.identifier}>
             <GroupExpandable
               groupLabel={group.label}
-              selectionCount={countSelected(selected[group.key])}
+              selectionCount={countSelected(selected[group.identifier])}
             >
               <ul className="items">
                 {group.items.map((item) => (
                   <li key={item.value}>
                     <LabeledCheckbox
-                      value={selected[group.key][item.value]}
+                      value={selected[group.identifier][item.value]}
                       label={item.label}
                       onChange={() => {
                         toggleCheckbox(
-                          group.key,
+                          group.identifier,
                           item.value,
-                          !selected[group.key][item.value],
+                          !selected[group.identifier][item.value],
                         );
                       }}
                     />

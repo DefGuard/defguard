@@ -8,23 +8,29 @@ import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHe
 import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
 import { InteractionBox } from '../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { AuditEvent } from '../../../shared/types';
+import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { AuditEvent, AuditLogSortKey } from '../../../shared/types';
 
 type Props = {
   data: AuditEvent[];
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
+  sortKey: AuditLogSortKey;
+  sortDirection: ListSortDirection;
   onNextPage: () => void;
+  onSortChange: (sortKey: keyof AuditEvent, sortDirection: ListSortDirection) => void;
 };
 
 export const ActivityList = ({
   data,
   isFetchingNextPage,
   hasNextPage,
+  sortDirection,
+  sortKey,
+  onSortChange,
   onNextPage,
 }: Props) => {
-  const { ref: chuj } = useInView({
+  const { ref: infiniteLoadMoreElement } = useInView({
     threshold: 0,
     trackVisibility: false,
     onChange: (inView) => {
@@ -72,10 +78,6 @@ export const ActivityList = ({
         label: 'Device',
         key: 'device',
       },
-      {
-        label: 'Details',
-        key: 'details',
-      },
     ],
     [],
   );
@@ -89,12 +91,14 @@ export const ActivityList = ({
         }}
       >
         <ListHeader
-          activeKey="timestamp"
+          activeKey={sortKey}
           headers={listHeaders}
           selectAll={false}
           onSelectAll={(val) => {
             console.log('Select all', val);
           }}
+          sortDirection={sortDirection}
+          onChange={onSortChange}
         />
         <div
           style={{
@@ -123,7 +127,7 @@ export const ActivityList = ({
                   <ListCellText text={activity.timestamp} />
                 </div>
                 <div className="cell user">
-                  <ListCellText text={String(activity.user_id)} />
+                  <ListCellText text={activity.username} />
                 </div>
                 <div className="cell ip">
                   <ListCellText text={activity.ip} />
@@ -137,16 +141,11 @@ export const ActivityList = ({
                 <div className="cell device">
                   <ListCellText text={activity.device} />
                 </div>
-                <div className="cell details">
-                  {isPresent(activity.details) && (
-                    <ListCellText text={activity.details} withCopy />
-                  )}
-                </div>
               </div>
             );
           })}
           {hasNextPage && (
-            <div className="end-row" ref={chuj}>
+            <div className="end-row" ref={infiniteLoadMoreElement}>
               {isFetchingNextPage && <LoaderSpinner size={24} />}
             </div>
           )}
