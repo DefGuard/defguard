@@ -17,7 +17,12 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
 import { AuditLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
-import { auditEventTypeValues, auditModuleValues } from './types';
+import {
+  AuditEventType,
+  auditEventTypeValues,
+  AuditModule,
+  auditModuleValues,
+} from './types';
 
 export const ActivityPage = () => {
   return (
@@ -27,6 +32,12 @@ export const ActivityPage = () => {
       </PageLimiter>
     </PageContainer>
   );
+};
+
+const applyFilter = <T,>(val: Array<T> | undefined): undefined | Array<T> => {
+  if (val && val.length > 0) {
+    return val;
+  }
 };
 
 type Filters = 'event' | 'username' | 'module';
@@ -40,8 +51,8 @@ const PageContent = () => {
     username: [],
   });
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
-  const [from, setForm] = useState(dayjs.utc().toString());
-  const [until, setUntil] = useState(dayjs.utc().subtract(1, 'hour').toString());
+  const [from, setForm] = useState(dayjs.utc().toISOString());
+  const [until, setUntil] = useState(dayjs.utc().subtract(1, 'hour').toISOString());
   const [sortKey, setSortKey] = useState<AuditLogSortKey>('timestamp');
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.DESC,
@@ -67,13 +78,26 @@ const PageContent = () => {
     // hasPreviousPage,
     // fetchPreviousPage,
   } = useInfiniteQuery({
-    queryKey: ['audit_log', sortDirection, sortKey, from],
+    queryKey: [
+      'audit_log',
+      sortDirection,
+      sortKey,
+      from,
+      activeFilters.event,
+      activeFilters.module,
+      activeFilters.username,
+    ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getAuditLog({
         page: pageParam,
         from,
-        until: until,
+        // until: until,
+        event: applyFilter(activeFilters.event as AuditEventType[]),
+        module: applyFilter(activeFilters.module as AuditModule[]),
+        username: applyFilter(activeFilters.username as string[]),
+        sort_order: sortDirection,
+        sort_by: sortKey,
       }),
     getNextPageParam: (lastPage) => lastPage?.pagination?.next_page,
     getPreviousPageParam: (page) => {

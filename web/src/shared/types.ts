@@ -534,7 +534,7 @@ export type AuditLogFilters = {
   // Naive UTC datetime in string
   from?: string;
   // Naive UTC datetime in string
-  until: string;
+  until?: string;
   username?: string[];
   event?: AuditEventType[];
   module?: AuditModule[];
