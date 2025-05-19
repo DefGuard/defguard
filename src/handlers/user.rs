@@ -720,7 +720,7 @@ pub async fn modify_user(
                 &appstate.pool,
             )
             .await;
-        };
+        }
     }
 
     appstate.trigger_action(AppEvent::UserModified(user_info));

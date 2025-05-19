@@ -748,7 +748,7 @@ pub async fn init_vpn_location(
         return Err(anyhow!(
             "Failed to initialize first VPN location. A location already exists."
         ));
-    };
+    }
 
     // create a new network
     let network = WireguardNetwork::new(

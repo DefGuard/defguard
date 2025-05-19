@@ -2,7 +2,7 @@ use std::{
     collections::HashSet,
     fmt,
     net::{IpAddr, Ipv4Addr},
-    ops::{Bound, Range},
+    ops::{Bound, RangeInclusive},
 };
 
 use chrono::NaiveDateTime;
@@ -52,8 +52,6 @@ pub enum AclError {
     FirewallError(#[from] FirewallError),
     #[error("InvalidIpRangeError: {0}")]
     InvalidIpRangeError(String),
-    #[error("PortOutOfRangeError: {0}")]
-    PortOutOfRangeError(i32),
     #[error("CannotModifyDeletedRuleError: {0}")]
     CannotModifyDeletedRuleError(Id),
     #[error("CannotUseModifiedAliasInRuleError: {0:?}")]
@@ -64,34 +62,34 @@ pub enum AclError {
 pub type Protocol = i32;
 
 /// Representation of port range. Those are stored in the db as [`PgRange<i32>`].
-/// Single ports are represented as single-element ranges, e.g. port 80 = Range(80, 81)
+/// Single ports are represented as single-element ranges, e.g. port 80 = PortRange(80, 80)
 /// since upper bound is excluded by convention.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PortRange(pub Range<i32>);
+pub struct PortRange(pub RangeInclusive<u16>);
 
 impl fmt::Display for PortRange {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match (self.0.start, self.0.end) {
-            (start, end) if end == (start + 1) => start.to_string(),
-            (start, end) => format!("{start}-{}", end - 1),
+        let s = match (self.0.start(), self.0.end()) {
+            (start, end) if end == start => start.to_string(),
+            (start, end) => format!("{start}-{end}"),
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
 impl PortRange {
-    pub fn new(start: i32, end: i32) -> Self {
-        Self(start..(end + 1))
+    pub fn new(start: u16, end: u16) -> Self {
+        Self(start..=end)
     }
 
     // Returns first port in range
-    pub fn first_port(&self) -> i32 {
-        self.0.start
+    pub fn first_port(&self) -> u16 {
+        *self.0.start()
     }
 
     // Returns last port in range
-    pub fn last_port(&self) -> i32 {
-        self.0.end - 1
+    pub fn last_port(&self) -> u16 {
+        *self.0.end()
     }
 }
 
@@ -104,20 +102,20 @@ impl From<PgRange<i32>> for PortRange {
             Bound::Unbounded => panic!("Unbounded port range"),
         };
         let end = match range.end {
-            Bound::Included(end) => end + 1,
-            Bound::Excluded(end) => end,
+            Bound::Included(end) => end,
+            Bound::Excluded(end) => end - 1,
             // should not happen - database constraint
             Bound::Unbounded => panic!("Unbounded port range"),
         };
-        Self(start..end)
+        Self(start as u16..=end as u16)
     }
 }
 
 impl From<PortRange> for PgRange<i32> {
     fn from(range: PortRange) -> PgRange<i32> {
         PgRange {
-            start: Bound::Included(range.0.start),
-            end: Bound::Excluded(range.0.end),
+            start: Bound::Included(i32::from(*range.0.start())),
+            end: Bound::Included(i32::from(*range.0.end())),
         }
     }
 }
@@ -530,36 +528,34 @@ pub fn parse_destination(destination: &str) -> Result<ParsedDestination, AclErro
     Ok(result)
 }
 
-/// Perses a ports string into singular ports and port ranges
+/// Parses ports string into singular ports and port ranges
 /// We should be able to parse a string like this one:
 /// `22, 23, 8000-9000, 80-90`
 pub fn parse_ports(ports: &str) -> Result<Vec<PortRange>, AclError> {
     debug!("Parsing ports string: {ports}");
-    let ensure_in_range = |port: i32| {
-        u16::try_from(port)
-            .map(|_| port)
-            .map_err(|_| AclError::PortOutOfRangeError(port))
-    };
     let mut result = Vec::new();
-    let ports: String = ports.chars().filter(|c| !c.is_whitespace()).collect();
-    if ports.is_empty() {
-        return Ok(result);
-    }
-    for v in ports.split(',') {
-        match v.split('-').collect::<Vec<_>>() {
-            l if l.len() == 1 => result.push(PortRange(Range {
-                start: ensure_in_range(l[0].parse::<i32>()?)?,
-                end: ensure_in_range(l[0].parse::<i32>()?)? + 1,
-            })),
-            l if l.len() == 2 => result.push(PortRange(Range {
-                start: ensure_in_range(l[0].parse::<i32>()?)?,
-                end: ensure_in_range(l[1].parse::<i32>()?)? + 1,
-            })),
-            _ => {
-                error!("Failed to parse ports string: \"{ports}\"");
-                return Err(AclError::InvalidPortsFormat(ports.to_string()));
-            }
-        };
+    let ports = ports
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect::<String>();
+    if !ports.is_empty() {
+        for v in ports.split(',') {
+            match v.split('-').collect::<Vec<_>>() {
+                l if l.len() == 1 => {
+                    let start = l[0].parse::<u16>()?;
+                    result.push(PortRange::new(start, start))
+                }
+                l if l.len() == 2 => {
+                    let start = l[0].parse::<u16>()?;
+                    let end = l[1].parse::<u16>()?;
+                    result.push(PortRange::new(start, end))
+                }
+                _ => {
+                    error!("Failed to parse ports string: \"{ports}\"");
+                    return Err(AclError::InvalidPortsFormat(ports.to_string()));
+                }
+            };
+        }
     }
 
     debug!("Parsed ports: {result:?}");
@@ -1761,8 +1757,9 @@ impl AclAlias<Id> {
     {
         query_as!(
             AclRule,
-            "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, deny_all_users, allow_all_network_devices, deny_all_network_devices, \
-                all_networks, destination, ports, protocols, enabled, expires \
+            "SELECT ar.id, parent_id, state AS \"state: RuleState\", name, allow_all_users, \
+            deny_all_users, allow_all_network_devices, deny_all_network_devices, \
+            all_networks, destination, ports, protocols, enabled, expires \
             FROM aclrulealias ara \
             JOIN aclrule ar ON ar.id = ara.rule_id \
             WHERE ara.alias_id = $1",
@@ -1895,8 +1892,8 @@ impl Default for AclRuleDestinationRange<Id> {
         Self {
             id: Id::default(),
             rule_id: Id::default(),
-            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            start: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         }
     }
 }
@@ -1934,8 +1931,8 @@ impl Default for AclAliasDestinationRange<Id> {
         Self {
             id: Id::default(),
             alias_id: Id::default(),
-            start: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            end: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            start: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+            end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
         }
     }
 }
