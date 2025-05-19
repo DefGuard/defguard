@@ -23,6 +23,7 @@ pub enum EventType {
     UserLogout,
     DeviceAdded,
     DeviceRemoved,
+    DeviceModified,
 }
 
 #[derive(Model, FromRow)]
@@ -39,4 +40,19 @@ pub struct AuditEvent<I = NoId> {
     pub module: AuditModule,
     pub device: String,
     pub metadata: Option<serde_json::Value>,
+}
+
+#[derive(Serialize)]
+pub struct DeviceAddedMetadata {
+    pub device_names: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct DeviceRemovedMetadata {
+    pub device_names: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct DeviceModifiedMetadata {
+    pub device_names: Vec<String>,
 }

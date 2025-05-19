@@ -304,13 +304,26 @@ pub(crate) async fn authenticate(
 /// Logout - forget the session cookie.
 pub async fn logout(
     cookies: CookieJar,
-    session: Session,
+    session_info: SessionInfo,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     // remove auth cookie
     let cookies = cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
     // remove stored session
-    session.delete(&appstate.pool).await?;
+    session_info.session.delete(&appstate.pool).await?;
+
+    let user = session_info.user;
+    appstate.send_event(ApiEvent::UserLogout {
+        context: AuditLogContext::new(
+            user.id,
+            user.username.clone(),
+            insecure_ip.into(),
+            user_agent.to_string(),
+        ),
+    })?;
+
     Ok((cookies, ApiResponse::default()))
 }
 

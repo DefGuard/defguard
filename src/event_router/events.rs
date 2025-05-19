@@ -53,7 +53,24 @@ pub enum MainEvent {
 /// Events from Web API
 #[derive(Debug)]
 pub enum ApiEvent {
-    UserLogin { context: AuditLogContext },
+    UserLogin {
+        context: AuditLogContext,
+    },
+    UserLogout {
+        context: AuditLogContext,
+    },
+    DeviceAdded {
+        context: AuditLogContext,
+        device_name: String,
+    },
+    DeviceRemoved {
+        context: AuditLogContext,
+        device_name: String,
+    },
+    DeviceModified {
+        context: AuditLogContext,
+        device_name: String,
+    },
 }
 /// Events from gRPC server
 #[derive(Debug)]

@@ -1,11 +1,14 @@
 use error::EventLoggerError;
-use message::{EventContext, EventLoggerMessage, LoggerEvent};
+use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, info};
 
 use crate::db::{
-    models::audit_log::{AuditEvent, AuditModule, EventType},
+    models::audit_log::{
+        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
+        DeviceRemovedMetadata, EventType,
+    },
     NoId,
 };
 
@@ -38,7 +41,7 @@ pub async fn run_event_logger(
 
         // Process all messages in the batch
         for message in message_buffer {
-            // Unpack event context
+            // Unpack shared event context
             let EventContext {
                 user_id,
                 username,
@@ -47,39 +50,63 @@ pub async fn run_event_logger(
                 device,
             } = message.context;
 
-            // Convert each message to an audit event
-            let audit_event = match message.event {
-                LoggerEvent::Defguard(event) => {
-                    let module = AuditModule::Defguard;
+            // Convert each message to a related audit event
+            let audit_event = {
+                let (module, event, metadata) = match message.event {
+                    LoggerEvent::Defguard(event) => {
+                        let module = AuditModule::Defguard;
 
-                    match event {
-                        message::DefguardEvent::UserLogin => AuditEvent {
-                            id: NoId,
-                            timestamp,
-                            user_id,
-                            username,
-                            ip,
-                            event: EventType::UserLogin,
-                            module,
-                            device,
-                            metadata: None,
-                        },
-                        message::DefguardEvent::UserLogout => todo!(),
-                        message::DefguardEvent::DeviceAdded { device_name: _ } => todo!(),
-                        message::DefguardEvent::DeviceRemoved { device_name: _ } => todo!(),
+                        let (event_type, metadata) = match event {
+                            DefguardEvent::UserLogin => (EventType::UserLogin, None),
+                            DefguardEvent::UserLogout => (EventType::UserLogout, None),
+                            DefguardEvent::DeviceAdded { device_name } => (
+                                EventType::DeviceAdded,
+                                serde_json::to_value(DeviceAddedMetadata {
+                                    device_names: vec![device_name],
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::DeviceRemoved { device_name } => (
+                                EventType::DeviceRemoved,
+                                serde_json::to_value(DeviceRemovedMetadata {
+                                    device_names: vec![device_name],
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::DeviceModified { device_name } => (
+                                EventType::DeviceModified,
+                                serde_json::to_value(DeviceModifiedMetadata {
+                                    device_names: vec![device_name],
+                                })
+                                .ok(),
+                            ),
+                        };
+                        (module, event_type, metadata)
                     }
-                }
-                LoggerEvent::Client(_event) => {
-                    let _module = AuditModule::Client;
-                    unimplemented!()
-                }
-                LoggerEvent::Vpn(_event) => {
-                    let _module = AuditModule::Vpn;
-                    unimplemented!()
-                }
-                LoggerEvent::Enrollment(_event) => {
-                    let _module = AuditModule::Enrollment;
-                    unimplemented!()
+                    LoggerEvent::Client(_event) => {
+                        let _module = AuditModule::Client;
+                        unimplemented!()
+                    }
+                    LoggerEvent::Vpn(_event) => {
+                        let _module = AuditModule::Vpn;
+                        unimplemented!()
+                    }
+                    LoggerEvent::Enrollment(_event) => {
+                        let _module = AuditModule::Enrollment;
+                        unimplemented!()
+                    }
+                };
+
+                AuditEvent {
+                    id: NoId,
+                    timestamp,
+                    user_id,
+                    username,
+                    ip,
+                    event,
+                    module,
+                    device,
+                    metadata,
                 }
             };
 
