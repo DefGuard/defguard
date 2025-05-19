@@ -116,6 +116,36 @@ impl EventRouter {
                 // send event to audit log
                 self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
             }
+            ApiEvent::UserLogout { context } => {
+                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
+            }
+            ApiEvent::DeviceAdded {
+                context,
+                device_name,
+            } => {
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::DeviceAdded { device_name }),
+                )?;
+            }
+            ApiEvent::DeviceRemoved {
+                context,
+                device_name,
+            } => {
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::DeviceRemoved { device_name }),
+                )?;
+            }
+            ApiEvent::DeviceModified {
+                context,
+                device_name,
+            } => {
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::DeviceModified { device_name }),
+                )?;
+            }
         }
 
         Ok(())

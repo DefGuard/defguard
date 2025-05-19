@@ -2,7 +2,7 @@ use std::fmt::{self, Display, Formatter};
 
 use axum::extract::State;
 use axum_extra::extract::Query;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use sqlx::{FromRow, Postgres, QueryBuilder, Type};
 use tracing::Instrument;
@@ -20,8 +20,8 @@ use super::{
 
 #[derive(Debug, Deserialize, Default)]
 pub struct FilterParams {
-    pub from: Option<NaiveDateTime>,
-    pub until: Option<NaiveDateTime>,
+    pub from: Option<DateTime<Utc>>,
+    pub until: Option<DateTime<Utc>>,
     #[serde(default = "default_username")]
     pub username: Vec<String>,
     #[serde(default = "default_event")]
@@ -187,10 +187,14 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
 
     // time filters
     if let Some(from) = filters.from {
-        query_builder.push(" AND timestamp >= ").push_bind(from);
+        query_builder
+            .push(" AND timestamp >= ")
+            .push_bind(from.naive_utc());
     }
     if let Some(until) = filters.until {
-        query_builder.push(" AND timestamp <= ").push_bind(until);
+        query_builder
+            .push(" AND timestamp <= ")
+            .push_bind(until.naive_utc());
     }
 
     // user filter

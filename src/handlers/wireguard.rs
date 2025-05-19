@@ -10,6 +10,8 @@ use axum::{
     http::StatusCode,
     Extension,
 };
+use axum_client_ip::InsecureClientIp;
+use axum_extra::{headers::UserAgent, TypedHeader};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
@@ -35,6 +37,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
+    event_router::events::{ApiEvent, AuditLogContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -633,6 +636,8 @@ pub struct AddDeviceResult {
 pub(crate) async fn add_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
     Path(username): Path<String>,
@@ -760,10 +765,22 @@ pub(crate) async fn add_device(
         "User {} added device {device_name} for user {username}",
         session.user.username
     );
+    // clone name to be used later
+    let device_name = device.name.clone();
 
     let result = AddDeviceResult { configs, device };
 
     update_counts(&appstate.pool).await?;
+
+    appstate.send_event(ApiEvent::DeviceAdded {
+        context: AuditLogContext::new(
+            user.id,
+            user.username.clone(),
+            insecure_ip.into(),
+            user_agent.to_string(),
+        ),
+        device_name,
+    })?;
 
     Ok(ApiResponse {
         json: json!(result),
@@ -810,6 +827,8 @@ pub(crate) async fn add_device(
 pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyDevice>,
@@ -839,6 +858,10 @@ pub(crate) async fn modify_device(
 
     // update device info
     device.update_from(data);
+
+    // clone to use later
+    let device_name = device.name.clone();
+
     device.save(&appstate.pool).await?;
 
     // send update to gateway's
@@ -862,6 +885,18 @@ pub(crate) async fn modify_device(
     }));
 
     info!("User {} updated device {device_id}", session.user.username);
+
+    let user = session.user;
+    appstate.send_event(ApiEvent::DeviceModified {
+        context: AuditLogContext::new(
+            user.id,
+            user.username.clone(),
+            insecure_ip.into(),
+            user_agent.to_string(),
+        ),
+        device_name,
+    })?;
+
     Ok(ApiResponse {
         json: json!(device),
         status: StatusCode::OK,
@@ -937,6 +972,8 @@ pub(crate) async fn get_device(
 pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -952,6 +989,9 @@ pub(crate) async fn delete_device(
 
     // prepare device info
     let device_info = DeviceInfo::from_device(&mut *transaction, device.clone()).await?;
+
+    // clone to use later
+    let device_name = device.name.clone();
 
     // delete device before firewall config is generated
     device.delete(&mut *transaction).await?;
@@ -982,6 +1022,17 @@ pub(crate) async fn delete_device(
 
     transaction.commit().await?;
     info!("User {username} deleted device {device_id}");
+
+    let user = session.user;
+    appstate.send_event(ApiEvent::DeviceRemoved {
+        context: AuditLogContext::new(
+            user.id,
+            user.username.clone(),
+            insecure_ip.into(),
+            user_agent.to_string(),
+        ),
+        device_name,
+    })?;
 
     Ok(ApiResponse::default())
 }
