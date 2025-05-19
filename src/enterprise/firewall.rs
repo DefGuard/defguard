@@ -129,7 +129,8 @@ pub async fn generate_firewall_rules_from_acls(
         }
 
         // prepare destination addresses
-        let destination_addrs = process_destination_addrs(destination, destination_ranges);
+        let (destination_addrs_v4, destination_addrs_v6) =
+            process_destination_addrs(destination, destination_ranges);
 
         // prepare destination ports
         let destination_ports = merge_port_ranges(ports);
@@ -138,40 +139,52 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort();
         protocols.dedup();
 
-        let comment = format!("ACL {} - {}", acl.id, acl.name);
-        if has_ipv4_addresses {
-            // create IPv4 rules
-            let ipv4_rules = create_rules(
-                acl.id,
-                IpVersion::Ipv4,
-                &ipv4_source_addrs,
-                &destination_addrs.0,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            if let Some(rule) = ipv4_rules.0 {
-                allow_rules.push(rule)
+        // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
+        // at this point component aliases have been added to the manual config so they don't need to be handled separately
+        let has_no_manual_destination = destination_addrs_v4.is_empty()
+            && destination_addrs_v6.is_empty()
+            && destination_ports.is_empty()
+            && protocols.is_empty();
+        let has_destination_aliases = !destination_aliases.is_empty();
+        let is_destination_alias_only_rule = has_destination_aliases && has_no_manual_destination;
+
+        if !is_destination_alias_only_rule {
+            let comment = format!("ACL {} - {}", acl.id, acl.name);
+            if has_ipv4_addresses {
+                // create IPv4 rules
+                let ipv4_rules = create_rules(
+                    acl.id,
+                    IpVersion::Ipv4,
+                    &ipv4_source_addrs,
+                    &destination_addrs_v4,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                if let Some(rule) = ipv4_rules.0 {
+                    allow_rules.push(rule)
+                }
+                deny_rules.push(ipv4_rules.1);
             }
-            deny_rules.push(ipv4_rules.1);
+
+            if has_ipv6_addresses {
+                // create IPv6 rules
+                let ipv6_rules = create_rules(
+                    acl.id,
+                    IpVersion::Ipv6,
+                    &ipv6_source_addrs,
+                    &destination_addrs_v6,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                if let Some(rule) = ipv6_rules.0 {
+                    allow_rules.push(rule)
+                }
+                deny_rules.push(ipv6_rules.1);
+            }
         }
 
-        if has_ipv6_addresses {
-            // create IPv6 rules
-            let ipv6_rules = create_rules(
-                acl.id,
-                IpVersion::Ipv6,
-                &ipv6_source_addrs,
-                &destination_addrs.1,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            if let Some(rule) = ipv6_rules.0 {
-                allow_rules.push(rule)
-            }
-            deny_rules.push(ipv6_rules.1);
-        }
         // process destination aliases by creating a dedicated set of rules for each of them
         if !destination_aliases.is_empty() {
             debug!(
@@ -4317,6 +4330,216 @@ mod test {
         assert_eq!(
             alias_deny_rule.comment,
             Some("ACL 1 - test rule, ALIAS 1 - destination alias DENY".to_string())
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOptions) {
+        let pool = setup_pool(options).await;
+
+        let mut rng = thread_rng();
+
+        // Create test location
+        let location = WireguardNetwork {
+            id: NoId,
+            acl_enabled: true,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // Setup some test users and their devices
+        let user_1: User<NoId> = rng.gen();
+        let user_1 = user_1.save(&pool).await.unwrap();
+        let user_2: User<NoId> = rng.gen();
+        let user_2 = user_2.save(&pool).await.unwrap();
+
+        for user in [&user_1, &user_2] {
+            // Create 2 devices per user
+            for device_num in 1..3 {
+                let device = Device {
+                    id: NoId,
+                    name: format!("device-{}-{}", user.id, device_num),
+                    user_id: user.id,
+                    device_type: DeviceType::User,
+                    description: None,
+                    wireguard_pubkey: Default::default(),
+                    created: Default::default(),
+                    configured: true,
+                };
+                let device = device.save(&pool).await.unwrap();
+
+                // Add device to location's VPN network
+                let network_device = WireguardNetworkDevice {
+                    device_id: device.id,
+                    wireguard_network_id: location.id,
+                    wireguard_ips: vec![IpAddr::V4(Ipv4Addr::new(
+                        10,
+                        0,
+                        user.id as u8,
+                        device_num as u8,
+                    ))],
+                    preshared_key: None,
+                    is_authorized: true,
+                    authorized_at: None,
+                };
+                network_device.insert(&pool).await.unwrap();
+            }
+        }
+
+        // create ACL rule without manually configured destination
+        let acl_rule = AclRule {
+            id: NoId,
+            name: "test rule".to_string(),
+            expires: None,
+            enabled: true,
+            state: RuleState::Applied,
+            destination: Vec::new(),
+            allow_all_users: true,
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+
+        // create different kinds of aliases and add them to the rule
+        let destination_alias_1 = AclAlias {
+            id: NoId,
+            name: "postgres".to_string(),
+            kind: AliasKind::Destination,
+            destination: vec!["10.0.2.3".parse().unwrap()],
+            ports: vec![PortRange::new(5432, 5432).into()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        let destination_alias_2 = AclAlias {
+            id: NoId,
+            name: "redis".to_string(),
+            kind: AliasKind::Destination,
+            destination: vec!["10.0.2.4".parse().unwrap()],
+            ports: vec![PortRange::new(6379, 6379).into()],
+            ..Default::default()
+        }
+        .save(&pool)
+        .await
+        .unwrap();
+        for alias in [&destination_alias_1, &destination_alias_2] {
+            let obj = AclRuleAlias {
+                id: NoId,
+                rule_id: acl_rule.id,
+                alias_id: alias.id,
+            };
+            obj.save(&pool).await.unwrap();
+        }
+
+        // assign rule to location
+        let obj = AclRuleNetwork {
+            id: NoId,
+            rule_id: acl_rule.id,
+            network_id: location.id,
+        };
+        obj.save(&pool).await.unwrap();
+
+        let mut conn = pool.acquire().await.unwrap();
+        let generated_firewall_rules = location
+            .try_get_firewall_config(&mut conn)
+            .await
+            .unwrap()
+            .unwrap()
+            .rules;
+
+        // check generated rules
+        assert_eq!(generated_firewall_rules.len(), 4);
+        let expected_source_addrs = vec![
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.1.1".to_string(),
+                    end: "10.0.1.2".to_string(),
+                })),
+            },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.2.1".to_string(),
+                    end: "10.0.2.2".to_string(),
+                })),
+            },
+        ];
+
+        let alias_allow_rule_1 = &generated_firewall_rules[0];
+        assert_eq!(alias_allow_rule_1.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(alias_allow_rule_1.source_addrs, expected_source_addrs);
+        assert_eq!(
+            alias_allow_rule_1.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::Ip("10.0.2.3".to_string())),
+            },]
+        );
+        assert_eq!(
+            alias_allow_rule_1.destination_ports,
+            vec![Port {
+                port: Some(PortInner::SinglePort(5432))
+            }]
+        );
+        assert!(alias_allow_rule_1.protocols.is_empty());
+        assert_eq!(
+            alias_allow_rule_1.comment,
+            Some("ACL 1 - test rule, ALIAS 1 - postgres ALLOW".to_string())
+        );
+
+        let alias_allow_rule_2 = &generated_firewall_rules[1];
+        assert_eq!(alias_allow_rule_2.verdict, i32::from(FirewallPolicy::Allow));
+        assert_eq!(alias_allow_rule_2.source_addrs, expected_source_addrs);
+        assert_eq!(
+            alias_allow_rule_2.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::Ip("10.0.2.4".to_string())),
+            },]
+        );
+        assert_eq!(
+            alias_allow_rule_2.destination_ports,
+            vec![Port {
+                port: Some(PortInner::SinglePort(6379))
+            }]
+        );
+        assert!(alias_allow_rule_2.protocols.is_empty());
+        assert_eq!(
+            alias_allow_rule_2.comment,
+            Some("ACL 1 - test rule, ALIAS 2 - redis ALLOW".to_string())
+        );
+
+        let alias_deny_rule_1 = &generated_firewall_rules[2];
+        assert_eq!(alias_deny_rule_1.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(alias_deny_rule_1.source_addrs.is_empty());
+        assert_eq!(
+            alias_deny_rule_1.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::Ip("10.0.2.3".to_string())),
+            },]
+        );
+        assert!(alias_deny_rule_1.destination_ports.is_empty(),);
+        assert!(alias_deny_rule_1.protocols.is_empty());
+        assert_eq!(
+            alias_deny_rule_1.comment,
+            Some("ACL 1 - test rule, ALIAS 1 - postgres DENY".to_string())
+        );
+
+        let alias_deny_rule_2 = &generated_firewall_rules[3];
+        assert_eq!(alias_deny_rule_2.verdict, i32::from(FirewallPolicy::Deny));
+        assert!(alias_deny_rule_2.source_addrs.is_empty());
+        assert_eq!(
+            alias_deny_rule_2.destination_addrs,
+            vec![IpAddress {
+                address: Some(Address::Ip("10.0.2.4".to_string())),
+            },]
+        );
+        assert!(alias_deny_rule_2.destination_ports.is_empty(),);
+        assert!(alias_deny_rule_2.protocols.is_empty());
+        assert_eq!(
+            alias_deny_rule_2.comment,
+            Some("ACL 1 - test rule, ALIAS 2 - redis DENY".to_string())
         );
     }
 }
