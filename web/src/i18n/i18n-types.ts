@@ -2367,7 +2367,7 @@ type RootTranslation = {
 			devices: string
 		}
 		/**
-		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​4
+		 * C​o​p​y​r​i​g​h​t​ ​©​2​0​2​3​-​2​0​2​5
 		 */
 		copyright: string
 		version: {
@@ -8302,7 +8302,7 @@ export type TranslationFunctions = {
 			devices: () => LocalizedString
 		}
 		/**
-		 * Copyright ©2023-2024
+		 * Copyright ©2023-2025
 		 */
 		copyright: () => LocalizedString
 		version: {
