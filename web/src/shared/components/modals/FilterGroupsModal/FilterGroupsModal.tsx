@@ -137,7 +137,7 @@ const DialogContent = ({ onCancel, onSubmit, data, externalState }: ContentProps
         Object.entries(state).map(([outerKey, innerObj]) => [
           outerKey,
           Object.fromEntries(
-            Object.entries(innerObj).map(([innerKey]) => [Number(innerKey), value]),
+            Object.entries(innerObj).map(([innerKey]) => [innerKey, value]),
           ),
         ]),
       );

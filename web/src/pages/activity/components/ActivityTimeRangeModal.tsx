@@ -14,9 +14,9 @@ import { ModalWithTitle } from '../../../shared/defguard-ui/components/Layout/mo
 type Props = {
   isOpen: boolean;
   onOpenChange: (val: boolean) => void;
-  // Time in ISO string
-  activityFrom?: string;
-  activityUntil?: string;
+  // Time in UTC ISO without timezone string
+  activityFrom: string | null;
+  activityUntil: string | null;
   onChange: (from: string | null, until: string | null) => void;
 };
 
@@ -48,8 +48,8 @@ const ModalContent = ({ onOpenChange, activityFrom, activityUntil, onChange }: P
 
   const defaultValues = useMemo(
     (): FormFields => ({
-      from: activityFrom ?? null,
-      until: activityUntil ?? null,
+      from: activityFrom,
+      until: activityUntil,
     }),
     [activityFrom, activityUntil],
   );

@@ -14,6 +14,7 @@ import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button
 import { ButtonSize } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { ListItemCount } from '../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
+import { Search } from '../../shared/defguard-ui/components/Layout/Search/Search';
 import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
@@ -49,6 +50,11 @@ const applyFilter = <T,>(val: T | undefined | null): T | undefined => {
   }
 };
 
+const applySearch = (val: string): string | undefined => {
+  if (val.length > 0) return val;
+  return undefined;
+};
+
 type Filters = 'event' | 'username' | 'module';
 
 const PageContent = () => {
@@ -59,6 +65,7 @@ const PageContent = () => {
     module: [],
     username: [],
   });
+  const [searchValue, setSearchValue] = useState<string>('');
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
   const [from, setForm] = useState<string | null>(null);
   const [until, setUntil] = useState<string | null>(null);
@@ -98,6 +105,7 @@ const PageContent = () => {
       activeFilters.username,
       from,
       until,
+      searchValue,
     ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
@@ -108,6 +116,7 @@ const PageContent = () => {
         username: applyFilterArray(activeFilters.username as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
+        search: applySearch(searchValue),
         from: applyFilter(from),
         until: applyFilter(until),
       }),
@@ -186,6 +195,13 @@ const PageContent = () => {
           <h2>All activity</h2>
           <ListItemCount shorten count={data?.pages[0].pagination.total_items ?? 0} />
           <div className="controls">
+            <Search
+              placeholder="Search"
+              initialValue={searchValue}
+              onDebounce={(search) => {
+                setSearchValue(search);
+              }}
+            />
             <Button
               size={ButtonSize.SMALL}
               text="Filters"
@@ -241,6 +257,8 @@ const PageContent = () => {
         }}
       />
       <ActivityTimeRangeModal
+        activityFrom={from}
+        activityUntil={until}
         isOpen={timeSelectionModalOpen}
         onOpenChange={setTimeSelectionModal}
         onChange={(from, until) => {

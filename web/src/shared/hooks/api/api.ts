@@ -1,4 +1,3 @@
-import qs from 'qs';
 import { Axios, AxiosResponse } from 'axios';
 
 import { getNetworkStatsFilterValue } from '../../../pages/overview/helpers/stats';

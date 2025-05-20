@@ -6,8 +6,6 @@ import { useInView } from 'react-intersection-observer';
 import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
-import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
-import { InteractionBox } from '../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
 import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
 import { AuditEvent, AuditLogSortKey } from '../../../shared/types';
@@ -94,12 +92,9 @@ export const ActivityList = ({
         <ListHeader
           activeKey={sortKey}
           headers={listHeaders}
-          selectAll={false}
-          onSelectAll={(val) => {
-            console.log('Select all', val);
-          }}
           sortDirection={sortDirection}
           onChange={onSortChange}
+          selectAll={false}
         />
         <div
           style={{
@@ -119,11 +114,6 @@ export const ActivityList = ({
                 data-index={virtualRow.index}
                 ref={virtualizer.measureElement}
               >
-                <div className="cell select-cell">
-                  <InteractionBox onClick={() => {}}>
-                    <CheckBox value={false} />
-                  </InteractionBox>
-                </div>
                 <div className="cell date">
                   <ListCellText
                     text={dayjs
