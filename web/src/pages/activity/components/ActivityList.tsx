@@ -126,7 +126,10 @@ export const ActivityList = ({
                 </div>
                 <div className="cell date">
                   <ListCellText
-                    text={dayjs.utc(activity.timestamp).format('YYYY-MM-DD HH:MM')}
+                    text={dayjs
+                      .utc(activity.timestamp)
+                      .local()
+                      .format('YYYY-MM-DD HH:MM')}
                   />
                 </div>
                 <div className="cell user">
