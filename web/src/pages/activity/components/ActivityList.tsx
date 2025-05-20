@@ -1,4 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import dayjs from 'dayjs';
 import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 
@@ -124,7 +125,9 @@ export const ActivityList = ({
                   </InteractionBox>
                 </div>
                 <div className="cell date">
-                  <ListCellText text={activity.timestamp} />
+                  <ListCellText
+                    text={dayjs.utc(activity.timestamp).format('YYYY-MM-DD HH:MM')}
+                  />
                 </div>
                 <div className="cell user">
                   <ListCellText text={activity.username} />

@@ -4,5 +4,6 @@ export type DateInputProps = {
   errorMessage?: string;
   disabled?: boolean;
   showTimeSelection?: boolean;
+  clearable?: boolean;
   onChange: (value: string | null) => void;
 };

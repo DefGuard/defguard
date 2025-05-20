@@ -1,7 +1,6 @@
 import './style.scss';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 
 import { useI18nContext } from '../../i18n/i18n-react';
@@ -10,6 +9,7 @@ import { PageLimiter } from '../../shared/components/Layout/PageLimiter/PageLimi
 import { FilterGroupsModal } from '../../shared/components/modals/FilterGroupsModal/FilterGroupsModal';
 import { FilterGroupsModalFilter } from '../../shared/components/modals/FilterGroupsModal/types';
 import { Button } from '../../shared/defguard-ui/components/Layout/Button/Button';
+import { ButtonSize } from '../../shared/defguard-ui/components/Layout/Button/types';
 import { Card } from '../../shared/defguard-ui/components/Layout/Card/Card';
 import { ListItemCount } from '../../shared/defguard-ui/components/Layout/ListItemCount/ListItemCount';
 import { ListSortDirection } from '../../shared/defguard-ui/components/Layout/VirtualizedList/types';
@@ -17,12 +17,15 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
 import { AuditLogSortKey } from '../../shared/types';
 import { ActivityList } from './components/ActivityList';
+import { ActivityTimeRangeModal } from './components/ActivityTimeRangeModal';
 import {
   AuditEventType,
   auditEventTypeValues,
   AuditModule,
   auditModuleValues,
 } from './types';
+import Skeleton from 'react-loading-skeleton';
+import { range } from 'lodash-es';
 
 export const ActivityPage = () => {
   return (
@@ -34,8 +37,14 @@ export const ActivityPage = () => {
   );
 };
 
-const applyFilter = <T,>(val: Array<T> | undefined): undefined | Array<T> => {
-  if (val && val.length > 0) {
+const applyFilterArray = <T,>(val: Array<T> | undefined | T): undefined | Array<T> => {
+  if (val && Array.isArray(val) && val.length > 0) {
+    return val;
+  }
+};
+
+const applyFilter = <T,>(val: T | undefined | null): T | undefined => {
+  if (isPresent(val)) {
     return val;
   }
 };
@@ -51,8 +60,9 @@ const PageContent = () => {
     username: [],
   });
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
-  const [from, setForm] = useState(dayjs.utc().toISOString());
-  const [until, setUntil] = useState(dayjs.utc().subtract(1, 'hour').toISOString());
+  const [from, setForm] = useState<string | null>(null);
+  const [until, setUntil] = useState<string | null>(null);
+  const [timeSelectionModalOpen, setTimeSelectionModal] = useState(false);
   const [sortKey, setSortKey] = useState<AuditLogSortKey>('timestamp');
   const [sortDirection, setSortDirection] = useState<ListSortDirection>(
     ListSortDirection.DESC,
@@ -75,6 +85,7 @@ const PageContent = () => {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    isLoading,
     // hasPreviousPage,
     // fetchPreviousPage,
   } = useInfiniteQuery({
@@ -82,22 +93,23 @@ const PageContent = () => {
       'audit_log',
       sortDirection,
       sortKey,
-      from,
       activeFilters.event,
       activeFilters.module,
       activeFilters.username,
+      from,
+      until,
     ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getAuditLog({
         page: pageParam,
-        from,
-        // until: until,
-        event: applyFilter(activeFilters.event as AuditEventType[]),
-        module: applyFilter(activeFilters.module as AuditModule[]),
-        username: applyFilter(activeFilters.username as string[]),
+        event: applyFilterArray(activeFilters.event as AuditEventType[]),
+        module: applyFilterArray(activeFilters.module as AuditModule[]),
+        username: applyFilterArray(activeFilters.username as string[]),
         sort_order: sortDirection,
         sort_by: sortKey,
+        from: applyFilter(from),
+        until: applyFilter(until),
       }),
     getNextPageParam: (lastPage) => lastPage?.pagination?.next_page,
     getPreviousPageParam: (page) => {
@@ -175,9 +187,17 @@ const PageContent = () => {
           <ListItemCount shorten count={data?.pages[0].pagination.total_items ?? 0} />
           <div className="controls">
             <Button
+              size={ButtonSize.SMALL}
               text="Filters"
               onClick={() => {
                 setFiltersModalOpen(true);
+              }}
+            />
+            <Button
+              size={ButtonSize.SMALL}
+              text="Time"
+              onClick={() => {
+                setTimeSelectionModal(true);
               }}
             />
           </div>
@@ -199,6 +219,13 @@ const PageContent = () => {
               }}
             />
           )}
+          {!isPresent(activityData) && isLoading && (
+            <div className="activity-list-skeleton">
+              {range(6).map((index) => (
+                <Skeleton key={index} />
+              ))}
+            </div>
+          )}
         </Card>
       </div>
       <FilterGroupsModal
@@ -211,6 +238,14 @@ const PageContent = () => {
         onSubmit={(state) => {
           setActiveFilters(state as Record<Filters, number[]>);
           setFiltersModalOpen(false);
+        }}
+      />
+      <ActivityTimeRangeModal
+        isOpen={timeSelectionModalOpen}
+        onOpenChange={setTimeSelectionModal}
+        onChange={(from, until) => {
+          setForm(from);
+          setUntil(until);
         }}
       />
     </>

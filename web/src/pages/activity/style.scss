@@ -55,6 +55,13 @@
     h2 {
       padding-right: 10px;
     }
+
+    .controls {
+      display: flex;
+      flex-flow: row;
+      column-gap: var(--spacing-xs);
+      margin-left: auto;
+    }
   }
 }
 
@@ -72,6 +79,7 @@
     height: 40px;
     width: unset;
     min-width: 100%;
+    padding-left: var(--spacing-xs);
 
     @include list-sizing();
   }
@@ -101,6 +109,12 @@
       max-width: 100%;
       @include list-sizing();
       height: 40px;
+      background-color: var(--surface-default-modal);
+      padding-left: var(--spacing-xs);
+
+      &:hover {
+        background-color: var(--surface-button);
+      }
 
       .cell {
         max-width: 100%;
@@ -112,5 +126,22 @@
         }
       }
     }
+  }
+}
+
+#activity-time-selection-modal-form {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-s);
+
+  & > * {
+    width: 100%;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    column-gap: var(--spacing-xs);
   }
 }

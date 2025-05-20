@@ -32,6 +32,36 @@
 }
 
 .date-input-container {
+  position: relative;
+
+  &.clearable {
+    & > .date-input {
+      padding: 8px 42px 8px 20px;
+    }
+
+    &:hover {
+      & > .interaction-box {
+        visibility: visible;
+      }
+    }
+  }
+
+  .interaction-box {
+    visibility: hidden;
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    &:hover {
+      svg path {
+        fill: var(--surface-alert-primary);
+      }
+    }
+  }
+
   .date-input {
     display: flex;
     flex-flow: row;
