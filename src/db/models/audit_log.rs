@@ -15,15 +15,32 @@ pub enum AuditModule {
     Enrollment,
 }
 
+/// Represents audit event type as it's stored in the DB
+///
+/// To make searching and exporting the type is stored as text and not a custom Postgres enum.
+/// Variant names are renamed to `snake_case` so `UserLogin` becomes `user_login` in the DB table.
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "text", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum EventType {
+    // user management
     UserLogin,
     UserLogout,
+    UserAdded,
+    UserRemoved,
+    UserModified,
+    // device management
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
+    // OpenID app management
+    OpenIdAppAdded,
+    OpenIdAppRemoved,
+    OpenIdAppModified,
+    // VPN location management
+    VpnLocationAdded,
+    VpnLocationRemoved,
+    VpnLocationModified,
 }
 
 #[derive(Model, FromRow)]
