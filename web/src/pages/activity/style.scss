@@ -21,6 +21,19 @@
       max-width: 350px;
     }
   }
+
+  .activity-list-skeleton {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+    max-height: 100%;
+    overflow: hidden;
+
+    .react-loading-skeleton {
+      height: 40px;
+    }
+  }
 }
 
 @mixin list-sizing() {
@@ -69,6 +82,10 @@
   padding: var(--spacing-s) 15px;
   width: 100%;
   max-width: 100%;
+
+  @include media-breakpoint-up(lg) {
+    min-height: min(600px, 75dvh);
+  }
 
   .list-headers {
     position: sticky;

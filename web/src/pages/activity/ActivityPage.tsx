@@ -1,7 +1,9 @@
 import './style.scss';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { range } from 'lodash-es';
 import { useMemo, useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 
 import { useI18nContext } from '../../i18n/i18n-react';
 import { PageContainer } from '../../shared/components/Layout/PageContainer/PageContainer';
@@ -24,8 +26,6 @@ import {
   AuditModule,
   auditModuleValues,
 } from './types';
-import Skeleton from 'react-loading-skeleton';
-import { range } from 'lodash-es';
 
 export const ActivityPage = () => {
   return (
@@ -221,7 +221,7 @@ const PageContent = () => {
           )}
           {!isPresent(activityData) && isLoading && (
             <div className="activity-list-skeleton">
-              {range(6).map((index) => (
+              {range(10).map((index) => (
                 <Skeleton key={index} />
               ))}
             </div>
