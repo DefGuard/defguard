@@ -271,7 +271,7 @@ fn compute_group_sync_changes(
                         debug!("Group {group:?} has members missing from Defguard, marking them for addition in Defguard: {missing_from_defguard:?}");
                         add_defguard.insert(group.clone(), missing_from_defguard);
                     }
-                };
+                }
             } else {
                 debug!("Group {group:?} has no members missing from Defguard");
             }
@@ -286,7 +286,7 @@ fn compute_group_sync_changes(
                         debug!("Group {group:?} has members missing from LDAP, marking them for deletion in Defguard: {missing_from_ldap:?}");
                         delete_defguard.insert(group.clone(), missing_from_ldap);
                     }
-                };
+                }
             } else {
                 debug!("Group {group:?} has no members missing from LDAP");
             }
@@ -300,7 +300,7 @@ fn compute_group_sync_changes(
                     debug!("Group {group:?} is missing from LDAP, marking all its member for deletion from Defguard due to LDAP authority");
                     delete_defguard.insert(group.clone(), members);
                 }
-            };
+            }
         }
     }
 
@@ -315,7 +315,7 @@ fn compute_group_sync_changes(
                     debug!("Group {group:?} is missing from Defguard, marking all its member for addition to Defguard due to LDAP authority");
                     add_defguard.insert(group, members);
                 }
-            };
+            }
         }
     }
 
@@ -327,7 +327,7 @@ fn compute_group_sync_changes(
     };
 
     debug!("Completed computing group sync changes");
-    trace!("Group sync changes: {:?}", sync_changes);
+    trace!("Group sync changes: {sync_changes:?}");
 
     sync_changes
 }
@@ -485,7 +485,7 @@ impl super::LDAPConnection {
                     warn!("Failed to convert group entry to name during user synchronization: {err}. This group will be skipped");
                     continue;
                 }
-            };
+            }
         }
 
         debug!("User {user} is a member of the following groups in Defguard: {defguard_groups:?}");
@@ -542,7 +542,7 @@ impl super::LDAPConnection {
 
         debug!("The following groups were defined for sync: {:?}, only Defguard users belonging to these groups will be synced", sync_groups);
         let mut sync_group_members = HashSet::new();
-        for sync_group in sync_groups.iter() {
+        for sync_group in &sync_groups {
             let members = sync_group.members(pool).await?;
             sync_group_members.extend(members.into_iter());
         }
@@ -707,7 +707,6 @@ impl super::LDAPConnection {
                         "Cannot delete last admin user from Defguard. User {} won't be deleted.",
                         user.username
                     );
-                    continue;
                 } else {
                     admin_count -= 1;
                     debug!("Deleting admin user {} from Defguard", user.username);

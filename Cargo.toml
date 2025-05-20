@@ -128,6 +128,9 @@ openid = ["dep:openidconnect"]
 worker = []
 wireguard = []
 
+[profile.dev.package."model_derive"]
+opt-level = 2
+
 [profile.release]
 codegen-units = 1
 panic = "abort"

@@ -216,7 +216,7 @@ pub(crate) async fn user_from_claims(
                 .collect::<Vec<_>>()
                 .join(", ")
         )));
-    };
+    }
     if audiences.len() > 1 {
         warn!(
             "OpenID claims: 'aud' should not contain these additional fields {}",
@@ -513,7 +513,7 @@ pub(crate) async fn auth_callback(
     // Verify the CSRF token
     if payload.state.secret() != &cookie_csrf {
         return Err(WebError::Authorization("CSRF token mismatch".into()));
-    };
+    }
 
     private_cookies = private_cookies
         .remove(Cookie::from(NONCE_COOKIE_NAME))

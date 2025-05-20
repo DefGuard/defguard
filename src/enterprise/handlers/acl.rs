@@ -209,7 +209,7 @@ pub async fn list_acl_rules(
     let mut conn = appstate.pool.acquire().await?;
     let rules = AclRule::all(&mut *conn).await?;
     let mut api_rules: Vec<ApiAclRule> = Vec::with_capacity(rules.len());
-    for r in rules.iter() {
+    for r in &rules {
         // TODO: may require optimisation wrt. sql queries
         let info = r.to_info(&mut conn).await.map_err(|err| {
             error!("Error retrieving ACL rule {r:?}: {err}");
@@ -331,7 +331,7 @@ pub async fn list_acl_aliases(
     debug!("User {} listing ACL aliases", session.user.username);
     let aliases = AclAlias::all(&appstate.pool).await?;
     let mut api_aliases: Vec<ApiAclAlias> = Vec::with_capacity(aliases.len());
-    for a in aliases.iter() {
+    for a in &aliases {
         // TODO: may require optimisation wrt. sql queries
         let info = a.to_info(&appstate.pool).await.map_err(|err| {
             error!("Error retrieving ACL alias {a:?}: {err}");
