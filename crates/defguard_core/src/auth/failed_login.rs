@@ -96,7 +96,7 @@ impl FailedLoginMap {
                     failed_login.increment();
                 }
             }
-        };
+        }
     }
 
     // Check if user can proceed with login process or should be locked out

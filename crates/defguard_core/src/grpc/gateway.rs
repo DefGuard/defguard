@@ -282,7 +282,7 @@ impl GatewayUpdatesHandler {
                                 device.device.name, self.network.name
                             );
                                 continue;
-                            };
+                            }
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,
@@ -316,7 +316,7 @@ impl GatewayUpdatesHandler {
                                 device.device.name, self.network.name
                             );
                                 continue;
-                            };
+                            }
                             self.send_peer_update(
                                 Peer {
                                     pubkey: device.device.wireguard_pubkey,

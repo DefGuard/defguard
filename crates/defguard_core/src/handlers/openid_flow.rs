@@ -80,7 +80,7 @@ pub async fn discovery_keys() -> ApiResult {
     let mut keys = Vec::new();
     if let Some(openid_key) = server_config().openid_key() {
         keys.push(openid_key.as_verification_key());
-    };
+    }
 
     Ok(ApiResponse {
         json: json!(CoreJsonWebKeySet::new(keys)),
@@ -320,7 +320,7 @@ async fn generate_auth_code_redirect(
         query_pairs.append_pair("code", auth_code.code.as_str());
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
-        };
+        }
     };
 
     Ok(url.to_string())
@@ -507,7 +507,7 @@ pub async fn authorization(
         query_pairs.append_pair("error", error.as_ref());
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
-        };
+        }
     };
 
     Ok(redirect_to(url, private_cookies))
@@ -604,7 +604,7 @@ pub async fn secure_authorization(
         query_pairs.append_pair("error", error.as_ref());
         if let Some(state) = data.state {
             query_pairs.append_pair("state", &state);
-        };
+        }
     };
 
     Ok(redirect_to(url, private_cookies))

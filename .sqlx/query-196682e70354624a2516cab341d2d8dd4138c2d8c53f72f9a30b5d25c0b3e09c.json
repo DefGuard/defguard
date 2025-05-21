@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO aclruledestinationrange (rule_id, \"start\", \"end\") VALUES ($1, $2, $3) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Inet",
+        "Inet"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "196682e70354624a2516cab341d2d8dd4138c2d8c53f72f9a30b5d25c0b3e09c"
+}

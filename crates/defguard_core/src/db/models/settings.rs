@@ -166,7 +166,7 @@ impl Settings {
         if self.gateway_disconnect_notifications_enabled && !self.smtp_configured() {
             warn!("Cannot enable gateway disconnect notifications. SMTP is not configured.");
             return Err(SettingsValidationError::CannotEnableGatewayNotifications);
-        };
+        }
 
         Ok(())
     }

@@ -116,7 +116,7 @@ fn edit_rule_data_into_api_response(
 }
 
 fn edit_alias_data_into_api_response(
-    data: &EditAclAlias,
+    data: EditAclAlias,
     id: Id,
     parent_id: Option<Id>,
     state: AliasState,
@@ -126,11 +126,11 @@ fn edit_alias_data_into_api_response(
         id,
         parent_id,
         state,
-        name: data.name.clone(),
-        kind: data.kind.clone(),
-        destination: data.destination.clone(),
-        ports: data.ports.clone(),
-        protocols: data.protocols.clone(),
+        name: data.name,
+        kind: data.kind,
+        destination: data.destination,
+        ports: data.ports,
+        protocols: data.protocols,
         rules,
     }
 }
@@ -242,7 +242,7 @@ async fn test_alias_crud(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_alias: ApiAclAlias = response.json().await;
     let expected_response = edit_alias_data_into_api_response(
-        &alias,
+        alias,
         response_alias.id,
         None,
         AliasState::Applied,
@@ -354,7 +354,7 @@ async fn test_empty_strings(_: PgPoolOptions, options: PgConnectOptions) {
     assert_eq!(response.status(), StatusCode::CREATED);
     let response_alias: ApiAclAlias = response.json().await;
     let expected_response = edit_alias_data_into_api_response(
-        &alias,
+        alias,
         response_alias.id,
         None,
         AliasState::Applied,

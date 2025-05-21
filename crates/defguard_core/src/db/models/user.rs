@@ -319,7 +319,7 @@ impl User<Id> {
                     )
                     .execute(pool)
                     .await?;
-                };
+                }
 
                 if !factors_present && self.mfa_method != MFAMethod::None {
                     debug!(
@@ -353,7 +353,7 @@ impl User<Id> {
                     }
                 }
             }
-        };
+        }
         Ok(())
     }
 
