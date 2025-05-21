@@ -194,8 +194,6 @@ pub async fn generate_firewall_rules_from_acls(
         for alias in destination_aliases {
             debug!("Processing ACL alias: {alias:?}");
 
-            // alias.simplify()
-
             // fetch destination ranges for a given alias
             let alias_destination_ranges = alias.get_destination_ranges(&mut *conn).await?;
 
