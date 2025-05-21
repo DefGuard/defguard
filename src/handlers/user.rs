@@ -337,7 +337,7 @@ pub async fn add_user(
     info!("User {} added user {username}", session.user.username);
     if !user_info.enrolled {
         warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
-    };
+    }
     Ok(ApiResponse {
         json: json!(&user_info),
         status: StatusCode::CREATED,
@@ -574,7 +574,7 @@ pub async fn username_available(
             json: json!({}),
             status: StatusCode::BAD_REQUEST,
         });
-    };
+    }
     let status = match User::find_by_username(&appstate.pool, &data.username).await? {
         Some(_) => {
             debug!("Username {} is not available", data.username);
@@ -707,7 +707,7 @@ pub async fn modify_user(
                 &appstate.pool,
             )
             .await;
-        };
+        }
 
         if !group_diff.removed.is_empty() {
             ldap_remove_user_from_groups(

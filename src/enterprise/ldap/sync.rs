@@ -482,8 +482,10 @@ impl super::LDAPConnection {
             match self.group_entry_to_name(group_entry) {
                 Ok(group_name) => ldap_groups.push(group_name),
                 Err(err) => {
-                    warn!("Failed to convert group entry to name during user synchronization: {err}. This group will be skipped");
-                    continue;
+                    warn!(
+                        "Failed to convert group entry to name during user synchronization: \
+                        {err}. This group will be skipped"
+                    );
                 }
             }
         }
@@ -636,14 +638,14 @@ impl super::LDAPConnection {
                 if member.is_admin(&mut *transaction).await? {
                     if admin_count == 1 {
                         debug!(
-                            "Cannot remove last admin user {} from Defguard. User won't be removed from group {}.",
-                            member.username, groupname
+                            "Cannot remove last admin user {} from Defguard. User won't be removed \
+                            from group {groupname}.",
+                            member.username
                         );
-                        continue;
                     } else {
                         debug!(
-                            "Removing admin user {} from group {}",
-                            member.username, groupname
+                            "Removing admin user {} from group {groupname}",
+                            member.username
                         );
                         admin_count -= 1;
                         member.remove_from_group(&mut *transaction, &group).await?;
@@ -669,8 +671,9 @@ impl super::LDAPConnection {
                 } else {
                     warn!(
                         "LDAP user {} not found in Defguard, despite completing user sync earlier. \
-                        Your LDAP may have dangling group members. Skipping adding user to group {}",
-                        member.username, groupname
+                        Your LDAP may have dangling group members. Skipping adding user to group \
+                        {groupname}",
+                        member.username
                     );
                 }
             }
