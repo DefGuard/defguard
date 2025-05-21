@@ -68,7 +68,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 let token = init_vpn_location(&pool, args).await?;
                 println!("{token}");
             }
-        };
+        }
 
         // return early
         return Ok(());
@@ -116,10 +116,13 @@ async fn main() -> Result<(), anyhow::Error> {
             set_cached_license(license);
         }
         Err(err) => {
-            warn!("There was an error while loading the license, error: {err}. The enterprise features will be disabled.");
+            warn!(
+                "There was an error while loading the license, error: {err}. The enterprise \
+                features will be disabled."
+            );
             set_cached_license(None);
         }
-    };
+    }
 
     // run services
     tokio::select! {

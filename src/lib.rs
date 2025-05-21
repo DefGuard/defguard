@@ -814,7 +814,7 @@ pub async fn init_vpn_location(
         )?
         .save(pool)
         .await?
-    };
+    }
 
     // generate gateway token
     let token = Claims::new(

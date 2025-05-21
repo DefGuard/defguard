@@ -125,7 +125,7 @@ pub async fn patch_settings(
     if let Some(license_key) = &data.license {
         update_cached_license(license_key.as_deref())?;
         debug!("Saving the new license key to the database as part of the settings patch");
-    };
+    }
 
     if let Some(ldap_enabled) = data.ldap_enabled {
         if !ldap_enabled {
