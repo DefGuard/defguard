@@ -677,7 +677,7 @@ pub async fn modify_user(
             );
             user.sync_allowed_devices(&mut transaction, &appstate.wireguard_tx)
                 .await?;
-        };
+        }
         user_info.into_user_all_fields(&mut user)?;
     } else {
         user_info.into_user_safe_fields(&mut user)?;

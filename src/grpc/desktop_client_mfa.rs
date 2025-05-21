@@ -168,7 +168,7 @@ impl ClientMfaServer {
                     Status::internal("unexpected error")
                 })?;
             }
-        };
+        }
 
         // generate auth token
         let token = Self::generate_token(&request.pubkey)?;
@@ -227,7 +227,7 @@ impl ClientMfaServer {
                     return Err(Status::unauthenticated("unauthorized"));
                 }
             }
-        };
+        }
 
         // begin transaction
         let mut transaction = self.pool.begin().await.map_err(|_| {

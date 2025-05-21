@@ -224,7 +224,7 @@ impl GatewayMap {
             // no map for a given network exists yet
             error!("Network {network_id} not found in gateway map");
             return Err(GatewayMapError::NetworkNotFound(network_id));
-        };
+        }
         info!("Gateway {hostname} connected in network {network_id}");
         Ok(())
     }
@@ -245,8 +245,8 @@ impl GatewayMap {
                 debug!("Gateway {hostname} found in gateway map, current state: {state:?}");
                 info!("Gateway {hostname} disconnected in network {network_id}");
                 return Ok(());
-            };
-        };
+            }
+        }
         let err = GatewayMapError::NotFound(network_id, hostname);
         error!("Gateway disconnect failed: {err}");
         Err(err)
@@ -358,7 +358,7 @@ impl GatewayState {
                 60 * settings.gateway_disconnect_notifications_inactivity_threshold as u64,
             );
             self.send_disconnect_notification(pool, delay);
-        };
+        }
     }
 
     /// Send gateway disconnected notification
@@ -414,7 +414,7 @@ impl GatewayState {
         let settings = Settings::get_current_settings();
         if settings.gateway_disconnect_notifications_reconnect_notification_enabled {
             self.send_reconnect_notification(pool);
-        };
+        }
     }
 
     /// Send gateway disconnected notification
