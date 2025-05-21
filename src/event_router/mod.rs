@@ -119,31 +119,43 @@ impl EventRouter {
             ApiEvent::UserLogout { context } => {
                 self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
             }
-            ApiEvent::DeviceAdded {
+            ApiEvent::UserDeviceAdded {
                 context,
                 device_name,
             } => {
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceAdded { device_name }),
+                    LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded {
+                        device_name,
+                        device_id: todo!(),
+                        user: todo!(),
+                    }),
                 )?;
             }
-            ApiEvent::DeviceRemoved {
+            ApiEvent::UserDeviceRemoved {
                 context,
                 device_name,
             } => {
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceRemoved { device_name }),
+                    LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved {
+                        device_name,
+                        device_id: todo!(),
+                        user: todo!(),
+                    }),
                 )?;
             }
-            ApiEvent::DeviceModified {
+            ApiEvent::UserDeviceModified {
                 context,
                 device_name,
             } => {
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceModified { device_name }),
+                    LoggerEvent::Defguard(DefguardEvent::UserDeviceModified {
+                        device_name,
+                        device_id: todo!(),
+                        user: todo!(),
+                    }),
                 )?;
             }
         }

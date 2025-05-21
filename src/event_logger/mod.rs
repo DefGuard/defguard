@@ -59,27 +59,129 @@ pub async fn run_event_logger(
                         let (event_type, metadata) = match event {
                             DefguardEvent::UserLogin => (EventType::UserLogin, None),
                             DefguardEvent::UserLogout => (EventType::UserLogout, None),
-                            DefguardEvent::DeviceAdded { device_name } => (
+                            DefguardEvent::UserDeviceAdded {
+                                device_id,
+                                device_name,
+                                user,
+                            } => (
                                 EventType::DeviceAdded,
                                 serde_json::to_value(DeviceAddedMetadata {
                                     device_names: vec![device_name],
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::DeviceRemoved { device_name } => (
+                            DefguardEvent::UserDeviceRemoved {
+                                device_id,
+                                device_name,
+                                user,
+                            } => (
                                 EventType::DeviceRemoved,
                                 serde_json::to_value(DeviceRemovedMetadata {
                                     device_names: vec![device_name],
                                 })
                                 .ok(),
                             ),
-                            DefguardEvent::DeviceModified { device_name } => (
+                            DefguardEvent::UserDeviceModified {
+                                device_id,
+                                device_name,
+                                user,
+                            } => (
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {
                                     device_names: vec![device_name],
                                 })
                                 .ok(),
                             ),
+                            DefguardEvent::RecoveryCodeUsed => todo!(),
+                            DefguardEvent::PasswordChanged => todo!(),
+                            DefguardEvent::MfaFailed => todo!(),
+                            DefguardEvent::MfaDisabled => todo!(),
+                            DefguardEvent::MfaDefaultChanged { mfa_method } => todo!(),
+                            DefguardEvent::MfaTotpEnabled => todo!(),
+                            DefguardEvent::MfaTotpDisabled => todo!(),
+                            DefguardEvent::MfaEmailEnabled => todo!(),
+                            DefguardEvent::MfaEmailDisabled => todo!(),
+                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => todo!(),
+                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => todo!(),
+                            DefguardEvent::AuthenticationKeyAdded {
+                                key_id,
+                                key_name,
+                                key_type,
+                            } => todo!(),
+                            DefguardEvent::AuthenticationKeyRemoved {
+                                key_id,
+                                key_name,
+                                key_type,
+                            } => todo!(),
+                            DefguardEvent::AuthenticationKeyRenamed {
+                                key_id,
+                                key_name,
+                                key_type,
+                            } => todo!(),
+                            DefguardEvent::ApiTokenAdded {
+                                token_id,
+                                token_name,
+                            } => todo!(),
+                            DefguardEvent::ApiTokenRemoved {
+                                token_id,
+                                token_name,
+                            } => todo!(),
+                            DefguardEvent::ApiTokenRenamed {
+                                token_id,
+                                token_name,
+                            } => todo!(),
+                            DefguardEvent::UserAdded {
+                                username,
+                                enrollment,
+                            } => todo!(),
+                            DefguardEvent::UserRemoved { username } => todo!(),
+                            DefguardEvent::UserModified { username } => todo!(),
+                            DefguardEvent::UserDisabled { username } => todo!(),
+                            DefguardEvent::NetworkDeviceAdded {
+                                device_id,
+                                device_name,
+                                location_id,
+                                location,
+                            } => todo!(),
+                            DefguardEvent::NetworkDeviceRemoved {
+                                device_id,
+                                device_name,
+                                location_id,
+                                location,
+                            } => todo!(),
+                            DefguardEvent::NetworkDeviceModified {
+                                device_id,
+                                device_name,
+                                location_id,
+                                location,
+                            } => todo!(),
+                            DefguardEvent::VpnLocationAdded {
+                                location_id,
+                                location_name,
+                            } => todo!(),
+                            DefguardEvent::VpnLocationRemoved {
+                                location_id,
+                                location_name,
+                            } => todo!(),
+                            DefguardEvent::VpnLocationModified {
+                                location_id,
+                                location_name,
+                            } => todo!(),
+                            DefguardEvent::OpenIdAppAdded { app_id, app_name } => todo!(),
+                            DefguardEvent::OpenIdAppRemoved { app_id, app_name } => todo!(),
+                            DefguardEvent::OpenIdAppModified { app_id, app_name } => todo!(),
+                            DefguardEvent::OpenIdAppDisabled { app_id, app_name } => todo!(),
+                            DefguardEvent::OpenIdProviderAdded {
+                                provider_id,
+                                provider_name,
+                            } => todo!(),
+                            DefguardEvent::OpenIdProviderRemoved {
+                                provider_id,
+                                provider_name,
+                            } => todo!(),
+                            DefguardEvent::SettingsUpdated => todo!(),
+                            DefguardEvent::SettingsUpdatedPartial => todo!(),
+                            DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
                         };
                         (module, event_type, metadata)
                     }

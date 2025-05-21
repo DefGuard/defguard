@@ -772,7 +772,7 @@ pub(crate) async fn add_device(
 
     update_counts(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent::DeviceAdded {
+    appstate.send_event(ApiEvent::UserDeviceAdded {
         context: AuditLogContext::new(
             user.id,
             user.username.clone(),
@@ -887,7 +887,7 @@ pub(crate) async fn modify_device(
     info!("User {} updated device {device_id}", session.user.username);
 
     let user = session.user;
-    appstate.send_event(ApiEvent::DeviceModified {
+    appstate.send_event(ApiEvent::UserDeviceModified {
         context: AuditLogContext::new(
             user.id,
             user.username.clone(),
@@ -1024,7 +1024,7 @@ pub(crate) async fn delete_device(
     info!("User {username} deleted device {device_id}");
 
     let user = session.user;
-    appstate.send_event(ApiEvent::DeviceRemoved {
+    appstate.send_event(ApiEvent::UserDeviceRemoved {
         context: AuditLogContext::new(
             user.id,
             user.username.clone(),

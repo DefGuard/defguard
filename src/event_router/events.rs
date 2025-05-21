@@ -59,15 +59,15 @@ pub enum ApiEvent {
     UserLogout {
         context: AuditLogContext,
     },
-    DeviceAdded {
+    UserDeviceAdded {
         context: AuditLogContext,
         device_name: String,
     },
-    DeviceRemoved {
+    UserDeviceRemoved {
         context: AuditLogContext,
         device_name: String,
     },
-    DeviceModified {
+    UserDeviceModified {
         context: AuditLogContext,
         device_name: String,
     },
