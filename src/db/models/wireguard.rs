@@ -597,7 +597,9 @@ impl WireguardNetwork<Id> {
     }
 
     /// Refresh network IPs for all relevant devices
+    ///
     /// If the list of allowed devices has changed add/remove devices accordingly
+    ///
     /// If the network address has changed readdress existing devices
     pub(crate) async fn sync_allowed_devices(
         &self,
