@@ -67,9 +67,8 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     if let Err(err) = ldap_connection.sync(pool, is_ldap_desynced()).await {
         set_ldap_sync_status(SyncStatus::OutOfSync, pool).await?;
         return Err(err);
-    } else {
-        set_ldap_sync_status(SyncStatus::InSync, pool).await?;
-    };
+    }
+    set_ldap_sync_status(SyncStatus::InSync, pool).await?;
 
     let _ = update_counts(pool).await;
 
@@ -342,7 +341,6 @@ impl LDAPConnection {
                 );
                 self.sync_user_data(user, pool).await?;
                 debug!("User {user} data synchronized");
-                continue;
             }
         }
 
@@ -719,7 +717,7 @@ impl LDAPConnection {
 
             self.modify(&user_dn, &user_dn, mods).await?;
             info!("Password set for user {user}");
-        };
+        }
 
         Ok(())
     }

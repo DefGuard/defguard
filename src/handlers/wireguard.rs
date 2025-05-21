@@ -121,7 +121,7 @@ pub struct ImportedNetworkData {
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn create_network(
@@ -196,7 +196,7 @@ async fn find_network(id: Id, pool: &PgPool) -> Result<WireguardNetwork<Id>, Web
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn modify_network(
@@ -267,7 +267,7 @@ pub(crate) async fn modify_network(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn delete_network(
@@ -312,7 +312,7 @@ pub(crate) async fn delete_network(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn list_networks(
@@ -359,7 +359,7 @@ pub(crate) async fn list_networks(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn network_details(
@@ -627,7 +627,7 @@ pub struct AddDeviceResult {
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn add_device(
@@ -804,7 +804,7 @@ pub(crate) async fn add_device(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn modify_device(
@@ -894,7 +894,7 @@ pub(crate) async fn modify_device(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn get_device(
@@ -931,7 +931,7 @@ pub(crate) async fn get_device(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn delete_device(
@@ -1008,7 +1008,7 @@ pub(crate) async fn delete_device(
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppState>) -> ApiResult {
@@ -1049,7 +1049,7 @@ pub(crate) async fn list_devices(_role: AdminRole, State(appstate): State<AppSta
     ),
     security(
         ("cookie" = []),
-        ("api_token" = []) 
+        ("api_token" = [])
     )
 )]
 pub(crate) async fn list_user_devices(
@@ -1064,7 +1064,7 @@ pub(crate) async fn list_user_devices(
             session.user.username
         );
         return Err(WebError::Forbidden("Admin access required".into()));
-    };
+    }
     debug!("Listing devices for user: {username}");
     let devices = Device::all_for_username(&appstate.pool, &username).await?;
     info!("Listed {} devices for user: {username}", devices.len());

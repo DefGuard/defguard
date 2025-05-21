@@ -52,7 +52,7 @@ pub async fn create_job(
             return Err(WebError::Forbidden(
                 "Cannot schedule jobs for other users.".into(),
             ));
-        };
+        }
 
         let mut state = worker_state.lock().unwrap();
         debug!("Creating job");

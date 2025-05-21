@@ -165,7 +165,7 @@ where
                     Ok(None) => Err(WebError::Authorization("Invalid API token".into())),
                     Err(err) => Err(err.into()),
                 };
-            };
+            }
         }
 
         let Ok(cookies) = CookieJar::from_request_parts(parts, state).await;

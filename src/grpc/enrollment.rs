@@ -118,7 +118,7 @@ impl EnrollmentServer {
                     user.username
                 );
                 return Err(Status::permission_denied("user is disabled"));
-            };
+            }
             info!(
                 "User {}({:?}) is active, proceeding with enrollment",
                 user.username, user.id
@@ -427,7 +427,7 @@ impl EnrollmentServer {
                 device.name
             );
             return Err(Status::invalid_argument("invalid key"));
-        };
+        }
         info!(
             "Pubkey {} is unique for device creation process for user {}({:?}).",
             request.pubkey, user.username, user.id

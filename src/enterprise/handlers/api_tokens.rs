@@ -45,7 +45,7 @@ pub async fn add_api_token(
         return Err(WebError::Forbidden(
             "Cannot create API token for non-admin user".into(),
         ));
-    };
+    }
 
     // TODO: check if the name is already used
 
