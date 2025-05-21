@@ -138,40 +138,52 @@ pub async fn generate_firewall_rules_from_acls(
         protocols.sort_unstable();
         protocols.dedup();
 
-        let comment = format!("ACL {} - {}", acl.id, acl.name);
-        if has_ipv4_addresses {
-            // create IPv4 rules
-            let ipv4_rules = create_rules(
-                acl.id,
-                IpVersion::Ipv4,
-                &ipv4_source_addrs,
-                &dest_addrs_v4,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            if let Some(rule) = ipv4_rules.0 {
-                allow_rules.push(rule);
+        // skip creating default firewall rules if given ACL includes only destination aliases and no manual destination config
+        // at this point component aliases have been added to the manual config so they don't need to be handled separately
+        let has_no_manual_destination = dest_addrs_v4.is_empty()
+            && dest_addrs_v6.is_empty()
+            && destination_ports.is_empty()
+            && protocols.is_empty();
+        let has_destination_aliases = !destination_aliases.is_empty();
+        let is_destination_alias_only_rule = has_destination_aliases && has_no_manual_destination;
+
+        if !is_destination_alias_only_rule {
+            let comment = format!("ACL {} - {}", acl.id, acl.name);
+            if has_ipv4_addresses {
+                // create IPv4 rules
+                let ipv4_rules = create_rules(
+                    acl.id,
+                    IpVersion::Ipv4,
+                    &ipv4_source_addrs,
+                    &dest_addrs_v4,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                if let Some(rule) = ipv4_rules.0 {
+                    allow_rules.push(rule)
+                }
+                deny_rules.push(ipv4_rules.1);
             }
-            deny_rules.push(ipv4_rules.1);
+
+            if has_ipv6_addresses {
+                // create IPv6 rules
+                let ipv6_rules = create_rules(
+                    acl.id,
+                    IpVersion::Ipv6,
+                    &ipv6_source_addrs,
+                    &dest_addrs_v6,
+                    &destination_ports,
+                    &protocols,
+                    &comment,
+                );
+                if let Some(rule) = ipv6_rules.0 {
+                    allow_rules.push(rule)
+                }
+                deny_rules.push(ipv6_rules.1);
+            }
         }
 
-        if has_ipv6_addresses {
-            // create IPv6 rules
-            let ipv6_rules = create_rules(
-                acl.id,
-                IpVersion::Ipv6,
-                &ipv6_source_addrs,
-                &dest_addrs_v6,
-                &destination_ports,
-                &protocols,
-                &comment,
-            );
-            if let Some(rule) = ipv6_rules.0 {
-                allow_rules.push(rule);
-            }
-            deny_rules.push(ipv6_rules.1);
-        }
         // process destination aliases by creating a dedicated set of rules for each of them
         if !destination_aliases.is_empty() {
             debug!(

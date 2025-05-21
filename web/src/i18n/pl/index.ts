@@ -958,7 +958,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       support: 'Wsparcie',
       groups: 'Grupy',
     },
-    copyright: 'Copyright ©2023-2024',
+    copyright: 'Copyright ©2023-2025',
     version: {
       open: 'Wersja aplikacji: {version}',
       closed: 'v{version}',

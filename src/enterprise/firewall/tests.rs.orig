@@ -19,27 +19,19 @@ use crate::{
     },
     enterprise::{
         db::models::acl::{
-            AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice, AclRuleGroup,
-            AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange, RuleState,
+            AclAlias, AclRule, AclRuleAlias, AclRuleDestinationRange, AclRuleDevice,
+            AclRuleGroup, AclRuleInfo, AclRuleNetwork, AclRuleUser, AliasKind, PortRange,
+            RuleState,
         },
-        firewall::{get_source_addrs, get_source_network_devices},
+        firewall::{
+            get_source_addrs, get_source_network_devices, ip_to_range, next_ip, previous_ip,
+        },
     },
     grpc::proto::enterprise::firewall::{
         ip_address::Address, port::Port as PortInner, FirewallPolicy, IpAddress, IpRange,
         IpVersion, Port, PortRange as PortRangeProto, Protocol,
     },
 };
-
-impl Default for AclRuleDestinationRange<Id> {
-    fn default() -> Self {
-        Self {
-            id: Id::default(),
-            rule_id: Id::default(),
-            start: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-            end: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-        }
-    }
-}
 
 fn random_user_with_id<R: Rng>(rng: &mut R, id: Id) -> User<Id> {
     let mut user: User<Id> = rng.gen();
@@ -67,7 +59,7 @@ fn test_get_relevant_users() {
     let allowed_users = vec![user_1.clone(), user_2.clone(), user_4.clone()];
     let denied_users = vec![user_3.clone(), user_4, user_5.clone()];
 
-    let users = get_source_users(allowed_users, &denied_users);
+    let users = get_source_users(allowed_users, denied_users);
     assert_eq!(users, vec![user_1, user_2]);
 }
 
@@ -89,7 +81,7 @@ fn test_get_relevant_network_devices() {
     ];
     let denied_devices = vec![device_2.clone(), device_4, device_5.clone()];
 
-    let devices = get_source_network_devices(allowed_devices, &denied_devices);
+    let devices = get_source_network_devices(allowed_devices, denied_devices);
     assert_eq!(devices, vec![device_1, device_3]);
 }
 
@@ -116,7 +108,7 @@ fn test_process_source_addrs_v4() {
     // Should merge consecutive IPs into ranges and keep separate non-consecutive ranges
     assert_eq!(
         source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.1".to_string(),
@@ -133,7 +125,7 @@ fn test_process_source_addrs_v4() {
     );
 
     // Test with empty input
-    let empty_addrs = get_source_addrs(Vec::new(), Vec::new(), IpVersion::Ipv4);
+    let empty_addrs = get_source_addrs(vec![], vec![], IpVersion::Ipv4);
     assert!(empty_addrs.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
@@ -168,7 +160,7 @@ fn test_process_source_addrs_v6() {
     // Should merge consecutive IPs into ranges and keep separate non-consecutive ranges
     assert_eq!(
         source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "2001:db8::1".to_string(),
@@ -185,7 +177,7 @@ fn test_process_source_addrs_v6() {
     );
 
     // Test with empty input
-    let empty_addrs = get_source_addrs(Vec::new(), Vec::new(), IpVersion::Ipv6);
+    let empty_addrs = get_source_addrs(vec![], vec![], IpVersion::Ipv6);
     assert!(empty_addrs.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
@@ -198,7 +190,7 @@ fn test_process_source_addrs_v6() {
 }
 
 #[test]
-fn test_process_destination_addrs_v4() {
+fn test_process_dest_addrs_v4() {
     // Test data with mixed IPv4 and IPv6 networks
     let destination_ips = vec![
         "10.0.1.0/24".parse().unwrap(),
@@ -220,19 +212,16 @@ fn test_process_destination_addrs_v4() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
+    let destination_addrs = process_destination_addrs(destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.0,
-        [
+        vec![
             IpAddress {
-                address: Some(Address::IpSubnet("10.0.1.0/24".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("10.0.2.0/24".to_string())),
-            },
-            IpAddress {
-                address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+                address: Some(Address::IpRange(IpRange {
+                    start: "10.0.1.0".to_string(),
+                    end: "10.0.2.255".to_string(),
+                })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
@@ -240,20 +229,26 @@ fn test_process_destination_addrs_v4() {
                     end: "10.0.3.100".to_string(),
                 })),
             },
+            IpAddress {
+                address: Some(Address::IpRange(IpRange {
+                    start: "192.168.1.0".to_string(),
+                    end: "192.168.1.255".to_string(),
+                })),
+            },
         ]
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], Vec::new());
+    let empty_addrs = process_destination_addrs(Vec::new(), Vec::new());
     assert!(empty_addrs.0.is_empty());
 
     // Test with only IPv6 addresses - should return empty result for IPv4
-    let ipv6_only = process_destination_addrs(&["2001:db8::/64".parse().unwrap()], Vec::new());
+    let ipv6_only = process_destination_addrs(vec!["2001:db8::/64".parse().unwrap()], vec![]);
     assert!(ipv6_only.0.is_empty());
 }
 
 #[test]
-fn test_process_destination_addrs_v6() {
+fn test_process_dest_addrs_v6() {
     // Test data with mixed IPv4 and IPv6 networks
     let destination_ips = vec![
         "2001:db8:1::/64".parse().unwrap(),
@@ -275,19 +270,28 @@ fn test_process_destination_addrs_v6() {
         },
     ];
 
-    let destination_addrs = process_destination_addrs(&destination_ips, destination_ranges);
+    let destination_addrs = process_destination_addrs(destination_ips, destination_ranges);
 
     assert_eq!(
         destination_addrs.1,
-        [
+        vec![
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:1::/64".to_string())),
+                address: Some(Address::IpRange(IpRange {
+                    start: "2001:db8:1::".to_string(),
+                    end: "2001:db8:1:0:ffff:ffff:ffff:ffff".to_string(),
+                })),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:2::/64".to_string())),
+                address: Some(Address::IpRange(IpRange {
+                    start: "2001:db8:2::".to_string(),
+                    end: "2001:db8:2:0:ffff:ffff:ffff:ffff".to_string(),
+                })),
             },
             IpAddress {
-                address: Some(Address::IpSubnet("2001:db8:3::/64".to_string())),
+                address: Some(Address::IpRange(IpRange {
+                    start: "2001:db8:3::".to_string(),
+                    end: "2001:db8:3:0:ffff:ffff:ffff:ffff".to_string(),
+                })),
             },
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
@@ -299,30 +303,51 @@ fn test_process_destination_addrs_v6() {
     );
 
     // Test with empty input
-    let empty_addrs = process_destination_addrs(&[], Vec::new());
+    let empty_addrs = process_destination_addrs(&[], vec![]);
     assert!(empty_addrs.1.is_empty());
 
     // Test with only IPv4 addresses - should return empty result for IPv6
-    let ipv4_only = process_destination_addrs(&["192.168.1.0/24".parse().unwrap()], Vec::new());
+    let ipv4_only = process_destination_addrs(vec!["192.168.1.0/24".parse().unwrap()], vec![]);
     assert!(ipv4_only.1.is_empty());
 }
 
 #[test]
 fn test_merge_v4_addrs() {
     let addr_ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51))..=IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
-        IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20))..=IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 60, 20)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 60, 25)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 22)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 8, 51)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 9, 12)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 9, 1)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 12)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 9, 20)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 32)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
+            IpAddr::V4(Ipv4Addr::new(192, 168, 0, 20)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 20, 20)),
+        ),
     ];
 
     let merged_addrs = merge_addrs(addr_ranges);
     assert_eq!(
         merged_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.8.51".to_string(),
@@ -346,20 +371,35 @@ fn test_merge_v4_addrs() {
 
     // merge single IPs into a range
     let addr_ranges = vec![
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
-        IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20))..=IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 1)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 2)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 3)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 4)),
+        ),
+        ip_to_range(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
+            IpAddr::V4(Ipv4Addr::new(10, 0, 10, 20)),
+        ),
     ];
 
     let merged_addrs = merge_addrs(addr_ranges);
     assert_eq!(
         merged_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
-                    start: "10.0.10.1".into(),
+                    start: "10.0.10.1".to_string(),
                     end: "10.0.10.4".to_string(),
                 })),
             },
@@ -373,20 +413,28 @@ fn test_merge_v4_addrs() {
 #[test]
 fn test_merge_v6_addrs() {
     let addr_ranges = vec![
-        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x1))
-            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x5)),
-        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x3))
-            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x8)),
-        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1))
-            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
-        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x1))
-            ..=IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x3)),
+        ip_to_range(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x1)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x5)),
+        ),
+        ip_to_range(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x3)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x1, 0x0, 0x0, 0x0, 0x0, 0x8)),
+        ),
+        ip_to_range(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x2, 0x0, 0x0, 0x0, 0x0, 0x1)),
+        ),
+        ip_to_range(
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x1)),
+            IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0x3, 0x0, 0x0, 0x0, 0x0, 0x3)),
+        ),
     ];
 
     let merged_addrs = merge_addrs(addr_ranges);
     assert_eq!(
         merged_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "2001:db8:1::1".to_string(),
@@ -413,7 +461,7 @@ fn test_merge_port_ranges() {
     let merged = merge_port_ranges(input_ranges);
     assert_eq!(
         merged,
-        [Port {
+        vec![Port {
             port: Some(PortInner::SinglePort(100))
         }]
     );
@@ -427,7 +475,7 @@ fn test_merge_port_ranges() {
     let merged = merge_port_ranges(input_ranges);
     assert_eq!(
         merged,
-        [Port {
+        vec![Port {
             port: Some(PortInner::PortRange(PortRangeProto {
                 start: 100,
                 end: 300
@@ -450,7 +498,7 @@ fn test_merge_port_ranges() {
     let merged = merge_port_ranges(input_ranges);
     assert_eq!(
         merged,
-        [
+        vec![
             Port {
                 port: Some(PortInner::PortRange(PortRangeProto {
                     start: 100,
@@ -478,7 +526,7 @@ fn test_merge_port_ranges() {
     let merged = merge_port_ranges(input_ranges);
     assert_eq!(
         merged,
-        [
+        vec![
             Port {
                 port: Some(PortInner::SinglePort(50))
             },
@@ -505,12 +553,73 @@ fn test_merge_port_ranges() {
     let merged = merge_port_ranges(input_ranges);
     assert_eq!(
         merged,
-        [Port {
+        vec![Port {
             port: Some(PortInner::PortRange(PortRangeProto {
                 start: 100,
                 end: 200
             }))
         }]
+    );
+}
+
+#[test]
+fn test_next_ip() {
+    // Test IPv4
+    let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
+    assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2)));
+    let ip = IpAddr::V4(Ipv4Addr::new(10, 0, 2, 255));
+    assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(10, 0, 3, 0)));
+
+    // Test IPv4 overflow
+    let ip = IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255));
+    assert_eq!(next_ip(ip), IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
+
+    // Test IPv6
+    let ip = IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1));
+    assert_eq!(
+        next_ip(ip),
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2))
+    );
+
+    // Test IPv6 overflow
+    let ip = IpAddr::V6(Ipv6Addr::new(
+        0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+    ));
+    assert_eq!(
+        next_ip(ip),
+        IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))
+    );
+}
+
+#[test]
+fn test_previous_ip() {
+    // Test IPv4
+    let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 2));
+    assert_eq!(previous_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+    let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0));
+    assert_eq!(previous_ip(ip), IpAddr::V4(Ipv4Addr::new(192, 168, 1, 255)));
+
+    // Test IPv4 underflow
+    let ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+    assert_eq!(
+        previous_ip(ip),
+        IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255))
+    );
+
+    // Test IPv6
+    let ip = IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2));
+    assert_eq!(
+        previous_ip(ip),
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))
+    );
+
+    // Test IPv6 underflow
+    let ip = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
+    assert_eq!(
+        previous_ip(ip),
+        IpAddr::V6(Ipv6Addr::new(
+            0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
+        ))
     );
 }
 
@@ -841,11 +950,11 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
     let denied_users = vec![user_3.id]; // Third user explicitly denied
     let allowed_groups = vec![group_1.id]; // First group allowed
-    let denied_groups = Vec::new();
+    let denied_groups = vec![];
     let allowed_devices = vec![network_device_1.id];
     let denied_devices = vec![network_device_2.id, network_device_3.id];
-    let destination_ranges = Vec::new();
-    let aliases = Vec::new();
+    let destination_ranges = vec![];
+    let aliases = vec![];
 
     let _acl_rule_1 = create_acl_rule(
         &pool,
@@ -872,7 +981,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        destination: vec![], // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
@@ -880,9 +989,9 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         state: RuleState::Applied,
     };
     let locations_2 = vec![location.id];
-    let allowed_users_2 = Vec::new();
+    let allowed_users_2 = vec![];
     let denied_users_2 = vec![user_5.id]; // Fifth user denied DNS
-    let allowed_groups_2 = Vec::new();
+    let allowed_groups_2 = vec![];
     let denied_groups_2 = vec![group_2.id];
     let allowed_devices_2 = vec![network_device_1.id, network_device_2.id]; // First two network devices allowed
     let denied_devices_2 = vec![network_device_3.id]; // Third network device denied
@@ -890,7 +999,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
         ("10.0.1.13".parse().unwrap(), "10.0.1.43".parse().unwrap()),
         ("10.0.1.52".parse().unwrap(), "10.0.2.43".parse().unwrap()),
     ];
-    let aliases_2 = Vec::new();
+    let aliases_2 = vec![];
 
     let _acl_rule_2 = create_acl_rule(
         &pool,
@@ -937,13 +1046,16 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(web_allow_rule.protocols, vec![i32::from(Protocol::Tcp)]);
     assert_eq!(
         web_allow_rule.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.0".to_string(),
+                end: "192.168.1.255".to_string(),
+            })),
         }]
     );
     assert_eq!(
         web_allow_rule.destination_ports,
-        [
+        vec![
             Port {
                 port: Some(PortInner::SinglePort(80))
             },
@@ -955,7 +1067,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     // Source addresses should include devices of users 1,2 and network_device_1
     assert_eq!(
         web_allow_rule.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.1".to_string(),
@@ -982,8 +1094,11 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert!(web_deny_rule.source_addrs.is_empty());
     assert_eq!(
         web_deny_rule.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.0".to_string(),
+                end: "192.168.1.255".to_string(),
+            })),
         }]
     );
 
@@ -992,18 +1107,18 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert_eq!(dns_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
     assert_eq!(
         dns_allow_rule.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
+        vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
     );
     assert_eq!(
         dns_allow_rule.destination_ports,
-        [Port {
+        vec![Port {
             port: Some(PortInner::SinglePort(53))
         }]
     );
     // Source addresses should include network_devices 1,2
     assert_eq!(
         dns_allow_rule.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.1".to_string(),
@@ -1026,7 +1141,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     );
     assert_eq!(
         dns_allow_rule.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.13".to_string(),
@@ -1050,7 +1165,7 @@ async fn test_generate_firewall_rules_ipv4(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.13".to_string(),
@@ -1254,11 +1369,11 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
     let denied_users = vec![user_3.id]; // Third user explicitly denied
     let allowed_groups = vec![group_1.id]; // First group allowed
-    let denied_groups = Vec::new();
+    let denied_groups = vec![];
     let allowed_devices = vec![network_device_1.id];
     let denied_devices = vec![network_device_2.id, network_device_3.id];
-    let destination_ranges = Vec::new();
-    let aliases = Vec::new();
+    let destination_ranges = vec![];
+    let aliases = vec![];
 
     let _acl_rule_1 = create_acl_rule(
         &pool,
@@ -1285,7 +1400,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        destination: vec![], // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
@@ -1293,9 +1408,9 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         state: RuleState::Applied,
     };
     let locations_2 = vec![location.id];
-    let allowed_users_2 = Vec::new();
+    let allowed_users_2 = vec![];
     let denied_users_2 = vec![user_5.id]; // Fifth user denied DNS
-    let allowed_groups_2 = Vec::new();
+    let allowed_groups_2 = vec![];
     let denied_groups_2 = vec![group_2.id];
     let allowed_devices_2 = vec![network_device_1.id, network_device_2.id]; // First two network devices allowed
     let denied_devices_2 = vec![network_device_3.id]; // Third network device denied
@@ -1303,7 +1418,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
         ("fc00::1:13".parse().unwrap(), "fc00::1:43".parse().unwrap()),
         ("fc00::1:52".parse().unwrap(), "fc00::2:43".parse().unwrap()),
     ];
-    let aliases_2 = Vec::new();
+    let aliases_2 = vec![];
 
     let _acl_rule_2 = create_acl_rule(
         &pool,
@@ -1350,13 +1465,16 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(web_allow_rule.protocols, vec![i32::from(Protocol::Tcp)]);
     assert_eq!(
         web_allow_rule.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "fc00::".to_string(),
+                end: "fc00::ffff".to_string(),
+            })),
         }]
     );
     assert_eq!(
         web_allow_rule.destination_ports,
-        [
+        vec![
             Port {
                 port: Some(PortInner::SinglePort(80))
             },
@@ -1368,7 +1486,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     // Source addresses should include devices of users 1,2 and network_device_1
     assert_eq!(
         web_allow_rule.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "ff00::1:1".to_string(),
@@ -1395,8 +1513,11 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert!(web_deny_rule.source_addrs.is_empty());
     assert_eq!(
         web_deny_rule.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "fc00::".to_string(),
+                end: "fc00::ffff".to_string(),
+            })),
         }]
     );
 
@@ -1405,18 +1526,18 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert_eq!(dns_allow_rule.verdict, i32::from(FirewallPolicy::Allow));
     assert_eq!(
         dns_allow_rule.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
+        vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
     );
     assert_eq!(
         dns_allow_rule.destination_ports,
-        [Port {
+        vec![Port {
             port: Some(PortInner::SinglePort(53))
         }]
     );
     // Source addresses should include network_devices 1,2
     assert_eq!(
         dns_allow_rule.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "ff00::1:1".to_string(),
@@ -1439,7 +1560,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     );
     assert_eq!(
         dns_allow_rule.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "fc00::1:13".to_string(),
@@ -1463,7 +1584,7 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
     assert!(dns_deny_rule.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "fc00::1:13".to_string(),
@@ -1481,7 +1602,10 @@ async fn test_generate_firewall_rules_ipv6(_: PgPoolOptions, options: PgConnectO
 }
 
 #[sqlx::test]
-async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_generate_firewall_rules_ipv4_and_ipv6(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
 
     let mut rng = thread_rng();
@@ -1686,11 +1810,11 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     let allowed_users = vec![user_1.id, user_2.id]; // First two users can access web
     let denied_users = vec![user_3.id]; // Third user explicitly denied
     let allowed_groups = vec![group_1.id]; // First group allowed
-    let denied_groups = Vec::new();
+    let denied_groups = vec![];
     let allowed_devices = vec![network_device_1.id];
     let denied_devices = vec![network_device_2.id, network_device_3.id];
-    let destination_ranges = Vec::new();
-    let aliases = Vec::new();
+    let destination_ranges = vec![];
+    let aliases = vec![];
 
     let _acl_rule_1 = create_acl_rule(
         &pool,
@@ -1717,7 +1841,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         deny_all_users: false,
         allow_all_network_devices: false,
         deny_all_network_devices: false,
-        destination: Vec::new(), // Will use destination ranges instead
+        destination: vec![], // Will use destination ranges instead
         ports: vec![PortRange::new(53, 53).into()],
         protocols: vec![Protocol::Udp.into(), Protocol::Tcp.into()],
         enabled: true,
@@ -1725,9 +1849,9 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         state: RuleState::Applied,
     };
     let locations_2 = vec![location.id];
-    let allowed_users_2 = Vec::new();
+    let allowed_users_2 = vec![];
     let denied_users_2 = vec![user_5.id]; // Fifth user denied DNS
-    let allowed_groups_2 = Vec::new();
+    let allowed_groups_2 = vec![];
     let denied_groups_2 = vec![group_2.id];
     let allowed_devices_2 = vec![network_device_1.id, network_device_2.id]; // First two network devices allowed
     let denied_devices_2 = vec![network_device_3.id]; // Third network device denied
@@ -1737,7 +1861,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         ("fc00::1:13".parse().unwrap(), "fc00::1:43".parse().unwrap()),
         ("fc00::1:52".parse().unwrap(), "fc00::2:43".parse().unwrap()),
     ];
-    let aliases_2 = Vec::new();
+    let aliases_2 = vec![];
 
     let _acl_rule_2 = create_acl_rule(
         &pool,
@@ -1791,7 +1915,10 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert_eq!(
         web_allow_rule_ipv4.destination_addrs,
         vec![IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.0".to_string(),
+                end: "192.168.1.255".to_string(),
+            })),
         }]
     );
     assert_eq!(
@@ -1832,16 +1959,22 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
         web_allow_rule_ipv6.verdict,
         i32::from(FirewallPolicy::Allow)
     );
-    assert_eq!(web_allow_rule_ipv6.protocols, [i32::from(Protocol::Tcp)]);
+    assert_eq!(
+        web_allow_rule_ipv6.protocols,
+        vec![i32::from(Protocol::Tcp)]
+    );
     assert_eq!(
         web_allow_rule_ipv6.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "fc00::".to_string(),
+                end: "fc00::ffff".to_string(),
+            })),
         }]
     );
     assert_eq!(
         web_allow_rule_ipv6.destination_ports,
-        [
+        vec![
             Port {
                 port: Some(PortInner::SinglePort(80))
             },
@@ -1853,7 +1986,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     // Source addresses should include devices of users 1,2 and network_device_1
     assert_eq!(
         web_allow_rule_ipv6.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "ff00::1:1".to_string(),
@@ -1880,8 +2013,11 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(web_deny_rule_ipv4.source_addrs.is_empty());
     assert_eq!(
         web_deny_rule_ipv4.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.0".to_string(),
+                end: "192.168.1.255".to_string(),
+            })),
         }]
     );
 
@@ -1892,8 +2028,11 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(web_deny_rule_ipv6.source_addrs.is_empty());
     assert_eq!(
         web_deny_rule_ipv6.destination_addrs,
-        [IpAddress {
-            address: Some(Address::IpSubnet("fc00::/112".to_string())),
+        vec![IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "fc00::".to_string(),
+                end: "fc00::ffff".to_string(),
+            })),
         }]
     );
 
@@ -1905,18 +2044,18 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     );
     assert_eq!(
         dns_allow_rule_ipv4.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
+        vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
     );
     assert_eq!(
         dns_allow_rule_ipv4.destination_ports,
-        [Port {
+        vec![Port {
             port: Some(PortInner::SinglePort(53))
         }]
     );
     // Source addresses should include network_devices 1,2
     assert_eq!(
         dns_allow_rule_ipv4.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.1".to_string(),
@@ -1939,7 +2078,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     );
     assert_eq!(
         dns_allow_rule_ipv4.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.13".to_string(),
@@ -1962,18 +2101,18 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     );
     assert_eq!(
         dns_allow_rule_ipv6.protocols,
-        [i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
+        vec![i32::from(Protocol::Tcp), i32::from(Protocol::Udp)]
     );
     assert_eq!(
         dns_allow_rule_ipv6.destination_ports,
-        [Port {
+        vec![Port {
             port: Some(PortInner::SinglePort(53))
         }]
     );
     // Source addresses should include network_devices 1,2
     assert_eq!(
         dns_allow_rule_ipv6.source_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "ff00::1:1".to_string(),
@@ -1996,7 +2135,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     );
     assert_eq!(
         dns_allow_rule_ipv6.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "fc00::1:13".to_string(),
@@ -2020,7 +2159,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv4.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule_ipv4.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "10.0.1.13".to_string(),
@@ -2043,7 +2182,7 @@ async fn test_generate_firewall_rules_ipv4_and_ipv6(_: PgPoolOptions, options: P
     assert!(dns_deny_rule_ipv6.source_addrs.is_empty(),);
     assert_eq!(
         dns_deny_rule_ipv6.destination_addrs,
-        [
+        vec![
             IpAddress {
                 address: Some(Address::IpRange(IpRange {
                     start: "fc00::1:13".to_string(),
@@ -3019,7 +3158,10 @@ async fn test_acl_rules_all_locations_ipv6(_: PgPoolOptions, options: PgConnectO
 }
 
 #[sqlx::test]
-async fn test_acl_rules_all_locations_ipv4_and_ipv6(_: PgPoolOptions, options: PgConnectOptions) {
+async fn test_acl_rules_all_locations_ipv4_and_ipv6(
+    _: PgPoolOptions,
+    options: PgConnectOptions,
+) {
     let pool = setup_pool(options).await;
     let mut rng = thread_rng();
 
@@ -3311,7 +3453,7 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
 
     // check generated rules
     assert_eq!(generated_firewall_rules.len(), 4);
-    let expected_source_addrs = [
+    let expected_source_addrs = vec![
         IpAddress {
             address: Some(Address::IpRange(IpRange {
                 start: "10.0.1.1".to_string(),
@@ -3325,12 +3467,15 @@ async fn test_alias_kinds(_: PgPoolOptions, options: PgConnectOptions) {
             })),
         },
     ];
-    let expected_destination_addrs = [
-        IpAddress {
-            address: Some(Address::IpSubnet("192.168.1.0/24".to_string())),
-        },
+    let expected_destination_addrs = vec![
         IpAddress {
             address: Some(Address::Ip("10.0.2.3".to_string())),
+        },
+        IpAddress {
+            address: Some(Address::IpRange(IpRange {
+                start: "192.168.1.0".to_string(),
+                end: "192.168.1.255".to_string(),
+            })),
         },
     ];
 
@@ -3414,7 +3559,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
         for device_num in 1..3 {
             let device = Device {
                 id: NoId,
-                name: format!("device-{}-{device_num}", user.id),
+                name: format!("device-{}-{}", user.id, device_num),
                 user_id: user.id,
                 device_type: DeviceType::User,
                 description: None,
@@ -3573,7 +3718,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
             address: Some(Address::Ip("10.0.2.3".to_string())),
         },]
     );
-    assert!(alias_deny_rule_1.destination_ports.is_empty());
+    assert!(alias_deny_rule_1.destination_ports.is_empty(),);
     assert!(alias_deny_rule_1.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_1.comment,
@@ -3589,7 +3734,7 @@ async fn test_destination_alias_only_acl(_: PgPoolOptions, options: PgConnectOpt
             address: Some(Address::Ip("10.0.2.4".to_string())),
         },]
     );
-    assert!(alias_deny_rule_2.destination_ports.is_empty());
+    assert!(alias_deny_rule_2.destination_ports.is_empty(),);
     assert!(alias_deny_rule_2.protocols.is_empty());
     assert_eq!(
         alias_deny_rule_2.comment,
