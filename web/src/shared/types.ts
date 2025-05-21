@@ -505,7 +505,7 @@ export type AuditEvent = {
   user_id: number;
   username: string;
   ip: string;
-  event: string;
+  event: AuditEventType;
   module: AuditModule;
   device: string;
   metadata?: unknown;

@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
@@ -29,6 +30,7 @@ export const ActivityList = ({
   onSortChange,
   onNextPage,
 }: Props) => {
+  const { LL } = useI18nContext();
   const { ref: infiniteLoadMoreElement } = useInView({
     threshold: 0,
     trackVisibility: false,
@@ -129,10 +131,10 @@ export const ActivityList = ({
                   <ListCellText text={activity.ip} />
                 </div>
                 <div className="cell event">
-                  <ListCellText text={activity.event} />
+                  <ListCellText text={LL.enums.auditEventType[activity.event]()} />
                 </div>
                 <div className="cell module">
-                  <ListCellText text={activity.module} />
+                  <ListCellText text={LL.enums.auditModule[activity.module]()} />
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />

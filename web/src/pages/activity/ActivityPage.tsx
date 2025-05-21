@@ -27,6 +27,7 @@ import {
   AuditModule,
   auditModuleValues,
 } from './types';
+import dayjs from 'dayjs';
 
 export const ActivityPage = () => {
   return (
@@ -67,7 +68,7 @@ const PageContent = () => {
   });
   const [searchValue, setSearchValue] = useState<string>('');
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
-  const [from, setForm] = useState<string | null>(null);
+  const [from, setForm] = useState<string | null>(dayjs.utc().startOf('M').toISOString());
   const [until, setUntil] = useState<string | null>(null);
   const [timeSelectionModalOpen, setTimeSelectionModal] = useState(false);
   const [sortKey, setSortKey] = useState<AuditLogSortKey>('timestamp');
