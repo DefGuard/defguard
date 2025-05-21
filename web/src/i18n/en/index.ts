@@ -993,7 +993,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       support: 'Support',
       devices: 'Network Devices',
     },
-    copyright: 'Copyright ©2023-2024',
+    copyright: 'Copyright ©2023-2025',
     version: {
       open: 'Application version: {version: string}',
       closed: 'v{version: string}',
