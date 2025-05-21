@@ -739,35 +739,82 @@ pub async fn init_dev_env(config: &DefGuardConfig) {
 
 /// Create a new VPN location.
 /// Meant to be used to automate setting up a new defguard instance.
-/// Does not handle assigning device IPs, since no device should exist at this point.
+/// If the network ID has been specified, it will be assumed that the user wants to update the existing network or create a new one with a predefined ID.
+/// This is mainly used for deployment purposes where the network ID must be known beforehand.
+///
+/// If there is no ID specified, the function will only create the network if no other network exists.
+/// In other words, multiple networks can be created, but only if the ID is predefined for each network.
 pub async fn init_vpn_location(
     pool: &PgPool,
     args: &InitVpnLocationArgs,
 ) -> Result<String, anyhow::Error> {
-    // check if a VPN location exists already
-    let networks = WireguardNetwork::all(pool).await?;
-    if !networks.is_empty() {
-        return Err(anyhow!(
-            "Failed to initialize first VPN location. A location already exists."
-        ));
-    };
+    // The ID is predefined
+    let network = if let Some(location_id) = args.id {
+        let mut transaction = pool.begin().await?;
+        // If the network already exists, update it, assuming that's the user's intent.
+        let network = if let Some(mut network) =
+            WireguardNetwork::find_by_id(&mut *transaction, location_id).await?
+        {
+            network.name = args.name.clone();
+            network.address = vec![args.address];
+            network.port = args.port;
+            network.endpoint = args.endpoint.clone();
+            network.dns = args.dns.clone();
+            network.allowed_ips = args.allowed_ips.clone();
+            network.save(&mut *transaction).await?;
+            network.sync_allowed_devices(&mut *transaction, None);
+            network
+        }
+        // Otherwise create it with the predefined ID
+        else {
+            let mut network = WireguardNetwork::new(
+                args.name.clone(),
+                vec![args.address],
+                args.port,
+                args.endpoint.clone(),
+                args.dns.clone(),
+                args.allowed_ips.clone(),
+                false,
+                DEFAULT_KEEPALIVE_INTERVAL,
+                DEFAULT_DISCONNECT_THRESHOLD,
+                false,
+                false,
+            )?
+            .with_id(location_id);
+            network.save(&mut *transaction).await?;
+            network.add_all_allowed_devices(&mut transaction).await?;
+            network
+        };
+        transaction.commit().await?;
+        network
+    }
+    // No predefined ID, add the network if no other networks are present
+    else {
+        // check if a VPN location exists already
+        let networks = WireguardNetwork::all(pool).await?;
+        if !networks.is_empty() {
+            return Err(anyhow!(
+                "Failed to initialize first VPN location. A location already exists."
+            ));
+        };
 
-    // create a new network
-    let network = WireguardNetwork::new(
-        args.name.clone(),
-        vec![args.address],
-        args.port,
-        args.endpoint.clone(),
-        args.dns.clone(),
-        args.allowed_ips.clone(),
-        false,
-        DEFAULT_KEEPALIVE_INTERVAL,
-        DEFAULT_DISCONNECT_THRESHOLD,
-        false,
-        false,
-    )?
-    .save(pool)
-    .await?;
+        // create a new network
+        WireguardNetwork::new(
+            args.name.clone(),
+            vec![args.address],
+            args.port,
+            args.endpoint.clone(),
+            args.dns.clone(),
+            args.allowed_ips.clone(),
+            false,
+            DEFAULT_KEEPALIVE_INTERVAL,
+            DEFAULT_DISCONNECT_THRESHOLD,
+            false,
+            false,
+        )?
+        .save(pool)
+        .await?
+    };
 
     // generate gateway token
     let token = Claims::new(
