@@ -5977,6 +5977,48 @@ type RootTranslation = {
 			}
 		}
 	}
+	enums: {
+		auditEventType: {
+			/**
+			 * U​s​e​r​ ​l​o​g​i​n
+			 */
+			user_login: string
+			/**
+			 * U​s​e​r​ ​l​o​g​o​u​t
+			 */
+			user_logout: string
+			/**
+			 * D​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			device_added: string
+			/**
+			 * D​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			device_removed: string
+			/**
+			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			device_modified: string
+		}
+		auditModule: {
+			/**
+			 * D​e​f​g​u​a​r​d
+			 */
+			defguard: string
+			/**
+			 * C​l​i​e​n​t
+			 */
+			client: string
+			/**
+			 * E​n​r​o​l​l​m​e​n​t
+			 */
+			enrollment: string
+			/**
+			 * V​P​N
+			 */
+			vpn: string
+		}
+	}
 }
 
 export type TranslationFunctions = {
@@ -11882,6 +11924,48 @@ export type TranslationFunctions = {
 				 */
 				allIps: () => LocalizedString
 			}
+		}
+	}
+	enums: {
+		auditEventType: {
+			/**
+			 * User login
+			 */
+			user_login: () => LocalizedString
+			/**
+			 * User logout
+			 */
+			user_logout: () => LocalizedString
+			/**
+			 * Device added
+			 */
+			device_added: () => LocalizedString
+			/**
+			 * Device removed
+			 */
+			device_removed: () => LocalizedString
+			/**
+			 * Device modified
+			 */
+			device_modified: () => LocalizedString
+		}
+		auditModule: {
+			/**
+			 * Defguard
+			 */
+			defguard: () => LocalizedString
+			/**
+			 * Client
+			 */
+			client: () => LocalizedString
+			/**
+			 * Enrollment
+			 */
+			enrollment: () => LocalizedString
+			/**
+			 * VPN
+			 */
+			vpn: () => LocalizedString
 		}
 	}
 }

@@ -21,10 +21,23 @@
       max-width: 350px;
     }
   }
+
+  .activity-list-skeleton {
+    width: 100%;
+    display: flex;
+    flex-flow: column;
+    row-gap: var(--spacing-xs);
+    max-height: 100%;
+    overflow: hidden;
+
+    .react-loading-skeleton {
+      height: 40px;
+    }
+  }
 }
 
 @mixin list-sizing() {
-  grid-template-columns: 30px 200px 150px 150px 300px 100px 200px minmax(150px, 1fr);
+  grid-template-columns: 250px 150px 150px 300px 100px minmax(200px, 1fr);
   justify-content: space-between;
   column-gap: var(--spacing-xs);
 
@@ -55,6 +68,13 @@
     h2 {
       padding-right: 10px;
     }
+
+    .controls {
+      display: flex;
+      flex-flow: row;
+      column-gap: var(--spacing-xs);
+      margin-left: auto;
+    }
   }
 }
 
@@ -62,6 +82,10 @@
   padding: var(--spacing-s) 15px;
   width: 100%;
   max-width: 100%;
+
+  @include media-breakpoint-up(lg) {
+    min-height: min(600px, 75dvh);
+  }
 
   .list-headers {
     position: sticky;
@@ -72,6 +96,11 @@
     height: 40px;
     width: unset;
     min-width: 100%;
+    padding-left: var(--spacing-xs);
+
+    .cell.empty {
+      display: none;
+    }
 
     @include list-sizing();
   }
@@ -101,6 +130,12 @@
       max-width: 100%;
       @include list-sizing();
       height: 40px;
+      background-color: var(--surface-default-modal);
+      padding-left: var(--spacing-xs);
+
+      &:hover {
+        background-color: var(--surface-button);
+      }
 
       .cell {
         max-width: 100%;
@@ -112,5 +147,22 @@
         }
       }
     }
+  }
+}
+
+#activity-time-selection-modal-form {
+  display: flex;
+  flex-flow: column;
+  row-gap: var(--spacing-s);
+
+  & > * {
+    width: 100%;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    column-gap: var(--spacing-xs);
   }
 }

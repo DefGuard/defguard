@@ -1,30 +1,37 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import dayjs from 'dayjs';
 import { useMemo, useRef } from 'react';
 import { useInView } from 'react-intersection-observer';
 
+import { useI18nContext } from '../../../i18n/i18n-react';
 import { ListCellText } from '../../../shared/components/Layout/ListCellText/ListCellText';
 import { ListHeader } from '../../../shared/components/Layout/ListHeader/ListHeader';
 import { ListHeaderColumnConfig } from '../../../shared/components/Layout/ListHeader/types';
-import { CheckBox } from '../../../shared/defguard-ui/components/Layout/Checkbox/CheckBox';
-import { InteractionBox } from '../../../shared/defguard-ui/components/Layout/InteractionBox/InteractionBox';
 import { LoaderSpinner } from '../../../shared/defguard-ui/components/Layout/LoaderSpinner/LoaderSpinner';
-import { isPresent } from '../../../shared/defguard-ui/utils/isPresent';
-import { AuditEvent } from '../../../shared/types';
+import { ListSortDirection } from '../../../shared/defguard-ui/components/Layout/VirtualizedList/types';
+import { AuditEvent, AuditLogSortKey } from '../../../shared/types';
 
 type Props = {
   data: AuditEvent[];
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
+  sortKey: AuditLogSortKey;
+  sortDirection: ListSortDirection;
   onNextPage: () => void;
+  onSortChange: (sortKey: keyof AuditEvent, sortDirection: ListSortDirection) => void;
 };
 
 export const ActivityList = ({
   data,
   isFetchingNextPage,
   hasNextPage,
+  sortDirection,
+  sortKey,
+  onSortChange,
   onNextPage,
 }: Props) => {
-  const { ref: chuj } = useInView({
+  const { LL } = useI18nContext();
+  const { ref: infiniteLoadMoreElement } = useInView({
     threshold: 0,
     trackVisibility: false,
     onChange: (inView) => {
@@ -72,10 +79,6 @@ export const ActivityList = ({
         label: 'Device',
         key: 'device',
       },
-      {
-        label: 'Details',
-        key: 'details',
-      },
     ],
     [],
   );
@@ -89,12 +92,11 @@ export const ActivityList = ({
         }}
       >
         <ListHeader
-          activeKey="timestamp"
+          activeKey={sortKey}
           headers={listHeaders}
+          sortDirection={sortDirection}
+          onChange={onSortChange}
           selectAll={false}
-          onSelectAll={(val) => {
-            console.log('Select all', val);
-          }}
         />
         <div
           style={{
@@ -114,39 +116,34 @@ export const ActivityList = ({
                 data-index={virtualRow.index}
                 ref={virtualizer.measureElement}
               >
-                <div className="cell select-cell">
-                  <InteractionBox onClick={() => {}}>
-                    <CheckBox value={false} />
-                  </InteractionBox>
-                </div>
                 <div className="cell date">
-                  <ListCellText text={activity.timestamp} />
+                  <ListCellText
+                    text={dayjs
+                      .utc(activity.timestamp)
+                      .local()
+                      .format('YYYY-MM-DD HH:mm')}
+                  />
                 </div>
                 <div className="cell user">
-                  <ListCellText text={String(activity.user_id)} />
+                  <ListCellText text={activity.username} />
                 </div>
                 <div className="cell ip">
                   <ListCellText text={activity.ip} />
                 </div>
                 <div className="cell event">
-                  <ListCellText text={activity.event} />
+                  <ListCellText text={LL.enums.auditEventType[activity.event]()} />
                 </div>
                 <div className="cell module">
-                  <ListCellText text={activity.module} />
+                  <ListCellText text={LL.enums.auditModule[activity.module]()} />
                 </div>
                 <div className="cell device">
                   <ListCellText text={activity.device} />
-                </div>
-                <div className="cell details">
-                  {isPresent(activity.details) && (
-                    <ListCellText text={activity.details} withCopy />
-                  )}
                 </div>
               </div>
             );
           })}
           {hasNextPage && (
-            <div className="end-row" ref={chuj}>
+            <div className="end-row" ref={infiniteLoadMoreElement}>
               {isFetchingNextPage && <LoaderSpinner size={24} />}
             </div>
           )}

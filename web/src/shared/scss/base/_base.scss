@@ -164,3 +164,8 @@ select:focus {
   --nav-collapse-duration: 250ms;
   --page-content-limit: 1510px;
 }
+
+#datepicker-root {
+  z-index: 6;
+  position: relative;
+}

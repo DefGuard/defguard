@@ -7,6 +7,7 @@ import {
 import { AxiosError, AxiosPromise } from 'axios';
 
 import { AclAlias, AclStatus } from '../pages/acl/types';
+import { AuditEventType, AuditModule } from '../pages/activity/types';
 import { UpdateInfo } from './hooks/store/useUpdatesStore';
 
 export type ApiError = AxiosError<ApiErrorResponse>;
@@ -498,29 +499,17 @@ export type AclRuleInfo = {
   protocols: number[];
 };
 
-export enum AuditModule {
-  DEFGUARD = 'defguard',
-  CLIENT = 'client',
-  VPN = 'vpn',
-  ENROLLMENT = 'enrollment',
-}
-
 export type AuditEvent = {
   id: number;
   timestamp: string;
   user_id: number;
+  username: string;
   ip: string;
-  event: string;
+  event: AuditEventType;
   module: AuditModule;
   device: string;
-  details?: string;
   metadata?: unknown;
 };
-
-export type AuditLogRequest = {
-  from?: string;
-  util?: string;
-} & PaginationParams;
 
 export type PaginationParams = {
   page?: number;
@@ -538,7 +527,38 @@ export type PaginatedResponse<T> = {
   data: T[];
   pagination: PaginationMeta;
 };
+
 export type AllGateWaysResponse = Record<string, Array<GatewayStatus>>;
+
+export type AuditLogFilters = {
+  // Naive UTC datetime in string
+  from?: string;
+  // Naive UTC datetime in string
+  until?: string;
+  username?: string[];
+  event?: AuditEventType[];
+  module?: AuditModule[];
+  search?: string;
+};
+
+export type AuditLogSortKey =
+  | 'timestamp'
+  | 'username'
+  | 'ip'
+  | 'event'
+  | 'module'
+  | 'device';
+
+export type ApiSortDirection = 'asc' | 'desc';
+
+export type RequestSortParams<T> = {
+  sort_by?: T;
+  sort_order?: ApiSortDirection;
+};
+
+export type AuditLogRequestParams = AuditLogFilters &
+  RequestSortParams<AuditLogSortKey> &
+  PaginationParams;
 
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
@@ -546,7 +566,9 @@ export type Api = {
   changePasswordSelf: (data: ChangePasswordSelfRequest) => Promise<EmptyApiResponse>;
   getEnterpriseInfo: () => Promise<EnterpriseInfoResponse>;
   auditLog: {
-    getAuditLog: (data: AuditLogRequest) => Promise<PaginatedResponse<AuditEvent>>;
+    getAuditLog: (
+      params: AuditLogRequestParams,
+    ) => Promise<PaginatedResponse<AuditEvent>>;
   };
   acl: {
     aliases: {
