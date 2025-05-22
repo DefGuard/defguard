@@ -17,9 +17,9 @@ let reporter:
   | ReporterDescription[]
   | undefined = [['html', { open: 'never' }]];
 
-if (process.env.CI) {
-  reporter = 'github';
-}
+// if (process.env.CI) {
+//   reporter = 'github';
+// }
 
 if (process.env.SHOW_REPORT) {
   reporter = [['html', { open: 'always' }]];
