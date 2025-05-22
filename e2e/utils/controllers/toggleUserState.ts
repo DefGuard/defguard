@@ -24,7 +24,7 @@ export const disableUser = async (browser: Browser, user: User): Promise<void> =
   await waitForBase(page);
   await loginBasic(page, defaultUserAdmin);
   await page.goto(routes.base + '/admin/users/' + user.username);
-  await page.getByTestId('edit-user').click();
+  await page.getByTestId('edit-user').click({force: true});
   await page.getByTestId('status-select').locator('.select-container').click();
   await page.locator('.select-option:has-text("Disabled")').click();
   await page.getByTestId('user-edit-save').click();
