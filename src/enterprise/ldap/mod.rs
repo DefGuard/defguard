@@ -27,12 +27,6 @@ pub mod utils;
 pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     debug!("Starting LDAP sync, if enabled");
     let mut settings = Settings::get_current_settings();
-    if !is_enterprise_enabled() {
-        info!("Enterprise features are disabled, not performing LDAP sync and automatically disabling it");
-        settings.ldap_sync_enabled = false;
-        update_current_settings(pool, settings).await?;
-        return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
-    }
 
     // Mark as out of sync only if we can't propagate changes to LDAP, as it
     // doesn't matter for the sync status if we can't pull changes.
@@ -47,6 +41,13 @@ pub(crate) async fn do_ldap_sync(pool: &PgPool) -> Result<(), LdapError> {
     if !settings.ldap_sync_enabled {
         debug!("LDAP sync is disabled, not performing LDAP sync");
         return Ok(());
+    }
+
+    if !is_enterprise_enabled() {
+        info!("Enterprise features are disabled, not performing LDAP sync and automatically disabling it");
+        settings.ldap_sync_enabled = false;
+        update_current_settings(pool, settings).await?;
+        return Err(LdapError::EnterpriseDisabled("LDAP sync".to_string()));
     }
 
     if is_ldap_desynced() {
@@ -378,6 +379,11 @@ impl LDAPConnection {
                     .and_then(|v| v.first())
             })
             .collect::<Vec<_>>();
+
+        debug!(
+            "User groups: {user_groups_names:?}, sync groups: {:?}",
+            self.config.ldap_sync_groups
+        );
 
         if user_groups_names
             .into_iter()

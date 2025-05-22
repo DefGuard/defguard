@@ -141,24 +141,18 @@ pub(crate) async fn authenticate(
 
     let mut user = match User::find_by_username(&appstate.pool, &username_or_email).await {
         Ok(Some(user)) => match user.verify_password(&data.password) {
-            Ok(()) => {
-                if user.is_active {
-                    user
-                } else {
-                    info!("Failed to authenticate user {username_or_email}: user is disabled");
-                    return Err(WebError::Authorization("user not found".into()));
-                }
-            }
+            Ok(()) => user,
             Err(err) => {
                 if settings.ldap_enabled {
-                    if let Ok(user) =
-                        login_through_ldap(&appstate.pool, &username_or_email, &data.password).await
+                    match login_through_ldap(&appstate.pool, &username_or_email, &data.password)
+                        .await
                     {
-                        user
-                    } else {
-                        info!("Failed to authenticate user {username_or_email}: {err}");
-                        log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                        return Err(WebError::Authorization(err.to_string()));
+                        Ok(user) => user,
+                        Err(err) => {
+                            info!("Failed to authenticate user {username_or_email} through LDAP: {err}");
+                            log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            return Err(WebError::Authorization(err.to_string()));
+                        }
                     }
                 } else {
                     info!("Failed to authenticate user {username_or_email}: {err}");
@@ -170,16 +164,7 @@ pub(crate) async fn authenticate(
         Ok(None) => {
             match User::find_by_email(&appstate.pool, &username_or_email).await {
                 Ok(Some(user)) => match user.verify_password(&data.password) {
-                    Ok(()) => {
-                        if user.is_active {
-                            user
-                        } else {
-                            info!(
-                                "Failed to authenticate user {username_or_email}: user is disabled"
-                            );
-                            return Err(WebError::Authorization("user not found".into()));
-                        }
-                    }
+                    Ok(()) => user,
                     Err(err) => {
                         if settings.ldap_enabled {
                             if let Ok(user) =
@@ -207,14 +192,15 @@ pub(crate) async fn authenticate(
                     debug!(
                         "User not found in DB, authenticating user {username_or_email} with LDAP"
                     );
-                    if let Ok(user) =
-                        user_from_ldap(&appstate.pool, &username_or_email, &data.password).await
-                    {
-                        user
-                    } else {
-                        info!("Failed to authenticate user {username_or_email} with LDAP");
-                        log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
-                        return Err(WebError::Authorization("user not found".into()));
+                    match user_from_ldap(&appstate.pool, &username_or_email, &data.password).await {
+                        Ok(user) => user,
+                        Err(err) => {
+                            info!(
+                                "Failed to authenticate user {username_or_email} with LDAP: {err}"
+                            );
+                            log_failed_login_attempt(&appstate.failed_logins, &username_or_email);
+                            return Err(WebError::Authorization(err.to_string()));
+                        }
                     }
                 }
                 Err(err) => {
@@ -228,6 +214,11 @@ pub(crate) async fn authenticate(
             return Err(WebError::DbError(err.to_string()));
         }
     };
+
+    if !user.is_active {
+        info!("Failed to authenticate user {username_or_email}: user is disabled");
+        return Err(WebError::Authorization("user not found".into()));
+    }
 
     let (session, user_info, mfa_info) = create_session(
         &appstate.pool,
