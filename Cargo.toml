@@ -17,7 +17,6 @@ axum-client-ip = "0.7"
 axum-extra = { version = "0.10", features = ["cookie-private", "typed-header"] }
 base32 = "0.5"
 base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "serde",
