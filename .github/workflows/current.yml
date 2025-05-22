@@ -2,8 +2,9 @@ name: Build current image
 on:
   push:
     branches:
-      - main
-      - dev
+      # - main
+      # - dev
+      - fix-e2e
     paths-ignore:
       - "*.md"
       - "LICENSE"
@@ -13,15 +14,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-current:
-    uses: ./.github/workflows/build-docker.yml
-    with:
-      tags: |
-        type=raw,value=current
-        type=ref,event=branch
-        type=sha
+  # build-current:
+  #   uses: ./.github/workflows/build-docker.yml
+  #   with:
+  #     tags: |
+  #       type=raw,value=current
+  #       type=ref,event=branch
+  #       type=sha
 
   trigger-e2e:
-    needs: build-current
+    # needs: build-current
     uses: ./.github/workflows/e2e.yml
     secrets: inherit

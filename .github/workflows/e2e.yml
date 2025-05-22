@@ -55,7 +55,7 @@ jobs:
         run: npx playwright install chromium
       - name: run tests
         working-directory: ./e2e
-        run: pnpm test
+        run: pnpm playwright test --grep "Reset disabled user password"
       - name: Stop compose
         if: always()
         run: docker compose --file './docker-compose.e2e.yaml' down
@@ -66,8 +66,8 @@ jobs:
           path: |
             ./e2e/playwright-report
           retention-days: 7
-  trigger-dev-deploy:
-    needs: test
-    if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
-    uses: ./.github/workflows/dev-deployment.yml
-    secrets: inherit
+  # trigger-dev-deploy:
+  #   needs: test
+  #   if: ${{ github.event_name != 'pull_request' && github.ref_name == 'dev' }}
+  #   uses: ./.github/workflows/dev-deployment.yml
+  #   secrets: inherit
