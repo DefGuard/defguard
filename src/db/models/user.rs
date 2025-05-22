@@ -77,7 +77,7 @@ pub struct UserDiagnostic {
     pub enrolled: bool,
 }
 
-#[derive(Clone, Debug, Model, PartialEq, Eq, Hash, Serialize, FromRow)]
+#[derive(Clone, Model, PartialEq, Eq, Hash, Serialize, FromRow)]
 pub struct User<I = NoId> {
     pub id: I,
     pub username: String,
@@ -115,6 +115,58 @@ pub struct User<I = NoId> {
     pub(crate) mfa_method: MFAMethod,
     #[model(ref)]
     pub(crate) recovery_codes: Vec<String>,
+}
+
+// TODO: Refactor the user struct to use SecretStringWrapper instead of this
+impl<I: std::fmt::Debug> fmt::Debug for User<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self {
+            id,
+            username,
+            password_hash: _,
+            last_name,
+            first_name,
+            email,
+            phone,
+            mfa_enabled,
+            is_active,
+            from_ldap,
+            ldap_pass_randomized,
+            ldap_rdn,
+            openid_sub,
+            totp_enabled,
+            email_mfa_enabled,
+            totp_secret: _,
+            email_mfa_secret: _,
+            mfa_method,
+            recovery_codes,
+        } = self;
+
+        f.debug_struct("User")
+            .field("id", id)
+            .field("username", username)
+            .field("last_name", last_name)
+            .field("first_name", first_name)
+            .field("email", email)
+            .field("phone", phone)
+            .field("mfa_enabled", mfa_enabled)
+            .field("is_active", is_active)
+            .field("from_ldap", from_ldap)
+            .field("ldap_pass_randomized", ldap_pass_randomized)
+            .field("ldap_rdn", ldap_rdn)
+            .field("openid_sub", openid_sub)
+            .field("totp_enabled", totp_enabled)
+            .field("email_mfa_enabled", email_mfa_enabled)
+            .field("mfa_method", mfa_method)
+            .field(
+                "recovery_codes",
+                &format_args!("{} items", recovery_codes.len()),
+            )
+            .field("password_hash", &"***")
+            .field("totp_secret", &"***")
+            .field("email_mfa_secret", &"***")
+            .finish()
+    }
 }
 
 fn hash_password(password: &str) -> Result<String, HashError> {
