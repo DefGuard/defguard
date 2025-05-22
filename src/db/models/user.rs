@@ -172,11 +172,12 @@ impl<I> User<I> {
     }
 
     pub(crate) fn verify_password(&self, password: &str) -> Result<(), HashError> {
+        debug!("Checking if password matches for user {}", self.username);
         if let Some(hash) = &self.password_hash {
             let parsed_hash = PasswordHash::new(hash)?;
             Argon2::default().verify_password(password.as_bytes(), &parsed_hash)
         } else {
-            error!("Password not set for user {}", self.username);
+            info!("User {} has no password set", self.username);
             Err(HashError::Password)
         }
     }
