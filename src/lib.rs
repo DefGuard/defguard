@@ -778,6 +778,7 @@ pub async fn init_vpn_location(
                 false,
             )?
             .with_id(location_id);
+            // The "save" method doesn't handle predefined ids
             sqlx::query!(
                 "INSERT INTO wireguard_network \
                 (id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips) \
