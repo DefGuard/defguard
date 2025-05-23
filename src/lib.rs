@@ -798,7 +798,7 @@ pub async fn init_vpn_location(
         let networks = WireguardNetwork::all(pool).await?;
         if !networks.is_empty() {
             return Err(anyhow!(
-                "Failed to initialize first VPN location. A location already exists."
+                "Failed to initialize first VPN location. Location already exists."
             ));
         };
 
