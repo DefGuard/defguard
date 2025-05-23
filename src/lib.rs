@@ -777,24 +777,14 @@ pub async fn init_vpn_location(
                 false,
                 false,
             )?
-            .with_id(location_id);
-            // The "save" method doesn't handle predefined ids
-            sqlx::query!(
-                "INSERT INTO wireguard_network \
-                (id, name, address, port, pubkey, prvkey, endpoint, dns, allowed_ips) \
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                network.id,
-                network.name,
-                &network.address,
-                network.port,
-                network.pubkey,
-                network.prvkey,
-                network.endpoint,
-                network.dns,
-                &network.allowed_ips,
-            )
-            .execute(&mut *transaction)
+            .save(&mut *transaction)
             .await?;
+            if network.id != location_id {
+                return Err(anyhow!(
+                    "Failed to initialize VPN location. The ID of the newly created network ({}) does not match the predefined ID ({}). The predefined ID must be the next available ID.",
+                    network.id, location_id
+                ));
+            }
             network.add_all_allowed_devices(&mut transaction).await?;
             network
         };
