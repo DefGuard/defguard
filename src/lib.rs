@@ -781,8 +781,9 @@ pub async fn init_vpn_location(
             .await?;
             if network.id != location_id {
                 return Err(anyhow!(
-                    "Failed to initialize VPN location. The ID of the newly created network ({}) does not match the predefined ID ({}). The predefined ID must be the next available ID.",
-                    network.id, location_id
+                    "Failed to initialize VPN location. The ID of the newly created network ({}) does not match \
+                    the predefined ID ({location_id}). The predefined ID must be the next available ID.",
+                    network.id
                 ));
             }
             network.add_all_allowed_devices(&mut transaction).await?;
