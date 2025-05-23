@@ -14,8 +14,7 @@ use defguard_core::{
         license::{run_periodic_license_check, set_cached_license, License},
         limits::update_counts,
     },
-    event_logger::{message::EventLoggerMessage, run_event_logger},
-    event_router::{events::MainEvent, run_event_router},
+    events::{ApiEvent, GrpcEvent},
     grpc::{run_grpc_bidi_stream, run_grpc_server, GatewayMap, WorkerState},
     init_dev_env, init_vpn_location,
     mail::{run_mail_handler, Mail},
@@ -25,6 +24,8 @@ use defguard_core::{
     wireguard_stats_purge::run_periodic_stats_purge,
     SERVER_CONFIG, VERSION,
 };
+use defguard_event_logger::{message::EventLoggerMessage, run_event_logger};
+use defguard_event_router::run_event_router;
 use secrecy::ExposeSecret;
 use tokio::sync::{broadcast, mpsc::unbounded_channel};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -82,8 +83,9 @@ async fn main() -> Result<(), anyhow::Error> {
         info!("Using HMAC OpenID signing key");
     }
 
-    // create main event bus
-    let (event_tx, event_rx) = unbounded_channel::<MainEvent>();
+    // create event channels for services
+    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
+    let (_grpc_event_tx, grpc_event_rx) = unbounded_channel::<GrpcEvent>();
 
     // setup communication channels for services
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
@@ -136,13 +138,13 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::select! {
         res = run_grpc_bidi_stream(pool.clone(), wireguard_tx.clone(), mail_tx.clone()), if config.proxy_url.is_some() => error!("Proxy gRPC stream returned early: {res:?}"),
         res = run_grpc_server(Arc::clone(&worker_state), pool.clone(), Arc::clone(&gateway_state), wireguard_tx.clone(), mail_tx.clone(), grpc_cert, grpc_key, failed_logins.clone()) => error!("gRPC server returned early: {res:?}"),
-        res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, event_tx) => error!("Web server returned early: {res:?}"),
+        res = run_web_server(worker_state, gateway_state, webhook_tx, webhook_rx, wireguard_tx.clone(), mail_tx.clone(), pool.clone(), failed_logins, api_event_tx) => error!("Web server returned early: {res:?}"),
         res = run_mail_handler(mail_rx) => error!("Mail handler returned early: {res:?}"),
         res = run_periodic_peer_disconnect(pool.clone(), wireguard_tx.clone()) => error!("Periodic peer disconnect task returned early: {res:?}"),
         res = run_periodic_stats_purge(pool.clone(), config.stats_purge_frequency.into(), config.stats_purge_threshold.into()), if !config.disable_stats_purge => error!("Periodic stats purge task returned early: {res:?}"),
         res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, wireguard_tx.clone()) => error!("Utility thread returned early: {res:?}"),
-        res = run_event_router( event_rx, event_logger_tx, wireguard_tx, mail_tx) => error!("Event router returned early: {res:?}"),
+        res = run_event_router( api_event_rx, grpc_event_rx, event_logger_tx, wireguard_tx, mail_tx) => error!("Event router returned early: {res:?}"),
         res = run_event_logger(pool.clone(), event_logger_rx) => error!("Audit event logger returned early: {res:?}"),
     }
 

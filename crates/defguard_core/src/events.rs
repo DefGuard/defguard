@@ -1,13 +1,14 @@
-use crate::{db::Id, event_logger::message::EventContext};
+use crate::db::Id;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 
-/// Shared context that needs to be added to every event meant to be stored in the audit log
+/// Shared context that needs to be added to every API event
 ///
+/// Mainly meant to be stored in the audit log.
 /// By design this is a duplicate of a similar struct in the `event_logger` module.
 /// This is done in order to avoid circular imports once we split the project into multiple crates.
 #[derive(Debug)]
-pub struct AuditLogContext {
+pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
@@ -15,7 +16,7 @@ pub struct AuditLogContext {
     pub device: String,
 }
 
-impl AuditLogContext {
+impl ApiRequestContext {
     pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
@@ -28,47 +29,25 @@ impl AuditLogContext {
     }
 }
 
-impl From<AuditLogContext> for EventContext {
-    fn from(val: AuditLogContext) -> Self {
-        EventContext {
-            timestamp: val.timestamp,
-            user_id: val.user_id,
-            username: val.username,
-            ip: val.ip,
-            device: val.device,
-        }
-    }
-}
-
-/// Main events that can be routed through the system
-///
-/// System components can send events to the event router through the `event_tx` channel.
-/// The enum itself is organized based on event source to make splitting logic into smaller chunks easier.
-#[derive(Debug)]
-pub enum MainEvent {
-    Api(ApiEvent),
-    Grpc(GrpcEvent),
-}
-
 /// Events from Web API
 #[derive(Debug)]
 pub enum ApiEvent {
     UserLogin {
-        context: AuditLogContext,
+        context: ApiRequestContext,
     },
     UserLogout {
-        context: AuditLogContext,
+        context: ApiRequestContext,
     },
     UserDeviceAdded {
-        context: AuditLogContext,
+        context: ApiRequestContext,
         device_name: String,
     },
     UserDeviceRemoved {
-        context: AuditLogContext,
+        context: ApiRequestContext,
         device_name: String,
     },
     UserDeviceModified {
-        context: AuditLogContext,
+        context: ApiRequestContext,
         device_name: String,
     },
 }

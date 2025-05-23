@@ -4,7 +4,6 @@ license-file = "LICENSE.md"
 homepage = "https://defguard.net/"
 repository = "https://github.com/DefGuard/defguard"
 rust-version = "1.85.1"
-default-run = "defguard"
 
 [workspace]
 members = ["crates/*"]
@@ -13,6 +12,8 @@ resolver = "2"
 [workspace.dependencies]
 # internal crates
 defguard_core = { path = "./crates/defguard_core", version = "0.0.0" }
+defguard_event_logger = { path = "./crates/defguard_event_logger", version = "0.0.0" }
+defguard_event_router = { path = "./crates/defguard_event_router", version = "0.0.0" }
 model_derive = { path = "./crates/model_derive", version = "0.0.0" }
 
 # external dependencies

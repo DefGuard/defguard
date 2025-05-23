@@ -13,7 +13,7 @@ use crate::{
         db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
         license::LicenseError,
     },
-    event_router::events::MainEvent,
+    events::ApiEvent,
     grpc::GatewayMapError,
     templates::TemplateError,
 };
@@ -65,8 +65,8 @@ pub enum WebError {
     AclError(#[from] AclError),
     #[error("Firewall config error: {0}")]
     FirewallError(#[from] FirewallError),
-    #[error("Event channel error: {0}")]
-    EventChannelError(#[from] SendError<MainEvent>),
+    #[error("API event channel error: {0}")]
+    ApiEventChannelError(#[from] SendError<ApiEvent>),
 }
 
 impl From<tonic::Status> for WebError {

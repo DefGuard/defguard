@@ -28,26 +28,26 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
+use defguard_core::events::{ApiEvent, ApiRequestContext, GrpcEvent};
 use error::EventRouterError;
-use events::{ApiEvent, AuditLogContext, GrpcEvent, MainEvent};
+use events::Event;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
 };
 use tracing::{debug, error, info};
 
-use crate::{
-    db::GatewayEvent,
-    event_logger::message::{DefguardEvent, EventLoggerMessage, LoggerEvent},
-    mail::Mail,
-};
+use defguard_core::{db::GatewayEvent, mail::Mail};
+use defguard_event_logger::message::{EventLoggerMessage, LoggerEvent};
 
-pub mod error;
-pub mod events;
+mod error;
+mod events;
+mod handlers;
 
 #[allow(dead_code)]
 struct EventRouter {
-    event_rx: UnboundedReceiver<MainEvent>,
+    api_event_rx: UnboundedReceiver<ApiEvent>,
+    grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -57,7 +57,7 @@ impl EventRouter {
     /// Send message to audit event logger service to persist an event in DB
     fn log_event(
         &self,
-        context: AuditLogContext,
+        context: ApiRequestContext,
         audit_log_event: LoggerEvent,
     ) -> Result<(), EventRouterError> {
         // prepare message
@@ -73,13 +73,15 @@ impl EventRouter {
 
 impl EventRouter {
     fn new(
-        event_rx: UnboundedReceiver<MainEvent>,
+        api_event_rx: UnboundedReceiver<ApiEvent>,
+        grpc_event_rx: UnboundedReceiver<GrpcEvent>,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
     ) -> Self {
         Self {
-            event_rx,
+            api_event_rx,
+            grpc_event_rx,
             event_logger_tx,
             wireguard_tx,
             mail_tx,
@@ -89,78 +91,32 @@ impl EventRouter {
     /// Runs the event processing loop
     async fn run(&mut self) -> Result<(), EventRouterError> {
         loop {
-            // Receive a message from the channel
-            let event = match self.event_rx.recv().await {
-                Some(event) => event,
-                None => {
-                    error!("Event channel closed");
-                    return Err(EventRouterError::ChannelClosed);
-                }
+            // Receive an event from  one of the component event channels
+            let event = tokio::select! {
+              event = self.api_event_rx.recv() => match event {
+                  Some(api_event) => Event::Api(api_event),
+                  None => {
+                        error!("API event channel closed");
+                        return Err(EventRouterError::ApiEventChannelClosed);
+                  }
+              },
+              event = self.grpc_event_rx.recv() => match event {
+                  Some(grpc_event) => Event::Grpc(grpc_event),
+                  None => {
+                        error!("gRPC event channel closed");
+                        return Err(EventRouterError::GrpcEventChannelClosed);
+                  }
+              },
             };
 
             debug!("Received event: {event:?}");
 
             // Route the event to the appropriate handler
             match event {
-                MainEvent::Api(api_event) => self.handle_api_event(api_event)?,
-                MainEvent::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
+                Event::Api(api_event) => self.handle_api_event(api_event)?,
+                Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
             };
         }
-    }
-
-    fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
-        debug!("Processing API event: {event:?}");
-
-        match event {
-            ApiEvent::UserLogin { context } => {
-                // send event to audit log
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
-            }
-            ApiEvent::UserLogout { context } => {
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
-            }
-            ApiEvent::UserDeviceAdded {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-            ApiEvent::UserDeviceRemoved {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-            ApiEvent::UserDeviceModified {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceModified {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-        }
-
-        Ok(())
     }
 
     fn handle_grpc_event(&self, event: GrpcEvent) -> Result<(), EventRouterError> {
@@ -175,13 +131,20 @@ impl EventRouter {
 /// This function runs in an infinite loop, receiving messages from the event_rx channel
 /// and routing them to the appropriate service channels.
 pub async fn run_event_router(
-    event_rx: UnboundedReceiver<MainEvent>,
+    api_event_rx: UnboundedReceiver<ApiEvent>,
+    grpc_event_rx: UnboundedReceiver<GrpcEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
-    let mut event_router = EventRouter::new(event_rx, event_logger_tx, wireguard_tx, mail_tx);
+    let mut event_router = EventRouter::new(
+        api_event_rx,
+        grpc_event_rx,
+        event_logger_tx,
+        wireguard_tx,
+        mail_tx,
+    );
 
     event_router.run().await
 }

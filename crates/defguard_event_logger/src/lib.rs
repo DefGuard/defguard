@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{debug, info};
 
-use crate::db::{
+use defguard_core::db::{
     models::audit_log::{
         AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
         DeviceRemovedMetadata, EventType,

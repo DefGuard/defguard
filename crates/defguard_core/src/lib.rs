@@ -29,7 +29,7 @@ use enterprise::handlers::{
         test_dirsync_connection,
     },
 };
-use event_router::events::MainEvent;
+use events::ApiEvent;
 use handlers::{
     audit_log::get_audit_log_events,
     group::{bulk_assign_to_groups, list_groups_info},
@@ -141,8 +141,7 @@ pub mod config;
 pub mod db;
 pub mod enterprise;
 mod error;
-pub mod event_logger;
-pub mod event_router;
+pub mod events;
 pub mod globals;
 pub mod grpc;
 pub mod handlers;
@@ -322,7 +321,7 @@ pub fn build_webapp(
     gateway_state: Arc<Mutex<GatewayMap>>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    event_tx: UnboundedSender<MainEvent>,
+    event_tx: UnboundedSender<ApiEvent>,
 ) -> Router {
     let webapp: Router<AppState> = Router::new()
         .route("/", get(index))
@@ -617,7 +616,7 @@ pub async fn run_web_server(
     mail_tx: UnboundedSender<Mail>,
     pool: PgPool,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
-    event_tx: UnboundedSender<MainEvent>,
+    event_tx: UnboundedSender<ApiEvent>,
 ) -> Result<(), anyhow::Error> {
     let webapp = build_webapp(
         webhook_tx,

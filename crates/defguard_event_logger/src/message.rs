@@ -1,8 +1,9 @@
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 
-use crate::{
+use defguard_core::{
     db::{models::authentication_key::AuthenticationKeyType, Id},
+    events::ApiRequestContext,
     grpc::proto::proxy::MfaMethod,
 };
 
@@ -33,6 +34,18 @@ pub struct EventContext {
     pub username: String,
     pub ip: IpNetwork,
     pub device: String,
+}
+
+impl From<ApiRequestContext> for EventContext {
+    fn from(val: ApiRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: val.device,
+        }
+    }
 }
 
 /// Represents audit events related to actions performed in Web UI

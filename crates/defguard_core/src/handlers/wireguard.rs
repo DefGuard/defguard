@@ -37,7 +37,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    event_router::events::{ApiEvent, AuditLogContext},
+    events::{ApiEvent, ApiRequestContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -773,7 +773,7 @@ pub(crate) async fn add_device(
     update_counts(&appstate.pool).await?;
 
     appstate.send_event(ApiEvent::UserDeviceAdded {
-        context: AuditLogContext::new(
+        context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
@@ -888,7 +888,7 @@ pub(crate) async fn modify_device(
 
     let user = session.user;
     appstate.send_event(ApiEvent::UserDeviceModified {
-        context: AuditLogContext::new(
+        context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
@@ -1025,7 +1025,7 @@ pub(crate) async fn delete_device(
 
     let user = session.user;
     appstate.send_event(ApiEvent::UserDeviceRemoved {
-        context: AuditLogContext::new(
+        context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),

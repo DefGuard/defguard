@@ -79,24 +79,24 @@ pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 
-pub(crate) mod proto {
-    pub(crate) mod proxy {
+pub mod proto {
+    pub mod proxy {
         tonic::include_proto!("defguard.proxy");
     }
-    pub(crate) mod gateway {
+    pub mod gateway {
         tonic::include_proto!("gateway");
     }
-    pub(crate) mod auth {
+    pub mod auth {
         tonic::include_proto!("auth");
     }
-    pub(crate) mod worker {
+    pub mod worker {
         tonic::include_proto!("worker");
     }
-    pub(crate) mod enterprise {
-        pub(crate) mod license {
+    pub mod enterprise {
+        pub mod license {
             tonic::include_proto!("enterprise.license");
         }
-        pub(crate) mod firewall {
+        pub mod firewall {
             tonic::include_proto!("enterprise.firewall");
         }
     }
