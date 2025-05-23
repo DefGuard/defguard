@@ -1,0 +1,833 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="defguard" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../static.files/storage-82c7156e.js"></script><script defer src="../../static.files/src-script-63605ae7.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">defguard/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="attr">#![allow(clippy::too_many_arguments)]
+<a href=#2 id=2 data-nosnippet>2</a></span><span class="comment">// FIXME: actually refactor errors instead
+<a href=#3 id=3 data-nosnippet>3</a></span><span class="attr">#![allow(clippy::result_large_err)]
+<a href=#4 id=4 data-nosnippet>4</a></span><span class="kw">use </span>std::{
+<a href=#5 id=5 data-nosnippet>5</a>    net::{IpAddr, Ipv4Addr, SocketAddr},
+<a href=#6 id=6 data-nosnippet>6</a>    sync::{Arc, Mutex},
+<a href=#7 id=7 data-nosnippet>7</a>};
+<a href=#8 id=8 data-nosnippet>8</a>
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>anyhow::anyhow;
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">use </span>assets::{index, svg, web_asset};
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">use </span>axum::{
+<a href=#12 id=12 data-nosnippet>12</a>    http::{Request, StatusCode},
+<a href=#13 id=13 data-nosnippet>13</a>    routing::{delete, get, patch, post, put},
+<a href=#14 id=14 data-nosnippet>14</a>    serve, Extension, Json, Router,
+<a href=#15 id=15 data-nosnippet>15</a>};
+<a href=#16 id=16 data-nosnippet>16</a><span class="kw">use </span>db::models::device::DeviceType;
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">use </span>enterprise::handlers::{
+<a href=#18 id=18 data-nosnippet>18</a>    acl::{
+<a href=#19 id=19 data-nosnippet>19</a>        apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
+<a href=#20 id=20 data-nosnippet>20</a>        delete_acl_rule, get_acl_alias, get_acl_rule, list_acl_aliases, list_acl_rules,
+<a href=#21 id=21 data-nosnippet>21</a>        update_acl_alias, update_acl_rule,
+<a href=#22 id=22 data-nosnippet>22</a>    },
+<a href=#23 id=23 data-nosnippet>23</a>    api_tokens::{add_api_token, delete_api_token, fetch_api_tokens, rename_api_token},
+<a href=#24 id=24 data-nosnippet>24</a>    check_enterprise_info,
+<a href=#25 id=25 data-nosnippet>25</a>    enterprise_settings::{get_enterprise_settings, patch_enterprise_settings},
+<a href=#26 id=26 data-nosnippet>26</a>    openid_login::{auth_callback, get_auth_info},
+<a href=#27 id=27 data-nosnippet>27</a>    openid_providers::{
+<a href=#28 id=28 data-nosnippet>28</a>        add_openid_provider, delete_openid_provider, get_current_openid_provider,
+<a href=#29 id=29 data-nosnippet>29</a>        test_dirsync_connection,
+<a href=#30 id=30 data-nosnippet>30</a>    },
+<a href=#31 id=31 data-nosnippet>31</a>};
+<a href=#32 id=32 data-nosnippet>32</a><span class="kw">use </span>handlers::{
+<a href=#33 id=33 data-nosnippet>33</a>    group::{bulk_assign_to_groups, list_groups_info},
+<a href=#34 id=34 data-nosnippet>34</a>    network_devices::{
+<a href=#35 id=35 data-nosnippet>35</a>        add_network_device, check_ip_availability, download_network_device_config,
+<a href=#36 id=36 data-nosnippet>36</a>        find_available_ip, get_network_device, list_network_devices, modify_network_device,
+<a href=#37 id=37 data-nosnippet>37</a>        start_network_device_setup, start_network_device_setup_for_device,
+<a href=#38 id=38 data-nosnippet>38</a>    },
+<a href=#39 id=39 data-nosnippet>39</a>    ssh_authorized_keys::{
+<a href=#40 id=40 data-nosnippet>40</a>        add_authentication_key, delete_authentication_key, fetch_authentication_keys,
+<a href=#41 id=41 data-nosnippet>41</a>        rename_authentication_key,
+<a href=#42 id=42 data-nosnippet>42</a>    },
+<a href=#43 id=43 data-nosnippet>43</a>    updates::check_new_version,
+<a href=#44 id=44 data-nosnippet>44</a>    yubikey::{delete_yubikey, rename_yubikey},
+<a href=#45 id=45 data-nosnippet>45</a>};
+<a href=#46 id=46 data-nosnippet>46</a><span class="kw">use </span>ipnetwork::IpNetwork;
+<a href=#47 id=47 data-nosnippet>47</a><span class="kw">use </span>secrecy::ExposeSecret;
+<a href=#48 id=48 data-nosnippet>48</a><span class="kw">use </span>sqlx::PgPool;
+<a href=#49 id=49 data-nosnippet>49</a><span class="kw">use </span>tokio::{
+<a href=#50 id=50 data-nosnippet>50</a>    net::TcpListener,
+<a href=#51 id=51 data-nosnippet>51</a>    sync::{
+<a href=#52 id=52 data-nosnippet>52</a>        broadcast::Sender,
+<a href=#53 id=53 data-nosnippet>53</a>        mpsc::{UnboundedReceiver, UnboundedSender},
+<a href=#54 id=54 data-nosnippet>54</a>        OnceCell,
+<a href=#55 id=55 data-nosnippet>55</a>    },
+<a href=#56 id=56 data-nosnippet>56</a>};
+<a href=#57 id=57 data-nosnippet>57</a><span class="kw">use </span>tower_http::trace::{DefaultOnResponse, TraceLayer};
+<a href=#58 id=58 data-nosnippet>58</a><span class="kw">use </span>tracing::Level;
+<a href=#59 id=59 data-nosnippet>59</a><span class="kw">use </span>utoipa::{
+<a href=#60 id=60 data-nosnippet>60</a>    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+<a href=#61 id=61 data-nosnippet>61</a>    Modify, OpenApi,
+<a href=#62 id=62 data-nosnippet>62</a>};
+<a href=#63 id=63 data-nosnippet>63</a><span class="kw">use </span>utoipa_swagger_ui::SwaggerUi;
+<a href=#64 id=64 data-nosnippet>64</a>
+<a href=#65 id=65 data-nosnippet>65</a><span class="attr">#[cfg(feature = <span class="string">"wireguard"</span>)]
+<a href=#66 id=66 data-nosnippet>66</a></span><span class="kw">use </span><span class="self">self</span>::handlers::wireguard::{
+<a href=#67 id=67 data-nosnippet>67</a>    add_device, add_user_devices, create_network, create_network_token, delete_device,
+<a href=#68 id=68 data-nosnippet>68</a>    delete_network, devices_stats, download_config, gateway_status, get_device, import_network,
+<a href=#69 id=69 data-nosnippet>69</a>    list_devices, list_networks, list_user_devices, modify_device, modify_network, network_details,
+<a href=#70 id=70 data-nosnippet>70</a>    network_stats, remove_gateway,
+<a href=#71 id=71 data-nosnippet>71</a>};
+<a href=#72 id=72 data-nosnippet>72</a><span class="attr">#[cfg(feature = <span class="string">"worker"</span>)]
+<a href=#73 id=73 data-nosnippet>73</a></span><span class="kw">use </span><span class="self">self</span>::handlers::worker::{
+<a href=#74 id=74 data-nosnippet>74</a>    create_job, create_worker_token, job_status, list_workers, remove_worker,
+<a href=#75 id=75 data-nosnippet>75</a>};
+<a href=#76 id=76 data-nosnippet>76</a><span class="attr">#[cfg(feature = <span class="string">"openid"</span>)]
+<a href=#77 id=77 data-nosnippet>77</a></span><span class="kw">use </span><span class="self">self</span>::handlers::{
+<a href=#78 id=78 data-nosnippet>78</a>    openid_clients::{
+<a href=#79 id=79 data-nosnippet>79</a>        add_openid_client, change_openid_client, change_openid_client_state, delete_openid_client,
+<a href=#80 id=80 data-nosnippet>80</a>        get_openid_client, list_openid_clients,
+<a href=#81 id=81 data-nosnippet>81</a>    },
+<a href=#82 id=82 data-nosnippet>82</a>    openid_flow::{
+<a href=#83 id=83 data-nosnippet>83</a>        authorization, discovery_keys, openid_configuration, secure_authorization, token, userinfo,
+<a href=#84 id=84 data-nosnippet>84</a>    },
+<a href=#85 id=85 data-nosnippet>85</a>};
+<a href=#86 id=86 data-nosnippet>86</a><span class="kw">use </span><span class="self">self</span>::{
+<a href=#87 id=87 data-nosnippet>87</a>    appstate::AppState,
+<a href=#88 id=88 data-nosnippet>88</a>    auth::{Claims, ClaimsType},
+<a href=#89 id=89 data-nosnippet>89</a>    config::{DefGuardConfig, InitVpnLocationArgs},
+<a href=#90 id=90 data-nosnippet>90</a>    db::{
+<a href=#91 id=91 data-nosnippet>91</a>        init_db,
+<a href=#92 id=92 data-nosnippet>92</a>        models::wireguard::{DEFAULT_DISCONNECT_THRESHOLD, DEFAULT_KEEPALIVE_INTERVAL},
+<a href=#93 id=93 data-nosnippet>93</a>        AppEvent, Device, GatewayEvent, User, WireguardNetwork,
+<a href=#94 id=94 data-nosnippet>94</a>    },
+<a href=#95 id=95 data-nosnippet>95</a>    handlers::{
+<a href=#96 id=96 data-nosnippet>96</a>        auth::{
+<a href=#97 id=97 data-nosnippet>97</a>            authenticate, email_mfa_code, email_mfa_disable, email_mfa_enable, email_mfa_init,
+<a href=#98 id=98 data-nosnippet>98</a>            logout, mfa_disable, mfa_enable, recovery_code, request_email_mfa_code, totp_code,
+<a href=#99 id=99 data-nosnippet>99</a>            totp_disable, totp_enable, totp_secret, webauthn_end, webauthn_finish, webauthn_init,
+<a href=#100 id=100 data-nosnippet>100</a>            webauthn_start,
+<a href=#101 id=101 data-nosnippet>101</a>        },
+<a href=#102 id=102 data-nosnippet>102</a>        forward_auth::forward_auth,
+<a href=#103 id=103 data-nosnippet>103</a>        group::{
+<a href=#104 id=104 data-nosnippet>104</a>            add_group_member, create_group, delete_group, get_group, list_groups, modify_group,
+<a href=#105 id=105 data-nosnippet>105</a>            remove_group_member,
+<a href=#106 id=106 data-nosnippet>106</a>        },
+<a href=#107 id=107 data-nosnippet>107</a>        mail::{send_support_data, test_mail},
+<a href=#108 id=108 data-nosnippet>108</a>        settings::{
+<a href=#109 id=109 data-nosnippet>109</a>            get_settings, get_settings_essentials, patch_settings, set_default_branding,
+<a href=#110 id=110 data-nosnippet>110</a>            test_ldap_settings, update_settings,
+<a href=#111 id=111 data-nosnippet>111</a>        },
+<a href=#112 id=112 data-nosnippet>112</a>        ssh_authorized_keys::get_authorized_keys,
+<a href=#113 id=113 data-nosnippet>113</a>        support::{configuration, logs},
+<a href=#114 id=114 data-nosnippet>114</a>        user::{
+<a href=#115 id=115 data-nosnippet>115</a>            add_user, change_password, change_self_password, delete_authorized_app,
+<a href=#116 id=116 data-nosnippet>116</a>            delete_security_key, delete_user, get_user, list_users, me, modify_user,
+<a href=#117 id=117 data-nosnippet>117</a>            reset_password, start_enrollment, start_remote_desktop_configuration,
+<a href=#118 id=118 data-nosnippet>118</a>            username_available,
+<a href=#119 id=119 data-nosnippet>119</a>        },
+<a href=#120 id=120 data-nosnippet>120</a>        webhooks::{
+<a href=#121 id=121 data-nosnippet>121</a>            add_webhook, change_enabled, change_webhook, delete_webhook, get_webhook, list_webhooks,
+<a href=#122 id=122 data-nosnippet>122</a>        },
+<a href=#123 id=123 data-nosnippet>123</a>    },
+<a href=#124 id=124 data-nosnippet>124</a>    mail::Mail,
+<a href=#125 id=125 data-nosnippet>125</a>};
+<a href=#126 id=126 data-nosnippet>126</a><span class="attr">#[cfg(any(feature = <span class="string">"openid"</span>, feature = <span class="string">"worker"</span>))]
+<a href=#127 id=127 data-nosnippet>127</a></span><span class="kw">use </span><span class="self">self</span>::{
+<a href=#128 id=128 data-nosnippet>128</a>    auth::failed_login::FailedLoginMap,
+<a href=#129 id=129 data-nosnippet>129</a>    db::models::oauth2client::OAuth2Client,
+<a href=#130 id=130 data-nosnippet>130</a>    grpc::{GatewayMap, WorkerState},
+<a href=#131 id=131 data-nosnippet>131</a>    handlers::app_info::get_app_info,
+<a href=#132 id=132 data-nosnippet>132</a>};
+<a href=#133 id=133 data-nosnippet>133</a>
+<a href=#134 id=134 data-nosnippet>134</a><span class="kw">pub mod </span>appstate;
+<a href=#135 id=135 data-nosnippet>135</a><span class="kw">pub mod </span>assets;
+<a href=#136 id=136 data-nosnippet>136</a><span class="kw">pub mod </span>auth;
+<a href=#137 id=137 data-nosnippet>137</a><span class="kw">pub mod </span>config;
+<a href=#138 id=138 data-nosnippet>138</a><span class="kw">pub mod </span>db;
+<a href=#139 id=139 data-nosnippet>139</a><span class="kw">pub mod </span>enterprise;
+<a href=#140 id=140 data-nosnippet>140</a><span class="kw">mod </span>error;
+<a href=#141 id=141 data-nosnippet>141</a><span class="kw">pub mod </span>globals;
+<a href=#142 id=142 data-nosnippet>142</a><span class="kw">pub mod </span>grpc;
+<a href=#143 id=143 data-nosnippet>143</a><span class="kw">pub mod </span>handlers;
+<a href=#144 id=144 data-nosnippet>144</a><span class="kw">pub mod </span>headers;
+<a href=#145 id=145 data-nosnippet>145</a><span class="kw">pub mod </span>hex;
+<a href=#146 id=146 data-nosnippet>146</a><span class="kw">pub mod </span>mail;
+<a href=#147 id=147 data-nosnippet>147</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>random;
+<a href=#148 id=148 data-nosnippet>148</a><span class="kw">pub mod </span>secret;
+<a href=#149 id=149 data-nosnippet>149</a><span class="kw">pub mod </span>support;
+<a href=#150 id=150 data-nosnippet>150</a><span class="kw">pub mod </span>templates;
+<a href=#151 id=151 data-nosnippet>151</a><span class="kw">pub mod </span>updates;
+<a href=#152 id=152 data-nosnippet>152</a><span class="kw">pub mod </span>utility_thread;
+<a href=#153 id=153 data-nosnippet>153</a><span class="kw">pub mod </span>wg_config;
+<a href=#154 id=154 data-nosnippet>154</a><span class="kw">pub mod </span>wireguard_peer_disconnect;
+<a href=#155 id=155 data-nosnippet>155</a><span class="kw">pub mod </span>wireguard_stats_purge;
+<a href=#156 id=156 data-nosnippet>156</a>
+<a href=#157 id=157 data-nosnippet>157</a><span class="attr">#[macro_use]
+<a href=#158 id=158 data-nosnippet>158</a></span><span class="kw">extern crate </span>tracing;
+<a href=#159 id=159 data-nosnippet>159</a>
+<a href=#160 id=160 data-nosnippet>160</a><span class="attr">#[macro_use]
+<a href=#161 id=161 data-nosnippet>161</a></span><span class="kw">extern crate </span>serde;
+<a href=#162 id=162 data-nosnippet>162</a>
+<a href=#163 id=163 data-nosnippet>163</a><span class="kw">pub const </span>VERSION: <span class="kw-2">&amp;</span>str = <span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">"CARGO_PKG_VERSION"</span>), <span class="string">"-"</span>, <span class="macro">env!</span>(<span class="string">"VERGEN_GIT_SHA"</span>));
+<a href=#164 id=164 data-nosnippet>164</a><span class="kw">pub static </span>SERVER_CONFIG: OnceCell&lt;DefGuardConfig&gt; = OnceCell::const_new();
+<a href=#165 id=165 data-nosnippet>165</a>
+<a href=#166 id=166 data-nosnippet>166</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>server_config() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>DefGuardConfig {
+<a href=#167 id=167 data-nosnippet>167</a>    SERVER_CONFIG
+<a href=#168 id=168 data-nosnippet>168</a>        .get()
+<a href=#169 id=169 data-nosnippet>169</a>        .expect(<span class="string">"Server configuration not set yet"</span>)
+<a href=#170 id=170 data-nosnippet>170</a>}
+<a href=#171 id=171 data-nosnippet>171</a>
+<a href=#172 id=172 data-nosnippet>172</a><span class="comment">// WireGuard key length in bytes.
+<a href=#173 id=173 data-nosnippet>173</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const </span>KEY_LENGTH: usize = <span class="number">32</span>;
+<a href=#174 id=174 data-nosnippet>174</a>
+<a href=#175 id=175 data-nosnippet>175</a><span class="kw">mod </span>openapi {
+<a href=#176 id=176 data-nosnippet>176</a>    <span class="kw">use </span>db::{
+<a href=#177 id=177 data-nosnippet>177</a>        models::device::{ModifyDevice, UserDevice},
+<a href=#178 id=178 data-nosnippet>178</a>        AddDevice, UserDetails, UserInfo,
+<a href=#179 id=179 data-nosnippet>179</a>    };
+<a href=#180 id=180 data-nosnippet>180</a>    <span class="kw">use </span>handlers::{
+<a href=#181 id=181 data-nosnippet>181</a>        group::{<span class="self">self</span>, BulkAssignToGroupsRequest, Groups},
+<a href=#182 id=182 data-nosnippet>182</a>        user, wireguard <span class="kw">as </span>device, wireguard <span class="kw">as </span>network,
+<a href=#183 id=183 data-nosnippet>183</a>        wireguard::AddDeviceResult,
+<a href=#184 id=184 data-nosnippet>184</a>        ApiResponse, EditGroupInfo, GroupInfo, PasswordChange, PasswordChangeSelf,
+<a href=#185 id=185 data-nosnippet>185</a>        StartEnrollmentRequest, Username, SESSION_COOKIE_NAME,
+<a href=#186 id=186 data-nosnippet>186</a>    };
+<a href=#187 id=187 data-nosnippet>187</a>    <span class="kw">use </span>utoipa::{
+<a href=#188 id=188 data-nosnippet>188</a>        openapi::security::{HttpAuthScheme, HttpBuilder},
+<a href=#189 id=189 data-nosnippet>189</a>        OpenApi,
+<a href=#190 id=190 data-nosnippet>190</a>    };
+<a href=#191 id=191 data-nosnippet>191</a>
+<a href=#192 id=192 data-nosnippet>192</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#193 id=193 data-nosnippet>193</a>
+<a href=#194 id=194 data-nosnippet>194</a>    <span class="attr">#[derive(OpenApi)]
+<a href=#195 id=195 data-nosnippet>195</a>    #[openapi(
+<a href=#196 id=196 data-nosnippet>196</a>        modifiers(<span class="kw-2">&amp;</span>SecurityAddon),
+<a href=#197 id=197 data-nosnippet>197</a>        paths(
+<a href=#198 id=198 data-nosnippet>198</a>            <span class="comment">// /user
+<a href=#199 id=199 data-nosnippet>199</a>            </span>user::list_users,
+<a href=#200 id=200 data-nosnippet>200</a>            user::get_user,
+<a href=#201 id=201 data-nosnippet>201</a>            user::add_user,
+<a href=#202 id=202 data-nosnippet>202</a>            user::start_enrollment,
+<a href=#203 id=203 data-nosnippet>203</a>            user::start_remote_desktop_configuration,
+<a href=#204 id=204 data-nosnippet>204</a>            user::username_available,
+<a href=#205 id=205 data-nosnippet>205</a>            user::modify_user,
+<a href=#206 id=206 data-nosnippet>206</a>            user::delete_user,
+<a href=#207 id=207 data-nosnippet>207</a>            user::change_self_password,
+<a href=#208 id=208 data-nosnippet>208</a>            user::change_password,
+<a href=#209 id=209 data-nosnippet>209</a>            user::reset_password,
+<a href=#210 id=210 data-nosnippet>210</a>            user::delete_security_key,
+<a href=#211 id=211 data-nosnippet>211</a>            user::me,
+<a href=#212 id=212 data-nosnippet>212</a>            user::delete_authorized_app,
+<a href=#213 id=213 data-nosnippet>213</a>            <span class="comment">// /group
+<a href=#214 id=214 data-nosnippet>214</a>            </span>group::bulk_assign_to_groups,
+<a href=#215 id=215 data-nosnippet>215</a>            group::list_groups_info,
+<a href=#216 id=216 data-nosnippet>216</a>            group::list_groups,
+<a href=#217 id=217 data-nosnippet>217</a>            group::get_group,
+<a href=#218 id=218 data-nosnippet>218</a>            group::create_group,
+<a href=#219 id=219 data-nosnippet>219</a>            group::modify_group,
+<a href=#220 id=220 data-nosnippet>220</a>            group::delete_group,
+<a href=#221 id=221 data-nosnippet>221</a>            group::add_group_member,
+<a href=#222 id=222 data-nosnippet>222</a>            group::remove_group_member,
+<a href=#223 id=223 data-nosnippet>223</a>            <span class="comment">// /device
+<a href=#224 id=224 data-nosnippet>224</a>            </span>device::add_device,
+<a href=#225 id=225 data-nosnippet>225</a>            device::modify_device,
+<a href=#226 id=226 data-nosnippet>226</a>            device::get_device,
+<a href=#227 id=227 data-nosnippet>227</a>            device::delete_device,
+<a href=#228 id=228 data-nosnippet>228</a>            device::list_devices,
+<a href=#229 id=229 data-nosnippet>229</a>            device::list_user_devices,
+<a href=#230 id=230 data-nosnippet>230</a>            <span class="comment">// /network
+<a href=#231 id=231 data-nosnippet>231</a>            </span>network::create_network,
+<a href=#232 id=232 data-nosnippet>232</a>            network::modify_network,
+<a href=#233 id=233 data-nosnippet>233</a>            network::delete_network,
+<a href=#234 id=234 data-nosnippet>234</a>            network::list_networks,
+<a href=#235 id=235 data-nosnippet>235</a>            network::network_details,
+<a href=#236 id=236 data-nosnippet>236</a>        ),
+<a href=#237 id=237 data-nosnippet>237</a>        components(
+<a href=#238 id=238 data-nosnippet>238</a>            schemas(
+<a href=#239 id=239 data-nosnippet>239</a>                ApiResponse, UserInfo, UserDetails, UserDevice, Groups, Username, StartEnrollmentRequest, PasswordChangeSelf, PasswordChange, AddDevice, AddDeviceResult, Device, ModifyDevice, BulkAssignToGroupsRequest, GroupInfo, EditGroupInfo
+<a href=#240 id=240 data-nosnippet>240</a>            ),
+<a href=#241 id=241 data-nosnippet>241</a>        ),
+<a href=#242 id=242 data-nosnippet>242</a>        tags(
+<a href=#243 id=243 data-nosnippet>243</a>            (name = <span class="string">"user"</span>, description = <span class="string">"
+<a href=#244 id=244 data-nosnippet>244</a>Endpoints that allow to control user data.
+<a href=#245 id=245 data-nosnippet>245</a>
+<a href=#246 id=246 data-nosnippet>246</a>Available actions:
+<a href=#247 id=247 data-nosnippet>247</a>- list all users
+<a href=#248 id=248 data-nosnippet>248</a>- CRUD mechanism for handling users
+<a href=#249 id=249 data-nosnippet>249</a>- operations on security key and authorized app
+<a href=#250 id=250 data-nosnippet>250</a>- change user password.
+<a href=#251 id=251 data-nosnippet>251</a>            "</span>),
+<a href=#252 id=252 data-nosnippet>252</a>            (name = <span class="string">"group"</span>, description = <span class="string">"
+<a href=#253 id=253 data-nosnippet>253</a>Endpoints that allow to control groups in your network.
+<a href=#254 id=254 data-nosnippet>254</a>
+<a href=#255 id=255 data-nosnippet>255</a>Available actions:
+<a href=#256 id=256 data-nosnippet>256</a>- list all groups
+<a href=#257 id=257 data-nosnippet>257</a>- CRUD mechanism for handling groups
+<a href=#258 id=258 data-nosnippet>258</a>- add or delete a group member.
+<a href=#259 id=259 data-nosnippet>259</a>            "</span>),
+<a href=#260 id=260 data-nosnippet>260</a>            (name = <span class="string">"device"</span>, description = <span class="string">"
+<a href=#261 id=261 data-nosnippet>261</a>Endpoints that allow to control devices in your network.
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>Available actions:
+<a href=#264 id=264 data-nosnippet>264</a>- list all devices or user devices
+<a href=#265 id=265 data-nosnippet>265</a>- CRUD mechanism for handling devices.
+<a href=#266 id=266 data-nosnippet>266</a>            "</span>),
+<a href=#267 id=267 data-nosnippet>267</a>            (name = <span class="string">"nework"</span>, description = <span class="string">"
+<a href=#268 id=268 data-nosnippet>268</a>Endpoints that allow to control your networks.
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>Available actions:
+<a href=#271 id=271 data-nosnippet>271</a>- list all wireguard networks
+<a href=#272 id=272 data-nosnippet>272</a>- CRUD mechanism for handling devices.
+<a href=#273 id=273 data-nosnippet>273</a>            "</span>),
+<a href=#274 id=274 data-nosnippet>274</a>        )
+<a href=#275 id=275 data-nosnippet>275</a>    )]
+<a href=#276 id=276 data-nosnippet>276</a>    </span><span class="kw">pub struct </span>ApiDoc;
+<a href=#277 id=277 data-nosnippet>277</a>
+<a href=#278 id=278 data-nosnippet>278</a>    <span class="kw">struct </span>SecurityAddon;
+<a href=#279 id=279 data-nosnippet>279</a>
+<a href=#280 id=280 data-nosnippet>280</a>    <span class="kw">impl </span>Modify <span class="kw">for </span>SecurityAddon {
+<a href=#281 id=281 data-nosnippet>281</a>        <span class="kw">fn </span>modify(<span class="kw-2">&amp;</span><span class="self">self</span>, openapi: <span class="kw-2">&amp;mut </span>utoipa::openapi::OpenApi) {
+<a href=#282 id=282 data-nosnippet>282</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(components) = openapi.components.as_mut() {
+<a href=#283 id=283 data-nosnippet>283</a>                <span class="comment">// session cookie auth
+<a href=#284 id=284 data-nosnippet>284</a>                </span>components.add_security_scheme(
+<a href=#285 id=285 data-nosnippet>285</a>                    <span class="string">"cookie"</span>,
+<a href=#286 id=286 data-nosnippet>286</a>                    SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SESSION_COOKIE_NAME))),
+<a href=#287 id=287 data-nosnippet>287</a>                );
+<a href=#288 id=288 data-nosnippet>288</a>                <span class="comment">// API token auth
+<a href=#289 id=289 data-nosnippet>289</a>                </span>components.add_security_scheme(
+<a href=#290 id=290 data-nosnippet>290</a>                    <span class="string">"api_token"</span>,
+<a href=#291 id=291 data-nosnippet>291</a>                    SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
+<a href=#292 id=292 data-nosnippet>292</a>                );
+<a href=#293 id=293 data-nosnippet>293</a>            }
+<a href=#294 id=294 data-nosnippet>294</a>        }
+<a href=#295 id=295 data-nosnippet>295</a>    }
+<a href=#296 id=296 data-nosnippet>296</a>}
+<a href=#297 id=297 data-nosnippet>297</a>
+<a href=#298 id=298 data-nosnippet>298</a><span class="doccomment">/// Simple health-check.
+<a href=#299 id=299 data-nosnippet>299</a></span><span class="kw">async fn </span>health_check() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#300 id=300 data-nosnippet>300</a>    <span class="string">"alive"
+<a href=#301 id=301 data-nosnippet>301</a></span>}
+<a href=#302 id=302 data-nosnippet>302</a>
+<a href=#303 id=303 data-nosnippet>303</a><span class="kw">async fn </span>handle_404() -&gt; (StatusCode, <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) {
+<a href=#304 id=304 data-nosnippet>304</a>    (StatusCode::NOT_FOUND, <span class="string">"Not found"</span>)
+<a href=#305 id=305 data-nosnippet>305</a>}
+<a href=#306 id=306 data-nosnippet>306</a>
+<a href=#307 id=307 data-nosnippet>307</a><span class="kw">async fn </span>openapi() -&gt; Json&lt;utoipa::openapi::OpenApi&gt; {
+<a href=#308 id=308 data-nosnippet>308</a>    Json(openapi::ApiDoc::openapi())
+<a href=#309 id=309 data-nosnippet>309</a>}
+<a href=#310 id=310 data-nosnippet>310</a>
+<a href=#311 id=311 data-nosnippet>311</a><span class="kw">pub fn </span>build_webapp(
+<a href=#312 id=312 data-nosnippet>312</a>    webhook_tx: UnboundedSender&lt;AppEvent&gt;,
+<a href=#313 id=313 data-nosnippet>313</a>    webhook_rx: UnboundedReceiver&lt;AppEvent&gt;,
+<a href=#314 id=314 data-nosnippet>314</a>    wireguard_tx: Sender&lt;GatewayEvent&gt;,
+<a href=#315 id=315 data-nosnippet>315</a>    mail_tx: UnboundedSender&lt;Mail&gt;,
+<a href=#316 id=316 data-nosnippet>316</a>    worker_state: Arc&lt;Mutex&lt;WorkerState&gt;&gt;,
+<a href=#317 id=317 data-nosnippet>317</a>    gateway_state: Arc&lt;Mutex&lt;GatewayMap&gt;&gt;,
+<a href=#318 id=318 data-nosnippet>318</a>    pool: PgPool,
+<a href=#319 id=319 data-nosnippet>319</a>    failed_logins: Arc&lt;Mutex&lt;FailedLoginMap&gt;&gt;,
+<a href=#320 id=320 data-nosnippet>320</a>) -&gt; Router {
+<a href=#321 id=321 data-nosnippet>321</a>    <span class="kw">let </span>webapp: Router&lt;AppState&gt; = Router::new()
+<a href=#322 id=322 data-nosnippet>322</a>        .route(<span class="string">"/"</span>, get(index))
+<a href=#323 id=323 data-nosnippet>323</a>        .route(<span class="string">"/{*path}"</span>, get(index))
+<a href=#324 id=324 data-nosnippet>324</a>        .route(<span class="string">"/fonts/{*path}"</span>, get(web_asset))
+<a href=#325 id=325 data-nosnippet>325</a>        .route(<span class="string">"/assets/{*path}"</span>, get(web_asset))
+<a href=#326 id=326 data-nosnippet>326</a>        .route(<span class="string">"/svg/{*path}"</span>, get(svg))
+<a href=#327 id=327 data-nosnippet>327</a>        .fallback_service(get(handle_404));
+<a href=#328 id=328 data-nosnippet>328</a>
+<a href=#329 id=329 data-nosnippet>329</a>    <span class="kw">let </span>webapp = webapp.nest(
+<a href=#330 id=330 data-nosnippet>330</a>        <span class="string">"/api/v1"</span>,
+<a href=#331 id=331 data-nosnippet>331</a>        Router::new()
+<a href=#332 id=332 data-nosnippet>332</a>            .route(<span class="string">"/health"</span>, get(health_check))
+<a href=#333 id=333 data-nosnippet>333</a>            .route(<span class="string">"/info"</span>, get(get_app_info))
+<a href=#334 id=334 data-nosnippet>334</a>            .route(<span class="string">"/ssh_authorized_keys"</span>, get(get_authorized_keys))
+<a href=#335 id=335 data-nosnippet>335</a>            .route(<span class="string">"/api-docs"</span>, get(openapi))
+<a href=#336 id=336 data-nosnippet>336</a>            .route(<span class="string">"/updates"</span>, get(check_new_version))
+<a href=#337 id=337 data-nosnippet>337</a>            <span class="comment">// /auth
+<a href=#338 id=338 data-nosnippet>338</a>            </span>.route(<span class="string">"/auth"</span>, post(authenticate))
+<a href=#339 id=339 data-nosnippet>339</a>            .route(<span class="string">"/auth/logout"</span>, post(logout))
+<a href=#340 id=340 data-nosnippet>340</a>            .route(<span class="string">"/auth/mfa"</span>, put(mfa_enable))
+<a href=#341 id=341 data-nosnippet>341</a>            .route(<span class="string">"/auth/mfa"</span>, delete(mfa_disable))
+<a href=#342 id=342 data-nosnippet>342</a>            .route(<span class="string">"/auth/webauthn/init"</span>, post(webauthn_init))
+<a href=#343 id=343 data-nosnippet>343</a>            .route(<span class="string">"/auth/webauthn/finish"</span>, post(webauthn_finish))
+<a href=#344 id=344 data-nosnippet>344</a>            .route(<span class="string">"/auth/webauthn/start"</span>, post(webauthn_start))
+<a href=#345 id=345 data-nosnippet>345</a>            .route(<span class="string">"/auth/webauthn"</span>, post(webauthn_end))
+<a href=#346 id=346 data-nosnippet>346</a>            .route(<span class="string">"/auth/totp/init"</span>, post(totp_secret))
+<a href=#347 id=347 data-nosnippet>347</a>            .route(<span class="string">"/auth/totp"</span>, post(totp_enable))
+<a href=#348 id=348 data-nosnippet>348</a>            .route(<span class="string">"/auth/totp"</span>, delete(totp_disable))
+<a href=#349 id=349 data-nosnippet>349</a>            .route(<span class="string">"/auth/totp/verify"</span>, post(totp_code))
+<a href=#350 id=350 data-nosnippet>350</a>            .route(<span class="string">"/auth/email/init"</span>, post(email_mfa_init))
+<a href=#351 id=351 data-nosnippet>351</a>            .route(<span class="string">"/auth/email"</span>, get(request_email_mfa_code))
+<a href=#352 id=352 data-nosnippet>352</a>            .route(<span class="string">"/auth/email"</span>, post(email_mfa_enable))
+<a href=#353 id=353 data-nosnippet>353</a>            .route(<span class="string">"/auth/email"</span>, delete(email_mfa_disable))
+<a href=#354 id=354 data-nosnippet>354</a>            .route(<span class="string">"/auth/email/verify"</span>, post(email_mfa_code))
+<a href=#355 id=355 data-nosnippet>355</a>            .route(<span class="string">"/auth/recovery"</span>, post(recovery_code))
+<a href=#356 id=356 data-nosnippet>356</a>            <span class="comment">// /user
+<a href=#357 id=357 data-nosnippet>357</a>            </span>.route(<span class="string">"/user"</span>, get(list_users))
+<a href=#358 id=358 data-nosnippet>358</a>            .route(<span class="string">"/user/{username}"</span>, get(get_user))
+<a href=#359 id=359 data-nosnippet>359</a>            .route(<span class="string">"/user"</span>, post(add_user))
+<a href=#360 id=360 data-nosnippet>360</a>            .route(<span class="string">"/user/{username}/start_enrollment"</span>, post(start_enrollment))
+<a href=#361 id=361 data-nosnippet>361</a>            .route(
+<a href=#362 id=362 data-nosnippet>362</a>                <span class="string">"/user/{username}/start_desktop"</span>,
+<a href=#363 id=363 data-nosnippet>363</a>                post(start_remote_desktop_configuration),
+<a href=#364 id=364 data-nosnippet>364</a>            )
+<a href=#365 id=365 data-nosnippet>365</a>            .route(<span class="string">"/user/available"</span>, post(username_available))
+<a href=#366 id=366 data-nosnippet>366</a>            .route(<span class="string">"/user/{username}"</span>, put(modify_user))
+<a href=#367 id=367 data-nosnippet>367</a>            .route(<span class="string">"/user/{username}"</span>, delete(delete_user))
+<a href=#368 id=368 data-nosnippet>368</a>            <span class="comment">// FIXME: username `change_password` is invalid
+<a href=#369 id=369 data-nosnippet>369</a>            </span>.route(<span class="string">"/user/change_password"</span>, put(change_self_password))
+<a href=#370 id=370 data-nosnippet>370</a>            .route(<span class="string">"/user/{username}/password"</span>, put(change_password))
+<a href=#371 id=371 data-nosnippet>371</a>            .route(<span class="string">"/user/{username}/reset_password"</span>, post(reset_password))
+<a href=#372 id=372 data-nosnippet>372</a>            <span class="comment">// auth keys
+<a href=#373 id=373 data-nosnippet>373</a>            </span>.route(<span class="string">"/user/{username}/auth_key"</span>, get(fetch_authentication_keys))
+<a href=#374 id=374 data-nosnippet>374</a>            .route(<span class="string">"/user/{username}/auth_key"</span>, post(add_authentication_key))
+<a href=#375 id=375 data-nosnippet>375</a>            .route(
+<a href=#376 id=376 data-nosnippet>376</a>                <span class="string">"/user/{username}/auth_key/{key_id}"</span>,
+<a href=#377 id=377 data-nosnippet>377</a>                delete(delete_authentication_key),
+<a href=#378 id=378 data-nosnippet>378</a>            )
+<a href=#379 id=379 data-nosnippet>379</a>            .route(
+<a href=#380 id=380 data-nosnippet>380</a>                <span class="string">"/user/{username}/auth_key/{key_id}/rename"</span>,
+<a href=#381 id=381 data-nosnippet>381</a>                post(rename_authentication_key),
+<a href=#382 id=382 data-nosnippet>382</a>            )
+<a href=#383 id=383 data-nosnippet>383</a>            <span class="comment">// yubi keys
+<a href=#384 id=384 data-nosnippet>384</a>            </span>.route(<span class="string">"/user/{username}/yubikey/{key_id}"</span>, delete(delete_yubikey))
+<a href=#385 id=385 data-nosnippet>385</a>            .route(
+<a href=#386 id=386 data-nosnippet>386</a>                <span class="string">"/user/{username}/yubikey/{key_id}/rename"</span>,
+<a href=#387 id=387 data-nosnippet>387</a>                post(rename_yubikey),
+<a href=#388 id=388 data-nosnippet>388</a>            )
+<a href=#389 id=389 data-nosnippet>389</a>            <span class="comment">// API tokens
+<a href=#390 id=390 data-nosnippet>390</a>            </span>.route(<span class="string">"/user/{username}/api_token"</span>, get(fetch_api_tokens))
+<a href=#391 id=391 data-nosnippet>391</a>            .route(<span class="string">"/user/{username}/api_token"</span>, post(add_api_token))
+<a href=#392 id=392 data-nosnippet>392</a>            .route(
+<a href=#393 id=393 data-nosnippet>393</a>                <span class="string">"/user/{username}/api_token/{token_id}"</span>,
+<a href=#394 id=394 data-nosnippet>394</a>                delete(delete_api_token),
+<a href=#395 id=395 data-nosnippet>395</a>            )
+<a href=#396 id=396 data-nosnippet>396</a>            .route(
+<a href=#397 id=397 data-nosnippet>397</a>                <span class="string">"/user/{username}/api_token/{token_id}/rename"</span>,
+<a href=#398 id=398 data-nosnippet>398</a>                post(rename_api_token),
+<a href=#399 id=399 data-nosnippet>399</a>            )
+<a href=#400 id=400 data-nosnippet>400</a>            .route(
+<a href=#401 id=401 data-nosnippet>401</a>                <span class="string">"/user/{username}/security_key/{id}"</span>,
+<a href=#402 id=402 data-nosnippet>402</a>                delete(delete_security_key),
+<a href=#403 id=403 data-nosnippet>403</a>            )
+<a href=#404 id=404 data-nosnippet>404</a>            .route(<span class="string">"/me"</span>, get(me))
+<a href=#405 id=405 data-nosnippet>405</a>            .route(
+<a href=#406 id=406 data-nosnippet>406</a>                <span class="string">"/user/{username}/oauth_app/{oauth2client_id}"</span>,
+<a href=#407 id=407 data-nosnippet>407</a>                delete(delete_authorized_app),
+<a href=#408 id=408 data-nosnippet>408</a>            )
+<a href=#409 id=409 data-nosnippet>409</a>            <span class="comment">// forward_auth
+<a href=#410 id=410 data-nosnippet>410</a>            </span>.route(<span class="string">"/forward_auth"</span>, get(forward_auth))
+<a href=#411 id=411 data-nosnippet>411</a>            <span class="comment">// group
+<a href=#412 id=412 data-nosnippet>412</a>            </span>.route(<span class="string">"/group"</span>, get(list_groups))
+<a href=#413 id=413 data-nosnippet>413</a>            .route(<span class="string">"/group"</span>, post(create_group))
+<a href=#414 id=414 data-nosnippet>414</a>            .route(<span class="string">"/group/{name}"</span>, get(get_group))
+<a href=#415 id=415 data-nosnippet>415</a>            .route(<span class="string">"/group/{name}"</span>, put(modify_group))
+<a href=#416 id=416 data-nosnippet>416</a>            .route(<span class="string">"/group/{name}"</span>, delete(delete_group))
+<a href=#417 id=417 data-nosnippet>417</a>            .route(<span class="string">"/group/{name}"</span>, post(add_group_member))
+<a href=#418 id=418 data-nosnippet>418</a>            .route(<span class="string">"/group/{name}/user/{username}"</span>, delete(remove_group_member))
+<a href=#419 id=419 data-nosnippet>419</a>            .route(<span class="string">"/group-info"</span>, get(list_groups_info))
+<a href=#420 id=420 data-nosnippet>420</a>            .route(<span class="string">"/groups-assign"</span>, post(bulk_assign_to_groups))
+<a href=#421 id=421 data-nosnippet>421</a>            <span class="comment">// mail
+<a href=#422 id=422 data-nosnippet>422</a>            </span>.route(<span class="string">"/mail/test"</span>, post(test_mail))
+<a href=#423 id=423 data-nosnippet>423</a>            .route(<span class="string">"/mail/support"</span>, post(send_support_data))
+<a href=#424 id=424 data-nosnippet>424</a>            <span class="comment">// settings
+<a href=#425 id=425 data-nosnippet>425</a>            </span>.route(<span class="string">"/settings"</span>, get(get_settings))
+<a href=#426 id=426 data-nosnippet>426</a>            .route(<span class="string">"/settings"</span>, put(update_settings))
+<a href=#427 id=427 data-nosnippet>427</a>            .route(<span class="string">"/settings"</span>, patch(patch_settings))
+<a href=#428 id=428 data-nosnippet>428</a>            .route(<span class="string">"/settings/{id}"</span>, put(set_default_branding))
+<a href=#429 id=429 data-nosnippet>429</a>            <span class="comment">// settings for frontend
+<a href=#430 id=430 data-nosnippet>430</a>            </span>.route(<span class="string">"/settings_essentials"</span>, get(get_settings_essentials))
+<a href=#431 id=431 data-nosnippet>431</a>            <span class="comment">// enterprise settings
+<a href=#432 id=432 data-nosnippet>432</a>            </span>.route(<span class="string">"/settings_enterprise"</span>, get(get_enterprise_settings))
+<a href=#433 id=433 data-nosnippet>433</a>            .route(<span class="string">"/settings_enterprise"</span>, patch(patch_enterprise_settings))
+<a href=#434 id=434 data-nosnippet>434</a>            <span class="comment">// support
+<a href=#435 id=435 data-nosnippet>435</a>            </span>.route(<span class="string">"/support/configuration"</span>, get(configuration))
+<a href=#436 id=436 data-nosnippet>436</a>            .route(<span class="string">"/support/logs"</span>, get(logs))
+<a href=#437 id=437 data-nosnippet>437</a>            <span class="comment">// webhooks
+<a href=#438 id=438 data-nosnippet>438</a>            </span>.route(<span class="string">"/webhook"</span>, post(add_webhook))
+<a href=#439 id=439 data-nosnippet>439</a>            .route(<span class="string">"/webhook"</span>, get(list_webhooks))
+<a href=#440 id=440 data-nosnippet>440</a>            .route(<span class="string">"/webhook/{id}"</span>, get(get_webhook))
+<a href=#441 id=441 data-nosnippet>441</a>            .route(<span class="string">"/webhook/{id}"</span>, put(change_webhook))
+<a href=#442 id=442 data-nosnippet>442</a>            .route(<span class="string">"/webhook/{id}"</span>, delete(delete_webhook))
+<a href=#443 id=443 data-nosnippet>443</a>            .route(<span class="string">"/webhook/{id}"</span>, post(change_enabled))
+<a href=#444 id=444 data-nosnippet>444</a>            <span class="comment">// ldap
+<a href=#445 id=445 data-nosnippet>445</a>            </span>.route(<span class="string">"/ldap/test"</span>, get(test_ldap_settings)),
+<a href=#446 id=446 data-nosnippet>446</a>    );
+<a href=#447 id=447 data-nosnippet>447</a>
+<a href=#448 id=448 data-nosnippet>448</a>    <span class="comment">// Enterprise features
+<a href=#449 id=449 data-nosnippet>449</a>    </span><span class="kw">let </span>webapp = webapp.nest(
+<a href=#450 id=450 data-nosnippet>450</a>        <span class="string">"/api/v1/openid"</span>,
+<a href=#451 id=451 data-nosnippet>451</a>        Router::new()
+<a href=#452 id=452 data-nosnippet>452</a>            .route(<span class="string">"/provider"</span>, get(get_current_openid_provider))
+<a href=#453 id=453 data-nosnippet>453</a>            .route(<span class="string">"/provider"</span>, post(add_openid_provider))
+<a href=#454 id=454 data-nosnippet>454</a>            .route(<span class="string">"/provider/{name}"</span>, delete(delete_openid_provider))
+<a href=#455 id=455 data-nosnippet>455</a>            .route(<span class="string">"/callback"</span>, post(auth_callback))
+<a href=#456 id=456 data-nosnippet>456</a>            .route(<span class="string">"/auth_info"</span>, get(get_auth_info)),
+<a href=#457 id=457 data-nosnippet>457</a>    );
+<a href=#458 id=458 data-nosnippet>458</a>    <span class="kw">let </span>webapp = webapp.nest(
+<a href=#459 id=459 data-nosnippet>459</a>        <span class="string">"/api/v1"</span>,
+<a href=#460 id=460 data-nosnippet>460</a>        Router::new()
+<a href=#461 id=461 data-nosnippet>461</a>            .route(<span class="string">"/enterprise_info"</span>, get(check_enterprise_info))
+<a href=#462 id=462 data-nosnippet>462</a>            .route(<span class="string">"/test_directory_sync"</span>, get(test_dirsync_connection)),
+<a href=#463 id=463 data-nosnippet>463</a>    );
+<a href=#464 id=464 data-nosnippet>464</a>
+<a href=#465 id=465 data-nosnippet>465</a>    <span class="attr">#[cfg(feature = <span class="string">"openid"</span>)]
+<a href=#466 id=466 data-nosnippet>466</a>    </span><span class="kw">let </span>webapp = webapp
+<a href=#467 id=467 data-nosnippet>467</a>        .nest(
+<a href=#468 id=468 data-nosnippet>468</a>            <span class="string">"/api/v1/oauth"</span>,
+<a href=#469 id=469 data-nosnippet>469</a>            Router::new()
+<a href=#470 id=470 data-nosnippet>470</a>                .route(<span class="string">"/discovery/keys"</span>, get(discovery_keys))
+<a href=#471 id=471 data-nosnippet>471</a>                .route(<span class="string">"/"</span>, post(add_openid_client))
+<a href=#472 id=472 data-nosnippet>472</a>                .route(<span class="string">"/"</span>, get(list_openid_clients))
+<a href=#473 id=473 data-nosnippet>473</a>                .route(<span class="string">"/{client_id}"</span>, get(get_openid_client))
+<a href=#474 id=474 data-nosnippet>474</a>                .route(<span class="string">"/{client_id}"</span>, put(change_openid_client))
+<a href=#475 id=475 data-nosnippet>475</a>                .route(<span class="string">"/{client_id}"</span>, post(change_openid_client_state))
+<a href=#476 id=476 data-nosnippet>476</a>                .route(<span class="string">"/{client_id}"</span>, delete(delete_openid_client))
+<a href=#477 id=477 data-nosnippet>477</a>                .route(<span class="string">"/authorize"</span>, get(authorization))
+<a href=#478 id=478 data-nosnippet>478</a>                .route(<span class="string">"/authorize"</span>, post(secure_authorization))
+<a href=#479 id=479 data-nosnippet>479</a>                .route(<span class="string">"/token"</span>, post(token))
+<a href=#480 id=480 data-nosnippet>480</a>                .route(<span class="string">"/userinfo"</span>, get(userinfo)),
+<a href=#481 id=481 data-nosnippet>481</a>        )
+<a href=#482 id=482 data-nosnippet>482</a>        .route(
+<a href=#483 id=483 data-nosnippet>483</a>            <span class="string">"/.well-known/openid-configuration"</span>,
+<a href=#484 id=484 data-nosnippet>484</a>            get(openid_configuration),
+<a href=#485 id=485 data-nosnippet>485</a>        );
+<a href=#486 id=486 data-nosnippet>486</a>
+<a href=#487 id=487 data-nosnippet>487</a>    <span class="kw">let </span>webapp = webapp.nest(
+<a href=#488 id=488 data-nosnippet>488</a>        <span class="string">"/api/v1/acl"</span>,
+<a href=#489 id=489 data-nosnippet>489</a>        Router::new()
+<a href=#490 id=490 data-nosnippet>490</a>            .route(<span class="string">"/rule"</span>, get(list_acl_rules))
+<a href=#491 id=491 data-nosnippet>491</a>            .route(<span class="string">"/rule"</span>, post(create_acl_rule))
+<a href=#492 id=492 data-nosnippet>492</a>            .route(<span class="string">"/rule/apply"</span>, put(apply_acl_rules))
+<a href=#493 id=493 data-nosnippet>493</a>            .route(<span class="string">"/rule/{id}"</span>, get(get_acl_rule))
+<a href=#494 id=494 data-nosnippet>494</a>            .route(<span class="string">"/rule/{id}"</span>, put(update_acl_rule))
+<a href=#495 id=495 data-nosnippet>495</a>            .route(<span class="string">"/rule/{id}"</span>, delete(delete_acl_rule))
+<a href=#496 id=496 data-nosnippet>496</a>            .route(<span class="string">"/alias"</span>, get(list_acl_aliases))
+<a href=#497 id=497 data-nosnippet>497</a>            .route(<span class="string">"/alias"</span>, post(create_acl_alias))
+<a href=#498 id=498 data-nosnippet>498</a>            .route(<span class="string">"/alias/{id}"</span>, get(get_acl_alias))
+<a href=#499 id=499 data-nosnippet>499</a>            .route(<span class="string">"/alias/{id}"</span>, put(update_acl_alias))
+<a href=#500 id=500 data-nosnippet>500</a>            .route(<span class="string">"/alias/{id}"</span>, delete(delete_acl_alias))
+<a href=#501 id=501 data-nosnippet>501</a>            .route(<span class="string">"/alias/apply"</span>, put(apply_acl_aliases)),
+<a href=#502 id=502 data-nosnippet>502</a>    );
+<a href=#503 id=503 data-nosnippet>503</a>
+<a href=#504 id=504 data-nosnippet>504</a>    <span class="attr">#[cfg(feature = <span class="string">"wireguard"</span>)]
+<a href=#505 id=505 data-nosnippet>505</a>    </span><span class="kw">let </span>webapp = webapp.nest(
+<a href=#506 id=506 data-nosnippet>506</a>        <span class="string">"/api/v1"</span>,
+<a href=#507 id=507 data-nosnippet>507</a>        Router::new()
+<a href=#508 id=508 data-nosnippet>508</a>            <span class="comment">// FIXME: Conflict; change /device/{device_id} to /device/{username}.
+<a href=#509 id=509 data-nosnippet>509</a>            </span>.route(<span class="string">"/device/{device_id}"</span>, post(add_device))
+<a href=#510 id=510 data-nosnippet>510</a>            .route(<span class="string">"/device/{device_id}"</span>, put(modify_device))
+<a href=#511 id=511 data-nosnippet>511</a>            .route(<span class="string">"/device/{device_id}"</span>, get(get_device))
+<a href=#512 id=512 data-nosnippet>512</a>            .route(<span class="string">"/device/{device_id}"</span>, delete(delete_device))
+<a href=#513 id=513 data-nosnippet>513</a>            .route(<span class="string">"/device"</span>, get(list_devices))
+<a href=#514 id=514 data-nosnippet>514</a>            .route(<span class="string">"/device/user/{username}"</span>, get(list_user_devices))
+<a href=#515 id=515 data-nosnippet>515</a>            <span class="comment">// Network devices, as opposed to user devices
+<a href=#516 id=516 data-nosnippet>516</a>            </span>.route(<span class="string">"/device/network"</span>, post(add_network_device))
+<a href=#517 id=517 data-nosnippet>517</a>            .route(<span class="string">"/device/network"</span>, get(list_network_devices))
+<a href=#518 id=518 data-nosnippet>518</a>            .route(<span class="string">"/device/network/ip/{network_id}"</span>, get(find_available_ip))
+<a href=#519 id=519 data-nosnippet>519</a>            .route(
+<a href=#520 id=520 data-nosnippet>520</a>                <span class="string">"/device/network/ip/{network_id}"</span>,
+<a href=#521 id=521 data-nosnippet>521</a>                post(check_ip_availability),
+<a href=#522 id=522 data-nosnippet>522</a>            )
+<a href=#523 id=523 data-nosnippet>523</a>            .route(<span class="string">"/device/network/{device_id}"</span>, put(modify_network_device))
+<a href=#524 id=524 data-nosnippet>524</a>            .route(<span class="string">"/device/network/{device_id}"</span>, get(get_network_device))
+<a href=#525 id=525 data-nosnippet>525</a>            .route(<span class="string">"/device/network/{device_id}"</span>, delete(delete_device))
+<a href=#526 id=526 data-nosnippet>526</a>            .route(
+<a href=#527 id=527 data-nosnippet>527</a>                <span class="string">"/device/network/{device_id}/config"</span>,
+<a href=#528 id=528 data-nosnippet>528</a>                get(download_network_device_config),
+<a href=#529 id=529 data-nosnippet>529</a>            )
+<a href=#530 id=530 data-nosnippet>530</a>            .route(
+<a href=#531 id=531 data-nosnippet>531</a>                <span class="string">"/device/network/start_cli"</span>,
+<a href=#532 id=532 data-nosnippet>532</a>                post(start_network_device_setup),
+<a href=#533 id=533 data-nosnippet>533</a>            )
+<a href=#534 id=534 data-nosnippet>534</a>            .route(
+<a href=#535 id=535 data-nosnippet>535</a>                <span class="string">"/device/network/start_cli/{device_id}"</span>,
+<a href=#536 id=536 data-nosnippet>536</a>                post(start_network_device_setup_for_device),
+<a href=#537 id=537 data-nosnippet>537</a>            )
+<a href=#538 id=538 data-nosnippet>538</a>            .route(<span class="string">"/network"</span>, post(create_network))
+<a href=#539 id=539 data-nosnippet>539</a>            .route(<span class="string">"/network/{network_id}"</span>, put(modify_network))
+<a href=#540 id=540 data-nosnippet>540</a>            .route(<span class="string">"/network/{network_id}"</span>, delete(delete_network))
+<a href=#541 id=541 data-nosnippet>541</a>            .route(<span class="string">"/network"</span>, get(list_networks))
+<a href=#542 id=542 data-nosnippet>542</a>            .route(<span class="string">"/network/{network_id}"</span>, get(network_details))
+<a href=#543 id=543 data-nosnippet>543</a>            .route(<span class="string">"/network/{network_id}/gateways"</span>, get(gateway_status))
+<a href=#544 id=544 data-nosnippet>544</a>            .route(
+<a href=#545 id=545 data-nosnippet>545</a>                <span class="string">"/network/{network_id}/gateways/{gateway_id}"</span>,
+<a href=#546 id=546 data-nosnippet>546</a>                delete(remove_gateway),
+<a href=#547 id=547 data-nosnippet>547</a>            )
+<a href=#548 id=548 data-nosnippet>548</a>            .route(<span class="string">"/network/import"</span>, post(import_network))
+<a href=#549 id=549 data-nosnippet>549</a>            .route(<span class="string">"/network/{network_id}/devices"</span>, post(add_user_devices))
+<a href=#550 id=550 data-nosnippet>550</a>            .route(
+<a href=#551 id=551 data-nosnippet>551</a>                <span class="string">"/network/{network_id}/device/{device_id}/config"</span>,
+<a href=#552 id=552 data-nosnippet>552</a>                get(download_config),
+<a href=#553 id=553 data-nosnippet>553</a>            )
+<a href=#554 id=554 data-nosnippet>554</a>            .route(<span class="string">"/network/{network_id}/token"</span>, get(create_network_token))
+<a href=#555 id=555 data-nosnippet>555</a>            .route(<span class="string">"/network/{network_id}/stats/users"</span>, get(devices_stats))
+<a href=#556 id=556 data-nosnippet>556</a>            .route(<span class="string">"/network/{network_id}/stats"</span>, get(network_stats))
+<a href=#557 id=557 data-nosnippet>557</a>            .layer(Extension(gateway_state)),
+<a href=#558 id=558 data-nosnippet>558</a>    );
+<a href=#559 id=559 data-nosnippet>559</a>
+<a href=#560 id=560 data-nosnippet>560</a>    <span class="attr">#[cfg(feature = <span class="string">"worker"</span>)]
+<a href=#561 id=561 data-nosnippet>561</a>    </span><span class="kw">let </span>webapp = webapp.nest(
+<a href=#562 id=562 data-nosnippet>562</a>        <span class="string">"/api/v1/worker"</span>,
+<a href=#563 id=563 data-nosnippet>563</a>        Router::new()
+<a href=#564 id=564 data-nosnippet>564</a>            .route(<span class="string">"/job"</span>, post(create_job))
+<a href=#565 id=565 data-nosnippet>565</a>            .route(<span class="string">"/token"</span>, get(create_worker_token))
+<a href=#566 id=566 data-nosnippet>566</a>            .route(<span class="string">"/"</span>, get(list_workers))
+<a href=#567 id=567 data-nosnippet>567</a>            .route(<span class="string">"/{id}"</span>, delete(remove_worker))
+<a href=#568 id=568 data-nosnippet>568</a>            .route(<span class="string">"/{id}"</span>, get(job_status))
+<a href=#569 id=569 data-nosnippet>569</a>            .layer(Extension(worker_state)),
+<a href=#570 id=570 data-nosnippet>570</a>    );
+<a href=#571 id=571 data-nosnippet>571</a>
+<a href=#572 id=572 data-nosnippet>572</a>    <span class="kw">let </span>swagger =
+<a href=#573 id=573 data-nosnippet>573</a>        SwaggerUi::new(<span class="string">"/api-docs"</span>).url(<span class="string">"/api-docs/openapi.json"</span>, openapi::ApiDoc::openapi());
+<a href=#574 id=574 data-nosnippet>574</a>
+<a href=#575 id=575 data-nosnippet>575</a>    webapp
+<a href=#576 id=576 data-nosnippet>576</a>        .with_state(AppState::new(
+<a href=#577 id=577 data-nosnippet>577</a>            pool,
+<a href=#578 id=578 data-nosnippet>578</a>            webhook_tx,
+<a href=#579 id=579 data-nosnippet>579</a>            webhook_rx,
+<a href=#580 id=580 data-nosnippet>580</a>            wireguard_tx,
+<a href=#581 id=581 data-nosnippet>581</a>            mail_tx,
+<a href=#582 id=582 data-nosnippet>582</a>            failed_logins,
+<a href=#583 id=583 data-nosnippet>583</a>        ))
+<a href=#584 id=584 data-nosnippet>584</a>        .layer(
+<a href=#585 id=585 data-nosnippet>585</a>            TraceLayer::new_for_http()
+<a href=#586 id=586 data-nosnippet>586</a>                .make_span_with(|request: <span class="kw-2">&amp;</span>Request&lt;<span class="kw">_</span>&gt;| {
+<a href=#587 id=587 data-nosnippet>587</a>                    <span class="macro">info_span!</span>(
+<a href=#588 id=588 data-nosnippet>588</a>                        <span class="string">"http_request"</span>,
+<a href=#589 id=589 data-nosnippet>589</a>                        method = <span class="question-mark">?</span>request.method(),
+<a href=#590 id=590 data-nosnippet>590</a>                        path = <span class="question-mark">?</span>request.uri(),
+<a href=#591 id=591 data-nosnippet>591</a>                    )
+<a href=#592 id=592 data-nosnippet>592</a>                })
+<a href=#593 id=593 data-nosnippet>593</a>                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+<a href=#594 id=594 data-nosnippet>594</a>        )
+<a href=#595 id=595 data-nosnippet>595</a>        .merge(swagger)
+<a href=#596 id=596 data-nosnippet>596</a>}
+<a href=#597 id=597 data-nosnippet>597</a>
+<a href=#598 id=598 data-nosnippet>598</a><span class="doccomment">/// Runs core web server exposing REST API.
+<a href=#599 id=599 data-nosnippet>599</a></span><span class="attr">#[instrument(skip_all)]
+<a href=#600 id=600 data-nosnippet>600</a></span><span class="kw">pub async fn </span>run_web_server(
+<a href=#601 id=601 data-nosnippet>601</a>    worker_state: Arc&lt;Mutex&lt;WorkerState&gt;&gt;,
+<a href=#602 id=602 data-nosnippet>602</a>    gateway_state: Arc&lt;Mutex&lt;GatewayMap&gt;&gt;,
+<a href=#603 id=603 data-nosnippet>603</a>    webhook_tx: UnboundedSender&lt;AppEvent&gt;,
+<a href=#604 id=604 data-nosnippet>604</a>    webhook_rx: UnboundedReceiver&lt;AppEvent&gt;,
+<a href=#605 id=605 data-nosnippet>605</a>    wireguard_tx: Sender&lt;GatewayEvent&gt;,
+<a href=#606 id=606 data-nosnippet>606</a>    mail_tx: UnboundedSender&lt;Mail&gt;,
+<a href=#607 id=607 data-nosnippet>607</a>    pool: PgPool,
+<a href=#608 id=608 data-nosnippet>608</a>    failed_logins: Arc&lt;Mutex&lt;FailedLoginMap&gt;&gt;,
+<a href=#609 id=609 data-nosnippet>609</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), anyhow::Error&gt; {
+<a href=#610 id=610 data-nosnippet>610</a>    <span class="kw">let </span>webapp = build_webapp(
+<a href=#611 id=611 data-nosnippet>611</a>        webhook_tx,
+<a href=#612 id=612 data-nosnippet>612</a>        webhook_rx,
+<a href=#613 id=613 data-nosnippet>613</a>        wireguard_tx,
+<a href=#614 id=614 data-nosnippet>614</a>        mail_tx,
+<a href=#615 id=615 data-nosnippet>615</a>        worker_state,
+<a href=#616 id=616 data-nosnippet>616</a>        gateway_state,
+<a href=#617 id=617 data-nosnippet>617</a>        pool,
+<a href=#618 id=618 data-nosnippet>618</a>        failed_logins,
+<a href=#619 id=619 data-nosnippet>619</a>    );
+<a href=#620 id=620 data-nosnippet>620</a>    <span class="macro">info!</span>(<span class="string">"Started web services"</span>);
+<a href=#621 id=621 data-nosnippet>621</a>    <span class="kw">let </span>addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), server_config().http_port);
+<a href=#622 id=622 data-nosnippet>622</a>    <span class="kw">let </span>listener = TcpListener::bind(<span class="kw-2">&amp;</span>addr).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#623 id=623 data-nosnippet>623</a>    serve(
+<a href=#624 id=624 data-nosnippet>624</a>        listener,
+<a href=#625 id=625 data-nosnippet>625</a>        webapp.into_make_service_with_connect_info::&lt;SocketAddr&gt;(),
+<a href=#626 id=626 data-nosnippet>626</a>    )
+<a href=#627 id=627 data-nosnippet>627</a>    .<span class="kw">await
+<a href=#628 id=628 data-nosnippet>628</a>    </span>.map_err(|err| <span class="macro">anyhow!</span>(<span class="string">"Web server can't be started {err}"</span>))
+<a href=#629 id=629 data-nosnippet>629</a>}
+<a href=#630 id=630 data-nosnippet>630</a>
+<a href=#631 id=631 data-nosnippet>631</a><span class="doccomment">/// Automates test objects creation to easily setup development environment.
+<a href=#632 id=632 data-nosnippet>632</a>/// Test network keys:
+<a href=#633 id=633 data-nosnippet>633</a>/// Public: zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo=
+<a href=#634 id=634 data-nosnippet>634</a>/// Private: MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M=
+<a href=#635 id=635 data-nosnippet>635</a>/// Test device keys:
+<a href=#636 id=636 data-nosnippet>636</a>/// Public: gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc=
+<a href=#637 id=637 data-nosnippet>637</a>/// Private: wGS1qdJfYbWJsOUuP1IDgaJYpR+VaKZPVZvdmLjsH2Y=
+<a href=#638 id=638 data-nosnippet>638</a></span><span class="kw">pub async fn </span>init_dev_env(config: <span class="kw-2">&amp;</span>DefGuardConfig) {
+<a href=#639 id=639 data-nosnippet>639</a>    <span class="macro">info!</span>(<span class="string">"Initializing dev environment"</span>);
+<a href=#640 id=640 data-nosnippet>640</a>    <span class="kw">let </span>pool = init_db(
+<a href=#641 id=641 data-nosnippet>641</a>        <span class="kw-2">&amp;</span>config.database_host,
+<a href=#642 id=642 data-nosnippet>642</a>        config.database_port,
+<a href=#643 id=643 data-nosnippet>643</a>        <span class="kw-2">&amp;</span>config.database_name,
+<a href=#644 id=644 data-nosnippet>644</a>        <span class="kw-2">&amp;</span>config.database_user,
+<a href=#645 id=645 data-nosnippet>645</a>        config.database_password.expose_secret(),
+<a href=#646 id=646 data-nosnippet>646</a>    )
+<a href=#647 id=647 data-nosnippet>647</a>    .<span class="kw">await</span>;
+<a href=#648 id=648 data-nosnippet>648</a>
+<a href=#649 id=649 data-nosnippet>649</a>    <span class="comment">// initialize admin user
+<a href=#650 id=650 data-nosnippet>650</a>    </span>User::init_admin_user(<span class="kw-2">&amp;</span>pool, config.default_admin_password.expose_secret())
+<a href=#651 id=651 data-nosnippet>651</a>        .<span class="kw">await
+<a href=#652 id=652 data-nosnippet>652</a>        </span>.expect(<span class="string">"Failed to create admin user"</span>);
+<a href=#653 id=653 data-nosnippet>653</a>
+<a href=#654 id=654 data-nosnippet>654</a>    <span class="kw">let </span><span class="kw-2">mut </span>transaction = pool
+<a href=#655 id=655 data-nosnippet>655</a>        .begin()
+<a href=#656 id=656 data-nosnippet>656</a>        .<span class="kw">await
+<a href=#657 id=657 data-nosnippet>657</a>        </span>.expect(<span class="string">"Failed to initialize transaction"</span>);
+<a href=#658 id=658 data-nosnippet>658</a>
+<a href=#659 id=659 data-nosnippet>659</a>    <span class="kw">let </span>network = <span class="kw">if let </span><span class="prelude-val">Some</span>(networks) =
+<a href=#660 id=660 data-nosnippet>660</a>        WireguardNetwork::find_by_name(<span class="kw-2">&amp;mut *</span>transaction, <span class="string">"TestNet"</span>)
+<a href=#661 id=661 data-nosnippet>661</a>            .<span class="kw">await
+<a href=#662 id=662 data-nosnippet>662</a>            </span>.expect(<span class="string">"Failed to search for test network"</span>)
+<a href=#663 id=663 data-nosnippet>663</a>    {
+<a href=#664 id=664 data-nosnippet>664</a>        <span class="macro">info!</span>(<span class="string">"Test network exists already, skipping creation..."</span>);
+<a href=#665 id=665 data-nosnippet>665</a>        networks.into_iter().next().unwrap()
+<a href=#666 id=666 data-nosnippet>666</a>    } <span class="kw">else </span>{
+<a href=#667 id=667 data-nosnippet>667</a>        <span class="macro">info!</span>(<span class="string">"Creating test network"</span>);
+<a href=#668 id=668 data-nosnippet>668</a>        <span class="kw">let </span><span class="kw-2">mut </span>network = WireguardNetwork::new(
+<a href=#669 id=669 data-nosnippet>669</a>            <span class="string">"TestNet"</span>.to_string(),
+<a href=#670 id=670 data-nosnippet>670</a>            <span class="macro">vec!</span>[IpNetwork::new(IpAddr::V4(Ipv4Addr::new(<span class="number">10</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>)), <span class="number">24</span>).unwrap()],
+<a href=#671 id=671 data-nosnippet>671</a>            <span class="number">50051</span>,
+<a href=#672 id=672 data-nosnippet>672</a>            <span class="string">"0.0.0.0"</span>.to_string(),
+<a href=#673 id=673 data-nosnippet>673</a>            <span class="prelude-val">None</span>,
+<a href=#674 id=674 data-nosnippet>674</a>            <span class="macro">vec!</span>[IpNetwork::new(IpAddr::V4(Ipv4Addr::new(<span class="number">10</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>)), <span class="number">24</span>).unwrap()],
+<a href=#675 id=675 data-nosnippet>675</a>            <span class="bool-val">false</span>,
+<a href=#676 id=676 data-nosnippet>676</a>            DEFAULT_KEEPALIVE_INTERVAL,
+<a href=#677 id=677 data-nosnippet>677</a>            DEFAULT_DISCONNECT_THRESHOLD,
+<a href=#678 id=678 data-nosnippet>678</a>            <span class="bool-val">false</span>,
+<a href=#679 id=679 data-nosnippet>679</a>            <span class="bool-val">false</span>,
+<a href=#680 id=680 data-nosnippet>680</a>        )
+<a href=#681 id=681 data-nosnippet>681</a>        .expect(<span class="string">"Could not create network"</span>);
+<a href=#682 id=682 data-nosnippet>682</a>        network.pubkey = <span class="string">"zGMeVGm9HV9I4wSKF9AXmYnnAIhDySyqLMuKpcfIaQo="</span>.to_string();
+<a href=#683 id=683 data-nosnippet>683</a>        network.prvkey = <span class="string">"MAk3d5KuB167G88HM7nGYR6ksnPMAOguAg2s5EcPp1M="</span>.to_string();
+<a href=#684 id=684 data-nosnippet>684</a>        network
+<a href=#685 id=685 data-nosnippet>685</a>            .save(<span class="kw-2">&amp;mut *</span>transaction)
+<a href=#686 id=686 data-nosnippet>686</a>            .<span class="kw">await
+<a href=#687 id=687 data-nosnippet>687</a>            </span>.expect(<span class="string">"Could not save network"</span>)
+<a href=#688 id=688 data-nosnippet>688</a>    };
+<a href=#689 id=689 data-nosnippet>689</a>
+<a href=#690 id=690 data-nosnippet>690</a>    <span class="kw">if </span>Device::find_by_pubkey(
+<a href=#691 id=691 data-nosnippet>691</a>        <span class="kw-2">&amp;mut *</span>transaction,
+<a href=#692 id=692 data-nosnippet>692</a>        <span class="string">"gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc="</span>,
+<a href=#693 id=693 data-nosnippet>693</a>    )
+<a href=#694 id=694 data-nosnippet>694</a>    .<span class="kw">await
+<a href=#695 id=695 data-nosnippet>695</a>    </span>.expect(<span class="string">"Failed to search for test device"</span>)
+<a href=#696 id=696 data-nosnippet>696</a>    .is_some()
+<a href=#697 id=697 data-nosnippet>697</a>    {
+<a href=#698 id=698 data-nosnippet>698</a>        <span class="macro">info!</span>(<span class="string">"Test device exists already, skipping creation..."</span>);
+<a href=#699 id=699 data-nosnippet>699</a>    } <span class="kw">else </span>{
+<a href=#700 id=700 data-nosnippet>700</a>        <span class="macro">info!</span>(<span class="string">"Creating test device"</span>);
+<a href=#701 id=701 data-nosnippet>701</a>        <span class="kw">let </span>device = Device::new(
+<a href=#702 id=702 data-nosnippet>702</a>            <span class="string">"TestDevice"</span>.to_string(),
+<a href=#703 id=703 data-nosnippet>703</a>            <span class="string">"gQYL5eMeFDj0R+lpC7oZyIl0/sNVmQDC6ckP7husZjc="</span>.to_string(),
+<a href=#704 id=704 data-nosnippet>704</a>            <span class="number">1</span>,
+<a href=#705 id=705 data-nosnippet>705</a>            DeviceType::User,
+<a href=#706 id=706 data-nosnippet>706</a>            <span class="prelude-val">None</span>,
+<a href=#707 id=707 data-nosnippet>707</a>            <span class="bool-val">true</span>,
+<a href=#708 id=708 data-nosnippet>708</a>        )
+<a href=#709 id=709 data-nosnippet>709</a>        .save(<span class="kw-2">&amp;mut *</span>transaction)
+<a href=#710 id=710 data-nosnippet>710</a>        .<span class="kw">await
+<a href=#711 id=711 data-nosnippet>711</a>        </span>.expect(<span class="string">"Could not save device"</span>);
+<a href=#712 id=712 data-nosnippet>712</a>        device
+<a href=#713 id=713 data-nosnippet>713</a>            .assign_next_network_ip(<span class="kw-2">&amp;mut </span>transaction, <span class="kw-2">&amp;</span>network, <span class="prelude-val">None</span>)
+<a href=#714 id=714 data-nosnippet>714</a>            .<span class="kw">await
+<a href=#715 id=715 data-nosnippet>715</a>            </span>.expect(<span class="string">"Could not assign IP to device"</span>);
+<a href=#716 id=716 data-nosnippet>716</a>    }
+<a href=#717 id=717 data-nosnippet>717</a>
+<a href=#718 id=718 data-nosnippet>718</a>    <span class="attr">#[cfg(feature = <span class="string">"openid"</span>)]
+<a href=#719 id=719 data-nosnippet>719</a>    </span><span class="kw">for </span>app_id <span class="kw">in </span><span class="number">1</span>..=<span class="number">3 </span>{
+<a href=#720 id=720 data-nosnippet>720</a>        OAuth2Client::new(
+<a href=#721 id=721 data-nosnippet>721</a>            <span class="macro">vec!</span>[<span class="macro">format!</span>(<span class="string">"https://app-{app_id}.com"</span>)],
+<a href=#722 id=722 data-nosnippet>722</a>            <span class="macro">vec!</span>[<span class="string">"openid"</span>.into(), <span class="string">"profile"</span>.into(), <span class="string">"email"</span>.into()],
+<a href=#723 id=723 data-nosnippet>723</a>            <span class="macro">format!</span>(<span class="string">"app-{app_id}"</span>),
+<a href=#724 id=724 data-nosnippet>724</a>        )
+<a href=#725 id=725 data-nosnippet>725</a>        .save(<span class="kw-2">&amp;mut *</span>transaction)
+<a href=#726 id=726 data-nosnippet>726</a>        .<span class="kw">await
+<a href=#727 id=727 data-nosnippet>727</a>        </span>.expect(<span class="string">"Could not save oauth2client"</span>);
+<a href=#728 id=728 data-nosnippet>728</a>    }
+<a href=#729 id=729 data-nosnippet>729</a>    transaction
+<a href=#730 id=730 data-nosnippet>730</a>        .commit()
+<a href=#731 id=731 data-nosnippet>731</a>        .<span class="kw">await
+<a href=#732 id=732 data-nosnippet>732</a>        </span>.expect(<span class="string">"Failed to commit transaction"</span>);
+<a href=#733 id=733 data-nosnippet>733</a>
+<a href=#734 id=734 data-nosnippet>734</a>    <span class="macro">info!</span>(<span class="string">"Dev environment initialized - TestNet, TestDevice, AuthorizedApps added"</span>);
+<a href=#735 id=735 data-nosnippet>735</a>}
+<a href=#736 id=736 data-nosnippet>736</a>
+<a href=#737 id=737 data-nosnippet>737</a><span class="doccomment">/// Create a new VPN location.
+<a href=#738 id=738 data-nosnippet>738</a>/// Meant to be used to automate setting up a new defguard instance.
+<a href=#739 id=739 data-nosnippet>739</a>/// If the network ID has been specified, it will be assumed that the user wants to update the existing network or create a new one with a predefined ID.
+<a href=#740 id=740 data-nosnippet>740</a>/// This is mainly used for deployment purposes where the network ID must be known beforehand.
+<a href=#741 id=741 data-nosnippet>741</a>///
+<a href=#742 id=742 data-nosnippet>742</a>/// If there is no ID specified, the function will only create the network if no other network exists.
+<a href=#743 id=743 data-nosnippet>743</a>/// In other words, multiple networks can be created, but only if the ID is predefined for each network.
+<a href=#744 id=744 data-nosnippet>744</a></span><span class="kw">pub async fn </span>init_vpn_location(
+<a href=#745 id=745 data-nosnippet>745</a>    pool: <span class="kw-2">&amp;</span>PgPool,
+<a href=#746 id=746 data-nosnippet>746</a>    args: <span class="kw-2">&amp;</span>InitVpnLocationArgs,
+<a href=#747 id=747 data-nosnippet>747</a>) -&gt; <span class="prelude-ty">Result</span>&lt;String, anyhow::Error&gt; {
+<a href=#748 id=748 data-nosnippet>748</a>    <span class="comment">// The ID is predefined
+<a href=#749 id=749 data-nosnippet>749</a>    </span><span class="kw">let </span>network = <span class="kw">if let </span><span class="prelude-val">Some</span>(location_id) = args.id {
+<a href=#750 id=750 data-nosnippet>750</a>        <span class="kw">let </span><span class="kw-2">mut </span>transaction = pool.begin().<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#751 id=751 data-nosnippet>751</a>        <span class="comment">// If the network already exists, update it, assuming that's the user's intent.
+<a href=#752 id=752 data-nosnippet>752</a>        </span><span class="kw">let </span>network = <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>network) =
+<a href=#753 id=753 data-nosnippet>753</a>            WireguardNetwork::find_by_id(<span class="kw-2">&amp;mut *</span>transaction, location_id).<span class="kw">await</span><span class="question-mark">?
+<a href=#754 id=754 data-nosnippet>754</a>        </span>{
+<a href=#755 id=755 data-nosnippet>755</a>            network.name = args.name.clone();
+<a href=#756 id=756 data-nosnippet>756</a>            network.address = <span class="macro">vec!</span>[args.address];
+<a href=#757 id=757 data-nosnippet>757</a>            network.port = args.port;
+<a href=#758 id=758 data-nosnippet>758</a>            network.endpoint = args.endpoint.clone();
+<a href=#759 id=759 data-nosnippet>759</a>            network.dns = args.dns.clone();
+<a href=#760 id=760 data-nosnippet>760</a>            network.allowed_ips = args.allowed_ips.clone();
+<a href=#761 id=761 data-nosnippet>761</a>            network.save(<span class="kw-2">&amp;mut *</span>transaction).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#762 id=762 data-nosnippet>762</a>            network.sync_allowed_devices(<span class="kw-2">&amp;mut </span>transaction, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#763 id=763 data-nosnippet>763</a>            network
+<a href=#764 id=764 data-nosnippet>764</a>        }
+<a href=#765 id=765 data-nosnippet>765</a>        <span class="comment">// Otherwise create it with the predefined ID
+<a href=#766 id=766 data-nosnippet>766</a>        </span><span class="kw">else </span>{
+<a href=#767 id=767 data-nosnippet>767</a>            <span class="kw">let </span>network = WireguardNetwork::new(
+<a href=#768 id=768 data-nosnippet>768</a>                args.name.clone(),
+<a href=#769 id=769 data-nosnippet>769</a>                <span class="macro">vec!</span>[args.address],
+<a href=#770 id=770 data-nosnippet>770</a>                args.port,
+<a href=#771 id=771 data-nosnippet>771</a>                args.endpoint.clone(),
+<a href=#772 id=772 data-nosnippet>772</a>                args.dns.clone(),
+<a href=#773 id=773 data-nosnippet>773</a>                args.allowed_ips.clone(),
+<a href=#774 id=774 data-nosnippet>774</a>                <span class="bool-val">false</span>,
+<a href=#775 id=775 data-nosnippet>775</a>                DEFAULT_KEEPALIVE_INTERVAL,
+<a href=#776 id=776 data-nosnippet>776</a>                DEFAULT_DISCONNECT_THRESHOLD,
+<a href=#777 id=777 data-nosnippet>777</a>                <span class="bool-val">false</span>,
+<a href=#778 id=778 data-nosnippet>778</a>                <span class="bool-val">false</span>,
+<a href=#779 id=779 data-nosnippet>779</a>            )<span class="question-mark">?
+<a href=#780 id=780 data-nosnippet>780</a>            </span>.save(<span class="kw-2">&amp;mut *</span>transaction)
+<a href=#781 id=781 data-nosnippet>781</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#782 id=782 data-nosnippet>782</a>            <span class="kw">if </span>network.id != location_id {
+<a href=#783 id=783 data-nosnippet>783</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
+<a href=#784 id=784 data-nosnippet>784</a>                    <span class="string">"Failed to initialize VPN location. The ID of the newly created network ({}) does not match \
+<a href=#785 id=785 data-nosnippet>785</a>                    the predefined ID ({location_id}). The predefined ID must be the next available ID."</span>,
+<a href=#786 id=786 data-nosnippet>786</a>                    network.id
+<a href=#787 id=787 data-nosnippet>787</a>                ));
+<a href=#788 id=788 data-nosnippet>788</a>            }
+<a href=#789 id=789 data-nosnippet>789</a>            network.add_all_allowed_devices(<span class="kw-2">&amp;mut </span>transaction).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#790 id=790 data-nosnippet>790</a>            network
+<a href=#791 id=791 data-nosnippet>791</a>        };
+<a href=#792 id=792 data-nosnippet>792</a>        transaction.commit().<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#793 id=793 data-nosnippet>793</a>        network
+<a href=#794 id=794 data-nosnippet>794</a>    }
+<a href=#795 id=795 data-nosnippet>795</a>    <span class="comment">// No predefined ID, add the network if no other networks are present
+<a href=#796 id=796 data-nosnippet>796</a>    </span><span class="kw">else </span>{
+<a href=#797 id=797 data-nosnippet>797</a>        <span class="comment">// check if a VPN location exists already
+<a href=#798 id=798 data-nosnippet>798</a>        </span><span class="kw">let </span>networks = WireguardNetwork::all(pool).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#799 id=799 data-nosnippet>799</a>        <span class="kw">if </span>!networks.is_empty() {
+<a href=#800 id=800 data-nosnippet>800</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
+<a href=#801 id=801 data-nosnippet>801</a>                <span class="string">"Failed to initialize first VPN location. Location already exists."
+<a href=#802 id=802 data-nosnippet>802</a>            </span>));
+<a href=#803 id=803 data-nosnippet>803</a>        };
+<a href=#804 id=804 data-nosnippet>804</a>
+<a href=#805 id=805 data-nosnippet>805</a>        <span class="comment">// create a new network
+<a href=#806 id=806 data-nosnippet>806</a>        </span>WireguardNetwork::new(
+<a href=#807 id=807 data-nosnippet>807</a>            args.name.clone(),
+<a href=#808 id=808 data-nosnippet>808</a>            <span class="macro">vec!</span>[args.address],
+<a href=#809 id=809 data-nosnippet>809</a>            args.port,
+<a href=#810 id=810 data-nosnippet>810</a>            args.endpoint.clone(),
+<a href=#811 id=811 data-nosnippet>811</a>            args.dns.clone(),
+<a href=#812 id=812 data-nosnippet>812</a>            args.allowed_ips.clone(),
+<a href=#813 id=813 data-nosnippet>813</a>            <span class="bool-val">false</span>,
+<a href=#814 id=814 data-nosnippet>814</a>            DEFAULT_KEEPALIVE_INTERVAL,
+<a href=#815 id=815 data-nosnippet>815</a>            DEFAULT_DISCONNECT_THRESHOLD,
+<a href=#816 id=816 data-nosnippet>816</a>            <span class="bool-val">false</span>,
+<a href=#817 id=817 data-nosnippet>817</a>            <span class="bool-val">false</span>,
+<a href=#818 id=818 data-nosnippet>818</a>        )<span class="question-mark">?
+<a href=#819 id=819 data-nosnippet>819</a>        </span>.save(pool)
+<a href=#820 id=820 data-nosnippet>820</a>        .<span class="kw">await</span><span class="question-mark">?
+<a href=#821 id=821 data-nosnippet>821</a>    </span>};
+<a href=#822 id=822 data-nosnippet>822</a>
+<a href=#823 id=823 data-nosnippet>823</a>    <span class="comment">// generate gateway token
+<a href=#824 id=824 data-nosnippet>824</a>    </span><span class="kw">let </span>token = Claims::new(
+<a href=#825 id=825 data-nosnippet>825</a>        ClaimsType::Gateway,
+<a href=#826 id=826 data-nosnippet>826</a>        <span class="macro">format!</span>(<span class="string">"DEFGUARD-NETWORK-{}"</span>, network.id),
+<a href=#827 id=827 data-nosnippet>827</a>        network.id.to_string(),
+<a href=#828 id=828 data-nosnippet>828</a>        u32::MAX.into(),
+<a href=#829 id=829 data-nosnippet>829</a>    )
+<a href=#830 id=830 data-nosnippet>830</a>    .to_jwt()<span class="question-mark">?</span>;
+<a href=#831 id=831 data-nosnippet>831</a>
+<a href=#832 id=832 data-nosnippet>832</a>    <span class="prelude-val">Ok</span>(token)
+<a href=#833 id=833 data-nosnippet>833</a>}</code></pre></div></section></main></body></html>

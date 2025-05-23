@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_api_token","delete_api_token","fetch_api_tokens","rename_api_token"],"struct":["AddApiTokenData","RenameRequest"]};

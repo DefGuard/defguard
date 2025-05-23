@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["acl","api_tokens","enterprise_settings","openid_provider"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FirewallError"],"fn":["generate_firewall_rules_from_acls"]};
