@@ -188,6 +188,8 @@ pub struct InitVpnLocationArgs {
     pub dns: Option<String>,
     #[arg(long)]
     pub allowed_ips: Vec<IpNetwork>,
+    #[arg(long)]
+    pub id: Option<i64>,
 }
 
 impl DefGuardConfig {
