@@ -34,15 +34,12 @@ export const OverviewIndexPage = () => {
   const { data, isLoading, isStale } = useQuery({
     queryKey: ['network'],
     queryFn: getNetworks,
-    refetchOnMount: true,
   });
 
   const resetWizard = useWizardStore((state) => state.resetState);
   const navigate = useNavigate();
 
-  console.log("OverviewIndexPage");
   useEffect(() => {
-    console.log("OverviewIndexPage data:", data);
     if (isPresent(data) && data.length === 0 && !isLoading && !isStale) {
       resetWizard();
       navigate('/admin/wizard', { replace: true });

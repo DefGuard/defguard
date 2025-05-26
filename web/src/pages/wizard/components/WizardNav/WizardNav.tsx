@@ -59,20 +59,13 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
         resetState();
-        {/* invalidateMultipleQueries(queryClient, [QueryKeys.FETCH_NETWORKS]); */}
-        {/* void queryClient.refetchQueries({ */}
-        {/*   // queryKey: [QueryKeys.FETCH_NETWORKS], */}
-        {/*   queryKey: ["network"], */}
-        {/* }); */}
+        queryClient.invalidateQueries({queryKey: ["network"], type: 'all'});
         void getAppInfo().then((response) => {
           setAppState({ appInfo: response });
           if (response.license_info.any_limit_exceeded) {
             showUpgradeToast();
           }
         });
-        {/* queryClient.refetchQueries({queryKey: ["network"], type: 'all'}); */}
-        queryClient.invalidateQueries({queryKey: ["network"], type: 'all'});
-        console.log("last step redirecting");
         navigate('/admin/overview', { replace: true });
       } else {
         next();
