@@ -45,7 +45,7 @@ export const OverviewIndexPage = () => {
       navigate('/admin/wizard', { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, isLoading]);
+  }, [data, isLoading, isStale]);
 
   return (
     <PageContainer id="overview-index">
