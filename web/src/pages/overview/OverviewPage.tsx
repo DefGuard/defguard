@@ -44,8 +44,9 @@ export const OverviewPage = () => {
   } = useApi();
 
   const { data: fetchNetworksData } = useQuery({
-    queryKey: ['networks'],
+    queryKey: ['network'],
     queryFn: getNetworks,
+    refetchOnMount: true,
     placeholderData: (perv) => perv,
   });
 

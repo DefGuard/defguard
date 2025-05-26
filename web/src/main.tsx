@@ -7,6 +7,7 @@ import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 import utc from 'dayjs/plugin/utc';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { AppLoader } from './components/AppLoader';
 import { I18nProvider } from './components/I18nProvider';
@@ -23,6 +24,7 @@ root.render(
       <ApiProvider>
         <QueryClientProvider client={queryClient}>
           <AppLoader />
+          <ReactQueryDevtools />
         </QueryClientProvider>
       </ApiProvider>
     </I18nProvider>
