@@ -103,7 +103,7 @@ test.describe('Create user with enrollment enabled', () => {
     const testUserProfile = await apiGetUserProfile(page, user.username);
     expect(testUserProfile.devices.length).toBe(1);
     const createdDevice = testUserProfile.devices[0];
-    expect(createdDevice.networks[0].device_wireguard_ip).toBe('10.10.10.2');
+    expect(createdDevice.networks[0].device_wireguard_ips).toStrictEqual(['10.10.10.2']);
     expect(createdDevice.name).toBe('test');
   });
 });
