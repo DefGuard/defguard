@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -29,7 +30,6 @@ import {
   validateIpOrDomainList,
 } from '../../../shared/validators';
 import { useNetworkPageStore } from '../hooks/useNetworkPageStore';
-import { useNavigate } from 'react-router';
 
 export const NetworkEditForm = () => {
   const toaster = useToaster();

@@ -2,12 +2,12 @@ import './shared/scss/styles.scss';
 import './shared/defguard-ui/scss/index.scss';
 
 import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import dayjs from 'dayjs';
 import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 import utc from 'dayjs/plugin/utc';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { AppLoader } from './components/AppLoader';
 import { I18nProvider } from './components/I18nProvider';
