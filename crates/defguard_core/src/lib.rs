@@ -7,13 +7,13 @@ use std::{
 };
 
 use anyhow::anyhow;
-use defguard_web_ui::{index, svg, web_asset};
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
     serve, Extension, Json, Router,
 };
 use db::models::device::DeviceType;
+use defguard_web_ui::{index, svg, web_asset};
 use enterprise::handlers::{
     acl::{
         apply_acl_aliases, apply_acl_rules, create_acl_alias, create_acl_rule, delete_acl_alias,
