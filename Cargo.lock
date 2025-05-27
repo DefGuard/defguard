@@ -1096,6 +1096,7 @@ dependencies = [
  "chrono",
  "claims",
  "clap",
+ "defguard_web_ui",
  "dotenvy",
  "humantime",
  "ipnetwork",
@@ -1105,7 +1106,6 @@ dependencies = [
  "lettre",
  "matches",
  "md4",
- "mime_guess",
  "model_derive",
  "openidconnect",
  "parse_link_header",
@@ -1119,7 +1119,6 @@ dependencies = [
  "regex",
  "reqwest",
  "rsa",
- "rust-embed",
  "rust-ini",
  "secrecy",
  "semver",
@@ -1157,6 +1156,15 @@ dependencies = [
  "webauthn-rs-proto",
  "x25519-dalek",
  "zip",
+]
+
+[[package]]
+name = "defguard_web_ui"
+version = "0.0.0"
+dependencies = [
+ "axum 0.8.4",
+ "mime_guess",
+ "rust-embed",
 ]
 
 [[package]]

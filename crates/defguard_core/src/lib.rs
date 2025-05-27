@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use assets::{index, svg, web_asset};
+use defguard_web_ui::{index, svg, web_asset};
 use axum::{
     http::{Request, StatusCode},
     routing::{delete, get, patch, post, put},
@@ -133,7 +133,6 @@ use self::{
 };
 
 pub mod appstate;
-pub mod assets;
 pub mod auth;
 pub mod config;
 pub mod db;
