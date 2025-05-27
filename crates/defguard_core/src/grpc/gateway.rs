@@ -27,6 +27,7 @@ use crate::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
         Device, GatewayEvent, Id, NoId,
     },
+    events::GrpcEvent,
     mail::Mail,
 };
 
@@ -55,6 +56,7 @@ pub struct GatewayServer {
     state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 
 impl WireguardNetwork<Id> {
@@ -111,12 +113,14 @@ impl GatewayServer {
         state: Arc<Mutex<GatewayMap>>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        grpc_event_tx: UnboundedSender<GrpcEvent>,
     ) -> Self {
         Self {
             pool,
             state,
             wireguard_tx,
             mail_tx,
+            grpc_event_tx,
         }
     }
 

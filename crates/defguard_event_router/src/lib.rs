@@ -28,7 +28,7 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use defguard_core::events::{ApiEvent, ApiRequestContext, GrpcEvent};
+use defguard_core::events::{ApiEvent, ApiRequestContext, BidiStreamEvent, GrpcEvent};
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
@@ -48,6 +48,7 @@ mod handlers;
 struct EventRouter {
     api_event_rx: UnboundedReceiver<ApiEvent>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
+    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -75,6 +76,7 @@ impl EventRouter {
     fn new(
         api_event_rx: UnboundedReceiver<ApiEvent>,
         grpc_event_rx: UnboundedReceiver<GrpcEvent>,
+        bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
@@ -82,6 +84,7 @@ impl EventRouter {
         Self {
             api_event_rx,
             grpc_event_rx,
+            bidi_event_rx,
             event_logger_tx,
             wireguard_tx,
             mail_tx,
@@ -107,6 +110,13 @@ impl EventRouter {
                         return Err(EventRouterError::GrpcEventChannelClosed);
                   }
               },
+              event = self.bidi_event_rx.recv() => match event {
+                  Some(bidi_event) => Event::Bidi(bidi_event),
+                  None => {
+                        error!("Bidi gRPC stream event channel closed");
+                        return Err(EventRouterError::BidiEventChannelClosed);
+                  }
+              },
             };
 
             debug!("Received event: {event:?}");
@@ -115,14 +125,9 @@ impl EventRouter {
             match event {
                 Event::Api(api_event) => self.handle_api_event(api_event)?,
                 Event::Grpc(grpc_event) => self.handle_grpc_event(grpc_event)?,
+                Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
             };
         }
-    }
-
-    fn handle_grpc_event(&self, event: GrpcEvent) -> Result<(), EventRouterError> {
-        debug!("Processing gRPC server event: {event:?}");
-
-        match event {}
     }
 }
 
@@ -133,6 +138,7 @@ impl EventRouter {
 pub async fn run_event_router(
     api_event_rx: UnboundedReceiver<ApiEvent>,
     grpc_event_rx: UnboundedReceiver<GrpcEvent>,
+    bidi_event_rx: UnboundedReceiver<BidiStreamEvent>,
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
@@ -141,6 +147,7 @@ pub async fn run_event_router(
     let mut event_router = EventRouter::new(
         api_event_rx,
         grpc_event_rx,
+        bidi_event_rx,
         event_logger_tx,
         wireguard_tx,
         mail_tx,

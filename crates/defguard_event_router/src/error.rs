@@ -6,6 +6,8 @@ pub enum EventRouterError {
     ApiEventChannelClosed,
     #[error("gRPC event channel closed")]
     GrpcEventChannelClosed,
+    #[error("Bidi gRPC stream event channel closed")]
+    BidiEventChannelClosed,
     #[error("Event logger service channel closed")]
     EventLoggerError,
 }

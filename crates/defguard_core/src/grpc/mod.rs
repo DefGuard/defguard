@@ -60,6 +60,7 @@ use crate::{
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
     },
+    events::{BidiStreamEvent, GrpcEvent},
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
@@ -473,6 +474,7 @@ pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
@@ -804,6 +806,7 @@ pub async fn run_grpc_server(
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
@@ -814,7 +817,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
+        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
 

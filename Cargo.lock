@@ -1164,15 +1164,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "defguard_web_ui"
-version = "0.0.0"
-dependencies = [
- "axum 0.8.4",
- "mime_guess",
- "rust-embed",
-]
-
-[[package]]
 name = "defguard_event_logger"
 version = "0.0.0"
 dependencies = [
@@ -1195,6 +1186,15 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "defguard_web_ui"
+version = "0.0.0"
+dependencies = [
+ "axum 0.8.4",
+ "mime_guess",
+ "rust-embed",
 ]
 
 [[package]]
