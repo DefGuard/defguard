@@ -2,6 +2,7 @@ import './style.scss';
 
 import { useQuery } from '@tanstack/react-query';
 import { range } from 'lodash-es';
+import { useEffect } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useLocation, useNavigate } from 'react-router';
 
@@ -19,6 +20,7 @@ import { isPresent } from '../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../shared/hooks/useApi';
 import { Network } from '../../shared/types';
 import { OverviewStats } from '../overview/OverviewStats/OverviewStats';
+import { useWizardStore } from '../wizard/hooks/useWizardStore';
 import { EditLocationsSettingsButton } from './components/EditLocationsSettingsButton/EditLocationsSettingsButton';
 import { useOverviewTimeSelection } from './components/hooks/useOverviewTimeSelection';
 import { OverviewNetworkSelection } from './components/OverviewNetworkSelection/OverviewNetworkSelection';
@@ -29,10 +31,21 @@ export const OverviewIndexPage = () => {
     network: { getNetworks },
   } = useApi();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isStale } = useQuery({
     queryKey: ['network'],
     queryFn: getNetworks,
   });
+
+  const resetWizard = useWizardStore((state) => state.resetState);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isPresent(data) && data.length === 0 && !isLoading && !isStale) {
+      resetWizard();
+      navigate('/admin/wizard', { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isLoading, isStale]);
 
   return (
     <PageContainer id="overview-index">

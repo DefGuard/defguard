@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isNull, omit, omitBy } from 'lodash-es';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
 
@@ -36,6 +37,7 @@ export const NetworkEditForm = () => {
     network: { editNetwork },
     groups: { getGroups },
   } = useApi();
+  const navigate = useNavigate();
   const submitRef = useRef<HTMLButtonElement | null>(null);
   const setStoreState = useNetworkPageStore((state) => state.setState);
   const submitSubject = useNetworkPageStore((state) => state.saveSubject);
@@ -64,6 +66,7 @@ export const NetworkEditForm = () => {
           queryKey: [key],
         });
       }
+      navigate(`/admin/overview/${selectedNetworkId}`);
     },
     onError: (err) => {
       setStoreState({ loading: false });

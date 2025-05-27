@@ -20,8 +20,6 @@ import { useAppStore } from '../../../../shared/hooks/store/useAppStore';
 import { useEnterpriseUpgradeStore } from '../../../../shared/hooks/store/useEnterpriseUpgradeStore';
 import useApi from '../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../shared/hooks/useToaster';
-import { QueryKeys } from '../../../../shared/queries';
-import { invalidateMultipleQueries } from '../../../../shared/utils/invalidateMultipleQueries';
 import { useWizardStore } from '../../hooks/useWizardStore';
 
 interface Props {
@@ -59,7 +57,7 @@ export const WizardNav = ({ title, lastStep, backDisabled = false }: Props) => {
       if (lastStep) {
         toaster.success(LL.wizard.completed());
         resetState();
-        invalidateMultipleQueries(queryClient, [[QueryKeys.FETCH_NETWORKS]]);
+        void queryClient.invalidateQueries({ queryKey: ['network'] });
         void getAppInfo().then((response) => {
           setAppState({ appInfo: response });
           if (response.license_info.any_limit_exceeded) {
