@@ -10,4 +10,4 @@ rust-version.workspace = true
 [dependencies]
 axum = { workspace = true }
 mime_guess = "2.0"
-rust-embed = { version = "8.5", features = ["include-exclude"] }
+rust-embed = { version = "8.7", features = ["include-exclude"] }
