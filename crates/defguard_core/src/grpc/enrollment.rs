@@ -1,5 +1,8 @@
 use sqlx::{PgPool, Transaction};
-use tokio::sync::{broadcast::Sender, mpsc::UnboundedSender};
+use tokio::sync::{
+    broadcast::Sender,
+    mpsc::{error::SendError, UnboundedSender},
+};
 use tonic::Status;
 
 use super::{
@@ -23,6 +26,7 @@ use crate::{
         db::models::enterprise_settings::EnterpriseSettings, ldap::utils::ldap_add_user,
         limits::update_counts,
     },
+    events::{BidiRequestContext, BidiStreamEvent, BidiStreamEventType, EnrollmentEvent},
     grpc::utils::{build_device_config_response, new_polling_token},
     handlers::{mail::send_new_device_added_email, user::check_password_strength},
     headers::get_device_info,
@@ -36,6 +40,7 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
 impl EnrollmentServer {
@@ -44,11 +49,13 @@ impl EnrollmentServer {
         pool: PgPool,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        bidi_event_tx: UnboundedSender<BidiStreamEvent>,
     ) -> Self {
         Self {
             pool,
             wireguard_tx,
             mail_tx,
+            bidi_event_tx,
         }
     }
 
@@ -86,6 +93,20 @@ impl EnrollmentServer {
         if let Err(err) = self.wireguard_tx.send(event) {
             error!("Error sending WireGuard event {err}");
         }
+    }
+
+    // Send event to the dedicated bidi stream event channel
+    fn emit_event(
+        &self,
+        request_context: BidiRequestContext,
+        event: EnrollmentEvent,
+    ) -> Result<(), SendError<BidiStreamEvent>> {
+        let event = BidiStreamEvent {
+            request_context,
+            event: BidiStreamEventType::Enrollment(event),
+        };
+
+        self.bidi_event_tx.send(event)
     }
 
     #[instrument(skip_all)]
@@ -224,6 +245,14 @@ impl EnrollmentServer {
                 error!("Failed to commit transaction: {err}");
                 Status::internal("unexpected error")
             })?;
+
+            let request_context = todo!();
+
+            self.emit_event(request_context, EnrollmentEvent::EnrollmentStarted)
+                .map_err(|err| {
+                    error!("Failed to emit event: {err}");
+                    Status::internal("unexpected error")
+                })?;
 
             Ok(response)
         } else {

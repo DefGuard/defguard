@@ -479,9 +479,14 @@ pub async fn run_grpc_bidi_stream(
     let config = server_config();
 
     // TODO: merge the two
-    let enrollment_server =
-        EnrollmentServer::new(pool.clone(), wireguard_tx.clone(), mail_tx.clone());
-    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
+    let enrollment_server = EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        mail_tx.clone(),
+        bidi_event_tx.clone(),
+    );
+    let password_reset_server =
+        PasswordResetServer::new(pool.clone(), mail_tx.clone(), bidi_event_tx);
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone());
     let polling_server = PollingServer::new(pool.clone());
 
