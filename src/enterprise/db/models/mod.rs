@@ -1,4 +1,5 @@
 pub mod acl;
 pub mod api_tokens;
+pub mod audit_stream;
 pub mod enterprise_settings;
 pub mod openid_provider;

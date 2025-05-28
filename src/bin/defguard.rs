@@ -3,14 +3,17 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use bytes::Bytes;
 use defguard::{
     auth::failed_login::FailedLoginMap,
     config::{Command, DefGuardConfig},
     db::{
-        init_db, models::settings::initialize_current_settings, AppEvent, GatewayEvent, Settings,
-        User,
+        init_db,
+        models::{audit_log::AuditEvent, settings::initialize_current_settings},
+        AppEvent, GatewayEvent, Settings, User,
     },
     enterprise::{
+        audit_stream::audit_stream_manager::run_audit_stream_manager,
         license::{run_periodic_license_check, set_cached_license, License},
         limits::update_counts,
     },
@@ -85,6 +88,11 @@ async fn main() -> Result<(), anyhow::Error> {
     // create main event bus
     let (event_tx, event_rx) = unbounded_channel::<MainEvent>();
 
+    // Audit stream setup
+    let audit_messages_tx = broadcast::channel::<Bytes>(100).0;
+    let audit_messages_arc = Arc::new(audit_messages_tx);
+    let audit_stream_reload_notify = Arc::new(tokio::sync::Notify::new());
+
     // setup communication channels for services
     let (webhook_tx, webhook_rx) = unbounded_channel::<AppEvent>();
     let (wireguard_tx, _wireguard_rx) = broadcast::channel::<GatewayEvent>(256);
@@ -140,7 +148,8 @@ async fn main() -> Result<(), anyhow::Error> {
         res = run_periodic_license_check(&pool) => error!("Periodic license check task returned early: {res:?}"),
         res = run_utility_thread(&pool, wireguard_tx.clone()) => error!("Utility thread returned early: {res:?}"),
         res = run_event_router( event_rx, event_logger_tx, wireguard_tx, mail_tx) => error!("Event router returned early: {res:?}"),
-        res = run_event_logger(pool.clone(), event_logger_rx) => error!("Audit event logger returned early: {res:?}"),
+        res = run_event_logger(pool.clone(), event_logger_rx, audit_messages_arc.clone()) => error!("Audit event logger returned early: {res:?}"),
+        res = run_audit_stream_manager(pool.clone(), audit_stream_reload_notify.clone(), audit_messages_arc.clone()) => error!("Audit stream manager returned early: {res:?}"),
     }
 
     Ok(())

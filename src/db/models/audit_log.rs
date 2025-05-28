@@ -26,7 +26,7 @@ pub enum EventType {
     DeviceModified,
 }
 
-#[derive(Model, FromRow)]
+#[derive(Model, FromRow, Serialize)]
 #[table(audit_event)]
 pub struct AuditEvent<I = NoId> {
     pub id: I,

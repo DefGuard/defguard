@@ -569,6 +569,9 @@ name = "bytes"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bzip2"
@@ -1123,6 +1126,8 @@ dependencies = [
  "sqlx",
  "ssh-key",
  "struct-patch",
+ "strum",
+ "strum_macros",
  "tera",
  "thiserror 2.0.12",
  "time",
@@ -4734,6 +4739,28 @@ checksum = "ac94fea04bf721f57ed7f421e64d3a04858e15708d00e8aa814cad7507427503"
 dependencies = [
  "proc-macro2",
  "quote",
+ "syn 2.0.101",
+]
+
+[[package]]
+name = "strum"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f64def088c51c9510a8579e3c5d67c65349dcf755e5479ad3d010aa6454e2c32"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c77a8c5abcaf0f9ce05d62342b7d298c346515365c36b673df4ebe3ced01fde8"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
  "syn 2.0.101",
 ]
 
