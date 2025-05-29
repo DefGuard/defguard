@@ -10,6 +10,9 @@ export const auditModuleValues: AuditModule[] = [
 export type AuditEventType =
   | 'user_login'
   | 'user_logout'
+  | 'user_added'
+  | 'user_modified'
+  | 'user_removed'
   | 'device_added'
   | 'device_modified'
   | 'device_removed';
@@ -17,6 +20,9 @@ export type AuditEventType =
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
   'user_logout',
+  'user_added',
+  'user_modified',
+  'user_removed',
   'device_added',
   'device_modified',
   'device_removed',

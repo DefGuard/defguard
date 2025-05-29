@@ -5988,6 +5988,18 @@ type RootTranslation = {
 			 */
 			user_logout: string
 			/**
+			 * U​s​e​r​ ​a​d​d​e​d
+			 */
+			user_added: string
+			/**
+			 * U​s​e​r​ ​r​e​m​o​v​e​d
+			 */
+			user_removed: string
+			/**
+			 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			user_modified: string
+			/**
 			 * D​e​v​i​c​e​ ​a​d​d​e​d
 			 */
 			device_added: string
@@ -11936,6 +11948,18 @@ export type TranslationFunctions = {
 			 * User logout
 			 */
 			user_logout: () => LocalizedString
+			/**
+			 * User added
+			 */
+			user_added: () => LocalizedString
+			/**
+			 * User removed
+			 */
+			user_removed: () => LocalizedString
+			/**
+			 * User modified
+			 */
+			user_modified: () => LocalizedString
 			/**
 			 * Device added
 			 */

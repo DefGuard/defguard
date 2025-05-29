@@ -2504,6 +2504,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
     auditEventType: {
       user_login: 'User login',
       user_logout: 'User logout',
+      user_added: 'User added',
+      user_removed: 'User removed',
+      user_modified: 'User modified',
       device_added: 'Device added',
       device_removed: 'Device removed',
       device_modified: 'Device modified',

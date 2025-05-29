@@ -37,7 +37,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    events::{ApiEvent, ApiEventKind, ApiRequestContext},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -780,7 +780,7 @@ pub(crate) async fn add_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceAdded {
+        kind: ApiEventType::UserDeviceAdded {
             device_id,
             owner: username,
             device_name,
@@ -900,7 +900,7 @@ pub(crate) async fn modify_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceModified {
+        kind: ApiEventType::UserDeviceModified {
             owner,
             device_id: device.id,
             device_name,
@@ -1047,7 +1047,7 @@ pub(crate) async fn delete_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceRemoved {
+        kind: ApiEventType::UserDeviceRemoved {
             device_name,
             owner,
             device_id,

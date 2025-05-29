@@ -34,7 +34,7 @@ use crate::{
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
     error::WebError,
-    events::{ApiEvent, ApiEventKind, ApiRequestContext},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
@@ -283,7 +283,7 @@ pub(crate) async fn authenticate(
                 insecure_ip.into(),
                 user_agent.to_string(),
             ),
-            kind: ApiEventKind::UserLogin,
+            kind: ApiEventType::UserLogin,
         })?;
 
         Ok((
@@ -306,8 +306,7 @@ pub(crate) async fn authenticate(
 pub async fn logout(
     cookies: CookieJar,
     session_info: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     // remove auth cookie
@@ -317,13 +316,8 @@ pub async fn logout(
 
     let user = session_info.user;
     appstate.send_event(ApiEvent {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        kind: ApiEventKind::UserLogout,
+        context,
+        kind: ApiEventType::UserLogout,
     })?;
 
     Ok((cookies, ApiResponse::default()))

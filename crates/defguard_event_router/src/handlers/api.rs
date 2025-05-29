@@ -1,4 +1,4 @@
-use defguard_core::events::{ApiEvent, ApiEventKind};
+use defguard_core::events::{ApiEvent, ApiEventType};
 use defguard_event_logger::message::{DefguardEvent, LoggerEvent};
 use tracing::debug;
 
@@ -9,14 +9,38 @@ impl EventRouter {
         debug!("Processing API event: {event:?}");
 
         match event.kind {
-            ApiEventKind::UserLogin => {
+            ApiEventType::UserLogin => {
                 // send event to audit log
-                self.log_event(event.context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
+                self.log_event(
+                    event.context,
+                    LoggerEvent::Defguard(DefguardEvent::UserLogin),
+                )?;
             }
-            ApiEventKind::UserLogout => {
-                self.log_event(event.context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
+            ApiEventType::UserLogout => {
+                self.log_event(
+                    event.context,
+                    LoggerEvent::Defguard(DefguardEvent::UserLogout),
+                )?;
             }
-            ApiEventKind::UserDeviceAdded {
+            ApiEventType::UserAdded { username } => {
+                self.log_event(
+                    event.context,
+                    LoggerEvent::Defguard(DefguardEvent::UserAdded { username }),
+                )?;
+            }
+            ApiEventType::UserRemoved { username } => {
+                self.log_event(
+                    event.context,
+                    LoggerEvent::Defguard(DefguardEvent::UserRemoved { username }),
+                )?;
+            }
+            ApiEventType::UserModified { username } => {
+                self.log_event(
+                    event.context,
+                    LoggerEvent::Defguard(DefguardEvent::UserModified { username }),
+                )?;
+            }
+            ApiEventType::UserDeviceAdded {
                 owner,
                 device_id,
                 device_name,
@@ -30,7 +54,7 @@ impl EventRouter {
                     }),
                 )?;
             }
-            ApiEventKind::UserDeviceRemoved {
+            ApiEventType::UserDeviceRemoved {
                 owner,
                 device_id,
                 device_name,
@@ -44,7 +68,7 @@ impl EventRouter {
                     }),
                 )?;
             }
-            ApiEventKind::UserDeviceModified {
+            ApiEventType::UserDeviceModified {
                 owner,
                 device_id,
                 device_name,

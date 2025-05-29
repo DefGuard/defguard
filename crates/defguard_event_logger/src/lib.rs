@@ -7,7 +7,8 @@ use tracing::{debug, info};
 use defguard_core::db::{
     models::audit_log::{
         AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
-        DeviceRemovedMetadata, EventType,
+        DeviceRemovedMetadata, EventType, UserAddedMetadata, UserModifiedMetadata,
+        UserRemovedMetadata,
     },
     NoId,
 };
@@ -130,12 +131,18 @@ pub async fn run_event_logger(
                                 token_id,
                                 token_name,
                             } => todo!(),
-                            DefguardEvent::UserAdded {
-                                username,
-                                enrollment,
-                            } => todo!(),
-                            DefguardEvent::UserRemoved { username } => todo!(),
-                            DefguardEvent::UserModified { username } => todo!(),
+                            DefguardEvent::UserAdded { username } => (
+                                EventType::UserAdded,
+                                serde_json::to_value(UserAddedMetadata { username }).ok(),
+                            ),
+                            DefguardEvent::UserRemoved { username } => (
+                                EventType::UserRemoved,
+                                serde_json::to_value(UserRemovedMetadata { username }).ok(),
+                            ),
+                            DefguardEvent::UserModified { username } => (
+                                EventType::UserModified,
+                                serde_json::to_value(UserModifiedMetadata { username }).ok(),
+                            ),
                             DefguardEvent::UserDisabled { username } => todo!(),
                             DefguardEvent::NetworkDeviceAdded {
                                 device_id,
@@ -204,7 +211,7 @@ pub async fn run_event_logger(
                     timestamp,
                     user_id,
                     username,
-                    ip,
+                    ip: ip.into(),
                     event,
                     module,
                     device,

@@ -4,6 +4,8 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
+use axum_client_ip::InsecureClientIp;
+use axum_extra::{headers::UserAgent, TypedHeader};
 use serde_json::json;
 
 use super::{
@@ -29,6 +31,7 @@ use crate::{
         limits::update_counts,
     },
     error::WebError,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     mail::Mail,
     server_config, templates,
 };
@@ -275,6 +278,8 @@ pub async fn get_user(
 pub async fn add_user(
     _role: AdminRole,
     session: SessionInfo,
+    user_agent: TypedHeader<UserAgent>,
+    InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
     Json(user_data): Json<AddUserData>,
 ) -> ApiResult {
@@ -338,6 +343,17 @@ pub async fn add_user(
     if !user_info.enrolled {
         warn!("User {username} hasn't been enrolled yet. Please proceed with enrollment.");
     }
+    appstate.send_event(ApiEvent {
+        context: ApiRequestContext::new(
+            session.user.id,
+            session.user.username,
+            insecure_ip.into(),
+            user_agent.to_string(),
+        ),
+        kind: ApiEventType::UserAdded {
+            username: user.username,
+        },
+    })?;
     Ok(ApiResponse {
         json: json!(&user_info),
         status: StatusCode::CREATED,

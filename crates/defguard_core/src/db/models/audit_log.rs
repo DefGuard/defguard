@@ -73,3 +73,18 @@ pub struct DeviceRemovedMetadata {
 pub struct DeviceModifiedMetadata {
     pub device_names: Vec<String>,
 }
+
+#[derive(Serialize)]
+pub struct UserAddedMetadata {
+    pub username: String,
+}
+
+#[derive(Serialize)]
+pub struct UserModifiedMetadata {
+    pub username: String,
+}
+
+#[derive(Serialize)]
+pub struct UserRemovedMetadata {
+    pub username: String,
+}

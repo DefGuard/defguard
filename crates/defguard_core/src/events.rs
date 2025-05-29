@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use crate::db::Id;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -12,12 +14,12 @@ pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
 }
 
 impl ApiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
@@ -30,9 +32,18 @@ impl ApiRequestContext {
 }
 
 #[derive(Debug)]
-pub enum ApiEventKind {
+pub enum ApiEventType {
     UserLogin,
     UserLogout,
+    UserAdded {
+        username: String,
+    },
+    UserRemoved {
+        username: String,
+    },
+    UserModified {
+        username: String,
+    },
     UserDeviceAdded {
         device_id: Id,
         owner: String,
@@ -54,7 +65,7 @@ pub enum ApiEventKind {
 #[derive(Debug)]
 pub struct ApiEvent {
     pub context: ApiRequestContext,
-    pub kind: ApiEventKind,
+    pub kind: ApiEventType,
 }
 
 /// Events from gRPC server

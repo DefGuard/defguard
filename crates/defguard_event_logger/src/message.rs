@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 
@@ -32,7 +34,7 @@ pub struct EventContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
 }
 
@@ -105,7 +107,6 @@ pub enum DefguardEvent {
     // user management
     UserAdded {
         username: String,
-        enrollment: bool,
     },
     UserRemoved {
         username: String,
