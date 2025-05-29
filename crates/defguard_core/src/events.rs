@@ -29,27 +29,26 @@ impl ApiRequestContext {
     }
 }
 
-/// Events from Web API
 #[derive(Debug)]
-pub enum ApiEvent {
-    UserLogin {
-        context: ApiRequestContext,
-    },
-    UserLogout {
-        context: ApiRequestContext,
-    },
+pub enum ApiEventKind {
+    UserLogin,
+    UserLogout,
     UserDeviceAdded {
-        context: ApiRequestContext,
         device_name: String,
     },
     UserDeviceRemoved {
-        context: ApiRequestContext,
         device_name: String,
     },
     UserDeviceModified {
-        context: ApiRequestContext,
         device_name: String,
     },
+}
+
+/// Events from Web API
+#[derive(Debug)]
+pub struct ApiEvent {
+    pub context: ApiRequestContext,
+    pub kind: ApiEventKind,
 }
 
 /// Events from gRPC server

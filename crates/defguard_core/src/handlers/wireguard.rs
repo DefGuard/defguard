@@ -37,7 +37,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    events::{ApiEvent, ApiRequestContext},
+    events::{ApiEvent, ApiEventKind, ApiRequestContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -772,14 +772,14 @@ pub(crate) async fn add_device(
 
     update_counts(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent::UserDeviceAdded {
+    appstate.send_event(ApiEvent {
         context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        device_name,
+        kind: ApiEventKind::UserDeviceAdded { device_name },
     })?;
 
     Ok(ApiResponse {
@@ -887,14 +887,14 @@ pub(crate) async fn modify_device(
     info!("User {} updated device {device_id}", session.user.username);
 
     let user = session.user;
-    appstate.send_event(ApiEvent::UserDeviceModified {
+    appstate.send_event(ApiEvent {
         context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        device_name,
+        kind: ApiEventKind::UserDeviceModified { device_name },
     })?;
 
     Ok(ApiResponse {
@@ -1024,14 +1024,14 @@ pub(crate) async fn delete_device(
     info!("User {username} deleted device {device_id}");
 
     let user = session.user;
-    appstate.send_event(ApiEvent::UserDeviceRemoved {
+    appstate.send_event(ApiEvent {
         context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        device_name,
+        kind: ApiEventKind::UserDeviceRemoved { device_name },
     })?;
 
     Ok(ApiResponse::default())

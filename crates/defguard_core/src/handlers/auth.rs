@@ -34,7 +34,7 @@ use crate::{
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
     error::WebError,
-    events::{ApiEvent, ApiRequestContext},
+    events::{ApiEvent, ApiEventKind, ApiRequestContext},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
@@ -276,13 +276,14 @@ pub(crate) async fn authenticate(
             None
         };
 
-        appstate.send_event(ApiEvent::UserLogin {
+        appstate.send_event(ApiEvent {
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
                 insecure_ip.into(),
                 user_agent.to_string(),
             ),
+            kind: ApiEventKind::UserLogin,
         })?;
 
         Ok((
@@ -315,13 +316,14 @@ pub async fn logout(
     session_info.session.delete(&appstate.pool).await?;
 
     let user = session_info.user;
-    appstate.send_event(ApiEvent::UserLogout {
+    appstate.send_event(ApiEvent {
         context: ApiRequestContext::new(
             user.id,
             user.username.clone(),
             insecure_ip.into(),
             user_agent.to_string(),
         ),
+        kind: ApiEventKind::UserLogout,
     })?;
 
     Ok((cookies, ApiResponse::default()))
