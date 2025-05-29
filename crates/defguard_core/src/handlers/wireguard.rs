@@ -10,8 +10,6 @@ use axum::{
     http::StatusCode,
     Extension,
 };
-use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
@@ -636,8 +634,7 @@ pub struct AddDeviceResult {
 pub(crate) async fn add_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
     Path(username): Path<String>,
@@ -774,12 +771,7 @@ pub(crate) async fn add_device(
     update_counts(&appstate.pool).await?;
 
     appstate.send_event(ApiEvent {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
+        context,
         kind: ApiEventType::UserDeviceAdded {
             device_id,
             owner: username,
@@ -832,8 +824,7 @@ pub(crate) async fn add_device(
 pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyDevice>,
@@ -894,12 +885,7 @@ pub(crate) async fn modify_device(
     let user = session.user;
     let owner = device.get_owner(&appstate.pool).await?.username;
     appstate.send_event(ApiEvent {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
+        context,
         kind: ApiEventType::UserDeviceModified {
             owner,
             device_id: device.id,
@@ -982,8 +968,7 @@ pub(crate) async fn get_device(
 pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -1041,12 +1026,7 @@ pub(crate) async fn delete_device(
 
     let user = session.user;
     appstate.send_event(ApiEvent {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
+        context,
         kind: ApiEventType::UserDeviceRemoved {
             device_name,
             owner,
