@@ -768,6 +768,7 @@ pub(crate) async fn add_device(
     // clone name to be used later
     let device_name = device.name.clone();
 
+    let device_id = device.id;
     let result = AddDeviceResult { configs, device };
 
     update_counts(&appstate.pool).await?;
@@ -779,7 +780,11 @@ pub(crate) async fn add_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceAdded { device_name },
+        kind: ApiEventKind::UserDeviceAdded {
+            device_id,
+            owner: username,
+            device_name,
+        },
     })?;
 
     Ok(ApiResponse {
@@ -887,6 +892,7 @@ pub(crate) async fn modify_device(
     info!("User {} updated device {device_id}", session.user.username);
 
     let user = session.user;
+    let owner = device.get_owner(&appstate.pool).await?.username;
     appstate.send_event(ApiEvent {
         context: ApiRequestContext::new(
             user.id,
@@ -894,7 +900,11 @@ pub(crate) async fn modify_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceModified { device_name },
+        kind: ApiEventKind::UserDeviceModified {
+            owner,
+            device_id: device.id,
+            device_name,
+        },
     })?;
 
     Ok(ApiResponse {
@@ -1015,6 +1025,12 @@ pub(crate) async fn delete_device(
         }
     }
 
+    let device_id = device_info.device.id;
+    let owner = device_info
+        .device
+        .get_owner(&mut *transaction)
+        .await?
+        .username;
     events.push(GatewayEvent::DeviceDeleted(device_info));
 
     // send generated gateway events
@@ -1031,7 +1047,11 @@ pub(crate) async fn delete_device(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
-        kind: ApiEventKind::UserDeviceRemoved { device_name },
+        kind: ApiEventKind::UserDeviceRemoved {
+            device_name,
+            owner,
+            device_id,
+        },
     })?;
 
     Ok(ApiResponse::default())

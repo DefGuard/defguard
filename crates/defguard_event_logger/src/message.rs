@@ -120,17 +120,17 @@ pub enum DefguardEvent {
     UserDeviceAdded {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     UserDeviceRemoved {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     UserDeviceModified {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     NetworkDeviceAdded {
         device_id: Id,

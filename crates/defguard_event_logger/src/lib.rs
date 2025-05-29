@@ -62,7 +62,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceAdded {
                                 device_id,
                                 device_name,
-                                user,
+                                owner,
                             } => (
                                 EventType::DeviceAdded,
                                 serde_json::to_value(DeviceAddedMetadata {
@@ -73,7 +73,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceRemoved {
                                 device_id,
                                 device_name,
-                                user,
+                                owner: user,
                             } => (
                                 EventType::DeviceRemoved,
                                 serde_json::to_value(DeviceRemovedMetadata {
@@ -84,7 +84,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceModified {
                                 device_id,
                                 device_name,
-                                user,
+                                owner: user,
                             } => (
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {

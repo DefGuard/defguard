@@ -34,12 +34,18 @@ pub enum ApiEventKind {
     UserLogin,
     UserLogout,
     UserDeviceAdded {
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
     UserDeviceRemoved {
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
     UserDeviceModified {
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
 }
