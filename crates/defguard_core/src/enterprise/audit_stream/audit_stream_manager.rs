@@ -10,8 +10,7 @@ use tracing::debug;
 use crate::enterprise::{
     audit_stream::vector_stream::run_vector_http_task,
     db::models::audit_stream::{AuditStream, AuditStreamConfig},
-    license::{get_cached_license, validate_license},
-    limits::get_counts,
+    is_enterprise_enabled,
 };
 
 use super::{error::AuditStreamError, AuditStreamReconfigurationNotification};
@@ -25,22 +24,15 @@ async fn get_configurations(pool: &PgPool) -> Result<Vec<AuditStreamConfig>, Aud
     Ok(configs)
 }
 
-fn check_license() -> bool {
-    let license_guard = get_cached_license();
-    let counts = get_counts();
-    validate_license(license_guard.as_ref(), &counts).is_ok()
-}
-
 pub async fn run_audit_stream_manager(
     pool: PgPool,
     notification: AuditStreamReconfigurationNotification,
     audit_messages_tx: Arc<Sender<Bytes>>,
 ) -> anyhow::Result<()> {
     loop {
-        let license_valid = check_license();
         let mut handles_set = JoinSet::<()>::new();
         let cancel_token = Arc::new(CancellationToken::new());
-        if license_valid {
+        if is_enterprise_enabled() {
             // check if any configurations are present
             let configs = get_configurations(&pool).await?;
             let configs_empty = configs.is_empty();
