@@ -18,11 +18,10 @@ use super::{error::AuditStreamError, AuditStreamReconfigurationNotification};
 
 async fn get_configurations(pool: &PgPool) -> Result<Vec<AuditStreamConfig>, AuditStreamError> {
     let db_data = AuditStream::all(pool).await?;
-    let mut configs: Vec<AuditStreamConfig> = Vec::with_capacity(db_data.len());
-    for model in db_data {
-        let stream_config = AuditStreamConfig::from(&model)?;
-        configs.push(stream_config);
-    }
+    let configs = db_data
+        .into_iter()
+        .map(|model| AuditStreamConfig::from(&model))
+        .collect::<Result<Vec<AuditStreamConfig>, _>>()?;
     Ok(configs)
 }
 
