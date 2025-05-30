@@ -13,6 +13,8 @@ export type AuditEventType =
   | 'user_added'
   | 'user_modified'
   | 'user_removed'
+  | 'mfa_enabled'
+  | 'mfa_disabled'
   | 'device_added'
   | 'device_modified'
   | 'device_removed';
@@ -23,6 +25,8 @@ export const auditEventTypeValues: AuditEventType[] = [
   'user_added',
   'user_modified',
   'user_removed',
+  'mfa_enabled',
+  'mfa_disabled',
   'device_added',
   'device_modified',
   'device_removed',

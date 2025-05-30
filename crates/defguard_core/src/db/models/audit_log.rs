@@ -26,6 +26,8 @@ pub enum EventType {
     // user management
     UserLogin,
     UserLogout,
+    MfaEnabled,
+    MfaDisabled,
     UserAdded,
     UserRemoved,
     UserModified,

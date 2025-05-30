@@ -327,6 +327,7 @@ pub async fn logout(
 pub async fn mfa_enable(
     cookies: CookieJar,
     _session: Session,
+    context: ApiRequestContext,
     session_info: SessionInfo,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
@@ -341,6 +342,10 @@ pub async fn mfa_enable(
             "Removed auth sessions for user {} after enabling MFA",
             user.username
         );
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::MfaEnabled,
+        })?;
         Ok((cookies, ApiResponse::default()))
     } else {
         error!("Error enabling MFA for user {}", user.username);
@@ -349,10 +354,18 @@ pub async fn mfa_enable(
 }
 
 /// Disable MFA
-pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn mfa_disable(
+    session_info: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::MfaDisabled,
+    })?;
     info!("Disabled MFA for user {}", user.username);
     Ok(ApiResponse::default())
 }

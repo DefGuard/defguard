@@ -14,6 +14,8 @@ impl EventRouter {
             ApiEventType::UserAdded { username } => LoggerEvent::Defguard(DefguardEvent::UserAdded { username }),
             ApiEventType::UserRemoved { username } => LoggerEvent::Defguard(DefguardEvent::UserRemoved { username }),
             ApiEventType::UserModified { username } => LoggerEvent::Defguard(DefguardEvent::UserModified { username }),
+            ApiEventType::MfaEnabled => LoggerEvent::Defguard(DefguardEvent::MfaEnabled),
+            ApiEventType::MfaDisabled => LoggerEvent::Defguard(DefguardEvent::MfaDisabled),
             ApiEventType::UserDeviceAdded {
                 owner,
                 device_id,

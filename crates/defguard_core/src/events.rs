@@ -35,6 +35,8 @@ impl ApiRequestContext {
 pub enum ApiEventType {
     UserLogin,
     UserLogout,
+    MfaEnabled,
+    MfaDisabled,
     UserAdded {
         username: String,
     },

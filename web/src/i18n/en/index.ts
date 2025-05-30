@@ -2507,6 +2507,8 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       user_added: 'User added',
       user_removed: 'User removed',
       user_modified: 'User modified',
+      mfa_enabled: 'MFA enabled',
+      mfa_disabled: 'MFA disabled',
       device_added: 'Device added',
       device_removed: 'Device removed',
       device_modified: 'Device modified',

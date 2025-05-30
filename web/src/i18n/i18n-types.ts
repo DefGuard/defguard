@@ -6000,6 +6000,14 @@ type RootTranslation = {
 			 */
 			user_modified: string
 			/**
+			 * M​F​A​ ​e​n​a​b​l​e​d
+			 */
+			mfa_enabled: string
+			/**
+			 * M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_disabled: string
+			/**
 			 * D​e​v​i​c​e​ ​a​d​d​e​d
 			 */
 			device_added: string
@@ -11960,6 +11968,14 @@ export type TranslationFunctions = {
 			 * User modified
 			 */
 			user_modified: () => LocalizedString
+			/**
+			 * MFA enabled
+			 */
+			mfa_enabled: () => LocalizedString
+			/**
+			 * MFA disabled
+			 */
+			mfa_disabled: () => LocalizedString
 			/**
 			 * Device added
 			 */

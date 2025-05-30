@@ -59,6 +59,7 @@ pub enum DefguardEvent {
     PasswordChanged,
     MfaFailed,
     // user MFA management
+    MfaEnabled,
     MfaDisabled,
     MfaDefaultChanged {
         mfa_method: MfaMethod,
