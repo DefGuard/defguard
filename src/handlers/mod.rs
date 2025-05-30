@@ -63,6 +63,9 @@ impl ApiResponse {
 impl From<WebError> for ApiResponse {
     fn from(web_error: WebError) -> ApiResponse {
         match web_error {
+            WebError::Deserialization(msg) => {
+                ApiResponse::new(json!({"msg": msg}), StatusCode::BAD_REQUEST)
+            }
             WebError::ObjectNotFound(msg) => {
                 ApiResponse::new(json!({ "msg": msg }), StatusCode::NOT_FOUND)
             }

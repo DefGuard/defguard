@@ -24,6 +24,9 @@ pub enum EventType {
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
+    AuditStreamCreated,
+    AuditStreamModified,
+    AuditStreamRemoved,
 }
 
 #[derive(Model, FromRow, Serialize)]

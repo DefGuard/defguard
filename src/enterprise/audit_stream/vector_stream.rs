@@ -16,15 +16,16 @@ pub(super) fn run_vector_http_task(
     let config = stream_config.clone();
     let child_token = cancel_token.child_token();
     let handle = tokio::spawn(async move {
-        let authorization_token = BASE64_STANDARD.encode(format!(
-            "{0}:{1}",
-            config.username,
-            config.password.expose_secret()
-        ));
-        let auth_header_value = format!("Basic {authorization_token}");
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
-        headers.insert("Authorization", auth_header_value.parse().unwrap());
+
+        // add authorization if it exists
+        if let (Some(username), Some(password)) = (&config.username, &config.password) {
+            let authorization_token =
+                BASE64_STANDARD.encode(format!("{0}:{1}", username, password.expose_secret()));
+            let auth_header_value = format!("Basic {authorization_token}");
+            headers.insert("Authorization", auth_header_value.parse().unwrap());
+        }
 
         let client = reqwest::ClientBuilder::new()
             .default_headers(headers)

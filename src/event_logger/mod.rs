@@ -85,6 +85,15 @@ pub async fn run_event_logger(
                                 })
                                 .ok(),
                             ),
+                            DefguardEvent::AuditStreamCreated => {
+                                (EventType::AuditStreamCreated, None)
+                            }
+                            DefguardEvent::AuditStreamRemoved => {
+                                (EventType::AuditStreamRemoved, None)
+                            }
+                            DefguardEvent::AuditStreamModified => {
+                                (EventType::AuditStreamModified, None)
+                            }
                         };
                         (module, event_type, metadata)
                     }

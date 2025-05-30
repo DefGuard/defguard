@@ -39,6 +39,9 @@ pub enum DefguardEvent {
     DeviceAdded { device_name: String },
     DeviceRemoved { device_name: String },
     DeviceModified { device_name: String },
+    AuditStreamCreated,
+    AuditStreamModified,
+    AuditStreamRemoved,
 }
 
 /// Represents audit events related to client applications

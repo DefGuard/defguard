@@ -28,11 +28,14 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
+use std::sync::Arc;
+
 use error::EventRouterError;
 use events::{ApiEvent, AuditLogContext, GrpcEvent, MainEvent};
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    Notify,
 };
 use tracing::{debug, error, info};
 
@@ -51,6 +54,7 @@ struct EventRouter {
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    audit_stream_reload_notify: Arc<Notify>,
 }
 
 impl EventRouter {
@@ -77,12 +81,14 @@ impl EventRouter {
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        audit_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
             event_rx,
             event_logger_tx,
             wireguard_tx,
             mail_tx,
+            audit_stream_reload_notify,
         }
     }
 
@@ -146,6 +152,27 @@ impl EventRouter {
                     LoggerEvent::Defguard(DefguardEvent::DeviceModified { device_name }),
                 )?;
             }
+            ApiEvent::AuditStreamCreated { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated),
+                )?;
+            }
+            ApiEvent::AuditStreamModified { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamModified),
+                )?;
+            }
+            ApiEvent::AuditStreamRemoved { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved),
+                )?;
+            }
         }
 
         Ok(())
@@ -167,9 +194,16 @@ pub async fn run_event_router(
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    audit_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
-    let mut event_router = EventRouter::new(event_rx, event_logger_tx, wireguard_tx, mail_tx);
+    let mut event_router = EventRouter::new(
+        event_rx,
+        event_logger_tx,
+        wireguard_tx,
+        mail_tx,
+        audit_stream_reload_notify,
+    );
 
     event_router.run().await
 }

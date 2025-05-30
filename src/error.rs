@@ -10,8 +10,8 @@ use crate::{
         settings::SettingsValidationError, wireguard::WireguardNetworkError,
     },
     enterprise::{
-        db::models::acl::AclError, firewall::FirewallError, ldap::error::LdapError,
-        license::LicenseError,
+        audit_stream::error::AuditStreamError, db::models::acl::AclError, firewall::FirewallError,
+        ldap::error::LdapError, license::LicenseError,
     },
     event_router::events::MainEvent,
     grpc::GatewayMapError,
@@ -35,6 +35,8 @@ pub enum WebError {
     ObjectNotFound(String),
     #[error("Serialization error: {0}")]
     Serialization(String),
+    #[error("Deserialization error: {0}")]
+    Deserialization(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
     #[error("Forbidden error: {0}")]
@@ -171,6 +173,15 @@ impl From<SettingsValidationError> for WebError {
             SettingsValidationError::CannotEnableGatewayNotifications => {
                 Self::BadRequest(err.to_string())
             }
+        }
+    }
+}
+
+impl From<AuditStreamError> for WebError {
+    fn from(err: AuditStreamError) -> Self {
+        match err {
+            AuditStreamError::ConfigDeserializeError(_, _) => Self::Serialization(err.to_string()),
+            AuditStreamError::SqlxError(_) => Self::DbError(err.to_string()),
         }
     }
 }

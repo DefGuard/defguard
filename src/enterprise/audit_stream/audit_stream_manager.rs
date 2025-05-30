@@ -16,7 +16,7 @@ async fn get_configurations(pool: &PgPool) -> Result<Vec<AuditStreamConfig>, Aud
     let db_data = AuditStreamModel::all(pool).await?;
     let mut configs: Vec<AuditStreamConfig> = Vec::with_capacity(db_data.len());
     for model in db_data {
-        let stream_config = AuditStreamConfig::from(model)?;
+        let stream_config = AuditStreamConfig::from(&model)?;
         configs.push(stream_config);
     }
     Ok(configs)

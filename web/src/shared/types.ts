@@ -560,6 +560,30 @@ export type AuditLogRequestParams = AuditLogFilters &
   RequestSortParams<AuditLogSortKey> &
   PaginationParams;
 
+export type AuditStreamType = 'vector_http';
+
+export type AuditStream = {
+  id: number;
+  name?: string;
+  stream_type: AuditStreamType;
+  config: AuditStreamVectorHttp;
+};
+
+export type AuditStreamVectorHttp = {
+  url: string;
+  username?: string;
+  password?: string;
+};
+
+export type AuditStreamModifyRequest = {
+  id: number;
+  name?: string;
+  stream_type: AuditStreamType;
+  stream_config: AuditStreamVectorHttp;
+};
+
+export type AuditStreamCreateRequest = Omit<AuditStreamModifyRequest, 'id'>;
+
 export type Api = {
   getAppInfo: () => Promise<AppInfo>;
   getNewVersion: () => Promise<UpdateInfo | null>;
@@ -569,6 +593,12 @@ export type Api = {
     getAuditLog: (
       params: AuditLogRequestParams,
     ) => Promise<PaginatedResponse<AuditEvent>>;
+  };
+  auditStream: {
+    getAuditStreams: () => Promise<AuditStream[]>;
+    createAuditStream: (data: AuditStreamCreateRequest) => Promise<EmptyApiResponse>;
+    modifyAuditStream: (data: AuditStreamModifyRequest) => Promise<EmptyApiResponse>;
+    deleteAuditStream: (id: number) => Promise<EmptyApiResponse>;
   };
   acl: {
     aliases: {

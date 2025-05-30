@@ -1,6 +1,7 @@
 import './style.scss';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
 import { range } from 'lodash-es';
 import { useMemo, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
@@ -27,7 +28,6 @@ import {
   AuditModule,
   auditModuleValues,
 } from './types';
-import dayjs from 'dayjs';
 
 export const ActivityPage = () => {
   return (

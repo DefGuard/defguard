@@ -1,5 +1,4 @@
 use model_derive::Model;
-use pgp::packet::config;
 use serde::Serialize;
 use sqlx::{query_as, Error as SqlxError, FromRow, PgExecutor, Type};
 use strum_macros::{Display, EnumString};
@@ -22,11 +21,13 @@ pub enum AuditStreamType {
 #[table(audit_stream)]
 pub struct AuditStreamModel<I = NoId> {
     pub id: I,
+    pub name: Option<String>,
     #[model(enum)]
     pub stream_type: AuditStreamType,
     pub config: serde_json::Value,
 }
 
+#[derive(Debug)]
 pub enum AuditStreamConfig {
     VectorHttp(VectorHttpAuditStream),
 }
@@ -34,23 +35,30 @@ pub enum AuditStreamConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct VectorHttpAuditStream {
     pub url: String,
-    pub username: String,
-    pub password: SecretStringWrapper,
+    pub username: Option<String>,
+    pub password: Option<SecretStringWrapper>,
 }
 
 impl AuditStreamConfig {
-    pub fn from(model: AuditStreamModel<Id>) -> Result<Self, AuditStreamError> {
-        match model.stream_type {
+    pub fn from_serde_value(
+        stream_type: &AuditStreamType,
+        value: &serde_json::Value,
+    ) -> Result<Self, AuditStreamError> {
+        match stream_type {
             AuditStreamType::VectorHttp => {
-                match serde_json::from_value::<VectorHttpAuditStream>(model.config) {
+                match serde_json::from_value::<VectorHttpAuditStream>(value.clone()) {
                     Ok(deserialized) => Ok(Self::VectorHttp(deserialized)),
                     Err(e) => Err(AuditStreamError::ConfigDeserializeError(
-                        model.stream_type.to_string(),
+                        stream_type.to_string(),
                         e.to_string(),
                     )),
                 }
             }
         }
+    }
+
+    pub fn from(model: &AuditStreamModel<Id>) -> Result<Self, AuditStreamError> {
+        Self::from_serde_value(&model.stream_type, &model.config)
     }
 }
 
@@ -62,9 +70,9 @@ impl AuditStreamModel<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let configs = query_as!(
+        let configs: Vec<AuditStreamModel<i64>> = query_as!(
             AuditStreamModel,
-            "SELECT id, stream_type \"stream_type: AuditStreamType\", config \
+            "SELECT id, name, stream_type \"stream_type: AuditStreamType\", config \
             FROM audit_stream \
             WHERE stream_type = $1",
             stream_type.to_string()
