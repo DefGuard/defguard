@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use sqlx::PgPool;
-use tokio::{sync::broadcast::Sender, task::JoinSet};
+use tokio::{sync::broadcast::Sender, task::JoinSet, time::sleep};
 use tokio_util::sync::CancellationToken;
 
 use tracing::debug;
@@ -58,15 +58,28 @@ pub async fn run_audit_stream_manager(
                 "Audit stream have no configurations, manager will wait for reload notification."
             );
             }
+        } else {
+            debug!("Audit stream manager cannot start streams, license needs enterprise features enabled.");
         }
-        // wait for next configs update
-        notification.notified().await;
-        // kill the worker and spawn new with refreshed configs
-        debug!(
-            "Audit stream manager configuration refresh notification received, reloading streaming tasks."
-        );
+        // wait for next configs update or if license expired
+        loop {
+            tokio::select! {
+                _ = notification.notified() => {
+                    debug!(
+                        "Audit stream manager configuration refresh notification received, reloading streaming tasks."
+                    );
+                    break;
+               }
+               _ = sleep(std::time::Duration::from_secs(60)) => {
+                if !is_enterprise_enabled() {
+                    debug!("Audit stream manager will reload, detected license enterprise features are not enabled");
+                    break;
+                }
+               }
+            }
+        }
         cancel_token.cancel();
-        while let Some(_) = handles_set.join_next().await {}
+        while (handles_set.join_next().await).is_some() {}
         debug!("All audit streaming tasks closed.");
     }
 }
