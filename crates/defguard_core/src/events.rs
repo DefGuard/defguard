@@ -50,6 +50,15 @@ pub enum ApiEvent {
         context: ApiRequestContext,
         device_name: String,
     },
+    AuditStreamCreated {
+        context: ApiRequestContext,
+    },
+    AuditStreamModified {
+        context: ApiRequestContext,
+    },
+    AuditStreamRemoved {
+        context: ApiRequestContext,
+    },
 }
 
 /// Events from gRPC server

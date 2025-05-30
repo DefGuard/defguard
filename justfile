@@ -33,4 +33,4 @@ migrate:
 
 # update sqlx query data
 query-data:
-    cargo sqlx prepare -- --all-targets
+    cargo sqlx prepare --workspace -- --all-targets --all --tests

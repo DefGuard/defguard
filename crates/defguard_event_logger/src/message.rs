@@ -193,6 +193,10 @@ pub enum DefguardEvent {
     SettingsUpdated,
     SettingsUpdatedPartial,
     SettingsDefaultBrandingRestored,
+    // audit stream management
+    AuditStreamCreated,
+    AuditStreamModified,
+    AuditStreamRemoved,
 }
 
 /// Represents audit events related to client applications

@@ -28,12 +28,15 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
+use std::sync::Arc;
+
 use defguard_core::events::{ApiEvent, ApiRequestContext, BidiStreamEvent, GrpcEvent};
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    Notify,
 };
 use tracing::{debug, error, info};
 
@@ -52,6 +55,7 @@ struct EventRouter {
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    audit_stream_reload_notify: Arc<Notify>,
 }
 
 impl EventRouter {
@@ -80,6 +84,7 @@ impl EventRouter {
         event_logger_tx: UnboundedSender<EventLoggerMessage>,
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
+        audit_stream_reload_notify: Arc<Notify>,
     ) -> Self {
         Self {
             api_event_rx,
@@ -88,6 +93,7 @@ impl EventRouter {
             event_logger_tx,
             wireguard_tx,
             mail_tx,
+            audit_stream_reload_notify,
         }
     }
 
@@ -142,6 +148,7 @@ pub async fn run_event_router(
     event_logger_tx: UnboundedSender<EventLoggerMessage>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    audit_stream_reload_notify: Arc<Notify>,
 ) -> Result<(), EventRouterError> {
     info!("Starting main event router service");
     let mut event_router = EventRouter::new(
@@ -151,6 +158,7 @@ pub async fn run_event_router(
         event_logger_tx,
         wireguard_tx,
         mail_tx,
+        audit_stream_reload_notify,
     );
 
     event_router.run().await

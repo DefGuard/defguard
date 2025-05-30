@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
+use bytes::Bytes;
 use error::EventLoggerError;
 use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use defguard_core::db::{
     models::audit_log::{
@@ -24,6 +27,7 @@ const MESSAGE_LIMIT: usize = 100;
 pub async fn run_event_logger(
     pool: PgPool,
     mut event_logger_rx: UnboundedReceiver<EventLoggerMessage>,
+    audit_messages_tx: Arc<tokio::sync::broadcast::Sender<Bytes>>,
 ) -> Result<(), EventLoggerError> {
     info!("Starting audit event logger service");
 
@@ -38,6 +42,7 @@ pub async fn run_event_logger(
         debug!("Processing batch of {message_count} audit events");
 
         let mut transaction = pool.begin().await?;
+        let mut serialized_audit_events = String::new();
 
         // Process all messages in the batch
         for message in message_buffer {
@@ -182,6 +187,17 @@ pub async fn run_event_logger(
                             DefguardEvent::SettingsUpdated => todo!(),
                             DefguardEvent::SettingsUpdatedPartial => todo!(),
                             DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
+                            DefguardEvent::AuditStreamCreated => {
+                                (EventType::AuditStreamCreated, None)
+                            }
+
+                            DefguardEvent::AuditStreamRemoved => {
+                                (EventType::AuditStreamRemoved, None)
+                            }
+
+                            DefguardEvent::AuditStreamModified => {
+                                (EventType::AuditStreamModified, None)
+                            }
                         };
                         (module, event_type, metadata)
                     }
@@ -212,9 +228,26 @@ pub async fn run_event_logger(
                 }
             };
 
+            match serde_json::to_string(&audit_event) {
+                Ok(serialized_audit_event) => {
+                    serialized_audit_events += &(serialized_audit_event + "\n");
+                }
+                Err(e) => {
+                    error!("Failed to serialize audit event. Reason: {e}");
+                }
+            }
+
             // Store audit event in DB
             // TODO: do batch inserts
             audit_event.save(&mut *transaction).await?;
+        }
+
+        // Send serialized events
+        if !serialized_audit_events.is_empty() {
+            let in_bytes = bytes::Bytes::from(serialized_audit_events);
+            if let Err(send_err) = audit_messages_tx.send(in_bytes) {
+                error!("Sending serialized audit events message failed. Reason: {send_err}");
+            }
         }
 
         // Commit the transaction

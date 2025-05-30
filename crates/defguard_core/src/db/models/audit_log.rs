@@ -33,6 +33,10 @@ pub enum EventType {
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
+    // audit stream
+    AuditStreamCreated,
+    AuditStreamModified,
+    AuditStreamRemoved,
     // OpenID app management
     OpenIdAppAdded,
     OpenIdAppRemoved,
@@ -43,7 +47,7 @@ pub enum EventType {
     VpnLocationModified,
 }
 
-#[derive(Model, FromRow)]
+#[derive(Model, FromRow, Serialize)]
 #[table(audit_event)]
 pub struct AuditEvent<I = NoId> {
     pub id: I,
