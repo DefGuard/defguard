@@ -1,0 +1,22 @@
+[package]
+name = "defguard"
+version = "1.3.1"
+edition.workspace = true
+license-file.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# internal crates
+defguard_core = { workspace = true }
+defguard_event_router = { workspace = true }
+defguard_event_logger = { workspace = true }
+
+# external dependencies
+anyhow = { workspace = true }
+dotenvy = "0.15"
+secrecy = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

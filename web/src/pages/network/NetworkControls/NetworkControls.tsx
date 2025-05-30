@@ -1,6 +1,6 @@
 import './style.scss';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useBreakpoint } from 'use-breakpoint';
@@ -48,6 +48,7 @@ export const NetworkControls = () => {
     shallow,
   );
 
+  const queryClient = useQueryClient();
   const networks = useNetworkPageStore((state) => state.networks);
 
   const getOptions = useMemo(
@@ -66,6 +67,7 @@ export const NetworkControls = () => {
     mutationFn: deleteNetwork,
     onSuccess: () => {
       toaster.success(LL.networkConfiguration.messages.delete.success());
+      void queryClient.invalidateQueries({ queryKey: ['network'] });
       navigate('/admin/overview', { replace: true });
     },
     onError: (err) => {

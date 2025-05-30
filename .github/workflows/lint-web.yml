@@ -30,3 +30,6 @@ jobs:
       - name: Lint
         working-directory: ./web
         run: pnpm lint
+      - name: Audit
+        working-directory: ./web
+        run: pnpm audit --prod

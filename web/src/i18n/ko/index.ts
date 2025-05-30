@@ -774,7 +774,7 @@ const translation: Translation = {
       enrollment: '등록',
       support: '지원',
     },
-    copyright: 'Copyright ©2023-2024',
+    copyright: 'Copyright ©2023-2025',
     version: {
       open: '애플리케이션 버전: {version: string}',
       closed: 'v{version: string}',
