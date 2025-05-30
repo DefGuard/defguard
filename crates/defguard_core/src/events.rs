@@ -35,8 +35,19 @@ impl ApiRequestContext {
 pub enum ApiEventType {
     UserLogin,
     UserLogout,
-    MfaEnabled,
     MfaDisabled,
+    MfaTotpDisabled,
+    MfaTotpEnabled,
+    MfaEmailDisabled,
+    MfaEmailEnabled,
+    MfaSecurityKeyAdded {
+        key_id: Id,
+        key_name: String,
+    },
+    MfaSecurityKeyRemoved {
+        key_id: Id,
+        key_name: String,
+    },
     UserAdded {
         username: String,
     },

@@ -6,9 +6,7 @@ use tracing::{debug, info};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
-        DeviceRemovedMetadata, EventType, UserAddedMetadata, UserModifiedMetadata,
-        UserRemovedMetadata,
+        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata
     },
     NoId,
 };
@@ -96,15 +94,26 @@ pub async fn run_event_logger(
                             DefguardEvent::RecoveryCodeUsed => todo!(),
                             DefguardEvent::PasswordChanged => todo!(),
                             DefguardEvent::MfaFailed => todo!(),
-                            DefguardEvent::MfaEnabled => (EventType::MfaEnabled, None),
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaDefaultChanged { mfa_method } => todo!(),
-                            DefguardEvent::MfaTotpEnabled => todo!(),
-                            DefguardEvent::MfaTotpDisabled => todo!(),
-                            DefguardEvent::MfaEmailEnabled => todo!(),
-                            DefguardEvent::MfaEmailDisabled => todo!(),
-                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => todo!(),
-                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => todo!(),
+                            DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
+                            DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
+                            DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
+                            DefguardEvent::MfaEmailDisabled => (EventType::MfaEmailDisabled, None),
+                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => (
+                                EventType::MfaSecurityKeyAdded,
+                                serde_json::to_value(MfaSecurityKeyAddedMetadata {
+                                    key_id,
+                                    key_name,
+                                }).ok(),
+                            ),
+                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => (
+                                EventType::MfaSecurityKeyRemoved,
+                                serde_json::to_value(MfaSecurityKeyRemovedMetadata {
+                                    key_id,
+                                    key_name,
+                                }).ok(),
+                            ),
                             DefguardEvent::AuthenticationKeyAdded {
                                 key_id,
                                 key_name,

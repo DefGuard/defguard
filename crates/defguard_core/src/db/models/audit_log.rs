@@ -26,8 +26,13 @@ pub enum EventType {
     // user management
     UserLogin,
     UserLogout,
-    MfaEnabled,
     MfaDisabled,
+    MfaTotpDisabled,
+    MfaTotpEnabled,
+    MfaEmailDisabled,
+    MfaEmailEnabled,
+    MfaSecurityKeyAdded,
+    MfaSecurityKeyRemoved,
     UserAdded,
     UserRemoved,
     UserModified,
@@ -89,4 +94,16 @@ pub struct UserModifiedMetadata {
 #[derive(Serialize)]
 pub struct UserRemovedMetadata {
     pub username: String,
+}
+
+#[derive(Serialize)]
+pub struct MfaSecurityKeyRemovedMetadata {
+    pub key_id: Id,
+    pub key_name: String,
+}
+
+#[derive(Serialize)]
+pub struct MfaSecurityKeyAddedMetadata {
+    pub key_id: Id,
+    pub key_name: String,
 }
