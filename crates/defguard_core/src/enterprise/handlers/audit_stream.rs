@@ -9,7 +9,7 @@ use crate::{
     appstate::AppState,
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
-    enterprise::db::models::audit_stream::{AuditStreamConfig, AuditStreamModel, AuditStreamType},
+    enterprise::db::models::audit_stream::{AuditStream, AuditStreamConfig, AuditStreamType},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -20,7 +20,7 @@ pub async fn get_audit_stream(
 ) -> ApiResult {
     debug!("User {} retrieving audit stream's", session.user.username);
     let mut conn = appstate.pool.acquire().await?;
-    let streams = AuditStreamModel::all(&mut *conn).await?;
+    let streams = AuditStream::all(&mut *conn).await?;
     info!("User {} retrieved audit stream's", session.user.username);
     Ok(ApiResponse {
         json: json!(streams),
@@ -43,7 +43,7 @@ pub async fn create_audit_stream(
 ) -> ApiResult {
     // validate config
     let _ = AuditStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
-    let stream_model: AuditStreamModel<NoId> = AuditStreamModel {
+    let stream_model: AuditStream<NoId> = AuditStream {
         id: NoId,
         name: data.name,
         stream_type: data.stream_type,
@@ -63,7 +63,7 @@ pub async fn modify_audit_stream(
     Path(id): Path<Id>,
     Json(data): Json<AuditStreamModificationRequest>,
 ) -> ApiResult {
-    if let Some(mut stream) = AuditStreamModel::find_by_id(&appstate.pool, id).await? {
+    if let Some(mut stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
         //validate config
         let _ = AuditStreamConfig::from_serde_value(&data.stream_type, &data.stream_config)?;
         stream.name = data.name;
@@ -84,7 +84,7 @@ pub async fn delete_audit_stream(
 ) -> ApiResult {
     let session_username = &session.user.username;
     debug!("User {session_username} deleting Audit stream ({id})");
-    if let Some(stream) = AuditStreamModel::find_by_id(&appstate.pool, id).await? {
+    if let Some(stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
         stream.delete(&appstate.pool).await?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(

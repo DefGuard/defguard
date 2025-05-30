@@ -9,13 +9,13 @@ use tracing::debug;
 
 use crate::enterprise::{
     audit_stream::vector_stream::run_vector_http_task,
-    db::models::audit_stream::{AuditStreamConfig, AuditStreamModel},
+    db::models::audit_stream::{AuditStream, AuditStreamConfig},
 };
 
 use super::{error::AuditStreamError, AuditStreamReconfigurationNotification};
 
 async fn get_configurations(pool: &PgPool) -> Result<Vec<AuditStreamConfig>, AuditStreamError> {
-    let db_data = AuditStreamModel::all(pool).await?;
+    let db_data = AuditStream::all(pool).await?;
     let mut configs: Vec<AuditStreamConfig> = Vec::with_capacity(db_data.len());
     for model in db_data {
         let stream_config = AuditStreamConfig::from(&model)?;

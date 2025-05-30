@@ -19,7 +19,7 @@ pub enum AuditStreamType {
 
 #[derive(Debug, Serialize, Model, FromRow)]
 #[table(audit_stream)]
-pub struct AuditStreamModel<I = NoId> {
+pub struct AuditStream<I = NoId> {
     pub id: I,
     pub name: Option<String>,
     #[model(enum)]
@@ -57,12 +57,12 @@ impl AuditStreamConfig {
         }
     }
 
-    pub fn from(model: &AuditStreamModel<Id>) -> Result<Self, AuditStreamError> {
+    pub fn from(model: &AuditStream<Id>) -> Result<Self, AuditStreamError> {
         Self::from_serde_value(&model.stream_type, &model.config)
     }
 }
 
-impl AuditStreamModel<Id> {
+impl AuditStream<Id> {
     pub async fn find_by_stream_type<'e, E>(
         executor: E,
         stream_type: &AuditStreamType,
@@ -70,8 +70,8 @@ impl AuditStreamModel<Id> {
     where
         E: PgExecutor<'e>,
     {
-        let configs: Vec<AuditStreamModel<i64>> = query_as!(
-            AuditStreamModel,
+        let configs: Vec<AuditStream<Id>> = query_as!(
+            AuditStream,
             "SELECT id, name, stream_type \"stream_type: AuditStreamType\", config \
             FROM audit_stream \
             WHERE stream_type = $1",
