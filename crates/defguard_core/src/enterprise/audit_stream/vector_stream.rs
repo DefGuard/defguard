@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bytes::Bytes;
-use tokio::sync::broadcast::Sender;
+use tokio::{sync::broadcast::Sender, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 use tracing::{debug, error};
@@ -13,11 +13,12 @@ pub fn run_vector_http_task(
     stream_config: VectorHttpAuditStream,
     tx: Arc<Sender<Bytes>>,
     cancel_token: Arc<CancellationToken>,
-) -> anyhow::Result<tokio::task::JoinHandle<()>> {
+    handle_set: &mut JoinSet<()>,
+) -> anyhow::Result<()> {
     let mut rx = tx.subscribe();
     let config = stream_config.clone();
     let child_token = cancel_token.child_token();
-    let handle = tokio::spawn(async move {
+    handle_set.spawn(async move {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
 
@@ -55,5 +56,5 @@ pub fn run_vector_http_task(
             }
         }
     });
-    Ok(handle)
+    Ok(())
 }
