@@ -22,7 +22,10 @@ export type AuditEventType =
   | 'mfa_security_key_removed'
   | 'device_added'
   | 'device_modified'
-  | 'device_removed';
+  | 'device_removed'
+  | 'network_device_added'
+  | 'network_device_modified'
+  | 'network_device_removed';
 
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
@@ -40,4 +43,7 @@ export const auditEventTypeValues: AuditEventType[] = [
   'device_added',
   'device_modified',
   'device_removed',
+  'network_device_added',
+  'network_device_modified',
+  'network_device_removed',
 ];

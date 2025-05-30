@@ -6043,6 +6043,18 @@ type RootTranslation = {
 			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
 			 */
 			device_modified: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
+			 */
+			network_device_added: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​r​e​m​o​v​e​d
+			 */
+			network_device_removed: string
+			/**
+			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
+			 */
+			network_device_modified: string
 		}
 		auditModule: {
 			/**
@@ -12036,6 +12048,18 @@ export type TranslationFunctions = {
 			 * Device modified
 			 */
 			device_modified: () => LocalizedString
+			/**
+			 * Network device added
+			 */
+			network_device_added: () => LocalizedString
+			/**
+			 * Network device removed
+			 */
+			network_device_removed: () => LocalizedString
+			/**
+			 * Network device modified
+			 */
+			network_device_modified: () => LocalizedString
 		}
 		auditModule: {
 			/**

@@ -2518,6 +2518,9 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
       device_added: 'Device added',
       device_removed: 'Device removed',
       device_modified: 'Device modified',
+      network_device_added: 'Network device added',
+      network_device_removed: 'Network device removed',
+      network_device_modified: 'Network device modified',
     },
     auditModule: {
       defguard: 'Defguard',
