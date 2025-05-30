@@ -31,7 +31,9 @@ jsonwebtoken = { workspace = true }
 ldap3 = { workspace = true }
 lettre = { workspace = true }
 md4 = { workspace = true }
-openidconnect = { version = "4.0", default-features = false, optional = true, features = ["reqwest"] }
+openidconnect = { version = "4.0", default-features = false, optional = true, features = [
+    "reqwest",
+] }
 parse_link_header = { workspace = true }
 paste = { workspace = true }
 pgp = { workspace = true }
@@ -78,6 +80,9 @@ webauthn-authenticator-rs = { workspace = true }
 webauthn-rs = { workspace = true }
 webauthn-rs-proto = { workspace = true }
 x25519-dalek = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+bytes = { workspace = true }
 
 # https://github.com/juhaku/utoipa/issues/1345
 [dependencies.zip]
@@ -88,7 +93,13 @@ bytes = "1.6"
 claims = "0.8"
 matches = "0.1"
 regex = "1.10"
-reqwest = { version = "0.12", features = ["cookies", "json", "multipart", "rustls-tls", "stream"], default-features = false }
+reqwest = { version = "0.12", features = [
+    "cookies",
+    "json",
+    "multipart",
+    "rustls-tls",
+    "stream",
+], default-features = false }
 serde_qs = "0.13"
 webauthn-authenticator-rs = { version = "0.5", features = ["softpasskey"] }
 

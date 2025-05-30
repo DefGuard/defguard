@@ -34,9 +34,9 @@ use defguard_core::events::{ApiEvent, ApiRequestContext, BidiStreamEvent, GrpcEv
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
-    Notify,
     broadcast::Sender,
     mpsc::{UnboundedReceiver, UnboundedSender},
+    Notify,
 };
 use tracing::{debug, error, info};
 
@@ -134,76 +134,6 @@ impl EventRouter {
                 Event::Bidi(bidi_event) => self.handle_bidi_event(bidi_event)?,
             };
         }
-    }
-
-    fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
-        debug!("Processing API event: {event:?}");
-
-        match event {
-            ApiEvent::UserLogin { context } => {
-                // send event to audit log
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
-            }
-            ApiEvent::UserLogout { context } => {
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
-            }
-            ApiEvent::DeviceAdded {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceAdded { device_name }),
-                )?;
-            }
-            ApiEvent::DeviceRemoved {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceRemoved { device_name }),
-                )?;
-            }
-            ApiEvent::DeviceModified {
-                context,
-                device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::DeviceModified { device_name }),
-                )?;
-            }
-            ApiEvent::AuditStreamCreated { context } => {
-                self.audit_stream_reload_notify.notify_waiters();
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated),
-                )?;
-            }
-            ApiEvent::AuditStreamModified { context } => {
-                self.audit_stream_reload_notify.notify_waiters();
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamModified),
-                )?;
-            }
-            ApiEvent::AuditStreamRemoved { context } => {
-                self.audit_stream_reload_notify.notify_waiters();
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved),
-                )?;
-            }
-        }
-
-        Ok(())
-    }
-
-    fn handle_grpc_event(&self, event: GrpcEvent) -> Result<(), EventRouterError> {
-        debug!("Processing gRPC server event: {event:?}");
-
-        match event {}
     }
 }
 

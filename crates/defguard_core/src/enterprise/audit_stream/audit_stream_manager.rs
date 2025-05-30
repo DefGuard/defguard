@@ -5,6 +5,8 @@ use sqlx::PgPool;
 use tokio::{sync::broadcast::Sender, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 
+use tracing::debug;
+
 use crate::enterprise::{
     audit_stream::vector_stream::run_vector_http_task,
     db::models::audit_stream::{AuditStreamConfig, AuditStreamModel},

@@ -55,6 +55,27 @@ impl EventRouter {
                     }),
                 )?;
             }
+            ApiEvent::AuditStreamCreated { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated),
+                )?;
+            }
+            ApiEvent::AuditStreamModified { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamModified),
+                )?;
+            }
+            ApiEvent::AuditStreamRemoved { context } => {
+                self.audit_stream_reload_notify.notify_waiters();
+                self.log_event(
+                    context,
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved),
+                )?;
+            }
         }
 
         Ok(())

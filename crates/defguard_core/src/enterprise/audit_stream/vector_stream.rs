@@ -5,9 +5,11 @@ use bytes::Bytes;
 use tokio::sync::broadcast::Sender;
 use tokio_util::sync::CancellationToken;
 
+use tracing::{debug, error};
+
 use crate::enterprise::db::models::audit_stream::VectorHttpAuditStream;
 
-pub(super) fn run_vector_http_task(
+pub fn run_vector_http_task(
     stream_config: VectorHttpAuditStream,
     tx: Arc<Sender<Bytes>>,
     cancel_token: Arc<CancellationToken>,
