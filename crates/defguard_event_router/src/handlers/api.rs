@@ -1,4 +1,4 @@
-use defguard_core::events::ApiEvent;
+use defguard_core::events::{ApiEvent, ApiEventType};
 use defguard_event_logger::message::{DefguardEvent, LoggerEvent};
 use tracing::debug;
 
@@ -8,55 +8,92 @@ impl EventRouter {
     pub(crate) fn handle_api_event(&self, event: ApiEvent) -> Result<(), EventRouterError> {
         debug!("Processing API event: {event:?}");
 
-        match event {
-            ApiEvent::UserLogin { context } => {
-                // send event to audit log
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogin))?;
+        let logger_event = match event.kind {
+            ApiEventType::UserLogin => LoggerEvent::Defguard(DefguardEvent::UserLogin),
+            ApiEventType::UserLogout => LoggerEvent::Defguard(DefguardEvent::UserLogout),
+            ApiEventType::UserAdded { username } => {
+                LoggerEvent::Defguard(DefguardEvent::UserAdded { username })
             }
-            ApiEvent::UserLogout { context } => {
-                self.log_event(context, LoggerEvent::Defguard(DefguardEvent::UserLogout))?;
+            ApiEventType::UserRemoved { username } => {
+                LoggerEvent::Defguard(DefguardEvent::UserRemoved { username })
             }
-            ApiEvent::UserDeviceAdded {
-                context,
+            ApiEventType::UserModified { username } => {
+                LoggerEvent::Defguard(DefguardEvent::UserModified { username })
+            }
+            ApiEventType::MfaDisabled => LoggerEvent::Defguard(DefguardEvent::MfaDisabled),
+            ApiEventType::MfaTotpDisabled => LoggerEvent::Defguard(DefguardEvent::MfaTotpDisabled),
+            ApiEventType::MfaTotpEnabled => LoggerEvent::Defguard(DefguardEvent::MfaTotpEnabled),
+            ApiEventType::MfaEmailDisabled => {
+                LoggerEvent::Defguard(DefguardEvent::MfaEmailDisabled)
+            }
+            ApiEventType::MfaEmailEnabled => LoggerEvent::Defguard(DefguardEvent::MfaEmailEnabled),
+            ApiEventType::MfaSecurityKeyAdded { key_id, key_name } => {
+                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyAdded { key_id, key_name })
+            }
+            ApiEventType::MfaSecurityKeyRemoved { key_id, key_name } => {
+                LoggerEvent::Defguard(DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name })
+            }
+            ApiEventType::UserDeviceAdded {
+                owner,
+                device_id,
                 device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-            ApiEvent::UserDeviceRemoved {
-                context,
+            } => LoggerEvent::Defguard(DefguardEvent::UserDeviceAdded {
                 device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-            ApiEvent::UserDeviceModified {
-                context,
+                device_id,
+                owner,
+            }),
+            ApiEventType::UserDeviceRemoved {
+                owner,
+                device_id,
                 device_name,
-            } => {
-                self.log_event(
-                    context,
-                    LoggerEvent::Defguard(DefguardEvent::UserDeviceModified {
-                        device_name,
-                        device_id: todo!(),
-                        user: todo!(),
-                    }),
-                )?;
-            }
-        }
-
-        Ok(())
+            } => LoggerEvent::Defguard(DefguardEvent::UserDeviceRemoved {
+                device_name,
+                device_id,
+                owner,
+            }),
+            ApiEventType::UserDeviceModified {
+                owner,
+                device_id,
+                device_name,
+            } => LoggerEvent::Defguard(DefguardEvent::UserDeviceModified {
+                device_name,
+                device_id,
+                owner,
+            }),
+            ApiEventType::NetworkDeviceAdded {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceAdded {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            }),
+            ApiEventType::NetworkDeviceModified {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceModified {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            }),
+            ApiEventType::NetworkDeviceRemoved {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            } => LoggerEvent::Defguard(DefguardEvent::NetworkDeviceRemoved {
+                device_id,
+                device_name,
+                location_id,
+                location,
+            }),
+        };
+        self.log_event(event.context, logger_event)
     }
 }

@@ -10,6 +10,16 @@ export const auditModuleValues: AuditModule[] = [
 export type AuditEventType =
   | 'user_login'
   | 'user_logout'
+  | 'user_added'
+  | 'user_modified'
+  | 'user_removed'
+  | 'mfa_disabled'
+  | 'mfa_totp_enabled'
+  | 'mfa_totp_disabled'
+  | 'mfa_email_enabled'
+  | 'mfa_email_disabled'
+  | 'mfa_security_key_added'
+  | 'mfa_security_key_removed'
   | 'device_added'
   | 'device_modified'
   | 'device_removed';
@@ -17,6 +27,16 @@ export type AuditEventType =
 export const auditEventTypeValues: AuditEventType[] = [
   'user_login',
   'user_logout',
+  'user_added',
+  'user_modified',
+  'user_removed',
+  'mfa_disabled',
+  'mfa_totp_enabled',
+  'mfa_totp_disabled',
+  'mfa_email_enabled',
+  'mfa_email_disabled',
+  'mfa_security_key_added',
+  'mfa_security_key_removed',
   'device_added',
   'device_modified',
   'device_removed',

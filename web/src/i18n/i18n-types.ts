@@ -5988,6 +5988,50 @@ type RootTranslation = {
 			 */
 			user_logout: string
 			/**
+			 * U​s​e​r​ ​a​d​d​e​d
+			 */
+			user_added: string
+			/**
+			 * U​s​e​r​ ​r​e​m​o​v​e​d
+			 */
+			user_removed: string
+			/**
+			 * U​s​e​r​ ​m​o​d​i​f​i​e​d
+			 */
+			user_modified: string
+			/**
+			 * M​F​A​ ​e​n​a​b​l​e​d
+			 */
+			mfa_enabled: string
+			/**
+			 * M​F​A​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_disabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​e​n​a​b​l​e​d
+			 */
+			mfa_totp_enabled: string
+			/**
+			 * M​F​A​ ​T​O​T​P​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_totp_disabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​e​n​a​b​l​e​d
+			 */
+			mfa_email_enabled: string
+			/**
+			 * M​F​A​ ​e​m​a​i​l​ ​d​i​s​a​b​l​e​d
+			 */
+			mfa_email_disabled: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​a​d​d​e​d
+			 */
+			mfa_security_key_added: string
+			/**
+			 * M​F​A​ ​s​e​c​u​r​i​t​y​ ​k​e​y​ ​r​e​m​o​v​e​d
+			 */
+			mfa_security_key_removed: string
+			/**
 			 * D​e​v​i​c​e​ ​a​d​d​e​d
 			 */
 			device_added: string
@@ -11936,6 +11980,50 @@ export type TranslationFunctions = {
 			 * User logout
 			 */
 			user_logout: () => LocalizedString
+			/**
+			 * User added
+			 */
+			user_added: () => LocalizedString
+			/**
+			 * User removed
+			 */
+			user_removed: () => LocalizedString
+			/**
+			 * User modified
+			 */
+			user_modified: () => LocalizedString
+			/**
+			 * MFA enabled
+			 */
+			mfa_enabled: () => LocalizedString
+			/**
+			 * MFA disabled
+			 */
+			mfa_disabled: () => LocalizedString
+			/**
+			 * MFA TOTP enabled
+			 */
+			mfa_totp_enabled: () => LocalizedString
+			/**
+			 * MFA TOTP disabled
+			 */
+			mfa_totp_disabled: () => LocalizedString
+			/**
+			 * MFA email enabled
+			 */
+			mfa_email_enabled: () => LocalizedString
+			/**
+			 * MFA email disabled
+			 */
+			mfa_email_disabled: () => LocalizedString
+			/**
+			 * MFA security key added
+			 */
+			mfa_security_key_added: () => LocalizedString
+			/**
+			 * MFA security key removed
+			 */
+			mfa_security_key_removed: () => LocalizedString
 			/**
 			 * Device added
 			 */

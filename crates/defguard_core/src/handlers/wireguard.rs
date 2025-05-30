@@ -10,8 +10,6 @@ use axum::{
     http::StatusCode,
     Extension,
 };
-use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
@@ -37,7 +35,7 @@ use crate::{
         AddDevice, Device, GatewayEvent, Id, WireguardNetwork,
     },
     enterprise::{handlers::CanManageDevices, limits::update_counts},
-    events::{ApiEvent, ApiRequestContext},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     grpc::GatewayMap,
     handlers::mail::send_new_device_added_email,
     server_config,
@@ -636,8 +634,7 @@ pub struct AddDeviceResult {
 pub(crate) async fn add_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     // Alias, because otherwise `axum` reports conflicting routes.
     Path(username): Path<String>,
@@ -768,18 +765,18 @@ pub(crate) async fn add_device(
     // clone name to be used later
     let device_name = device.name.clone();
 
+    let device_id = device.id;
     let result = AddDeviceResult { configs, device };
 
     update_counts(&appstate.pool).await?;
 
-    appstate.send_event(ApiEvent::UserDeviceAdded {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        device_name,
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::UserDeviceAdded {
+            device_id,
+            owner: username,
+            device_name,
+        },
     })?;
 
     Ok(ApiResponse {
@@ -827,8 +824,7 @@ pub(crate) async fn add_device(
 pub(crate) async fn modify_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyDevice>,
@@ -887,14 +883,14 @@ pub(crate) async fn modify_device(
     info!("User {} updated device {device_id}", session.user.username);
 
     let user = session.user;
-    appstate.send_event(ApiEvent::UserDeviceModified {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        device_name,
+    let owner = device.get_owner(&appstate.pool).await?.username;
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::UserDeviceModified {
+            owner,
+            device_id: device.id,
+            device_name,
+        },
     })?;
 
     Ok(ApiResponse {
@@ -972,8 +968,7 @@ pub(crate) async fn get_device(
 pub(crate) async fn delete_device(
     _can_manage_devices: CanManageDevices,
     session: SessionInfo,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
+    context: ApiRequestContext,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
 ) -> ApiResult {
@@ -1015,6 +1010,12 @@ pub(crate) async fn delete_device(
         }
     }
 
+    let device_id = device_info.device.id;
+    let owner = device_info
+        .device
+        .get_owner(&mut *transaction)
+        .await?
+        .username;
     events.push(GatewayEvent::DeviceDeleted(device_info));
 
     // send generated gateway events
@@ -1024,14 +1025,13 @@ pub(crate) async fn delete_device(
     info!("User {username} deleted device {device_id}");
 
     let user = session.user;
-    appstate.send_event(ApiEvent::UserDeviceRemoved {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        device_name,
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::UserDeviceRemoved {
+            device_name,
+            owner,
+            device_id,
+        },
     })?;
 
     Ok(ApiResponse::default())
