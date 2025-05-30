@@ -34,7 +34,7 @@ const tabsContent: ReactNode[] = [
   <AuditStreamSettings key={6} />,
 ];
 
-const enterpriseTabs: number[] = [2, 3, 4];
+const enterpriseTabs: number[] = [2, 3, 4, 6];
 
 export const SettingsPage = () => {
   const { LL } = useI18nContext();
@@ -120,13 +120,13 @@ export const SettingsPage = () => {
         key: 5,
         content: LL.settingsPage.tabs.gatewayNotifications(),
         active: activeCard === 5,
-        onClick: () => setActiveCard(5),
+        onClick: () => handleTabClick(5),
       },
       {
         key: 6,
         content: 'Audit Logs Streaming',
         active: activeCard === 6,
-        onClick: () => setActiveCard(6),
+        onClick: () => handleTabClick(6),
       },
     ],
     [LL.settingsPage.tabs, activeCard, handleTabClick],
