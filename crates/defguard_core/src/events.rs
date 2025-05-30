@@ -72,6 +72,24 @@ pub enum ApiEventType {
         owner: String,
         device_name: String,
     },
+    NetworkDeviceAdded {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
+    NetworkDeviceRemoved {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
+    NetworkDeviceModified {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
 }
 
 /// Events from Web API

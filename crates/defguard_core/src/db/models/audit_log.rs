@@ -107,3 +107,11 @@ pub struct MfaSecurityKeyAddedMetadata {
     pub key_id: Id,
     pub key_name: String,
 }
+
+#[derive(Serialize)]
+pub struct NetworkDeviceAddedMetadata {
+    device_id: Id,
+    device_name: String,
+    location_id: Id,
+    location: String,
+}

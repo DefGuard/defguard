@@ -6,7 +6,10 @@ use tracing::{debug, info};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata
+        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
+        DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata,
+        MfaSecurityKeyRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
+        UserRemovedMetadata,
     },
     NoId,
 };
@@ -105,14 +108,16 @@ pub async fn run_event_logger(
                                 serde_json::to_value(MfaSecurityKeyAddedMetadata {
                                     key_id,
                                     key_name,
-                                }).ok(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => (
                                 EventType::MfaSecurityKeyRemoved,
                                 serde_json::to_value(MfaSecurityKeyRemovedMetadata {
                                     key_id,
                                     key_name,
-                                }).ok(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::AuthenticationKeyAdded {
                                 key_id,

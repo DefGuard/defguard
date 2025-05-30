@@ -24,6 +24,7 @@ use crate::{
         Device, GatewayEvent, Id, User, WireguardNetwork,
     },
     enterprise::limits::update_counts,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::mail::send_new_device_added_email,
     server_config,
     templates::TemplateLocation,
@@ -536,6 +537,7 @@ pub(crate) async fn start_network_device_setup_for_device(
 pub(crate) async fn add_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(add_network_device): Json<AddNetworkDevice>,
 ) -> ApiResult {
@@ -633,6 +635,15 @@ pub(crate) async fn add_network_device(
         "User {} added a new network device {device_name}.",
         user.username
     );
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::NetworkDeviceAdded {
+            device_id: device.id,
+            device_name: device.name.clone(),
+            location_id: network.id,
+            location: network.name,
+        },
+    })?;
 
     let result = AddNetworkDeviceResult {
         config,
@@ -657,6 +668,7 @@ pub struct ModifyNetworkDevice {
 pub async fn modify_network_device(
     _admin_role: AdminRole,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(device_id): Path<i64>,
     State(appstate): State<AppState>,
     Json(data): Json<ModifyNetworkDevice>,
@@ -723,6 +735,15 @@ pub async fn modify_network_device(
     }
 
     let network_device_info = NetworkDeviceInfo::from_device(device, &mut transaction).await?;
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::NetworkDeviceModified {
+            device_id: network_device_info.id,
+            device_name: network_device_info.name.clone(),
+            location_id: device_network.id,
+            location: device_network.name,
+        },
+    })?;
     transaction.commit().await?;
 
     Ok(ApiResponse {
