@@ -40,6 +40,9 @@ pub enum EventType {
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
+    NetworkDeviceAdded,
+    NetworkDeviceRemoved,
+    NetworkDeviceModified,
     // OpenID app management
     OpenIdAppAdded,
     OpenIdAppRemoved,
@@ -82,6 +85,30 @@ pub struct DeviceModifiedMetadata {
 }
 
 #[derive(Serialize)]
+pub struct NetworkDeviceAddedMetadata {
+    pub device_id: Id,
+    pub device_name: String,
+    pub location_id: Id,
+    pub location: String
+}
+
+#[derive(Serialize)]
+pub struct NetworkDeviceRemovedMetadata {
+    pub device_id: Id,
+    pub device_name: String,
+    pub location_id: Id,
+    pub location: String
+}
+
+#[derive(Serialize)]
+pub struct NetworkDeviceModifiedMetadata {
+    pub device_id: Id,
+    pub device_name: String,
+    pub location_id: Id,
+    pub location: String
+}
+
+#[derive(Serialize)]
 pub struct UserAddedMetadata {
     pub username: String,
 }
@@ -106,12 +133,4 @@ pub struct MfaSecurityKeyRemovedMetadata {
 pub struct MfaSecurityKeyAddedMetadata {
     pub key_id: Id,
     pub key_name: String,
-}
-
-#[derive(Serialize)]
-pub struct NetworkDeviceAddedMetadata {
-    device_id: Id,
-    device_name: String,
-    location_id: Id,
-    location: String,
 }

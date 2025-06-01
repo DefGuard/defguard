@@ -987,6 +987,7 @@ pub(crate) async fn delete_device(
 
     // clone to use later
     let device_name = device.name.clone();
+    let device_type = device.device_type.clone();
 
     // delete device before firewall config is generated
     device.delete(&mut *transaction).await?;
@@ -1011,28 +1012,51 @@ pub(crate) async fn delete_device(
     }
 
     let device_id = device_info.device.id;
-    let owner = device_info
-        .device
-        .get_owner(&mut *transaction)
-        .await?
-        .username;
-    events.push(GatewayEvent::DeviceDeleted(device_info));
+    events.push(GatewayEvent::DeviceDeleted(device_info.clone()));
 
     // send generated gateway events
     appstate.send_multiple_wireguard_events(events);
 
+    // Emit event specific to the device type.
+    match device_type {
+        DeviceType::User => {
+            let owner = device_info
+                .device
+                .get_owner(&mut *transaction)
+                .await?
+                .username;
+            appstate.send_event(ApiEvent {
+                context,
+                kind: ApiEventType::UserDeviceRemoved {
+                    device_name,
+                    owner,
+                    device_id,
+                },
+            })?
+        }
+        DeviceType::Network => {
+            let location = WireguardNetwork::find_by_id(
+                &mut *transaction,
+                device_info.network_info[0].network_id,
+            )
+            .await?;
+            if let Some(location) = location {
+                appstate.send_event(ApiEvent {
+                    context,
+                    kind: ApiEventType::NetworkDeviceRemoved {
+                        device_id,
+                        device_name,
+                        location_id: location.id,
+                        location: location.name,
+                    },
+                })?;
+            } else {
+                error!("Network device {device_name}({device_id}) has no network assigned");
+            }
+        }
+    };
     transaction.commit().await?;
     info!("User {username} deleted device {device_id}");
-
-    let user = session.user;
-    appstate.send_event(ApiEvent {
-        context,
-        kind: ApiEventType::UserDeviceRemoved {
-            device_name,
-            owner,
-            device_id,
-        },
-    })?;
 
     Ok(ApiResponse::default())
 }
