@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bytes::Bytes;
+use reqwest::tls;
 use tokio::{sync::broadcast::Sender, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
@@ -9,12 +10,14 @@ use tracing::{debug, error};
 
 use crate::enterprise::db::models::audit_stream::VectorHttpAuditStream;
 
+use super::error::AuditStreamError;
+
 pub fn run_vector_http_task(
     stream_config: VectorHttpAuditStream,
     tx: Arc<Sender<Bytes>>,
     cancel_token: Arc<CancellationToken>,
     handle_set: &mut JoinSet<()>,
-) -> anyhow::Result<()> {
+) -> Result<(), AuditStreamError> {
     let mut rx = tx.subscribe();
     let config = stream_config.clone();
     let child_token = cancel_token.child_token();
@@ -24,16 +27,33 @@ pub fn run_vector_http_task(
 
         // add authorization if it exists
         if let (Some(username), Some(password)) = (&config.username, &config.password) {
+            debug!("Auth config found for vector audit stream");
             let authorization_token =
                 BASE64_STANDARD.encode(format!("{0}:{1}", username, password.expose_secret()));
             let auth_header_value = format!("Basic {authorization_token}");
             headers.insert("Authorization", auth_header_value.parse().unwrap());
+            debug!("Authorization header added to vector audit stream");
         }
 
-        let client = reqwest::ClientBuilder::new()
-            .default_headers(headers)
-            .build()
-            .unwrap();
+        let mut client = reqwest::ClientBuilder::new()
+            .default_headers(headers);
+        if let Some(cert) = &config.cert {
+            if config.url.contains("https") {
+                match tls::Certificate::from_pem(cert.as_bytes()) {
+                    Ok(parsed_cert) => {
+                        client = client.add_root_certificate(parsed_cert);
+                    }
+                    Err(e) => {
+                        error!("Failed to add root certificate for vector audit stream. Reason: {0}", e.to_string());
+                        return;
+                    }
+                }
+            }
+        }
+        if cfg!(debug_assertions) {
+            client = client.danger_accept_invalid_hostnames(true);
+        }
+        let client = client.build().unwrap();
         let url = config.url;
         loop {
             tokio::select! {
@@ -44,8 +64,25 @@ pub fn run_vector_http_task(
                 res = rx.recv() => {
                     match res {
                         Ok(msg) => {
-                            // Todo: Add logs ?
-                            let _ = client.post(&url).body(msg).send().await;
+                            match client.post(&url).body(msg).send().await {
+                                Ok(response) => {
+                                    if !response.status().is_success() {
+                                        let status = &response.status();
+                                        let status_code = status.as_str();
+                                        let body: String = {
+                                            let text = &response.text().await;
+                                            match text {
+                                                Ok(body) => body.to_string(),
+                                                Err(_) => "Body decoding failed".to_string(),
+                                            }
+                                        };
+                                        error!("Vector audit stream response code {0}. Body: {1}", status_code, body);
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Failed to send vector audit stream messages. Reason: {e}");
+                                }
+                            }
                         },
                         Err(e) => {
                             error!("Receiving audit stream message failed ! Reason: {}", e.to_string());

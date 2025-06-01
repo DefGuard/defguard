@@ -573,6 +573,7 @@ export type AuditStreamVectorHttp = {
   url: string;
   username?: string;
   password?: string;
+  cert?: string;
 };
 
 export type AuditStreamModifyRequest = {

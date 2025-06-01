@@ -65,6 +65,7 @@ const ModalContent = () => {
         url: z.string().min(1, LL.form.error.required()).url(),
         username: z.string(),
         password: z.string(),
+        cert: z.string(),
       }),
     [LL.form.error],
   );
@@ -78,6 +79,7 @@ const ModalContent = () => {
         url: initialData.config.url,
         username: initialData.config.username ?? '',
         password: initialData.config.password ?? '',
+        cert: initialData.config.cert ?? '',
       };
     }
     return {
@@ -85,6 +87,7 @@ const ModalContent = () => {
       password: '',
       url: '',
       username: '',
+      cert: '',
     };
   }, [initialData, isEdit]);
 
@@ -146,6 +149,7 @@ const ModalContent = () => {
           type="password"
           label="Password"
         />
+        <FormInput controller={{ control, name: 'cert' }} label="Certificate" />
         <div className="controls">
           <Button
             text={LL.common.controls.cancel()}

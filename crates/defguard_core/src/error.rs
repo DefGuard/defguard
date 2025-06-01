@@ -69,6 +69,8 @@ pub enum WebError {
     FirewallError(#[from] FirewallError),
     #[error("API event channel error: {0}")]
     ApiEventChannelError(#[from] SendError<ApiEvent>),
+    #[error("Audit stream error: {0}")]
+    AuditStreamError(String),
 }
 
 impl From<tonic::Status> for WebError {
@@ -180,8 +182,9 @@ impl From<SettingsValidationError> for WebError {
 impl From<AuditStreamError> for WebError {
     fn from(err: AuditStreamError) -> Self {
         match err {
-            AuditStreamError::ConfigDeserializeError(_, _) => Self::Serialization(err.to_string()),
-            AuditStreamError::SqlxError(_) => Self::DbError(err.to_string()),
+            AuditStreamError::ConfigDeserializeError(_, _)
+            | AuditStreamError::HeaderValueParsing()
+            | AuditStreamError::SqlxError(_) => Self::AuditStreamError(err.to_string()),
         }
     }
 }

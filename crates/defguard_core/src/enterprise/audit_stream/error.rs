@@ -6,4 +6,6 @@ pub enum AuditStreamError {
     ConfigDeserializeError(String, String),
     #[error("Sqlx error: {0}")]
     SqlxError(#[from] sqlx::Error),
+    #[error("Parsing http header value failed")]
+    HeaderValueParsing(),
 }
