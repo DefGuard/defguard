@@ -20,6 +20,9 @@ import { useVectorHttpStreamCEModal } from './store';
 export const VectorHttpStreamCEModal = () => {
   const isOpen = useVectorHttpStreamCEModal((s) => s.visible);
   const [close, reset] = useVectorHttpStreamCEModal((s) => [s.close, s.reset], shallow);
+  const isEdit = useVectorHttpStreamCEModal((s) => isPresent(s.initStreamData));
+
+  const title = !isEdit ? 'Add Vector audit stream' : 'Edit Vector audit stream';
 
   useEffect(() => {
     return () => {
@@ -31,7 +34,7 @@ export const VectorHttpStreamCEModal = () => {
   return (
     <ModalWithTitle
       includeDefaultStyles
-      title="Add Vector (http) stream"
+      title={title}
       isOpen={isOpen}
       onClose={() => {
         close();

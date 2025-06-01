@@ -15,6 +15,8 @@ use crate::{
 pub enum AuditStreamType {
     #[strum(serialize = "vector_http")]
     VectorHttp,
+    #[strum(serialize = "logstash_http")]
+    LogstashHttp,
 }
 
 #[derive(Debug, Serialize, Model, FromRow)]
@@ -30,6 +32,14 @@ pub struct AuditStream<I = NoId> {
 #[derive(Debug)]
 pub enum AuditStreamConfig {
     VectorHttp(VectorHttpAuditStream),
+    LogstashHttp(LogstashHttpAuditStream),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LogstashHttpAuditStream {
+    pub url: String,
+    // cert to use for tls
+    pub cert: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -50,6 +60,15 @@ impl AuditStreamConfig {
             AuditStreamType::VectorHttp => {
                 match serde_json::from_value::<VectorHttpAuditStream>(value.clone()) {
                     Ok(deserialized) => Ok(Self::VectorHttp(deserialized)),
+                    Err(e) => Err(AuditStreamError::ConfigDeserializeError(
+                        stream_type.to_string(),
+                        e.to_string(),
+                    )),
+                }
+            }
+            AuditStreamType::LogstashHttp => {
+                match serde_json::from_value::<LogstashHttpAuditStream>(value.clone()) {
+                    Ok(deserialized) => Ok(Self::LogstashHttp(deserialized)),
                     Err(e) => Err(AuditStreamError::ConfigDeserializeError(
                         stream_type.to_string(),
                         e.to_string(),

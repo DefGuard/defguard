@@ -5,7 +5,7 @@ use error::EventLoggerError;
 use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
 use sqlx::PgPool;
 use tokio::sync::mpsc::UnboundedReceiver;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 
 use defguard_core::db::{
     models::audit_log::{
@@ -246,7 +246,7 @@ pub async fn run_event_logger(
         if !serialized_audit_events.is_empty() {
             let in_bytes = bytes::Bytes::from(serialized_audit_events);
             if let Err(send_err) = audit_messages_tx.send(in_bytes) {
-                error!("Sending serialized audit events message failed. Reason: {send_err}");
+                trace!("Sending serialized audit events message failed. Most likely because there is no listeners. Reason: {send_err}");
             }
         }
 

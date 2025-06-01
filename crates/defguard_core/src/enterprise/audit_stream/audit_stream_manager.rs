@@ -8,7 +8,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::debug;
 
 use crate::enterprise::{
-    audit_stream::vector_stream::run_vector_http_task,
+    audit_stream::{logstash_stream::run_logstash_http_task, vector_stream::run_vector_http_task},
     db::models::audit_stream::{AuditStream, AuditStreamConfig},
     is_enterprise_enabled,
 };
@@ -46,6 +46,16 @@ pub async fn run_audit_stream_manager(
                             &mut handles_set,
                         ) {
                             error!("Failed to start vector audit stream task. Reason: {e}");
+                        }
+                    }
+                    AuditStreamConfig::LogstashHttp(stream) => {
+                        if let Err(e) = run_logstash_http_task(
+                            stream,
+                            audit_messages_tx.clone(),
+                            cancel_token.clone(),
+                            &mut handles_set,
+                        ) {
+                            error!("Failed to start Logstash audit stream task. Reason: {e}");
                         }
                     }
                 }

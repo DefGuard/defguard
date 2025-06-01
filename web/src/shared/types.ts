@@ -560,13 +560,13 @@ export type AuditLogRequestParams = AuditLogFilters &
   RequestSortParams<AuditLogSortKey> &
   PaginationParams;
 
-export type AuditStreamType = 'vector_http';
+export type AuditStreamType = 'vector_http' | 'logstash_http';
 
 export type AuditStream = {
   id: number;
   name?: string;
   stream_type: AuditStreamType;
-  config: AuditStreamVectorHttp;
+  config: AuditStreamConfig;
 };
 
 export type AuditStreamVectorHttp = {
@@ -576,12 +576,19 @@ export type AuditStreamVectorHttp = {
   cert?: string;
 };
 
+export type AuditStreamLogstashHttp = {
+  url: string;
+  cert?: string;
+};
+
 export type AuditStreamModifyRequest = {
   id: number;
   name?: string;
   stream_type: AuditStreamType;
-  stream_config: AuditStreamVectorHttp;
+  stream_config: AuditStreamConfig;
 };
+
+export type AuditStreamConfig = AuditStreamVectorHttp | AuditStreamLogstashHttp;
 
 export type AuditStreamCreateRequest = Omit<AuditStreamModifyRequest, 'id'>;
 

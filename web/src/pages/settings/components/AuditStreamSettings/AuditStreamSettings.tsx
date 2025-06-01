@@ -20,8 +20,12 @@ import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
 import queryClient from '../../../../shared/query-client';
 import { AuditStream } from '../../../../shared/types';
+import { CreateAuditStreamModal } from './modals/CreateAuditStreamModal/CreateAuditStreamModal';
+import { useCreateAuditStreamModalStore } from './modals/CreateAuditStreamModal/store';
+import { LogStashHttpStreamCEModal } from './modals/LogStashHttpStreamCEModal/LogStashHttpStreamCEModal';
 import { useVectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/store';
 import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/VectorHttpStreamCEModal';
+import { auditStreamToLabel } from './utils/auditStreamToLabel';
 
 export const AuditStreamSettings = () => {
   return (
@@ -32,7 +36,9 @@ export const AuditStreamSettings = () => {
         </header>
         <AuditStreamList />
       </section>
+      <CreateAuditStreamModal />
       <VectorHttpStreamCEModal />
+      <LogStashHttpStreamCEModal />
     </>
   );
 };
@@ -42,7 +48,7 @@ const AuditStreamList = () => {
     auditStream: { getAuditStreams },
   } = useApi();
 
-  const openVectorHttpModal = useVectorHttpStreamCEModal((s) => s.open, shallow);
+  const openCreateModal = useCreateAuditStreamModalStore((s) => s.open, shallow);
 
   const { data: auditStreams, isLoading: streamsLoading } = useQuery({
     queryFn: getAuditStreams,
@@ -62,7 +68,7 @@ const AuditStreamList = () => {
           icon={<SvgIconPlus />}
           className="add"
           onClick={() => {
-            openVectorHttpModal();
+            openCreateModal();
           }}
         />
       </div>
@@ -147,13 +153,4 @@ const EditListItem = ({ stream }: EditProps) => {
       />
     </EditButton>
   );
-};
-
-const auditStreamToLabel = (value: AuditStream): string => {
-  switch (value.stream_type) {
-    case 'vector_http':
-      return 'Vector (http)';
-    default:
-      return 'Unknown';
-  }
 };
