@@ -5305,13 +5305,13 @@ type RootTranslation = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​d​e​n​i​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​m​u​s​t​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​a​l​l​o​w​e​d​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				denied: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​-​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
+			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ ​L​o​c​a​t​i​o​n​ ​a​c​c​e​s​s​ ​*​*​a​l​l​o​w​e​d​*​*​ ​b​y​ ​d​e​f​a​u​l​t​ ​–​ ​c​a​n​ ​b​e​ ​e​x​p​l​i​c​i​t​l​y​ ​d​e​n​i​e​d​
 			​ ​ ​ ​ ​ ​ ​ ​ ​ ​ 
 				 */
 				allowed: string
@@ -5655,7 +5655,7 @@ type RootTranslation = {
 							 */
 							ports: string
 							/**
-							 * A​l​l​ ​I​P​s
+							 * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
 							 */
 							ip: string
 						}
@@ -5775,7 +5775,7 @@ type RootTranslation = {
 						 */
 						kind: string
 						/**
-						 * I​p​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
+						 * I​P​v​4​/​6​ ​C​I​D​R​ ​r​a​n​g​e​ ​a​d​d​r​e​s​s
 						 */
 						ip: string
 						/**
@@ -5851,13 +5851,13 @@ type RootTranslation = {
 				allowInstructions: string
 				/**
 				 * 
-			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
+			​ ​ ​ ​ ​ ​ ​ ​ ​S​p​e​c​i​f​y​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​f​i​e​l​d​s​ ​(​I​P​ ​A​d​d​r​e​s​s​e​s​ ​o​r​ ​P​o​r​t​s​)​ ​t​o​ ​d​e​f​i​n​e​ ​t​h​i​s​ ​r​u​l​e​.​ ​T​h​e​ ​r​u​l​e​ ​w​i​l​l​ ​c​o​n​s​i​d​e​r​ ​a​l​l​ ​i​n​p​u​t​s​ ​p​r​o​v​i​d​e​d​ ​f​o​r​ ​m​a​t​c​h​i​n​g​ ​c​o​n​d​i​t​i​o​n​s​.​ ​L​e​a​v​e​ ​a​n​y​ ​f​i​e​l​d​s​ ​b​l​a​n​k​ ​i​f​ ​n​o​t​ ​n​e​e​d​e​d​.
 				 */
 				destinationInstructions: string
 			}
 			message: {
 				/**
-				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s
+				 * R​u​l​e​ ​c​r​e​a​t​e​d​ ​a​n​d​ ​a​d​d​e​d​ ​t​o​ ​p​e​n​d​i​n​g​ ​c​h​a​n​g​e​s​.
 				 */
 				create: string
 				/**
@@ -5956,6 +5956,10 @@ type RootTranslation = {
 				 * E​x​p​i​r​a​t​i​o​n​ ​D​a​t​e
 				 */
 				expires: string
+				/**
+				 * M​a​n​u​a​l​ ​I​n​p​u​t
+				 */
+				manualInput: string
 			}
 			placeholders: {
 				/**
@@ -5963,7 +5967,7 @@ type RootTranslation = {
 				 */
 				allProtocols: string
 				/**
-				 * A​l​l​ ​I​P​s
+				 * A​l​l​ ​I​P​ ​a​d​d​r​e​s​s​e​s
 				 */
 				allIps: string
 			}
@@ -11212,13 +11216,13 @@ export type TranslationFunctions = {
 			networkSelectionIndicatorsHelper: {
 				/**
 				 * 
-			          Location access **denied** by default - must be explicitly allowed
+			          Location access **denied** by default – must be explicitly allowed
 			          
 				 */
 				denied: () => LocalizedString
 				/**
 				 * 
-			          Location access **allowed** by default - can be explicitly denied
+			          Location access **allowed** by default – can be explicitly denied
 			          
 				 */
 				allowed: () => LocalizedString
@@ -11557,7 +11561,7 @@ export type TranslationFunctions = {
 							 */
 							ports: () => LocalizedString
 							/**
-							 * All IPs
+							 * All IP addresses
 							 */
 							ip: () => LocalizedString
 						}
@@ -11674,7 +11678,7 @@ export type TranslationFunctions = {
 						 */
 						kind: () => LocalizedString
 						/**
-						 * Ipv4/6 CIDR range address
+						 * IPv4/6 CIDR range address
 						 */
 						ip: () => LocalizedString
 						/**
@@ -11750,13 +11754,13 @@ export type TranslationFunctions = {
 				allowInstructions: () => LocalizedString
 				/**
 				 * 
-			        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
+			        Specify one or more fields (IP Addresses or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.
 				 */
 				destinationInstructions: () => LocalizedString
 			}
 			message: {
 				/**
-				 * Rule created and added to pending changes
+				 * Rule created and added to pending changes.
 				 */
 				create: () => LocalizedString
 				/**
@@ -11855,6 +11859,10 @@ export type TranslationFunctions = {
 				 * Expiration Date
 				 */
 				expires: () => LocalizedString
+				/**
+				 * Manual Input
+				 */
+				manualInput: () => LocalizedString
 			}
 			placeholders: {
 				/**
@@ -11862,7 +11870,7 @@ export type TranslationFunctions = {
 				 */
 				allProtocols: () => LocalizedString
 				/**
-				 * All IPs
+				 * All IP addresses
 				 */
 				allIps: () => LocalizedString
 			}

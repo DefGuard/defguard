@@ -2248,11 +2248,11 @@ Any other requests you can reach us at: support@defguard.net
       networkSelectionIndicatorsHelper: {
         //md
         denied: `
-          Location access **denied** by default - must be explicitly allowed
+          Location access **denied** by default – must be explicitly allowed
           `,
         //md
         allowed: `
-          Location access **allowed** by default - can be explicitly denied
+          Location access **allowed** by default – can be explicitly denied
           `,
         //md
         unmanaged: `
@@ -2382,7 +2382,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             placeholders: {
               protocols: 'All Protocols',
               ports: 'All Ports',
-              ip: 'All IPs',
+              ip: 'All IP addresses',
             },
             kindOptions: {
               destination: 'Destination',
@@ -2427,7 +2427,7 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
             id: 'ID',
             name: 'Alias name',
             kind: 'Alias kind',
-            ip: 'Ipv4/6 CIDR range address',
+            ip: 'IPv4/6 CIDR range address',
             ports: 'Ports',
             protocols: 'Protocols',
             status: 'Status',
@@ -2460,10 +2460,10 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         Specify one or more fields (Users, Groups or Devices) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
         // md
         destinationInstructions: `
-        Specify one or more fields (IPs or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
+        Specify one or more fields (IP Addresses or Ports) to define this rule. The rule will consider all inputs provided for matching conditions. Leave any fields blank if not needed.`,
       },
       message: {
-        create: 'Rule created and added to pending changes',
+        create: 'Rule created and added to pending changes.',
         createFail: 'Rule creation failed',
       },
       headers: {
@@ -2491,10 +2491,11 @@ This alias is currently in use by the following rule(s) and cannot be deleted. T
         ports: 'Ports',
         aliases: 'Aliases',
         expires: 'Expiration Date',
+        manualInput: 'Manual Input',
       },
       placeholders: {
         allProtocols: 'All protocols',
-        allIps: 'All IPs',
+        allIps: 'All IP addresses',
       },
     },
   },
