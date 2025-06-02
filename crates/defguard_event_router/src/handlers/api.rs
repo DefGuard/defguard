@@ -55,25 +55,46 @@ impl EventRouter {
                     }),
                 )?;
             }
-            ApiEvent::AuditStreamCreated { context } => {
+            ApiEvent::AuditStreamCreated {
+                context,
+                stream_id,
+                stream_name,
+            } => {
                 self.audit_stream_reload_notify.notify_waiters();
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated),
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamCreated {
+                        stream_id,
+                        stream_name,
+                    }),
                 )?;
             }
-            ApiEvent::AuditStreamModified { context } => {
+            ApiEvent::AuditStreamModified {
+                context,
+                stream_id,
+                stream_name,
+            } => {
                 self.audit_stream_reload_notify.notify_waiters();
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamModified),
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamModified {
+                        stream_id,
+                        stream_name,
+                    }),
                 )?;
             }
-            ApiEvent::AuditStreamRemoved { context } => {
+            ApiEvent::AuditStreamRemoved {
+                context,
+                stream_id,
+                stream_name,
+            } => {
                 self.audit_stream_reload_notify.notify_waiters();
                 self.log_event(
                     context,
-                    LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved),
+                    LoggerEvent::Defguard(DefguardEvent::AuditStreamRemoved {
+                        stream_id,
+                        stream_name,
+                    }),
                 )?;
             }
         }

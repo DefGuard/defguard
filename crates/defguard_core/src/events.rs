@@ -52,12 +52,18 @@ pub enum ApiEvent {
     },
     AuditStreamCreated {
         context: ApiRequestContext,
+        stream_id: Id,
+        stream_name: String,
     },
     AuditStreamModified {
         context: ApiRequestContext,
+        stream_id: Id,
+        stream_name: String,
     },
     AuditStreamRemoved {
         context: ApiRequestContext,
+        stream_id: Id,
+        stream_name: String,
     },
 }
 

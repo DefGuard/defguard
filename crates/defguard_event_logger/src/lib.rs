@@ -7,7 +7,7 @@ use tracing::{debug, error, info, trace};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
+        AuditEvent, AuditModule, AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
         DeviceRemovedMetadata, EventType,
     },
     NoId,
@@ -185,17 +185,41 @@ pub async fn run_event_logger(
                             DefguardEvent::SettingsUpdated => todo!(),
                             DefguardEvent::SettingsUpdatedPartial => todo!(),
                             DefguardEvent::SettingsDefaultBrandingRestored => todo!(),
-                            DefguardEvent::AuditStreamCreated => {
-                                (EventType::AuditStreamCreated, None)
-                            }
+                            DefguardEvent::AuditStreamCreated {
+                                stream_id,
+                                stream_name,
+                            } => (
+                                EventType::AuditStreamCreated,
+                                serde_json::to_value(AuditStreamMetadata {
+                                    id: stream_id,
+                                    name: stream_name,
+                                })
+                                .ok(),
+                            ),
 
-                            DefguardEvent::AuditStreamRemoved => {
-                                (EventType::AuditStreamRemoved, None)
-                            }
+                            DefguardEvent::AuditStreamRemoved {
+                                stream_id,
+                                stream_name,
+                            } => (
+                                EventType::AuditStreamRemoved,
+                                serde_json::to_value(AuditStreamMetadata {
+                                    id: stream_id,
+                                    name: stream_name,
+                                })
+                                .ok(),
+                            ),
 
-                            DefguardEvent::AuditStreamModified => {
-                                (EventType::AuditStreamModified, None)
-                            }
+                            DefguardEvent::AuditStreamModified {
+                                stream_id,
+                                stream_name,
+                            } => (
+                                EventType::AuditStreamModified,
+                                serde_json::to_value(AuditStreamMetadata {
+                                    id: stream_id,
+                                    name: stream_name,
+                                })
+                                .ok(),
+                            ),
                         };
                         (module, event_type, metadata)
                     }

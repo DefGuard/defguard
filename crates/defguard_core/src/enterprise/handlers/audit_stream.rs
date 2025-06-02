@@ -59,7 +59,7 @@ pub async fn create_audit_stream(
         stream_type: data.stream_type,
         config: data.stream_config,
     };
-    stream_model.save(&appstate.pool).await?;
+    let stream = stream_model.save(&appstate.pool).await?;
     info!("User {session_username} created audit stream");
     appstate.send_event(crate::events::ApiEvent::AuditStreamCreated {
         context: ApiRequestContext::new(
@@ -68,6 +68,8 @@ pub async fn create_audit_stream(
             insecure_ip.into(),
             user_agent.to_string(),
         ),
+        stream_id: stream.id,
+        stream_name: stream.name,
     })?;
     debug!("AuditStreamCreated api event sent");
     Ok(ApiResponse {
@@ -102,6 +104,8 @@ pub async fn modify_audit_stream(
                 insecure_ip.into(),
                 user_agent.to_string(),
             ),
+            stream_id: stream.id,
+            stream_name: stream.name,
         })?;
         debug!("AuditStreamModified api event sent");
         return Ok(ApiResponse::default());
@@ -123,21 +127,25 @@ pub async fn delete_audit_stream(
     let session_username = &session.user.username;
     debug!("User {session_username} deleting Audit stream ({id})");
     if let Some(stream) = AuditStream::find_by_id(&appstate.pool, id).await? {
+        let stream_id = stream.id;
+        let stream_name = stream.name.clone();
         stream.delete(&appstate.pool).await?;
+        appstate.send_event(crate::events::ApiEvent::AuditStreamRemoved {
+            context: ApiRequestContext::new(
+                session.user.id,
+                session.user.username.clone(),
+                insecure_ip.into(),
+                user_agent.to_string(),
+            ),
+            stream_id,
+            stream_name,
+        })?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(
             "Audit Stream of id {id} not found."
         )));
     }
     info!("User {session_username} deleted Audit stream");
-    appstate.send_event(crate::events::ApiEvent::AuditStreamRemoved {
-        context: ApiRequestContext::new(
-            session.user.id,
-            session.user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-    })?;
     debug!("AuditStreamRemoved api event sent");
     Ok(ApiResponse::default())
 }
