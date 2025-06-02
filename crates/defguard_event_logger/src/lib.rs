@@ -6,7 +6,10 @@ use tracing::{debug, info};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata
+        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
+        DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata,
+        MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
+        NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata,
     },
     NoId,
 };
@@ -198,7 +201,8 @@ pub async fn run_event_logger(
                                     device_name,
                                     location_id,
                                     location,
-                                }).ok(),
+                                })
+                                .ok(),
                             ),
                             DefguardEvent::VpnLocationAdded {
                                 location_id,

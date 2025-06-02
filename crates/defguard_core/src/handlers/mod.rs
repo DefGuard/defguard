@@ -473,12 +473,11 @@ where
             .map_err(|_| WebError::BadRequest("Missing client IP".to_string()))?;
         let session = SessionInfo::from_request_parts(parts, state).await?;
 
-        let ctx = ApiRequestContext::new(
+        Ok(ApiRequestContext::new(
             session.user.id,
             session.user.username,
             insecure_ip,
             user_agent.to_string(),
-        );
-        Ok(ctx)
+        ))
     }
 }

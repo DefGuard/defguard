@@ -89,7 +89,7 @@ pub struct NetworkDeviceAddedMetadata {
     pub device_id: Id,
     pub device_name: String,
     pub location_id: Id,
-    pub location: String
+    pub location: String,
 }
 
 #[derive(Serialize)]
@@ -97,7 +97,7 @@ pub struct NetworkDeviceRemovedMetadata {
     pub device_id: Id,
     pub device_name: String,
     pub location_id: Id,
-    pub location: String
+    pub location: String,
 }
 
 #[derive(Serialize)]
@@ -105,7 +105,7 @@ pub struct NetworkDeviceModifiedMetadata {
     pub device_id: Id,
     pub device_name: String,
     pub location_id: Id,
-    pub location: String
+    pub location: String,
 }
 
 #[derive(Serialize)]
