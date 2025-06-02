@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -18,18 +18,13 @@ import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStri
 import { useVectorHttpStreamCEModal } from './store';
 
 export const VectorHttpStreamCEModal = () => {
+  const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings.modals.vector;
   const isOpen = useVectorHttpStreamCEModal((s) => s.visible);
   const [close, reset] = useVectorHttpStreamCEModal((s) => [s.close, s.reset], shallow);
   const isEdit = useVectorHttpStreamCEModal((s) => isPresent(s.initStreamData));
 
-  const title = !isEdit ? 'Add Vector audit stream' : 'Edit Vector audit stream';
-
-  useEffect(() => {
-    return () => {
-      reset();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const title = isEdit ? localLL.modify() : localLL.create();
 
   return (
     <ModalWithTitle
@@ -56,6 +51,7 @@ const ModalContent = () => {
   ]);
 
   const { LL } = useI18nContext();
+  const formLabels = LL.settingsPage.auditStreamSettings.modals.shared.formLabels;
 
   const {
     auditStream: { createAuditStream, modifyAuditStream },
@@ -94,7 +90,7 @@ const ModalContent = () => {
     };
   }, [initialData, isEdit]);
 
-  const { handleSubmit, control } = useForm({
+  const { handleSubmit, control, resetField } = useForm({
     defaultValues,
     resolver: zodResolver(schema),
     mode: 'all',
@@ -142,33 +138,46 @@ const ModalContent = () => {
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit(handleValidSubmit)}>
-        <FormInput controller={{ control, name: 'name' }} label="Name" />
-        <FormInput controller={{ control, name: 'url' }} required label="Url" />
-        <FormInput controller={{ control, name: 'username' }} label="Username" />
-        <FormInput
-          controller={{ control, name: 'password' }}
-          type="password"
-          label="Password"
+    <form onSubmit={handleSubmit(handleValidSubmit)}>
+      <FormInput label={formLabels.name()} controller={{ control, name: 'name' }} />
+      <FormInput
+        label={formLabels.url()}
+        controller={{ control, name: 'url' }}
+        required
+      />
+      <FormInput
+        controller={{ control, name: 'username' }}
+        label={formLabels.username()}
+      />
+      <FormInput
+        controller={{ control, name: 'password' }}
+        type="password"
+        label={formLabels.password()}
+      />
+      <FormInput
+        label={formLabels.cert()}
+        controller={{ control, name: 'cert' }}
+        disposable
+        disposeHandler={() => {
+          resetField('cert');
+        }}
+      />
+
+      <div className="controls">
+        <Button
+          text={LL.common.controls.cancel()}
+          className="cancel"
+          onClick={() => {
+            closeModal();
+          }}
         />
-        <FormInput controller={{ control, name: 'cert' }} label="Certificate" />
-        <div className="controls">
-          <Button
-            text={LL.common.controls.cancel()}
-            className="cancel"
-            onClick={() => {
-              closeModal();
-            }}
-          />
-          <Button
-            styleVariant={ButtonStyleVariant.PRIMARY}
-            text={LL.common.controls.submit()}
-            className="submit"
-            type="submit"
-          />
-        </div>
-      </form>
-    </>
+        <Button
+          styleVariant={ButtonStyleVariant.PRIMARY}
+          text={LL.common.controls.submit()}
+          className="submit"
+          type="submit"
+        />
+      </div>
+    </form>
   );
 };

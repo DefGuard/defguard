@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use base64::prelude::{Engine, BASE64_STANDARD};
 use bytes::Bytes;
 use reqwest::tls;
 use tokio::{sync::broadcast::Sender, task::JoinSet};
@@ -23,6 +24,15 @@ pub fn run_logstash_http_task(
     handle_set.spawn(async move {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
+
+        if let (Some(username), Some(password)) = (&config.username, &config.password) {
+            debug!("Auth config found for Logstash audit stream");
+            let authorization_token =
+                BASE64_STANDARD.encode(format!("{0}:{1}", username, password.expose_secret()));
+            let auth_header_value = format!("Basic {authorization_token}");
+            headers.insert("Authorization", auth_header_value.parse().unwrap());
+            debug!("Authorization header added to Logstash audit stream");
+        }
 
         let mut client = reqwest::ClientBuilder::new()
             .default_headers(headers);

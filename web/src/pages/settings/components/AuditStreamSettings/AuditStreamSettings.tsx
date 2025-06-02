@@ -28,11 +28,14 @@ import { VectorHttpStreamCEModal } from './modals/VectorHttpStreamCEModal/Vector
 import { auditStreamToLabel } from './utils/auditStreamToLabel';
 
 export const AuditStreamSettings = () => {
+  const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings;
+
   return (
     <>
       <section id="audit-stream-settings">
         <header>
-          <h2>Audit Logs Streaming</h2>
+          <h2>{localLL.title()}</h2>
         </header>
         <AuditStreamList />
       </section>
@@ -44,6 +47,8 @@ export const AuditStreamSettings = () => {
 };
 
 const AuditStreamList = () => {
+  const { LL } = useI18nContext();
+
   const {
     auditStream: { getAuditStreams },
   } = useApi();
@@ -64,7 +69,7 @@ const AuditStreamList = () => {
         <Button
           size={ButtonSize.SMALL}
           styleVariant={ButtonStyleVariant.PRIMARY}
-          text="Add new"
+          text={LL.common.controls.addNew()}
           icon={<SvgIconPlus />}
           className="add"
           onClick={() => {
@@ -90,7 +95,10 @@ const AuditStreamList = () => {
           </ul>
         )}
         {isPresent(auditStreams) && auditStreams.length === 0 && (
-          <NoData customMessage="No audit streams" messagePosition="center" />
+          <NoData
+            customMessage={LL.settingsPage.auditStreamSettings.list.noData()}
+            messagePosition="center"
+          />
         )}
       </div>
     </div>

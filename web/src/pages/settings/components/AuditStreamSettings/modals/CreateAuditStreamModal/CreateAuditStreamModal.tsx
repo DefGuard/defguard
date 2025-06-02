@@ -16,14 +16,17 @@ import { useVectorHttpStreamCEModal } from '../VectorHttpStreamCEModal/store';
 import { useCreateAuditStreamModalStore } from './store';
 
 export const CreateAuditStreamModal = () => {
+  const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings.modals.selectDestination;
   const [close, reset] = useCreateAuditStreamModalStore(
     (s) => [s.close, s.reset],
     shallow,
   );
   const isOpen = useCreateAuditStreamModalStore((s) => s.visible);
+
   return (
     <ModalWithTitle
-      title="Select destination"
+      title={localLL.title()}
       id="create-audit-stream-modal"
       isOpen={isOpen}
       onClose={() => {

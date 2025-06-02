@@ -8,6 +8,8 @@ const en: BaseTranslation = {
       equal: 'equal',
     },
     controls: {
+      addNew: 'Add new',
+      add: 'Add',
       accept: 'Accept',
       next: 'Next',
       back: 'Back',
@@ -1100,6 +1102,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       openid: 'OpenID',
       enterprise: 'Enterprise features',
       gatewayNotifications: 'Gateway notifications',
+      auditStream: 'Audit logs streaming',
     },
     messages: {
       editSuccess: 'Settings updated',
@@ -1110,6 +1113,41 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       currentExpired: 'Your current license has expired.',
       subtitle: 'To learn more, visit our ',
       website: 'website',
+    },
+    auditStreamSettings: {
+      messages: {
+        destinationCrud: {
+          create: '{destination: string} destination added',
+          modify: '{destination: string} destination modified',
+          delete: '{destination: string} destination removed',
+        },
+      },
+      modals: {
+        selectDestination: {
+          title: 'Select destination',
+        },
+        vector: {
+          create: 'Add Vector destination',
+          modify: 'Edit Vector destination',
+        },
+        logstash: {
+          create: 'Add Logstash destination',
+          modify: 'Edit Logstash destination',
+        },
+        shared: {
+          formLabels: {
+            name: 'Name',
+            url: 'Url',
+            username: 'Username',
+            password: 'Password',
+            cert: 'Certificate',
+          },
+        },
+      },
+      title: 'Audit logs streaming',
+      list: {
+        noData: 'No destinations',
+      },
     },
     ldapSettings: {
       title: 'LDAP Settings',

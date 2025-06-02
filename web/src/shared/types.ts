@@ -578,6 +578,8 @@ export type AuditStreamVectorHttp = {
 
 export type AuditStreamLogstashHttp = {
   url: string;
+  username?: string;
+  password?: string;
   cert?: string;
 };
 

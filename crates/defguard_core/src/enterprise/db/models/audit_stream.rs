@@ -38,6 +38,8 @@ pub enum AuditStreamConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LogstashHttpAuditStream {
     pub url: String,
+    pub username: Option<String>,
+    pub password: Option<SecretStringWrapper>,
     // cert to use for tls
     pub cert: Option<String>,
 }

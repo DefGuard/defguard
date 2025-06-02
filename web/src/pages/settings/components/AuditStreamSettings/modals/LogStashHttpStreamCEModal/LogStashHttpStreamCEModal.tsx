@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { shallow } from 'zustand/shallow';
@@ -16,9 +16,14 @@ import useApi from '../../../../../../shared/hooks/useApi';
 import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
 import { AuditStreamLogstashHttp, AuditStreamType } from '../../../../../../shared/types';
+import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
+import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
 import { useLogstashHttpStreamCEModalStore } from './store';
 
 export const LogStashHttpStreamCEModal = () => {
+  const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings.modals.logstash;
+
   const [close, reset] = useLogstashHttpStreamCEModalStore(
     (s) => [s.close, s.reset],
     shallow,
@@ -28,14 +33,7 @@ export const LogStashHttpStreamCEModal = () => {
     isPresent(s.initStreamData),
   ]);
 
-  const title = isEdit ? 'Edit Logstash audit stream' : 'Add Logstash audit stream';
-
-  useEffect(() => {
-    return () => {
-      reset();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const title = isEdit ? localLL.modify() : localLL.create();
 
   return (
     <ModalWithTitle
@@ -55,6 +53,7 @@ export const LogStashHttpStreamCEModal = () => {
 
 const ModalContent = () => {
   const { LL } = useI18nContext();
+  const formLabels = LL.settingsPage.auditStreamSettings.modals.shared.formLabels;
   const {
     auditStream: { createAuditStream, modifyAuditStream },
   } = useApi();
@@ -101,6 +100,8 @@ const ModalContent = () => {
       z.object({
         name: z.string(),
         url: z.string().min(1, LL.form.error.required()),
+        username: z.string(),
+        password: z.string(),
         cert: z.string(),
       }),
     [LL.form.error],
@@ -111,14 +112,22 @@ const ModalContent = () => {
   const defaultValues = useMemo((): FormFields => {
     if (isPresent(initialData)) {
       const { name, config } = initialData;
-      const { cert, url } = config;
-      return { name: name ?? '', cert: cert ?? '', url };
+      const { cert, url, password, username } = config;
+      return {
+        name: name ?? '',
+        cert: cert ?? '',
+        password: password ?? '',
+        username: username ?? '',
+        url,
+      };
     }
 
     return {
       cert: '',
       name: '',
       url: '',
+      password: '',
+      username: '',
     };
   }, [initialData]);
 
@@ -133,7 +142,8 @@ const ModalContent = () => {
     resolver: zodResolver(schema),
   });
 
-  const handleValidSubmit: SubmitHandler<FormFields> = async ({ name, ...config }) => {
+  const handleValidSubmit: SubmitHandler<FormFields> = async (values) => {
+    const { name, ...config } = removeEmptyStrings(trimObjectStrings(values));
     const streamType: AuditStreamType = 'logstash_http';
 
     const logstashConfig: AuditStreamLogstashHttp = config;
@@ -156,10 +166,23 @@ const ModalContent = () => {
 
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
-      <FormInput label="Name" controller={{ control, name: 'name' }} />
-      <FormInput label="Url" controller={{ control, name: 'url' }} required />
+      <FormInput label={formLabels.name()} controller={{ control, name: 'name' }} />
       <FormInput
-        label="Certificate"
+        label={formLabels.url()}
+        controller={{ control, name: 'url' }}
+        required
+      />
+      <FormInput
+        controller={{ control, name: 'username' }}
+        label={formLabels.username()}
+      />
+      <FormInput
+        controller={{ control, name: 'password' }}
+        type="password"
+        label={formLabels.password()}
+      />
+      <FormInput
+        label={formLabels.cert()}
         controller={{ control, name: 'cert' }}
         disposable
         disposeHandler={() => {
