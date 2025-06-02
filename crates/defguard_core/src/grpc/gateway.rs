@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     net::IpAddr,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -51,9 +52,21 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
+// Helper struct used to handle connected VPN clients state
+// Clients are grouped by location ID
+type ClientPubKey = String;
+#[derive(Debug, Serialize, Clone)]
+struct ClientMap(HashMap<Id, HashMap<ClientPubKey, ClientState>>);
+
+#[derive(Debug, Serialize, Clone)]
+struct ClientState {
+    device_id: Id,
+}
+
 pub struct GatewayServer {
     pool: PgPool,
-    state: Arc<Mutex<GatewayMap>>,
+    gateway_state: Arc<Mutex<GatewayMap>>,
+    client_state: ClientMap,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
@@ -117,7 +130,8 @@ impl GatewayServer {
     ) -> Self {
         Self {
             pool,
-            state,
+            gateway_state: state,
+            client_state: ClientMap(HashMap::new()),
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
@@ -163,6 +177,18 @@ impl GatewayServer {
                 "Gateway hostname not found in request metadata",
             )),
         }
+    }
+
+    // get connected VPN client from state map if present
+    pub fn get_vpn_client(
+        &mut self,
+        location_id: Id,
+        client_pubkey: &str,
+    ) -> Option<&mut ClientState> {
+        self.client_state
+            .0
+            .get_mut(&location_id)
+            .map(|client_map| client_map.get_mut(client_pubkey))?
     }
 }
 
@@ -597,6 +623,7 @@ impl Drop for GatewayUpdatesStream {
         // terminate update task
         self.task_handle.abort();
         // update gateway state
+        // TODO: possibly use a oneshot channel instead
         self.gateway_state
             .lock()
             .unwrap()
@@ -616,6 +643,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
     ) -> Result<Response<()>, Status> {
         let network_id = Self::get_network_id(request.metadata())?;
         let mut stream = request.into_inner();
+
         while let Some(stats_update) = stream.message().await? {
             debug!("Received stats message: {stats_update:?}");
             let Some(stats_update::Payload::PeerStats(peer_stats)) = stats_update.payload else {
@@ -643,6 +671,9 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     ));
                 }
             };
+            // update connected clients map
+            // match stream.
+
             // Save stats to db
             let stats = match stats.save(&self.pool).await {
                 Ok(stats) => stats,
@@ -694,7 +725,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         // store connected gateway in memory
         {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.gateway_state.lock().unwrap();
             state.add_gateway(
                 network_id,
                 &network.name,
@@ -761,7 +792,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
         let (tx, rx) = mpsc::channel(4);
         let events_rx = self.wireguard_tx.subscribe();
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.gateway_state.lock().unwrap();
         state
             .connect_gateway(gateway_network_id, &hostname, &self.pool)
             .map_err(|err| {
@@ -790,7 +821,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
             rx,
             gateway_network_id,
             hostname,
-            Arc::clone(&self.state),
+            Arc::clone(&self.gateway_state),
             self.pool.clone(),
         )))
     }
