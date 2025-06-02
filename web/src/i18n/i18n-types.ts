@@ -5355,9 +5355,17 @@ type RootTranslation = {
 			 */
 			deleted: string
 			/**
+			 * E​n​a​b​l​e
+			 */
+			enable: string
+			/**
 			 * E​n​a​b​l​e​d
 			 */
 			enabled: string
+			/**
+			 * D​i​s​a​b​l​e
+			 */
+			disable: string
 			/**
 			 * D​i​s​a​b​l​e​d
 			 */
@@ -11266,9 +11274,17 @@ export type TranslationFunctions = {
 			 */
 			deleted: () => LocalizedString
 			/**
+			 * Enable
+			 */
+			enable: () => LocalizedString
+			/**
 			 * Enabled
 			 */
 			enabled: () => LocalizedString
+			/**
+			 * Disable
+			 */
+			disable: () => LocalizedString
 			/**
 			 * Disabled
 			 */

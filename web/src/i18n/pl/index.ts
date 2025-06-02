@@ -2135,7 +2135,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         },
         destination: {
           name: 'Miejsce docelowe',
-          description: 'zostanie zamienion na osobny zestaw reguł firewalla',
+          description: 'zostanie zamienione na osobny zestaw reguł firewalla',
         },
       },
       networkSelectionIndicatorsHelper: {
@@ -2163,7 +2163,9 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       applied: 'Zastosowana',
       modified: 'Czeka na zmianę',
       deleted: 'Czeka na usunięcie',
+      enable: 'Włącz',
       enabled: 'Włączona',
+      disable: 'Wyłącz',
       disabled: 'Wyłączona',
       expired: 'Przedawniona',
     },
@@ -2171,7 +2173,7 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       message: {
         changeDiscarded: 'Zmiana odrzucona',
         changeAdded: 'Dodana zmiana oczekująca',
-        changeFail: 'Nie udało się dokonać zmiany',
+        changeFail: 'Nie udało się wykonać zmiany',
         applyChanges: 'Zmiana została zastosowana',
         applyFail: 'Nie udało się zastosować zmiany',
       },
@@ -2208,13 +2210,13 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
         list: {
           pendingList: {
             title: 'Oczekujące zmiany',
-            noData: 'Bral oczekujących zmian',
+            noData: 'Brak oczekujących zmian',
             noDataSearch: 'Nie znaleziono oczekujących zmian',
           },
           deployedList: {
             title: 'Wdrożone reguły',
             noData: 'Brak wdrożonych reguł',
-            noDataSearch: 'Nie znaleziono wdrożonych zmian',
+            noDataSearch: 'Nie znaleziono wdrożonych reguł',
           },
           headers: {
             name: 'Nazwa reguły',
@@ -2351,10 +2353,10 @@ Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usu
       infoBox: {
         // md
         allowInstructions: `
-        Podaj jedno lub więcej pól (użytkownicy, grupy lub urządzenia) aby zdefinionwać tę regułę. Reguła uwzgłedni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
+        Podaj jedno lub więcej pól (użytkownicy, grupy lub urządzenia) aby zdefinionwać tę regułę. Reguła uwzględni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
         // md
         destinationInstructions: `
-        Podaj jedno lub więcej pól (adresy IP lub porty) aby zdefinionwać tę regułę. Reguła uwzgłedni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
+        Podaj jedno lub więcej pól (adresy IP lub porty) aby zdefinionwać tę regułę. Reguła uwzględni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
       },
       message: {
         create: 'Reguła została utworzona i dodana do oczekujących zmian.',
