@@ -40,6 +40,7 @@ pub(super) struct EnrollmentServer {
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    #[allow(dead_code)]
     bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 }
 
@@ -96,6 +97,7 @@ impl EnrollmentServer {
     }
 
     // Send event to the dedicated bidi stream event channel
+    #[allow(dead_code)]
     fn emit_event(
         &self,
         request_context: BidiRequestContext,
