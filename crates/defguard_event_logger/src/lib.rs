@@ -6,8 +6,13 @@ use tracing::{debug, info};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
-        DeviceRemovedMetadata, EventType,
+        metadata::{
+            DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata,
+            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
+            UserModifiedMetadata, UserRemovedMetadata,
+        },
+        AuditEvent, AuditModule, EventType,
     },
     NoId,
 };
@@ -62,7 +67,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceAdded {
                                 device_id,
                                 device_name,
-                                user,
+                                owner,
                             } => (
                                 EventType::DeviceAdded,
                                 serde_json::to_value(DeviceAddedMetadata {
@@ -73,7 +78,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceRemoved {
                                 device_id,
                                 device_name,
-                                user,
+                                owner,
                             } => (
                                 EventType::DeviceRemoved,
                                 serde_json::to_value(DeviceRemovedMetadata {
@@ -84,7 +89,7 @@ pub async fn run_event_logger(
                             DefguardEvent::UserDeviceModified {
                                 device_id,
                                 device_name,
-                                user,
+                                owner,
                             } => (
                                 EventType::DeviceModified,
                                 serde_json::to_value(DeviceModifiedMetadata {
@@ -95,14 +100,28 @@ pub async fn run_event_logger(
                             DefguardEvent::RecoveryCodeUsed => todo!(),
                             DefguardEvent::PasswordChanged => todo!(),
                             DefguardEvent::MfaFailed => todo!(),
-                            DefguardEvent::MfaDisabled => todo!(),
+                            DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaDefaultChanged { mfa_method } => todo!(),
-                            DefguardEvent::MfaTotpEnabled => todo!(),
-                            DefguardEvent::MfaTotpDisabled => todo!(),
-                            DefguardEvent::MfaEmailEnabled => todo!(),
-                            DefguardEvent::MfaEmailDisabled => todo!(),
-                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => todo!(),
-                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => todo!(),
+                            DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),
+                            DefguardEvent::MfaTotpDisabled => (EventType::MfaTotpDisabled, None),
+                            DefguardEvent::MfaEmailEnabled => (EventType::MfaEmailEnabled, None),
+                            DefguardEvent::MfaEmailDisabled => (EventType::MfaEmailDisabled, None),
+                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => (
+                                EventType::MfaSecurityKeyAdded,
+                                serde_json::to_value(MfaSecurityKeyAddedMetadata {
+                                    key_id,
+                                    key_name,
+                                })
+                                .ok(),
+                            ),
+                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => (
+                                EventType::MfaSecurityKeyRemoved,
+                                serde_json::to_value(MfaSecurityKeyRemovedMetadata {
+                                    key_id,
+                                    key_name,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::AuthenticationKeyAdded {
                                 key_id,
                                 key_name,
@@ -130,31 +149,64 @@ pub async fn run_event_logger(
                                 token_id,
                                 token_name,
                             } => todo!(),
-                            DefguardEvent::UserAdded {
-                                username,
-                                enrollment,
-                            } => todo!(),
-                            DefguardEvent::UserRemoved { username } => todo!(),
-                            DefguardEvent::UserModified { username } => todo!(),
+                            DefguardEvent::UserAdded { username } => (
+                                EventType::UserAdded,
+                                serde_json::to_value(UserAddedMetadata { username }).ok(),
+                            ),
+                            DefguardEvent::UserRemoved { username } => (
+                                EventType::UserRemoved,
+                                serde_json::to_value(UserRemovedMetadata { username }).ok(),
+                            ),
+                            DefguardEvent::UserModified { username } => (
+                                EventType::UserModified,
+                                serde_json::to_value(UserModifiedMetadata { username }).ok(),
+                            ),
                             DefguardEvent::UserDisabled { username } => todo!(),
                             DefguardEvent::NetworkDeviceAdded {
                                 device_id,
                                 device_name,
                                 location_id,
                                 location,
-                            } => todo!(),
+                            } => (
+                                EventType::NetworkDeviceAdded,
+                                serde_json::to_value(NetworkDeviceAddedMetadata {
+                                    device_id,
+                                    device_name,
+                                    location_id,
+                                    location,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::NetworkDeviceRemoved {
                                 device_id,
                                 device_name,
                                 location_id,
                                 location,
-                            } => todo!(),
+                            } => (
+                                EventType::NetworkDeviceRemoved,
+                                serde_json::to_value(NetworkDeviceRemovedMetadata {
+                                    device_id,
+                                    device_name,
+                                    location_id,
+                                    location,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::NetworkDeviceModified {
                                 device_id,
                                 device_name,
                                 location_id,
                                 location,
-                            } => todo!(),
+                            } => (
+                                EventType::NetworkDeviceModified,
+                                serde_json::to_value(NetworkDeviceModifiedMetadata {
+                                    device_id,
+                                    device_name,
+                                    location_id,
+                                    location,
+                                })
+                                .ok(),
+                            ),
                             DefguardEvent::VpnLocationAdded {
                                 location_id,
                                 location_name,
@@ -204,7 +256,7 @@ pub async fn run_event_logger(
                     timestamp,
                     user_id,
                     username,
-                    ip,
+                    ip: ip.into(),
                     event,
                     module,
                     device,
