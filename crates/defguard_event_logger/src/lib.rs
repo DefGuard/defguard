@@ -6,10 +6,13 @@ use tracing::{debug, info};
 
 use defguard_core::db::{
     models::audit_log::{
-        AuditEvent, AuditModule, DeviceAddedMetadata, DeviceModifiedMetadata,
-        DeviceRemovedMetadata, EventType, MfaSecurityKeyAddedMetadata,
-        MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
-        NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata, UserRemovedMetadata,
+        metadata::{
+            DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata,
+            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
+            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
+            UserModifiedMetadata, UserRemovedMetadata,
+        },
+        AuditEvent, AuditModule, EventType,
     },
     NoId,
 };
