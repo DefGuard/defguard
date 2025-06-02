@@ -2,23 +2,31 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{serve, Router};
 use bytes::Bytes;
+use defguard_core::events::ApiEvent;
 use reqwest::{
     cookie::{Cookie, Jar},
     header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
     redirect::Policy,
     Body, Client, StatusCode, Url,
 };
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::mpsc::UnboundedReceiver};
 
 pub struct TestClient {
     client: Client,
     jar: Arc<Jar>,
     port: u16,
+    // Has to live during whole test
+    #[allow(dead_code)]
+    api_event_rx: UnboundedReceiver<ApiEvent>,
 }
 
 impl TestClient {
     #[must_use]
-    pub fn new(app: Router, listener: TcpListener) -> Self {
+    pub fn new(
+        app: Router,
+        listener: TcpListener,
+        api_event_rx: UnboundedReceiver<ApiEvent>,
+    ) -> Self {
         let port = listener.local_addr().unwrap().port();
 
         tokio::spawn(async move {
@@ -41,7 +49,12 @@ impl TestClient {
             .build()
             .unwrap();
 
-        TestClient { client, jar, port }
+        TestClient {
+            client,
+            jar,
+            port,
+            api_event_rx,
+        }
     }
 
     pub fn set_cookie(&mut self, cookie: &Cookie) {
