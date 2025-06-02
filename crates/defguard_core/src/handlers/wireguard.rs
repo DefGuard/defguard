@@ -882,7 +882,6 @@ pub(crate) async fn modify_device(
 
     info!("User {} updated device {device_id}", session.user.username);
 
-    let user = session.user;
     let owner = device.get_owner(&appstate.pool).await?.username;
     appstate.send_event(ApiEvent {
         context,

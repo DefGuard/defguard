@@ -4,8 +4,6 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
 };
-use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
 use serde_json::json;
 
 use super::{

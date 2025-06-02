@@ -280,7 +280,7 @@ pub(crate) async fn authenticate(
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
-                insecure_ip.into(),
+                insecure_ip,
                 user_agent.to_string(),
             ),
             kind: ApiEventType::UserLogin,
