@@ -23,7 +23,7 @@ pub enum AuditStreamType {
 #[table(audit_stream)]
 pub struct AuditStream<I = NoId> {
     pub id: I,
-    pub name: Option<String>,
+    pub name: String,
     #[model(enum)]
     pub stream_type: AuditStreamType,
     pub config: serde_json::Value,

@@ -35,7 +35,7 @@ pub async fn get_audit_stream(
 
 #[derive(Debug, Deserialize)]
 pub struct AuditStreamModificationRequest {
-    pub name: Option<String>,
+    pub name: String,
     pub stream_type: AuditStreamType,
     pub stream_config: serde_json::Value,
 }

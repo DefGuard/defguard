@@ -3,35 +3,39 @@ use std::sync::Arc;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use bytes::Bytes;
 use reqwest::tls;
-use tokio::{sync::broadcast::Sender, task::JoinSet};
+use tokio::{sync::broadcast::Receiver, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 use tracing::{debug, error};
 
-use crate::enterprise::db::models::audit_stream::LogstashHttpAuditStream;
+use crate::{
+    enterprise::db::models::audit_stream::{LogstashHttpAuditStream, VectorHttpAuditStream},
+    secret::SecretStringWrapper,
+};
 
 use super::error::AuditStreamError;
 
-pub fn run_logstash_http_task(
-    stream_config: LogstashHttpAuditStream,
-    tx: Arc<Sender<Bytes>>,
+pub(super) fn run_http_stream_task(
+    stream_config: HttpAuditStreamConfig,
+    rx: &Receiver<Bytes>,
     cancel_token: Arc<CancellationToken>,
     handle_set: &mut JoinSet<()>,
 ) -> Result<(), AuditStreamError> {
-    let mut rx = tx.subscribe();
     let config = stream_config.clone();
     let child_token = cancel_token.child_token();
+    let mut rx = rx.resubscribe();
     handle_set.spawn(async move {
+        let stream_name = &config.stream_name;
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/x-ndjson".parse().unwrap());
 
         if let (Some(username), Some(password)) = (&config.username, &config.password) {
-            debug!("Auth config found for Logstash audit stream");
+            debug!("Auth config found for {stream_name} audit stream");
             let authorization_token =
                 BASE64_STANDARD.encode(format!("{0}:{1}", username, password.expose_secret()));
             let auth_header_value = format!("Basic {authorization_token}");
             headers.insert("Authorization", auth_header_value.parse().unwrap());
-            debug!("Authorization header added to Logstash audit stream");
+            debug!("Authorization header added to {stream_name} audit stream");
         }
 
         let mut client = reqwest::ClientBuilder::new()
@@ -43,7 +47,7 @@ pub fn run_logstash_http_task(
                         client = client.add_root_certificate(parsed_cert);
                     }
                     Err(e) => {
-                        error!("Failed to add root certificate for Logstash audit stream. Reason: {0}", e.to_string());
+                        error!("Failed to add root certificate for {stream_name} audit stream. Reason: {0}", e.to_string());
                         return;
                     }
                 }
@@ -57,7 +61,7 @@ pub fn run_logstash_http_task(
         loop {
             tokio::select! {
                 _ = child_token.cancelled() => {
-                    debug!("Audit stream task received cancellation signal.");
+                    debug!("Audit stream ({stream_name}) task received cancellation signal.");
                     break;
                 },
                 res = rx.recv() => {
@@ -75,11 +79,11 @@ pub fn run_logstash_http_task(
                                                 Err(_) => "Body decoding failed".to_string(),
                                             }
                                         };
-                                        error!("Logstash audit stream response code {0}. Body: {1}", status_code, body);
+                                        error!("Audit stream ({stream_name}) response code {0}. Body: {1}", status_code, body);
                                     }
                                 },
                                 Err(e) => {
-                                    error!("Failed to send Logstash audit stream messages. Reason: {e}");
+                                    error!("Audit stream {stream_name} failed to send messages. Reason: {e}");
                                 }
                             }
                         },
@@ -93,4 +97,36 @@ pub fn run_logstash_http_task(
         }
     });
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct HttpAuditStreamConfig {
+    pub stream_name: String,
+    pub url: String,
+    pub username: Option<String>,
+    pub password: Option<SecretStringWrapper>,
+    // cert to use for tls
+    pub cert: Option<String>,
+}
+
+impl HttpAuditStreamConfig {
+    pub fn from_logstash(value: LogstashHttpAuditStream, stream_name: String) -> Self {
+        Self {
+            stream_name,
+            cert: value.cert,
+            password: value.password,
+            url: value.url,
+            username: value.username,
+        }
+    }
+
+    pub fn from_vector(value: VectorHttpAuditStream, stream_name: String) -> Self {
+        Self {
+            stream_name,
+            cert: value.cert,
+            password: value.password,
+            url: value.url,
+            username: value.username,
+        }
+    }
 }

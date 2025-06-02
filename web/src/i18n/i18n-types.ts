@@ -2444,6 +2444,10 @@ type RootTranslation = {
 		}
 		error: {
 			/**
+			 * E​n​t​e​r​ ​v​a​l​i​d​ ​U​R​L
+			 */
+			urlInvalid: string
+			/**
 			 * N​a​m​e​ ​i​s​ ​a​l​r​e​a​d​y​ ​t​a​k​e​n​.
 			 */
 			reservedName: string
@@ -8521,6 +8525,10 @@ export type TranslationFunctions = {
 			username_or_email: () => LocalizedString
 		}
 		error: {
+			/**
+			 * Enter valid URL
+			 */
+			urlInvalid: () => LocalizedString
 			/**
 			 * Name is already taken.
 			 */

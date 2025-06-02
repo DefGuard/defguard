@@ -98,8 +98,8 @@ const ModalContent = () => {
   const schema = useMemo(
     () =>
       z.object({
-        name: z.string(),
-        url: z.string().min(1, LL.form.error.required()),
+        name: z.string().min(1, LL.form.error.required()),
+        url: z.string().min(1, LL.form.error.required()).url(LL.form.error.urlInvalid()),
         username: z.string(),
         password: z.string(),
         cert: z.string(),
@@ -114,7 +114,7 @@ const ModalContent = () => {
       const { name, config } = initialData;
       const { cert, url, password, username } = config;
       return {
-        name: name ?? '',
+        name: name,
         cert: cert ?? '',
         password: password ?? '',
         username: username ?? '',
@@ -166,7 +166,11 @@ const ModalContent = () => {
 
   return (
     <form onSubmit={handleSubmit(handleValidSubmit)}>
-      <FormInput label={formLabels.name()} controller={{ control, name: 'name' }} />
+      <FormInput
+        label={formLabels.name()}
+        controller={{ control, name: 'name' }}
+        required
+      />
       <FormInput
         label={formLabels.url()}
         controller={{ control, name: 'url' }}

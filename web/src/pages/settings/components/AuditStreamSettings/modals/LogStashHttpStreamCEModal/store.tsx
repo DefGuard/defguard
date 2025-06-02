@@ -35,7 +35,7 @@ type Store = StoreValues & StoreMethods;
 
 type ModifyData = {
   id: number;
-  name?: string;
+  name: string;
   config: AuditStreamLogstashHttp;
 };
 

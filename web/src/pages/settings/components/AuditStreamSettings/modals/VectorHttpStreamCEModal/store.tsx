@@ -5,7 +5,7 @@ import { AuditStreamVectorHttp } from '../../../../../../shared/types';
 
 type ModifyData = {
   id: number;
-  name?: string;
+  name: string;
   config: AuditStreamVectorHttp;
 };
 

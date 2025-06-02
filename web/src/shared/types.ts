@@ -564,7 +564,7 @@ export type AuditStreamType = 'vector_http' | 'logstash_http';
 
 export type AuditStream = {
   id: number;
-  name?: string;
+  name: string;
   stream_type: AuditStreamType;
   config: AuditStreamConfig;
 };
@@ -585,7 +585,7 @@ export type AuditStreamLogstashHttp = {
 
 export type AuditStreamModifyRequest = {
   id: number;
-  name?: string;
+  name: string;
   stream_type: AuditStreamType;
   stream_config: AuditStreamConfig;
 };

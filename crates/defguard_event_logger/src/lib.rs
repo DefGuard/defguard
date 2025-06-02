@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use bytes::Bytes;
 use error::EventLoggerError;
 use message::{DefguardEvent, EventContext, EventLoggerMessage, LoggerEvent};
@@ -27,7 +25,7 @@ const MESSAGE_LIMIT: usize = 100;
 pub async fn run_event_logger(
     pool: PgPool,
     mut event_logger_rx: UnboundedReceiver<EventLoggerMessage>,
-    audit_messages_tx: Arc<tokio::sync::broadcast::Sender<Bytes>>,
+    audit_messages_tx: tokio::sync::broadcast::Sender<Bytes>,
 ) -> Result<(), EventLoggerError> {
     info!("Starting audit event logger service");
 

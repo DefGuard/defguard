@@ -1015,6 +1015,7 @@ Licensing information: [https://docs.defguard.net/enterprise/license](https://do
       username_or_email: 'Username or email',
     },
     error: {
+      urlInvalid: 'Enter valid URL',
       reservedName: 'Name is already taken.',
       invalidIp: 'IP is invalid.',
       reservedIp: 'IP is already in use.',
