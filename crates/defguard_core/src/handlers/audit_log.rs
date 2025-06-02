@@ -227,11 +227,9 @@ fn apply_filters(query_builder: &mut QueryBuilder<Postgres>, filters: &FilterPar
     // - module
     // - event
     // - device
-    // - event location (as metadata `location` field)
-    // - user/network device name (as metadata 'device' field)
     if let Some(search_term) = &filters.search {
         query_builder
-            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ', (metadata->'location_names')::text, ' ', (metadata->'device_names')::text) ILIKE ")
+            .push(" AND CONCAT(username, ' ', module, ' ', event, ' ', device, ' ') ILIKE ")
             .push_bind(format!("%{search_term}%"))
             .push(" ");
     }
