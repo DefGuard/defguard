@@ -1,7 +1,6 @@
 use std::net::IpAddr;
 
 use chrono::NaiveDateTime;
-use ipnetwork::IpNetwork;
 
 use defguard_core::{
     db::{models::authentication_key::AuthenticationKeyType, Id},

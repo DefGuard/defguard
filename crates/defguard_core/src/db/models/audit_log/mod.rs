@@ -1,8 +1,8 @@
+use crate::db::{Id, NoId};
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
-use crate::db::{Id, NoId};
 
 pub mod metadata;
 
@@ -69,4 +69,3 @@ pub struct AuditEvent<I = NoId> {
     pub device: String,
     pub metadata: Option<serde_json::Value>,
 }
-
