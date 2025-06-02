@@ -471,8 +471,14 @@ where
         let InsecureClientIp(insecure_ip) = InsecureClientIp::from_request_parts(parts, state)
             .await
             .map_err(|_| WebError::BadRequest("Missing client IP".to_string()))?;
-        let session = SessionInfo::from_request_parts(parts, state).await?;
+        let session = if let Some(cached) = parts.extensions.get::<SessionInfo>() {
+            cached.clone()
+        } else {
+            SessionInfo::from_request_parts(parts, state).await?
+        };
 
+        // Store session info into request extensions so future extractors can use it
+        parts.extensions.insert(session.clone());
         Ok(ApiRequestContext::new(
             session.user.id,
             session.user.username,
