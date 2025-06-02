@@ -1035,21 +1035,23 @@ pub(crate) async fn delete_device(
             })?
         }
         DeviceType::Network => {
-            let location = WireguardNetwork::find_by_id(
-                &mut *transaction,
-                device_info.network_info[0].network_id,
-            )
-            .await?;
-            if let Some(location) = location {
-                appstate.send_event(ApiEvent {
-                    context,
-                    kind: ApiEventType::NetworkDeviceRemoved {
-                        device_id,
-                        device_name,
-                        location_id: location.id,
-                        location: location.name,
-                    },
-                })?;
+            if let Some(network_info) = device_info.network_info.first() {
+                let location =
+                    WireguardNetwork::find_by_id(&mut *transaction, network_info.network_id)
+                        .await?;
+                if let Some(location) = location {
+                    appstate.send_event(ApiEvent {
+                        context,
+                        kind: ApiEventType::NetworkDeviceRemoved {
+                            device_id,
+                            device_name,
+                            location_id: location.id,
+                            location: location.name,
+                        },
+                    })?;
+                } else {
+                    error!("Network device {device_name}({device_id}) is assigned to non-existent location {}", network_info.network_id);
+                }
             } else {
                 error!("Network device {device_name}({device_id}) has no network assigned");
             }
