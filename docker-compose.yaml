@@ -59,3 +59,21 @@ services:
       - gateway
     cap_add:
       - NET_ADMIN
+
+  vector:
+    image: timberio/vector:latest-alpine
+    container_name: vector
+    volumes:
+      - ./configs/vector.toml:/etc/vector/vector.toml:ro
+      - ./.volumes/audit_events:/var/log/audit_events:ro
+    command: ["--config", "/etc/vector/vector.toml"]
+    ports:
+      - "8686:8686"
+      - "8001:8001"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.14.0
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./configs/logstash.conf:/usr/share/logstash/pipeline/logstash.conf

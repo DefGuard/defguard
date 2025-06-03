@@ -13,16 +13,7 @@ use crate::enterprise::{
     is_enterprise_enabled,
 };
 
-use super::{error::AuditStreamError, AuditStreamReconfigurationNotification};
-
-async fn get_configurations(pool: &PgPool) -> Result<Vec<AuditStreamConfig>, AuditStreamError> {
-    let db_data = AuditStream::all(pool).await?;
-    let configs = db_data
-        .into_iter()
-        .map(|model| AuditStreamConfig::from(&model))
-        .collect::<Result<Vec<AuditStreamConfig>, _>>()?;
-    Ok(configs)
-}
+use super::AuditStreamReconfigurationNotification;
 
 pub async fn run_audit_stream_manager(
     pool: PgPool,
