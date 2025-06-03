@@ -534,7 +534,7 @@ export const buildApi = (client: Axios): Api => {
   const modifyAuditStream: Api['auditStream']['modifyAuditStream'] = ({ id, ...rest }) =>
     client.put(`/audit_stream/${id}`, rest).then(unpackRequest);
   const deleteAuditStream: Api['auditStream']['deleteAuditStream'] = (id) =>
-    client.get(`/audit_stream/${id}`).then(unpackRequest);
+    client.delete(`/audit_stream/${id}`).then(unpackRequest);
 
   return {
     getAppInfo,

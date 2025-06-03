@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { useCallback, useMemo } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,9 +13,11 @@ import { ButtonStyleVariant } from '../../../../../../shared/defguard-ui/compone
 import { ModalWithTitle } from '../../../../../../shared/defguard-ui/components/Layout/modals/ModalWithTitle/ModalWithTitle';
 import { isPresent } from '../../../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../../../shared/hooks/useToaster';
 import queryClient from '../../../../../../shared/query-client';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
+import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
 import { useVectorHttpStreamCEModal } from './store';
 
 export const VectorHttpStreamCEModal = () => {
@@ -28,7 +31,6 @@ export const VectorHttpStreamCEModal = () => {
 
   return (
     <ModalWithTitle
-      includeDefaultStyles
       title={title}
       isOpen={isOpen}
       onClose={() => {
@@ -51,7 +53,9 @@ const ModalContent = () => {
   ]);
 
   const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings;
   const formLabels = LL.settingsPage.auditStreamSettings.modals.shared.formLabels;
+  const toaster = useToaster();
 
   const {
     auditStream: { createAuditStream, modifyAuditStream },
@@ -103,16 +107,36 @@ const ModalContent = () => {
     });
   }, [closeModal]);
 
+  const handleError = useCallback(
+    (e: AxiosError) => {
+      toaster.error(LL.messages.error());
+      console.error(e);
+    },
+    [LL.messages, toaster],
+  );
+
   const { mutateAsync: modifyMutation } = useMutation({
     mutationFn: modifyAuditStream,
+    onError: handleError,
     onSuccess: () => {
+      toaster.success(
+        localLL.messages.destinationCrud.modify({
+          destination: auditStreamTypeToLabel('vector_http'),
+        }),
+      );
       handleSuccess();
     },
   });
 
   const { mutateAsync: createMutation } = useMutation({
     mutationFn: createAuditStream,
+    onError: handleError,
     onSuccess: () => {
+      toaster.success(
+        localLL.messages.destinationCrud.create({
+          destination: auditStreamTypeToLabel('vector_http'),
+        }),
+      );
       handleSuccess();
     },
   });
@@ -152,18 +176,26 @@ const ModalContent = () => {
       <FormInput
         controller={{ control, name: 'username' }}
         label={formLabels.username()}
+        disposable
+        disposeHandler={() => {
+          resetField('username', { defaultValue: '' });
+        }}
       />
       <FormInput
         controller={{ control, name: 'password' }}
         type="password"
         label={formLabels.password()}
+        disposable
+        disposeHandler={() => {
+          resetField('password', { defaultValue: '' });
+        }}
       />
       <FormInput
         label={formLabels.cert()}
         controller={{ control, name: 'cert' }}
         disposable
         disposeHandler={() => {
-          resetField('cert');
+          resetField('cert', { defaultValue: '' });
         }}
       />
 
