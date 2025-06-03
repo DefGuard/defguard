@@ -623,6 +623,7 @@ pub async fn username_available(
 )]
 pub async fn modify_user(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     Json(mut user_info): Json<UserInfo>,
@@ -734,6 +735,12 @@ pub async fn modify_user(
     appstate.trigger_action(AppEvent::UserModified(user_info));
 
     info!("User {} updated user {username}", session.user.username);
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::UserModified {
+            username: user.username,
+        },
+    })?;
     Ok(ApiResponse::default())
 }
 
@@ -767,6 +774,7 @@ pub async fn delete_user(
     State(appstate): State<AppState>,
     Path(username): Path<String>,
     session: SessionInfo,
+    context: ApiRequestContext,
 ) -> ApiResult {
     debug!("User {} deleting user {username}", session.user.username);
     if session.user.username == username {
@@ -799,6 +807,10 @@ pub async fn delete_user(
         }
 
         info!("User {} deleted user {}", session.user.username, &username);
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::UserRemoved { username },
+        })?;
         Ok(ApiResponse::default())
     } else {
         error!("User {username} not found");
