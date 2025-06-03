@@ -18,6 +18,8 @@ use webauthn_rs::prelude::*;
 use crate::{
     auth::failed_login::FailedLoginMap,
     db::{AppEvent, GatewayEvent, WebHook},
+    error::WebError,
+    events::ApiEvent,
     grpc::gateway::{send_multiple_wireguard_events, send_wireguard_event},
     mail::Mail,
     server_config,
@@ -32,6 +34,7 @@ pub struct AppState {
     pub webauthn: Arc<Webauthn>,
     pub failed_logins: Arc<Mutex<FailedLoginMap>>,
     key: Key,
+    pub event_tx: UnboundedSender<ApiEvent>,
 }
 
 impl AppState {
@@ -92,6 +95,13 @@ impl AppState {
         send_multiple_wireguard_events(events, &self.wireguard_tx);
     }
 
+    /// Sends event to the main event router
+    ///
+    /// This method is fallible since events are used for communication between services
+    pub fn send_event(&self, event: ApiEvent) -> Result<(), WebError> {
+        Ok(self.event_tx.send(event)?)
+    }
+
     /// Create application state
     pub fn new(
         pool: PgPool,
@@ -100,6 +110,7 @@ impl AppState {
         wireguard_tx: Sender<GatewayEvent>,
         mail_tx: UnboundedSender<Mail>,
         failed_logins: Arc<Mutex<FailedLoginMap>>,
+        event_tx: UnboundedSender<ApiEvent>,
     ) -> Self {
         spawn(Self::handle_triggers(pool.clone(), rx));
 
@@ -128,6 +139,7 @@ impl AppState {
             webauthn,
             failed_logins,
             key,
+            event_tx,
         }
     }
 }

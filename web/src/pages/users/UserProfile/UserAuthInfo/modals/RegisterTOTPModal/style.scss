@@ -1,13 +1,9 @@
 #register-totp-modal {
   & > .content {
-    padding-bottom: 2.6rem;
+    padding-bottom: 25px;
 
     & > .message-box-spacer {
       padding-bottom: 20px;
-
-      @include media-breakpoint-up(lg) {
-        padding: 0 30px 25px;
-      }
 
       p {
         max-width: 361px;

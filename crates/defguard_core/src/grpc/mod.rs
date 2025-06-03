@@ -60,6 +60,7 @@ use crate::{
         is_enterprise_enabled,
         ldap::utils::ldap_update_user_state,
     },
+    events::{BidiStreamEvent, GrpcEvent},
     handlers::mail::{send_gateway_disconnected_email, send_gateway_reconnected_email},
     mail::Mail,
     server_config,
@@ -79,24 +80,24 @@ pub(crate) mod utils;
 #[cfg(feature = "worker")]
 pub mod worker;
 
-pub(crate) mod proto {
-    pub(crate) mod proxy {
+pub mod proto {
+    pub mod proxy {
         tonic::include_proto!("defguard.proxy");
     }
-    pub(crate) mod gateway {
+    pub mod gateway {
         tonic::include_proto!("gateway");
     }
-    pub(crate) mod auth {
+    pub mod auth {
         tonic::include_proto!("auth");
     }
-    pub(crate) mod worker {
+    pub mod worker {
         tonic::include_proto!("worker");
     }
-    pub(crate) mod enterprise {
-        pub(crate) mod license {
+    pub mod enterprise {
+        pub mod license {
             tonic::include_proto!("enterprise.license");
         }
-        pub(crate) mod firewall {
+        pub mod firewall {
             tonic::include_proto!("enterprise.firewall");
         }
     }
@@ -473,13 +474,19 @@ pub async fn run_grpc_bidi_stream(
     pool: PgPool,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    bidi_event_tx: UnboundedSender<BidiStreamEvent>,
 ) -> Result<(), anyhow::Error> {
     let config = server_config();
 
     // TODO: merge the two
-    let enrollment_server =
-        EnrollmentServer::new(pool.clone(), wireguard_tx.clone(), mail_tx.clone());
-    let password_reset_server = PasswordResetServer::new(pool.clone(), mail_tx.clone());
+    let enrollment_server = EnrollmentServer::new(
+        pool.clone(),
+        wireguard_tx.clone(),
+        mail_tx.clone(),
+        bidi_event_tx.clone(),
+    );
+    let password_reset_server =
+        PasswordResetServer::new(pool.clone(), mail_tx.clone(), bidi_event_tx);
     let mut client_mfa_server = ClientMfaServer::new(pool.clone(), mail_tx, wireguard_tx.clone());
     let polling_server = PollingServer::new(pool.clone());
 
@@ -804,6 +811,7 @@ pub async fn run_grpc_server(
     grpc_cert: Option<String>,
     grpc_key: Option<String>,
     failed_logins: Arc<Mutex<FailedLoginMap>>,
+    grpc_event_tx: UnboundedSender<GrpcEvent>,
 ) -> Result<(), anyhow::Error> {
     // Build gRPC services
     let auth_service = AuthServiceServer::new(AuthServer::new(pool.clone(), failed_logins));
@@ -814,7 +822,7 @@ pub async fn run_grpc_server(
     );
     #[cfg(feature = "wireguard")]
     let gateway_service = GatewayServiceServer::with_interceptor(
-        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx),
+        GatewayServer::new(pool, gateway_state, wireguard_tx, mail_tx, grpc_event_tx),
         JwtInterceptor::new(ClaimsType::Gateway),
     );
 
