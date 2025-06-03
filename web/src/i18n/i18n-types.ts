@@ -6087,8 +6087,6 @@ type RootTranslation = {
 			 */
 			user_logout: string
 			/**
-<<<<<<< HEAD
-=======
 			 * U​s​e​r​ ​a​d​d​e​d
 			 */
 			user_added: string
@@ -6133,7 +6131,6 @@ type RootTranslation = {
 			 */
 			mfa_security_key_removed: string
 			/**
->>>>>>> dev
 			 * D​e​v​i​c​e​ ​a​d​d​e​d
 			 */
 			device_added: string
@@ -6145,8 +6142,6 @@ type RootTranslation = {
 			 * D​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
 			 */
 			device_modified: string
-<<<<<<< HEAD
-=======
 			/**
 			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​a​d​d​e​d
 			 */
@@ -6159,7 +6154,6 @@ type RootTranslation = {
 			 * N​e​t​w​o​r​k​ ​d​e​v​i​c​e​ ​m​o​d​i​f​i​e​d
 			 */
 			network_device_modified: string
->>>>>>> dev
 		}
 		auditModule: {
 			/**
@@ -12194,8 +12188,6 @@ export type TranslationFunctions = {
 			 */
 			user_logout: () => LocalizedString
 			/**
-<<<<<<< HEAD
-=======
 			 * User added
 			 */
 			user_added: () => LocalizedString
@@ -12240,7 +12232,6 @@ export type TranslationFunctions = {
 			 */
 			mfa_security_key_removed: () => LocalizedString
 			/**
->>>>>>> dev
 			 * Device added
 			 */
 			device_added: () => LocalizedString
@@ -12252,8 +12243,6 @@ export type TranslationFunctions = {
 			 * Device modified
 			 */
 			device_modified: () => LocalizedString
-<<<<<<< HEAD
-=======
 			/**
 			 * Network device added
 			 */
@@ -12266,7 +12255,6 @@ export type TranslationFunctions = {
 			 * Network device modified
 			 */
 			network_device_modified: () => LocalizedString
->>>>>>> dev
 		}
 		auditModule: {
 			/**
