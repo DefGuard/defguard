@@ -37,9 +37,14 @@
     grid-template-rows: 1fr;
     grid-template-columns: 1fr 40px;
     align-items: center;
+    box-shadow: 0px 5px 7.5px 0px rgba(0, 0, 0, 0);
+    transition-property: box-shadow, border;
+
+    @include animate-standard();
 
     &:hover {
-      border-color: var(--border-secondary);
+      border-color: var(--border-separator);
+      box-shadow: 0px 5px 7.5px 0px rgba(0, 0, 0, 0.08);
     }
 
     p {

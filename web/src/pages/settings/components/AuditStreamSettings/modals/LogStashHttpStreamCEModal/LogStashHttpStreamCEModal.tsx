@@ -18,6 +18,7 @@ import queryClient from '../../../../../../shared/query-client';
 import { AuditStreamLogstashHttp, AuditStreamType } from '../../../../../../shared/types';
 import { removeEmptyStrings } from '../../../../../../shared/utils/removeEmptyStrings';
 import { trimObjectStrings } from '../../../../../../shared/utils/trimObjectStrings';
+import { auditStreamTypeToLabel } from '../../utils/auditStreamToLabel';
 import { useLogstashHttpStreamCEModalStore } from './store';
 
 export const LogStashHttpStreamCEModal = () => {
@@ -53,6 +54,7 @@ export const LogStashHttpStreamCEModal = () => {
 
 const ModalContent = () => {
   const { LL } = useI18nContext();
+  const localLL = LL.settingsPage.auditStreamSettings;
   const formLabels = LL.settingsPage.auditStreamSettings.modals.shared.formLabels;
   const {
     auditStream: { createAuditStream, modifyAuditStream },
@@ -72,7 +74,11 @@ const ModalContent = () => {
   const { mutateAsync: createStreamMutation } = useMutation({
     mutationFn: createAuditStream,
     onSuccess: () => {
-      toaster.success('Audit stream created');
+      toaster.success(
+        localLL.messages.destinationCrud.create({
+          destination: auditStreamTypeToLabel('logstash_http'),
+        }),
+      );
       void queryClient.invalidateQueries({
         queryKey: ['audit_stream'],
       });
@@ -84,7 +90,11 @@ const ModalContent = () => {
   const { mutateAsync: modifyStreamMutation } = useMutation({
     mutationFn: modifyAuditStream,
     onSuccess: () => {
-      toaster.success('Audit stream modified');
+      toaster.success(
+        localLL.messages.destinationCrud.modify({
+          destination: auditStreamTypeToLabel('logstash_http'),
+        }),
+      );
       void queryClient.invalidateQueries({
         queryKey: ['audit_stream'],
       });
@@ -179,18 +189,24 @@ const ModalContent = () => {
       <FormInput
         controller={{ control, name: 'username' }}
         label={formLabels.username()}
+        disposeHandler={() => {
+          resetField('username', { defaultValue: '' });
+        }}
       />
       <FormInput
         controller={{ control, name: 'password' }}
         type="password"
         label={formLabels.password()}
+        disposeHandler={() => {
+          resetField('password', { defaultValue: '' });
+        }}
       />
       <FormInput
         label={formLabels.cert()}
         controller={{ control, name: 'cert' }}
         disposable
         disposeHandler={() => {
-          resetField('cert');
+          resetField('cert', { defaultValue: '' });
         }}
       />
 

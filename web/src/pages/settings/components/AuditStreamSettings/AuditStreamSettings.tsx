@@ -1,7 +1,7 @@
 import './style.scss';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { range } from 'lodash-es';
+import { orderBy, range } from 'lodash-es';
 import Skeleton from 'react-loading-skeleton';
 import { shallow } from 'zustand/shallow';
 
@@ -18,6 +18,7 @@ import { NoData } from '../../../../shared/defguard-ui/components/Layout/NoData/
 import SvgIconPlus from '../../../../shared/defguard-ui/components/svg/IconPlus';
 import { isPresent } from '../../../../shared/defguard-ui/utils/isPresent';
 import useApi from '../../../../shared/hooks/useApi';
+import { useToaster } from '../../../../shared/hooks/useToaster';
 import queryClient from '../../../../shared/query-client';
 import { AuditStream } from '../../../../shared/types';
 import { CreateAuditStreamModal } from './modals/CreateAuditStreamModal/CreateAuditStreamModal';
@@ -61,6 +62,7 @@ const AuditStreamList = () => {
     placeholderData: (perv) => perv,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    select: (data) => orderBy(data, (row) => row.name.toLowerCase(), ['asc']),
   });
 
   return (
@@ -129,6 +131,7 @@ type EditProps = {
 const EditListItem = ({ stream }: EditProps) => {
   const openVectorHttpStreamModal = useVectorHttpStreamCEModal((s) => s.open, shallow);
   const { LL } = useI18nContext();
+  const toast = useToaster();
   const {
     auditStream: { deleteAuditStream },
   } = useApi();
@@ -136,9 +139,18 @@ const EditListItem = ({ stream }: EditProps) => {
   const { mutate: deleteStreamMutation, isPending: isDeleting } = useMutation({
     mutationFn: deleteAuditStream,
     onSuccess: () => {
+      toast.success(
+        LL.settingsPage.auditStreamSettings.messages.destinationCrud.delete({
+          destination: auditStreamToLabel(stream),
+        }),
+      );
       void queryClient.invalidateQueries({
         queryKey: ['audit_stream'],
       });
+    },
+    onError: (e) => {
+      toast.error(LL.messages.error());
+      console.error(e);
     },
   });
 
