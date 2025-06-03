@@ -34,7 +34,7 @@ use crate::{
     db::{Id, MFAInfo, MFAMethod, Session, SessionState, Settings, User, UserInfo, WebAuthn},
     enterprise::ldap::utils::{login_through_ldap, user_from_ldap},
     error::WebError,
-    events::{ApiEvent, ApiRequestContext},
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{
         mail::{
             send_email_mfa_activation_email, send_email_mfa_code_email, send_mfa_configured_email,
@@ -276,13 +276,14 @@ pub(crate) async fn authenticate(
             None
         };
 
-        appstate.send_event(ApiEvent::UserLogin {
+        appstate.send_event(ApiEvent {
             context: ApiRequestContext::new(
                 user_info.id,
                 user_info.username.clone(),
-                insecure_ip.into(),
+                insecure_ip,
                 user_agent.to_string(),
             ),
+            kind: ApiEventType::UserLogin,
         })?;
 
         Ok((
@@ -304,24 +305,30 @@ pub(crate) async fn authenticate(
 /// Logout - forget the session cookie.
 pub async fn logout(
     cookies: CookieJar,
-    session_info: SessionInfo,
+    session: Session,
     user_agent: TypedHeader<UserAgent>,
     InsecureClientIp(insecure_ip): InsecureClientIp,
     State(appstate): State<AppState>,
 ) -> Result<(CookieJar, ApiResponse), WebError> {
     // remove auth cookie
     let cookies = cookies.remove(Cookie::from(SESSION_COOKIE_NAME));
+    let user = User::find_by_id(&appstate.pool, session.user_id)
+        .await?
+        .ok_or_else(|| WebError::BadRequest(format!("User {} does not exist", session.user_id)))?;
     // remove stored session
-    session_info.session.delete(&appstate.pool).await?;
+    session.delete(&appstate.pool).await?;
 
-    let user = session_info.user;
-    appstate.send_event(ApiEvent::UserLogout {
+    appstate.send_event(ApiEvent {
+        // User may not be fully authenticated so we can't use
+        // context extractor in this handler since it requires
+        // the `SessionInfo` object.
         context: ApiRequestContext::new(
             user.id,
-            user.username.clone(),
-            insecure_ip.into(),
+            user.username,
+            insecure_ip,
             user_agent.to_string(),
         ),
+        kind: ApiEventType::UserLogout,
     })?;
 
     Ok((cookies, ApiResponse::default()))
@@ -353,10 +360,18 @@ pub async fn mfa_enable(
 }
 
 /// Disable MFA
-pub async fn mfa_disable(session_info: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn mfa_disable(
+    session_info: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     let mut user = session_info.user;
     debug!("Disabling MFA for user {}", user.username);
     user.disable_mfa(&appstate.pool).await?;
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::MfaDisabled,
+    })?;
     info!("Disabled MFA for user {}", user.username);
     Ok(ApiResponse::default())
 }
@@ -557,6 +572,7 @@ pub async fn totp_secret(session: SessionInfo, State(appstate): State<AppState>)
 /// Enable TOTP
 pub async fn totp_enable(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> ApiResult {
@@ -577,6 +593,10 @@ pub async fn totp_enable(
         }
 
         info!("Enabled TOTP for user {}", user.username);
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::MfaTotpEnabled,
+        })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
             status: StatusCode::OK,
@@ -587,12 +607,20 @@ pub async fn totp_enable(
 }
 
 /// Disable TOTP
-pub async fn totp_disable(session: SessionInfo, State(appstate): State<AppState>) -> ApiResult {
+pub async fn totp_disable(
+    session: SessionInfo,
+    context: ApiRequestContext,
+    State(appstate): State<AppState>,
+) -> ApiResult {
     let mut user = session.user;
     debug!("Disabling TOTP for user {}", user.username);
     user.disable_totp(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled TOTP for user {}", user.username);
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::MfaTotpDisabled,
+    })?;
     Ok(ApiResponse::default())
 }
 
@@ -670,6 +698,7 @@ pub async fn email_mfa_init(session: SessionInfo, State(appstate): State<AppStat
 /// Enable email MFA
 pub async fn email_mfa_enable(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
     Json(data): Json<AuthCode>,
 ) -> ApiResult {
@@ -690,6 +719,10 @@ pub async fn email_mfa_enable(
         }
 
         info!("Enabled email MFA for user {}", user.username);
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::MfaEmailEnabled,
+        })?;
         Ok(ApiResponse {
             json: json!(recovery_codes),
             status: StatusCode::OK,
@@ -702,6 +735,7 @@ pub async fn email_mfa_enable(
 /// Disable email MFA
 pub async fn email_mfa_disable(
     session: SessionInfo,
+    context: ApiRequestContext,
     State(appstate): State<AppState>,
 ) -> ApiResult {
     let mut user = session.user;
@@ -709,6 +743,10 @@ pub async fn email_mfa_disable(
     user.disable_email_mfa(&appstate.pool).await?;
     user.verify_mfa_state(&appstate.pool).await?;
     info!("Disabled email MFA for user {}", user.username);
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::MfaEmailDisabled,
+    })?;
     Ok(ApiResponse::default())
 }
 

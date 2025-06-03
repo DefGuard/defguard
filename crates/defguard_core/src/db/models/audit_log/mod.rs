@@ -1,9 +1,10 @@
+use crate::db::{Id, NoId};
 use chrono::NaiveDateTime;
 use ipnetwork::IpNetwork;
 use model_derive::Model;
 use sqlx::{FromRow, Type};
 
-use crate::db::{Id, NoId};
+pub mod metadata;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Type)]
 #[sqlx(type_name = "audit_module", rename_all = "snake_case")]
@@ -26,6 +27,13 @@ pub enum EventType {
     // user management
     UserLogin,
     UserLogout,
+    MfaDisabled,
+    MfaTotpDisabled,
+    MfaTotpEnabled,
+    MfaEmailDisabled,
+    MfaEmailEnabled,
+    MfaSecurityKeyAdded,
+    MfaSecurityKeyRemoved,
     UserAdded,
     UserRemoved,
     UserModified,
@@ -33,6 +41,9 @@ pub enum EventType {
     DeviceAdded,
     DeviceRemoved,
     DeviceModified,
+    NetworkDeviceAdded,
+    NetworkDeviceRemoved,
+    NetworkDeviceModified,
     // OpenID app management
     OpenIdAppAdded,
     OpenIdAppRemoved,
@@ -57,19 +68,4 @@ pub struct AuditEvent<I = NoId> {
     pub module: AuditModule,
     pub device: String,
     pub metadata: Option<serde_json::Value>,
-}
-
-#[derive(Serialize)]
-pub struct DeviceAddedMetadata {
-    pub device_names: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct DeviceRemovedMetadata {
-    pub device_names: Vec<String>,
-}
-
-#[derive(Serialize)]
-pub struct DeviceModifiedMetadata {
-    pub device_names: Vec<String>,
 }

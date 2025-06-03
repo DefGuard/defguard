@@ -171,8 +171,8 @@ Find us on Matrix: [#defguard:teonite.com](https://matrix.to/#/#defguard:teonite
 
 The code in this repository is available under a dual licensing model:
 
-1. Open Source License: The code, except for the contents of the "src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
-2. Enterprise License: All code in this repository (including within the "src/enterprise" directory) is licensed under a separate Enterprise License (see file src/enterprise/LICENSE.md).
+1. Open Source License: The code, except for the contents of the "crates/defguard_core/src/enterprise" directory, is licensed under the AGPL license (see file LICENSE.md in this repository). This applies to the open core components of the software.
+2. Enterprise License: All code in this repository (including within the "crates/defguard_core/src/enterprise" directory) is licensed under a separate Enterprise License (see file crates/defguard_core/src/enterprise/LICENSE.md).
 
 ## Contributions
 

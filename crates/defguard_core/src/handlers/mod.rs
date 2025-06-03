@@ -1,8 +1,11 @@
 use axum::{
-    http::{HeaderName, HeaderValue, StatusCode},
+    extract::{FromRef, FromRequestParts},
+    http::{request::Parts, HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
+use axum_client_ip::InsecureClientIp;
+use axum_extra::{headers::UserAgent, TypedHeader};
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use utoipa::ToSchema;
@@ -11,10 +14,12 @@ use webauthn_rs::prelude::RegisterPublicKeyCredential;
 #[cfg(feature = "wireguard")]
 use crate::db::Device;
 use crate::{
+    appstate::AppState,
     auth::SessionInfo,
     db::{Id, NoId, User, UserInfo, WebHook},
     enterprise::{db::models::acl::AclError, license::LicenseError},
     error::WebError,
+    events::ApiRequestContext,
     VERSION,
 };
 
@@ -448,5 +453,37 @@ pub async fn device_for_admin_or_self<'e, E: sqlx::PgExecutor<'e>>(
         None => Err(WebError::ObjectNotFound(format!(
             "device id {id} not found"
         ))),
+    }
+}
+
+impl<S> FromRequestParts<S> for ApiRequestContext
+where
+    S: Send + Sync,
+    AppState: FromRef<S>,
+{
+    type Rejection = WebError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        // TODO: should requests fail if user-agent header is missing?
+        let TypedHeader(user_agent) = TypedHeader::<UserAgent>::from_request_parts(parts, state)
+            .await
+            .map_err(|_| WebError::BadRequest("Missing UserAgent header".to_string()))?;
+        let InsecureClientIp(insecure_ip) = InsecureClientIp::from_request_parts(parts, state)
+            .await
+            .map_err(|_| WebError::BadRequest("Missing client IP".to_string()))?;
+        let session = if let Some(cached) = parts.extensions.get::<SessionInfo>() {
+            cached.clone()
+        } else {
+            SessionInfo::from_request_parts(parts, state).await?
+        };
+
+        // Store session info into request extensions so future extractors can use it
+        parts.extensions.insert(session.clone());
+        Ok(ApiRequestContext::new(
+            session.user.id,
+            session.user.username,
+            insecure_ip,
+            user_agent.to_string(),
+        ))
     }
 }

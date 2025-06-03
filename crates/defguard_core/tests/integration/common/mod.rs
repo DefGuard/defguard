@@ -144,7 +144,7 @@ pub(crate) async fn make_base_client(
     config: DefGuardConfig,
     listener: TcpListener,
 ) -> (TestClient, ClientState) {
-    let (api_event_tx, _api_event_rx) = unbounded_channel::<ApiEvent>();
+    let (api_event_tx, api_event_rx) = unbounded_channel::<ApiEvent>();
     let (tx, rx) = unbounded_channel::<AppEvent>();
     let worker_state = Arc::new(Mutex::new(WorkerState::new(tx.clone())));
     let (wg_tx, wg_rx) = broadcast::channel::<GatewayEvent>(16);
@@ -199,7 +199,10 @@ pub(crate) async fn make_base_client(
         api_event_tx,
     );
 
-    (TestClient::new(webapp, listener), client_state)
+    (
+        TestClient::new(webapp, listener, api_event_rx),
+        client_state,
+    )
 }
 
 /// Make an instance url based on the listener
