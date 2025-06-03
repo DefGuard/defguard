@@ -16,7 +16,9 @@ pub struct WireguardPeerStats<I = NoId> {
     pub collected_at: NaiveDateTime,
     pub network: i64,
     pub endpoint: Option<String>,
+    // bytes sent to peer
     pub upload: i64,
+    // bytes received from peer
     pub download: i64,
     pub latest_handshake: NaiveDateTime,
     // FIXME: can contain multiple IP addresses

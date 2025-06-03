@@ -744,52 +744,69 @@ impl gateway_service_server::GatewayService for GatewayServer {
             // TODO: cache usernames since they don't change
             let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
             let location = self.fetch_location_from_db(network_id).await?;
-
-            // perform client state operations in a dedicated block to drop mutex guard
-            {
-                // acquire lock on client state map
-                let mut client_map = self.get_client_state_guard()?;
-
-                // update connected clients map
-                match client_map.get_vpn_client(network_id, &public_key) {
-                    Some(client_state) => {
-                        // update connected client state
-                        client_state.update_client_state(device);
-                    }
-                    None => {
-                        // mark new VPN client as connected
-                        client_map.connect_vpn_client(
-                            network_id,
-                            gateway_hostname.clone(),
-                            public_key,
-                            device.clone(),
-                        )?;
-
-                        // emit connection event
-                        let ip_addr = peer_stats.endpoint.parse().map_err(|err| {
-                            error!("Failed to parse VPN client endpoint: {err}");
-                            Status::new(
-                                Code::Internal,
-                                format!("Failed to parse VPN client endpoint: {err}"),
-                            )
-                        })?;
-                        let context = GrpcRequestContext::new(
-                            user.id,
-                            user.username,
-                            ip_addr,
-                            device.name.clone(),
-                        );
-                        self.emit_event(GrpcEvent::ClientConnected {
-                            context,
-                            location,
-                            device,
-                        })?;
-                    }
-                };
-            }
+            let peer_disconnect_threshold = location.peer_disconnect_threshold;
 
             // convert stats to DB storage format
             let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
+
+            // perform client state operations in a dedicated block to drop mutex guard
+            let disconnected_clients =
+                {
+                    // acquire lock on client state map
+                    let mut client_map = self.get_client_state_guard()?;
+
+                    // update connected clients map
+                    match client_map.get_vpn_client(network_id, &public_key) {
+                        Some(client_state) => {
+                            // update connected client state
+                            client_state.update_client_state(
+                                device,
+                                stats.latest_handshake,
+                                stats.upload,
+                                stats.download,
+                            );
+                        }
+                        None => {
+                            // mark new VPN client as connected
+                            client_map.connect_vpn_client(
+                                network_id,
+                                gateway_hostname.clone(),
+                                public_key,
+                                &device,
+                                &stats,
+                            )?;
+
+                            // emit connection event
+                            let ip_addr =
+                                stats.endpoint.clone().unwrap_or_default().parse().map_err(
+                                    |err| {
+                                        error!("Failed to parse VPN client endpoint: {err}");
+                                        Status::new(
+                                            Code::Internal,
+                                            format!("Failed to parse VPN client endpoint: {err}"),
+                                        )
+                                    },
+                                )?;
+                            let context = GrpcRequestContext::new(
+                                user.id,
+                                user.username,
+                                ip_addr,
+                                device.name.clone(),
+                            );
+                            self.emit_event(GrpcEvent::ClientConnected {
+                                context,
+                                location,
+                                device,
+                            })?;
+                        }
+                    };
+
+                    // disconnect inactive clients
+                    client_map.disconnect_inactive_vpn_clients_for_location(
+                        network_id,
+                        peer_disconnect_threshold,
+                    )?
+                };
 
             // Save stats to db
             let stats = match stats.save(&self.pool).await {

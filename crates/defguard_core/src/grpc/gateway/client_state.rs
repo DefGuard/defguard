@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
+use chrono::{NaiveDateTime, TimeDelta, Utc};
 use thiserror::Error;
 use tonic::{Code, Status};
 
-use crate::db::{Device, Id};
+use crate::db::{models::wireguard_peer_stats::WireguardPeerStats, Device, Id};
 
 #[derive(Debug, Error)]
 pub enum ClientMapError {
@@ -25,14 +26,43 @@ impl From<ClientMapError> for Status {
 #[derive(Debug, Serialize, Clone)]
 pub struct ClientState {
     pub device: Device<Id>,
+    pub latest_handshake: NaiveDateTime,
+    pub latest_update: NaiveDateTime,
+    // total bytes sent to peer
+    pub total_upload: i64,
+    // total bytes received from peer
+    pub total_download: i64,
 }
 
 impl ClientState {
-    pub fn new(device: Device<Id>) -> Self {
-        Self { device }
+    pub fn new(
+        device: Device<Id>,
+        latest_handshake: NaiveDateTime,
+        total_upload: i64,
+        total_download: i64,
+    ) -> Self {
+        let latest_update = Utc::now().naive_utc();
+        Self {
+            device,
+            latest_handshake,
+            latest_update,
+            total_upload,
+            total_download,
+        }
     }
-    pub fn update_client_state(&mut self, new_device: Device<Id>) {
+
+    pub fn update_client_state(
+        &mut self,
+        new_device: Device<Id>,
+        latest_handshake: NaiveDateTime,
+        upload: i64,
+        download: i64,
+    ) {
+        self.latest_update = Utc::now().naive_utc();
         self.device = new_device;
+        self.latest_handshake = latest_handshake;
+        self.total_upload = upload;
+        self.total_download = download;
     }
 }
 
@@ -64,7 +94,8 @@ impl ClientMap {
         location_id: Id,
         gateway_hostname: String,
         public_key: String,
-        device: Device<Id>,
+        device: &Device<Id>,
+        stats: &WireguardPeerStats,
     ) -> Result<(), ClientMapError> {
         info!(
             "VPN client {} with public key {public_key} connected to location {location_id} through gateway {gateway_hostname}",
@@ -90,7 +121,12 @@ impl ClientMap {
         };
 
         // add client state to location map
-        let client_state = ClientState::new(device);
+        let client_state = ClientState::new(
+            device.clone(),
+            stats.latest_handshake.clone(),
+            stats.upload,
+            stats.download,
+        );
         location_map.insert(public_key, client_state);
 
         Ok(())
@@ -126,5 +162,41 @@ impl ClientMap {
         };
 
         Ok(())
+    }
+
+    /// Removes all disconnected clients for a given location.
+    /// Returns a list of public keys of disconnected clients.
+    /// A client is considered disconnected if there have not been any stats received for it in more than `peer_disconnect_threshold_secs`.
+    pub fn disconnect_inactive_vpn_clients_for_location(
+        &mut self,
+        location_id: Id,
+        peer_disconnect_threshold_secs: i32,
+    ) -> Result<Vec<String>, ClientMapError> {
+        debug!("Disconnecting inactive VPN clients for location {location_id}");
+
+        // initialize result
+        let mut disconnected_clients = Vec::new();
+
+        // get client state map for given location
+        let location_map = match self.0.get_mut(&location_id) {
+            Some(location_map) => location_map,
+            None => {
+                return Err(ClientMapError::LocationNotFound { location_id });
+            }
+        };
+
+        let disconnect_threshold = TimeDelta::seconds(peer_disconnect_threshold_secs.into());
+
+        // remove clients which have been inactive longer than given location's `peer_disconnect_threshold`
+        location_map.retain(|public_key, client_state| {
+            let now = Utc::now().naive_utc();
+            if (now - client_state.latest_update) > disconnect_threshold {
+                disconnected_clients.push(public_key.clone());
+                return false;
+            };
+            true
+        });
+
+        Ok(disconnected_clients)
     }
 }
