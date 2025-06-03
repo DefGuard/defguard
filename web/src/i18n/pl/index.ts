@@ -11,29 +11,38 @@ const translation: Translation = {
       or: 'Albo',
     },
     controls: {
-      back: 'Wróć',
+      accept: 'Akceptuj',
       next: 'Następny',
-      close: 'Zamknij',
+      back: 'Wróć',
       cancel: 'Anuluj',
-      finish: 'Zakończ',
-      select: 'Wybierz',
-      submit: 'Wyślij',
       confirm: 'Potwierdź',
-      save: 'Zapisz',
+      submit: 'Wyślij',
+      close: 'Zamknij',
+      select: 'Wybierz',
+      finish: 'Zakończ',
       saveChanges: 'Zapisz zmiany',
+      save: 'Zapisz',
       RestoreDefault: 'Przywróć domyślne',
       delete: 'Usuń',
-      copy: 'Skopiuj',
       rename: 'Zmień nazwę',
+      copy: 'Skopiuj',
       edit: 'Edytuj',
       dismiss: 'Odrzuć',
       show: 'Pokaż',
+      enable: 'Włącz',
+      enabled: 'Włączony',
+      disable: 'Wyłącz',
+      disabled: 'Wyłączony',
+      selectAll: 'Zaznacz wszystko',
+      clear: 'Wyczyść',
+      clearAll: 'Wyczyść wszystko',
     },
     key: 'Klucz',
     name: 'Nazwa',
     noData: 'Brak danych',
     unavailable: 'Niedostępne',
     notSet: 'Nieustawione',
+    search: 'Szukaj',
   },
   messages: {
     error: 'Wystąpił błąd.',
@@ -943,6 +952,8 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
       groups: 'Grupy',
+      devices: 'Urządzenia sieciowe',
+      acl: 'Kontrola dostępu',
     },
     mobileTitles: {
       wizard: 'Konfiguracja VPN',
@@ -957,6 +968,7 @@ Uwaga, podane tutaj konfiguracje nie posiadają klucza prywatnego. Musisz uzupe�
       enrollment: 'Rejestracja',
       support: 'Wsparcie',
       groups: 'Grupy',
+      devices: 'Urządzenia sieciowe',
     },
     copyright: 'Copyright ©2023-2025',
     version: {
@@ -2110,6 +2122,276 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
           config: 'Zobacz konfigurację',
           generateToken: 'Utwórz kupon autoryzacyjny',
         },
+      },
+    },
+  },
+  acl: {
+    messageBoxes: {
+      aclAliasKind: {
+        component: {
+          name: 'Komponent',
+          description:
+            'w połączeniu z ręcznie skonfigurowanymi miejscami docelowymi w ACL',
+        },
+        destination: {
+          name: 'Miejsce docelowe',
+          description: 'zostanie zamienione na osobny zestaw reguł firewalla',
+        },
+      },
+      networkSelectionIndicatorsHelper: {
+        //md
+        denied: `
+          Dostęp do lokalizacji domyślnie jest **zabroniony** – ruch sieciowy nie określony przez reguły będzie blokowany.
+          `,
+        //md
+        allowed: `
+          Dostęp do lokalizacji domyślnie jest **dozwolony** – ruch sieciowy nie określony przez reguły będzie przepuszczany.
+          `,
+        //md
+        unmanaged: `
+          Dostęp do lokalizacji nie jest zarządzany (wyłączona kontrola ACL)
+          `,
+      },
+    },
+    sharedTitle: 'Lista kontroli dostępu',
+    fieldsSelectionLabels: {
+      ports: 'Wszystkie porty',
+      protocols: 'Wszystkie protokoły',
+    },
+    ruleStatus: {
+      new: 'Nowa',
+      applied: 'Zastosowana',
+      modified: 'Czeka na zmianę',
+      deleted: 'Czeka na usunięcie',
+      enable: 'Włącz',
+      enabled: 'Włączona',
+      disable: 'Wyłącz',
+      disabled: 'Wyłączona',
+      expired: 'Przedawniona',
+    },
+    listPage: {
+      message: {
+        changeDiscarded: 'Zmiana odrzucona',
+        changeAdded: 'Dodana zmiana oczekująca',
+        changeFail: 'Nie udało się wykonać zmiany',
+        applyChanges: 'Zmiana została zastosowana',
+        applyFail: 'Nie udało się zastosować zmiany',
+      },
+      rules: {
+        modals: {
+          applyConfirm: {
+            title: 'Wdróż oczekujące zmiany',
+            subtitle: '{count: number} zmian zostanie zastosowanych',
+            submit: 'Wdróż zmiany',
+          },
+          filterGroupsModal: {
+            groupHeaders: {
+              alias: 'Aliasy',
+              location: 'Lokalizacje',
+              groups: 'Grupy',
+              status: 'Status',
+            },
+            submit: 'Zapisz filtr',
+          },
+        },
+        listControls: {
+          searchPlaceholder: 'Znajdź nazwę',
+          addNew: 'Dodaj nową',
+          filter: {
+            nothingApplied: 'Filtr',
+            applied: 'Filtry ({count: number})',
+          },
+          apply: {
+            noChanges: 'Wdróż oczekujące zmiany',
+            all: 'Wdróż oczekujące zmiany ({count: number})',
+            selective: 'Wdróż zaznaczone zmiany ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Oczekujące zmiany',
+            noData: 'Brak oczekujących zmian',
+            noDataSearch: 'Nie znaleziono oczekujących zmian',
+          },
+          deployedList: {
+            title: 'Wdrożone reguły',
+            noData: 'Brak wdrożonych reguł',
+            noDataSearch: 'Nie znaleziono wdrożonych reguł',
+          },
+          headers: {
+            name: 'Nazwa reguły',
+            id: 'ID',
+            destination: 'Miejsce docelowe',
+            allowed: 'Zazwolone',
+            denied: 'Zabronione',
+            locations: 'Lokalizacje',
+            status: 'Status',
+            edit: 'Zmień',
+          },
+          tags: {
+            all: 'Wszystkie',
+            allDenied: 'Wszystkie zabronione',
+            allAllowed: 'Wszystkie zezwolne',
+          },
+          editMenu: {
+            discard: 'Odrzuć zmiany',
+            delete: 'Zaznacz do usunięcia',
+          },
+        },
+      },
+      aliases: {
+        message: {
+          rulesApply: 'Oczekujące zmiany zostały zastosowane',
+          rulesApplyFail: 'Nie udało się zastosować zmian',
+          aliasDeleted: 'Alias usunięty',
+          aliasDeleteFail: 'Nie udało się usunąć aliasu',
+        },
+        modals: {
+          applyConfirm: {
+            title: 'Potwierdź wdrożenie aliasu',
+            message: `Uaktualnione aliasy zmienią następujące reguły obecnie wdrożone na Gatewayu.\nZanim przejdziesz dalej, upewnij się, że te zmiany są zamierzone.`,
+            listLabel: 'Dotyczy reguł',
+            submit: 'Wdóż zmiany',
+          },
+          deleteBlock: {
+            title: 'Usuwanie zablokowane',
+            //md
+            content: `
+Ten alias jest obecnie używany przez nastąpujące reguły i nie może być usunięty. Aby go usunąć, należy najpierw wykasować go z tych reguł({rulesCount: number}):
+`,
+          },
+          filterGroupsModal: {
+            groupLabels: {
+              rules: 'Reguły',
+              status: 'Status',
+            },
+          },
+          create: {
+            labels: {
+              name: 'Nazwa aliasu',
+              kind: 'Rodzajj aliasu',
+              ip: 'Zakres adresów IPv4/6 CIDR',
+              ports: 'Porty lub zakres portów',
+              protocols: 'Protokoły',
+            },
+            placeholders: {
+              protocols: 'Wszystkie protokoły',
+              ports: 'Wszystkie porty',
+              ip: 'Wszystkie adresy IP',
+            },
+            kindOptions: {
+              destination: 'Miejsce docelowe',
+              component: 'Komponent',
+            },
+            controls: {
+              cancel: 'Anuluj',
+              edit: 'Edytuj alias',
+              create: 'Utwórz alias',
+            },
+            messages: {
+              modified: 'Alias zmienione',
+              created: 'Alias utworzony',
+            },
+          },
+        },
+        listControls: {
+          searchPlaceholder: 'Znajdź nazwę',
+          addNew: 'Dodaj nową',
+          filter: {
+            nothingApplied: 'Filtr',
+            applied: 'Filtry ({count: number})',
+          },
+          apply: {
+            noChanges: 'Wdróż oczkujące zmiany',
+            all: 'Wdróż oczkujące zmiany ({count: number})',
+            selective: 'Wdróż zaznaczone zmiany ({count: number})',
+          },
+        },
+        list: {
+          pendingList: {
+            title: 'Oczkujące zmiany',
+            noData: 'Brak oczkujących zmian',
+            noDataSearch: 'Nie znaleziono oczkujących zmian',
+          },
+          deployedList: {
+            title: 'Wdrożone aliasy',
+            noData: 'Brak wdrożonych aliasów',
+            noDataSearch: 'Nie znaleziono wdrożonych aliasów',
+          },
+          headers: {
+            id: 'ID',
+            name: 'Nazwa aliasu',
+            kind: 'Rodzaj aliasu',
+            ip: 'Zakres adresów IPv4/6 CIDR',
+            ports: 'Porty',
+            protocols: 'Protokoły',
+            status: 'Status',
+            edit: 'Zmień',
+            rules: 'Reguły',
+          },
+          status: {
+            applied: 'Zastosowane',
+            changed: 'Zmieione',
+          },
+          tags: {
+            allDenied: 'Wszystkie zabronione',
+            allAllowed: 'Wszystkie dozwolne',
+          },
+          editMenu: {
+            discardChanges: 'Odrzuć zmiany',
+            delete: 'Usuń alias',
+          },
+        },
+      },
+    },
+    createPage: {
+      formError: {
+        allowDenyConflict: 'Konfliktujący członkowie',
+        allowNotConfigured:
+          'Trzeba skonfigurowć dostęp dla użytkowników, grup lub urządzeń',
+      },
+      infoBox: {
+        // md
+        allowInstructions: `
+        Podaj jedno lub więcej pól (użytkownicy, grupy lub urządzenia) aby zdefinionwać tę regułę. Reguła uwzględni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
+        // md
+        destinationInstructions: `
+        Podaj jedno lub więcej pól (adresy IP lub porty) aby zdefinionwać tę regułę. Reguła uwzględni wszystkie podane wejścia dla pasujących warunków. Pozostaw puste pola, jeżeli nie są potrzebne.`,
+      },
+      message: {
+        create: 'Reguła została utworzona i dodana do oczekujących zmian.',
+        createFail: 'Nie można było utworzyć reguły.',
+      },
+      headers: {
+        rule: 'Reguła',
+        createRule: 'Utwórz regułę',
+        allowed: 'Zezwoleni użytkownicy/grupy/urządzenia',
+        denied: 'Zablokowani użytkownicy/grupy/urządzenia',
+        destination: 'Miejsce docelowe',
+      },
+      labels: {
+        name: 'Nazwa reguły',
+        priority: 'Priorytet',
+        status: 'Status',
+        locations: 'Lokalizacje',
+        allowAllUsers: 'Zezwól wszystkim użytkownikom',
+        allowAllNetworks: 'Włącz wszystkie lokalizacje',
+        allowAllNetworkDevices: 'Zezwól wszystkim urządzeniom sieciowym',
+        denyAllUsers: 'Zablokuj wszystkich użytkowników',
+        denyAllNetworkDevices: 'Zablokuj wszystkie urządzenia sieciowe',
+        users: 'Użytkownicy',
+        groups: 'Grupy',
+        devices: 'Urządzenia sieciowe',
+        protocols: 'Protokoły',
+        manualIp: 'Zakres lub adres IPv4/6 CIDR',
+        ports: 'Porty',
+        aliases: 'Aliasy',
+        expires: 'Data wygaśnięcia',
+        manualInput: 'Ręczne wprowadzenie',
+      },
+      placeholders: {
+        allProtocols: 'Wszystkie protokoły',
+        allIps: 'Wszystkie adresy IP',
       },
     },
   },
