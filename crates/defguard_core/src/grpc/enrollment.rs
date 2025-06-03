@@ -248,14 +248,6 @@ impl EnrollmentServer {
                 Status::internal("unexpected error")
             })?;
 
-            let request_context = todo!();
-
-            self.emit_event(request_context, EnrollmentEvent::EnrollmentStarted)
-                .map_err(|err| {
-                    error!("Failed to emit event: {err}");
-                    Status::internal("unexpected error")
-                })?;
-
             Ok(response)
         } else {
             debug!("Invalid enrollment token, the token does not have specified type.");

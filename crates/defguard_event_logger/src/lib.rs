@@ -8,10 +8,11 @@ use tracing::{debug, error, info, trace};
 use defguard_core::db::{
     models::audit_log::{
         metadata::{
-            DeviceAddedMetadata, DeviceModifiedMetadata, DeviceRemovedMetadata,
-            MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata, NetworkDeviceAddedMetadata,
-            NetworkDeviceModifiedMetadata, NetworkDeviceRemovedMetadata, UserAddedMetadata,
-            UserModifiedMetadata, UserRemovedMetadata,
+            AuditStreamMetadata, DeviceAddedMetadata, DeviceModifiedMetadata,
+            DeviceRemovedMetadata, MfaSecurityKeyAddedMetadata, MfaSecurityKeyRemovedMetadata,
+            NetworkDeviceAddedMetadata, NetworkDeviceModifiedMetadata,
+            NetworkDeviceRemovedMetadata, UserAddedMetadata, UserModifiedMetadata,
+            UserRemovedMetadata,
         },
         AuditEvent, AuditModule, EventType,
     },
@@ -103,49 +104,6 @@ pub async fn run_event_logger(
                             DefguardEvent::RecoveryCodeUsed => todo!(),
                             DefguardEvent::PasswordChanged => todo!(),
                             DefguardEvent::MfaFailed => todo!(),
-                            DefguardEvent::MfaDisabled => todo!(),
-                            DefguardEvent::MfaDefaultChanged { mfa_method } => todo!(),
-                            DefguardEvent::MfaTotpEnabled => todo!(),
-                            DefguardEvent::MfaTotpDisabled => todo!(),
-                            DefguardEvent::MfaEmailEnabled => todo!(),
-                            DefguardEvent::MfaEmailDisabled => todo!(),
-                            DefguardEvent::MfaSecurityKeyAdded { key_id, key_name } => todo!(),
-                            DefguardEvent::MfaSecurityKeyRemoved { key_id, key_name } => todo!(),
-                            DefguardEvent::AuthenticationKeyAdded {
-                                key_id,
-                                key_name,
-                                key_type,
-                            } => todo!(),
-                            DefguardEvent::AuthenticationKeyRemoved {
-                                key_id,
-                                key_name,
-                                key_type,
-                            } => todo!(),
-                            DefguardEvent::AuthenticationKeyRenamed {
-                                key_id,
-                                key_name,
-                                key_type,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenAdded {
-                                token_id,
-                                token_name,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenRemoved {
-                                token_id,
-                                token_name,
-                            } => todo!(),
-                            DefguardEvent::ApiTokenRenamed {
-                                token_id,
-                                token_name,
-                            } => todo!(),
-                            DefguardEvent::UserAdded {
-                                username,
-                                enrollment,
-                            } => todo!(),
-                            DefguardEvent::UserRemoved { username } => todo!(),
-                            DefguardEvent::UserModified { username } => todo!(),
-                            DefguardEvent::UserDisabled { username } => todo!(),
-=======
                             DefguardEvent::MfaDisabled => (EventType::MfaDisabled, None),
                             DefguardEvent::MfaDefaultChanged { mfa_method: _ } => todo!(),
                             DefguardEvent::MfaTotpEnabled => (EventType::MfaTotpEnabled, None),

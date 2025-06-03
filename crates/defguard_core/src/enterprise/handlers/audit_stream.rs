@@ -2,8 +2,6 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
 use reqwest::StatusCode;
 use serde_json::json;
 
@@ -12,7 +10,7 @@ use crate::{
     auth::{AdminRole, SessionInfo},
     db::{Id, NoId},
     enterprise::db::models::audit_stream::{AuditStream, AuditStreamConfig, AuditStreamType},
-    events::ApiRequestContext,
+    events::{ApiEvent, ApiEventType, ApiRequestContext},
     handlers::{ApiResponse, ApiResult},
 };
 
@@ -44,9 +42,8 @@ pub async fn create_audit_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
     session: SessionInfo,
+    context: ApiRequestContext,
     Json(data): Json<AuditStreamModificationRequest>,
 ) -> ApiResult {
     let session_username = &session.user.username;
@@ -61,15 +58,12 @@ pub async fn create_audit_stream(
     };
     let stream = stream_model.save(&appstate.pool).await?;
     info!("User {session_username} created audit stream");
-    appstate.send_event(crate::events::ApiEvent::AuditStreamCreated {
-        context: ApiRequestContext::new(
-            session.user.id,
-            session.user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        stream_id: stream.id,
-        stream_name: stream.name,
+    appstate.send_event(ApiEvent {
+        context,
+        kind: ApiEventType::AuditStreamCreated {
+            stream_id: stream.id,
+            stream_name: stream.name,
+        },
     })?;
     debug!("AuditStreamCreated api event sent");
     Ok(ApiResponse {
@@ -82,9 +76,8 @@ pub async fn modify_audit_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(id): Path<Id>,
     Json(data): Json<AuditStreamModificationRequest>,
 ) -> ApiResult {
@@ -97,15 +90,12 @@ pub async fn modify_audit_stream(
         stream.config = data.stream_config;
         stream.save(&appstate.pool).await?;
         info!("User {session_username} modified audit stream");
-        appstate.send_event(crate::events::ApiEvent::AuditStreamModified {
-            context: ApiRequestContext::new(
-                session.user.id,
-                session.user.username.clone(),
-                insecure_ip.into(),
-                user_agent.to_string(),
-            ),
-            stream_id: stream.id,
-            stream_name: stream.name,
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::AuditStreamModified {
+                stream_id: stream.id,
+                stream_name: stream.name,
+            },
         })?;
         debug!("AuditStreamModified api event sent");
         return Ok(ApiResponse::default());
@@ -119,9 +109,8 @@ pub async fn delete_audit_stream(
     _license: LicenseInfo,
     _admin: AdminRole,
     State(appstate): State<AppState>,
-    user_agent: TypedHeader<UserAgent>,
-    InsecureClientIp(insecure_ip): InsecureClientIp,
     session: SessionInfo,
+    context: ApiRequestContext,
     Path(id): Path<Id>,
 ) -> ApiResult {
     let session_username = &session.user.username;
@@ -130,15 +119,12 @@ pub async fn delete_audit_stream(
         let stream_id = stream.id;
         let stream_name = stream.name.clone();
         stream.delete(&appstate.pool).await?;
-        appstate.send_event(crate::events::ApiEvent::AuditStreamRemoved {
-            context: ApiRequestContext::new(
-                session.user.id,
-                session.user.username.clone(),
-                insecure_ip.into(),
-                user_agent.to_string(),
-            ),
-            stream_id,
-            stream_name,
+        appstate.send_event(ApiEvent {
+            context,
+            kind: ApiEventType::AuditStreamRemoved {
+                stream_id,
+                stream_name,
+            },
         })?;
     } else {
         return Err(crate::error::WebError::ObjectNotFound(format!(

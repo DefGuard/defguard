@@ -105,7 +105,6 @@ pub enum DefguardEvent {
     // user management
     UserAdded {
         username: String,
-        enrollment: bool,
     },
     UserRemoved {
         username: String,

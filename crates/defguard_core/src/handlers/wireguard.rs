@@ -10,8 +10,6 @@ use axum::{
     http::StatusCode,
     Extension,
 };
-use axum_client_ip::InsecureClientIp;
-use axum_extra::{headers::UserAgent, TypedHeader};
 use chrono::{DateTime, NaiveDateTime, TimeDelta, Utc};
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
@@ -1060,17 +1058,6 @@ pub(crate) async fn delete_device(
     };
     transaction.commit().await?;
     info!("User {username} deleted device {device_id}");
-
-    let user = session.user;
-    appstate.send_event(ApiEvent::UserDeviceRemoved {
-        context: ApiRequestContext::new(
-            user.id,
-            user.username.clone(),
-            insecure_ip.into(),
-            user_agent.to_string(),
-        ),
-        device_name,
-    })?;
 
     Ok(ApiResponse::default())
 }
