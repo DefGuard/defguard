@@ -1,5 +1,5 @@
+mod client_state;
 use std::{
-    collections::HashMap,
     net::IpAddr,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -7,11 +7,13 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+use client_state::ClientMap;
 use sqlx::{query, Error as SqlxError, PgExecutor, PgPool};
+use thiserror::Error;
 use tokio::{
     sync::{
         broadcast::{Receiver as BroadcastReceiver, Sender},
-        mpsc::{self, Receiver, UnboundedSender},
+        mpsc::{self, error::SendError, Receiver, UnboundedSender},
     },
     task::JoinHandle,
 };
@@ -52,21 +54,24 @@ pub fn send_multiple_wireguard_events(events: Vec<GatewayEvent>, wg_tx: &Sender<
     }
 }
 
-// Helper struct used to handle connected VPN clients state
-// Clients are grouped by location ID
-type ClientPubKey = String;
-#[derive(Debug, Serialize, Clone)]
-struct ClientMap(HashMap<Id, HashMap<ClientPubKey, ClientState>>);
+#[derive(Debug, Error)]
+pub enum GatewayServerError {
+    #[error("Failed to acquire lock on VPN client state map")]
+    ClientStateMutexError,
+    #[error("gRPC event channel error: {0}")]
+    GrpcEventChannelError(#[from] SendError<GrpcEvent>),
+}
 
-#[derive(Debug, Serialize, Clone)]
-struct ClientState {
-    device_id: Id,
+impl From<GatewayServerError> for Status {
+    fn from(value: GatewayServerError) -> Self {
+        todo!()
+    }
 }
 
 pub struct GatewayServer {
     pool: PgPool,
     gateway_state: Arc<Mutex<GatewayMap>>,
-    client_state: ClientMap,
+    client_state: Arc<Mutex<ClientMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
     grpc_event_tx: UnboundedSender<GrpcEvent>,
@@ -131,7 +136,7 @@ impl GatewayServer {
         Self {
             pool,
             gateway_state: state,
-            client_state: ClientMap(HashMap::new()),
+            client_state: Arc::new(Mutex::new(ClientMap::new())),
             wireguard_tx,
             mail_tx,
             grpc_event_tx,
@@ -179,16 +184,18 @@ impl GatewayServer {
         }
     }
 
-    // get connected VPN client from state map if present
-    pub fn get_vpn_client(
-        &mut self,
-        location_id: Id,
-        client_pubkey: &str,
-    ) -> Option<&mut ClientState> {
-        self.client_state
-            .0
-            .get_mut(&location_id)
-            .map(|client_map| client_map.get_mut(client_pubkey))?
+    pub fn get_client_state_guard(
+        &self,
+    ) -> Result<std::sync::MutexGuard<ClientMap>, GatewayServerError> {
+        let client_state = self
+            .client_state
+            .lock()
+            .map_err(|_| GatewayServerError::ClientStateMutexError)?;
+        Ok(client_state)
+    }
+
+    fn emit_event(&self, event: GrpcEvent) -> Result<(), GatewayServerError> {
+        Ok(self.grpc_event_tx.send(event)?)
     }
 }
 
@@ -208,7 +215,7 @@ fn gen_config(
 }
 
 impl WireguardPeerStats {
-    fn from_peer_stats(stats: PeerStats, network_id: Id) -> Self {
+    fn from_peer_stats(stats: PeerStats, network_id: Id, device_id: Id) -> Self {
         let endpoint = match stats.endpoint {
             endpoint if endpoint.is_empty() => None,
             _ => Some(stats.endpoint),
@@ -217,7 +224,7 @@ impl WireguardPeerStats {
             id: NoId,
             network: network_id,
             endpoint,
-            device_id: -1,
+            device_id,
             collected_at: Utc::now().naive_utc(),
             upload: stats.upload as i64,
             download: stats.download as i64,
@@ -642,6 +649,7 @@ impl gateway_service_server::GatewayService for GatewayServer {
         request: Request<tonic::Streaming<StatsUpdate>>,
     ) -> Result<Response<()>, Status> {
         let network_id = Self::get_network_id(request.metadata())?;
+        let gateway_hostname = Self::get_gateway_hostname(request.metadata())?;
         let mut stream = request.into_inner();
 
         while let Some(stats_update) = stream.message().await? {
@@ -651,11 +659,11 @@ impl gateway_service_server::GatewayService for GatewayServer {
                 continue;
             };
             let public_key = peer_stats.public_key.clone();
-            let mut stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id);
-            // Get device by public key and fill in stats.device_id
-            // FIXME: keep an in-memory device map to avoid repeated DB requests
-            stats.device_id = match Device::find_by_pubkey(&self.pool, &public_key).await {
-                Ok(Some(device)) => device.id,
+
+            // fetch device from DB
+            // TODO: fetch only when device has changed and use client state otherwise
+            let device = match Device::find_by_pubkey(&self.pool, &public_key).await {
+                Ok(Some(device)) => device,
                 Ok(None) => {
                     error!("Device with public key {public_key} not found");
                     return Err(Status::new(
@@ -671,8 +679,38 @@ impl gateway_service_server::GatewayService for GatewayServer {
                     ));
                 }
             };
-            // update connected clients map
-            // match stream.
+            // copy for easier reference later
+            let device_id = device.id;
+
+            // perform client state operations in a dedicated block to drop mutex guard
+            {
+                // acquire lock on client state map
+                let mut client_map = self.get_client_state_guard()?;
+
+                // update connected clients map
+                match client_map.get_vpn_client(network_id, &public_key) {
+                    Some(client_state) => {
+                        // update connected client state
+                        client_state.update_client_state(device);
+                    }
+                    None => {
+                        // mark new VPN client as connected
+                        client_map.connect_vpn_client(
+                            network_id,
+                            gateway_hostname.clone(),
+                            public_key,
+                            device,
+                        )?;
+
+                        // emit connection event
+                        let context = todo!();
+                        self.emit_event(GrpcEvent::ClientConnected { context })?;
+                    }
+                };
+            }
+
+            // convert stats to DB storage format
+            let stats = WireguardPeerStats::from_peer_stats(peer_stats, network_id, device_id);
 
             // Save stats to db
             let stats = match stats.save(&self.pool).await {
