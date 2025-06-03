@@ -2141,11 +2141,11 @@ W przypadku innych zgłoszeń skontaktuj się z nami: support@defguard.net
       networkSelectionIndicatorsHelper: {
         //md
         denied: `
-          Dostęp do lokalizacji domyślnie jest **zabroniony** – musi zostać wyraźnie zezwolony
+          Dostęp do lokalizacji domyślnie jest **zabroniony** – ruch sieciowy nie określony przez reguły będzie blokowany.
           `,
         //md
         allowed: `
-          Dostęp do lokalizacji domyślnie jest **zezwolony** – może zostać wyraźnie zabroniony
+          Dostęp do lokalizacji domyślnie jest **dozwolony** – ruch sieciowy nie określony przez reguły będzie przepuszczany.
           `,
         //md
         unmanaged: `

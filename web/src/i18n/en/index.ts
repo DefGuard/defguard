@@ -2248,11 +2248,11 @@ Any other requests you can reach us at: support@defguard.net
       networkSelectionIndicatorsHelper: {
         //md
         denied: `
-          Location access **denied** by default – must be explicitly allowed
+          Location access **denied** by default – network traffic not explicitly defined by the rules will be blocked.
           `,
         //md
         allowed: `
-          Location access **allowed** by default – can be explicitly denied
+          Location access **allowed** by default – network traffic not explicitly defined by the rules will be passed.
           `,
         //md
         unmanaged: `
