@@ -192,6 +192,7 @@ where
 
 // Extension of base user session that contains user data fetched from database.
 // This represents a session for a user who completed the login process (including MFA, if enabled).
+#[derive(Clone)]
 pub struct SessionInfo {
     pub session: Session,
     pub user: User<Id>,
@@ -248,12 +249,15 @@ where
                 ));
             }
 
-            Ok(SessionInfo {
+            // Store session info into request extensions so future extractors can use it
+            let session_info = SessionInfo {
                 session,
                 user,
                 is_admin,
                 groups,
-            })
+            };
+            parts.extensions.insert(session_info.clone());
+            Ok(session_info)
         } else {
             Err(WebError::Authorization("User not found".into()))
         }

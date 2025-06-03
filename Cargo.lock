@@ -1173,7 +1173,10 @@ dependencies = [
 name = "defguard_event_logger"
 version = "0.0.0"
 dependencies = [
+<<<<<<< HEAD
  "bytes",
+=======
+>>>>>>> dev
  "chrono",
  "defguard_core",
  "ipnetwork",

@@ -111,6 +111,8 @@ exceptions = [
     { allow = ["AGPL-3.0"], crate = "defguard" },
     { allow = ["AGPL-3.0"], crate = "defguard_core" },
     { allow = ["AGPL-3.0"], crate = "defguard_web_ui" },
+    { allow = ["AGPL-3.0"], crate = "defguard_event_router" },
+    { allow = ["AGPL-3.0"], crate = "defguard_event_logger" },
     { allow = ["AGPL-3.0"], crate = "model_derive" },
 ]
 

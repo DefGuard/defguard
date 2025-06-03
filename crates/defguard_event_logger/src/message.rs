@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use ipnetwork::IpNetwork;
+use std::net::IpAddr;
 
 use defguard_core::{
     db::{models::authentication_key::AuthenticationKeyType, Id},
@@ -32,7 +32,7 @@ pub struct EventContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
 }
 
@@ -120,17 +120,17 @@ pub enum DefguardEvent {
     UserDeviceAdded {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     UserDeviceRemoved {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     UserDeviceModified {
         device_id: Id,
         device_name: String,
-        user: String,
+        owner: String,
     },
     NetworkDeviceAdded {
         device_id: Id,

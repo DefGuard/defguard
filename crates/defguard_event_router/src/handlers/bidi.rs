@@ -7,15 +7,15 @@ impl EventRouter {
     pub(crate) fn handle_bidi_event(&self, event: BidiStreamEvent) -> Result<(), EventRouterError> {
         debug!("Processing bidi gRPC stream event: {event:?}");
         let BidiStreamEvent {
-            request_context,
+            request_context: _,
             event,
         } = event;
 
         match event {
-            BidiStreamEventType::Enrollment(enrollment_event) => todo!(),
-            BidiStreamEventType::PasswordReset(password_reset_event) => todo!(),
-            BidiStreamEventType::DesktopCLientMfa(desktop_client_mfa_event) => todo!(),
-            BidiStreamEventType::ConfigPolling(config_polling_event) => todo!(),
+            BidiStreamEventType::Enrollment(_enrollment_event) => todo!(),
+            BidiStreamEventType::PasswordReset(_password_reset_event) => todo!(),
+            BidiStreamEventType::DesktopCLientMfa(_desktop_client_mfa_event) => todo!(),
+            BidiStreamEventType::ConfigPolling(_config_polling_event) => todo!(),
         }
     }
 }

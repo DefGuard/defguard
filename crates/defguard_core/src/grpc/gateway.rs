@@ -56,6 +56,7 @@ pub struct GatewayServer {
     state: Arc<Mutex<GatewayMap>>,
     wireguard_tx: Sender<GatewayEvent>,
     mail_tx: UnboundedSender<Mail>,
+    #[allow(dead_code)]
     grpc_event_tx: UnboundedSender<GrpcEvent>,
 }
 

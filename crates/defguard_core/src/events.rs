@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use crate::db::Id;
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
@@ -12,12 +14,12 @@ pub struct ApiRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
 }
 
 impl ApiRequestContext {
-    pub fn new(user_id: Id, username: String, ip: IpNetwork, device: String) -> Self {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
         let timestamp = Utc::now().naive_utc();
         Self {
             timestamp,
@@ -29,42 +31,84 @@ impl ApiRequestContext {
     }
 }
 
-/// Events from Web API
 #[derive(Debug)]
-pub enum ApiEvent {
-    UserLogin {
-        context: ApiRequestContext,
+pub enum ApiEventType {
+    UserLogin,
+    UserLogout,
+    MfaDisabled,
+    MfaTotpDisabled,
+    MfaTotpEnabled,
+    MfaEmailDisabled,
+    MfaEmailEnabled,
+    MfaSecurityKeyAdded {
+        key_id: Id,
+        key_name: String,
     },
-    UserLogout {
-        context: ApiRequestContext,
+    MfaSecurityKeyRemoved {
+        key_id: Id,
+        key_name: String,
+    },
+    UserAdded {
+        username: String,
+    },
+    UserRemoved {
+        username: String,
+    },
+    UserModified {
+        username: String,
     },
     UserDeviceAdded {
-        context: ApiRequestContext,
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
     UserDeviceRemoved {
-        context: ApiRequestContext,
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
     UserDeviceModified {
-        context: ApiRequestContext,
+        device_id: Id,
+        owner: String,
         device_name: String,
     },
+    NetworkDeviceAdded {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
+    NetworkDeviceRemoved {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
+    NetworkDeviceModified {
+        device_id: Id,
+        device_name: String,
+        location_id: Id,
+        location: String,
+    },
     AuditStreamCreated {
-        context: ApiRequestContext,
         stream_id: Id,
         stream_name: String,
     },
     AuditStreamModified {
-        context: ApiRequestContext,
         stream_id: Id,
         stream_name: String,
     },
     AuditStreamRemoved {
-        context: ApiRequestContext,
         stream_id: Id,
         stream_name: String,
     },
+}
+
+/// Events from Web API
+#[derive(Debug)]
+pub struct ApiEvent {
+    pub context: ApiRequestContext,
+    pub kind: ApiEventType,
 }
 
 /// Events from gRPC server
