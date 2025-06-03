@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crate::db::Id;
+use crate::db::{Device, Id, WireguardNetwork};
 use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 
@@ -39,8 +39,21 @@ pub struct GrpcRequestContext {
     pub timestamp: NaiveDateTime,
     pub user_id: Id,
     pub username: String,
-    pub ip: IpNetwork,
+    pub ip: IpAddr,
     pub device: String,
+}
+
+impl GrpcRequestContext {
+    pub fn new(user_id: Id, username: String, ip: IpAddr, device: String) -> Self {
+        let timestamp = Utc::now().naive_utc();
+        Self {
+            timestamp,
+            user_id,
+            username,
+            ip,
+            device,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -116,8 +129,16 @@ pub struct ApiEvent {
 pub enum GrpcEvent {
     GatewayConnected,
     GatewayDisconnected,
-    ClientConnected { context: GrpcRequestContext },
-    ClientDisconnected { context: GrpcRequestContext },
+    ClientConnected {
+        context: GrpcRequestContext,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    ClientDisconnected {
+        context: GrpcRequestContext,
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
 }
 
 /// Shared context for every event generated from a user request in the bi-directional gRPC stream.

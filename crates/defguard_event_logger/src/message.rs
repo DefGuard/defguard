@@ -3,8 +3,8 @@ use std::net::IpAddr;
 use chrono::NaiveDateTime;
 
 use defguard_core::{
-    db::{models::authentication_key::AuthenticationKeyType, Id},
-    events::ApiRequestContext,
+    db::{models::authentication_key::AuthenticationKeyType, Device, Id, WireguardNetwork},
+    events::{ApiRequestContext, GrpcRequestContext},
     grpc::proto::proxy::MfaMethod,
 };
 
@@ -39,6 +39,18 @@ pub struct EventContext {
 
 impl From<ApiRequestContext> for EventContext {
     fn from(val: ApiRequestContext) -> Self {
+        EventContext {
+            timestamp: val.timestamp,
+            user_id: val.user_id,
+            username: val.username,
+            ip: val.ip,
+            device: val.device,
+        }
+    }
+}
+
+impl From<GrpcRequestContext> for EventContext {
+    fn from(val: GrpcRequestContext) -> Self {
         EventContext {
             timestamp: val.timestamp,
             user_id: val.user_id,
@@ -214,6 +226,14 @@ pub enum VpnEvent {
     MfaFailed {
         location_id: Id,
         location_name: String,
+    },
+    ConnectedToLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
+    },
+    DisconnectedFromLocation {
+        location: WireguardNetwork<Id>,
+        device: Device<Id>,
     },
 }
 

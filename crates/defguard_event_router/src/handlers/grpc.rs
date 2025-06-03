@@ -1,4 +1,5 @@
 use defguard_core::events::GrpcEvent;
+use defguard_event_logger::message::{LoggerEvent, VpnEvent};
 use tracing::debug;
 
 use crate::{error::EventRouterError, EventRouter};
@@ -10,6 +11,28 @@ impl EventRouter {
         match event {
             GrpcEvent::GatewayConnected => todo!(),
             GrpcEvent::GatewayDisconnected => todo!(),
+            GrpcEvent::ClientConnected {
+                context,
+                location,
+                device,
+            } => {
+                self.log_event(
+                    context.into(),
+                    LoggerEvent::Vpn(VpnEvent::ConnectedToLocation { location, device }),
+                )?;
+            }
+            GrpcEvent::ClientDisconnected {
+                context,
+                location,
+                device,
+            } => {
+                self.log_event(
+                    context.into(),
+                    LoggerEvent::Vpn(VpnEvent::DisconnectedFromLocation { location, device }),
+                )?;
+            }
         }
+
+        Ok(())
     }
 }

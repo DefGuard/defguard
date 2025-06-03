@@ -28,9 +28,9 @@ pub use crate::grpc::proto::gateway::{
 use crate::{
     db::{
         models::{wireguard::WireguardNetwork, wireguard_peer_stats::WireguardPeerStats},
-        Device, GatewayEvent, Id, NoId,
+        Device, GatewayEvent, Id, NoId, User,
     },
-    events::GrpcEvent,
+    events::{GrpcEvent, GrpcRequestContext},
     mail::Mail,
 };
 
@@ -64,7 +64,7 @@ pub enum GatewayServerError {
 
 impl From<GatewayServerError> for Status {
     fn from(value: GatewayServerError) -> Self {
-        todo!()
+        Self::new(Code::Internal, value.to_string())
     }
 }
 
@@ -196,6 +196,80 @@ impl GatewayServer {
 
     fn emit_event(&self, event: GrpcEvent) -> Result<(), GatewayServerError> {
         Ok(self.grpc_event_tx.send(event)?)
+    }
+
+    /// Helper method to fetch `Device` info from DB and return appropriate errors
+    async fn fetch_device_from_db(&self, public_key: &str) -> Result<Device<Id>, Status> {
+        let device = match Device::find_by_pubkey(&self.pool, public_key).await {
+            Ok(Some(device)) => device,
+            Ok(None) => {
+                error!("Device with public key {public_key} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Device with public key {public_key} not found"),
+                ));
+            }
+            Err(err) => {
+                error!("Failed to retrieve device with public key {public_key}: {err}",);
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve device with public key {public_key}: {err}",),
+                ));
+            }
+        };
+        Ok(device)
+    }
+
+    /// Helper method to fetch `WireguardNetwork` info from DB and return appropriate errors
+    async fn fetch_location_from_db(
+        &self,
+        location_id: Id,
+    ) -> Result<WireguardNetwork<Id>, Status> {
+        let location = match WireguardNetwork::find_by_id(&self.pool, location_id).await {
+            Ok(Some(location)) => location,
+            Ok(None) => {
+                error!("Location {location_id} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Location {location_id} not found"),
+                ));
+            }
+            Err(err) => {
+                error!("Failed to retrieve location {location_id}: {err}",);
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("Failed to retrieve location {location_id}: {err}",),
+                ));
+            }
+        };
+        Ok(location)
+    }
+
+    /// Helper method to fetch `User` info from DB and return appropriate errors
+    async fn fetch_user_from_db(&self, user_id: Id, public_key: &str) -> Result<User<Id>, Status> {
+        let user = match User::find_by_id(&self.pool, user_id).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                error!("User {user_id} assigned to device with public key {public_key} not found");
+                return Err(Status::new(
+                    Code::Internal,
+                    format!("User assigned to device with public key {public_key} not found"),
+                ));
+            }
+            Err(err) => {
+                error!(
+                    "Failed to retrieve user {user_id} for device with public key {public_key}: {err}",
+                );
+                return Err(Status::new(
+                    Code::Internal,
+                    format!(
+                        "Failed to retrieve user for device with public key {public_key}: {err}",
+                    ),
+                ));
+            }
+        };
+
+        Ok(user)
     }
 }
 
@@ -662,25 +736,14 @@ impl gateway_service_server::GatewayService for GatewayServer {
 
             // fetch device from DB
             // TODO: fetch only when device has changed and use client state otherwise
-            let device = match Device::find_by_pubkey(&self.pool, &public_key).await {
-                Ok(Some(device)) => device,
-                Ok(None) => {
-                    error!("Device with public key {public_key} not found");
-                    return Err(Status::new(
-                        Code::Internal,
-                        format!("Device with public key {public_key} not found"),
-                    ));
-                }
-                Err(err) => {
-                    error!("Failed to retrieve device with public key {public_key}: {err}",);
-                    return Err(Status::new(
-                        Code::Internal,
-                        format!("Failed to retrieve device with public key {public_key}: {err}",),
-                    ));
-                }
-            };
+            let device = self.fetch_device_from_db(&public_key).await?;
             // copy for easier reference later
             let device_id = device.id;
+
+            // fetch user and location from DB for audit log
+            // TODO: cache usernames since they don't change
+            let user = self.fetch_user_from_db(device.user_id, &public_key).await?;
+            let location = self.fetch_location_from_db(network_id).await?;
 
             // perform client state operations in a dedicated block to drop mutex guard
             {
@@ -699,12 +762,28 @@ impl gateway_service_server::GatewayService for GatewayServer {
                             network_id,
                             gateway_hostname.clone(),
                             public_key,
-                            device,
+                            device.clone(),
                         )?;
 
                         // emit connection event
-                        let context = todo!();
-                        self.emit_event(GrpcEvent::ClientConnected { context })?;
+                        let ip_addr = peer_stats.endpoint.parse().map_err(|err| {
+                            error!("Failed to parse VPN client endpoint: {err}");
+                            Status::new(
+                                Code::Internal,
+                                format!("Failed to parse VPN client endpoint: {err}"),
+                            )
+                        })?;
+                        let context = GrpcRequestContext::new(
+                            user.id,
+                            user.username,
+                            ip_addr,
+                            device.name.clone(),
+                        );
+                        self.emit_event(GrpcEvent::ClientConnected {
+                            context,
+                            location,
+                            device,
+                        })?;
                     }
                 };
             }

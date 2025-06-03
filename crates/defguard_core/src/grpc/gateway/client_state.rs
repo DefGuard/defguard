@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use thiserror::Error;
-use tonic::Status;
+use tonic::{Code, Status};
 
 use crate::db::{Device, Id};
 
@@ -9,11 +9,15 @@ use crate::db::{Device, Id};
 pub enum ClientMapError {
     #[error("VPN client {public_key} is already connected to location {location_id}")]
     ClientAlreadyConnected { public_key: String, location_id: Id },
+    #[error("VPN client {public_key} is not connected to location {location_id}")]
+    ClientNotFound { public_key: String, location_id: Id },
+    #[error("Client state for location {location_id} not found")]
+    LocationNotFound { location_id: Id },
 }
 
 impl From<ClientMapError> for Status {
     fn from(value: ClientMapError) -> Self {
-        todo!()
+        Self::new(Code::Internal, value.to_string())
     }
 }
 
@@ -54,6 +58,7 @@ impl ClientMap {
             .flatten()
     }
 
+    /// Adds newly connected VPN client to client state map
     pub fn connect_vpn_client(
         &mut self,
         location_id: Id,
@@ -62,7 +67,7 @@ impl ClientMap {
         device: Device<Id>,
     ) -> Result<(), ClientMapError> {
         info!(
-            "VPN client {} connected to location {location_id} through gateway {gateway_hostname}",
+            "VPN client {} with public key {public_key} connected to location {location_id} through gateway {gateway_hostname}",
             device.name
         );
 
@@ -91,11 +96,35 @@ impl ClientMap {
         Ok(())
     }
 
-    pub fn disconnect_vpn_client(&self, location_id: Id, device: Device<Id>) {
-        info!(
-            "VPN client {} disconnected from location {location_id}",
-            device.name
-        );
-        unimplemented!()
+    /// Removes disconnected VPN client from client state map
+    pub fn disconnect_vpn_client(
+        &mut self,
+        location_id: Id,
+        public_key: String,
+    ) -> Result<(), ClientMapError> {
+        info!("VPN client with public key {public_key} disconnected from location {location_id}");
+
+        // get client state map for given location
+        let location_map = match self.0.get_mut(&location_id) {
+            Some(location_map) => location_map,
+            None => {
+                return Err(ClientMapError::LocationNotFound { location_id });
+            }
+        };
+
+        // remove client from client state map
+        match location_map.remove(&public_key) {
+            Some(_) => {
+                debug!("VPN client {public_key} removed from client state map for location {location_id}");
+            }
+            None => {
+                return Err(ClientMapError::ClientNotFound {
+                    public_key,
+                    location_id,
+                });
+            }
+        };
+
+        Ok(())
     }
 }

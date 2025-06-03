@@ -28,7 +28,7 @@
 //! event_tx.send(event).await.unwrap();
 //! ```
 
-use defguard_core::events::{ApiEvent, ApiRequestContext, BidiStreamEvent, GrpcEvent};
+use defguard_core::events::{ApiEvent, BidiStreamEvent, GrpcEvent};
 use error::EventRouterError;
 use events::Event;
 use tokio::sync::{
@@ -38,7 +38,7 @@ use tokio::sync::{
 use tracing::{debug, error, info};
 
 use defguard_core::{db::GatewayEvent, mail::Mail};
-use defguard_event_logger::message::{EventLoggerMessage, LoggerEvent};
+use defguard_event_logger::message::{EventContext, EventLoggerMessage, LoggerEvent};
 
 mod error;
 mod events;
@@ -58,11 +58,11 @@ impl EventRouter {
     /// Send message to audit event logger service to persist an event in DB
     fn log_event(
         &self,
-        context: ApiRequestContext,
+        context: EventContext,
         audit_log_event: LoggerEvent,
     ) -> Result<(), EventRouterError> {
         // prepare message
-        let message = EventLoggerMessage::new(context.into(), audit_log_event);
+        let message = EventLoggerMessage::new(context, audit_log_event);
         self.event_logger_tx.send(message).map_err(|err| {
             error!("Failed to send event to logger: {err}");
             EventRouterError::EventLoggerError
